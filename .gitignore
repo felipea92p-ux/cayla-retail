@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.turbo/
+.vercel/
+.env*.local
+.env
+!.env.example
+*.log
+.DS_Store
+supabase/.branches/
+supabase/.temp/
