@@ -9,3 +9,5 @@ node_modules/
 .DS_Store
 supabase/.branches/
 supabase/.temp/
+.vercel
+.env*

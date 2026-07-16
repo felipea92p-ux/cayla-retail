@@ -36,7 +36,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isLoginPage) {
+  // Si viene con ?error=sin_persona, se queda en /login mostrando el aviso — si no,
+  // entraría en un bucle infinito con requirePersonaActual() (login.tsx/lib/persona.ts),
+  // que manda para acá cuando el usuario está autenticado pero no tiene fila en `personas`.
+  const tieneError = request.nextUrl.searchParams.has("error");
+  if (user && isLoginPage && !tieneError) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
