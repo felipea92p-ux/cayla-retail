@@ -13,6 +13,12 @@
       cuenta de Nubefact creada (ver [[project-alegra-to-nubefact-decision]] en la
       memoria de CAYLA Inventario). Reversible: sí, se agrega sobre `ventas` sin
       tocar lo existente.
+- [ ] `almacen`: rediseñar el formulario de "Recibir mercadería" — Felipe probó en
+      vivo (2026-07-17) y los campos de talla/color/categoría/costo/precio quedan
+      escondidos hasta buscar y hacer clic en "+ Crear producto nuevo", no es obvio.
+      Quiere una estructura más directa para registrar talla/color/categoría desde el
+      inicio, no como resultado de una búsqueda. A retomar en una sesión aparte
+      (decisión de diseño, no una corrección rápida). Reversible: sí.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
@@ -58,3 +64,9 @@
       ciego), Gastos, Estado de Resultados (mermas como COGS). Verificado por Felipe
       en local. "Venta" se retiró del modal de movimiento genérico — el botón
       "Vender" es la única fuente de verdad para registrar una venta.
+- [x] 2026-07-17 — Fase 3: ingreso de mercadería y almacén — un almacén hermano por
+      tienda (TRU-ALM/AQP-ALM/LIM-ALM), contenedores, `/almacen/recibir` (lotes),
+      `/almacen` (stock + "Bajar a tienda"), devolución con motivo estructurado
+      reutilizando `traslado`. Diseñado tras 24 preguntas de descubrimiento (no
+      adivinado). Verificado en producción por Felipe. Pendiente: rediseño de UX del
+      formulario de recepción (ver 🔨 CONSTRUIR).

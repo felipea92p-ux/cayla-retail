@@ -52,3 +52,27 @@ También encontré una inconsistencia real revisando el módulo: el modal de
 movimiento genérico todavía ofrecía "Venta" como motivo, lo que crearía una venta
 "fantasma" sin fila en `ventas` ni caja asociada — se retiró de ahí, el botón "Vender"
 es ahora la única forma correcta de registrar una venta.
+
+## 2026-07-17 (noche 2 — Fase 3: almacén)
+Felipe pidió expresamente 21-33 preguntas antes de diseñar el ingreso de mercadería
+("para diseñar algo formidable") — se hicieron 24, en dos tandas (4 fundacionales con
+opciones, 20 más en texto libre). Hallazgo clave que cambió el plan sobre la marcha:
+Integrante necesita poder crear un SKU nuevo al recibir un fardo (con costo/precio),
+lo que choca con la regla de Fase 1 de que solo Líder crea catálogo — Felipe decidió
+"hay que confiar en el equipo"; se resolvió sin relajar la regla general, dejando que
+`recibir_lote` cree catálogo con permisos elevados solo para sus propias inserciones
+internas (security definer), no abriendo la tabla `productos`/`variantes` a Integrante
+en general. Construido: almacén hermano por tienda, contenedores, lotes, bajada y
+devolución reutilizando `traslado`. Verificado en producción.
+
+Fricción real de la sesión, no de la app: subir a GitHub y mantener el push
+funcionando tomó muchísimo más tiempo que el código — tokens que caducan cada vez que
+se revocan, ventanas nuevas de Terminal que no heredan la carpeta de trabajo, y un
+archivo `Index.html` suelto que apareció en GitHub y causó un historial divergente
+que hubo que reconciliar con merge. Nada de esto es un problema del código de CAYLA;
+es la curva de aprendizaje normal de git/GitHub para alguien que no lo usa a diario.
+
+Felipe probó "Recibir mercadería" en vivo y dio feedback real: los campos de talla/
+color/categoría quedan escondidos hasta buscar y crear un producto nuevo, no es obvio
+a primera vista. Pidió retomar el rediseño de ese formulario en una sesión aparte —
+queda anotado en el backlog, no se improvisó un cambio de UX apurado al cierre.
