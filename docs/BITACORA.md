@@ -33,6 +33,9 @@ siquiera la Fase 1 tenía respaldo fuera de la Mac de Felipe. El primer intento 
 token embebido en la URL falló dos veces por errores de transcripción manual en
 Terminal (token duplicado); funcionó al tercer intento con el token correcto. Se
 conectó Vercel al repo de GitHub para que cada push despliegue solo, reemplazando el
-flujo anterior de deploy manual por CLI. Deploy de Inventario Inteligente confirmado
-en producción. Pendiente: Felipe confirme visualmente que ve las funciones nuevas
-logueado en `cayla-retail.vercel.app`.
+flujo anterior de deploy manual por CLI. Primer intento de conexión no disparó build
+del código ya existente (solo dispara con push nuevos); un segundo push (el commit de
+docs) lo activó. Felipe confirmó en pantalla, logueado en `cayla-retail.vercel.app`,
+que Inventario Inteligente está completo en producción: 4 KPIs, panel de alertas,
+filtros y badges. Fase 2 (Inventario Inteligente) queda cerrada de punta a punta:
+construida, verificada local y en producción, con respaldo en GitHub.
