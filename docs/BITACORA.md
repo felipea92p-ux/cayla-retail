@@ -39,3 +39,16 @@ docs) lo activó. Felipe confirmó en pantalla, logueado en `cayla-retail.vercel
 que Inventario Inteligente está completo en producción: 4 KPIs, panel de alertas,
 filtros y badges. Fase 2 (Inventario Inteligente) queda cerrada de punta a punta:
 construida, verificada local y en producción, con respaldo en GitHub.
+
+## 2026-07-17 (madrugada)
+Retomada la Fase 2 financiera. Investigué manejo de caja retail y contabilidad antes
+de diseñar (conteo ciego, mermas como COGS, categorías de gasto estructuradas — no
+solo inventado). Construidos Diario de Caja, Gastos y Estado de Resultados sobre
+tablas nuevas (`cajas`, `ventas`, `gastos`). Felipe probó en vivo y dio feedback real
+que corregí en el momento: el formulario de gasto pedía subtotal cuando lo natural es
+partir del total del comprobante (se invirtió el cálculo), y la diferencia de caja se
+mostraba en rojo sin importar el signo (se corrigió a verde/rojo según sobra o falta).
+También encontré una inconsistencia real revisando el módulo: el modal de
+movimiento genérico todavía ofrecía "Venta" como motivo, lo que crearía una venta
+"fantasma" sin fila en `ventas` ni caja asociada — se retiró de ahí, el botón "Vender"
+es ahora la única forma correcta de registrar una venta.

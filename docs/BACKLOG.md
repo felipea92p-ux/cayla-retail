@@ -5,14 +5,14 @@
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] `finanzas`: Fase 2 financiera (Diario de caja, Gastos, Estado de Resultados)
-      Desbloquea: reportes reales de rentabilidad por sede. Depende de: decidir cómo
-      capturar ventas (formulario simple sin Nubefact, o extender el modal de
-      movimiento con método de pago). Reversible: sí (módulo nuevo, no toca lo demás).
-      Por qué importa: hoy Felipe no tiene forma de ver utilidad neta por sede.
 - [ ] `produccion`/`compras`: UI sobre `ordenes_produccion`/`ordenes_compra`
       Desbloquea: dejar de llevar producción/compras fuera del sistema. Depende de:
       tablas ya existen desde Fase 1, sin UI. Reversible: sí.
+- [ ] `finanzas`: emisión de comprobante electrónico (Nubefact/SUNAT)
+      Desbloquea: boletas/facturas reales desde una venta registrada. Depende de:
+      cuenta de Nubefact creada (ver [[project-alegra-to-nubefact-decision]] en la
+      memoria de CAYLA Inventario). Reversible: sí, se agrega sobre `ventas` sin
+      tocar lo existente.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
@@ -54,3 +54,7 @@
       antes solo existía en esta Mac, sin respaldo. Vercel conectado al repo para
       deploy automático en cada push; deploy de Inventario Inteligente confirmado
       en `cayla-retail.vercel.app`.
+- [x] 2026-07-17 — Fase 2 financiera: Diario de Caja (apertura/cierre con conteo
+      ciego), Gastos, Estado de Resultados (mermas como COGS). Verificado por Felipe
+      en local. "Venta" se retiró del modal de movimiento genérico — el botón
+      "Vender" es la única fuente de verdad para registrar una venta.
