@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TIPOS_MOVIMIENTO, type Sede } from "@cayla-retail/shared";
+import { TIPOS_MOVIMIENTO, MOTIVOS_SALIDA } from "@cayla-retail/shared";
 
 type Props = {
   varianteId: string;
@@ -20,6 +20,14 @@ const ETIQUETA_TIPO: Record<(typeof TIPOS_MOVIMIENTO)[number], string> = {
   salida: "Salida",
   ajuste: "Ajuste (conteo físico)",
   traslado: "Traslado a otra sede",
+};
+
+const ETIQUETA_MOTIVO_SALIDA: Record<(typeof MOTIVOS_SALIDA)[number], string> = {
+  venta: "Venta",
+  merma: "Merma / pérdida",
+  regalo: "Regalo o cortesía",
+  muestra: "Muestra",
+  otro: "Otro (especificar en nota)",
 };
 
 export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodigo, otrasSedes, onClose }: Props) {
@@ -66,7 +74,11 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
             <label className="text-sm font-medium text-neutral-700">Tipo de movimiento</label>
             <select
               value={tipo}
-              onChange={(e) => setTipo(e.target.value as (typeof TIPOS_MOVIMIENTO)[number])}
+              onChange={(e) => {
+                const nuevoTipo = e.target.value as (typeof TIPOS_MOVIMIENTO)[number];
+                setTipo(nuevoTipo);
+                setMotivo(nuevoTipo === "salida" ? MOTIVOS_SALIDA[0] : "");
+              }}
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             >
               {TIPOS_MOVIMIENTO.map((t) => (
@@ -106,15 +118,32 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-neutral-700">Motivo (opcional)</label>
-            <input
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Ej. Recepción de pedido"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            />
-          </div>
+          {tipo === "salida" ? (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-700">Motivo</label>
+              <select
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              >
+                {MOTIVOS_SALIDA.map((m) => (
+                  <option key={m} value={m}>
+                    {ETIQUETA_MOTIVO_SALIDA[m]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-700">Motivo (opcional)</label>
+              <input
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Ej. Recepción de pedido"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              />
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

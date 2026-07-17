@@ -7,6 +7,8 @@ export type VarianteConStock = {
   sku: string;
   referencia: string;
   categoria: string | null;
+  marca: string | null;
+  estado: string | null;
   talla: string | null;
   color: string | null;
   stockMinimo: number;
@@ -21,7 +23,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
 
   const { data: variantes, error: errVariantes } = await supabase
     .from("variantes")
-    .select("id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, categoria, estado)")
+    .select("id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, categoria, marca, estado)")
     .order("sku");
 
   if (errVariantes || !variantes) return [];
@@ -56,6 +58,8 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         sku: v.sku,
         referencia: producto?.referencia ?? "(sin referencia)",
         categoria: producto?.categoria ?? null,
+        marca: producto?.marca ?? null,
+        estado: producto?.estado ?? null,
         talla: v.talla,
         color: v.color,
         stockMinimo: v.stock_minimo,
