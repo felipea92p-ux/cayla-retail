@@ -26,3 +26,13 @@ aprendió a diagnosticar esto con una consulta antes de borrar nada, y por qué 
 bloqueó el primer intento de borrado (una de las filas ya tenía movimientos reales
 asociados). Se agregó `unique(auth_user_id)` para que esta clase de error sea
 imposible de repetir.
+
+## 2026-07-17 (noche)
+Se subió cayla-retail a GitHub por primera vez — no tenía remoto configurado, ni
+siquiera la Fase 1 tenía respaldo fuera de la Mac de Felipe. El primer intento con
+token embebido en la URL falló dos veces por errores de transcripción manual en
+Terminal (token duplicado); funcionó al tercer intento con el token correcto. Se
+conectó Vercel al repo de GitHub para que cada push despliegue solo, reemplazando el
+flujo anterior de deploy manual por CLI. Deploy de Inventario Inteligente confirmado
+en producción. Pendiente: Felipe confirme visualmente que ve las funciones nuevas
+logueado en `cayla-retail.vercel.app`.

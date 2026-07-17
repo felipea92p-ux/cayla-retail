@@ -10,9 +10,6 @@
       capturar ventas (formulario simple sin Nubefact, o extender el modal de
       movimiento con método de pago). Reversible: sí (módulo nuevo, no toca lo demás).
       Por qué importa: hoy Felipe no tiene forma de ver utilidad neta por sede.
-- [ ] `deploy`: subir Inventario Inteligente a `cayla-retail.vercel.app`
-      Desbloquea: que el equipo real use esto, no solo Felipe en local. Depende de:
-      nada — ya está commiteado y verificado. Reversible: sí.
 - [ ] `produccion`/`compras`: UI sobre `ordenes_produccion`/`ordenes_compra`
       Desbloquea: dejar de llevar producción/compras fuera del sistema. Depende de:
       tablas ya existen desde Fase 1, sin UI. Reversible: sí.
@@ -53,3 +50,7 @@
 - [x] 2026-07-17 — Fix RLS: traslados visibles para la sede que los recibe → ADR-0001
 - [x] 2026-07-17 — Fix: 4 filas duplicadas en `personas` bloqueaban el login de Felipe;
       agregado `unique(auth_user_id)` para que no se repita → ADR-0002
+- [x] 2026-07-17 — Repo conectado a GitHub (`felipea92p-ux/cayla-retail`, privado) —
+      antes solo existía en esta Mac, sin respaldo. Vercel conectado al repo para
+      deploy automático en cada push; deploy de Inventario Inteligente confirmado
+      en `cayla-retail.vercel.app`.
