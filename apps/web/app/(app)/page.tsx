@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
+import { getCajaAbierta } from "@/lib/finanzas";
 import { createClient } from "@/lib/supabase/server";
 import { CatalogoList } from "@/components/CatalogoList";
+import { CajaPanel } from "@/components/CajaPanel";
 
 export default async function InicioPage() {
   const persona = await requirePersonaActual();
@@ -12,11 +14,22 @@ export default async function InicioPage() {
   const sedesResult = await supabase.from("sedes").select("id, codigo").order("codigo");
   const sedes: { id: string; codigo: string }[] = sedesResult.data ?? [];
   const { variantes, alertasReposicion, alertasTraslado } = await getCatalogoInteligente(persona);
+  const cajaAbierta = await getCajaAbierta(persona.sedeId);
 
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? {
     id: persona.sedeId,
     codigo: persona.sedeCodigo,
   };
+
+  const variantesParaVenta = variantes.map((v) => ({
+    varianteId: v.varianteId,
+    sku: v.sku,
+    referencia: v.referencia,
+    talla: v.talla,
+    color: v.color,
+    precio: v.precio,
+    stockAqui: v.stockPorSede[persona.sedeCodigo] ?? 0,
+  }));
 
   const reponerYa = variantes.filter((v) => v.reponerYa).length;
   const estancados = variantes.filter((v) => v.estancado).length;
@@ -24,6 +37,18 @@ export default async function InicioPage() {
 
   return (
     <div className="space-y-6">
+      <CajaPanel
+        sedeId={persona.sedeId}
+        sedeCodigo={persona.sedeCodigo}
+        cajaAbierta={cajaAbierta}
+        variantes={variantesParaVenta}
+      />
+      {esLider && (
+        <Link href="/finanzas" className="inline-block text-sm text-neutral-500 hover:text-neutral-900 hover:underline">
+          Ver Diario de caja, Gastos y Estado de Resultados →
+        </Link>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs text-neutral-400">Referencias</p>

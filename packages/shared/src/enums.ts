@@ -34,3 +34,22 @@ export type EstadoOrdenProduccion = (typeof ESTADOS_ORDEN_PRODUCCION)[number];
 // afinar por categoría/sede — se ajustan aquí si la operación real lo pide.
 export const UMBRAL_ESTANCADO_DIAS = 45; // días sin ninguna Salida para considerar estancado
 export const LEAD_TIME_DIAS = 14; // días asumidos de reposición, para el reorder point
+
+// Fase 2 financiera (apps/web/lib/finanzas.ts, supabase/migrations/0007_finanzas.sql).
+export const METODOS_PAGO = ["efectivo", "pos", "yape", "transferencia"] as const;
+export type MetodoPago = (typeof METODOS_PAGO)[number];
+
+// Categorías fijas de gasto — todas operativas por definición (el COGS sale de
+// variantes.costo × ventas, las mermas de movimientos.motivo='merma'; nunca de una
+// fila de Gastos). Lista corta a propósito: no es un plan contable de 60-90 cuentas,
+// es lo que necesitan 3 tiendas + 1 taller.
+export const GASTO_CATEGORIAS = [
+  "alquiler",
+  "servicios",
+  "planilla",
+  "transporte",
+  "marketing",
+  "mantenimiento",
+  "otro",
+] as const;
+export type GastoCategoria = (typeof GASTO_CATEGORIAS)[number];

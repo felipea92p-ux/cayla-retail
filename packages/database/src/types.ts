@@ -74,6 +74,121 @@ export type Database = {
           },
         ]
       }
+      cajas: {
+        Row: {
+          abierta_en: string
+          abierta_por: string | null
+          cerrada_en: string | null
+          cerrada_por: string | null
+          diferencia: number | null
+          estado: string
+          id: string
+          monto_apertura: number
+          monto_cierre_contado: number | null
+          monto_cierre_esperado: number | null
+          sede_id: string
+        }
+        Insert: {
+          abierta_en?: string
+          abierta_por?: string | null
+          cerrada_en?: string | null
+          cerrada_por?: string | null
+          diferencia?: number | null
+          estado?: string
+          id?: string
+          monto_apertura: number
+          monto_cierre_contado?: number | null
+          monto_cierre_esperado?: number | null
+          sede_id: string
+        }
+        Update: {
+          abierta_en?: string
+          abierta_por?: string | null
+          cerrada_en?: string | null
+          cerrada_por?: string | null
+          diferencia?: number | null
+          estado?: string
+          id?: string
+          monto_apertura?: number
+          monto_cierre_contado?: number | null
+          monto_cierre_esperado?: number | null
+          sede_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cajas_abierta_por_fkey"
+            columns: ["abierta_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cajas_cerrada_por_fkey"
+            columns: ["cerrada_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cajas_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos: {
+        Row: {
+          categoria: string
+          created_at: string
+          especificacion: string | null
+          id: string
+          igv: number
+          sede_id: string
+          subtotal: number
+          total: number
+          usuario_id: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          sede_id: string
+          subtotal?: number
+          total: number
+          usuario_id?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          sede_id?: string
+          subtotal?: number
+          total?: number
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimientos: {
         Row: {
           canal: string | null
@@ -490,11 +605,70 @@ export type Database = {
           },
         ]
       }
+      ventas: {
+        Row: {
+          caja_id: string
+          created_at: string
+          id: string
+          metodo_pago: string
+          monto_total: number
+          nota: string | null
+          sede_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          caja_id: string
+          created_at?: string
+          id?: string
+          metodo_pago: string
+          monto_total: number
+          nota?: string | null
+          sede_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          caja_id?: string
+          created_at?: string
+          id?: string
+          metodo_pago?: string
+          monto_total?: number
+          nota?: string | null
+          sede_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ventas_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ventas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      abrir_caja: {
+        Args: { p_monto_apertura: number; p_sede_id: string }
+        Returns: string
+      }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -520,7 +694,22 @@ export type Database = {
         }
       }
       fn_sede_actual_persona: { Args: never; Returns: string }
+      cerrar_caja: {
+        Args: { p_caja_id: string; p_monto_contado: number }
+        Returns: { diferencia: number; monto_contado: number; monto_esperado: number }[]
+      }
       recalcular_stock: { Args: never; Returns: undefined }
+      registrar_gasto: {
+        Args: {
+          p_categoria: string
+          p_especificacion?: string
+          p_igv: number
+          p_sede_id: string
+          p_subtotal: number
+          p_total: number
+        }
+        Returns: string
+      }
       registrar_movimiento: {
         Args: {
           p_canal?: string
@@ -533,6 +722,15 @@ export type Database = {
           p_tipo: string
           p_variante_id: string
           p_venta_id?: string
+        }
+        Returns: string
+      }
+      registrar_venta: {
+        Args: {
+          p_caja_id: string
+          p_items: Json
+          p_metodo_pago: string
+          p_nota?: string
         }
         Returns: string
       }

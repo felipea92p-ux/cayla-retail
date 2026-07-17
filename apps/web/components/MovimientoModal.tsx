@@ -30,6 +30,13 @@ const ETIQUETA_MOTIVO_SALIDA: Record<(typeof MOTIVOS_SALIDA)[number], string> = 
   otro: "Otro (especificar en nota)",
 };
 
+// "Venta" queda fuera de este modal a propósito: registrarla acá crearía un
+// movimiento sin fila en `ventas` ni caja asociada — el Estado de Resultados lo
+// contaría como venta, pero el Diario de Caja nunca lo vería (no hay método de pago
+// ni caja). Una venta real se registra con el botón "Vender" del dashboard
+// (RegistrarVentaModal), la única fuente de verdad para eso.
+const MOTIVOS_SALIDA_MANUAL = MOTIVOS_SALIDA.filter((m) => m !== "venta");
+
 export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodigo, otrasSedes, onClose }: Props) {
   const router = useRouter();
   const [tipo, setTipo] = useState<(typeof TIPOS_MOVIMIENTO)[number]>("entrada");
@@ -77,7 +84,7 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
               onChange={(e) => {
                 const nuevoTipo = e.target.value as (typeof TIPOS_MOVIMIENTO)[number];
                 setTipo(nuevoTipo);
-                setMotivo(nuevoTipo === "salida" ? MOTIVOS_SALIDA[0] : "");
+                setMotivo(nuevoTipo === "salida" ? MOTIVOS_SALIDA_MANUAL[0] : "");
               }}
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             >
@@ -126,12 +133,16 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
                 onChange={(e) => setMotivo(e.target.value)}
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               >
-                {MOTIVOS_SALIDA.map((m) => (
+                {MOTIVOS_SALIDA_MANUAL.map((m) => (
                   <option key={m} value={m}>
                     {ETIQUETA_MOTIVO_SALIDA[m]}
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-neutral-400">
+                ¿Es una venta? Usa el botón <span className="font-medium">Vender</span> del dashboard — así queda
+                asociada a la caja y al método de pago.
+              </p>
             </div>
           ) : (
             <div className="space-y-1.5">
