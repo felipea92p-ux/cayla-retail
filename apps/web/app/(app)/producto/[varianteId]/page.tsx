@@ -69,6 +69,17 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const { data: sedesData } = await supabase.from("sedes").select("id, codigo");
   const sedePorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
 
+  const { data: stockConContenedor } = await supabase
+    .from("stock")
+    .select("sede_id, contenedores(codigo)")
+    .eq("variante_id", varianteId);
+  const contenedorPorSedeCodigo = new Map(
+    (stockConContenedor ?? []).map((s) => {
+      const contenedor = Array.isArray(s.contenedores) ? s.contenedores[0] : s.contenedores;
+      return [sedePorId.get(s.sede_id) ?? "", contenedor?.codigo ?? null];
+    })
+  );
+
   const { data: movimientos } = await supabase
     .from("movimientos")
     .select("id, tipo, cantidad, motivo, sede_id, sede_destino_id, usuario_id, nota, created_at")
@@ -158,11 +169,15 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
       <div>
         <h2 className="mb-2 text-sm font-semibold text-neutral-900">Stock por sede</h2>
         <div className="flex flex-wrap gap-1.5">
-          {Object.entries(v.stockPorSede).map(([codigo, cantidad]) => (
-            <span key={codigo} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600">
-              {codigo} <b>{cantidad}</b>
-            </span>
-          ))}
+          {Object.entries(v.stockPorSede).map(([codigo, cantidad]) => {
+            const contenedor = contenedorPorSedeCodigo.get(codigo);
+            return (
+              <span key={codigo} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600">
+                {codigo} <b>{cantidad}</b>
+                {contenedor && <span className="text-neutral-400"> · {contenedor}</span>}
+              </span>
+            );
+          })}
         </div>
       </div>
 

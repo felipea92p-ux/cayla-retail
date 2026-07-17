@@ -5,7 +5,7 @@
 export const SEDES = ["TRU", "AQP", "LIM", "TALLER"] as const;
 export type Sede = (typeof SEDES)[number];
 
-export const TIPOS_SEDE = ["tienda", "fabrica"] as const;
+export const TIPOS_SEDE = ["tienda", "fabrica", "almacen"] as const;
 export type TipoSede = (typeof TIPOS_SEDE)[number];
 
 export const CANALES_VENTA = ["tienda", "online"] as const;
@@ -53,3 +53,16 @@ export const GASTO_CATEGORIAS = [
   "otro",
 ] as const;
 export type GastoCategoria = (typeof GASTO_CATEGORIAS)[number];
+
+// Fase 3: ingreso de mercadería y almacén (supabase/migrations/0008_almacen.sql).
+export const ORIGENES_LOTE = ["taller", "proveedor"] as const;
+export type OrigenLote = (typeof ORIGENES_LOTE)[number];
+
+export const TIPOS_CONTENEDOR = ["estante", "caja"] as const;
+export type TipoContenedor = (typeof TIPOS_CONTENEDOR)[number];
+
+// Motivo al devolver mercadería de tienda a almacén (traslado tienda→almacén) — no
+// vendida, dañada (dos destinos posibles: reparar o donar), o hay que devolverla al
+// proveedor. Distinto de MOTIVOS_SALIDA, que es para salidas de una sede sin destino.
+export const MOTIVOS_DEVOLUCION = ["no_vendida", "danada_reparacion", "danada_donar", "devolver_proveedor"] as const;
+export type MotivoDevolucion = (typeof MOTIVOS_DEVOLUCION)[number];

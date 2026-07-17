@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TIPOS_MOVIMIENTO, MOTIVOS_SALIDA } from "@cayla-retail/shared";
+import { TIPOS_MOVIMIENTO, MOTIVOS_SALIDA, MOTIVOS_DEVOLUCION } from "@cayla-retail/shared";
+
+type SedeDestino = { id: string; codigo: string; esAlmacen: boolean };
 
 type Props = {
   varianteId: string;
@@ -11,7 +13,8 @@ type Props = {
   sku: string;
   sedeId: string;
   sedeCodigo: string;
-  otrasSedes: { id: string; codigo: string }[];
+  otrasSedes: SedeDestino[];
+  contenedoresAlmacen: { id: string; codigo: string }[];
   onClose: () => void;
 };
 
@@ -30,6 +33,13 @@ const ETIQUETA_MOTIVO_SALIDA: Record<(typeof MOTIVOS_SALIDA)[number], string> = 
   otro: "Otro (especificar en nota)",
 };
 
+const ETIQUETA_MOTIVO_DEVOLUCION: Record<(typeof MOTIVOS_DEVOLUCION)[number], string> = {
+  no_vendida: "No vendida (vuelve a rotar)",
+  danada_reparacion: "Dañada — necesita reparación/lavado",
+  danada_donar: "Dañada — para donar",
+  devolver_proveedor: "Devolver al proveedor",
+};
+
 // "Venta" queda fuera de este modal a propósito: registrarla acá crearía un
 // movimiento sin fila en `ventas` ni caja asociada — el Estado de Resultados lo
 // contaría como venta, pero el Diario de Caja nunca lo vería (no hay método de pago
@@ -37,14 +47,28 @@ const ETIQUETA_MOTIVO_SALIDA: Record<(typeof MOTIVOS_SALIDA)[number], string> = 
 // (RegistrarVentaModal), la única fuente de verdad para eso.
 const MOTIVOS_SALIDA_MANUAL = MOTIVOS_SALIDA.filter((m) => m !== "venta");
 
-export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodigo, otrasSedes, onClose }: Props) {
+export function MovimientoModal({
+  varianteId,
+  referencia,
+  sku,
+  sedeId,
+  sedeCodigo,
+  otrasSedes,
+  contenedoresAlmacen,
+  onClose,
+}: Props) {
   const router = useRouter();
   const [tipo, setTipo] = useState<(typeof TIPOS_MOVIMIENTO)[number]>("entrada");
   const [cantidad, setCantidad] = useState(1);
   const [motivo, setMotivo] = useState("");
+  const [motivoDevolucion, setMotivoDevolucion] = useState<(typeof MOTIVOS_DEVOLUCION)[number]>(MOTIVOS_DEVOLUCION[0]);
+  const [contenedorDestinoId, setContenedorDestinoId] = useState(contenedoresAlmacen[0]?.id ?? "");
   const [sedeDestinoId, setSedeDestinoId] = useState(otrasSedes[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const sedeDestino = otrasSedes.find((s) => s.id === sedeDestinoId);
+  const esDevolucion = tipo === "traslado" && sedeDestino?.esAlmacen === true;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,8 +81,9 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
       p_sede_id: sedeId,
       p_tipo: tipo,
       p_cantidad: cantidad,
-      p_motivo: motivo || undefined,
+      p_motivo: esDevolucion ? motivoDevolucion : motivo || undefined,
       p_sede_destino_id: tipo === "traslado" ? sedeDestinoId : undefined,
+      p_contenedor_id: esDevolucion ? contenedorDestinoId || undefined : undefined,
     });
 
     setLoading(false);
@@ -98,7 +123,9 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
 
           {tipo === "traslado" && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-neutral-700">Sede destino</label>
+              <label className="text-sm font-medium text-neutral-700">
+                {esDevolucion ? "Devolver a" : "Sede destino"}
+              </label>
               <select
                 value={sedeDestinoId}
                 onChange={(e) => setSedeDestinoId(e.target.value)}
@@ -107,6 +134,7 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
                 {otrasSedes.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.codigo}
+                    {s.esAlmacen ? " (almacén)" : ""}
                   </option>
                 ))}
               </select>
@@ -125,7 +153,41 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
             />
           </div>
 
-          {tipo === "salida" ? (
+          {esDevolucion ? (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-neutral-700">Motivo de la devolución</label>
+                <select
+                  value={motivoDevolucion}
+                  onChange={(e) => setMotivoDevolucion(e.target.value as (typeof MOTIVOS_DEVOLUCION)[number])}
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  {MOTIVOS_DEVOLUCION.map((m) => (
+                    <option key={m} value={m}>
+                      {ETIQUETA_MOTIVO_DEVOLUCION[m]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {contenedoresAlmacen.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-neutral-700">Contenedor en el almacén</label>
+                  <select
+                    value={contenedorDestinoId}
+                    onChange={(e) => setContenedorDestinoId(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Sin contenedor</option>
+                    {contenedoresAlmacen.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.codigo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          ) : tipo === "salida" ? (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-neutral-700">Motivo</label>
               <select
@@ -171,7 +233,7 @@ export function MovimientoModal({ varianteId, referencia, sku, sedeId, sedeCodig
               disabled={loading}
               className="flex-1 rounded-lg bg-neutral-900 px-3 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
             >
-              {loading ? "Guardando…" : "Guardar"}
+              {loading ? "Guardando…" : esDevolucion ? "Devolver a almacén" : "Guardar"}
             </button>
           </div>
         </form>

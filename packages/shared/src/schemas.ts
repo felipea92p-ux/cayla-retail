@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { SEDES, TIPOS_MOVIMIENTO, CANALES_VENTA, MOTIVOS_SALIDA, METODOS_PAGO, GASTO_CATEGORIAS } from "./enums";
+import {
+  SEDES,
+  TIPOS_MOVIMIENTO,
+  CANALES_VENTA,
+  MOTIVOS_SALIDA,
+  METODOS_PAGO,
+  GASTO_CATEGORIAS,
+  ORIGENES_LOTE,
+  MOTIVOS_DEVOLUCION,
+} from "./enums";
 
 export const sedeSchema = z.enum(SEDES);
 
@@ -61,3 +70,50 @@ export const gastoInputSchema = z.object({
   especificacion: z.string().optional(),
 });
 export type GastoInput = z.infer<typeof gastoInputSchema>;
+
+// Un ítem de lote: variante existente (solo suma cantidad), o variante nueva bajo un
+// producto existente, o producto + variante totalmente nuevos.
+export const loteItemSchema = z
+  .object({
+    varianteId: z.string().uuid().optional(),
+    productoId: z.string().uuid().optional(),
+    skuPadre: z.string().optional(),
+    sku: z.string().optional(),
+    referencia: z.string().optional(),
+    categoria: z.string().optional(),
+    genero: z.string().optional(),
+    marca: z.string().optional(),
+    temporada: z.string().optional(),
+    talla: z.string().optional(),
+    color: z.string().optional(),
+    costo: z.number().nonnegative().optional(),
+    precio: z.number().nonnegative().optional(),
+    stockMinimo: z.number().int().nonnegative().optional(),
+    cantidad: z.number().int().positive(),
+    contenedorId: z.string().uuid().optional(),
+  })
+  .refine((v) => v.varianteId || (v.sku && v.costo != null && v.precio != null), {
+    message: "Una variante nueva necesita SKU, costo y precio",
+    path: ["sku"],
+  });
+
+export const recibirLoteInputSchema = z.object({
+  sedeId: z.string().uuid(),
+  origen: z.enum(ORIGENES_LOTE),
+  proveedor: z.string().optional(),
+  numeroGuia: z.string().optional(),
+  nota: z.string().optional(),
+  items: z.array(loteItemSchema).min(1, "El lote no tiene ítems"),
+});
+export type RecibirLoteInput = z.infer<typeof recibirLoteInputSchema>;
+
+export const devolucionInputSchema = z.object({
+  varianteId: z.string().uuid(),
+  sedeId: z.string().uuid(), // tienda de origen
+  sedeDestinoId: z.string().uuid(), // almacén de destino
+  cantidad: z.number().int().positive(),
+  motivo: z.enum(MOTIVOS_DEVOLUCION),
+  contenedorId: z.string().uuid().optional(),
+  nota: z.string().optional(),
+});
+export type DevolucionInput = z.infer<typeof devolucionInputSchema>;

@@ -138,6 +138,38 @@ export type Database = {
           },
         ]
       }
+      contenedores: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          sede_id: string
+          tipo: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          sede_id: string
+          tipo: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          sede_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contenedores_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           categoria: string
@@ -189,12 +221,65 @@ export type Database = {
           },
         ]
       }
+      lotes: {
+        Row: {
+          created_at: string
+          fecha_recepcion: string
+          id: string
+          nota: string | null
+          numero_guia: string | null
+          origen: string
+          proveedor: string | null
+          recibido_por: string | null
+          sede_id: string
+        }
+        Insert: {
+          created_at?: string
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          origen: string
+          proveedor?: string | null
+          recibido_por?: string | null
+          sede_id: string
+        }
+        Update: {
+          created_at?: string
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          origen?: string
+          proveedor?: string | null
+          recibido_por?: string | null
+          sede_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_recibido_por_fkey"
+            columns: ["recibido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimientos: {
         Row: {
           canal: string | null
           cantidad: number
+          contenedor_id: string | null
           created_at: string
           id: string
+          lote_id: string | null
           monto: number | null
           motivo: string | null
           nota: string | null
@@ -208,8 +293,10 @@ export type Database = {
         Insert: {
           canal?: string | null
           cantidad: number
+          contenedor_id?: string | null
           created_at?: string
           id?: string
+          lote_id?: string | null
           monto?: number | null
           motivo?: string | null
           nota?: string | null
@@ -223,8 +310,10 @@ export type Database = {
         Update: {
           canal?: string | null
           cantidad?: number
+          contenedor_id?: string | null
           created_at?: string
           id?: string
+          lote_id?: string | null
           monto?: number | null
           motivo?: string | null
           nota?: string | null
@@ -236,6 +325,20 @@ export type Database = {
           venta_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movimientos_contenedor_id_fkey"
+            columns: ["contenedor_id"]
+            isOneToOne: false
+            referencedRelation: "contenedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimientos_sede_destino_id_fkey"
             columns: ["sede_destino_id"]
@@ -487,6 +590,7 @@ export type Database = {
           created_at: string
           id: string
           nombre: string
+          tienda_asociada_id: string | null
           tipo: string
           updated_at: string
         }
@@ -496,6 +600,7 @@ export type Database = {
           created_at?: string
           id?: string
           nombre: string
+          tienda_asociada_id?: string | null
           tipo: string
           updated_at?: string
         }
@@ -505,14 +610,24 @@ export type Database = {
           created_at?: string
           id?: string
           nombre?: string
+          tienda_asociada_id?: string | null
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sedes_tienda_asociada_id_fkey"
+            columns: ["tienda_asociada_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock: {
         Row: {
           cantidad: number
+          contenedor_id: string | null
           sede_id: string
           ultima_entrada: string | null
           ultima_salida: string | null
@@ -521,6 +636,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number
+          contenedor_id?: string | null
           sede_id: string
           ultima_entrada?: string | null
           ultima_salida?: string | null
@@ -529,6 +645,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          contenedor_id?: string | null
           sede_id?: string
           ultima_entrada?: string | null
           ultima_salida?: string | null
@@ -536,6 +653,13 @@ export type Database = {
           variante_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_contenedor_id_fkey"
+            columns: ["contenedor_id"]
+            isOneToOne: false
+            referencedRelation: "contenedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_sede_id_fkey"
             columns: ["sede_id"]
@@ -710,10 +834,23 @@ export type Database = {
         }
         Returns: string
       }
+      recibir_lote: {
+        Args: {
+          p_items: Json
+          p_nota?: string
+          p_numero_guia?: string
+          p_origen: string
+          p_proveedor?: string
+          p_sede_id: string
+        }
+        Returns: string
+      }
       registrar_movimiento: {
         Args: {
           p_canal?: string
           p_cantidad: number
+          p_contenedor_id?: string
+          p_lote_id?: string
           p_monto?: number
           p_motivo?: string
           p_nota?: string

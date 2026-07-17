@@ -11,14 +11,21 @@ export default async function InicioPage() {
   const supabase = await createClient();
   const esLider = persona.rol === "lider";
 
-  const sedesResult = await supabase.from("sedes").select("id, codigo").order("codigo");
-  const sedes: { id: string; codigo: string }[] = sedesResult.data ?? [];
+  const sedesResult = await supabase.from("sedes").select("id, codigo, tipo").order("codigo");
+  const todasSedes: { id: string; codigo: string; tipo: string }[] = sedesResult.data ?? [];
+  const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
   const { variantes, alertasReposicion, alertasTraslado } = await getCatalogoInteligente(persona);
   const cajaAbierta = await getCajaAbierta(persona.sedeId);
 
-  const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? {
+  const almacenPropio = todasSedes.find((s) => s.tipo === "almacen" && s.codigo === `${persona.sedeCodigo}-ALM`) ?? null;
+  const { data: contenedoresAlmacen } = almacenPropio
+    ? await supabase.from("contenedores").select("id, codigo").eq("sede_id", almacenPropio.id).order("codigo")
+    : { data: [] };
+
+  const sedeActual = sedesOperativas.find((s) => s.id === persona.sedeId) ?? {
     id: persona.sedeId,
     codigo: persona.sedeCodigo,
+    tipo: "tienda",
   };
 
   const variantesParaVenta = variantes.map((v) => ({
@@ -43,11 +50,23 @@ export default async function InicioPage() {
         cajaAbierta={cajaAbierta}
         variantes={variantesParaVenta}
       />
-      {esLider && (
-        <Link href="/finanzas" className="inline-block text-sm text-neutral-500 hover:text-neutral-900 hover:underline">
-          Ver Diario de caja, Gastos y Estado de Resultados →
-        </Link>
-      )}
+      <div className="flex flex-wrap gap-3">
+        {esLider && (
+          <Link href="/finanzas" className="text-sm text-neutral-500 hover:text-neutral-900 hover:underline">
+            Ver Diario de caja, Gastos y Estado de Resultados →
+          </Link>
+        )}
+        {almacenPropio && (
+          <>
+            <Link href="/almacen" className="text-sm text-neutral-500 hover:text-neutral-900 hover:underline">
+              Ver almacén ({almacenPropio.codigo}) →
+            </Link>
+            <Link href="/almacen/recibir" className="text-sm text-neutral-500 hover:text-neutral-900 hover:underline">
+              Recibir mercadería →
+            </Link>
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-neutral-200 bg-white p-4">
@@ -104,7 +123,14 @@ export default async function InicioPage() {
         </div>
       )}
 
-      <CatalogoList variantes={variantes} sedeActual={sedeActual} todasLasSedes={sedes} esLider={esLider} />
+      <CatalogoList
+        variantes={variantes}
+        sedeActual={sedeActual}
+        todasLasSedes={sedesOperativas}
+        esLider={esLider}
+        almacenPropio={almacenPropio}
+        contenedoresAlmacen={contenedoresAlmacen ?? []}
+      />
     </div>
   );
 }

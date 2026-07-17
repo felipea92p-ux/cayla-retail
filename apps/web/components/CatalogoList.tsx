@@ -24,11 +24,15 @@ export function CatalogoList({
   sedeActual,
   todasLasSedes,
   esLider,
+  almacenPropio,
+  contenedoresAlmacen,
 }: {
   variantes: VarianteInteligente[];
   sedeActual: Sede;
   todasLasSedes: Sede[];
   esLider: boolean;
+  almacenPropio: { id: string; codigo: string } | null;
+  contenedoresAlmacen: { id: string; codigo: string }[];
 }) {
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState(SIN_FILTRO);
@@ -73,7 +77,10 @@ export function CatalogoList({
     return out;
   }, [variantes, q, categoria, marca, talla, color, estado, soloBajoStock, soloEstancado, soloReponerYa, orden]);
 
-  const otrasSedes = todasLasSedes.filter((s) => s.id !== sedeActual.id);
+  const otrasSedes = [
+    ...todasLasSedes.filter((s) => s.id !== sedeActual.id).map((s) => ({ ...s, esAlmacen: false })),
+    ...(almacenPropio ? [{ ...almacenPropio, esAlmacen: true }] : []),
+  ];
 
   const selectCls = "rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-700";
   const toggleCls = (activo: boolean) =>
@@ -226,6 +233,7 @@ export function CatalogoList({
           sedeId={sedeActual.id}
           sedeCodigo={sedeActual.codigo}
           otrasSedes={otrasSedes}
+          contenedoresAlmacen={contenedoresAlmacen}
           onClose={() => setAbierto(null)}
         />
       )}
