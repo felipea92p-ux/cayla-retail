@@ -95,3 +95,30 @@ sigue esto (`personas.rol` = `lider`/`integrante`, tabla `sedes`).
 Español siempre — incluyendo comentarios de código cuando documenten lógica de
 negocio (no en nombres de variables/funciones, que siguen convención en inglés
 estándar de la industria, como ya hace el repo).
+
+## Protocolo de pregunta y de docencia
+
+El protocolo completo (cuándo pregunto vs. decido, formato de opciones con
+Ganas/Pagas, formato de enseñanza QUÉ HICE/POR QUÉ ASÍ/QUÉ SE ROMPERÍA SIN ESTO) vive
+en `~/.claude/CLAUDE.md` — es global a todos los proyectos de Felipe, no se repite
+aquí. Lo único específico de CAYLA: el ejemplo de "consecuencia de negocio" es una
+decisión sobre cómo opera el negocio real (ej. a qué sede reingresa una devolución),
+nunca sobre Postgres/Next.js/RLS — eso lo decido yo, con la razón en 3 líneas.
+
+**Extra sobre lo global, solo aquí:** cuando el cambio toca el modelo de datos o
+introduce un concepto nuevo, agrego a las 3 líneas de siempre: el concepto en 4-6
+líneas empezando por el problema (no la definición), la analogía desde CAYLA
+(inventario/taller/sede — nunca "imagina una caja"), cómo se ve mal hecho, y
+archivo:línea para volver a verlo. Desarrollo completo a pedido: `/explica <tema>`.
+
+## Ritual de sesión y estado vivo (específico de este repo)
+
+Al abrir sesión: audito el repo + leo `/docs/BACKLOG.md` y `/docs/BITACORA.md`
+completos antes de proponer nada. Trabajo en pasos verificables (principio 7), cada
+uno con "cómo verificas tú que funciona" explícito. Al cerrar un paso o la sesión:
+actualizo `/docs/BACKLOG.md`, agrego 3 líneas a `/docs/BITACORA.md`, ADR en
+`/docs/adr/` el mismo día si hubo decisión estructural (principio 8), commit con
+Conventional Commits.
+Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
+protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
+Felipe), `/explica` (desarrollo profundo de un concepto o decisión).
