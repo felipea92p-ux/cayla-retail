@@ -137,14 +137,15 @@ export function RecibirLoteForm({
     setQ("");
   }
 
-  function agregarProductoNuevo() {
+  function agregarProductoNuevo(referenciaInicial = "") {
+    const ref = referenciaInicial.trim();
     setItems((actual) => [
       ...actual,
       {
         clientId: crypto.randomUUID(),
         modo: "nuevo_producto",
-        referencia: q.trim(),
-        skuPadre: q.trim() ? slug(q.trim()) : "",
+        referencia: ref,
+        skuPadre: ref ? slug(ref) : "",
         sku: "",
         talla: "",
         color: "",
@@ -272,49 +273,62 @@ export function RecibirLoteForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-700">Buscar prenda para agregar al lote</label>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Referencia, SKU, talla, color…"
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-        />
-        {q.trim() && (
-          <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
-            {resultadosVariantes.map((v) => (
-              <button
-                type="button"
-                key={v.varianteId}
-                onClick={() => agregarExistente(v)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
-              >
-                <span>
-                  {v.referencia} <span className="text-neutral-400">{[v.talla, v.color].filter(Boolean).join("/")}</span>
-                </span>
-                <span className="text-xs text-neutral-400">restock</span>
-              </button>
-            ))}
-            {resultadosProductos.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => agregarNuevaVarianteDeProducto(p)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
-              >
-                <span>{p.referencia}</span>
-                <span className="text-xs text-neutral-400">nueva talla/color</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={agregarProductoNuevo}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-neutral-900 hover:bg-neutral-50"
-            >
-              <span>+ Crear producto nuevo: &ldquo;{q.trim()}&rdquo;</span>
-            </button>
-          </div>
-        )}
+      {/* Camino principal: mercadería nueva (la mayoría de un fardo). Un clic abre la
+          ficha completa con talla/color/categoría desde el inicio — sin buscar primero. */}
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => agregarProductoNuevo()}
+          className="w-full rounded-lg border-2 border-dashed border-neutral-300 px-3 py-3 text-sm font-medium text-neutral-800 hover:border-neutral-500 hover:bg-neutral-50"
+        >
+          + Agregar prenda nueva
+        </button>
+
+        {/* Camino secundario: reingreso de algo que ya está en el catálogo. */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-neutral-500">
+            ¿Reingreso de algo que ya existe? Búscalo para no duplicarlo:
+          </label>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Referencia, SKU, talla, color…"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+          />
+          {q.trim() && (
+            <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
+              {resultadosVariantes.map((v) => (
+                <button
+                  type="button"
+                  key={v.varianteId}
+                  onClick={() => agregarExistente(v)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                >
+                  <span>
+                    {v.referencia} <span className="text-neutral-400">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                  </span>
+                  <span className="text-xs text-neutral-400">restock</span>
+                </button>
+              ))}
+              {resultadosProductos.map((p) => (
+                <button
+                  type="button"
+                  key={p.id}
+                  onClick={() => agregarNuevaVarianteDeProducto(p)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                >
+                  <span>{p.referencia}</span>
+                  <span className="text-xs text-neutral-400">nueva talla/color</span>
+                </button>
+              ))}
+              {resultadosVariantes.length === 0 && resultadosProductos.length === 0 && (
+                <p className="px-3 py-2 text-xs text-neutral-400">
+                  No hay coincidencias. Si es mercadería nueva, usa &ldquo;+ Agregar prenda nueva&rdquo; arriba.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {items.length > 0 && (
@@ -335,10 +349,13 @@ export function RecibirLoteForm({
 
               {it.modo === "nuevo_producto" && (
                 <div className="mb-2 grid grid-cols-2 gap-2">
+                  <p className="col-span-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                    Producto
+                  </p>
                   <input
                     value={it.referencia}
                     onChange={(e) => actualizar(it.clientId, "referencia", e.target.value)}
-                    placeholder="Referencia"
+                    placeholder="Referencia (ej. Blusa manga larga)"
                     className="rounded border border-neutral-300 px-2 py-1 text-xs"
                   />
                   <select
@@ -385,6 +402,9 @@ export function RecibirLoteForm({
 
               {it.modo !== "existente" && (
                 <div className="mb-2 grid grid-cols-3 gap-2">
+                  <p className="col-span-3 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                    Prenda (talla, color y precios)
+                  </p>
                   {(() => {
                     const tallas = tallasSugeridasDe(it.categoriaId);
                     return tallas && tallas.length > 0 ? (
