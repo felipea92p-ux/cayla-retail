@@ -22,12 +22,16 @@
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] `stock`: **condición de carrera** — dos ventas de la última unidad en el mismo
+      instante dejan el stock en -1 (ver revisión nocturna 2026-07-17). Fix escrito y
+      listo en `docs/propuestas/0010_stock_concurrencia.sql`, pendiente de aprobación de
+      Felipe. **La más importante de este cubo.** Ver [docs/CHECKLIST-MANANA.md](CHECKLIST-MANANA.md).
+- [ ] `inteligencia`: "Estancado" se reinicia con las bajadas de almacén (cuenta
+      "días sin salida" en vez de "días sin venta"). Necesita columna `stock.ultima_venta`
+      — migración 0011 por preparar. Ver CHECKLIST-MANANA.md, Decisión 2. Reversible: sí.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide `proxy.ts`)
       Qué duele hoy: nada, solo un warning en build. Qué dolerá en 6 meses: puede
       dejar de soportarse. Reversible: sí.
-- [ ] `git`: identidad de commit auto-configurada por username/hostname de la Mac
-      Qué duele hoy: nada. Qué dolerá: historial con autor "Diseño Macminiclaudia
-      Producción" en vez de Felipe. Reversible: sí (`git config`).
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 

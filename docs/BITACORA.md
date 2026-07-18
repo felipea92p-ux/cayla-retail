@@ -108,5 +108,25 @@ ellas y 2 categorías nuevas. Felipe corrió la migración en Supabase y verific
 vivo en "Recibir mercadería": Familia filtra Categoría, y Categoría cambia la Talla
 de texto libre a un desplegable con las tallas reales (Zapatillas 34-42, Jeans
 26-34, Polos con Estándar primero, Anillos 6-9). Fase de taxonomía cerrada de punta
-a punta: construida, verificada en producción. Pendiente: commitear y subir a
-GitHub (aún sin hacer a este punto de la sesión).
+a punta: construida, verificada en producción. Se commiteó y subió a GitHub — y de
+paso se resolvió la causa raíz del dolor recurrente de git: se cambió el remoto de
+HTTPS-con-token (que caduca) a SSH (llave permanente que ya existía y ya estaba
+autorizada en la cuenta). Ya no hará falta generar tokens nunca más en esta Mac.
+
+## 2026-07-17 (noche — revisión autónoma del proyecto)
+Felipe pidió revisar todo el proyecto en modo autónomo y dejar un checklist. Leí las
+9 migraciones, las RPCs de stock/dinero, todas las políticas RLS, la lógica de
+inteligencia/finanzas y los 15 componentes. El código está sano — no hubo bugs de UI
+que arreglar a ciegas. Hallazgo principal (real, no teórico): una **condición de
+carrera** en `fn_aplicar_movimiento` — dos ventas de la última unidad de la misma
+prenda/sede en el mismo instante dejan el stock en -1, porque la validación lee sin
+bloquear la fila. Es el escenario "dos clientas se llevan la última prenda en el mismo
+segundo" del propio criterio de arquitectura. NO lo apliqué (toca el corazón del stock
+y es decisión de Felipe): dejé la migración lista en `docs/propuestas/0010_stock_concurrencia.sql`
+(fuera de supabase/migrations/ para que no se aplique sola) con `for update` + `check
+(cantidad>=0)` + la FK que le faltaba a movimientos.venta_id. Segundo hallazgo: el
+indicador "Estancado" se reinicia con las bajadas de almacén (mide "días sin salida"
+en vez de "días sin venta", que es la intención declarada) — documentado como Decisión
+2, necesita una columna nueva, no se improvisó. Único cambio de código aplicado: un
+texto del login que aún decía "hoja `personas`" (herencia de Sheets) → "el sistema".
+Todo quedó en `docs/CHECKLIST-MANANA.md`. Build y lint limpios.

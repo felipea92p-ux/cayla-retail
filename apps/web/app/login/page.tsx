@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
-    "Tu cuenta existe pero todavía no está vinculada a ninguna persona. Pide a un Líder que te dé de alta en la hoja `personas`.",
+    "Tu cuenta existe pero todavía no está vinculada a ningún integrante. Pide a un Líder que te dé de alta en el sistema.",
 };
 
 export default function LoginPage() {
