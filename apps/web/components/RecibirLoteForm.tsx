@@ -3,17 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ORIGENES_LOTE, type OrigenLote } from "@cayla-retail/shared";
+import { ORIGENES_LOTE, FAMILIAS, type OrigenLote, type Familia } from "@cayla-retail/shared";
 
 type Contenedor = { id: string; codigo: string; tipo: string };
-type ProductoExistente = {
-  id: string;
-  referencia: string;
-  categoria: string | null;
-  genero: string | null;
-  marca: string | null;
-  temporada: string | null;
-};
+type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
+type ProductoExistente = { id: string; referencia: string; categoriaId: string | null };
 type VarianteExistente = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 
 type Modo = "existente" | "nueva_variante" | "nuevo_producto";
@@ -26,7 +20,8 @@ type ItemLote = {
   referencia: string;
   skuPadre?: string;
   sku: string;
-  categoria?: string;
+  familia?: Familia;
+  categoriaId?: string;
   genero?: string;
   marca?: string;
   temporada?: string;
@@ -37,6 +32,15 @@ type ItemLote = {
   stockMinimo: number;
   cantidad: number;
   contenedorId: string;
+};
+
+const ETIQUETA_FAMILIA: Record<Familia, string> = {
+  indumentaria: "Indumentaria",
+  calzado: "Calzado",
+  accesorios: "Accesorios",
+  bisuteria: "Bisutería",
+  belleza: "Belleza",
+  papeleria: "Papelería",
 };
 
 function slug(texto: string) {
@@ -55,12 +59,14 @@ export function RecibirLoteForm({
   contenedores,
   productosExistentes,
   variantesExistentes,
+  categorias,
 }: {
   sedeAlmacenId: string;
   sedeAlmacenCodigo: string;
   contenedores: Contenedor[];
   productosExistentes: ProductoExistente[];
   variantesExistentes: VarianteExistente[];
+  categorias: Categoria[];
 }) {
   const router = useRouter();
   const [origen, setOrigen] = useState<OrigenLote>("taller");
@@ -117,6 +123,7 @@ export function RecibirLoteForm({
         modo: "nueva_variante",
         productoId: p.id,
         referencia: p.referencia,
+        categoriaId: p.categoriaId ?? undefined,
         sku: "",
         talla: "",
         color: "",
@@ -164,9 +171,18 @@ export function RecibirLoteForm({
         if (campo === "referencia" && next.modo === "nuevo_producto") {
           next.skuPadre = slug(String(valor));
         }
+        // Cambiar de familia invalida la categoría elegida (pertenece a la familia anterior).
+        if (campo === "familia") {
+          next.categoriaId = "";
+        }
         return next;
       })
     );
+  }
+
+  function tallasSugeridasDe(categoriaId?: string): string[] | null {
+    if (!categoriaId) return null;
+    return categorias.find((c) => c.id === categoriaId)?.tallasSugeridas ?? null;
   }
 
   function quitar(clientId: string) {
@@ -194,7 +210,7 @@ export function RecibirLoteForm({
         sku_padre: it.modo === "nuevo_producto" ? it.skuPadre : undefined,
         sku: it.modo !== "existente" ? it.sku : undefined,
         referencia: it.modo === "nuevo_producto" ? it.referencia : undefined,
-        categoria: it.modo === "nuevo_producto" ? it.categoria : undefined,
+        categoria_id: it.modo === "nuevo_producto" ? it.categoriaId : undefined,
         genero: it.modo === "nuevo_producto" ? it.genero : undefined,
         marca: it.modo === "nuevo_producto" ? it.marca : undefined,
         temporada: it.modo === "nuevo_producto" ? it.temporada : undefined,
@@ -325,12 +341,33 @@ export function RecibirLoteForm({
                     placeholder="Referencia"
                     className="rounded border border-neutral-300 px-2 py-1 text-xs"
                   />
-                  <input
-                    value={it.categoria ?? ""}
-                    onChange={(e) => actualizar(it.clientId, "categoria", e.target.value)}
-                    placeholder="Categoría"
+                  <select
+                    value={it.familia ?? ""}
+                    onChange={(e) => actualizar(it.clientId, "familia", e.target.value)}
                     className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
+                  >
+                    <option value="">Familia…</option>
+                    {FAMILIAS.map((f) => (
+                      <option key={f} value={f}>
+                        {ETIQUETA_FAMILIA[f]}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={it.categoriaId ?? ""}
+                    onChange={(e) => actualizar(it.clientId, "categoriaId", e.target.value)}
+                    disabled={!it.familia}
+                    className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:bg-neutral-50 disabled:text-neutral-400"
+                  >
+                    <option value="">Categoría…</option>
+                    {categorias
+                      .filter((c) => c.familia === it.familia)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                  </select>
                   <input
                     value={it.marca ?? ""}
                     onChange={(e) => actualizar(it.clientId, "marca", e.target.value)}
@@ -348,12 +385,30 @@ export function RecibirLoteForm({
 
               {it.modo !== "existente" && (
                 <div className="mb-2 grid grid-cols-3 gap-2">
-                  <input
-                    value={it.talla}
-                    onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
-                    placeholder="Talla"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
+                  {(() => {
+                    const tallas = tallasSugeridasDe(it.categoriaId);
+                    return tallas && tallas.length > 0 ? (
+                      <select
+                        value={it.talla}
+                        onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs"
+                      >
+                        <option value="">Talla…</option>
+                        {tallas.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={it.talla}
+                        onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                        placeholder="Talla"
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs"
+                      />
+                    );
+                  })()}
                   <input
                     value={it.color}
                     onChange={(e) => actualizar(it.clientId, "color", e.target.value)}

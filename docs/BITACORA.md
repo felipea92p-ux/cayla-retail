@@ -76,3 +76,37 @@ Felipe probó "Recibir mercadería" en vivo y dio feedback real: los campos de t
 color/categoría quedan escondidos hasta buscar y crear un producto nuevo, no es obvio
 a primera vista. Pidió retomar el rediseño de ese formulario en una sesión aparte —
 queda anotado en el backlog, no se improvisó un cambio de UX apurado al cierre.
+
+## 2026-07-17 (madrugada 2 — taxonomía de categorías)
+La misma sesión siguió: en vez de abrir el rediseño de UX en otro chat, Felipe pidió
+diseñar la estructura de familias/categorías del catálogo. Se construyó con 2 rondas
+de preguntas cortas en vez de las 24 de la fase anterior — la primera fijó el criterio
+(estándar por categoría, no por familia; varias marcas/proveedores), la segunda afinó
+categorías reales (Maquillaje, Útiles de oficina) comparando con LVMH/Zara/Hermès.
+Felipe corrigió el diseño tres veces en vivo sobre Bisutería: primero pidió agregarla,
+luego pidió separarla en 4 categorías (pulseras/aretes/anillos/collares), y finalmente
+— con frustración visible por tener que repetirlo — la elevó a familia propia, séptima
+decisión que ya no se debe volver a cuestionar. Resultado: 6 familias fijas, 30
+categorías en tabla editable por Líder, con tallas sugeridas por categoría (ej.
+Zapatillas → 34-42, Bisutería → Único) que ahora alimentan un selector real en vez de
+texto libre en "Recibir mercadería". `productos.categoria` (texto libre, sin dueño de
+qué valores eran válidos) se reemplazó por `categoria_id` — sin backfill porque el
+catálogo real todavía no está cargado, más barato cambiar el terreno ahora que
+después de 900 SKUs reales. Build y lint verificados limpios. Migración
+`0009_categorias.sql` pendiente de correr en Supabase (Felipe debe pegarla en el SQL
+Editor, igual que las anteriores).
+
+Felipe corrigió las tallas sugeridas antes de correr la migración — había asumido
+rangos "de catálogo genérico" (28-38 para Jeans, "Único" para Anillos) en vez de
+preguntar qué vende Cayla realmente: Jeans y Pantalones van 26-34, "Estándar" es una
+talla adicional muy usada junto a XS-XXL (no un reemplazo) en Polos/Camisetas,
+Blusas, Poleras/Sudaderas, Camisas, y dos categorías que faltaban del todo (Chompas,
+Tops), y Anillos sí tiene talla numérica real (6-9), no es "Único" como el resto de
+Bisutería. Corregido en el archivo antes de que Felipe la corra — ninguna de las 30
+categorías originales cambió de nombre o familia, solo las tallas sugeridas de 8 de
+ellas y 2 categorías nuevas. Felipe corrió la migración en Supabase y verificó en
+vivo en "Recibir mercadería": Familia filtra Categoría, y Categoría cambia la Talla
+de texto libre a un desplegable con las tallas reales (Zapatillas 34-42, Jeans
+26-34, Polos con Estándar primero, Anillos 6-9). Fase de taxonomía cerrada de punta
+a punta: construida, verificada en producción. Pendiente: commitear y subir a
+GitHub (aún sin hacer a este punto de la sesión).

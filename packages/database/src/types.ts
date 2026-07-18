@@ -138,6 +138,30 @@ export type Database = {
           },
         ]
       }
+      categorias: {
+        Row: {
+          created_at: string
+          familia: string
+          id: string
+          nombre: string
+          tallas_sugeridas: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          familia: string
+          id?: string
+          nombre: string
+          tallas_sugeridas?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          familia?: string
+          id?: string
+          nombre?: string
+          tallas_sugeridas?: string[] | null
+        }
+        Relationships: []
+      }
       contenedores: {
         Row: {
           codigo: string
@@ -543,7 +567,7 @@ export type Database = {
       }
       productos: {
         Row: {
-          categoria: string | null
+          categoria_id: string | null
           created_at: string
           descripcion: string | null
           estado: string
@@ -556,7 +580,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          categoria?: string | null
+          categoria_id?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -569,7 +593,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          categoria?: string | null
+          categoria_id?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -581,7 +605,15 @@ export type Database = {
           temporada?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "productos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sedes: {
         Row: {

@@ -66,3 +66,9 @@ export type TipoContenedor = (typeof TIPOS_CONTENEDOR)[number];
 // proveedor. Distinto de MOTIVOS_SALIDA, que es para salidas de una sede sin destino.
 export const MOTIVOS_DEVOLUCION = ["no_vendida", "danada_reparacion", "danada_donar", "devolver_proveedor"] as const;
 export type MotivoDevolucion = (typeof MOTIVOS_DEVOLUCION)[number];
+
+// Taxonomía del catálogo (supabase/migrations/0009_categorias.sql). Familia es fija
+// (6, poco probable que cambie); categoría vive en una tabla real porque son ~30
+// valores con jerarquía por familia — un Líder puede agregar una nueva sin deploy.
+export const FAMILIAS = ["indumentaria", "calzado", "accesorios", "bisuteria", "belleza", "papeleria"] as const;
+export type Familia = (typeof FAMILIAS)[number];

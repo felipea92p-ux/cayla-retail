@@ -26,9 +26,10 @@ export default async function RecibirLotePage() {
     );
   }
 
-  const [{ data: contenedores }, { data: productos }, variantes] = await Promise.all([
+  const [{ data: contenedores }, { data: productos }, { data: categoriasRows }, variantes] = await Promise.all([
     supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", almacen.id).order("codigo"),
-    supabase.from("productos").select("id, referencia, categoria, genero, marca, temporada").eq("estado", "activa"),
+    supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
+    supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
     getCatalogoConStock(persona),
   ]);
 
@@ -38,6 +39,19 @@ export default async function RecibirLotePage() {
     referencia: v.referencia,
     talla: v.talla,
     color: v.color,
+  }));
+
+  const productosExistentes = (productos ?? []).map((p) => ({
+    id: p.id,
+    referencia: p.referencia,
+    categoriaId: p.categoria_id,
+  }));
+
+  const categorias = (categoriasRows ?? []).map((c) => ({
+    id: c.id,
+    familia: c.familia,
+    nombre: c.nombre,
+    tallasSugeridas: c.tallas_sugeridas,
   }));
 
   return (
@@ -52,8 +66,9 @@ export default async function RecibirLotePage() {
         sedeAlmacenId={almacen.id}
         sedeAlmacenCodigo={almacen.codigo}
         contenedores={contenedores ?? []}
-        productosExistentes={productos ?? []}
+        productosExistentes={productosExistentes}
         variantesExistentes={variantesExistentes}
+        categorias={categorias}
       />
     </div>
   );

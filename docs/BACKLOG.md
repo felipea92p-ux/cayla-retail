@@ -13,12 +13,12 @@
       cuenta de Nubefact creada (ver [[project-alegra-to-nubefact-decision]] en la
       memoria de CAYLA Inventario). Reversible: sí, se agrega sobre `ventas` sin
       tocar lo existente.
-- [ ] `almacen`: rediseñar el formulario de "Recibir mercadería" — Felipe probó en
-      vivo (2026-07-17) y los campos de talla/color/categoría/costo/precio quedan
-      escondidos hasta buscar y hacer clic en "+ Crear producto nuevo", no es obvio.
-      Quiere una estructura más directa para registrar talla/color/categoría desde el
-      inicio, no como resultado de una búsqueda. A retomar en una sesión aparte
-      (decisión de diseño, no una corrección rápida). Reversible: sí.
+- [ ] `almacen`: los campos del formulario de "Recibir mercadería" (talla/color/
+      familia/categoría/costo/precio) siguen escondidos hasta buscar y hacer clic en
+      "+ Crear producto nuevo" — no es obvio para alguien sin contexto. La categoría
+      ya quedó estructurada (2026-07-17, ver CERRADO) pero el flujo de "aparece
+      después de buscar" sigue igual; falta la parte de mostrarlo desde el inicio.
+      A retomar en una sesión aparte (decisión de diseño). Reversible: sí.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
@@ -70,3 +70,12 @@
       reutilizando `traslado`. Diseñado tras 24 preguntas de descubrimiento (no
       adivinado). Verificado en producción por Felipe. Pendiente: rediseño de UX del
       formulario de recepción (ver 🔨 CONSTRUIR).
+- [x] 2026-07-17 — Taxonomía real de catálogo: `productos.categoria` (texto libre)
+      → 6 familias fijas (Indumentaria/Calzado/Accesorios/Bisutería/Belleza/
+      Papelería) + 30 categorías en tabla `categorias`, editable por Líder sin
+      deploy. Tallas sugeridas por categoría (ej. Zapatillas → 34-42) ya alimentan
+      un `<select>` de talla en "Recibir mercadería" en vez de texto libre — menos
+      "estados imposibles" (categoría mal escrita/duplicada, talla inconsistente).
+      Diseñado con Felipe comparando cómo LVMH separa "Perfumes & Cosmetics" y Zara
+      trata "Beauty" como categoría propia. Migración `0009_categorias.sql`
+      pendiente de correr en Supabase.

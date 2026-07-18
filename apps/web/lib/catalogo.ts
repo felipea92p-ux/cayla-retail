@@ -7,6 +7,7 @@ export type VarianteConStock = {
   sku: string;
   referencia: string;
   categoria: string | null;
+  familia: string | null;
   marca: string | null;
   estado: string | null;
   talla: string | null;
@@ -23,7 +24,9 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
 
   const { data: variantes, error: errVariantes } = await supabase
     .from("variantes")
-    .select("id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, categoria, marca, estado)")
+    .select(
+      "id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, marca, estado, categorias(nombre, familia))"
+    )
     .order("sku");
 
   if (errVariantes || !variantes) return [];
@@ -50,6 +53,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
     })
     .map((v) => {
       const producto = Array.isArray(v.productos) ? v.productos[0] : v.productos;
+      const categoriaRow = producto ? (Array.isArray(producto.categorias) ? producto.categorias[0] : producto.categorias) : null;
       const porSede = stockPorVariante.get(v.id) ?? {};
       const stockTotal = Object.values(porSede).reduce((a, b) => a + b, 0);
       return {
@@ -57,7 +61,8 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         productoId: producto?.id ?? "",
         sku: v.sku,
         referencia: producto?.referencia ?? "(sin referencia)",
-        categoria: producto?.categoria ?? null,
+        categoria: categoriaRow?.nombre ?? null,
+        familia: categoriaRow?.familia ?? null,
         marca: producto?.marca ?? null,
         estado: producto?.estado ?? null,
         talla: v.talla,

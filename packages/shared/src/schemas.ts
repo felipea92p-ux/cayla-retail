@@ -80,7 +80,7 @@ export const loteItemSchema = z
     skuPadre: z.string().optional(),
     sku: z.string().optional(),
     referencia: z.string().optional(),
-    categoria: z.string().optional(),
+    categoriaId: z.string().uuid().optional(),
     genero: z.string().optional(),
     marca: z.string().optional(),
     temporada: z.string().optional(),
