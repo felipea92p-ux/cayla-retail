@@ -22,17 +22,11 @@
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] `seguridad`: 5 RPCs de `security definer` (registrar_movimiento, abrir_caja,
-      cerrar_caja, registrar_venta, recibir_lote) no verifican la sede/rol del que llama
-      — confían en el cliente. Contradice el principio declarado en 0003_rls.sql.
-      Hacer antes de sumar gente nueva. Ver CHECKLIST-MANANA.md, Decisión 3. Reversible: sí.
-- [ ] `inteligencia`: "Estancado" se reinicia con las bajadas de almacén (cuenta
-      "días sin salida" en vez de "días sin venta"). Necesita columna `stock.ultima_venta`
-      — migración 0011 por preparar. Ver CHECKLIST-MANANA.md, Decisión 2. Reversible: sí.
+- [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide `proxy.ts`).
+      Solo un warning en build, no rompe nada. Reversible: sí.
 
-> Deuda menor pendiente (no entra en el top-3, autorrecordada porque el build la
-> imprime cada vez): `middleware.ts` usa la convención deprecada de Next.js 16 (pide
-> `proxy.ts`). Solo un warning, no rompe nada.
+> Cubo casi vacío — las tres deudas grandes de la revisión nocturna (concurrencia,
+> estancado, seguridad de RPCs) se cerraron el 2026-07-17/18. Ver CERRADO.
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 
@@ -88,3 +82,9 @@
       al validar + `check (cantidad >= 0)` + FK de `movimientos.venta_id`. Cierra la
       condición de carrera que dejaba el stock en -1 con dos ventas simultáneas de la
       última unidad. Encontrado en la revisión nocturna, aprobado y corrido por Felipe.
+- [x] 2026-07-18 — "Estancado" mide días sin venta real (`0011`): columna
+      `stock.ultima_venta` sellada solo con motivo='venta', para que las bajadas de
+      almacén no reinicien el contador. Indicador renombrado a "Días sin venta".
+- [x] 2026-07-18 — Las 5 RPCs security-definer validan la sede del que llama (`0012`,
+      helper `fn_puede_operar_sede`). Cierra la puerta de atrás: nadie mueve stock ni
+      cajas de otra sede por API directa. Cumple lo que 0003_rls.sql ya prometía.

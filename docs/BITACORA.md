@@ -130,3 +130,21 @@ en vez de "días sin venta", que es la intención declarada) — documentado com
 2, necesita una columna nueva, no se improvisó. Único cambio de código aplicado: un
 texto del login que aún decía "hoja `personas`" (herencia de Sheets) → "el sistema".
 Todo quedó en `docs/CHECKLIST-MANANA.md`. Build y lint limpios.
+
+## 2026-07-18 (madrugada — Felipe resuelve el checklist)
+Felipe volvió y pidió resolver los pasos del checklist en vivo. **Decisión 1 (concurrencia
+de stock):** revisó que no hubiera stock negativo previo, corrió la migración 0010 en
+Supabase (for update + check cantidad>=0 + FK de venta_id), y el archivo pasó de propuesta
+a `supabase/migrations/0010`. **Decisión 2 (Estancado):** patrón migración-primero para no
+romper producción — Felipe corrió 0011 (columna `stock.ultima_venta`, backfill del
+histórico, y fn_aplicar_movimiento sella la fecha solo con motivo='venta'), y recién
+después se subió el cambio de pantalla (inteligencia.ts lee ultima_venta; el indicador se
+renombró de "Días sin salida" a "Días sin venta" en las 3 pantallas que lo usaban, para
+que diga lo que mide). Aprendizaje de método: cuando un cambio toca base + pantalla, la
+base va primero y la pantalla después, para que nunca exista un momento donde la pantalla
+pida una columna que aún no existe. **Decisión 3 (seguridad):** Felipe corrió 0012 —
+las 5 funciones security-definer (registrar_movimiento, abrir/cerrar caja, registrar_venta,
+recibir_lote) ahora validan la sede del que llama con el helper `fn_puede_operar_sede`
+(Líder, o tu sede, o el almacén de tu tienda). 100% base, sin cambio de pantalla. Con esto
+cierran las tres deudas grandes de la revisión nocturna; el cubo ARREGLAR quedó casi vacío
+(solo el warning de middleware deprecado, que no rompe nada).

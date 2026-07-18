@@ -62,7 +62,7 @@ migración `0011` igual que la 0010 (propuesta primero, la corres tú).
 
 ---
 
-## 🟡 DECISIÓN 3 — seguridad: las funciones de stock/caja confían en el cliente
+## ✅ DECISIÓN 3 — RESUELTA (2026-07-18): las funciones ya validan la sede del que llama
 
 **El problema:** cinco funciones del servidor (`registrar_movimiento`, `abrir_caja`,
 `cerrar_caja`, `registrar_venta`, `recibir_lote`) corren con permisos elevados y **no
