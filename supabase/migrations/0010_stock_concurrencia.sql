@@ -1,35 +1,21 @@
--- ⚠️ PROPUESTA — todavía NO aprobada ni aplicada. Vive en docs/propuestas/ (fuera de
--- supabase/migrations/) a propósito: así NO se aplica sola si alguna vez se corre
--- `supabase db push`. Cuando Felipe la apruebe, se mueve a supabase/migrations/ con el
--- nombre 0010_stock_concurrencia.sql y recién ahí se corre. Ver docs/CHECKLIST-MANANA.md.
+-- Endurecimiento del stock contra concurrencia. Aplicada en Supabase el 2026-07-17,
+-- aprobada por Felipe tras confirmar que no había stock negativo previo.
 --
--- QUÉ ARREGLA: una condición de carrera real en el descuento de stock. Hoy, cuando dos
--- ventas de la MISMA última unidad, en la MISMA sede, llegan en el mismo instante, las
--- dos leen "hay 1", las dos pasan la validación, y las dos descuentan → el stock queda
--- en -1. Es exactamente el escenario "dos clientas se llevan la última prenda en el
--- mismo segundo". Con 3 tiendas y una sola cajera por sede es poco frecuente HOY, pero
--- es una bomba silenciosa: cuando pase, el stock miente y nadie se entera hasta el
--- conteo físico.
---
--- CÓMO LO ARREGLA (dos capas, principio "estados imposibles primero"):
---   1. `for update`: al leer el stock para validar, se BLOQUEA esa fila hasta terminar.
---      La segunda venta espera a que la primera termine, y recién ahí re-lee "hay 0" y
---      se rechaza con el mensaje amable de siempre ("Stock insuficiente").
---   2. `check (cantidad >= 0)`: red de seguridad a nivel de base de datos. Aunque algún
---      día un camino nuevo se olvide de validar, la base nunca deja el stock negativo.
---
--- ANTES DE CORRER (ver checklist): revisar que no haya stock negativo hoy con
---   select * from stock where cantidad < 0;
--- Si devuelve filas, corregir ese dato primero (recalcular_stock() o ajuste manual),
--- porque el `check` del paso 1 fallaría al crearse.
+-- QUÉ ARREGLA: una condición de carrera real en el descuento de stock. Antes, cuando dos
+-- ventas de la MISMA última unidad, en la MISMA sede, llegaban en el mismo instante, las
+-- dos leían "hay 1", las dos pasaban la validación, y las dos descontaban → el stock
+-- quedaba en -1 (el escenario "dos clientas se llevan la última prenda en el mismo
+-- segundo"). Dos capas de defensa, principio "estados imposibles primero":
+--   1. `for update`: al validar, se bloquea la fila de stock hasta terminar; la segunda
+--      venta espera y re-lee el valor ya descontado, y se rechaza con el mensaje amable.
+--   2. `check (cantidad >= 0)`: red de seguridad — la base nunca deja el stock negativo.
 
 -- ==================== 1. Red de seguridad: stock nunca negativo ====================
 alter table stock add constraint stock_cantidad_no_negativa check (cantidad >= 0);
 
 -- ==================== 2. Integridad: venta_id apunta a una venta real ====================
 -- La columna movimientos.venta_id existe desde 0001 (antes de que existiera la tabla
--- `ventas`, creada en 0007), así que nunca tuvo llave foránea. Se la damos ahora: un
--- movimiento de venta no puede referenciar una venta que no existe.
+-- `ventas`, creada en 0007), así que nunca tuvo llave foránea. Se la damos ahora.
 alter table movimientos add constraint movimientos_venta_id_fkey
   foreign key (venta_id) references ventas (id);
 

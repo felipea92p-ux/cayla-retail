@@ -17,7 +17,7 @@
 
 ---
 
-## 🔴 DECISIÓN 1 — la importante: arreglar una condición de carrera en el stock
+## ✅ DECISIÓN 1 — RESUELTA (2026-07-17): condición de carrera en el stock
 
 **El problema (real, no teórico):** si dos ventas de la **última unidad** de la misma
 prenda, en la **misma sede**, se registran en el mismo instante, las dos leen "hay 1",
@@ -30,26 +30,11 @@ bomba silenciosa — el día que crezcas (dos cajas por tienda, o ventas online 
 sobre el mismo stock) empieza a pasar, y es de las cosas que arruinan la confianza en el
 sistema porque el número simplemente deja de cuadrar.
 
-**La solución** está escrita y lista en [`docs/propuestas/0010_stock_concurrencia.sql`](propuestas/0010_stock_concurrencia.sql).
-Hace dos cosas: (1) bloquea la fila de stock mientras valida, para que la segunda venta
-espere a la primera; (2) le pone a la base la regla "el stock nunca puede ser negativo"
-como red de seguridad definitiva.
-
-**Cómo aplicarla (cuando digas que sí):**
-1. Primero, en el SQL Editor de Supabase, revisa que no haya ya stock negativo:
-   ```sql
-   select * from stock where cantidad < 0;
-   ```
-   - Si no devuelve nada (lo esperado): sigue al paso 2.
-   - Si devuelve filas: avísame, lo corregimos antes (esto probaría que el bug ya ocurrió).
-2. Pega el contenido de `docs/propuestas/0010_stock_concurrencia.sql` en el SQL Editor y
-   dale Run. Debe decir "Success".
-3. Cuando esté aplicada, movemos el archivo a `supabase/migrations/0010_stock_concurrencia.sql`
-   para que quede en el historial oficial de migraciones.
-
-> **Por qué te dejo el archivo en `docs/propuestas/` y no en `supabase/migrations/`:**
-> para que NO se aplique solo por accidente. Una migración sin aprobar que toca el
-> corazón del stock no debe estar en la carpeta que se corre automáticamente.
+**Resuelto:** Felipe confirmó que no había stock negativo previo y corrió la migración en
+Supabase. Ya está en `supabase/migrations/0010_stock_concurrencia.sql` (historial
+oficial). El stock ahora se bloquea al validar (dos ventas simultáneas se serializan) y la
+base rechaza cualquier cantidad negativa. La app no cambió — el arreglo es 100% del lado
+de la base de datos.
 
 ---
 

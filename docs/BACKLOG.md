@@ -22,10 +22,6 @@
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] `stock`: **condición de carrera** — dos ventas de la última unidad en el mismo
-      instante dejan el stock en -1 (ver revisión nocturna 2026-07-17). Fix escrito y
-      listo en `docs/propuestas/0010_stock_concurrencia.sql`, pendiente de aprobación de
-      Felipe. **La más importante de este cubo.** Ver [docs/CHECKLIST-MANANA.md](CHECKLIST-MANANA.md).
 - [ ] `seguridad`: 5 RPCs de `security definer` (registrar_movimiento, abrir_caja,
       cerrar_caja, registrar_venta, recibir_lote) no verifican la sede/rol del que llama
       — confían en el cliente. Contradice el principio declarado en 0003_rls.sql.
@@ -86,5 +82,9 @@
       un `<select>` de talla en "Recibir mercadería" en vez de texto libre — menos
       "estados imposibles" (categoría mal escrita/duplicada, talla inconsistente).
       Diseñado con Felipe comparando cómo LVMH separa "Perfumes & Cosmetics" y Zara
-      trata "Beauty" como categoría propia. Migración `0009_categorias.sql`
-      pendiente de correr en Supabase.
+      trata "Beauty" como categoría propia. Migración `0009_categorias.sql` corrida
+      en Supabase y verificada en vivo.
+- [x] 2026-07-17 — Endurecimiento de stock contra concurrencia (`0010`): `for update`
+      al validar + `check (cantidad >= 0)` + FK de `movimientos.venta_id`. Cierra la
+      condición de carrera que dejaba el stock en -1 con dos ventas simultáneas de la
+      última unidad. Encontrado en la revisión nocturna, aprobado y corrido por Felipe.
