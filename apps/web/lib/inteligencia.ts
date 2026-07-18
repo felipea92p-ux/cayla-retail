@@ -15,7 +15,7 @@ export type VarianteInteligente = VarianteConStock & {
   vendidasVentana: number;
   velocidadDiaria: number; // unidades/día en la ventana, motivo='venta'
   diasInventario: number | null;
-  diasSinSalida: number | null;
+  diasSinVenta: number | null;
   estancado: boolean;
   reorderPoint: number;
   reponerYa: boolean;
@@ -53,7 +53,7 @@ export async function getCatalogoInteligente(
     .select("variante_id, tipo, cantidad, motivo, monto, created_at")
     .gte("created_at", desde.toISOString());
 
-  const { data: stockRows } = await supabase.from("stock").select("variante_id, sede_id, ultima_salida");
+  const { data: stockRows } = await supabase.from("stock").select("variante_id, sede_id, ultima_venta");
 
   const { data: variantesFechas } = await supabase.from("variantes").select("id, created_at");
 
@@ -66,11 +66,15 @@ export async function getCatalogoInteligente(
     ventasPorVariante.set(m.variante_id, acc);
   });
 
-  const ultimaSalidaPorVariante = new Map<string, string>();
+  // Estancamiento = días sin VENDER (no sin cualquier salida): una bajada de almacén a
+  // tienda es una salida del almacén pero no una venta, y no debe "rejuvenecer" el
+  // producto. Por eso se mira ultima_venta (sellada solo con motivo='venta' en
+  // fn_aplicar_movimiento, migración 0011), no ultima_salida.
+  const ultimaVentaPorVariante = new Map<string, string>();
   (stockRows ?? []).forEach((r) => {
-    if (!r.ultima_salida) return;
-    const actual = ultimaSalidaPorVariante.get(r.variante_id);
-    if (!actual || r.ultima_salida > actual) ultimaSalidaPorVariante.set(r.variante_id, r.ultima_salida);
+    if (!r.ultima_venta) return;
+    const actual = ultimaVentaPorVariante.get(r.variante_id);
+    if (!actual || r.ultima_venta > actual) ultimaVentaPorVariante.set(r.variante_id, r.ultima_venta);
   });
 
   const ingresoPorVariante = new Map<string, string>();
@@ -103,9 +107,9 @@ export async function getCatalogoInteligente(
     const velocidadDiaria = ventas.unidades / ventanaDias;
     const diasInventario = velocidadDiaria > 0 ? Math.round((v.stockTotal / velocidadDiaria) * 10) / 10 : null;
 
-    const refFecha = ultimaSalidaPorVariante.get(v.varianteId) ?? ingresoPorVariante.get(v.varianteId) ?? null;
-    const diasSinSalida = refFecha ? Math.floor((ahora - new Date(refFecha).getTime()) / DIA_MS) : null;
-    const estancado = v.stockTotal > 0 && diasSinSalida !== null && diasSinSalida > UMBRAL_ESTANCADO_DIAS;
+    const refFecha = ultimaVentaPorVariante.get(v.varianteId) ?? ingresoPorVariante.get(v.varianteId) ?? null;
+    const diasSinVenta = refFecha ? Math.floor((ahora - new Date(refFecha).getTime()) / DIA_MS) : null;
+    const estancado = v.stockTotal > 0 && diasSinVenta !== null && diasSinVenta > UMBRAL_ESTANCADO_DIAS;
 
     const reorderPoint = Math.round((velocidadDiaria * LEAD_TIME_DIAS + v.stockMinimo) * 10) / 10;
     const reponerYa = v.stockTotal <= reorderPoint;
@@ -136,7 +140,7 @@ export async function getCatalogoInteligente(
       vendidasVentana: ventas.unidades,
       velocidadDiaria: Math.round(velocidadDiaria * 100) / 100,
       diasInventario,
-      diasSinSalida,
+      diasSinVenta,
       estancado,
       reorderPoint,
       reponerYa,

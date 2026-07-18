@@ -71,7 +71,7 @@ export function CatalogoList({
     out = [...out].sort((a, b) => {
       if (orden === "stock") return b.stockTotal - a.stockTotal;
       if (orden === "velocidad") return b.velocidadDiaria - a.velocidadDiaria;
-      if (orden === "diasSinVenta") return (b.diasSinSalida ?? -1) - (a.diasSinSalida ?? -1);
+      if (orden === "diasSinVenta") return (b.diasSinVenta ?? -1) - (a.diasSinVenta ?? -1);
       return a.referencia.localeCompare(b.referencia);
     });
     return out;

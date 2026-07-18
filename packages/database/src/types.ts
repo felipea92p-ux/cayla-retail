@@ -663,6 +663,7 @@ export type Database = {
           sede_id: string
           ultima_entrada: string | null
           ultima_salida: string | null
+          ultima_venta: string | null
           updated_at: string
           variante_id: string
         }
@@ -672,6 +673,7 @@ export type Database = {
           sede_id: string
           ultima_entrada?: string | null
           ultima_salida?: string | null
+          ultima_venta?: string | null
           updated_at?: string
           variante_id: string
         }
@@ -681,6 +683,7 @@ export type Database = {
           sede_id?: string
           ultima_entrada?: string | null
           ultima_salida?: string | null
+          ultima_venta?: string | null
           updated_at?: string
           variante_id?: string
         }

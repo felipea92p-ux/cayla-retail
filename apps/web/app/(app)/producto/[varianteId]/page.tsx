@@ -134,8 +134,8 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
           <p className="text-lg font-semibold text-neutral-900">{v.diasInventario ?? "—"}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs text-neutral-400">Días sin salida</p>
-          <p className="text-lg font-semibold text-neutral-900">{v.diasSinSalida ?? "—"}</p>
+          <p className="text-xs text-neutral-400">Días sin venta</p>
+          <p className="text-lg font-semibold text-neutral-900">{v.diasSinVenta ?? "—"}</p>
         </div>
         {v.sellThrough != null && (
           <div className="rounded-xl border border-neutral-200 bg-white p-3">

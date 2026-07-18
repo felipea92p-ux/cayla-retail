@@ -38,7 +38,7 @@ de la base de datos.
 
 ---
 
-## 🟡 DECISIÓN 2 — precisión: "Estancado" se está engañando con las bajadas de almacén
+## ✅ DECISIÓN 2 — RESUELTA (2026-07-17): "Estancado" ahora mide días sin venta real
 
 **El problema:** el sistema marca una prenda como "Estancada" si pasa 45 días sin
 salida. Pero desde que existe el almacén (Fase 3), **bajar mercadería del almacén a la
