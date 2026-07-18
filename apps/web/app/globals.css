@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ==================================================================
+   Sistema de identidad CAYLA · v3.0
+   "Tres colores. No más, nunca más. La profundidad viene de la
+   tipografía y el espacio." — brandbook CAYLA
+   ================================================================== */
+@theme {
+  /* Paleta primaria — los tres únicos colores de identidad */
+  --color-rojo: #b8412d;        /* Acento sagrado. Nunca decoración. Máx. 2 por pantalla. */
+  --color-crema: #f5f0e8;       /* Fondo dominante. Nunca blanco puro. */
+  --color-tinta: #1a1a18;       /* Todo el texto. Nunca negro absoluto. */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Paleta secundaria — solo jerarquía interna, jamás decoración */
+  --color-rojo-profundo: #8b2a1f;
+  --color-sand: #e8e0d0;        /* Fondos de tabla, recuadros neutrales */
+  --color-taupe: #a47865;
+  --color-papel: #fbf9f4;       /* Crema un punto más clara, para tarjetas sobre crema */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Familias tipográficas */
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
+
+  /* El sistema no usa sombras: se desactivan las utilidades de sombra de Tailwind */
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-crema);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+
+/* Título/cifra en serif — "el alma del sistema" */
+.font-display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+/* Etiqueta de sección: versalitas con tracking amplio (9-10pt · +200 del brandbook) */
+.label-cayla {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 500;
 }

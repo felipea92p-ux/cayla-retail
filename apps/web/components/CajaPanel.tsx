@@ -29,14 +29,14 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
 
   if (!cajaAbierta) {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="flex items-center justify-between border border-tinta/15 bg-papel p-5">
         <div>
-          <p className="text-sm font-semibold text-amber-800">Caja cerrada</p>
-          <p className="text-xs text-amber-600">Abre la caja de {sedeCodigo} para poder registrar ventas hoy.</p>
+          <p className="label-cayla text-[10px] text-rojo">Caja cerrada</p>
+          <p className="mt-1.5 text-sm text-tinta/60">Abre la caja de {sedeCodigo} para registrar ventas hoy.</p>
         </div>
         <button
           onClick={() => setModal("abrir")}
-          className="shrink-0 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+          className="label-cayla shrink-0 bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
         >
           Abrir caja
         </button>
@@ -46,23 +46,25 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
   }
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="flex items-center justify-between border border-tinta/15 bg-papel p-5">
       <div>
-        <p className="text-sm font-semibold text-neutral-900">Caja abierta — {sedeCodigo}</p>
-        <p className="text-xs text-neutral-400">Apertura S/{cajaAbierta.montoApertura.toFixed(2)}</p>
+        <p className="label-cayla text-[10px] text-tinta/55">Caja abierta · {sedeCodigo}</p>
+        <p className="mt-1.5 text-sm text-tinta/60">
+          Apertura <span className="font-display text-base text-tinta">S/{cajaAbierta.montoApertura.toFixed(2)}</span>
+        </p>
       </div>
       <div className="flex shrink-0 gap-2">
         <button
           onClick={() => setModal("vender")}
-          className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+          className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
         >
           Vender
         </button>
         <button
           onClick={() => setModal("cerrar")}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
         >
-          Cerrar caja
+          Cerrar
         </button>
       </div>
 

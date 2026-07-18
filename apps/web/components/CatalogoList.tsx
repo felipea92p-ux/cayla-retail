@@ -82,17 +82,20 @@ export function CatalogoList({
     ...(almacenPropio ? [{ ...almacenPropio, esAlmacen: true }] : []),
   ];
 
-  const selectCls = "rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs text-neutral-700";
+  const selectCls =
+    "border border-tinta/20 bg-papel px-2.5 py-1.5 text-xs text-tinta outline-none transition-colors focus:border-rojo";
   const toggleCls = (activo: boolean) =>
-    `rounded-full px-2.5 py-1 text-xs font-medium ${activo ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`;
+    `label-cayla border px-3 py-1.5 text-[9px] transition-colors ${
+      activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo"
+    }`;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Buscar prenda, color, categoría, SKU…"
-        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm"
+        className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/35 focus:border-rojo"
       />
 
       <div className="flex flex-wrap gap-1.5">
@@ -146,79 +149,67 @@ export function CatalogoList({
         </select>
       </div>
 
-      <p className="text-xs text-neutral-400">{filtradas.length} de {variantes.length} referencias</p>
+      <p className="label-cayla text-[9px] text-tinta/40">{filtradas.length} de {variantes.length} referencias</p>
 
       {filtradas.length === 0 && (
-        <p className="py-8 text-center text-sm italic text-neutral-400">
+        <p className="font-display py-10 text-center text-base italic text-tinta/40">
           {variantes.length === 0 ? "Aún no hay prendas cargadas." : "Sin resultados con estos filtros."}
         </p>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {filtradas.map((v) => (
-          <div key={v.varianteId} className="rounded-xl border border-neutral-200 bg-white p-4">
+          <div key={v.varianteId} className="border border-tinta/10 bg-papel p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Link href={`/producto/${v.varianteId}`} className="text-sm font-medium text-neutral-900 hover:underline">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Link href={`/producto/${v.varianteId}`} className="text-sm font-medium text-tinta transition-colors hover:text-rojo">
                     {v.referencia}
                   </Link>
-                  {v.reponerYa && (
-                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
-                      Reponer ya
-                    </span>
-                  )}
-                  {v.estancado && (
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                      Estancado
-                    </span>
-                  )}
+                  {v.reponerYa && <span className="label-cayla text-[9px] text-rojo">Reponer ya</span>}
+                  {v.estancado && <span className="label-cayla text-[9px] text-taupe">Estancado</span>}
                   {esLider && v.claseABC && (
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                      Clase {v.claseABC}
-                    </span>
+                    <span className="label-cayla text-[9px] text-tinta/45">Clase {v.claseABC}</span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-tinta/55">
                   {[v.talla, v.color, v.categoria].filter(Boolean).join(" · ")}
                 </p>
                 {v.precio != null && (
-                  <p className="mt-0.5 text-xs text-neutral-400">
+                  <p className="mt-0.5 text-xs text-tinta/40">
                     Costo S/{v.costo?.toFixed(2)} · Precio S/{v.precio.toFixed(2)}
                   </p>
                 )}
-                <p className="mt-0.5 text-xs text-neutral-400">
+                <p className="mt-0.5 text-xs text-tinta/40">
                   {v.velocidadDiaria > 0 ? `${v.velocidadDiaria}/día` : "Sin ventas recientes"}
                   {v.diasInventario != null && ` · ${v.diasInventario}d de inventario`}
                 </p>
-                <p className="mt-1 font-mono text-[11px] text-neutral-300">{v.sku}</p>
+                <p className="mt-1.5 font-mono text-[10px] text-tinta/25">{v.sku}</p>
               </div>
               <button
                 onClick={() => setAbierto(v)}
-                className="shrink-0 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                className="label-cayla shrink-0 border border-tinta/25 px-3.5 py-2 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
               >
                 Mover
               </button>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-4 flex flex-wrap gap-px border border-tinta/10 bg-tinta/10">
               {todasLasSedes.map((s) => (
                 <span
                   key={s.id}
-                  className={`rounded-full px-2.5 py-1 text-xs ${
-                    s.id === sedeActual.id
-                      ? "bg-neutral-900 text-white"
-                      : "bg-neutral-100 text-neutral-600"
+                  className={`px-3 py-1.5 text-xs ${
+                    s.id === sedeActual.id ? "bg-tinta text-crema" : "bg-crema text-tinta/60"
                   }`}
                 >
-                  {s.codigo} <b>{v.stockPorSede[s.codigo] ?? 0}</b>
+                  {s.codigo} <b className="font-display text-sm">{v.stockPorSede[s.codigo] ?? 0}</b>
                 </span>
               ))}
             </div>
 
             {v.sugerenciaTraslado && (
-              <p className="mt-2 text-xs text-blue-700">
-                Sugerencia: trasladar a {v.sugerenciaTraslado.sedeDestinoCodigo} desde {v.sugerenciaTraslado.sedeOrigenCodigo} (tiene {v.sugerenciaTraslado.stockOrigen} unidades)
+              <p className="mt-3 text-xs text-tinta/50">
+                Sugerencia: trasladar a {v.sugerenciaTraslado.sedeDestinoCodigo} desde {v.sugerenciaTraslado.sedeOrigenCodigo} ({v.sugerenciaTraslado.stockOrigen} u.)
               </p>
             )}
           </div>
