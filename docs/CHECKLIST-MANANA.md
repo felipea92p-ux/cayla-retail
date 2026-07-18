@@ -77,6 +77,27 @@ migración `0011` igual que la 0010 (propuesta primero, la corres tú).
 
 ---
 
+## 🟡 DECISIÓN 3 — seguridad: las funciones de stock/caja confían en el cliente
+
+**El problema:** cinco funciones del servidor (`registrar_movimiento`, `abrir_caja`,
+`cerrar_caja`, `registrar_venta`, `recibir_lote`) corren con permisos elevados y **no
+verifican que quien las llama sea de la sede** sobre la que actúan. La app siempre manda
+la sede correcta, así que en el uso normal no pasa nada. Pero un usuario con acceso que
+supiera un poco de técnica podría, con una llamada directa a la API, mover stock o abrir/
+cerrar cajas de OTRA sede — sin pasar por la pantalla.
+
+Esto choca con lo que el propio sistema promete por escrito (en `0003_rls.sql`: "roles
+validados en el servidor, no solo ocultos en la UI"). Hoy, con 3 tiendas y equipo de
+confianza, el riesgo es bajo. Cuando el equipo crezca o si alguna vez se filtra una
+contraseña, deja de ser bajo.
+
+**El arreglo:** agregar dentro de cada una de esas funciones un chequeo simple — "el que
+llama es Líder, o es de esta sede; si no, error". Es el mismo criterio que ya usan las
+reglas de RLS de las tablas. Es una migración pequeña. **No urgente, pero sí antes de
+sumar más gente al sistema.** Cuando quieras, la preparo (propuesta primero, la corres tú).
+
+---
+
 ## ⚪ NOTAS — cosas para que TÚ decidas (no son bugs, son criterios de negocio)
 
 1. **"Reponer ya" cuenta el stock del almacén.** Si tienes 40 unidades guardadas en el
@@ -99,8 +120,28 @@ migración `0011` igual que la 0010 (propuesta primero, la corres tú).
 
 ---
 
+## 🟢 LO QUE REVISÉ A FONDO Y ESTÁ BIEN (para tu tranquilidad)
+
+No todo son problemas — la mayor parte del sistema está sólida. Tracé con cuidado:
+
+- **El cálculo de la transacción de venta** (`registrar_venta`): crea la venta y descuenta
+  el stock de cada prenda en un solo bloque atómico — o se registra todo, o no se registra
+  nada. No puede quedar a medias. Correcto.
+- **El conteo ciego de caja** (`cerrar_caja`): el esperado se calcula del lado del servidor
+  después de que mandas el contado, y solo cuenta el efectivo. Bien hecho.
+- **La gráfica de tendencia de stock** de cada producto: reconstruye el histórico caminando
+  hacia atrás desde el stock actual. Revisé los signos (entradas suman, salidas restan,
+  traslados no cambian el total de red, ajustes suman con su signo) — cuadra, el último
+  punto siempre coincide con el stock real.
+- **La devolución de tienda a almacén**: reutiliza el traslado, guarda el motivo, y mueve
+  el stock a la ubicación correcta. Correcto.
+- **El pipeline de respaldo/deploy**: probé el ciclo completo esta noche (subir a GitHub →
+  Vercel → producción) y funciona; la app en `cayla-retail.vercel.app` está viva y sana.
+
+---
+
 ## 📌 RESUMEN EN UNA LÍNEA
 
 El código está sano. Lo único que de verdad recomiendo hacer pronto es **la Decisión 1**
-(el fix de concurrencia del stock) — el resto es afinar. Dime "sí a la 1" y te guío para
-correrla en 3 pasos.
+(el fix de concurrencia del stock) — el resto es afinar. La Decisión 3 (seguridad) hazla
+antes de sumar gente nueva al equipo. Dime "sí a la 1" y te guío para correrla en 3 pasos.

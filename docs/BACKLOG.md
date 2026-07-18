@@ -26,12 +26,17 @@
       instante dejan el stock en -1 (ver revisión nocturna 2026-07-17). Fix escrito y
       listo en `docs/propuestas/0010_stock_concurrencia.sql`, pendiente de aprobación de
       Felipe. **La más importante de este cubo.** Ver [docs/CHECKLIST-MANANA.md](CHECKLIST-MANANA.md).
+- [ ] `seguridad`: 5 RPCs de `security definer` (registrar_movimiento, abrir_caja,
+      cerrar_caja, registrar_venta, recibir_lote) no verifican la sede/rol del que llama
+      — confían en el cliente. Contradice el principio declarado en 0003_rls.sql.
+      Hacer antes de sumar gente nueva. Ver CHECKLIST-MANANA.md, Decisión 3. Reversible: sí.
 - [ ] `inteligencia`: "Estancado" se reinicia con las bajadas de almacén (cuenta
       "días sin salida" en vez de "días sin venta"). Necesita columna `stock.ultima_venta`
       — migración 0011 por preparar. Ver CHECKLIST-MANANA.md, Decisión 2. Reversible: sí.
-- [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide `proxy.ts`)
-      Qué duele hoy: nada, solo un warning en build. Qué dolerá en 6 meses: puede
-      dejar de soportarse. Reversible: sí.
+
+> Deuda menor pendiente (no entra en el top-3, autorrecordada porque el build la
+> imprime cada vez): `middleware.ts` usa la convención deprecada de Next.js 16 (pide
+> `proxy.ts`). Solo un warning, no rompe nada.
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 
