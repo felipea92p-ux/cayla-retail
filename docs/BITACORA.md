@@ -175,4 +175,7 @@ desplegada de un tirón: AppShell, /buscar con ubicación de contenedor, /invent
 agrupado, inicios por rol, /vender, /comercial v1. Precio ahora visible para
 Encargadas (lo necesitan para vender; el costo sigue siendo solo del Líder).
 Pendiente fase B: fotos (una por modelo), etiquetas Brother, stock mínimo por sede,
-exportar Excel, conteo físico.
+exportar Excel, conteo físico. Al cierre, Felipe pidió y se construyó el selector de
+sede del Líder (TRU/AQP/LIM/Taller en la cabecera): cambia la perspectiva de toda la
+app sin tocar permisos — el servidor ya validaba por 0012. Verificado en vivo por
+Felipe ("bien muy bien").
