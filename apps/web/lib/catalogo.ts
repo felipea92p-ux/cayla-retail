@@ -13,8 +13,8 @@ export type VarianteConStock = {
   talla: string | null;
   color: string | null;
   stockMinimo: number;
-  costo: number | null; // null si el rol no debe verlo
-  precio: number | null;
+  costo: number | null; // null salvo Líder — el costo/margen es información sensible
+  precio: number | null; // visible para todas: la Encargada lo necesita para vender
   stockPorSede: Record<string, number>; // codigo de sede -> cantidad
   stockTotal: number;
 }
@@ -69,7 +69,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         color: v.color,
         stockMinimo: v.stock_minimo,
         costo: verCostos ? v.costo : null,
-        precio: verCostos ? v.precio : null,
+        precio: v.precio,
         stockPorSede: porSede,
         stockTotal,
       };

@@ -16,6 +16,8 @@ type Props = {
   otrasSedes: SedeDestino[];
   contenedoresAlmacen: { id: string; codigo: string }[];
   onClose: () => void;
+  /** Botones por tarea (rediseño UX 2026-07-18): si viene, el tipo queda fijo y no se muestra el selector. */
+  tipoFijo?: (typeof TIPOS_MOVIMIENTO)[number];
 };
 
 const ETIQUETA_TIPO: Record<(typeof TIPOS_MOVIMIENTO)[number], string> = {
@@ -56,11 +58,12 @@ export function MovimientoModal({
   otrasSedes,
   contenedoresAlmacen,
   onClose,
+  tipoFijo,
 }: Props) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<(typeof TIPOS_MOVIMIENTO)[number]>("entrada");
+  const [tipo, setTipo] = useState<(typeof TIPOS_MOVIMIENTO)[number]>(tipoFijo ?? "entrada");
   const [cantidad, setCantidad] = useState(1);
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState(tipoFijo === "salida" ? MOTIVOS_SALIDA.filter((m) => m !== "venta")[0] : "");
   const [motivoDevolucion, setMotivoDevolucion] = useState<(typeof MOTIVOS_DEVOLUCION)[number]>(MOTIVOS_DEVOLUCION[0]);
   const [contenedorDestinoId, setContenedorDestinoId] = useState(contenedoresAlmacen[0]?.id ?? "");
   const [sedeDestinoId, setSedeDestinoId] = useState(otrasSedes[0]?.id ?? "");
@@ -98,28 +101,32 @@ export function MovimientoModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center">
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h2 className="text-base font-semibold text-neutral-900">{referencia}</h2>
+        <h2 className="text-base font-semibold text-neutral-900">
+          {tipoFijo ? `${ETIQUETA_TIPO[tipoFijo]} — ${referencia}` : referencia}
+        </h2>
         <p className="mb-4 text-xs text-neutral-400">{sku} · sede {sedeCodigo}</p>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-neutral-700">Tipo de movimiento</label>
-            <select
-              value={tipo}
-              onChange={(e) => {
-                const nuevoTipo = e.target.value as (typeof TIPOS_MOVIMIENTO)[number];
-                setTipo(nuevoTipo);
-                setMotivo(nuevoTipo === "salida" ? MOTIVOS_SALIDA_MANUAL[0] : "");
-              }}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            >
-              {TIPOS_MOVIMIENTO.map((t) => (
-                <option key={t} value={t}>
-                  {ETIQUETA_TIPO[t]}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!tipoFijo && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-neutral-700">Tipo de movimiento</label>
+              <select
+                value={tipo}
+                onChange={(e) => {
+                  const nuevoTipo = e.target.value as (typeof TIPOS_MOVIMIENTO)[number];
+                  setTipo(nuevoTipo);
+                  setMotivo(nuevoTipo === "salida" ? MOTIVOS_SALIDA_MANUAL[0] : "");
+                }}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              >
+                {TIPOS_MOVIMIENTO.map((t) => (
+                  <option key={t} value={t}>
+                    {ETIQUETA_TIPO[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {tipo === "traslado" && (
             <div className="space-y-1.5">
