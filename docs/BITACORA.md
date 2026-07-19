@@ -148,3 +148,31 @@ recibir_lote) ahora validan la sede del que llama con el helper `fn_puede_operar
 (Líder, o tu sede, o el almacén de tu tienda). 100% base, sin cambio de pantalla. Con esto
 cierran las tres deudas grandes de la revisión nocturna; el cubo ARREGLAR quedó casi vacío
 (solo el warning de middleware deprecado, que no rompe nada).
+
+## 2026-07-18 (tarde — identidad visual + rediseño UX total)
+Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
+(los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema
+#F5F0E8 de fondo (nunca blanco puro), Tinta #1A1A18 (nunca negro absoluto), EB Garamond
+para títulos/cifras + DM Sans para interfaz, sin sombras/gradientes/bordes redondeados,
+el colibrí como marca. Tensión resuelta: Felipe pidió "tipo Apple" pero el brandbook
+prohíbe justo el look Apple genérico — se decidió que la esencia CAYLA manda en el cómo
+y Apple es la vara de calidad (espacio, tipografía, quitar lo que sobra).
+
+Después, Felipe pidió rediseñar la funcionalidad completa ("no me gusta la distribución
+de botones y todo el sistema") con descubrimiento tipo QuickBooks. Objeción aceptada:
+en vez de las 99-300 preguntas que pidió, se hicieron ~24 de alto impacto en tandas de
+4 (mismo método que el almacén). Decisiones clave: 50% escritorio / 40% celular; las
+**Encargadas de atención al cliente** (vocabulario corregido por Felipe: jamás
+"vendedoras" ni "empleados") son las usuarias principales; foco en INVENTARIO;
+catálogo agrupado por producto con matriz de tallas; dolores nombrados: "ir al almacén
+a buscar a ciegas" y "comprar por intuición sin datos". Felipe detectó él mismo la
+redundancia Inventario/Almacén → se investigó QuickBooks + POS retail (Square,
+Lightspeed): navegación v3 aprobada = lateral escritorio con "+ Nuevo" global, 4
+pestañas + botón + central en celular, Almacén DENTRO de Inventario. Tiene escáner
+Zebra (funciona como teclado — soportado de fábrica por la búsqueda) e impresoras
+Epson TM-T20III (boletas) y Brother QL-1110NWB (etiquetas). Fase A construida y
+desplegada de un tirón: AppShell, /buscar con ubicación de contenedor, /inventario
+agrupado, inicios por rol, /vender, /comercial v1. Precio ahora visible para
+Encargadas (lo necesitan para vender; el costo sigue siendo solo del Líder).
+Pendiente fase B: fotos (una por modelo), etiquetas Brother, stock mínimo por sede,
+exportar Excel, conteo físico.

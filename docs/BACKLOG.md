@@ -5,20 +5,14 @@
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] `ux fase B` (siguiente, ya definida con Felipe en el descubrimiento del
+      2026-07-18): fotos de producto (una por modelo, Supabase Storage), impresión
+      de etiquetas de código de barras (Brother QL-1110NWB, 62mm), stock mínimo
+      por sede (migración), exportar Excel/CSV. Reversible: sí.
 - [ ] `produccion`/`compras`: UI sobre `ordenes_produccion`/`ordenes_compra`
-      Desbloquea: dejar de llevar producción/compras fuera del sistema. Depende de:
-      tablas ya existen desde Fase 1, sin UI. Reversible: sí.
-- [ ] `finanzas`: emisión de comprobante electrónico (Nubefact/SUNAT)
-      Desbloquea: boletas/facturas reales desde una venta registrada. Depende de:
-      cuenta de Nubefact creada (ver [[project-alegra-to-nubefact-decision]] en la
-      memoria de CAYLA Inventario). Reversible: sí, se agrega sobre `ventas` sin
-      tocar lo existente.
-- [ ] `almacen`: los campos del formulario de "Recibir mercadería" (talla/color/
-      familia/categoría/costo/precio) siguen escondidos hasta buscar y hacer clic en
-      "+ Crear producto nuevo" — no es obvio para alguien sin contexto. La categoría
-      ya quedó estructurada (2026-07-17, ver CERRADO) pero el flujo de "aparece
-      después de buscar" sigue igual; falta la parte de mostrarlo desde el inicio.
-      A retomar en una sesión aparte (decisión de diseño). Reversible: sí.
+      Desbloquea: dejar de llevar producción/compras fuera del sistema. Reversible: sí.
+- [ ] `finanzas`: emisión de comprobante electrónico (Nubefact/SUNAT) con la
+      Epson TM-T20III para boleta física. Depende de: cuenta Nubefact. Reversible: sí.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
