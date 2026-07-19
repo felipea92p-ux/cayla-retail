@@ -5,14 +5,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
+import { SedeSwitcher } from "@/components/SedeSwitcher";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
 // "Inventario" es el mundo único del stock físico (catálogo, recibir, almacén).
 
-type Persona = { nombre: string; rol: "lider" | "integrante"; sedeCodigo: string };
+type Persona = { nombre: string; rol: "lider" | "integrante"; sedeCodigo: string; sedeId: string };
 
-type Props = { persona: Persona; children: React.ReactNode };
+type Props = {
+  persona: Persona;
+  /** Tiendas + taller para el selector del Líder (vacío para una Encargada). */
+  sedesOperativas: { id: string; codigo: string }[];
+  children: React.ReactNode;
+};
 
 // Íconos de línea (brandbook: "íconos rellenos ×, solo línea") — trazo 1.5
 function Icono({ d, className }: { d: string; className?: string }) {
@@ -84,7 +90,7 @@ function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void
   );
 }
 
-export function AppShell({ persona, children }: Props) {
+export function AppShell({ persona, sedesOperativas, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const esLider = persona.rol === "lider";
@@ -150,7 +156,11 @@ export function AppShell({ persona, children }: Props) {
             <Image src="/cayla-isotipo.png" alt="CAYLA" width={26} height={26} priority className="h-[26px] w-auto" />
           </Link>
           <div className="flex-1"><BuscadorGlobal compacto /></div>
-          <span className="label-cayla hidden text-[9px] text-tinta/40 sm:inline">{persona.sedeCodigo}</span>
+          {esLider && sedesOperativas.length > 0 ? (
+            <SedeSwitcher sedes={sedesOperativas} sedeActualId={persona.sedeId} />
+          ) : (
+            <span className="label-cayla text-[9px] text-tinta/40">{persona.sedeCodigo}</span>
+          )}
         </div>
       </header>
 
