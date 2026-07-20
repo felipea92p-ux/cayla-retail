@@ -62,6 +62,7 @@ export function RecibirLoteForm({
   categorias,
   proveedoresDirectorio = [],
   ordenesPendientes = [],
+  produccionesPendientes = [],
 }: {
   sedeAlmacenId: string;
   sedeAlmacenCodigo: string;
@@ -72,11 +73,14 @@ export function RecibirLoteForm({
   proveedoresDirectorio?: { id: string; nombre: string }[];
   /** Órdenes de compra pendientes de la sede: ligarlas cierra el ciclo pedido→recibido (F2). */
   ordenesPendientes?: { id: string; proveedor: string; montoEstimado: number | null }[];
+  /** Producciones del Taller en camino a esta tienda: ligarlas las marca completadas. */
+  produccionesPendientes?: { id: string; descripcion: string }[];
 }) {
   const router = useRouter();
   const [origen, setOrigen] = useState<OrigenLote>("taller");
   const [proveedor, setProveedor] = useState("");
   const [ordenCompraId, setOrdenCompraId] = useState("");
+  const [ordenProduccionId, setOrdenProduccionId] = useState("");
   const [numeroGuia, setNumeroGuia] = useState("");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ItemLote[]>([]);
@@ -211,6 +215,7 @@ export function RecibirLoteForm({
       p_origen: origen,
       p_proveedor: origen === "proveedor" ? proveedor.trim() || undefined : undefined,
       p_orden_compra_id: origen === "proveedor" && ordenCompraId ? ordenCompraId : undefined,
+      p_orden_produccion_id: origen === "taller" && ordenProduccionId ? ordenProduccionId : undefined,
       p_numero_guia: numeroGuia || undefined,
       p_items: items.map((it) => ({
         variante_id: it.modo === "existente" ? it.varianteId : undefined,
@@ -293,6 +298,22 @@ export function RecibirLoteForm({
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               />
             )}
+          </div>
+        )}
+        {origen === "taller" && produccionesPendientes.length > 0 && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-700">¿Corresponde a una producción del Taller?</label>
+            <select
+              value={ordenProduccionId}
+              onChange={(e) => setOrdenProduccionId(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">No / sin ligar</option>
+              {produccionesPendientes.map((p) => (
+                <option key={p.id} value={p.id}>{p.descripcion}</option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-400">Al recibir, la producción se marca completada sola.</p>
           </div>
         )}
         {origen === "proveedor" && ordenesPendientes.length > 0 && (

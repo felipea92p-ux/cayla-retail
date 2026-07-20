@@ -46,6 +46,29 @@ export default async function RecibirLotePage() {
     .in("estado", ["pendiente", "confirmada"])
     .order("created_at", { ascending: false });
 
+  // Producciones del Taller en camino a esta tienda, aún sin recibir (sin lote ligado)
+  const [{ data: produccionesRows }, { data: lotesLigados }] = await Promise.all([
+    supabase
+      .from("ordenes_produccion")
+      .select("id, cantidad_planeada, cantidad_producida, estado, variantes(talla, color, productos(referencia))")
+      .eq("destino_sede_id", persona.sedeId)
+      .in("estado", ["en_proceso", "completada"])
+      .order("created_at", { ascending: false }),
+    supabase.from("lotes").select("orden_produccion_id").not("orden_produccion_id", "is", null),
+  ]);
+  const yaRecibidas = new Set((lotesLigados ?? []).map((l) => l.orden_produccion_id));
+  const produccionesPendientes = (produccionesRows ?? [])
+    .filter((p) => !yaRecibidas.has(p.id))
+    .map((p) => {
+      const variante = Array.isArray(p.variantes) ? p.variantes[0] : p.variantes;
+      const producto = variante ? (Array.isArray(variante.productos) ? variante.productos[0] : variante.productos) : null;
+      const detalle = [variante?.talla, variante?.color].filter(Boolean).join("/");
+      return {
+        id: p.id,
+        descripcion: `${producto?.referencia ?? "?"}${detalle ? ` ${detalle}` : ""} · ${p.cantidad_producida}/${p.cantidad_planeada} hechas`,
+      };
+    });
+
   const variantesExistentes = variantes.map((v) => ({
     varianteId: v.varianteId,
     sku: v.sku,
@@ -89,6 +112,7 @@ export default async function RecibirLotePage() {
           proveedor: o.proveedor,
           montoEstimado: o.monto_estimado != null ? Number(o.monto_estimado) : null,
         }))}
+        produccionesPendientes={produccionesPendientes}
       />
     </div>
   );

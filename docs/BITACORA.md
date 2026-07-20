@@ -197,6 +197,21 @@ variantes.costo, nunca duplicados como gasto). Fijo/Variable pospuesto a su pedi
 Migración 0017 corrida por Felipe. Tres fases desplegadas en un solo día:
 F1 (núcleo financiero), Fase B (etiquetas/fotos/mínimos) y F2 (compras/export).
 
+## 2026-07-19 (Producción — el Taller entra al sistema)
+Felipe eligió Producción sobre el plan de carga del catálogo. Descubrimiento en 2
+tandas (8 preguntas): el Taller produce EN CONTINUO (no por encargo), es la minoría
+del catálogo pero >100 prendas/semana, registran ambos (equipo del Taller con cuenta
++ Felipe), entrega directa a cada tienda, quiere etapas corte→confección→acabado y
+costo CALCULADO — pero insumos "después". La tensión se resolvió con la receta de
+costo: bom_items (Fase 1, dormida) + precio_unitario + productos.costo_mano_obra =
+costo sugerido SIN inventario de materia prima. Construido: /produccion (tablero con
+etapas, cantidades hechas, destino), receta de costo en el detalle de producto
+(aplicable a todas las variantes del modelo), y el ciclo cerrado — recibir con
+origen Taller liga la producción y la completa sola (0018, simétrico a órdenes de
+compra). RLS: el Taller opera sus órdenes, la tienda destino ve lo que viene hacia
+ella. Regla de arquitectura sostenida: avanzar producción NO toca stock — el stock
+nace únicamente cuando la tienda recibe el fardo.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema

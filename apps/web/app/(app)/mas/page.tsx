@@ -7,7 +7,11 @@ export default async function MasPage() {
   const persona = await requirePersonaActual();
   const esLider = persona.rol === "lider";
 
+  const esTaller = persona.sedeCodigo === "TALLER";
   const enlaces = [
+    ...(esLider || esTaller
+      ? [{ href: "/produccion", etiqueta: "Producción", detalle: "El tablero del Taller: corte, confección, acabado" }]
+      : []),
     ...(esLider ? [{ href: "/comercial", etiqueta: "Comercial", detalle: "Rotación, sugerencias de compra, valor del inventario" }] : []),
     ...(esLider ? [{ href: "/finanzas", etiqueta: "Finanzas", detalle: "Diario de caja, gastos, estado de resultados" }] : []),
     { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo o lote al almacén" },

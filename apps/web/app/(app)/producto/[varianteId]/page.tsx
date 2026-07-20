@@ -5,6 +5,7 @@ import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { createClient } from "@/lib/supabase/server";
 import { FotoProducto } from "@/components/FotoProducto";
 import { MinimosPorSede } from "@/components/MinimosPorSede";
+import { RecetaCosto } from "@/components/RecetaCosto";
 
 const ETIQUETA_TIPO: Record<string, string> = {
   entrada: "Entrada",
@@ -73,6 +74,14 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const tiendas = (sedesData ?? []).filter((s) => s.tipo === "tienda").map((s) => ({ id: s.id, codigo: s.codigo }));
   const esLider = persona.rol === "lider";
 
+  // Receta de costo del Taller (solo Líder — el costo es sensible)
+  const [{ data: bomRows }, { data: productoRow }] = esLider
+    ? await Promise.all([
+        supabase.from("bom_items").select("id, insumo, cantidad_requerida, unidad, precio_unitario").eq("producto_id", v.productoId).order("created_at"),
+        supabase.from("productos").select("costo_mano_obra").eq("id", v.productoId).single(),
+      ])
+    : [{ data: null }, { data: null }];
+
   const { data: stockConContenedor } = await supabase
     .from("stock")
     .select("sede_id, contenedores(codigo)")
@@ -128,6 +137,21 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
           <FotoProducto productoId={v.productoId} fotoUrl={v.fotoUrl} referencia={v.referencia} esLider={esLider} />
         </div>
       </div>
+
+      {esLider && (
+        <RecetaCosto
+          productoId={v.productoId}
+          items={(bomRows ?? []).map((b) => ({
+            id: b.id,
+            insumo: b.insumo,
+            cantidad: Number(b.cantidad_requerida),
+            unidad: b.unidad,
+            precioUnitario: b.precio_unitario != null ? Number(b.precio_unitario) : null,
+          }))}
+          costoManoObra={productoRow?.costo_mano_obra != null ? Number(productoRow.costo_mano_obra) : null}
+          costoActual={v.costo}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-neutral-200 bg-white p-3">

@@ -32,6 +32,7 @@ const IC = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.5 15.5M20 20L8.5 8.5",
   comercial: "M4 20V10m6 10V4m6 16v-7m4 7H2",
   finanzas: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
   mas: "M5 12h.01M12 12h.01M19 12h.01",
@@ -95,10 +96,12 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const esLider = persona.rol === "lider";
 
+  const esTaller = persona.sedeCodigo === "TALLER";
   const items = [
     { href: "/", etiqueta: "Inicio", icono: IC.inicio, movil: true },
     { href: "/vender", etiqueta: "Vender", icono: IC.vender, movil: true },
     { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario, movil: true },
+    ...(esLider || esTaller ? [{ href: "/produccion", etiqueta: "Producción", icono: IC.produccion, movil: false }] : []),
     ...(esLider ? [{ href: "/comercial", etiqueta: "Comercial", icono: IC.comercial, movil: false }] : []),
     ...(esLider ? [{ href: "/finanzas", etiqueta: "Finanzas", icono: IC.finanzas, movil: false }] : []),
     { href: "/mas", etiqueta: "Más", icono: IC.mas, movil: true, soloMovil: true },

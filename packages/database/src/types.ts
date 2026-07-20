@@ -90,6 +90,7 @@ export type Database = {
           created_at: string
           id: string
           insumo: string
+          precio_unitario: number | null
           producto_id: string
           unidad: string
         }
@@ -98,6 +99,7 @@ export type Database = {
           created_at?: string
           id?: string
           insumo: string
+          precio_unitario?: number | null
           producto_id: string
           unidad: string
         }
@@ -106,6 +108,7 @@ export type Database = {
           created_at?: string
           id?: string
           insumo?: string
+          precio_unitario?: number | null
           producto_id?: string
           unidad?: string
         }
@@ -346,6 +349,7 @@ export type Database = {
           nota: string | null
           numero_guia: string | null
           orden_compra_id: string | null
+          orden_produccion_id: string | null
           origen: string
           proveedor: string | null
           proveedor_id: string | null
@@ -359,6 +363,7 @@ export type Database = {
           nota?: string | null
           numero_guia?: string | null
           orden_compra_id?: string | null
+          orden_produccion_id?: string | null
           origen: string
           proveedor?: string | null
           proveedor_id?: string | null
@@ -372,6 +377,7 @@ export type Database = {
           nota?: string | null
           numero_guia?: string | null
           orden_compra_id?: string | null
+          orden_produccion_id?: string | null
           origen?: string
           proveedor?: string | null
           proveedor_id?: string | null
@@ -593,10 +599,13 @@ export type Database = {
           cantidad_planeada: number
           cantidad_producida: number
           created_at: string
+          destino_sede_id: string | null
           estado: string
+          etapa: string | null
           fecha_fin: string | null
           fecha_inicio: string | null
           id: string
+          nota: string | null
           sede_id: string
           updated_at: string
           variante_id: string
@@ -605,10 +614,13 @@ export type Database = {
           cantidad_planeada: number
           cantidad_producida?: number
           created_at?: string
+          destino_sede_id?: string | null
           estado?: string
+          etapa?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
           id?: string
+          nota?: string | null
           sede_id: string
           updated_at?: string
           variante_id: string
@@ -617,10 +629,13 @@ export type Database = {
           cantidad_planeada?: number
           cantidad_producida?: number
           created_at?: string
+          destino_sede_id?: string | null
           estado?: string
+          etapa?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string | null
           id?: string
+          nota?: string | null
           sede_id?: string
           updated_at?: string
           variante_id?: string
@@ -716,6 +731,7 @@ export type Database = {
       productos: {
         Row: {
           categoria_id: string | null
+          costo_mano_obra: number | null
           created_at: string
           descripcion: string | null
           estado: string
@@ -730,6 +746,7 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
+          costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -744,6 +761,7 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
+          costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -1133,6 +1151,7 @@ export type Database = {
           p_nota?: string
           p_numero_guia?: string
           p_orden_compra_id?: string
+          p_orden_produccion_id?: string
           p_origen: string
           p_proveedor?: string
           p_sede_id: string
