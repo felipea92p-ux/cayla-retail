@@ -39,10 +39,12 @@ export const LEAD_TIME_DIAS = 14; // días asumidos de reposición, para el reor
 export const METODOS_PAGO = ["efectivo", "pos", "yape", "transferencia"] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
 
-// Categorías fijas de gasto — todas operativas por definición (el COGS sale de
-// variantes.costo × ventas, las mermas de movimientos.motivo='merma'; nunca de una
-// fila de Gastos). Lista corta a propósito: no es un plan contable de 60-90 cuentas,
-// es lo que necesitan 3 tiendas + 1 taller.
+// Categorías fijas de gasto OPERATIVO — revisadas con Felipe (2026-07-19) tras el
+// análisis de SINATRA, corrigiendo el enredo que él mismo señaló: las INVERSIONES
+// (muebles, herramientas, remodelación — su "IME") no son gasto del mes, van a
+// Patrimonio como activo; y los insumos del taller viven dentro del costo de la
+// prenda (variantes.costo al recibirla), no como gasto — dos registros inflarían
+// el costo. El COGS sale de variantes.costo × ventas; mermas de motivo='merma'.
 export const GASTO_CATEGORIAS = [
   "alquiler",
   "servicios",
@@ -50,6 +52,7 @@ export const GASTO_CATEGORIAS = [
   "transporte",
   "marketing",
   "mantenimiento",
+  "suministros",
   "otro",
 ] as const;
 export type GastoCategoria = (typeof GASTO_CATEGORIAS)[number];

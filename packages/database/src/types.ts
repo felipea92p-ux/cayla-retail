@@ -345,6 +345,7 @@ export type Database = {
           id: string
           nota: string | null
           numero_guia: string | null
+          orden_compra_id: string | null
           origen: string
           proveedor: string | null
           proveedor_id: string | null
@@ -357,6 +358,7 @@ export type Database = {
           id?: string
           nota?: string | null
           numero_guia?: string | null
+          orden_compra_id?: string | null
           origen: string
           proveedor?: string | null
           proveedor_id?: string | null
@@ -369,6 +371,7 @@ export type Database = {
           id?: string
           nota?: string | null
           numero_guia?: string | null
+          orden_compra_id?: string | null
           origen?: string
           proveedor?: string | null
           proveedor_id?: string | null
@@ -501,8 +504,12 @@ export type Database = {
           created_at: string
           estado: string
           fecha: string
+          fecha_estimada: string | null
           id: string
+          monto_estimado: number | null
+          nota: string | null
           proveedor: string
+          proveedor_id: string | null
           sede_destino_id: string
           updated_at: string
         }
@@ -510,8 +517,12 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          fecha_estimada?: string | null
           id?: string
+          monto_estimado: number | null
+          nota: string | null
           proveedor: string
+          proveedor_id: string | null
           sede_destino_id: string
           updated_at?: string
         }
@@ -519,8 +530,12 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          fecha_estimada?: string | null
           id?: string
+          monto_estimado?: number | null
+          nota?: string | null
           proveedor?: string
+          proveedor_id?: string | null
           sede_destino_id?: string
           updated_at?: string
         }
@@ -1117,6 +1132,7 @@ export type Database = {
           p_items: Json
           p_nota?: string
           p_numero_guia?: string
+          p_orden_compra_id?: string
           p_origen: string
           p_proveedor?: string
           p_sede_id: string

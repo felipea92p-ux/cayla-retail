@@ -15,6 +15,7 @@ const ETIQUETA_CATEGORIA: Record<string, string> = {
   transporte: "Transporte",
   marketing: "Marketing",
   mantenimiento: "Mantenimiento",
+  suministros: "Suministros",
   otro: "Otro",
 };
 

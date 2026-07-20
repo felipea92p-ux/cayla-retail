@@ -47,9 +47,17 @@ export default async function InventarioPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
+        </div>
+        <a
+          href="/api/export/inventario"
+          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        >
+          Exportar Excel
+        </a>
       </div>
 
       <InventarioNav />

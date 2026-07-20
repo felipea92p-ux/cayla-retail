@@ -11,9 +11,10 @@ const ETIQUETA_CATEGORIA: Record<GastoCategoria, string> = {
   alquiler: "Alquiler",
   servicios: "Servicios (luz, agua, internet)",
   planilla: "Planilla / honorarios",
-  transporte: "Transporte / envíos",
+  transporte: "Transporte / envíos / flete",
   marketing: "Marketing",
   mantenimiento: "Mantenimiento",
+  suministros: "Suministros (bolsas, empaques, útiles)",
   otro: "Otro",
 };
 
@@ -82,6 +83,11 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center">
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 sm:rounded-2xl">
         <h2 className="text-base font-semibold text-neutral-900">Registrar gasto</h2>
+        <p className="mt-1 text-xs text-neutral-400">
+          ¿Es una inversión (mueble, herramienta, remodelación)? No va aquí: regístrala como
+          activo en Finanzas → Patrimonio. Los insumos del taller tampoco: viven en el costo
+          de cada prenda al recibirla.
+        </p>
 
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">

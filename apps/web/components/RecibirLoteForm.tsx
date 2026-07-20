@@ -61,6 +61,7 @@ export function RecibirLoteForm({
   variantesExistentes,
   categorias,
   proveedoresDirectorio = [],
+  ordenesPendientes = [],
 }: {
   sedeAlmacenId: string;
   sedeAlmacenCodigo: string;
@@ -69,10 +70,13 @@ export function RecibirLoteForm({
   variantesExistentes: VarianteExistente[];
   categorias: Categoria[];
   proveedoresDirectorio?: { id: string; nombre: string }[];
+  /** Órdenes de compra pendientes de la sede: ligarlas cierra el ciclo pedido→recibido (F2). */
+  ordenesPendientes?: { id: string; proveedor: string; montoEstimado: number | null }[];
 }) {
   const router = useRouter();
   const [origen, setOrigen] = useState<OrigenLote>("taller");
   const [proveedor, setProveedor] = useState("");
+  const [ordenCompraId, setOrdenCompraId] = useState("");
   const [numeroGuia, setNumeroGuia] = useState("");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ItemLote[]>([]);
@@ -205,7 +209,8 @@ export function RecibirLoteForm({
     const { error } = await supabase.rpc("recibir_lote", {
       p_sede_id: sedeAlmacenId,
       p_origen: origen,
-      p_proveedor: origen === "proveedor" ? proveedor || undefined : undefined,
+      p_proveedor: origen === "proveedor" ? proveedor.trim() || undefined : undefined,
+      p_orden_compra_id: origen === "proveedor" && ordenCompraId ? ordenCompraId : undefined,
       p_numero_guia: numeroGuia || undefined,
       p_items: items.map((it) => ({
         variante_id: it.modo === "existente" ? it.varianteId : undefined,
@@ -288,6 +293,30 @@ export function RecibirLoteForm({
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               />
             )}
+          </div>
+        )}
+        {origen === "proveedor" && ordenesPendientes.length > 0 && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-700">¿Corresponde a una orden de compra?</label>
+            <select
+              value={ordenCompraId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setOrdenCompraId(id);
+                const orden = ordenesPendientes.find((o) => o.id === id);
+                if (orden) setProveedor(orden.proveedor);
+              }}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">No / sin orden</option>
+              {ordenesPendientes.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.proveedor}
+                  {o.montoEstimado != null ? ` · ~S/${o.montoEstimado.toFixed(0)}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-400">Al recibir, la orden se marca recibida sola.</p>
           </div>
         )}
         <div className="space-y-1.5">

@@ -39,6 +39,13 @@ export default async function RecibirLotePage() {
       getCatalogoConStock(persona),
     ]);
 
+  const { data: ordenesRows } = await supabase
+    .from("ordenes_compra")
+    .select("id, proveedor, monto_estimado")
+    .eq("sede_destino_id", persona.sedeId)
+    .in("estado", ["pendiente", "confirmada"])
+    .order("created_at", { ascending: false });
+
   const variantesExistentes = variantes.map((v) => ({
     varianteId: v.varianteId,
     sku: v.sku,
@@ -77,6 +84,11 @@ export default async function RecibirLotePage() {
         variantesExistentes={variantesExistentes}
         categorias={categorias}
         proveedoresDirectorio={proveedoresRows ?? []}
+        ordenesPendientes={(ordenesRows ?? []).map((o) => ({
+          id: o.id,
+          proveedor: o.proveedor,
+          montoEstimado: o.monto_estimado != null ? Number(o.monto_estimado) : null,
+        }))}
       />
     </div>
   );
