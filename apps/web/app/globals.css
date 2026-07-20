@@ -48,3 +48,30 @@ body {
   letter-spacing: 0.2em;
   font-weight: 500;
 }
+
+/* ==================================================================
+   Impresión de etiquetas de código de barras (Brother QL-1110NWB,
+   rollo 62mm). Al imprimir, solo existen las etiquetas: el resto de
+   la app desaparece y cada etiqueta es una página de 62×29mm.
+   ================================================================== */
+@media print {
+  body.imprimiendo-etiquetas * {
+    visibility: hidden;
+  }
+  body.imprimiendo-etiquetas #etiquetas-print,
+  body.imprimiendo-etiquetas #etiquetas-print * {
+    visibility: visible;
+  }
+  body.imprimiendo-etiquetas #etiquetas-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  body.imprimiendo-etiquetas .etiqueta-impresa {
+    width: 62mm;
+    height: 29mm;
+    page-break-after: always;
+    overflow: hidden;
+  }
+}
+
