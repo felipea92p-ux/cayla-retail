@@ -60,6 +60,7 @@ export function RecibirLoteForm({
   productosExistentes,
   variantesExistentes,
   categorias,
+  proveedoresDirectorio = [],
 }: {
   sedeAlmacenId: string;
   sedeAlmacenCodigo: string;
@@ -67,6 +68,7 @@ export function RecibirLoteForm({
   productosExistentes: ProductoExistente[];
   variantesExistentes: VarianteExistente[];
   categorias: Categoria[];
+  proveedoresDirectorio?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const [origen, setOrigen] = useState<OrigenLote>("taller");
@@ -255,11 +257,37 @@ export function RecibirLoteForm({
         {origen === "proveedor" && (
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-neutral-700">Proveedor</label>
-            <input
-              value={proveedor}
-              onChange={(e) => setProveedor(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            />
+            {proveedoresDirectorio.length > 0 ? (
+              <>
+                <select
+                  value={proveedoresDirectorio.some((p) => p.nombre === proveedor) ? proveedor : proveedor ? "__otro__" : ""}
+                  onChange={(e) => setProveedor(e.target.value === "__otro__" ? " " : e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Elegir del directorio…</option>
+                  {proveedoresDirectorio.map((p) => (
+                    <option key={p.id} value={p.nombre}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                  <option value="__otro__">Otro (escribir)…</option>
+                </select>
+                {proveedor && !proveedoresDirectorio.some((p) => p.nombre === proveedor) && (
+                  <input
+                    value={proveedor.trim()}
+                    onChange={(e) => setProveedor(e.target.value || " ")}
+                    placeholder="Nombre del proveedor nuevo"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                )}
+              </>
+            ) : (
+              <input
+                value={proveedor}
+                onChange={(e) => setProveedor(e.target.value)}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              />
+            )}
           </div>
         )}
         <div className="space-y-1.5">

@@ -39,6 +39,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_efectivo: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          monto: number
+          motivo: string
+          sede_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          monto: number
+          motivo: string
+          sede_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          monto?: number
+          motivo?: string
+          sede_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ajustes_efectivo_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ajustes_efectivo_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bom_items: {
         Row: {
           cantidad_requerida: number
@@ -194,6 +239,51 @@ export type Database = {
           },
         ]
       }
+      depositos_bancarios: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          monto: number
+          nota: string | null
+          sede_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          monto: number
+          nota?: string | null
+          sede_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          monto?: number
+          nota?: string | null
+          sede_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depositos_bancarios_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depositos_bancarios_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           categoria: string
@@ -201,6 +291,7 @@ export type Database = {
           especificacion: string | null
           id: string
           igv: number
+          metodo_pago: string | null
           sede_id: string
           subtotal: number
           total: number
@@ -212,6 +303,7 @@ export type Database = {
           especificacion?: string | null
           id?: string
           igv?: number
+          metodo_pago?: string | null
           sede_id: string
           subtotal?: number
           total: number
@@ -223,6 +315,7 @@ export type Database = {
           especificacion?: string | null
           id?: string
           igv?: number
+          metodo_pago?: string | null
           sede_id?: string
           subtotal?: number
           total?: number
@@ -254,6 +347,7 @@ export type Database = {
           numero_guia: string | null
           origen: string
           proveedor: string | null
+          proveedor_id: string | null
           recibido_por: string | null
           sede_id: string
         }
@@ -265,6 +359,7 @@ export type Database = {
           numero_guia?: string | null
           origen: string
           proveedor?: string | null
+          proveedor_id?: string | null
           recibido_por?: string | null
           sede_id: string
         }
@@ -276,10 +371,18 @@ export type Database = {
           numero_guia?: string | null
           origen?: string
           proveedor?: string | null
+          proveedor_id?: string | null
           recibido_por?: string | null
           sede_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lotes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lotes_recibido_por_fkey"
             columns: ["recibido_por"]
@@ -565,6 +668,36 @@ export type Database = {
           },
         ]
       }
+      patrimonio_items: {
+        Row: {
+          created_at: string
+          id: string
+          monto: number
+          nombre: string
+          nota: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          monto?: number
+          nombre: string
+          nota?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          monto?: number
+          nombre?: string
+          nota?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       productos: {
         Row: {
           categoria_id: string | null
@@ -614,6 +747,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      proveedores: {
+        Row: {
+          activo: boolean
+          banco: string | null
+          categoria: string | null
+          contacto: string | null
+          created_at: string
+          cuenta_bancaria: string | null
+          direccion: string | null
+          id: string
+          marca: string | null
+          nombre: string
+          nota: string | null
+          ruc: string | null
+          score: number | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          banco?: string | null
+          categoria?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          direccion?: string | null
+          id?: string
+          marca?: string | null
+          nombre: string
+          nota?: string | null
+          ruc?: string | null
+          score?: number | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          banco?: string | null
+          categoria?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          direccion?: string | null
+          id?: string
+          marca?: string | null
+          nombre?: string
+          nota?: string | null
+          ruc?: string | null
+          score?: number | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       sedes: {
         Row: {
@@ -764,6 +951,38 @@ export type Database = {
           },
         ]
       }
+      ventas_historicas_mensuales: {
+        Row: {
+          anio: number
+          id: string
+          mes: number
+          monto: number
+          sede_id: string
+        }
+        Insert: {
+          anio: number
+          id?: string
+          mes: number
+          monto?: number
+          sede_id: string
+        }
+        Update: {
+          anio?: number
+          id?: string
+          mes?: number
+          monto?: number
+          sede_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_historicas_mensuales_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventas: {
         Row: {
           caja_id: string
@@ -858,11 +1077,21 @@ export type Database = {
         Returns: { diferencia: number; monto_contado: number; monto_esperado: number }[]
       }
       recalcular_stock: { Args: never; Returns: undefined }
+      registrar_deposito: {
+        Args: {
+          p_fecha?: string
+          p_monto: number
+          p_nota?: string
+          p_sede_id: string
+        }
+        Returns: string
+      }
       registrar_gasto: {
         Args: {
           p_categoria: string
           p_especificacion?: string
           p_igv: number
+          p_metodo_pago?: string
           p_sede_id: string
           p_subtotal: number
           p_total: number

@@ -1,7 +1,6 @@
--- ⚠️ PROPUESTA — Fase F1 del núcleo financiero (jubilación de SINATRA, ver
--- docs/ANALISIS-SINATRA.md). Vive en docs/propuestas/ hasta que Felipe la corra;
--- luego pasa a supabase/migrations/0013_finanzas_nucleo.sql.
---
+-- Fase F1 del núcleo financiero (jubilación de SINATRA — ver docs/ANALISIS-SINATRA.md).
+-- Aplicada en Supabase el 2026-07-19, aprobada por Felipe tras el análisis de los 3
+-- archivos SINATRA y sus 6 decisiones de descubrimiento.
 -- Decisiones confirmadas: corte limpio (sin migrar histórico transaccional),
 -- proveedores central único (fin de las 3 copias desincronizadas), cuadre de
 -- efectivo continuo por sede, comparativo año vs año con totales sembrados a mano.

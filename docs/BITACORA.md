@@ -149,6 +149,25 @@ recibir_lote) ahora validan la sede del que llama con el helper `fn_puede_operar
 cierran las tres deudas grandes de la revisión nocturna; el cubo ARREGLAR quedó casi vacío
 (solo el warning de middleware deprecado, que no rompe nada).
 
+## 2026-07-19 (Fase F1 — el núcleo financiero, jubilación de SINATRA)
+Felipe compartió los 3 SINATRA reales (.xlsm por sede). Se disecaron a fondo (hojas,
+fórmulas, rangos, VBA extraído): S/646K de ventas 2026 registradas, 2,368 celdas con
+error, cuadres de efectivo en -S/6,122 (TRU) y -S/7,675 (LIM) sin fecha de origen,
+Proveedores desincronizado entre archivos (295 vs 287 filas), macros que solo navegan.
+Informe completo en docs/ANALISIS-SINATRA.md. Decisiones de Felipe (6 preguntas):
+NO replicar — estándar QuickBooks o superior; corte limpio; monto total en caja;
+tipos de costo/gasto se revisan juntos después; los 4 reportes irrenunciables (EERR
+mensual calendario, año vs año, cuadre de efectivo continuo, patrimonio); compras+
+proveedores ahora ligado a recibir. Se construyó y desplegó F1 completo: migraciones
+0013 (proveedores, depósitos bancarios, ajustes de efectivo, históricos mensuales,
+patrimonio_items) y 0014 (registrar_gasto con método de pago), lib finanzas-nucleo
+(meses calendario de Lima), y el mundo Finanzas con 4 secciones: Resumen (EERR
+mensual con selector), Efectivo (cuadre continuo + depósitos + ajustes con motivo),
+Año vs año (con editor de siembra de históricos), Patrimonio (neto en vivo +
+partidas manuales). Proveedores como directorio único en Inventario, seleccionable
+al recibir mercadería. Nota didáctica del día: correr una migración dos veces da
+"already exists" — es Postgres negándose a duplicar, no un error real.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema

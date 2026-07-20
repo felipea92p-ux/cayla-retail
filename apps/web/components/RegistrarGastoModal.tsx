@@ -24,10 +24,19 @@ type Props = {
   onClose: () => void;
 };
 
+const METODOS_GASTO = ["efectivo", "banco", "yape", "tarjeta"] as const;
+const ETIQUETA_METODO_GASTO: Record<(typeof METODOS_GASTO)[number], string> = {
+  efectivo: "Efectivo (sale del cajón)",
+  banco: "Banco / transferencia",
+  yape: "Yape",
+  tarjeta: "Tarjeta",
+};
+
 export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }: Props) {
   const router = useRouter();
   const [sedeSeleccionada, setSedeSeleccionada] = useState(sedeId);
   const [categoria, setCategoria] = useState<GastoCategoria>(GASTO_CATEGORIAS[0]);
+  const [metodoPago, setMetodoPago] = useState<(typeof METODOS_GASTO)[number]>("efectivo");
   const [total, setTotal] = useState(0);
   const [especificacion, setEspecificacion] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +66,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
       p_igv: igv,
       p_total: total,
       p_especificacion: especificacion || undefined,
+      p_metodo_pago: metodoPago,
     });
 
     setLoading(false);
@@ -103,6 +113,24 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-700">Método de pago</label>
+            <select
+              value={metodoPago}
+              onChange={(e) => setMetodoPago(e.target.value as (typeof METODOS_GASTO)[number])}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            >
+              {METODOS_GASTO.map((m) => (
+                <option key={m} value={m}>
+                  {ETIQUETA_METODO_GASTO[m]}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-400">
+              Si fue en efectivo, el sistema lo descuenta del cuadre de la sede.
+            </p>
           </div>
 
           <div className="space-y-1.5">

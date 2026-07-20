@@ -5,14 +5,13 @@
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] `ux fase B` (siguiente, ya definida con Felipe en el descubrimiento del
-      2026-07-18): fotos de producto (una por modelo, Supabase Storage), impresión
-      de etiquetas de código de barras (Brother QL-1110NWB, 62mm), stock mínimo
-      por sede (migración), exportar Excel/CSV. Reversible: sí.
-- [ ] `produccion`/`compras`: UI sobre `ordenes_produccion`/`ordenes_compra`
-      Desbloquea: dejar de llevar producción/compras fuera del sistema. Reversible: sí.
-- [ ] `finanzas`: emisión de comprobante electrónico (Nubefact/SUNAT) con la
-      Epson TM-T20III para boleta física. Depende de: cuenta Nubefact. Reversible: sí.
+- [ ] `finanzas F2`: órdenes de compra formales (pendiente→recibida, ligadas a lotes),
+      revisión conjunta de tipos de costo/gasto (Felipe pidió "luego"), exportar
+      Excel/CSV. Reversible: sí.
+- [ ] `ux fase B`: fotos de producto (una por modelo, Supabase Storage), impresión
+      de etiquetas (Brother QL-1110NWB, 62mm), stock mínimo por sede. Reversible: sí.
+- [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson TM-T20III.
+      Depende de: cuenta Nubefact. Reversible: sí.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 

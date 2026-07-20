@@ -9,6 +9,7 @@ const SECCIONES = [
   { href: "/inventario", etiqueta: "Catálogo" },
   { href: "/inventario/recibir", etiqueta: "Recibir" },
   { href: "/inventario/almacen", etiqueta: "Almacén" },
+  { href: "/inventario/proveedores", etiqueta: "Proveedores" },
 ];
 
 export function InventarioNav() {
