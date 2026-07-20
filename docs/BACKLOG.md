@@ -5,13 +5,13 @@
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] `finanzas F2`: órdenes de compra formales (pendiente→recibida, ligadas a lotes),
-      revisión conjunta de tipos de costo/gasto (Felipe pidió "luego"), exportar
-      Excel/CSV. Reversible: sí.
-- [ ] `ux fase B`: fotos de producto (una por modelo, Supabase Storage), impresión
-      de etiquetas (Brother QL-1110NWB, 62mm), stock mínimo por sede. Reversible: sí.
+- [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
+      que queda. El sistema ya tiene todo (categorías, fotos, etiquetas, ubicaciones,
+      mínimos); falta el conteo físico. Preparar plan de carga por tienda con Felipe.
 - [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson TM-T20III.
       Depende de: cuenta Nubefact. Reversible: sí.
+- [ ] `produccion`: UI sobre `ordenes_produccion` (el Taller sigue fuera del sistema).
+      Reversible: sí.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 

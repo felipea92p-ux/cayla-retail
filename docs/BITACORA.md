@@ -183,6 +183,20 @@ el detalle. Migraciones 0015 y 0016 corridas por Felipe. Aprendizaje del día:
 "already exists" al correr una migración dos veces no es un error — es Postgres
 negándose a duplicar lo que ya está.
 
+## 2026-07-19 (F2 — compras, exportar y el modelo de gastos corregido)
+Cerrando el día: órdenes de compra formales (/inventario/compras) reutilizando la
+tabla de Fase 1 que nunca tuvo UI — proveedor del directorio, monto estimado,
+"dinero comprometido en camino", y el ciclo se cierra solo: al recibir el lote
+ligado, la orden pasa a recibida (0017). Exportar Excel del inventario (CSV con BOM,
+punto y coma para Excel en español, costo solo Líder). Y la revisión de tipos de
+gasto que quedó de F1: Felipe pidió NO replicar su clasificación ("yo diseñé
+SINATRA pero es imperfecto — no repitas mis errores"). Modelo adoptado: 3 destinos
+del dinero — gastos del mes (EERR, +categoría "suministros"), inversiones (su
+antiguo "IME" → Patrimonio como activo, no gasto), insumos de taller (dentro de
+variantes.costo, nunca duplicados como gasto). Fijo/Variable pospuesto a su pedido.
+Migración 0017 corrida por Felipe. Tres fases desplegadas en un solo día:
+F1 (núcleo financiero), Fase B (etiquetas/fotos/mínimos) y F2 (compras/export).
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema
