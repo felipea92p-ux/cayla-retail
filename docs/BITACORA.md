@@ -212,6 +212,23 @@ compra). RLS: el Taller opera sus órdenes, la tienda destino ve lo que viene ha
 ella. Regla de arquitectura sostenida: avanzar producción NO toca stock — el stock
 nace únicamente cuando la tienda recibe el fardo.
 
+## 2026-07-19 (Fase C1 — los 4 estados financieros)
+Tras dos rondas de investigación contable (docs/ESTUDIO-CONTABILIDAD.md y
+docs/MANUAL-CONTABLE-CAYLA.md) y guardarlas en memoria, Felipe pidió armar los
+balances de verdad: Balance General, EERR, Flujo de Efectivo y Estado de Cambios en
+el Patrimonio. Decisión de arquitectura: modelo de LECTURA (lib/contabilidad.ts) que
+calcula los 4 estados sobre los sub-libros existentes aplicando las reglas del
+manual — SIN tabla de asientos, SIN migración, SIN tocar ningún money path (venta,
+stock, gastos intactos). Cuadra por construcción: Patrimonio = Activo − Pasivo, y se
+desglosa en Capital (residual: aportes e inventario por formalizar) + Utilidades
+acumuladas (EERR de toda la historia). Verificación algebraica hecha: la identidad
+contable se sostiene con el modelo caja/inventario/IGV. Página Finanzas → Balances
+con los 4 estados y selector de mes. Corrección del manual aplicada: el flete
+(gasto "transporte") se presenta dentro del margen bruto (cuenta 609), no entre
+gastos de operación. Simplificaciones declaradas en la propia pantalla: Balance a
+hoy, costo vigente, sin depreciación ni cuentas por pagar (llegan en C2). El
+endurecimiento a libro mayor inmutable con asientos persistidos queda para C4/SUNAT.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema

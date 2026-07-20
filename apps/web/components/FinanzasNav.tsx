@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 // los 4 reportes que Felipe marcó como irrenunciables, cada uno con su lugar.
 const SECCIONES = [
   { href: "/finanzas", etiqueta: "Resumen" },
+  { href: "/finanzas/balances", etiqueta: "Balances" },
   { href: "/finanzas/efectivo", etiqueta: "Efectivo" },
   { href: "/finanzas/comparativo", etiqueta: "Año vs año" },
   { href: "/finanzas/patrimonio", etiqueta: "Patrimonio" },
