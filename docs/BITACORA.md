@@ -168,6 +168,21 @@ partidas manuales). Proveedores como directorio único en Inventario, selecciona
 al recibir mercadería. Nota didáctica del día: correr una migración dos veces da
 "already exists" — es Postgres negándose a duplicar, no un error real.
 
+## 2026-07-19 (Fase B — etiquetas, fotos y mínimos por sede)
+Tras cerrar F1, Felipe pidió seguir. Se eligió Fase B de inventario (su prioridad
+declarada) sobre F2 de finanzas (que necesita su tiempo en la revisión de tipos).
+Tres entregas: (1) /inventario/etiquetas — etiquetas 62×29mm para la Brother
+QL-1110NWB con código de barras Code 128 B generado como SVG propio (tabla oficial
+de patrones, checksum y stop; sin librerías externas), vista previa = impresión;
+(2) fotos de producto — una por modelo (decisión de Felipe), bucket público
+`fotos-productos`, subida desde el detalle (Líder), miniaturas en catálogo agrupado
+y búsqueda; (3) stock mínimo por sede — stock.stock_minimo por (variante, sede) vía
+RPC fijar_stock_minimo (única puerta de escritura: stock no tiene política de
+UPDATE), alerta "bajo mínimo" por tienda integrada a reponerYa y visible en rojo en
+el detalle. Migraciones 0015 y 0016 corridas por Felipe. Aprendizaje del día:
+"already exists" al correr una migración dos veces no es un error — es Postgres
+negándose a duplicar lo que ya está.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema

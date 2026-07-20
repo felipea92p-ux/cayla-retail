@@ -19,6 +19,8 @@ export type VarianteInteligente = VarianteConStock & {
   estancado: boolean;
   reorderPoint: number;
   reponerYa: boolean;
+  /** Sedes cuyo stock está por debajo de SU mínimo propio (stock.stock_minimo, Fase B). */
+  sedesBajoMinimo: string[];
   // Campos con sesgo monetario: null para Integrante (mismo criterio que costo/precio en getCatalogoConStock).
   montoVentana: number | null;
   sellThrough: number | null;
@@ -112,7 +114,12 @@ export async function getCatalogoInteligente(
     const estancado = v.stockTotal > 0 && diasSinVenta !== null && diasSinVenta > UMBRAL_ESTANCADO_DIAS;
 
     const reorderPoint = Math.round((velocidadDiaria * LEAD_TIME_DIAS + v.stockMinimo) * 10) / 10;
-    const reponerYa = v.stockTotal <= reorderPoint;
+    // Bajo mínimo POR SEDE: aunque el total de red esté sano, una tienda concreta
+    // puede estar por debajo de su propio mínimo — eso también es "reponer" (o trasladar).
+    const sedesBajoMinimo = Object.entries(v.minimoPorSede)
+      .filter(([codigo, minimo]) => (v.stockPorSede[codigo] ?? 0) < minimo)
+      .map(([codigo]) => codigo);
+    const reponerYa = v.stockTotal <= reorderPoint || sedesBajoMinimo.length > 0;
 
     const totalConsiderado = ventas.unidades + v.stockTotal;
     const sellThrough = verMonto && totalConsiderado > 0 ? Math.round((ventas.unidades / totalConsiderado) * 1000) / 1000 : null;
@@ -144,6 +151,7 @@ export async function getCatalogoInteligente(
       estancado,
       reorderPoint,
       reponerYa,
+      sedesBajoMinimo,
       montoVentana: verMonto ? Math.round(ventas.monto * 100) / 100 : null,
       sellThrough,
       claseABC: verMonto ? claseABCPorVariante.get(v.varianteId) ?? null : null,

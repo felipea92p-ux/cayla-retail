@@ -33,6 +33,7 @@ export default async function InventarioPage() {
         familia: v.familia,
         categoria: v.categoria,
         marca: v.marca,
+        fotoUrl: v.fotoUrl,
         variantes: [v],
       });
     }

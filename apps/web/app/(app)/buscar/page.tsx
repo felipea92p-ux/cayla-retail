@@ -66,15 +66,21 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
               className="block border border-tinta/10 bg-papel p-5 transition-colors hover:border-rojo/40"
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-tinta">
-                    {v.referencia}{" "}
-                    <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-tinta/45">
-                    {[v.familia, v.categoria].filter(Boolean).join(" · ")}
-                  </p>
-                  <p className="mt-1 font-mono text-[10px] text-tinta/30">{v.sku}</p>
+                <div className="flex items-start gap-3">
+                  {v.fotoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.fotoUrl} alt="" className="h-14 w-14 shrink-0 border border-tinta/10 object-cover" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-tinta">
+                      {v.referencia}{" "}
+                      <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-tinta/45">
+                      {[v.familia, v.categoria].filter(Boolean).join(" · ")}
+                    </p>
+                    <p className="mt-1 font-mono text-[10px] text-tinta/30">{v.sku}</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{v.stockTotal}</p>

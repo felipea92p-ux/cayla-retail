@@ -18,6 +18,7 @@ export type ProductoAgrupado = {
   familia: string | null;
   categoria: string | null;
   marca: string | null;
+  fotoUrl: string | null;
   variantes: VarianteInteligente[];
 };
 
@@ -150,15 +151,21 @@ export function InventarioAgrupado({
                 onClick={() => toggle(p.productoId)}
                 className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sand/40 sm:grid-cols-[1fr_110px_90px_120px]"
               >
-                <div>
-                  <p className="text-sm font-medium text-tinta">
-                    {p.referencia}
-                    {tieneReponer && <span className="label-cayla ml-2 text-[8px] text-rojo">Reponer</span>}
-                    {tieneEstancado && <span className="label-cayla ml-2 text-[8px] text-taupe">Estancado</span>}
-                  </p>
-                  <p className="mt-0.5 text-xs text-tinta/45">
-                    {[p.familia, p.categoria, p.marca].filter(Boolean).join(" · ")}
-                  </p>
+                <div className="flex items-center gap-3">
+                  {p.fotoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.fotoUrl} alt="" className="h-10 w-10 shrink-0 border border-tinta/10 object-cover" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-tinta">
+                      {p.referencia}
+                      {tieneReponer && <span className="label-cayla ml-2 text-[8px] text-rojo">Reponer</span>}
+                      {tieneEstancado && <span className="label-cayla ml-2 text-[8px] text-taupe">Estancado</span>}
+                    </p>
+                    <p className="mt-0.5 text-xs text-tinta/45">
+                      {[p.familia, p.categoria, p.marca].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
                 </div>
                 <p className={`font-display text-right text-xl ${stockTotal === 0 ? "text-rojo" : "text-tinta"}`}>
                   {stockTotal}

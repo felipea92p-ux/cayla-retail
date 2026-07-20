@@ -704,6 +704,7 @@ export type Database = {
           created_at: string
           descripcion: string | null
           estado: string
+          foto_url: string | null
           genero: string | null
           id: string
           marca: string | null
@@ -717,6 +718,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          foto_url?: string | null
           genero?: string | null
           id?: string
           marca?: string | null
@@ -730,6 +732,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          foto_url?: string | null
           genero?: string | null
           id?: string
           marca?: string | null
@@ -848,6 +851,7 @@ export type Database = {
           cantidad: number
           contenedor_id: string | null
           sede_id: string
+          stock_minimo: number | null
           ultima_entrada: string | null
           ultima_salida: string | null
           ultima_venta: string | null
@@ -858,6 +862,7 @@ export type Database = {
           cantidad?: number
           contenedor_id?: string | null
           sede_id: string
+          stock_minimo?: number | null
           ultima_entrada?: string | null
           ultima_salida?: string | null
           ultima_venta?: string | null
@@ -868,6 +873,7 @@ export type Database = {
           cantidad?: number
           contenedor_id?: string | null
           sede_id?: string
+          stock_minimo?: number | null
           ultima_entrada?: string | null
           ultima_salida?: string | null
           ultima_venta?: string | null
@@ -1077,6 +1083,14 @@ export type Database = {
         Returns: { diferencia: number; monto_contado: number; monto_esperado: number }[]
       }
       recalcular_stock: { Args: never; Returns: undefined }
+      fijar_stock_minimo: {
+        Args: {
+          p_minimo?: number
+          p_sede_id: string
+          p_variante_id: string
+        }
+        Returns: undefined
+      }
       registrar_deposito: {
         Args: {
           p_fecha?: string

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { createClient } from "@/lib/supabase/server";
+import { FotoProducto } from "@/components/FotoProducto";
+import { MinimosPorSede } from "@/components/MinimosPorSede";
 
 const ETIQUETA_TIPO: Record<string, string> = {
   entrada: "Entrada",
@@ -66,8 +68,10 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const v = variantes.find((x) => x.varianteId === varianteId);
   if (!v) notFound();
 
-  const { data: sedesData } = await supabase.from("sedes").select("id, codigo");
+  const { data: sedesData } = await supabase.from("sedes").select("id, codigo, tipo");
   const sedePorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
+  const tiendas = (sedesData ?? []).filter((s) => s.tipo === "tienda").map((s) => ({ id: s.id, codigo: s.codigo }));
+  const esLider = persona.rol === "lider";
 
   const { data: stockConContenedor } = await supabase
     .from("stock")
@@ -111,13 +115,18 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/" className="text-xs text-neutral-400 hover:underline">← Volver al catálogo</Link>
-        <h1 className="mt-1 text-lg font-semibold text-neutral-900">{v.referencia}</h1>
-        <p className="text-xs text-neutral-500">
-          {[v.talla, v.color, v.categoria, v.marca].filter(Boolean).join(" · ")}
-        </p>
-        <p className="font-mono text-[11px] text-neutral-300">{v.sku}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link href="/inventario" className="text-xs text-neutral-400 hover:underline">← Volver al catálogo</Link>
+          <h1 className="mt-1 text-lg font-semibold text-neutral-900">{v.referencia}</h1>
+          <p className="text-xs text-neutral-500">
+            {[v.talla, v.color, v.categoria, v.marca].filter(Boolean).join(" · ")}
+          </p>
+          <p className="font-mono text-[11px] text-neutral-300">{v.sku}</p>
+        </div>
+        <div className="w-40 shrink-0 sm:w-48">
+          <FotoProducto productoId={v.productoId} fotoUrl={v.fotoUrl} referencia={v.referencia} esLider={esLider} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -167,13 +176,32 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
       )}
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-neutral-900">Stock por sede</h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-neutral-900">Stock por sede</h2>
+          {esLider && (
+            <MinimosPorSede
+              varianteId={v.varianteId}
+              sedes={tiendas}
+              minimosActuales={v.minimoPorSede}
+              minimoGeneral={v.stockMinimo}
+            />
+          )}
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(v.stockPorSede).map(([codigo, cantidad]) => {
             const contenedor = contenedorPorSedeCodigo.get(codigo);
+            const bajoMinimo = v.sedesBajoMinimo.includes(codigo);
             return (
-              <span key={codigo} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600">
+              <span
+                key={codigo}
+                className={`rounded-full px-2.5 py-1 text-xs ${
+                  bajoMinimo ? "bg-red-50 text-red-700" : "bg-neutral-100 text-neutral-600"
+                }`}
+              >
                 {codigo} <b>{cantidad}</b>
+                {v.minimoPorSede[codigo] != null && (
+                  <span className={bajoMinimo ? "text-red-400" : "text-neutral-400"}> / mín {v.minimoPorSede[codigo]}</span>
+                )}
                 {contenedor && <span className="text-neutral-400"> · {contenedor}</span>}
               </span>
             );

@@ -10,12 +10,14 @@ export type VarianteConStock = {
   familia: string | null;
   marca: string | null;
   estado: string | null;
+  fotoUrl: string | null; // una foto por modelo (productos.foto_url)
   talla: string | null;
   color: string | null;
   stockMinimo: number;
   costo: number | null; // null salvo Líder — el costo/margen es información sensible
   precio: number | null; // visible para todas: la Encargada lo necesita para vender
   stockPorSede: Record<string, number>; // codigo de sede -> cantidad
+  minimoPorSede: Record<string, number>; // solo sedes con mínimo propio definido
   stockTotal: number;
 }
 
@@ -25,7 +27,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   const { data: variantes, error: errVariantes } = await supabase
     .from("variantes")
     .select(
-      "id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, marca, estado, categorias(nombre, familia))"
+      "id, sku, talla, color, costo, precio, stock_minimo, productos(id, referencia, marca, estado, foto_url, categorias(nombre, familia))"
     )
     .order("sku");
 
@@ -33,15 +35,21 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
 
   const { data: stockRows } = await supabase
     .from("stock")
-    .select("variante_id, cantidad, sedes(codigo)");
+    .select("variante_id, cantidad, stock_minimo, sedes(codigo)");
 
   const stockPorVariante = new Map<string, Record<string, number>>();
+  const minimoPorVariante = new Map<string, Record<string, number>>();
   (stockRows ?? []).forEach((r) => {
     const sede = Array.isArray(r.sedes) ? r.sedes[0] : r.sedes;
     if (!sede) return;
     const actual = stockPorVariante.get(r.variante_id) ?? {};
     actual[sede.codigo] = r.cantidad;
     stockPorVariante.set(r.variante_id, actual);
+    if (r.stock_minimo != null) {
+      const minimos = minimoPorVariante.get(r.variante_id) ?? {};
+      minimos[sede.codigo] = r.stock_minimo;
+      minimoPorVariante.set(r.variante_id, minimos);
+    }
   });
 
   const verCostos = persona.rol === "lider";
@@ -65,12 +73,14 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         familia: categoriaRow?.familia ?? null,
         marca: producto?.marca ?? null,
         estado: producto?.estado ?? null,
+        fotoUrl: producto?.foto_url ?? null,
         talla: v.talla,
         color: v.color,
         stockMinimo: v.stock_minimo,
         costo: verCostos ? v.costo : null,
         precio: v.precio,
         stockPorSede: porSede,
+        minimoPorSede: minimoPorVariante.get(v.id) ?? {},
         stockTotal,
       };
     });
