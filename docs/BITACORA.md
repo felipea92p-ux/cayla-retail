@@ -229,6 +229,20 @@ gastos de operación. Simplificaciones declaradas en la propia pantalla: Balance
 hoy, costo vigente, sin depreciación ni cuentas por pagar (llegan en C2). El
 endurecimiento a libro mayor inmutable con asientos persistidos queda para C4/SUNAT.
 
+## 2026-07-19 (loop autónomo — ayudas (!) que enseñan)
+Felipe pidió trabajar en loop agregando descripciones fáciles y botones (!)
+clicables que expliquen cada concepto en su idioma. Se construyó el componente
+`Ayuda` (un (!) sutil en la marca; abre panel al tocar, cierra al tocar afuera o con
+Escape; fuerza texto normal aunque viva dentro de una etiqueta en versalitas — bug
+de herencia detectado y arreglado en verificación en vivo). Regado por todas las
+pantallas con jerga: los 4 estados financieros (cada término del Balance/EERR/Flujo/
+Cambios explicado con analogía del negocio), el Resumen de Finanzas, el cuadre de
+Efectivo, Comercial (rotación, reponer, dinero parado) y los indicadores del detalle
+de producto (velocidad, días de inventario, días sin venta, sell-through, clase ABC)
+y del Inicio del Líder. Encarna el protocolo de docencia del CLAUDE.md: dejar a
+Felipe más capaz de discutir el sistema, no de aplaudirlo. Verificado en vivo con el
+navegador: el (!) abre, cierra y se ve en la marca.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema
