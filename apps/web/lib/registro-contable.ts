@@ -9,6 +9,18 @@ export type LineaAsiento = { cuenta: string; debe: number; haber: number };
 
 export type EventoId = "aporte_dinero" | "aporte_especie" | "gasto" | "compra" | "ingreso";
 
+// ─── Comprobante (realidad peruana) ─────────────────────────────────────────
+// El crédito de IGV SOLO existe con factura. Boleta y nota entran completos al
+// costo. La verdad económica se registra siempre; el tratamiento tributario
+// depende del papel. Así el sistema nunca reclama un crédito que SUNAT no permite.
+export type Comprobante = "factura" | "boleta" | "nota";
+
+export const COMPROBANTES: { id: Comprobante; etiqueta: string; nota: string }[] = [
+  { id: "factura", etiqueta: "Factura", nota: "Con crédito de IGV" },
+  { id: "boleta", etiqueta: "Boleta", nota: "Sin crédito de IGV" },
+  { id: "nota", etiqueta: "Nota / sin comprobante", nota: "Sin crédito · igual entra" },
+];
+
 // ─── Subgrupo funcional de cada cuenta ──────────────────────────────────────
 // Más fino que el "elemento" contable (activo/pasivo…): permite delimitar qué
 // cuentas tienen sentido en cada acción, para no ofrecer opciones absurdas
@@ -74,7 +86,8 @@ export type EventoConfig = {
   /** Subgrupos de cuenta que puede elegir como "cuenta principal". Vacío = no aplica. */
   subgruposPrincipal: string[];
   etiquetaPrincipal: string;
-  usaIGV: boolean;
+  /** Muestra el selector de comprobante (define el IGV). Solo compra y gasto. */
+  usaComprobante: boolean;
   medios?: MedioOpcion[];
   etiquetaMedio?: string;
   etiquetaMonto: string;
@@ -99,7 +112,7 @@ export const EVENTOS: EventoConfig[] = [
     origen: "apertura",
     subgruposPrincipal: [],
     etiquetaPrincipal: "",
-    usaIGV: false,
+    usaComprobante: false,
     medios: MEDIOS_COBRO,
     etiquetaMedio: "¿Dónde entró?",
     etiquetaMonto: "Monto (S/)",
@@ -112,7 +125,7 @@ export const EVENTOS: EventoConfig[] = [
     origen: "apertura",
     subgruposPrincipal: ["inventario", "produccion", "activo_fijo", "otro_activo", "por_cobrar"],
     etiquetaPrincipal: "¿Qué es?",
-    usaIGV: false,
+    usaComprobante: false,
     etiquetaMonto: "Valor a costo (S/)",
   },
   {
@@ -122,7 +135,7 @@ export const EVENTOS: EventoConfig[] = [
     origen: "gasto",
     subgruposPrincipal: ["gasto"],
     etiquetaPrincipal: "Tipo de gasto",
-    usaIGV: true,
+    usaComprobante: true,
     medios: MEDIOS_PAGO,
     etiquetaMedio: "¿Cómo se pagó?",
     etiquetaMonto: "Total pagado (S/)",
@@ -134,7 +147,7 @@ export const EVENTOS: EventoConfig[] = [
     origen: "compra",
     subgruposPrincipal: ["activo_fijo", "inventario", "otro_activo"],
     etiquetaPrincipal: "¿Qué compraste?",
-    usaIGV: true,
+    usaComprobante: true,
     medios: MEDIOS_PAGO,
     etiquetaMedio: "¿Cómo se pagó?",
     etiquetaMonto: "Total pagado (S/)",
@@ -146,7 +159,7 @@ export const EVENTOS: EventoConfig[] = [
     origen: "manual",
     subgruposPrincipal: ["ingreso", "por_cobrar"],
     etiquetaPrincipal: "¿Por qué entró?",
-    usaIGV: false,
+    usaComprobante: false,
     medios: MEDIOS_COBRO,
     etiquetaMedio: "¿Dónde entró?",
     etiquetaMonto: "Monto (S/)",
@@ -186,8 +199,8 @@ export type RegistroInputs = {
   evento: EventoId;
   cuentaPrincipal?: string; // código de la cuenta principal
   medio?: string; // código de la contrapartida (caja/banco/crédito)
-  monto: number; // total (con IGV si el evento y el usuario lo indican)
-  incluyeIGV: boolean;
+  monto: number; // total pagado
+  comprobante: Comprobante; // solo separa IGV cuando es factura
 };
 
 const CAPITAL = "501";
@@ -200,7 +213,8 @@ export function construirLineas(inp: RegistroInputs): LineaAsiento[] {
   const total = redondear(inp.monto || 0);
   if (total <= 0) return [];
 
-  const conIGV = ev.usaIGV && inp.incluyeIGV;
+  // El crédito de IGV solo existe con FACTURA. Boleta y nota entran completos al costo.
+  const conIGV = ev.usaComprobante && inp.comprobante === "factura";
   const subtotal = conIGV ? redondear(total / (1 + IGV_TASA)) : total;
   const igv = conIGV ? redondear(total - subtotal) : 0;
 

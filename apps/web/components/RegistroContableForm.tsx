@@ -10,7 +10,9 @@ import {
   construirLineas,
   sumaDebe,
   sumaHaber,
+  COMPROBANTES,
   type EventoId,
+  type Comprobante,
 } from "@/lib/registro-contable";
 
 type Unidad = { id: string; codigo: string; nombre: string; tipo: string };
@@ -92,7 +94,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
   const [cuentaPrincipal, setCuentaPrincipal] = useState("");
   const [medio, setMedio] = useState("");
   const [montoStr, setMontoStr] = useState("");
-  const [incluyeIGV, setIncluyeIGV] = useState(true);
+  const [comprobante, setComprobante] = useState<Comprobante>("boleta");
   const [fecha, setFecha] = useState(hoyLima());
   const [detalle, setDetalle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +111,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
     cuentaPrincipal: cuentaPrincipal || undefined,
     medio: medio || undefined,
     monto,
-    incluyeIGV,
+    comprobante,
   });
   const totalDebe = sumaDebe(lineas);
   const totalHaber = sumaHaber(lineas);
@@ -122,6 +124,10 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
     const sube = (l.debe > 0 && deudora) || (l.haber > 0 && !deudora);
     const monto = l.debe > 0 ? l.debe : l.haber;
     const costoso = elem === "gasto" || elem === "pasivo"; // gasto o deuda: peso visual menor
+    // El IGV en una compra con factura es un crédito a tu favor: se lee mejor así.
+    if (l.cuenta === "4011") {
+      return { nombre: "IGV a favor (crédito)", sube: true, monto, costoso: false };
+    }
     return { nombre: nombreCuenta.get(l.cuenta) ?? l.cuenta, sube, monto, costoso };
   });
 
@@ -141,7 +147,8 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
       setError("Faltan datos para armar el registro.");
       return;
     }
-    const glosa = detalle.trim() || ev.titulo;
+    const glosa =
+      (detalle.trim() || ev.titulo) + (ev.usaComprobante ? ` · ${comprobante}` : "");
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_asiento", {
@@ -237,8 +244,8 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         </div>
       )}
 
-      {/* 4. Monto + IGV */}
-      <div className="space-y-2">
+      {/* 4. Monto */}
+      <div className="space-y-1.5">
         <label className={labelCls}>{ev.etiquetaMonto}</label>
         <input
           type="number"
@@ -250,18 +257,32 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
           placeholder="0.00"
           className={`${inputCls} font-display text-lg`}
         />
-        {ev.usaIGV && (
-          <label className="flex cursor-pointer items-center gap-2 pt-0.5 text-xs text-tinta/60">
-            <input
-              type="checkbox"
-              checked={incluyeIGV}
-              onChange={(e) => setIncluyeIGV(e.target.checked)}
-              className="accent-rojo"
-            />
-            El monto incluye IGV (tengo comprobante con factura)
-          </label>
-        )}
       </div>
+
+      {/* 4b. Comprobante — define el IGV (crédito solo con factura) */}
+      {ev.usaComprobante && (
+        <div className="space-y-1.5">
+          <label className={labelCls}>¿Qué comprobante te dieron?</label>
+          <div className="grid grid-cols-3 gap-2">
+            {COMPROBANTES.map((c) => {
+              const activo = c.id === comprobante;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setComprobante(c.id)}
+                  className={`border px-2.5 py-2 text-left transition-colors ${
+                    activo ? "border-rojo bg-papel" : "border-tinta/15 bg-crema hover:border-rojo/40"
+                  }`}
+                >
+                  <span className="block text-xs font-medium text-tinta">{c.etiqueta}</span>
+                  <span className="mt-0.5 block text-[10px] leading-tight text-tinta/45">{c.nota}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 5. Medio / contrapartida */}
       {ev.medios && (
