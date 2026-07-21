@@ -9,6 +9,61 @@ export type LineaAsiento = { cuenta: string; debe: number; haber: number };
 
 export type EventoId = "aporte_dinero" | "aporte_especie" | "gasto" | "compra" | "ingreso";
 
+// ─── Subgrupo funcional de cada cuenta ──────────────────────────────────────
+// Más fino que el "elemento" contable (activo/pasivo…): permite delimitar qué
+// cuentas tienen sentido en cada acción, para no ofrecer opciones absurdas
+// (comprar no puede ofrecer "Caja", registrar un gasto no ofrece la depreciación
+// que el sistema calcula solo). Diseño para prevenir el error, no para avisarlo.
+export const SUBGRUPO: Record<string, string> = {
+  "101": "dinero",
+  "104": "dinero",
+  "121": "por_cobrar",
+  "168": "otro_activo",
+  "201": "inventario",
+  "211": "produccion",
+  "231": "produccion",
+  "241": "inventario",
+  "252": "inventario",
+  "333": "activo_fijo",
+  "336": "activo_fijo",
+  "335": "activo_fijo",
+  "391": "contra", // depreciación acumulada: nunca se elige a mano
+  "421": "pasivo",
+  "411": "pasivo",
+  "4011": "igv",
+  "4017": "pasivo",
+  "451": "pasivo",
+  "442": "pasivo",
+  "501": "capital",
+  "591": "resultado",
+  "891": "resultado",
+  "701": "ingreso",
+  "702": "ingreso",
+  "759": "ingreso",
+  "691": "gasto_auto", // costo de ventas: lo genera la venta, no se registra a mano
+  "601": "compra_periodica",
+  "609": "gasto",
+  "621": "gasto",
+  "635": "gasto",
+  "636": "gasto",
+  "632": "gasto",
+  "639": "gasto",
+  "659": "gasto",
+  "681": "gasto_auto", // depreciación del mes: la calcula el sistema
+};
+
+// Subtítulo con que se agrupan las opciones en el desplegable.
+export const GRUPO_LABEL: Record<string, string> = {
+  dinero: "Dinero",
+  por_cobrar: "Por cobrar",
+  inventario: "Inventario",
+  produccion: "Producción",
+  activo_fijo: "Máquinas y equipos",
+  otro_activo: "Otros activos",
+  gasto: "Gastos",
+  ingreso: "Ingresos",
+};
+
 type MedioOpcion = { codigo: string; etiqueta: string };
 
 export type EventoConfig = {
@@ -16,9 +71,8 @@ export type EventoConfig = {
   titulo: string;
   descripcion: string;
   origen: string; // para el asiento (apertura, gasto, compra, manual)
-  /** Elementos de cuenta que puede elegir como "cuenta principal". Vacío = no aplica. */
-  elementosPrincipal: string[];
-  excluirCodigos?: string[];
+  /** Subgrupos de cuenta que puede elegir como "cuenta principal". Vacío = no aplica. */
+  subgruposPrincipal: string[];
   etiquetaPrincipal: string;
   usaIGV: boolean;
   medios?: MedioOpcion[];
@@ -43,7 +97,7 @@ export const EVENTOS: EventoConfig[] = [
     titulo: "Ingresó dinero (aporte / presupuesto)",
     descripcion: "Metiste plata a esta unidad. Sube tu caja o banco, y sube tu capital.",
     origen: "apertura",
-    elementosPrincipal: [],
+    subgruposPrincipal: [],
     etiquetaPrincipal: "",
     usaIGV: false,
     medios: MEDIOS_COBRO,
@@ -53,9 +107,10 @@ export const EVENTOS: EventoConfig[] = [
   {
     id: "aporte_especie",
     titulo: "Registrar algo que YA tengo",
-    descripcion: "Una máquina, telas, producto terminado, una garantía… que ya es tuyo. Entra como activo y como capital de apertura.",
+    descripcion:
+      "Una máquina, telas, producto terminado, una garantía… que ya es tuyo. Entra como activo y como capital de apertura. (El dinero va en 'Ingresó dinero'.)",
     origen: "apertura",
-    elementosPrincipal: ["activo"],
+    subgruposPrincipal: ["inventario", "produccion", "activo_fijo", "otro_activo", "por_cobrar"],
     etiquetaPrincipal: "¿Qué es?",
     usaIGV: false,
     etiquetaMonto: "Valor a costo (S/)",
@@ -65,8 +120,7 @@ export const EVENTOS: EventoConfig[] = [
     titulo: "Registrar un gasto",
     descripcion: "Alquiler, luz, comisiones, confección tercerizada… algo que se consume.",
     origen: "gasto",
-    elementosPrincipal: ["gasto"],
-    excluirCodigos: ["691"], // el costo de ventas se genera solo con cada venta
+    subgruposPrincipal: ["gasto"],
     etiquetaPrincipal: "Tipo de gasto",
     usaIGV: true,
     medios: MEDIOS_PAGO,
@@ -78,7 +132,7 @@ export const EVENTOS: EventoConfig[] = [
     titulo: "Comprar un activo o mercadería",
     descripcion: "Una máquina, telas, mercadería para vender… algo que queda como activo.",
     origen: "compra",
-    elementosPrincipal: ["activo"],
+    subgruposPrincipal: ["activo_fijo", "inventario", "otro_activo"],
     etiquetaPrincipal: "¿Qué compraste?",
     usaIGV: true,
     medios: MEDIOS_PAGO,
@@ -90,7 +144,7 @@ export const EVENTOS: EventoConfig[] = [
     titulo: "Entró dinero (otro ingreso)",
     descripcion: "Un cobro pendiente, un ingreso que no es una venta de tienda.",
     origen: "manual",
-    elementosPrincipal: ["ingreso"],
+    subgruposPrincipal: ["ingreso", "por_cobrar"],
     etiquetaPrincipal: "¿Por qué entró?",
     usaIGV: false,
     medios: MEDIOS_COBRO,
@@ -101,6 +155,27 @@ export const EVENTOS: EventoConfig[] = [
 
 export function eventoPorId(id: EventoId): EventoConfig {
   return EVENTOS.find((e) => e.id === id)!;
+}
+
+type CuentaMin = { codigo: string; nombre: string };
+export type GrupoOpciones = { label: string; cuentas: CuentaMin[] };
+
+/** Opciones de "cuenta principal" válidas para el evento, ya agrupadas por subtítulo. */
+export function opcionesPrincipal(evento: EventoId, cuentas: CuentaMin[]): GrupoOpciones[] {
+  const permitidos = new Set(eventoPorId(evento).subgruposPrincipal);
+  const grupos: GrupoOpciones[] = [];
+  for (const c of cuentas) {
+    const sub = SUBGRUPO[c.codigo] ?? "";
+    if (!permitidos.has(sub)) continue;
+    const label = GRUPO_LABEL[sub] ?? "Otros";
+    let g = grupos.find((x) => x.label === label);
+    if (!g) {
+      g = { label, cuentas: [] };
+      grupos.push(g);
+    }
+    g.cuentas.push(c);
+  }
+  return grupos;
 }
 
 export function redondear(n: number): number {

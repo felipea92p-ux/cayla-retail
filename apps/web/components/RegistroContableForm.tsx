@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   EVENTOS,
   eventoPorId,
+  opcionesPrincipal,
   construirLineas,
   sumaDebe,
   sumaHaber,
@@ -50,17 +51,9 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
   const ev = eventoPorId(eventoId);
   const monto = Number(montoStr) || 0;
 
-  // Cuentas elegibles como "principal" según el evento.
-  const cuentasPrincipal = useMemo(
-    () =>
-      cuentas.filter(
-        (c) =>
-          ev.elementosPrincipal.includes(c.elemento) &&
-          !c.es_contra &&
-          !(ev.excluirCodigos ?? []).includes(c.codigo)
-      ),
-    [cuentas, ev]
-  );
+  // Cuentas elegibles como "principal" según el evento, ya agrupadas por subtítulo:
+  // cada acción solo ofrece lo que tiene sentido (comprar no ofrece "Caja", etc.).
+  const gruposPrincipal = useMemo(() => opcionesPrincipal(eventoId, cuentas), [eventoId, cuentas]);
 
   const lineas = construirLineas({
     evento: eventoId,
@@ -161,8 +154,8 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         </div>
       </div>
 
-      {/* 3. Cuenta principal (según evento) */}
-      {ev.elementosPrincipal.length > 0 && (
+      {/* 3. Cuenta principal (según evento) — solo opciones con sentido, agrupadas */}
+      {ev.subgruposPrincipal.length > 0 && (
         <div className="space-y-1.5">
           <label className={labelCls}>{ev.etiquetaPrincipal}</label>
           <select
@@ -171,10 +164,14 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
             className={inputCls}
           >
             <option value="">Elige…</option>
-            {cuentasPrincipal.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre}
-              </option>
+            {gruposPrincipal.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.cuentas.map((c) => (
+                  <option key={c.codigo} value={c.codigo}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
