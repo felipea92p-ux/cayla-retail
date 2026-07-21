@@ -84,6 +84,78 @@ export type Database = {
           },
         ]
       }
+      activos_fijos: {
+        Row: {
+          costo: number
+          created_at: string
+          cuenta_codigo: string
+          depreciacion_apertura: number
+          descripcion: string | null
+          estado: string
+          fecha_adquisicion: string
+          id: string
+          nombre: string
+          nota: string | null
+          serie: string | null
+          tasa_anual: number
+          unidad_id: string
+          updated_at: string
+          valor_residual: number
+          vida_util_meses: number
+        }
+        Insert: {
+          costo: number
+          created_at?: string
+          cuenta_codigo: string
+          depreciacion_apertura?: number
+          descripcion?: string | null
+          estado?: string
+          fecha_adquisicion: string
+          id?: string
+          nombre: string
+          nota?: string | null
+          serie?: string | null
+          tasa_anual: number
+          unidad_id: string
+          updated_at?: string
+          valor_residual?: number
+          vida_util_meses: number
+        }
+        Update: {
+          costo?: number
+          created_at?: string
+          cuenta_codigo?: string
+          depreciacion_apertura?: number
+          descripcion?: string | null
+          estado?: string
+          fecha_adquisicion?: string
+          id?: string
+          nombre?: string
+          nota?: string | null
+          serie?: string | null
+          tasa_anual?: number
+          unidad_id?: string
+          updated_at?: string
+          valor_residual?: number
+          vida_util_meses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activos_fijos_cuenta_codigo_fkey"
+            columns: ["cuenta_codigo"]
+            isOneToOne: false
+            referencedRelation: "cuentas_contables"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "activos_fijos_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asiento_lineas: {
         Row: {
           asiento_id: string
