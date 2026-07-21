@@ -4,6 +4,7 @@ import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getCajaAbierta } from "@/lib/finanzas";
 import { getPanelLider } from "@/lib/panel";
 import { BuscadorHero } from "@/components/BuscadorHero";
+import { Ayuda } from "@/components/Ayuda";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -93,12 +94,23 @@ export default async function InicioPage() {
             </div>
           </div>
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Reponer ya</p>
+            <p className="label-cayla text-[9px] text-tinta/45">Reponer ya
+              <Ayuda titulo="Reponer ya">
+                Cuántas prendas están por agotarse según qué tan rápido se venden. No esperes a
+                quedarte en cero: estas necesitan pedido pronto. El detalle y cuánto comprar está en
+                Comercial.
+              </Ayuda>
+            </p>
             <p className="font-display mt-1 text-3xl text-rojo">{reponerYa}</p>
             <p className="mt-1 text-xs text-tinta/45">{estancados} estancada{estancados === 1 ? "" : "s"}</p>
           </div>
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Inventario a costo</p>
+            <p className="label-cayla text-[9px] text-tinta/45">Inventario a costo
+              <Ayuda titulo="Inventario a costo">
+                Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. No
+                es pérdida, pero es dinero dormido: rinde cuando se vende, no antes.
+              </Ayuda>
+            </p>
             <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.valorInventarioTotal ?? 0)}</p>
             <Link href="/comercial" className="mt-1 inline-block text-xs text-tinta/45 hover:text-rojo">
               Ver análisis →
