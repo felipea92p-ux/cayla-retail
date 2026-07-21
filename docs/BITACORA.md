@@ -243,6 +243,24 @@ y del Inicio del Líder. Encarna el protocolo de docencia del CLAUDE.md: dejar a
 Felipe más capaz de discutir el sistema, no de aplaudirlo. Verificado en vivo con el
 navegador: el (!) abre, cierra y se ve en la marca.
 
+## 2026-07-19 (noche — carga de data + plan maestro)
+Felipe pidió cargar su data real de las 3 unidades. Estudio profundo de los SINATRA
+para catálogo: "Ingreso Mercadería" es un REGISTRO DE COMPRAS, no un catálogo (sin SKU,
+sin tallas, sin colores; 350 "detalles" distintos solo en Polos&Tops). FRENO y discuto:
+importarlo crearía cientos de productos a medias — el catálogo real se captura bien vía
+recepciones. Lo cargable sí: PROVEEDORES, 292 únicos limpiados de 866 filas crudas (228
+con RUC válido; me auto-corregí un bug donde el ".0" de RUC-como-float rompía la
+validación; 3 conflictos reales de RUC entre archivos flagueados: Amuza/Ivanana/Maju
+Vogue; 2 RUC rotos: Tawas/Tiska). SQL de carga dejado en Downloads (NO en git — es PII de
+proveedores). Felipe también preguntó dónde va su IME: respuesta = Finanzas → Patrimonio
+como Activo, NO gasto (corrige el enredo de SINATRA); se construyó categorización de IME
+(muebles/equipos/intangibles) — migración 0019 + editor, PENDIENTE de que Felipe la corra
+(sin subir para no romper prod). Antes de irse pidió plan detallado: escrito en
+docs/PLAN-DE-TRABAJO.md (estado actual, 3 frentes, taxonomía alineada a su data real con 5
+categorías nuevas propuestas: Conjuntos/Enterizos/Chalecos/Bodys/Blazers, plan de captura,
+quién hace qué) + docs/GUIA-CARGA-CATALOGO.md (guía imprimible para Encargadas). Hallazgo:
+su "Complementos" (412 compras, 2ª más grande) es mayormente bisutería — no es rubro menor.
+
 ## 2026-07-18 (tarde — identidad visual + rediseño UX total)
 Dos saltos grandes en un día. Primero, la identidad: se leyó el brandbook CAYLA v3.0
 (los dos PDFs de marca) y se aplicó a la app — Rojo #B8412D como acento sagrado, Crema
