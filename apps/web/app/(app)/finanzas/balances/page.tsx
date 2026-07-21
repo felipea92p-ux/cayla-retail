@@ -4,6 +4,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getEstadosContables } from "@/lib/contabilidad";
 import { mesActualLima } from "@/lib/finanzas-nucleo";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { Ayuda } from "@/components/Ayuda";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -61,15 +62,60 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
 
       {/* ==================== 1 · ESTADO DE RESULTADOS ==================== */}
       <section>
-        <h2 className={H2}>Estado de Resultados</h2>
+        <h2 className={H2}>
+          Estado de Resultados
+          <Ayuda titulo="Estado de Resultados">
+            Responde una pregunta: ¿este mes el negocio ganó o perdió? Empieza por lo que vendiste
+            y le va restando lo que costó vender. El resultado final es la utilidad.
+          </Ayuda>
+        </h2>
         <p className="mb-3 text-xs text-tinta/45">Lo que ganó o perdió el negocio en {MESES[mes - 1]}.</p>
         <div className="border border-tinta/10 bg-papel">
-          <div className={fila}><span className="text-tinta/60">Ventas netas</span><span className="text-tinta">{money(e.eerr.ventasNetas)}</span></div>
-          <div className={fila}><span className="text-tinta/45">(−) Costo de ventas</span><span className="text-tinta/60">{money(-e.eerr.costoVentas)}</span></div>
-          <div className={fila}><span className="text-tinta/45">(−) Fletes de compra</span><span className="text-tinta/60">{money(-e.eerr.fletes)}</span></div>
-          <div className={fila}><span className="text-tinta/45">(−) Mermas</span><span className="text-tinta/60">{money(-e.eerr.mermas)}</span></div>
+          <div className={fila}>
+            <span className="text-tinta/60">Ventas netas
+              <Ayuda titulo="Ventas netas">
+                El precio de tus ventas SIN el IGV. De una blusa de S/89.90, S/76.19 es tu venta y
+                S/13.71 es IGV que solo cobras para SUNAT — no es tuyo.
+              </Ayuda>
+            </span>
+            <span className="text-tinta">{money(e.eerr.ventasNetas)}</span>
+          </div>
+          <div className={fila}>
+            <span className="text-tinta/45">(−) Costo de ventas
+              <Ayuda titulo="Costo de ventas">
+                Cuánto te costó (a precio de compra o de producción) exactamente lo que vendiste este
+                mes. No lo que compraste: solo lo que salió por la puerta vendido.
+              </Ayuda>
+            </span>
+            <span className="text-tinta/60">{money(-e.eerr.costoVentas)}</span>
+          </div>
+          <div className={fila}>
+            <span className="text-tinta/45">(−) Fletes de compra
+              <Ayuda titulo="Fletes de compra">
+                Lo que pagas por traer los fardos. Va aquí, junto al costo de la mercadería — no entre
+                los gastos como el alquiler. Así tu margen bruto dice la verdad.
+              </Ayuda>
+            </span>
+            <span className="text-tinta/60">{money(-e.eerr.fletes)}</span>
+          </div>
+          <div className={fila}>
+            <span className="text-tinta/45">(−) Mermas
+              <Ayuda titulo="Mermas">
+                El costo de las prendas que se perdieron, se dañaron o se regalaron. Reducen tu margen
+                igual que el costo, porque es mercadería que ya no vas a vender.
+              </Ayuda>
+            </span>
+            <span className="text-tinta/60">{money(-e.eerr.mermas)}</span>
+          </div>
           <div className={filaTotal}>
-            <span className="text-tinta">Margen bruto{e.eerr.margenBrutoPct != null && <span className="ml-2 text-tinta/40">{e.eerr.margenBrutoPct}%</span>}</span>
+            <span className="text-tinta">Margen bruto
+              <Ayuda titulo="Margen bruto">
+                Lo que te queda de cada venta después de descontar cuánto te costó la mercadería (con
+                su flete y mermas). Es EL número con el que decides precios. Fórmula: Ventas netas −
+                Costo − Fletes − Mermas.
+              </Ayuda>
+              {e.eerr.margenBrutoPct != null && <span className="ml-2 text-tinta/40">{e.eerr.margenBrutoPct}%</span>}
+            </span>
             <span className="font-display text-base text-tinta">{money(e.eerr.margenBruto)}</span>
           </div>
           {e.eerr.gastosOperativos.map((g) => (
@@ -79,7 +125,13 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
             </div>
           ))}
           <div className={`${filaTotal} bg-crema`}>
-            <span className="label-cayla text-[10px] text-tinta">Utilidad operativa</span>
+            <span className="label-cayla text-[10px] text-tinta">Utilidad operativa
+              <Ayuda titulo="Utilidad operativa">
+                Lo que realmente ganó el negocio operando este mes: el margen bruto menos todos los
+                gastos de operar (alquiler, planilla, luz, marketing…). Si es negativo, gastaste más
+                de lo que dejó la mercadería.
+              </Ayuda>
+            </span>
             <span className={`font-display text-xl ${e.eerr.utilidadOperativa >= 0 ? "text-tinta" : "text-rojo"}`}>{money(e.eerr.utilidadOperativa)}</span>
           </div>
         </div>
@@ -88,9 +140,20 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
       {/* ==================== 2 · BALANCE GENERAL ==================== */}
       <section>
         <div className="flex items-baseline justify-between">
-          <h2 className={H2}>Balance General</h2>
+          <h2 className={H2}>
+            Balance General
+            <Ayuda titulo="Balance General">
+              Una foto de cuánto vale CAYLA hoy. A la izquierda, todo lo que tiene (activo). A la
+              derecha, cómo se financió: lo que debe (pasivo) más lo que es tuyo (patrimonio). Las
+              dos columnas siempre suman igual.
+            </Ayuda>
+          </h2>
           <span className={`label-cayla text-[9px] ${e.balance.cuadra ? "text-tinta/40" : "text-rojo"}`}>
             {e.balance.cuadra ? "cuadrado ✓" : "descuadre — revisar"}
+            <Ayuda titulo="¿Cuadrado?">
+              Significa que todo lo que CAYLA tiene es exactamente igual a cómo se financió. Es la
+              prueba de que los números no mienten: si no cuadrara, habría un error que corregir.
+            </Ayuda>
           </span>
         </div>
         <p className="mb-3 text-xs text-tinta/45">Cuánto vale CAYLA hoy. Activo = Pasivo + Patrimonio.</p>
@@ -99,17 +162,51 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
             <p className="label-cayla border-b border-tinta/10 px-4 py-2 text-[9px] text-tinta/45">Activo — lo que tiene</p>
             <div className={fila}><span className="text-tinta/60">Caja (efectivo en tiendas)</span><span className="text-tinta">{money(e.balance.caja)}</span></div>
             <div className={fila}><span className="text-tinta/60">Banco y medios electrónicos</span><span className="text-tinta">{money(e.balance.banco)}</span></div>
-            <div className={fila}><span className="text-tinta/60">Inventario (a costo)</span><span className="text-tinta">{money(e.balance.inventario)}</span></div>
+            <div className={fila}>
+              <span className="text-tinta/60">Inventario (a costo)
+                <Ayuda titulo="Inventario a costo">
+                  Cuánto vale toda tu mercadería en stock, valorada a lo que te COSTÓ (no a lo que la
+                  vendes). Es plata tuya, pero parada: no rinde hasta que se vende.
+                </Ayuda>
+              </span>
+              <span className="text-tinta">{money(e.balance.inventario)}</span>
+            </div>
             <div className={fila}><span className="text-tinta/60">Muebles y equipos</span><span className="text-tinta">{money(e.balance.activosFijos)}</span></div>
             <div className={`${filaTotal} bg-crema`}><span className="label-cayla text-[10px] text-tinta">Total activo</span><span className="font-display text-base text-tinta">{money(e.balance.totalActivo)}</span></div>
           </div>
           <div className="border border-tinta/10 bg-papel">
             <p className="label-cayla border-b border-tinta/10 px-4 py-2 text-[9px] text-tinta/45">Pasivo y Patrimonio — cómo se financia</p>
-            <div className={fila}><span className="text-tinta/60">IGV por pagar (SUNAT)</span><span className="text-tinta">{money(e.balance.igvPorPagar)}</span></div>
+            <div className={fila}>
+              <span className="text-tinta/60">IGV por pagar (SUNAT)
+                <Ayuda titulo="IGV por pagar">
+                  El IGV que cobraste en tus ventas menos el que pagaste en tus compras y gastos. Si
+                  sale positivo, se lo debes a SUNAT; si sale negativo, es crédito a tu favor para el
+                  próximo mes. Ese dinero nunca fue ganancia tuya.
+                </Ayuda>
+              </span>
+              <span className="text-tinta">{money(e.balance.igvPorPagar)}</span>
+            </div>
             <div className={fila}><span className="text-tinta/60">Otras deudas</span><span className="text-tinta">{money(e.balance.pasivosManuales)}</span></div>
             <div className="flex items-center justify-between px-4 py-2 text-sm text-tinta/40"><span>Total pasivo</span><span>{money(e.balance.totalPasivo)}</span></div>
-            <div className={fila}><span className="text-tinta/60">Capital y aportes</span><span className="text-tinta">{money(e.balance.capital)}</span></div>
-            <div className={fila}><span className="text-tinta/60">Utilidades acumuladas</span><span className="text-tinta">{money(e.balance.utilidadesAcumuladas)}</span></div>
+            <div className={fila}>
+              <span className="text-tinta/60">Capital y aportes
+                <Ayuda titulo="Capital y aportes">
+                  Lo que TÚ pusiste en el negocio. Hoy incluye el inventario y los saldos que aún no
+                  registramos como compra pagada, por eso se ve grande. Cuando construyamos Cuentas
+                  por Pagar, esta cifra baja a tu aporte real.
+                </Ayuda>
+              </span>
+              <span className="text-tinta">{money(e.balance.capital)}</span>
+            </div>
+            <div className={fila}>
+              <span className="text-tinta/60">Utilidades acumuladas
+                <Ayuda titulo="Utilidades acumuladas">
+                  La suma de todas las ganancias del negocio desde que arrancó el sistema. Es lo que
+                  CAYLA generó por sí misma, aparte de lo que tú aportaste.
+                </Ayuda>
+              </span>
+              <span className="text-tinta">{money(e.balance.utilidadesAcumuladas)}</span>
+            </div>
             <div className={`${filaTotal} bg-crema`}><span className="label-cayla text-[10px] text-tinta">Total pasivo + patrimonio</span><span className="font-display text-base text-tinta">{money(e.balance.totalPasivo + e.balance.totalPatrimonio)}</span></div>
           </div>
         </div>
@@ -120,7 +217,14 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
 
       {/* ==================== 3 · FLUJO DE EFECTIVO ==================== */}
       <section>
-        <h2 className={H2}>Flujo de Efectivo</h2>
+        <h2 className={H2}>
+          Flujo de Efectivo
+          <Ayuda titulo="Flujo de Efectivo">
+            La respuesta a &ldquo;vendí bien pero, ¿dónde está la plata?&rdquo;. Sigue el dinero real:
+            cuánto entró en efectivo, cuánto salió, y con cuánto terminaste. Puedes tener utilidad y
+            aun así poco efectivo si el dinero se quedó en inventario.
+          </Ayuda>
+        </h2>
         <p className="mb-3 text-xs text-tinta/45">De dónde vino y a dónde se fue el dinero en {MESES[mes - 1]}.</p>
         <div className="border border-tinta/10 bg-papel">
           <div className={fila}><span className="text-tinta/60">Efectivo al inicio del mes</span><span className="text-tinta">{money(e.flujo.efectivoInicial)}</span></div>
@@ -134,7 +238,14 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
 
       {/* ==================== 4 · CAMBIOS EN EL PATRIMONIO ==================== */}
       <section>
-        <h2 className={H2}>Cambios en el Patrimonio</h2>
+        <h2 className={H2}>
+          Cambios en el Patrimonio
+          <Ayuda titulo="Cambios en el Patrimonio">
+            Cómo creció (o bajó) lo que es tuyo durante el mes. Separa dos cosas: lo que tú aportaste
+            o retiraste, y lo que el negocio ganó solo. Así ves si CAYLA crece por tu bolsillo o por
+            su propio motor.
+          </Ayuda>
+        </h2>
         <p className="mb-3 text-xs text-tinta/45">Cómo cambió lo que es tuyo durante {MESES[mes - 1]}.</p>
         <div className="overflow-x-auto border border-tinta/10 bg-papel">
           <table className="w-full text-left text-sm">

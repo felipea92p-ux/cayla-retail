@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { CuadreSede } from "@/lib/finanzas-nucleo";
+import { Ayuda } from "@/components/Ayuda";
 
 type Sede = { id: string; codigo: string };
 
@@ -57,7 +58,14 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
       <div className="grid gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
         {cuadre.map((c) => (
           <div key={c.sedeCodigo} className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">{c.sedeCodigo} · efectivo teórico</p>
+            <p className="label-cayla text-[9px] text-tinta/45">
+              {c.sedeCodigo} · efectivo teórico
+              <Ayuda titulo="Efectivo teórico">
+                Cuánto efectivo DEBERÍA haber en el cajón de esta tienda ahora mismo, según el sistema:
+                el saldo inicial, más las ventas en efectivo, menos los gastos en efectivo y los
+                depósitos al banco. Al cerrar caja, se compara con lo que cuentas de verdad.
+              </Ayuda>
+            </p>
             <p className={`font-display mt-1 text-3xl ${c.teorico < 0 ? "text-rojo" : "text-tinta"}`}>
               {money(c.teorico)}
             </p>

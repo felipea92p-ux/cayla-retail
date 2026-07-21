@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FotoProducto } from "@/components/FotoProducto";
 import { MinimosPorSede } from "@/components/MinimosPorSede";
 import { RecetaCosto } from "@/components/RecetaCosto";
+import { Ayuda } from "@/components/Ayuda";
 
 const ETIQUETA_TIPO: Record<string, string> = {
   entrada: "Entrada",
@@ -159,26 +160,52 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
           <p className="text-lg font-semibold text-neutral-900">{v.stockTotal}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs text-neutral-400">Velocidad</p>
+          <p className="text-xs text-neutral-400">Velocidad
+            <Ayuda titulo="Velocidad de venta">
+              Cuántas unidades de esta prenda se venden por día, en promedio. Es el pulso: cuanto más
+              alto, más rápido hay que reponer.
+            </Ayuda>
+          </p>
           <p className="text-lg font-semibold text-neutral-900">{v.velocidadDiaria}/día</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs text-neutral-400">Días de inventario</p>
+          <p className="text-xs text-neutral-400">Días de inventario
+            <Ayuda titulo="Días de inventario">
+              Con el stock de hoy y el ritmo actual de venta, para cuántos días te alcanza antes de
+              agotarte. Pocos días = repón pronto; muchos días = tienes de sobra.
+            </Ayuda>
+          </p>
           <p className="text-lg font-semibold text-neutral-900">{v.diasInventario ?? "—"}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs text-neutral-400">Días sin venta</p>
+          <p className="text-xs text-neutral-400">Días sin venta
+            <Ayuda titulo="Días sin venta">
+              Cuántos días pasaron desde la última vez que se VENDIÓ una (no desde que se movió del
+              almacén). Muchos días sin venta y con stock = prenda estancada, plata dormida.
+            </Ayuda>
+          </p>
           <p className="text-lg font-semibold text-neutral-900">{v.diasSinVenta ?? "—"}</p>
         </div>
         {v.sellThrough != null && (
           <div className="rounded-xl border border-neutral-200 bg-white p-3">
-            <p className="text-xs text-neutral-400">Sell-through</p>
+            <p className="text-xs text-neutral-400">Sell-through
+              <Ayuda titulo="Sell-through">
+                De todo lo que tuviste de esta prenda, qué porcentaje ya vendiste. 80% significa que
+                vendiste 8 de cada 10 que tuviste — buena señal. Bajo y viejo = hay que rematar.
+              </Ayuda>
+            </p>
             <p className="text-lg font-semibold text-neutral-900">{Math.round(v.sellThrough * 100)}%</p>
           </div>
         )}
         {v.claseABC && (
           <div className="rounded-xl border border-neutral-200 bg-white p-3">
-            <p className="text-xs text-neutral-400">Clase ABC</p>
+            <p className="text-xs text-neutral-400">Clase ABC
+              <Ayuda titulo="Clase ABC">
+                Qué tan importante es esta prenda para tu facturación. A = tus estrellas (el 80% de la
+                venta sale de pocas prendas así); B = intermedias; C = las que casi no mueven. Cuida
+                las A como oro.
+              </Ayuda>
+            </p>
             <p className="text-lg font-semibold text-neutral-900">{v.claseABC}</p>
           </div>
         )}

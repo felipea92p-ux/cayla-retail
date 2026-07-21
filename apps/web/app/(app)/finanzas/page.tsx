@@ -5,6 +5,7 @@ import { getEERRMensual, mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
+import { Ayuda } from "@/components/Ayuda";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -97,7 +98,12 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
             <p className="font-display mt-1 text-2xl text-tinta">{money(eerr?.ventas ?? 0)}</p>
           </div>
           <div className="bg-crema p-4">
-            <p className="label-cayla text-[9px] text-tinta/45">Costo mercadería</p>
+            <p className="label-cayla text-[9px] text-tinta/45">Costo mercadería
+              <Ayuda titulo="Costo de mercadería">
+                Cuánto te costó comprar (o producir) exactamente lo que se vendió este mes. Es el gasto
+                más grande de una tienda de ropa y define tu margen.
+              </Ayuda>
+            </p>
             <p className="font-display mt-1 text-2xl text-tinta/70">{money(eerr?.cogs ?? 0)}</p>
           </div>
           <div className="bg-crema p-4">
@@ -109,7 +115,12 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
             <p className="font-display mt-1 text-2xl text-tinta/70">{money(eerr?.gastos ?? 0)}</p>
           </div>
           <div className="bg-crema p-4">
-            <p className="label-cayla text-[9px] text-tinta/45">Utilidad neta</p>
+            <p className="label-cayla text-[9px] text-tinta/45">Utilidad neta
+              <Ayuda titulo="Utilidad neta">
+                Lo que de verdad ganó el negocio este mes: ventas menos el costo de la mercadería,
+                las mermas y todos los gastos. Es la última línea, la que importa.
+              </Ayuda>
+            </p>
             <p className={`font-display mt-1 text-2xl ${(eerr?.utilidad ?? 0) >= 0 ? "text-tinta" : "text-rojo"}`}>
               {money(eerr?.utilidad ?? 0)}
             </p>

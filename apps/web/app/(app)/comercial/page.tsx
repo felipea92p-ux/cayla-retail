@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { createClient } from "@/lib/supabase/server";
+import { Ayuda } from "@/components/Ayuda";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -95,7 +96,13 @@ export default async function ComercialPage() {
 
       {/* Sugerencias de reposición */}
       <div>
-        <h2 className="label-cayla mb-3 text-[10px] text-rojo">Qué reponer ya</h2>
+        <h2 className="label-cayla mb-3 text-[10px] text-rojo">Qué reponer ya
+          <Ayuda titulo="Qué reponer ya">
+            Las prendas que se están por agotar según qué tan rápido se venden. El sistema calcula
+            cuántas comprar para no quedarte sin ellas antes de que llegue el próximo pedido. Deja de
+            comprar por intuición: aquí está el dato.
+          </Ayuda>
+        </h2>
         {sugerencias.length === 0 ? (
           <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
             Nada urgente — el stock cubre la demanda actual.
@@ -136,7 +143,13 @@ export default async function ComercialPage() {
       {/* Rotación por familia */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Rotación por familia</h2>
+          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Rotación por familia
+            <Ayuda titulo="Rotación">
+              Qué tan rápido se convierte tu mercadería en dinero. Una familia que rota mucho (se
+              vende rápido) merece más de tu presupuesto de compra; una que rota poco, menos. Te dice
+              dónde meter la plata.
+            </Ayuda>
+          </h2>
           <div className="overflow-x-auto border border-tinta/10 bg-papel">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
@@ -217,7 +230,12 @@ export default async function ComercialPage() {
         </div>
 
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Dinero parado en stock (a costo)</h2>
+          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Dinero parado en stock (a costo)
+            <Ayuda titulo="Dinero parado en stock">
+              Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. Es
+              dinero que no rinde hasta que se vende — por eso conviene que rote, no que se acumule.
+            </Ayuda>
+          </h2>
           <div className="border border-tinta/10 bg-papel p-5">
             <p className="font-display text-4xl text-tinta">{money(valorTotal)}</p>
             <div className="mt-3 space-y-1">
