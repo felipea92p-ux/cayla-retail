@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 export type PersonaActual = {
   id: string;
@@ -16,7 +17,11 @@ const COOKIE_SEDE = "cayla_sede_activa";
 
 /** Trae la persona ligada al usuario logueado. Si no existe, no puede usar la app todavía
  *  (falta que un Líder la dé de alta) — se manda a /login con el mensaje. */
-export async function requirePersonaActual(): Promise<PersonaActual> {
+// Memorizado por-request con React cache(): el layout, cada página y el menú
+// lo llaman varias veces por carga; sin esto cada llamada repetía el viaje a
+// Supabase Auth (getUser) + la consulta a personas. Con cache() se ejecuta UNA
+// vez por navegación y las demás reusan el resultado. — arreglo de performance.
+export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,4 +68,4 @@ export async function requirePersonaActual(): Promise<PersonaActual> {
     sedeId,
     sedeCodigo,
   };
-}
+});
