@@ -84,6 +84,141 @@ export type Database = {
           },
         ]
       }
+      asiento_lineas: {
+        Row: {
+          asiento_id: string
+          cuenta_id: string
+          debe: number
+          glosa: string | null
+          haber: number
+          id: string
+        }
+        Insert: {
+          asiento_id: string
+          cuenta_id: string
+          debe?: number
+          glosa?: string | null
+          haber?: number
+          id?: string
+        }
+        Update: {
+          asiento_id?: string
+          cuenta_id?: string
+          debe?: number
+          glosa?: string | null
+          haber?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asiento_lineas_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asiento_lineas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_contables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asientos: {
+        Row: {
+          created_at: string
+          creado_por: string | null
+          fecha: string
+          glosa: string
+          id: string
+          origen: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+          unidad_id: string
+        }
+        Insert: {
+          created_at?: string
+          creado_por?: string | null
+          fecha?: string
+          glosa: string
+          id?: string
+          origen?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          unidad_id: string
+        }
+        Update: {
+          created_at?: string
+          creado_por?: string | null
+          fecha?: string
+          glosa?: string
+          id?: string
+          origen?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asientos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cuentas_contables: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          elemento: string
+          es_contra: boolean
+          explicacion: string
+          id: string
+          naturaleza: string
+          nombre: string
+          orden: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          created_at?: string
+          elemento: string
+          es_contra?: boolean
+          explicacion: string
+          id?: string
+          naturaleza: string
+          nombre: string
+          orden?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          elemento?: string
+          es_contra?: boolean
+          explicacion?: string
+          id?: string
+          naturaleza?: string
+          nombre?: string
+          orden?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bom_items: {
         Row: {
           cantidad_requerida: number
@@ -700,6 +835,7 @@ export type Database = {
       }
       patrimonio_items: {
         Row: {
+          categoria: string | null
           created_at: string
           id: string
           monto: number
@@ -709,6 +845,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string | null
           created_at?: string
           id?: string
           monto?: number
@@ -718,6 +855,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string | null
           created_at?: string
           id?: string
           monto?: number
@@ -1123,6 +1261,18 @@ export type Database = {
           p_variante_id: string
         }
         Returns: undefined
+      }
+      registrar_asiento: {
+        Args: {
+          p_fecha?: string
+          p_glosa: string
+          p_lineas: Json
+          p_origen: string
+          p_referencia_id?: string
+          p_referencia_tipo?: string
+          p_unidad_id: string
+        }
+        Returns: string
       }
       registrar_deposito: {
         Args: {
