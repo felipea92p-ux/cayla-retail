@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -23,18 +23,69 @@ type Props = {
 };
 
 function money(n: number) {
-  return "S/" + n.toFixed(2);
+  return "S/" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const hoyLima = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date()); // YYYY-MM-DD
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
+
+// Íconos de línea (estética CAYLA: trazo, sin relleno), uno por tipo de hecho.
+const ICONO: Record<EventoId, ReactNode> = {
+  aporte_dinero: (
+    <>
+      <rect x="2.5" y="6.5" width="19" height="11" />
+      <circle cx="12" cy="12" r="2.4" />
+      <path d="M6 9.4v5.2M18 9.4v5.2" />
+    </>
+  ),
+  aporte_especie: (
+    <>
+      <path d="M12 3 3.5 7v9L12 21l8.5-4.5V7L12 3Z" />
+      <path d="M3.5 7 12 11.5 20.5 7M12 11.5V21" />
+    </>
+  ),
+  gasto: (
+    <>
+      <path d="M6 3h12v17l-2 1-2-1-2 1-2-1-2 1-2-1V3Z" />
+      <path d="M9 8h6M9 12h6" />
+    </>
+  ),
+  compra: (
+    <>
+      <path d="M5 7h14l-1.2 13.5H6.2L5 7Z" />
+      <path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7" />
+    </>
+  ),
+  ingreso: (
+    <>
+      <path d="M12 3v10M8.5 9.5 12 13l3.5-3.5" />
+      <path d="M4.5 14v3.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V14" />
+    </>
+  ),
+};
+
+function Icono({ id }: { id: EventoId }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {ICONO[id]}
+    </svg>
+  );
+}
 
 export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Props) {
   const router = useRouter();
-  const nombreCuenta = useMemo(
-    () => new Map(cuentas.map((c) => [c.codigo, c.nombre])),
-    [cuentas]
-  );
+  const nombreCuenta = useMemo(() => new Map(cuentas.map((c) => [c.codigo, c.nombre])), [cuentas]);
+  const elementoDe = useMemo(() => new Map(cuentas.map((c) => [c.codigo, c.elemento])), [cuentas]);
 
   const [eventoId, setEventoId] = useState<EventoId>("aporte_dinero");
   const [unidadId, setUnidadId] = useState(defaultUnidadId);
@@ -51,8 +102,6 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
   const ev = eventoPorId(eventoId);
   const monto = Number(montoStr) || 0;
 
-  // Cuentas elegibles como "principal" según el evento, ya agrupadas por subtítulo:
-  // cada acción solo ofrece lo que tiene sentido (comprar no ofrece "Caja", etc.).
   const gruposPrincipal = useMemo(() => opcionesPrincipal(eventoId, cuentas), [eventoId, cuentas]);
 
   const lineas = construirLineas({
@@ -65,6 +114,16 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
   const totalDebe = sumaDebe(lineas);
   const totalHaber = sumaHaber(lineas);
   const cuadra = lineas.length >= 2 && totalDebe === totalHaber;
+
+  // "Qué cambia": traduce cada línea debe/haber a sube (↑) / baja (↓) en palabras.
+  const efectos = lineas.map((l) => {
+    const elem = elementoDe.get(l.cuenta) ?? "activo";
+    const deudora = elem === "activo" || elem === "gasto";
+    const sube = (l.debe > 0 && deudora) || (l.haber > 0 && !deudora);
+    const monto = l.debe > 0 ? l.debe : l.haber;
+    const costoso = elem === "gasto" || elem === "pasivo"; // gasto o deuda: peso visual menor
+    return { nombre: nombreCuenta.get(l.cuenta) ?? l.cuenta, sube, monto, costoso };
+  });
 
   function cambiarEvento(id: EventoId) {
     setEventoId(id);
@@ -79,7 +138,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
     setError(null);
     setOk(false);
     if (!cuadra) {
-      setError("Faltan datos para armar el asiento.");
+      setError("Faltan datos para armar el registro.");
       return;
     }
     const glosa = detalle.trim() || ev.titulo;
@@ -106,13 +165,13 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
   }
 
   const inputCls =
-    "w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta focus:border-rojo focus:outline-none";
+    "w-full border border-tinta/20 bg-crema px-3 py-2.5 text-sm text-tinta transition-colors focus:border-rojo focus:outline-none";
   const labelCls = "label-cayla text-[9px] text-tinta/45";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      {/* 1. ¿Qué pasó? */}
-      <div className="space-y-2">
+    <form onSubmit={onSubmit} className="space-y-7">
+      {/* 1. ¿Qué pasó? — tarjetas con ícono */}
+      <div className="space-y-2.5">
         <p className={labelCls}>¿Qué pasó?</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {EVENTOS.map((e) => {
@@ -122,18 +181,19 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
                 key={e.id}
                 type="button"
                 onClick={() => cambiarEvento(e.id)}
-                className={`border px-3 py-2.5 text-left transition-colors ${
-                  activo
-                    ? "border-rojo bg-papel"
-                    : "border-tinta/15 bg-crema hover:border-rojo/40"
+                className={`flex items-center gap-3 border px-3.5 py-3 text-left transition-colors ${
+                  activo ? "border-rojo bg-papel" : "border-tinta/15 bg-crema hover:border-rojo/40"
                 }`}
               >
-                <span className="block text-sm font-medium text-tinta">{e.titulo}</span>
+                <span className={activo ? "text-rojo" : "text-tinta/35"}>
+                  <Icono id={e.id} />
+                </span>
+                <span className="text-sm font-medium leading-tight text-tinta">{e.titulo}</span>
               </button>
             );
           })}
         </div>
-        <p className="text-xs text-tinta/50">{ev.descripcion}</p>
+        <p className="text-xs leading-relaxed text-tinta/50">{ev.descripcion}</p>
       </div>
 
       {/* 2. Unidad + fecha */}
@@ -154,7 +214,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         </div>
       </div>
 
-      {/* 3. Cuenta principal (según evento) — solo opciones con sentido, agrupadas */}
+      {/* 3. Cuenta principal — solo opciones con sentido, agrupadas */}
       {ev.subgruposPrincipal.length > 0 && (
         <div className="space-y-1.5">
           <label className={labelCls}>{ev.etiquetaPrincipal}</label>
@@ -178,7 +238,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
       )}
 
       {/* 4. Monto + IGV */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <label className={labelCls}>{ev.etiquetaMonto}</label>
         <input
           type="number"
@@ -188,10 +248,10 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
           value={montoStr}
           onChange={(e) => setMontoStr(e.target.value)}
           placeholder="0.00"
-          className={inputCls}
+          className={`${inputCls} font-display text-lg`}
         />
         {ev.usaIGV && (
-          <label className="flex items-center gap-2 pt-1 text-xs text-tinta/60">
+          <label className="flex cursor-pointer items-center gap-2 pt-0.5 text-xs text-tinta/60">
             <input
               type="checkbox"
               checked={incluyeIGV}
@@ -203,7 +263,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         )}
       </div>
 
-      {/* 5. Medio / contrapartida (según evento) */}
+      {/* 5. Medio / contrapartida */}
       {ev.medios && (
         <div className="space-y-1.5">
           <label className={labelCls}>{ev.etiquetaMedio}</label>
@@ -224,59 +284,84 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         <input
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder="Ej. Máquina remalladora SIRUBA, alquiler julio…"
+          placeholder="Ej. Remalladora SIRUBA, alquiler julio…"
           className={inputCls}
         />
       </div>
 
-      {/* Vista previa del asiento */}
-      {lineas.length >= 2 && (
+      {/* Vista previa: "Qué cambia" en palabras + el asiento técnico escondido */}
+      {efectos.length >= 2 && (
         <div className="border border-tinta/10 bg-papel">
-          <div className="flex items-center justify-between border-b border-tinta/10 px-3 py-2">
-            <p className={labelCls}>Así se registra</p>
-            <span className={`label-cayla text-[9px] ${cuadra ? "text-tinta/45" : "text-rojo"}`}>
-              {cuadra ? "cuadra ✓" : "no cuadra"}
+          <div className="flex items-center justify-between border-b border-tinta/10 px-4 py-2.5">
+            <p className={labelCls}>Qué cambia</p>
+            <span className={`label-cayla text-[9px] ${cuadra ? "text-tinta/40" : "text-rojo"}`}>
+              {cuadra ? "cuadra ✓" : "revisa"}
             </span>
           </div>
-          <table className="w-full text-left text-xs">
-            <thead className="text-tinta/40">
-              <tr>
-                <th className="label-cayla px-3 py-1.5 text-[9px]">Cuenta</th>
-                <th className="label-cayla px-3 py-1.5 text-right text-[9px]">Debe</th>
-                <th className="label-cayla px-3 py-1.5 text-right text-[9px]">Haber</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-tinta/5">
-              {lineas.map((l, i) => (
-                <tr key={i}>
-                  <td className="px-3 py-2 text-tinta">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-tinta/70">
-                    {l.debe > 0 ? money(l.debe) : ""}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-tinta/70">
-                    {l.haber > 0 ? money(l.haber) : ""}
-                  </td>
+          <ul className="divide-y divide-tinta/5">
+            {efectos.map((e, i) => (
+              <li key={i} className="flex items-center justify-between px-4 py-3">
+                <span className="flex items-center gap-3">
+                  <span
+                    className={`font-display text-xl leading-none ${e.costoso ? "text-tinta/40" : "text-rojo"}`}
+                  >
+                    {e.sube ? "↑" : "↓"}
+                  </span>
+                  <span className="text-sm text-tinta">{e.nombre}</span>
+                </span>
+                <span className="font-display tabular-nums text-sm text-tinta">{money(e.monto)}</span>
+              </li>
+            ))}
+          </ul>
+          <details className="group border-t border-tinta/10">
+            <summary className="label-cayla flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[9px] text-tinta/40 transition-colors hover:text-rojo">
+              Ver el asiento contable (debe / haber)
+              <span className="transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <table className="w-full text-left text-xs">
+              <thead className="text-tinta/35">
+                <tr>
+                  <th className="label-cayla px-4 py-1.5 text-[8px] font-normal">Cuenta</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[8px] font-normal">Debe</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[8px] font-normal">Haber</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot className="border-t border-tinta/10 font-medium text-tinta">
-              <tr>
-                <td className="px-3 py-2 text-right label-cayla text-[9px] text-tinta/45">Total</td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(totalDebe)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(totalHaber)}</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-tinta/5">
+                {lineas.map((l, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2 text-tinta/70">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-tinta/60">
+                      {l.debe > 0 ? money(l.debe) : ""}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-tinta/60">
+                      {l.haber > 0 ? money(l.haber) : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-tinta/10 text-tinta">
+                <tr>
+                  <td className="label-cayla px-4 py-2 text-right text-[8px] text-tinta/40">Total</td>
+                  <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalDebe)}</td>
+                  <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalHaber)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </details>
         </div>
       )}
 
       {error && <p className="text-sm text-rojo">{error}</p>}
-      {ok && <p className="text-sm text-tinta">✓ Registrado. Puedes cargar otro.</p>}
+      {ok && (
+        <p className="border border-tinta/10 bg-papel px-4 py-3 font-display text-base italic text-tinta">
+          ✓ Registrado. Puedes cargar otro.
+        </p>
+      )}
 
       <button
         type="submit"
         disabled={loading || !cuadra}
-        className="label-cayla w-full bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
+        className="label-cayla w-full bg-tinta px-4 py-3.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:cursor-not-allowed disabled:opacity-30"
       >
         {loading ? "Guardando…" : "Registrar"}
       </button>
