@@ -938,6 +938,45 @@ export type Database = {
         }
         Relationships: []
       }
+      produccion_lineas: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          produccion_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          id?: string
+          produccion_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          produccion_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produccion_lineas_produccion_id_fkey"
+            columns: ["produccion_id"]
+            isOneToOne: false
+            referencedRelation: "producciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produccion_lineas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       producciones: {
         Row: {
           cantidad: number
@@ -951,6 +990,7 @@ export type Database = {
           estado: string
           fecha: string
           id: string
+          inventariado_at: string | null
           nota: string | null
           precio_taller: number
           producto_id: string | null
@@ -968,6 +1008,7 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          inventariado_at?: string | null
           nota?: string | null
           precio_taller?: number
           producto_id?: string | null
@@ -985,6 +1026,7 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          inventariado_at?: string | null
           nota?: string | null
           precio_taller?: number
           producto_id?: string | null
@@ -1414,6 +1456,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      marcar_produccion_terminada: {
+        Args: {
+          p_produccion_id: string
+        }
+        Returns: undefined
+      }
       registrar_produccion: {
         Args: {
           p_cantidad: number
@@ -1422,11 +1470,13 @@ export type Database = {
           p_costo_tela: number
           p_detalle?: string
           p_es_muestra?: boolean
+          p_marcar_terminado?: boolean
           p_nota?: string
           p_precio_taller: number
           p_producto_id?: string
           p_referencia?: string
           p_unidad_id: string
+          p_variantes?: Json
         }
         Returns: string
       }

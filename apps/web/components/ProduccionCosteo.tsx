@@ -14,6 +14,7 @@ export type LoteRow = {
   esMuestra: boolean;
   modelo: string;
   detalle: string | null;
+  inventariado: boolean;
 };
 
 function money(n: number) {
@@ -38,6 +39,20 @@ function semaforo(precioTaller: number, costo: number): { txt: string; dot: stri
   return { txt: "gana", dot: "bg-[#3f7d55]" };
 }
 
+// Parte "S, M, L" (o saltos de línea) en una lista limpia y sin repetidos.
+function parseEje(raw: string): string[] {
+  const vistos = new Set<string>();
+  const out: string[] = [];
+  for (const p of raw.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)) {
+    const k = p.toLowerCase();
+    if (!vistos.has(k)) {
+      vistos.add(k);
+      out.push(p);
+    }
+  }
+  return out;
+}
+
 export function ProduccionCosteo({
   unidadId,
   modelos,
@@ -53,23 +68,52 @@ export function ProduccionCosteo({
   const [q, setQ] = useState("");
   const [productoId, setProductoId] = useState("");
   const [referencia, setReferencia] = useState("");
-  const [cantidad, setCantidad] = useState("");
   const [tela, setTela] = useState("");
   const [avios, setAvios] = useState("");
   const [precio, setPrecio] = useState("");
-  const [detalle, setDetalle] = useState("");
+  const [tallasRaw, setTallasRaw] = useState("");
+  const [coloresRaw, setColoresRaw] = useState("");
+  const [qty, setQty] = useState<Record<string, string>>({});
+  const [cantidadSimple, setCantidadSimple] = useState("");
+  const [marcarTerminado, setMarcarTerminado] = useState(false);
   const [esMuestra, setEsMuestra] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [marcandoId, setMarcandoId] = useState<string | null>(null);
 
-  const nCant = Number(cantidad) || 0;
+  const tallas = useMemo(() => parseEje(tallasRaw), [tallasRaw]);
+  const colores = useMemo(() => parseEje(coloresRaw), [coloresRaw]);
+
+  // Matriz de combinaciones talla × color. Si un eje está vacío, se ignora ese eje.
+  const combos = useMemo(() => {
+    if (tallas.length === 0 && colores.length === 0) return [];
+    const filas = tallas.length ? tallas : [""];
+    const cols = colores.length ? colores : [""];
+    const out: { talla: string; color: string; key: string; label: string }[] = [];
+    for (const t of filas) {
+      for (const c of cols) {
+        out.push({
+          talla: t,
+          color: c,
+          key: `${t}||${c}`,
+          label: [t, c].filter(Boolean).join(" · ") || "Única",
+        });
+      }
+    }
+    return out;
+  }, [tallas, colores]);
+
+  const matrixMode = combos.length > 0;
+  const totalMatriz = combos.reduce((s, c) => s + (Number(qty[c.key]) || 0), 0);
+  const total = matrixMode ? totalMatriz : Number(cantidadSimple) || 0;
+
   const nTela = Number(tela) || 0;
   const nAvios = Number(avios) || 0;
   const nPrecio = Number(precio) || 0;
-  const costoUnit = nCant > 0 ? Math.round(((nTela + nAvios) / nCant) * 100) / 100 : 0;
+  const costoUnit = total > 0 ? Math.round(((nTela + nAvios) / total) * 100) / 100 : 0;
   const margen = Math.round((nPrecio - costoUnit) * 100) / 100;
   const sem = semaforo(nPrecio, costoUnit);
-  const listo = nCant > 0 && nTela + nAvios > 0 && (modoNuevo ? referencia.trim() !== "" : productoId !== "");
+  const listo = total > 0 && nTela + nAvios > 0 && (modoNuevo ? referencia.trim() !== "" : productoId !== "");
 
   const resultados = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -78,6 +122,13 @@ export function ProduccionCosteo({
   }, [modelos, q]);
   const seleccionado = modelos.find((m) => m.id === productoId);
 
+  function resetForm() {
+    setReferencia(""); setProductoId(""); setQ("");
+    setTela(""); setAvios(""); setPrecio("");
+    setTallasRaw(""); setColoresRaw(""); setQty({}); setCantidadSimple("");
+    setMarcarTerminado(false); setEsMuestra(false);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -85,17 +136,28 @@ export function ProduccionCosteo({
       setError("Faltan datos: modelo, cantidad y costo.");
       return;
     }
+    const variantes = matrixMode
+      ? combos
+          .map((c) => ({ talla: c.talla || null, color: c.color || null, cantidad: Number(qty[c.key]) || 0 }))
+          .filter((v) => v.cantidad > 0)
+      : [];
+    const detalle = matrixMode
+      ? [tallas.join("/"), colores.join(", ")].filter(Boolean).join(" · ") || null
+      : null;
+
     setLoading(true);
     const { error } = await createClient().rpc("registrar_produccion", {
       p_unidad_id: unidadId,
-      p_cantidad: nCant,
+      p_cantidad: total,
       p_costo_tela: nTela,
       p_costo_avios: nAvios,
       p_precio_taller: nPrecio,
+      p_variantes: variantes,
       p_producto_id: modoNuevo ? undefined : productoId,
       p_referencia: modoNuevo ? referencia.trim() : undefined,
-      p_detalle: detalle || undefined,
+      p_detalle: detalle ?? undefined,
       p_es_muestra: esMuestra,
+      p_marcar_terminado: marcarTerminado && !esMuestra,
       p_nota: undefined,
     });
     setLoading(false);
@@ -103,9 +165,19 @@ export function ProduccionCosteo({
       setError(error.message);
       return;
     }
-    setReferencia(""); setProductoId(""); setQ("");
-    setCantidad(""); setTela(""); setAvios(""); setPrecio(""); setDetalle(""); setEsMuestra(false);
+    resetForm();
     setAbierto(false);
+    router.refresh();
+  }
+
+  async function marcarTerminada(id: string) {
+    setMarcandoId(id);
+    const { error } = await createClient().rpc("marcar_produccion_terminada", { p_produccion_id: id });
+    setMarcandoId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
     router.refresh();
   }
 
@@ -183,12 +255,8 @@ export function ProduccionCosteo({
             )}
           </div>
 
-          {/* Cantidad total + costos + precio */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="space-y-1.5">
-              <label className={labelCls}>Cantidad total</label>
-              <input type="number" min={1} inputMode="numeric" value={cantidad} onChange={(e) => setCantidad(e.target.value)} placeholder="0" className={inputCls} />
-            </div>
+          {/* Costos + precio */}
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <label className={labelCls}>Costo tela (total)</label>
               <input type="number" min={0} step="0.10" inputMode="decimal" value={tela} onChange={(e) => setTela(e.target.value)} placeholder="0.00" className={inputCls} />
@@ -203,18 +271,62 @@ export function ProduccionCosteo({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className={labelCls}>Tallas y colores (opcional)</label>
-            <input value={detalle} onChange={(e) => setDetalle(e.target.value)}
-              placeholder="Ej. S/M/L en negro y azul" className={inputCls} />
+          {/* Variantes estilo Shopify */}
+          <div className="space-y-3 border-t border-tinta/10 pt-4">
+            <p className={labelCls}>Variantes — escribe las tallas y colores, y cuántas hiciste de cada una</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className={labelCls}>Tallas (separadas por coma)</label>
+                <input value={tallasRaw} onChange={(e) => setTallasRaw(e.target.value)} placeholder="S, M, L" className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Colores (separados por coma)</label>
+                <input value={coloresRaw} onChange={(e) => setColoresRaw(e.target.value)} placeholder="Negro, Palo Rosa" className={inputCls} />
+              </div>
+            </div>
+
+            {matrixMode ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+                  {combos.map((c) => (
+                    <label key={c.key} className="flex items-center gap-2 border border-tinta/10 bg-crema px-2.5 py-1.5">
+                      <span className="flex-1 truncate text-xs text-tinta/70">{c.label}</span>
+                      <input
+                        type="number" min={0} inputMode="numeric"
+                        value={qty[c.key] ?? ""}
+                        onChange={(e) => setQty((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                        placeholder="0"
+                        className="w-14 border border-tinta/20 bg-papel px-1.5 py-1 text-center text-sm text-tinta focus:border-rojo focus:outline-none"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-tinta/45">
+                  Total de la corrida: <span className="font-medium text-tinta/70">{total} prendas</span>
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className={labelCls}>Cantidad total (si no separas por talla/color)</label>
+                <input type="number" min={1} inputMode="numeric" value={cantidadSimple} onChange={(e) => setCantidadSimple(e.target.value)} placeholder="0" className={`${inputCls} max-w-40`} />
+              </div>
+            )}
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/60">
-            <input type="checkbox" checked={esMuestra} onChange={(e) => setEsMuestra(e.target.checked)} className="accent-rojo" />
-            Es una muestra (prueba), no producción final
-          </label>
+          <div className="space-y-2 border-t border-tinta/10 pt-3">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/60">
+              <input type="checkbox" checked={esMuestra} onChange={(e) => setEsMuestra(e.target.checked)} className="accent-rojo" />
+              Es una muestra (prueba), no producción final
+            </label>
+            {!esMuestra && (
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/60">
+                <input type="checkbox" checked={marcarTerminado} onChange={(e) => setMarcarTerminado(e.target.checked)} className="accent-rojo" />
+                Ya está terminado — mándalo al inventario del taller ahora
+              </label>
+            )}
+          </div>
 
-          {nCant > 0 && nTela + nAvios > 0 && (
+          {total > 0 && nTela + nAvios > 0 && (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-tinta/10 bg-crema px-4 py-3">
                 <span>
@@ -243,7 +355,7 @@ export function ProduccionCosteo({
           {error && <p className="text-sm text-rojo">{error}</p>}
           <button type="submit" disabled={loading || !listo}
             className="label-cayla w-full bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-30">
-            {loading ? "Guardando…" : "Registrar producción"}
+            {loading ? "Guardando…" : marcarTerminado && !esMuestra ? "Registrar y mandar al inventario" : "Registrar producción"}
           </button>
         </form>
       )}
@@ -264,6 +376,7 @@ export function ProduccionCosteo({
                 <th className="label-cayla px-3 py-2 text-right text-[9px]">Precio tienda</th>
                 <th className="label-cayla px-3 py-2 text-right text-[9px]">Deja para taller</th>
                 <th className="label-cayla px-3 py-2 text-[9px]">Semáforo</th>
+                <th className="label-cayla px-3 py-2 text-right text-[9px]">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-tinta/5">
@@ -295,6 +408,22 @@ export function ProduccionCosteo({
                         <span className={`inline-block h-2.5 w-2.5 rounded-full ${s.dot}`} />
                         <span className="text-tinta/50">{s.txt}</span>
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {l.esMuestra ? (
+                        <span className="text-tinta/35">—</span>
+                      ) : l.inventariado ? (
+                        <span className="label-cayla text-[9px] text-[#3f7d55]">en inventario</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => marcarTerminada(l.id)}
+                          disabled={marcandoId === l.id}
+                          className="label-cayla border border-tinta/20 px-2.5 py-1 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
+                        >
+                          {marcandoId === l.id ? "Enviando…" : "Marcar terminado"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

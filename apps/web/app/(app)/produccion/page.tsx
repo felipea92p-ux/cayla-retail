@@ -31,7 +31,7 @@ export default async function ProduccionPage() {
     getCatalogoConStock(persona),
     supabase
       .from("producciones")
-      .select("id, fecha, cantidad, costo_unitario, precio_taller, detalle, es_muestra, productos(referencia)")
+      .select("id, fecha, cantidad, costo_unitario, precio_taller, detalle, es_muestra, inventariado_at, productos(referencia)")
       .eq("unidad_id", taller.id)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -69,6 +69,7 @@ export default async function ProduccionPage() {
       esMuestra: p.es_muestra,
       modelo: prod?.referencia ?? "(modelo)",
       detalle: p.detalle ?? null,
+      inventariado: p.inventariado_at != null,
     };
   });
 
