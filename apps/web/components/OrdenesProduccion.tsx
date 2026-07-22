@@ -234,20 +234,30 @@ function OrdenEnProceso({
       </div>
 
       {!orden.esMuestra && (
-        <div className="mt-4 grid max-w-xl grid-cols-3 gap-3">
+        <div className="mt-4 space-y-2">
           {ETAPAS.map((et) => {
             const estado = orden.etapas?.[et] ?? "pendiente";
-            const acento = estado === "hecho" ? "border-l-2 border-l-[#3f7d55]" : estado === "tercerizado" ? "border-l-2 border-l-taupe" : "";
             return (
-              <label key={et} className="block">
-                <span className="label-cayla mb-1 block text-[9px] text-tinta/45">{ETAPA_LABEL[et]}</span>
-                <select value={estado} disabled={ocupado} onChange={(e) => onEtapa(et, e.target.value)}
-                  className={`w-full border border-tinta/20 bg-crema px-2 py-2 text-xs text-tinta focus:border-rojo focus:outline-none disabled:opacity-50 ${acento}`}>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="hecho">Hecho ✓</option>
-                  <option value="tercerizado">Tercerizado</option>
-                </select>
-              </label>
+              <div key={et} className="flex items-center gap-3">
+                <span className="label-cayla w-20 shrink-0 text-[9px] text-tinta/45">{ETAPA_LABEL[et]}</span>
+                <div className="flex gap-1.5">
+                  {[
+                    { v: "pendiente", t: "Pendiente" },
+                    { v: "hecho", t: "Hecho" },
+                    { v: "tercerizado", t: "Tercerizado" },
+                  ].map((op) => {
+                    const activo = estado === op.v;
+                    return (
+                      <button key={op.v} type="button" disabled={ocupado} onClick={() => onEtapa(et, op.v)}
+                        className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${
+                          activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/45 hover:border-rojo hover:text-rojo"
+                        }`}>
+                        {op.t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
