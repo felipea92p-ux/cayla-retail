@@ -4,15 +4,16 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-type VarianteOpcion = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
+type ModeloOpcion = { id: string; referencia: string };
 export type LoteRow = {
   id: string;
   fecha: string;
   cantidad: number;
   costoUnitario: number;
+  precioTaller: number;
   esMuestra: boolean;
   modelo: string;
-  precioTaller: number;
+  detalle: string | null;
 };
 
 function money(n: number) {
@@ -20,57 +21,53 @@ function money(n: number) {
 }
 
 // Semáforo por margen de contribución (precio a tienda − costo directo de la prenda).
-function semaforo(precioTaller: number, costo: number): { color: string; txt: string; dot: string } {
-  if (precioTaller <= 0) return { color: "gris", txt: "falta precio", dot: "bg-tinta/25" };
+function semaforo(precioTaller: number, costo: number): { txt: string; dot: string } {
+  if (precioTaller <= 0) return { txt: "falta precio", dot: "bg-tinta/25" };
   const margen = precioTaller - costo;
-  if (margen < 0) return { color: "rojo", txt: "pierde", dot: "bg-rojo" };
-  if (margen < 0.2 * precioTaller) return { color: "ambar", txt: "al filo", dot: "bg-[#c08a2e]" };
-  return { color: "verde", txt: "gana", dot: "bg-[#3f7d55]" };
+  if (margen < 0) return { txt: "pierde", dot: "bg-rojo" };
+  if (margen < 0.2 * precioTaller) return { txt: "al filo", dot: "bg-[#c08a2e]" };
+  return { txt: "gana", dot: "bg-[#3f7d55]" };
 }
 
 export function ProduccionCosteo({
   unidadId,
-  variantes,
+  modelos,
   lotes,
 }: {
   unidadId: string;
-  variantes: VarianteOpcion[];
+  modelos: ModeloOpcion[];
   lotes: LoteRow[];
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [modoNuevo, setModoNuevo] = useState(true);
   const [q, setQ] = useState("");
-  const [varianteId, setVarianteId] = useState("");
+  const [productoId, setProductoId] = useState("");
   const [referencia, setReferencia] = useState("");
-  const [talla, setTalla] = useState("");
-  const [color, setColor] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [tela, setTela] = useState("");
   const [avios, setAvios] = useState("");
   const [precio, setPrecio] = useState("");
+  const [detalle, setDetalle] = useState("");
   const [esMuestra, setEsMuestra] = useState(false);
-  const [nota, setNota] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const nCantidad = Number(cantidad) || 0;
+  const nCant = Number(cantidad) || 0;
   const nTela = Number(tela) || 0;
   const nAvios = Number(avios) || 0;
   const nPrecio = Number(precio) || 0;
-  const costoUnit = nCantidad > 0 ? Math.round(((nTela + nAvios) / nCantidad) * 100) / 100 : 0;
+  const costoUnit = nCant > 0 ? Math.round(((nTela + nAvios) / nCant) * 100) / 100 : 0;
   const margen = Math.round((nPrecio - costoUnit) * 100) / 100;
   const sem = semaforo(nPrecio, costoUnit);
-  const listo = nCantidad > 0 && (nTela + nAvios) > 0 && (modoNuevo ? referencia.trim() !== "" : varianteId !== "");
+  const listo = nCant > 0 && nTela + nAvios > 0 && (modoNuevo ? referencia.trim() !== "" : productoId !== "");
 
   const resultados = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return [];
-    return variantes
-      .filter((v) => `${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""}`.toLowerCase().includes(t))
-      .slice(0, 6);
-  }, [variantes, q]);
-  const seleccionada = variantes.find((v) => v.varianteId === varianteId);
+    return modelos.filter((m) => m.referencia.toLowerCase().includes(t)).slice(0, 6);
+  }, [modelos, q]);
+  const seleccionado = modelos.find((m) => m.id === productoId);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,27 +77,25 @@ export function ProduccionCosteo({
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_produccion", {
+    const { error } = await createClient().rpc("registrar_produccion", {
       p_unidad_id: unidadId,
-      p_cantidad: nCantidad,
+      p_cantidad: nCant,
       p_costo_tela: nTela,
       p_costo_avios: nAvios,
       p_precio_taller: nPrecio,
-      p_variante_id: modoNuevo ? undefined : varianteId,
+      p_producto_id: modoNuevo ? undefined : productoId,
       p_referencia: modoNuevo ? referencia.trim() : undefined,
-      p_talla: modoNuevo ? talla || undefined : undefined,
-      p_color: modoNuevo ? color || undefined : undefined,
+      p_detalle: detalle || undefined,
       p_es_muestra: esMuestra,
-      p_nota: nota || undefined,
+      p_nota: undefined,
     });
     setLoading(false);
     if (error) {
       setError(error.message);
       return;
     }
-    setReferencia(""); setTalla(""); setColor(""); setVarianteId(""); setQ("");
-    setCantidad(""); setTela(""); setAvios(""); setPrecio(""); setNota(""); setEsMuestra(false);
+    setReferencia(""); setProductoId(""); setQ("");
+    setCantidad(""); setTela(""); setAvios(""); setPrecio(""); setDetalle(""); setEsMuestra(false);
     setAbierto(false);
     router.refresh();
   }
@@ -114,13 +109,13 @@ export function ProduccionCosteo({
       <div className="flex items-center justify-between">
         <div>
           <p className={labelCls}>Costos y rentabilidad</p>
-          <p className="mt-0.5 text-sm text-tinta/55">Registra un lote y mira si cada modelo te deja o te sangra.</p>
+          <p className="mt-0.5 text-sm text-tinta/55">Registra una corrida y mira si el modelo te deja o te sangra.</p>
         </div>
         <button
           onClick={() => setAbierto((v) => !v)}
           className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
         >
-          {abierto ? "Cerrar" : "+ Registrar lote"}
+          {abierto ? "Cerrar" : "+ Registrar corrida"}
         </button>
       </div>
 
@@ -147,42 +142,28 @@ export function ProduccionCosteo({
             </div>
 
             {modoNuevo ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="col-span-2 space-y-1.5">
-                  <label className={labelCls}>Nombre del modelo</label>
-                  <input value={referencia} onChange={(e) => setReferencia(e.target.value)}
-                    placeholder="Blusa manga vuelo" className={inputCls} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className={labelCls}>Talla</label>
-                  <input value={talla} onChange={(e) => setTalla(e.target.value)} placeholder="M" className={inputCls} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className={labelCls}>Color</label>
-                  <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="Azul" className={inputCls} />
-                </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Nombre del modelo</label>
+                <input value={referencia} onChange={(e) => setReferencia(e.target.value)}
+                  placeholder="Short Sastre" className={inputCls} />
               </div>
             ) : (
               <div className="space-y-1.5">
                 <label className={labelCls}>Buscar modelo existente</label>
-                {seleccionada ? (
+                {seleccionado ? (
                   <div className="flex items-center justify-between border border-tinta/15 bg-crema px-3 py-2 text-sm">
-                    <span className="text-tinta">
-                      {seleccionada.referencia}{" "}
-                      <span className="text-tinta/45">{[seleccionada.talla, seleccionada.color].filter(Boolean).join("/")}</span>
-                    </span>
-                    <button type="button" onClick={() => setVarianteId("")} className="label-cayla text-[9px] text-rojo">Cambiar</button>
+                    <span className="text-tinta">{seleccionado.referencia}</span>
+                    <button type="button" onClick={() => setProductoId("")} className="label-cayla text-[9px] text-rojo">Cambiar</button>
                   </div>
                 ) : (
                   <>
-                    <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Referencia, SKU, talla…" className={inputCls} />
+                    <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre del modelo…" className={inputCls} />
                     {resultados.length > 0 && (
                       <div className="divide-y divide-tinta/5 border border-tinta/10 bg-crema">
-                        {resultados.map((v) => (
-                          <button key={v.varianteId} type="button" onClick={() => { setVarianteId(v.varianteId); setQ(""); }}
-                            className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-sand/40">
-                            <span className="text-tinta">{v.referencia} <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join("/")}</span></span>
-                            <span className="font-mono text-[10px] text-tinta/35">{v.sku}</span>
+                        {resultados.map((m) => (
+                          <button key={m.id} type="button" onClick={() => { setProductoId(m.id); setQ(""); }}
+                            className="block w-full px-3 py-2 text-left text-sm text-tinta hover:bg-sand/40">
+                            {m.referencia}
                           </button>
                         ))}
                       </div>
@@ -193,10 +174,10 @@ export function ProduccionCosteo({
             )}
           </div>
 
-          {/* Costos */}
+          {/* Cantidad total + costos + precio */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="space-y-1.5">
-              <label className={labelCls}>Cantidad</label>
+              <label className={labelCls}>Cantidad total</label>
               <input type="number" min={1} inputMode="numeric" value={cantidad} onChange={(e) => setCantidad(e.target.value)} placeholder="0" className={inputCls} />
             </div>
             <div className="space-y-1.5">
@@ -213,13 +194,18 @@ export function ProduccionCosteo({
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className={labelCls}>Tallas y colores (opcional)</label>
+            <input value={detalle} onChange={(e) => setDetalle(e.target.value)}
+              placeholder="Ej. S/M/L en negro y azul" className={inputCls} />
+          </div>
+
           <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/60">
             <input type="checkbox" checked={esMuestra} onChange={(e) => setEsMuestra(e.target.checked)} className="accent-rojo" />
             Es una muestra (prueba), no producción final
           </label>
 
-          {/* Preview semáforo */}
-          {nCantidad > 0 && (nTela + nAvios) > 0 && (
+          {nCant > 0 && nTela + nAvios > 0 && (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-tinta/10 bg-crema px-4 py-3">
               <span>
                 <span className={labelCls}>Costo por prenda</span>
@@ -246,7 +232,7 @@ export function ProduccionCosteo({
         </form>
       )}
 
-      {/* Semáforo por lote */}
+      {/* Semáforo por corrida */}
       {lotes.length === 0 ? (
         <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
           Aún no registras producciones con costo.
@@ -272,6 +258,7 @@ export function ProduccionCosteo({
                   <tr key={l.id}>
                     <td className="px-3 py-2.5 font-medium text-tinta">
                       {l.modelo}
+                      {l.detalle && <span className="ml-2 text-[11px] font-normal text-tinta/40">{l.detalle}</span>}
                       {l.esMuestra && <span className="label-cayla ml-2 text-[8px] text-taupe">muestra</span>}
                     </td>
                     <td className="px-3 py-2.5 text-tinta/55">{l.cantidad}</td>

@@ -946,13 +946,16 @@ export type Database = {
           costo_unitario: number
           created_at: string
           creado_por: string | null
+          detalle: string | null
           es_muestra: boolean
           estado: string
           fecha: string
           id: string
           nota: string | null
+          precio_taller: number
+          producto_id: string | null
           unidad_id: string
-          variante_id: string
+          variante_id: string | null
         }
         Insert: {
           cantidad: number
@@ -960,13 +963,16 @@ export type Database = {
           costo_tela?: number
           created_at?: string
           creado_por?: string | null
+          detalle?: string | null
           es_muestra?: boolean
           estado?: string
           fecha?: string
           id?: string
           nota?: string | null
+          precio_taller?: number
+          producto_id?: string | null
           unidad_id: string
-          variante_id: string
+          variante_id?: string | null
         }
         Update: {
           cantidad?: number
@@ -974,13 +980,16 @@ export type Database = {
           costo_tela?: number
           created_at?: string
           creado_por?: string | null
+          detalle?: string | null
           es_muestra?: boolean
           estado?: string
           fecha?: string
           id?: string
           nota?: string | null
+          precio_taller?: number
+          producto_id?: string | null
           unidad_id?: string
-          variante_id?: string
+          variante_id?: string | null
         }
         Relationships: [
           {
@@ -988,6 +997,13 @@ export type Database = {
             columns: ["unidad_id"]
             isOneToOne: false
             referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producciones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
@@ -1402,16 +1418,15 @@ export type Database = {
         Args: {
           p_cantidad: number
           p_categoria_id?: string
-          p_color?: string
           p_costo_avios: number
           p_costo_tela: number
+          p_detalle?: string
           p_es_muestra?: boolean
           p_nota?: string
           p_precio_taller: number
+          p_producto_id?: string
           p_referencia?: string
-          p_talla?: string
           p_unidad_id: string
-          p_variante_id?: string
         }
         Returns: string
       }

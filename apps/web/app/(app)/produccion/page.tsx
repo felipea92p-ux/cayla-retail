@@ -20,7 +20,7 @@ export default async function ProduccionPage() {
   if (!esLider && !esTaller) redirect("/");
   if (!taller) redirect("/");
 
-  const [{ data: ordenes }, variantes, { data: producciones }] = await Promise.all([
+  const [{ data: ordenes }, variantes, { data: producciones }, { data: modelosData }] = await Promise.all([
     supabase
       .from("ordenes_produccion")
       .select(
@@ -31,10 +31,11 @@ export default async function ProduccionPage() {
     getCatalogoConStock(persona),
     supabase
       .from("producciones")
-      .select("id, fecha, cantidad, costo_unitario, es_muestra, variantes(precio_taller, talla, color, productos(referencia))")
+      .select("id, fecha, cantidad, costo_unitario, precio_taller, detalle, es_muestra, productos(referencia)")
       .eq("unidad_id", taller.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.from("productos").select("id, referencia").order("referencia").limit(500),
   ]);
 
   const codigoDe = new Map((sedes ?? []).map((s) => [s.id, s.codigo]));
@@ -58,19 +59,20 @@ export default async function ProduccionPage() {
   });
 
   const lotes: LoteRow[] = (producciones ?? []).map((p) => {
-    const v = Array.isArray(p.variantes) ? p.variantes[0] : p.variantes;
-    const prod = v ? (Array.isArray(v.productos) ? v.productos[0] : v.productos) : null;
-    const detalle = [v?.talla, v?.color].filter(Boolean).join("/");
+    const prod = Array.isArray(p.productos) ? p.productos[0] : p.productos;
     return {
       id: p.id,
       fecha: p.fecha,
       cantidad: p.cantidad,
       costoUnitario: Number(p.costo_unitario),
+      precioTaller: Number(p.precio_taller ?? 0),
       esMuestra: p.es_muestra,
-      modelo: detalle ? `${prod?.referencia ?? "(modelo)"} · ${detalle}` : prod?.referencia ?? "(modelo)",
-      precioTaller: Number(v?.precio_taller ?? 0),
+      modelo: prod?.referencia ?? "(modelo)",
+      detalle: p.detalle ?? null,
     };
   });
+
+  const modelos = (modelosData ?? []).map((m) => ({ id: m.id, referencia: m.referencia }));
 
   const opciones = variantes.map((v) => ({
     varianteId: v.varianteId,
@@ -90,7 +92,7 @@ export default async function ProduccionPage() {
         </p>
       </div>
 
-      <ProduccionCosteo unidadId={taller.id} variantes={opciones} lotes={lotes} />
+      <ProduccionCosteo unidadId={taller.id} modelos={modelos} lotes={lotes} />
 
       <div className="border-t border-tinta/10 pt-6">
         <p className="label-cayla mb-4 text-[10px] text-tinta/45">En curso · corte → confección → acabado</p>
