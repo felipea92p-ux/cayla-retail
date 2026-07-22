@@ -25,14 +25,13 @@ export default async function ActivosPage() {
   if (persona.rol !== "lider") redirect("/");
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("activos_fijos")
-    .select("nombre, serie, cuenta_codigo, costo, depreciacion_apertura, fecha_adquisicion")
-    .eq("unidad_id", persona.sedeId)
-    .eq("estado", "activo")
+    .select("nombre, serie, cuenta_codigo, costo, depreciacion_apertura, fecha_adquisicion, unidad_id, estado")
     .order("costo", { ascending: false });
 
-  const activos = data ?? [];
+  const todos = data ?? [];
+  const activos = todos.filter((a) => a.unidad_id === persona.sedeId && a.estado === "activo");
   const totalCosto = activos.reduce((a, x) => a + Number(x.costo), 0);
   const totalDep = activos.reduce((a, x) => a + Number(x.depreciacion_apertura), 0);
   const totalNeto = totalCosto - totalDep;
@@ -48,9 +47,20 @@ export default async function ActivosPage() {
       <FinanzasNav />
 
       {activos.length === 0 ? (
-        <p className="font-display border border-tinta/10 bg-papel py-10 text-center text-base italic text-tinta/40">
-          No hay activos registrados en esta unidad.
-        </p>
+        <div className="space-y-3 border border-tinta/10 bg-papel p-6">
+          <p className="font-display text-center text-base italic text-tinta/40">
+            No hay activos registrados en esta unidad.
+          </p>
+          <div className="space-y-1 border-t border-tinta/10 pt-3 font-mono text-[11px] text-tinta/50">
+            <p>diagnóstico (temporal):</p>
+            <p>· filas visibles para ti (RLS): {todos.length}</p>
+            <p>· tu unidad (sedeId): {persona.sedeId}</p>
+            <p>· error de consulta: {error ? error.message : "ninguno"}</p>
+            {todos.length > 0 && (
+              <p>· unidades en los datos: {[...new Set(todos.map((a) => a.unidad_id))].join(", ")}</p>
+            )}
+          </div>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-px border border-tinta/10 bg-tinta/10">
