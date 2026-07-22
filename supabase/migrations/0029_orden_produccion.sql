@@ -79,6 +79,7 @@ declare
   v_persona_id uuid;
   v_total integer;
   v_item jsonb;
+  v_linea record;
   v_variante_id uuid;
   v_cant integer;
   v_mov_id uuid;
@@ -137,10 +138,10 @@ begin
     where id = p_produccion_id;
 
   -- Entrada al stock del taller por cada variante buena.
-  for v_item in select * from produccion_lineas where produccion_id = p_produccion_id
+  for v_linea in select * from produccion_lineas where produccion_id = p_produccion_id
   loop
     insert into movimientos (variante_id, sede_id, tipo, cantidad, motivo, usuario_id, nota)
-      values ((v_item).variante_id, v_prod.unidad_id, 'entrada', (v_item).cantidad,
+      values (v_linea.variante_id, v_prod.unidad_id, 'entrada', v_linea.cantidad,
               'Producción del taller', v_persona_id, 'Orden ' || left(p_produccion_id::text, 8))
       returning id into v_mov_id;
     perform fn_aplicar_movimiento(v_mov_id);
