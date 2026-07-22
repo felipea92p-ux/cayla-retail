@@ -23,7 +23,7 @@ export default async function AlmacenPage() {
           <h1 className="font-display mt-1 text-2xl text-tinta">Almacén</h1>
         </div>
         <InventarioNav />
-        <p className="border border-tinta/10 bg-papel p-5 text-sm text-tinta/60">
+        <p className="card-cayla p-5 text-sm text-tinta/60">
           Tu sede ({persona.sedeCodigo}) no tiene un almacén asociado.
         </p>
       </div>

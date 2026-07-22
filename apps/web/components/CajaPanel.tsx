@@ -29,7 +29,7 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
 
   if (!cajaAbierta) {
     return (
-      <div className="flex items-center justify-between border border-tinta/15 bg-papel p-5">
+      <div className="flex items-center justify-between card-cayla p-5">
         <div>
           <p className="label-cayla text-[10px] text-rojo">Caja cerrada</p>
           <p className="mt-1.5 text-sm text-tinta/60">Abre la caja de {sedeCodigo} para registrar ventas hoy.</p>
@@ -46,7 +46,7 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
   }
 
   return (
-    <div className="flex items-center justify-between border border-tinta/15 bg-papel p-5">
+    <div className="flex items-center justify-between card-cayla p-5">
       <div>
         <p className="label-cayla text-[10px] text-tinta/55">Caja abierta · {sedeCodigo}</p>
         <p className="mt-1.5 text-sm text-tinta/60">

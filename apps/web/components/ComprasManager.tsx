@@ -107,7 +107,7 @@ export function ComprasManager({
       </div>
 
       {abierto && (
-        <form onSubmit={crear} className="border border-tinta/10 bg-papel p-5">
+        <form onSubmit={crear} className="card-cayla p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="label-cayla text-[10px] text-tinta/50">Proveedor</label>
@@ -182,7 +182,7 @@ export function ComprasManager({
         </form>
       )}
 
-      <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+      <div className="divide-y divide-tinta/5 card-cayla">
         {ordenes.length === 0 && (
           <p className="font-display py-10 text-center text-base italic text-tinta/40">
             Sin órdenes de compra todavía.

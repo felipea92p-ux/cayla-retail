@@ -70,11 +70,11 @@ export default async function VenderPage() {
           <p className="font-display text-xl text-tinta">S/{totalHoy.toFixed(2)}</p>
         </div>
         {!ventasHoy || ventasHoy.length === 0 ? (
-          <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
             Aún no hay ventas hoy.
           </p>
         ) : (
-          <div className="divide-y divide-tinta/10 border border-tinta/10 bg-papel">
+          <div className="divide-y divide-tinta/10 card-cayla">
             {ventasHoy.map((v) => (
               <div key={v.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                 <span className="text-tinta/55">{formatearHora(v.created_at)}</span>

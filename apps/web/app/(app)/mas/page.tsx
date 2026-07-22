@@ -29,7 +29,7 @@ export default async function MasPage() {
         </p>
       </div>
 
-      <div className="divide-y divide-tinta/10 border border-tinta/10 bg-papel">
+      <div className="divide-y divide-tinta/10 card-cayla">
         {enlaces.map((e) => (
           <Link key={e.href} href={e.href} className="group block px-5 py-4 transition-colors hover:bg-sand/40">
             <p className="text-sm font-medium text-tinta group-hover:text-rojo">{e.etiqueta}</p>

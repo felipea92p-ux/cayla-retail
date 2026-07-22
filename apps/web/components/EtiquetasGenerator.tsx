@@ -131,7 +131,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
           className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/35 focus:border-rojo"
         />
         {resultados.length > 0 && (
-          <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+          <div className="divide-y divide-tinta/5 card-cayla">
             {resultados.map((v) => (
               <button
                 key={v.varianteId}
@@ -150,7 +150,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
 
       {seleccion.length > 0 && (
         <>
-          <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+          <div className="divide-y divide-tinta/5 card-cayla">
             {seleccion.map((s) => (
               <div key={s.variante.varianteId} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <div className="flex-1">
@@ -230,7 +230,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
       )}
 
       {seleccion.length === 0 && (
-        <p className="font-display border border-tinta/10 bg-papel py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
           Busca una prenda y agrégala para generar sus etiquetas.
         </p>
       )}

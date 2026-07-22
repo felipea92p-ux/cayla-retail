@@ -89,7 +89,7 @@ export function RecetaCosto({
   }
 
   return (
-    <div className="border border-tinta/10 bg-papel p-4">
+    <div className="card-cayla p-4">
       <div className="flex items-center justify-between">
         <p className="label-cayla text-[10px] text-tinta/50">Receta de costo del modelo</p>
         <button onClick={() => setAbierto(false)} className="label-cayla text-[9px] text-tinta/40 hover:text-rojo">

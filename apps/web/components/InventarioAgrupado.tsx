@@ -93,7 +93,7 @@ export function InventarioAgrupado({
       activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo"
     }`;
   const selectCls =
-    "border border-tinta/20 bg-papel px-2.5 py-1.5 text-xs text-tinta outline-none transition-colors focus:border-rojo";
+    "card-cayla px-2.5 py-1.5 text-xs text-tinta outline-none transition-colors focus:border-rojo";
 
   return (
     <div className="space-y-4">
@@ -136,7 +136,7 @@ export function InventarioAgrupado({
         </div>
       )}
 
-      <div className="divide-y divide-tinta/10 border border-tinta/10 bg-papel">
+      <div className="divide-y divide-tinta/10 card-cayla">
         {filtrados.map((p) => {
           const stockTotal = p.variantes.reduce((a, v) => a + v.stockTotal, 0);
           const tieneReponer = p.variantes.some((v) => v.reponerYa);

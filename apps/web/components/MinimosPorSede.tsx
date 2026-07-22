@@ -61,7 +61,7 @@ export function MinimosPorSede({
   }
 
   return (
-    <div className="border border-tinta/10 bg-papel p-4">
+    <div className="card-cayla p-4">
       <p className="label-cayla text-[10px] text-tinta/50">
         Mínimo por sede <span className="text-tinta/35">(vacío = general: {minimoGeneral})</span>
       </p>

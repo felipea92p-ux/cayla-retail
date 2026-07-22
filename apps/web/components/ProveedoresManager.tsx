@@ -81,7 +81,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
       </div>
 
       {abierto && (
-        <form onSubmit={onSubmit} className="border border-tinta/10 bg-papel p-5">
+        <form onSubmit={onSubmit} className="card-cayla p-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <div><label className="label-cayla text-[10px] text-tinta/50">Nombre *</label>
               <input required autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={inputCls} /></div>
@@ -108,7 +108,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
 
       <p className="label-cayla text-[9px] text-tinta/40">{filtrados.length} de {proveedores.length} proveedores</p>
 
-      <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+      <div className="divide-y divide-tinta/5 card-cayla">
         {filtrados.slice(0, 60).map((p) => (
           <div key={p.id} className="px-4 py-3">
             <div className="flex items-baseline justify-between gap-3">

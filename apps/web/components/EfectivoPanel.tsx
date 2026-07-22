@@ -121,7 +121,7 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
                 <select
                   value={sedeId}
                   onChange={(e) => setSedeId(e.target.value)}
-                  className="w-full border border-tinta/20 bg-papel px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
+                  className="w-full card-cayla px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
                 >
                   {sedes.map((s) => (
                     <option key={s.id} value={s.id}>{s.codigo}</option>

@@ -312,7 +312,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
 
       {/* Vista previa: "Qué cambia" en palabras + el asiento técnico escondido */}
       {efectos.length >= 2 && (
-        <div className="border border-tinta/10 bg-papel">
+        <div className="card-cayla">
           <div className="flex items-center justify-between border-b border-tinta/10 px-4 py-2.5">
             <p className={labelCls}>Qué cambia</p>
             <span className={`label-cayla text-[9px] ${cuadra ? "text-tinta/40" : "text-rojo"}`}>
@@ -374,7 +374,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
 
       {error && <p className="text-sm text-rojo">{error}</p>}
       {ok && (
-        <p className="border border-tinta/10 bg-papel px-4 py-3 font-display text-base italic text-tinta">
+        <p className="card-cayla px-4 py-3 font-display text-base italic text-tinta">
           ✓ Registrado. Puedes cargar otro.
         </p>
       )}

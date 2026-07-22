@@ -63,7 +63,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
             <Link
               key={v.varianteId}
               href={`/producto/${v.varianteId}`}
-              className="block border border-tinta/10 bg-papel p-5 transition-colors hover:border-rojo/40"
+              className="block card-cayla p-5 transition-colors hover:border-rojo/40"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">

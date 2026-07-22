@@ -41,11 +41,11 @@ export default async function EfectivoPage() {
       <div>
         <h2 className="label-cayla mb-3 text-[10px] text-tinta/45">Últimos depósitos al banco</h2>
         {!depositos || depositos.length === 0 ? (
-          <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
             Aún no hay depósitos registrados.
           </p>
         ) : (
-          <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+          <div className="divide-y divide-tinta/5 card-cayla">
             {depositos.map((d) => {
               const sede = Array.isArray(d.sedes) ? d.sedes[0] : d.sedes;
               return (

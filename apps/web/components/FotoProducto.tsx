@@ -66,7 +66,7 @@ export function FotoProducto({
 
   return (
     <div className="space-y-2">
-      <div className="relative aspect-square w-full max-w-56 overflow-hidden border border-tinta/10 bg-papel">
+      <div className="relative aspect-square w-full max-w-56 overflow-hidden card-cayla">
         {fotoUrl ? (
           <Image src={fotoUrl} alt={referencia} fill unoptimized className="object-cover" />
         ) : (

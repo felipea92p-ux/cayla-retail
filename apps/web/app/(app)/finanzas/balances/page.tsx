@@ -70,7 +70,7 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
           </Ayuda>
         </h2>
         <p className="mb-3 text-xs text-tinta/45">Lo que ganó o perdió el negocio en {MESES[mes - 1]}.</p>
-        <div className="border border-tinta/10 bg-papel">
+        <div className="card-cayla">
           <div className={fila}>
             <span className="text-tinta/60">Ventas netas
               <Ayuda titulo="Ventas netas">
@@ -158,7 +158,7 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
         </div>
         <p className="mb-3 text-xs text-tinta/45">Cuánto vale CAYLA hoy. Activo = Pasivo + Patrimonio.</p>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="border border-tinta/10 bg-papel">
+          <div className="card-cayla">
             <p className="label-cayla border-b border-tinta/10 px-4 py-2 text-[9px] text-tinta/45">Activo — lo que tiene</p>
             <div className={fila}><span className="text-tinta/60">Caja (efectivo en tiendas)</span><span className="text-tinta">{money(e.balance.caja)}</span></div>
             <div className={fila}><span className="text-tinta/60">Banco y medios electrónicos</span><span className="text-tinta">{money(e.balance.banco)}</span></div>
@@ -174,7 +174,7 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
             <div className={fila}><span className="text-tinta/60">Muebles y equipos</span><span className="text-tinta">{money(e.balance.activosFijos)}</span></div>
             <div className={`${filaTotal} bg-crema`}><span className="label-cayla text-[10px] text-tinta">Total activo</span><span className="font-display text-base text-tinta">{money(e.balance.totalActivo)}</span></div>
           </div>
-          <div className="border border-tinta/10 bg-papel">
+          <div className="card-cayla">
             <p className="label-cayla border-b border-tinta/10 px-4 py-2 text-[9px] text-tinta/45">Pasivo y Patrimonio — cómo se financia</p>
             <div className={fila}>
               <span className="text-tinta/60">IGV por pagar (SUNAT)
@@ -226,7 +226,7 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
           </Ayuda>
         </h2>
         <p className="mb-3 text-xs text-tinta/45">De dónde vino y a dónde se fue el dinero en {MESES[mes - 1]}.</p>
-        <div className="border border-tinta/10 bg-papel">
+        <div className="card-cayla">
           <div className={fila}><span className="text-tinta/60">Efectivo al inicio del mes</span><span className="text-tinta">{money(e.flujo.efectivoInicial)}</span></div>
           <div className={fila}><span className="text-tinta/45">(+) Cobros de ventas</span><span className="text-tinta/60">{money(e.flujo.cobrosVentas)}</span></div>
           <div className={fila}><span className="text-tinta/45">(−) Pagos de gastos</span><span className="text-tinta/60">{money(-e.flujo.pagosGastos)}</span></div>
@@ -247,7 +247,7 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
           </Ayuda>
         </h2>
         <p className="mb-3 text-xs text-tinta/45">Cómo cambió lo que es tuyo durante {MESES[mes - 1]}.</p>
-        <div className="overflow-x-auto border border-tinta/10 bg-papel">
+        <div className="overflow-x-auto card-cayla">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-tinta/10 text-tinta/40">
               <tr>

@@ -131,7 +131,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
         </div>
 
         {eerr && eerr.porSede.length > 0 && (
-          <div className="mt-3 overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="mt-3 overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>
@@ -169,11 +169,11 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
           <RegistrarGastoButton sedeId={sedeActual.id} sedeCodigo={sedeActual.codigo} otrasSedes={otrasSedes} />
         </div>
         {!gastosData || gastosData.length === 0 ? (
-          <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
             Sin gastos registrados este mes.
           </p>
         ) : (
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>

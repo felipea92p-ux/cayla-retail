@@ -120,7 +120,7 @@ export default async function InicioPage() {
       </div>
 
       {alertasReposicion.length > 0 && (
-        <div className="border border-tinta/10 bg-papel p-5">
+        <div className="card-cayla p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="label-cayla text-[10px] text-rojo">Reponer pronto</h2>
             <Link href="/comercial" className="label-cayla text-[9px] text-tinta/40 hover:text-rojo">

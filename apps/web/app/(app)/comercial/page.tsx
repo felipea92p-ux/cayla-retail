@@ -104,11 +104,11 @@ export default async function ComercialPage() {
           </Ayuda>
         </h2>
         {sugerencias.length === 0 ? (
-          <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
             Nada urgente — el stock cubre la demanda actual.
           </p>
         ) : (
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
                 <tr>
@@ -150,7 +150,7 @@ export default async function ComercialPage() {
               dónde meter la plata.
             </Ayuda>
           </h2>
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
                 <tr>
@@ -176,7 +176,7 @@ export default async function ComercialPage() {
 
         <div>
           <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Top categorías por venta</h2>
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
                 <tr>
@@ -203,7 +203,7 @@ export default async function ComercialPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
           <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Ventas por sede</h2>
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
                 <tr>
@@ -236,7 +236,7 @@ export default async function ComercialPage() {
               dinero que no rinde hasta que se vende — por eso conviene que rote, no que se acumule.
             </Ayuda>
           </h2>
-          <div className="border border-tinta/10 bg-papel p-5">
+          <div className="card-cayla p-5">
             <p className="font-display text-4xl text-tinta">{money(valorTotal)}</p>
             <div className="mt-3 space-y-1">
               {familiasOrdenadas

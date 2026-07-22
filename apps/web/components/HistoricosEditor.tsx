@@ -65,7 +65,7 @@ export function HistoricosEditor({
   }
 
   return (
-    <form onSubmit={onSubmit} className="border border-tinta/10 bg-papel p-5">
+    <form onSubmit={onSubmit} className="card-cayla p-5">
       <p className="label-cayla text-[10px] text-tinta/50">Totales mensuales históricos (desde SINATRA, una sola vez)</p>
       <div className="mt-3 flex gap-2">
         <select

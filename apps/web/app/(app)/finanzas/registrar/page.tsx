@@ -41,7 +41,7 @@ export default async function RegistrarContablePage() {
       <FinanzasNav />
 
       {cuentas.length === 0 ? (
-        <div className="border border-tinta/10 bg-papel p-6">
+        <div className="card-cayla p-6">
           <p className="font-display text-base italic text-tinta/50">
             Aún no está el plan de cuentas.
           </p>

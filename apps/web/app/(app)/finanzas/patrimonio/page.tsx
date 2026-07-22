@@ -38,7 +38,7 @@ export default async function PatrimonioPage() {
 
       <FinanzasNav />
 
-      <div className="border border-tinta/10 bg-papel p-6 text-center">
+      <div className="card-cayla p-6 text-center">
         <p className="label-cayla text-[10px] text-tinta/45">Patrimonio neto</p>
         <p className={`font-display mt-2 text-5xl ${p.patrimonioNeto >= 0 ? "text-tinta" : "text-rojo"}`}>
           {money(p.patrimonioNeto)}
@@ -51,7 +51,7 @@ export default async function PatrimonioPage() {
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <h2 className="label-cayla mb-3 text-[10px] text-tinta/45">Activos</h2>
-          <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+          <div className="divide-y divide-tinta/5 card-cayla">
             <div className="flex justify-between px-4 py-3 text-sm">
               <span className="text-tinta/60">Efectivo en sedes (teórico)</span>
               <span className="font-medium text-tinta">{money(p.efectivoTeorico)}</span>
@@ -76,11 +76,11 @@ export default async function PatrimonioPage() {
         <div>
           <h2 className="label-cayla mb-3 text-[10px] text-tinta/45">Pasivos</h2>
           {p.itemsPasivo.length === 0 ? (
-            <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+            <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
               Sin deudas registradas.
             </p>
           ) : (
-            <div className="divide-y divide-tinta/5 border border-tinta/10 bg-papel">
+            <div className="divide-y divide-tinta/5 card-cayla">
               {p.itemsPasivo.map((i) => (
                 <div key={i.id} className="flex justify-between px-4 py-3 text-sm">
                   <span className="text-tinta/60">{i.nombre}{i.nota && <span className="text-tinta/35"> · {i.nota}</span>}</span>

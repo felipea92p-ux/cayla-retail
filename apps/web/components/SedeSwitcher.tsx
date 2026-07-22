@@ -29,7 +29,7 @@ export function SedeSwitcher({
           router.refresh();
         });
       }}
-      className="label-cayla cursor-pointer border border-tinta/20 bg-papel px-2 py-1.5 text-[10px] text-tinta outline-none transition-colors hover:border-rojo focus:border-rojo disabled:opacity-50"
+      className="label-cayla cursor-pointer card-cayla px-2 py-1.5 text-[10px] text-tinta outline-none transition-colors hover:border-rojo focus:border-rojo disabled:opacity-50"
       title="Cambiar de sede"
     >
       {sedes.map((s) => (

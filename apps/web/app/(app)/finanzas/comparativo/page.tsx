@@ -60,11 +60,11 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
       </div>
 
       {!comparativo || comparativo.anios.length === 0 ? (
-        <p className="font-display border border-tinta/10 bg-papel py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
           Aún no hay datos — siembra los históricos o registra ventas.
         </p>
       ) : (
-        <div className="overflow-x-auto border border-tinta/10 bg-papel">
+        <div className="overflow-x-auto card-cayla">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-tinta/10 text-tinta/40">
               <tr>

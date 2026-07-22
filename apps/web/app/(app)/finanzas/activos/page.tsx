@@ -48,7 +48,7 @@ export default async function ActivosPage() {
       <FinanzasNav />
 
       {activos.length === 0 ? (
-        <p className="font-display border border-tinta/10 bg-papel py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
           No hay activos registrados en esta unidad.
         </p>
       ) : (
@@ -68,7 +68,7 @@ export default async function ActivosPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>

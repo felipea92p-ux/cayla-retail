@@ -530,7 +530,7 @@ function NuevaOrdenForm({
                 <label key={c.key} className="flex items-center gap-2 border border-tinta/10 bg-crema px-2.5 py-1.5">
                   <span className="flex-1 truncate text-xs text-tinta/70">{c.label}</span>
                   <input type="number" min={0} inputMode="numeric" value={qty[c.key] ?? ""} onChange={(e) => setQty((p) => ({ ...p, [c.key]: e.target.value }))} placeholder="0"
-                    className="w-14 border border-tinta/20 bg-papel px-1.5 py-1 text-center text-sm text-tinta focus:border-rojo focus:outline-none" />
+                    className="w-14 card-cayla px-1.5 py-1 text-center text-sm text-tinta focus:border-rojo focus:outline-none" />
                 </label>
               ))}
             </div>

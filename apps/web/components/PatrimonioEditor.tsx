@@ -66,7 +66,7 @@ export function PatrimonioEditor() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="border border-tinta/10 bg-papel p-5">
+    <form onSubmit={onSubmit} className="card-cayla p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className="label-cayla text-[10px] text-tinta/50">
