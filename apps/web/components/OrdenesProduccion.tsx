@@ -87,10 +87,8 @@ export function OrdenesProduccion({
     return true;
   }
 
-  async function cambiarEtapa(o: OrdenRow, etapa: string) {
-    const actual = o.etapas?.[etapa] ?? "pendiente";
-    const siguiente = actual === "pendiente" ? "hecho" : actual === "hecho" ? "tercerizado" : "pendiente";
-    await llamar(() => createClient().rpc("set_etapa_produccion", { p_produccion_id: o.id, p_etapa: etapa, p_estado: siguiente }), o.id);
+  async function fijarEtapa(o: OrdenRow, etapa: string, estado: string) {
+    await llamar(() => createClient().rpc("set_etapa_produccion", { p_produccion_id: o.id, p_etapa: etapa, p_estado: estado }), o.id);
   }
 
   async function eliminar(id: string) {
@@ -105,11 +103,7 @@ export function OrdenesProduccion({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className={labelCls}>Costos y rentabilidad</p>
-          <p className="mt-0.5 text-sm text-tinta/55">Abre una orden, mírala avanzar por etapas y ciérrala al inventario cuando esté lista.</p>
-        </div>
+      <div className="flex items-center justify-end">
         <button onClick={() => setAbierto((v) => !v)}
           className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo">
           {abierto ? "Cerrar" : "+ Nueva orden"}
@@ -127,7 +121,7 @@ export function OrdenesProduccion({
           {enProceso.map((o) => (
             <OrdenEnProceso
               key={o.id} orden={o} ocupado={ocupadoId === o.id} cerrando={cerrandoId === o.id}
-              onEtapa={(et) => cambiarEtapa(o, et)}
+              onEtapa={(et, estado) => fijarEtapa(o, et, estado)}
               onEliminar={() => eliminar(o.id)}
               onAbrirCierre={() => setCerrandoId(cerrandoId === o.id ? null : o.id)}
               onCerrado={() => { setCerrandoId(null); router.refresh(); }}
@@ -211,7 +205,7 @@ function OrdenEnProceso({
   orden: OrdenRow;
   ocupado: boolean;
   cerrando: boolean;
-  onEtapa: (etapa: string) => void;
+  onEtapa: (etapa: string, estado: string) => void;
   onEliminar: () => void;
   onAbrirCierre: () => void;
   onCerrado: () => void;
@@ -240,24 +234,22 @@ function OrdenEnProceso({
       </div>
 
       {!orden.esMuestra && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {ETAPAS.map((et, i) => {
+        <div className="mt-4 grid max-w-xl grid-cols-3 gap-3">
+          {ETAPAS.map((et) => {
             const estado = orden.etapas?.[et] ?? "pendiente";
-            const base = "label-cayla px-3 py-1.5 text-[9px] transition-colors";
-            const cls =
-              estado === "hecho" ? "bg-tinta text-crema"
-              : estado === "tercerizado" ? "border border-tinta/15 text-tinta/35 line-through"
-              : "border border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo";
+            const acento = estado === "hecho" ? "border-l-2 border-l-[#3f7d55]" : estado === "tercerizado" ? "border-l-2 border-l-taupe" : "";
             return (
-              <span key={et} className="flex items-center gap-2">
-                {i > 0 && <span className="text-tinta/25">→</span>}
-                <button type="button" disabled={ocupado} onClick={() => onEtapa(et)} className={`${base} ${cls}`}>
-                  {ETAPA_LABEL[et]}{estado === "hecho" ? " ✓" : estado === "tercerizado" ? " · tercerizado" : ""}
-                </button>
-              </span>
+              <label key={et} className="block">
+                <span className="label-cayla mb-1 block text-[9px] text-tinta/45">{ETAPA_LABEL[et]}</span>
+                <select value={estado} disabled={ocupado} onChange={(e) => onEtapa(et, e.target.value)}
+                  className={`w-full border border-tinta/20 bg-crema px-2 py-2 text-xs text-tinta focus:border-rojo focus:outline-none disabled:opacity-50 ${acento}`}>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="hecho">Hecho ✓</option>
+                  <option value="tercerizado">Tercerizado</option>
+                </select>
+              </label>
             );
           })}
-          <span className="ml-1 text-[10px] text-tinta/35">clic: pendiente → hecho → tercerizado</span>
         </div>
       )}
 
