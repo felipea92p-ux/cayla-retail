@@ -20,12 +20,21 @@ function money(n: number) {
   return "S/" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Semáforo por margen de contribución (precio a tienda − costo directo de la prenda).
+// Umbrales del semáforo — margen de contribución = precio a tienda − (tela + avíos),
+// medido como % del precio. El corte es alto A PROPÓSITO: de ese margen todavía tienen
+// que salir la costura y el taller (mano de obra NO está restada aquí, es fija mensual),
+// y encima dejar utilidad. Fijos aquí; se ajustan con los números reales del taller:
+// (planilla + gastos fijos del taller) ÷ prendas/mes ÷ precio promedio = punto de equilibrio.
+const UMBRAL_GANA = 0.6; // ≥60% del precio → utilidad sana tras costura y taller
+const UMBRAL_FILO = 0.4; // 40–60% → cubre costos, utilidad delgada; <40% no alcanza para el taller
+
 function semaforo(precioTaller: number, costo: number): { txt: string; dot: string } {
   if (precioTaller <= 0) return { txt: "falta precio", dot: "bg-tinta/25" };
   const margen = precioTaller - costo;
-  if (margen < 0) return { txt: "pierde", dot: "bg-rojo" };
-  if (margen < 0.2 * precioTaller) return { txt: "al filo", dot: "bg-[#c08a2e]" };
+  const pct = margen / precioTaller;
+  if (margen < 0) return { txt: "pierde (ni la tela cubre)", dot: "bg-rojo" };
+  if (pct < UMBRAL_FILO) return { txt: "no cubre taller", dot: "bg-rojo" };
+  if (pct < UMBRAL_GANA) return { txt: "al filo", dot: "bg-[#c08a2e]" };
   return { txt: "gana", dot: "bg-[#3f7d55]" };
 }
 
@@ -206,21 +215,28 @@ export function ProduccionCosteo({
           </label>
 
           {nCant > 0 && nTela + nAvios > 0 && (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-tinta/10 bg-crema px-4 py-3">
-              <span>
-                <span className={labelCls}>Costo por prenda</span>
-                <span className="font-display ml-2 text-lg text-tinta">{money(costoUnit)}</span>
-              </span>
-              {nPrecio > 0 && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-tinta/10 bg-crema px-4 py-3">
                 <span>
-                  <span className={labelCls}>Margen del taller</span>
-                  <span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span>
+                  <span className={labelCls}>Costo por prenda</span>
+                  <span className="font-display ml-2 text-lg text-tinta">{money(costoUnit)}</span>
                 </span>
-              )}
-              <span className="ml-auto flex items-center gap-2">
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${sem.dot}`} />
-                <span className="label-cayla text-[10px] text-tinta/55">{sem.txt}</span>
-              </span>
+                {nPrecio > 0 && (
+                  <span>
+                    <span className={labelCls}>Deja para taller</span>
+                    <span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span>
+                    <span className="ml-1.5 text-sm text-tinta/40">{Math.round((margen / nPrecio) * 100)}%</span>
+                  </span>
+                )}
+                <span className="ml-auto flex items-center gap-2">
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${sem.dot}`} />
+                  <span className="label-cayla text-[10px] text-tinta/55">{sem.txt}</span>
+                </span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-tinta/40">
+                El “deja para taller” paga la costura, el alquiler y las máquinas — la mano de obra no está restada aquí.
+                🟢 gana ≥60% del precio · 🟡 al filo 40–60% · 🔴 menos de 40% no alcanza para el taller.
+              </p>
             </div>
           )}
 
@@ -246,7 +262,7 @@ export function ProduccionCosteo({
                 <th className="label-cayla px-3 py-2 text-[9px]">Cant.</th>
                 <th className="label-cayla px-3 py-2 text-right text-[9px]">Costo/prenda</th>
                 <th className="label-cayla px-3 py-2 text-right text-[9px]">Precio tienda</th>
-                <th className="label-cayla px-3 py-2 text-right text-[9px]">Margen</th>
+                <th className="label-cayla px-3 py-2 text-right text-[9px]">Deja para taller</th>
                 <th className="label-cayla px-3 py-2 text-[9px]">Semáforo</th>
               </tr>
             </thead>
@@ -267,7 +283,12 @@ export function ProduccionCosteo({
                       {l.precioTaller > 0 ? money(l.precioTaller) : "—"}
                     </td>
                     <td className={`px-3 py-2.5 text-right tabular-nums ${m < 0 ? "text-rojo" : "text-tinta"}`}>
-                      {l.precioTaller > 0 ? money(m) : "—"}
+                      {l.precioTaller > 0 ? (
+                        <>
+                          {money(m)}
+                          <span className="ml-1.5 text-tinta/35">{Math.round((m / l.precioTaller) * 100)}%</span>
+                        </>
+                      ) : "—"}
                     </td>
                     <td className="px-3 py-2.5">
                       <span className="flex items-center gap-2">
