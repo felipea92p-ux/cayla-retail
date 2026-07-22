@@ -41,8 +41,8 @@ function semaforo(precio: number, costo: number): { txt: string; dot: string } {
   const pct = (precio - costo) / precio;
   if (precio - costo < 0) return { txt: "pierde", dot: "bg-rojo" };
   if (pct < UMBRAL_FILO) return { txt: "no cubre taller", dot: "bg-rojo" };
-  if (pct < UMBRAL_GANA) return { txt: "al filo", dot: "bg-[#c08a2e]" };
-  return { txt: "gana", dot: "bg-[#3f7d55]" };
+  if (pct < UMBRAL_GANA) return { txt: "al filo", dot: "bg-ambar" };
+  return { txt: "gana", dot: "bg-verde" };
 }
 
 function parseEje(raw: string): string[] {
@@ -110,7 +110,7 @@ export function OrdenesProduccion({
         </button>
       </div>
 
-      {error && <p className="border border-rojo/30 bg-rojo/5 px-3 py-2 text-sm text-rojo">{error}</p>}
+      {error && <p className="rounded-lg border border-rojo/30 bg-rojo/5 px-3 py-2 text-sm text-rojo">{error}</p>}
 
       {abierto && <NuevaOrdenForm unidadId={unidadId} modelos={modelos} onDone={() => { setAbierto(false); router.refresh(); }} onError={setError} />}
 
@@ -135,11 +135,11 @@ export function OrdenesProduccion({
       <div className="space-y-3">
         <p className="label-cayla text-[10px] text-tinta/45">Terminadas · en el inventario del taller</p>
         {terminadas.length === 0 ? (
-          <p className="font-display border border-tinta/10 bg-papel py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
             Aún no cierras ninguna orden al inventario.
           </p>
         ) : (
-          <div className="overflow-x-auto border border-tinta/10 bg-papel">
+          <div className="overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>
@@ -180,7 +180,7 @@ export function OrdenesProduccion({
                               <span className="label-cayla text-[9px] text-tinta/40">Procesando…</span>
                             ) : (
                               <>
-                                <span className="label-cayla text-[9px] text-[#3f7d55]">en inventario</span>
+                                <span className="label-cayla text-[9px] text-verde">en inventario</span>
                                 <button onClick={() => revertir(o.id)} className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo">Revertir</button>
                               </>
                             )}
@@ -219,14 +219,14 @@ function OrdenEnProceso({
     .join(" · ");
 
   return (
-    <div className="border border-tinta/10 bg-papel p-5">
+    <div className="card-cayla p-5">
       {/* Encabezado + badge de estado */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="font-display text-base text-tinta">{orden.modelo}</span>
           <p className="mt-0.5 text-xs text-tinta/45">{sub}</p>
         </div>
-        <span className="label-cayla shrink-0 border border-[#c08a2e]/25 bg-[#f4ead2] px-2.5 py-1 text-[9px] text-[#8a6a2c]">
+        <span className="label-cayla shrink-0 rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[9px] text-ambar">
           {orden.esMuestra ? "Muestra" : "En proceso"}
         </span>
       </div>
@@ -239,13 +239,13 @@ function OrdenEnProceso({
             {ETAPAS.map((et) => {
               const estado = orden.etapas?.[et] ?? "pendiente";
               const cls =
-                estado === "hecho" ? "border-[#3f7d55]/45 bg-[#e8f0e6] text-[#2f6042]"
+                estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde"
                 : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
                 : "border-tinta/20 text-tinta/55 hover:border-tinta/45";
               return (
                 <button key={et} type="button" disabled={ocupado}
                   onClick={() => onEtapa(et, estado === "hecho" ? "pendiente" : "hecho")}
-                  className={`label-cayla border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
+                  className={`label-cayla rounded-full border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
                   {estado === "hecho" && <span className="mr-1">✓</span>}
                   {ETAPA_LABEL[et]}
                   {estado === "tercerizado" && <span className="ml-1 opacity-70">· afuera</span>}
@@ -330,7 +330,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
   }
 
   return (
-    <div className="mt-4 space-y-4 border border-rojo/40 bg-crema p-4">
+    <div className="mt-4 space-y-4 rounded-xl border border-rojo/40 bg-crema p-4">
       <p className="text-xs text-tinta/55">
         Confirma <span className="font-medium text-tinta">cuántas salieron buenas</span> y el <span className="font-medium text-tinta">costo real</span>. Eso es lo que entra al inventario.
       </p>
@@ -343,7 +343,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
               const etiqueta = [l.talla, l.color].filter(Boolean).join(" · ") || "Única";
               const menos = (Number(buenas[l.varianteId]) || 0) < l.cantidad;
               return (
-                <label key={l.varianteId} className="flex items-center gap-2 border border-tinta/10 bg-papel px-2.5 py-1.5">
+                <label key={l.varianteId} className="flex items-center gap-2 card-cayla px-2.5 py-1.5">
                   <span className="flex-1 truncate text-xs text-tinta/70">{etiqueta} <span className="text-tinta/35">({l.cantidad})</span></span>
                   <input type="number" min={0} inputMode="numeric" value={buenas[l.varianteId] ?? ""}
                     onChange={(e) => setBuenas((p) => ({ ...p, [l.varianteId]: e.target.value }))}
@@ -364,7 +364,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-tinta/10 bg-papel px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 card-cayla px-4 py-3">
         {!orden.esMuestra && (
           <span><span className={labelCls}>Entran al inventario</span><span className="font-display ml-2 text-lg text-tinta">{totalBuenas}</span></span>
         )}
@@ -467,7 +467,7 @@ function NuevaOrdenForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 border border-tinta/10 bg-papel p-5">
+    <form onSubmit={onSubmit} className="space-y-4 card-cayla p-5">
       <div className="flex gap-2">
         {[{ v: false, t: "Producción" }, { v: true, t: "Muestra" }].map((o) => (
           <button key={String(o.v)} type="button" onClick={() => setEsMuestra(o.v)}

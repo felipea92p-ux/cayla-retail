@@ -13,13 +13,29 @@
 
   /* Paleta secundaria — solo jerarquía interna, jamás decoración */
   --color-rojo-profundo: #8b2a1f;
-  --color-sand: #e8e0d0;        /* Fondos de tabla, recuadros neutrales */
+  --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
   --color-taupe: #a47865;
-  --color-papel: #fbf9f4;       /* Crema un punto más clara, para tarjetas sobre crema */
+  --color-papel: #fbf8f2;       /* Crema un punto más clara, para tarjetas sobre crema */
+  --color-tinta-60: #5b544c;    /* Texto secundario cálido */
+
+  /* Semánticos (semáforo): separados del acento, jamás decoración */
+  --color-verde: #5f7a52;       /* Va bien / hecho */
+  --color-ambar: #b0812f;       /* Al filo / en proceso */
 
   /* Familias tipográficas */
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
+
+  /* Radios — el tablero de estilo usa esquinas redondeadas (14px base) */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+
+  /* Movimiento estándar del sistema */
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
 
   /* El sistema no usa sombras: se desactivan las utilidades de sombra de Tailwind */
   --shadow-sm: none;
@@ -33,6 +49,24 @@ body {
   background: var(--color-crema);
   color: var(--color-tinta);
   font-family: var(--font-sans);
+}
+
+/* Redondeo por defecto de controles y campos — se aplica en toda la app de una.
+   Las utilidades rounded-* siguen ganando cuando un caso necesita otra forma. */
+@layer base {
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    border-radius: var(--radius-md);
+  }
+}
+
+/* Tarjeta del sistema: papel, borde sand, esquina redondeada. */
+.card-cayla {
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-xl);
 }
 
 /* Título/cifra en serif — "el alma del sistema" */
