@@ -211,8 +211,8 @@ export async function getComparativoAnual(persona: PersonaActual, sedeCodigo?: s
 export type Patrimonio = {
   efectivoTeorico: number;
   inventarioCosto: number;
-  itemsActivo: { id: string; nombre: string; monto: number; nota: string | null }[];
-  itemsPasivo: { id: string; nombre: string; monto: number; nota: string | null }[];
+  itemsActivo: { id: string; nombre: string; monto: number; nota: string | null; categoria: string | null }[];
+  itemsPasivo: { id: string; nombre: string; monto: number; nota: string | null; categoria: string | null }[];
   totalActivos: number;
   totalPasivos: number;
   patrimonioNeto: number;
@@ -225,7 +225,7 @@ export async function getPatrimonio(persona: PersonaActual): Promise<Patrimonio 
   const [cuadre, { data: stockRows }, { data: items }] = await Promise.all([
     getCuadreEfectivo(),
     supabase.from("stock").select("cantidad, variantes(costo)"),
-    supabase.from("patrimonio_items").select("id, nombre, tipo, monto, nota").order("monto", { ascending: false }),
+    supabase.from("patrimonio_items").select("id, nombre, tipo, monto, nota, categoria").order("monto", { ascending: false }),
   ]);
 
   const efectivoTeorico = cuadre.reduce((a, c) => a + c.teorico, 0);

@@ -981,6 +981,7 @@ export type Database = {
         Row: {
           cantidad: number
           costo_avios: number
+          costo_maquila: number
           costo_tela: number
           costo_unitario: number
           created_at: string
@@ -988,7 +989,9 @@ export type Database = {
           detalle: string | null
           es_muestra: boolean
           estado: string
+          etapas: Json
           fecha: string
+          fecha_entrega: string | null
           id: string
           inventariado_at: string | null
           nota: string | null
@@ -1000,13 +1003,16 @@ export type Database = {
         Insert: {
           cantidad: number
           costo_avios?: number
+          costo_maquila?: number
           costo_tela?: number
           created_at?: string
           creado_por?: string | null
           detalle?: string | null
           es_muestra?: boolean
           estado?: string
+          etapas?: Json
           fecha?: string
+          fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
           nota?: string | null
@@ -1018,13 +1024,16 @@ export type Database = {
         Update: {
           cantidad?: number
           costo_avios?: number
+          costo_maquila?: number
           costo_tela?: number
           created_at?: string
           creado_por?: string | null
           detalle?: string | null
           es_muestra?: boolean
           estado?: string
+          etapas?: Json
           fecha?: string
+          fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
           nota?: string | null
@@ -1462,8 +1471,20 @@ export type Database = {
         }
         Returns: undefined
       }
-      marcar_produccion_terminada: {
+      cerrar_produccion: {
         Args: {
+          p_buenas: Json
+          p_costo_avios: number
+          p_costo_maquila: number
+          p_costo_tela: number
+          p_produccion_id: string
+        }
+        Returns: undefined
+      }
+      set_etapa_produccion: {
+        Args: {
+          p_estado: string
+          p_etapa: string
           p_produccion_id: string
         }
         Returns: undefined
@@ -1479,9 +1500,11 @@ export type Database = {
           p_cantidad: number
           p_categoria_id?: string
           p_costo_avios: number
+          p_costo_maquila: number
           p_costo_tela: number
           p_detalle?: string
           p_es_muestra?: boolean
+          p_fecha_entrega?: string
           p_marcar_terminado?: boolean
           p_nota?: string
           p_precio_taller: number

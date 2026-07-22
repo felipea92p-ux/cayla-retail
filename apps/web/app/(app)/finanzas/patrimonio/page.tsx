@@ -8,6 +8,18 @@ function money(n: number) {
   return "S/" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const ETIQUETA_CATEGORIA: Record<string, string> = {
+  muebles: "Muebles y enseres",
+  equipos: "Equipos",
+  intangible: "Intangibles",
+  banco: "Cuenta bancaria",
+  otro_activo: "Otro activo",
+  deuda_proveedor: "Deuda a proveedor",
+  prestamo: "Préstamo",
+  impuesto: "Impuesto por pagar",
+  otro_pasivo: "Otra deuda",
+};
+
 // Patrimonio v1: cuánto vale CAYLA hoy. Efectivo e inventario los calcula el
 // sistema; banco/deudas/activos fijos los mantiene el Líder como partidas.
 export default async function PatrimonioPage() {
@@ -49,8 +61,12 @@ export default async function PatrimonioPage() {
               <span className="font-medium text-tinta">{money(p.inventarioCosto)}</span>
             </div>
             {p.itemsActivo.map((i) => (
-              <div key={i.id} className="flex justify-between px-4 py-3 text-sm">
-                <span className="text-tinta/60">{i.nombre}{i.nota && <span className="text-tinta/35"> · {i.nota}</span>}</span>
+              <div key={i.id} className="flex items-baseline justify-between gap-3 px-4 py-3 text-sm">
+                <span className="text-tinta/60">
+                  {i.nombre}
+                  {i.categoria && <span className="label-cayla ml-2 text-[8px] text-taupe">{ETIQUETA_CATEGORIA[i.categoria] ?? i.categoria}</span>}
+                  {i.nota && <span className="text-tinta/35"> · {i.nota}</span>}
+                </span>
                 <span className="font-medium text-tinta">{money(i.monto)}</span>
               </div>
             ))}
