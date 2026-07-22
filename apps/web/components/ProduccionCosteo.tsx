@@ -181,6 +181,32 @@ export function ProduccionCosteo({
     router.refresh();
   }
 
+  async function eliminarProduccion(id: string) {
+    if (!window.confirm("¿Eliminar esta corrida? No entró al inventario, así que no deja rastro.")) return;
+    setMarcandoId(id);
+    setError(null);
+    const { error } = await createClient().rpc("eliminar_produccion", { p_produccion_id: id });
+    setMarcandoId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    router.refresh();
+  }
+
+  async function revertirProduccion(id: string) {
+    if (!window.confirm("¿Sacar estas prendas del inventario? Las quita del stock del taller y la corrida vuelve a 'en proceso'.")) return;
+    setMarcandoId(id);
+    setError(null);
+    const { error } = await createClient().rpc("revertir_produccion_inventario", { p_produccion_id: id });
+    setMarcandoId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    router.refresh();
+  }
+
   const inputCls =
     "w-full border border-tinta/20 bg-crema px-3 py-2.5 text-sm text-tinta transition-colors focus:border-rojo focus:outline-none";
   const labelCls = "label-cayla text-[9px] text-tinta/45";
@@ -409,21 +435,33 @@ export function ProduccionCosteo({
                         <span className="text-tinta/50">{s.txt}</span>
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right">
-                      {l.esMuestra ? (
-                        <span className="text-tinta/35">—</span>
-                      ) : l.inventariado ? (
-                        <span className="label-cayla text-[9px] text-[#3f7d55]">en inventario</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => marcarTerminada(l.id)}
-                          disabled={marcandoId === l.id}
-                          className="label-cayla border border-tinta/20 px-2.5 py-1 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
-                        >
-                          {marcandoId === l.id ? "Enviando…" : "Marcar terminado"}
-                        </button>
-                      )}
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-2">
+                        {marcandoId === l.id ? (
+                          <span className="label-cayla text-[9px] text-tinta/40">Procesando…</span>
+                        ) : l.inventariado ? (
+                          <>
+                            <span className="label-cayla text-[9px] text-[#3f7d55]">en inventario</span>
+                            <button type="button" onClick={() => revertirProduccion(l.id)}
+                              className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo">
+                              Revertir
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {!l.esMuestra && (
+                              <button type="button" onClick={() => marcarTerminada(l.id)}
+                                className="label-cayla border border-tinta/20 px-2.5 py-1 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                                Marcar terminado
+                              </button>
+                            )}
+                            <button type="button" onClick={() => eliminarProduccion(l.id)}
+                              className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo">
+                              Eliminar
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

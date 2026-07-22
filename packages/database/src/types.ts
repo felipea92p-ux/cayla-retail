@@ -1456,7 +1456,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      eliminar_produccion: {
+        Args: {
+          p_produccion_id: string
+        }
+        Returns: undefined
+      }
       marcar_produccion_terminada: {
+        Args: {
+          p_produccion_id: string
+        }
+        Returns: undefined
+      }
+      revertir_produccion_inventario: {
         Args: {
           p_produccion_id: string
         }
