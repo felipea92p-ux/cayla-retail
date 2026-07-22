@@ -3,9 +3,10 @@ import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { getCatalogoConStock } from "@/lib/catalogo";
 import { ProduccionManager, type OrdenProduccion } from "@/components/ProduccionManager";
+import { ProduccionCosteo, type LoteRow } from "@/components/ProduccionCosteo";
 
-// Producción (Taller): el tablero de lo que se está confeccionando. Accesible para
-// el Líder (desde cualquier sede) y para el equipo del Taller (sede TALLER).
+// Producción (Taller): registrar lotes con su costo directo (tela + avíos), ver el
+// semáforo de rentabilidad por modelo, y el tablero de lo que está en curso por etapa.
 export default async function ProduccionPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function ProduccionPage() {
   if (!esLider && !esTaller) redirect("/");
   if (!taller) redirect("/");
 
-  const [{ data: ordenes }, variantes] = await Promise.all([
+  const [{ data: ordenes }, variantes, { data: producciones }] = await Promise.all([
     supabase
       .from("ordenes_produccion")
       .select(
@@ -28,6 +29,12 @@ export default async function ProduccionPage() {
       .order("created_at", { ascending: false })
       .limit(80),
     getCatalogoConStock(persona),
+    supabase
+      .from("producciones")
+      .select("id, fecha, cantidad, costo_unitario, es_muestra, variantes(precio_taller, talla, color, productos(referencia))")
+      .eq("unidad_id", taller.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const codigoDe = new Map((sedes ?? []).map((s) => [s.id, s.codigo]));
@@ -50,28 +57,45 @@ export default async function ProduccionPage() {
     };
   });
 
+  const lotes: LoteRow[] = (producciones ?? []).map((p) => {
+    const v = Array.isArray(p.variantes) ? p.variantes[0] : p.variantes;
+    const prod = v ? (Array.isArray(v.productos) ? v.productos[0] : v.productos) : null;
+    const detalle = [v?.talla, v?.color].filter(Boolean).join("/");
+    return {
+      id: p.id,
+      fecha: p.fecha,
+      cantidad: p.cantidad,
+      costoUnitario: Number(p.costo_unitario),
+      esMuestra: p.es_muestra,
+      modelo: detalle ? `${prod?.referencia ?? "(modelo)"} · ${detalle}` : prod?.referencia ?? "(modelo)",
+      precioTaller: Number(v?.precio_taller ?? 0),
+    };
+  });
+
+  const opciones = variantes.map((v) => ({
+    varianteId: v.varianteId,
+    sku: v.sku,
+    referencia: v.referencia,
+    talla: v.talla,
+    color: v.color,
+  }));
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <p className="label-cayla text-[10px] text-tinta/45">Taller · {taller.codigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Producción</h1>
         <p className="mt-1 text-sm text-tinta/50">
-          Corte → Confección → Acabado. El stock nace cuando la tienda recibe el fardo.
+          Registra tus lotes con su costo y decide qué modelos te convienen.
         </p>
       </div>
 
-      <ProduccionManager
-        ordenes={filas}
-        variantes={variantes.map((v) => ({
-          varianteId: v.varianteId,
-          sku: v.sku,
-          referencia: v.referencia,
-          talla: v.talla,
-          color: v.color,
-        }))}
-        tiendas={tiendas}
-        sedeTallerId={taller.id}
-      />
+      <ProduccionCosteo unidadId={taller.id} variantes={opciones} lotes={lotes} />
+
+      <div className="border-t border-tinta/10 pt-6">
+        <p className="label-cayla mb-4 text-[10px] text-tinta/45">En curso · corte → confección → acabado</p>
+        <ProduccionManager ordenes={filas} variantes={opciones} tiendas={tiendas} sedeTallerId={taller.id} />
+      </div>
     </div>
   );
 }
