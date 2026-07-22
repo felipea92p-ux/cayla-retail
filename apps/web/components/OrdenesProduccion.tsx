@@ -214,64 +214,83 @@ function OrdenEnProceso({
   const s = semaforo(orden.precioTaller, orden.costoUnitario);
   const margen = Math.round((orden.precioTaller - orden.costoUnitario) * 100) / 100;
   const pct = orden.precioTaller > 0 ? Math.round((margen / orden.precioTaller) * 100) : 0;
+  const sub = [orden.detalle, `${orden.cantidad} planeadas`, orden.fechaEntrega ? `entrega ${orden.fechaEntrega}` : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="border border-tinta/10 bg-papel p-5">
-      <div className="flex items-start justify-between">
+      {/* Encabezado + badge de estado */}
+      <div className="flex items-start justify-between gap-3">
         <div>
           <span className="font-display text-base text-tinta">{orden.modelo}</span>
-          {orden.detalle && <span className="ml-2 text-xs text-tinta/40">{orden.detalle}</span>}
-          {orden.esMuestra && <span className="label-cayla ml-2 text-[8px] text-taupe">muestra</span>}
-          <div className="mt-1 text-xs text-tinta/40">
-            {orden.cantidad} planeadas
-            {orden.fechaEntrega && ` · entrega ${orden.fechaEntrega}`}
-          </div>
+          <p className="mt-0.5 text-xs text-tinta/45">{sub}</p>
         </div>
-        <span className="flex items-center gap-2">
-          <span className={`inline-block h-2.5 w-2.5 rounded-full ${s.dot}`} />
-          <span className="label-cayla text-[10px] text-tinta/55">{orden.precioTaller > 0 ? `${s.txt} · ${pct}%` : s.txt}</span>
+        <span className="label-cayla shrink-0 border border-[#c08a2e]/25 bg-[#f4ead2] px-2.5 py-1 text-[9px] text-[#8a6a2c]">
+          {orden.esMuestra ? "Muestra" : "En proceso"}
         </span>
       </div>
 
+      {/* Etapas: un control por etapa (toque = hecho / pendiente) */}
       {!orden.esMuestra && (
-        <div className="mt-4 space-y-2">
-          {ETAPAS.map((et) => {
-            const estado = orden.etapas?.[et] ?? "pendiente";
-            return (
-              <div key={et} className="flex items-center gap-3">
-                <span className="label-cayla w-20 shrink-0 text-[9px] text-tinta/45">{ETAPA_LABEL[et]}</span>
-                <div className="flex gap-1.5">
-                  {[
-                    { v: "pendiente", t: "Pendiente" },
-                    { v: "hecho", t: "Hecho" },
-                    { v: "tercerizado", t: "Tercerizado" },
-                  ].map((op) => {
-                    const activo = estado === op.v;
-                    return (
-                      <button key={op.v} type="button" disabled={ocupado} onClick={() => onEtapa(et, op.v)}
-                        className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${
-                          activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/45 hover:border-rojo hover:text-rojo"
-                        }`}>
-                        {op.t}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-4">
+          <p className="label-cayla text-[9px] text-tinta/40">Etapas — toca para marcar hecha</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ETAPAS.map((et) => {
+              const estado = orden.etapas?.[et] ?? "pendiente";
+              const cls =
+                estado === "hecho" ? "border-[#3f7d55]/45 bg-[#e8f0e6] text-[#2f6042]"
+                : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
+                : "border-tinta/20 text-tinta/55 hover:border-tinta/45";
+              return (
+                <button key={et} type="button" disabled={ocupado}
+                  onClick={() => onEtapa(et, estado === "hecho" ? "pendiente" : "hecho")}
+                  className={`label-cayla border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
+                  {estado === "hecho" && <span className="mr-1">✓</span>}
+                  {ETAPA_LABEL[et]}
+                  {estado === "tercerizado" && <span className="ml-1 opacity-70">· afuera</span>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-tinta/35">
+            <span>¿Tercerizaste alguna?</span>
+            {ETAPAS.map((et) => {
+              const terc = (orden.etapas?.[et] ?? "pendiente") === "tercerizado";
+              return (
+                <button key={et} type="button" disabled={ocupado}
+                  onClick={() => onEtapa(et, terc ? "pendiente" : "tercerizado")}
+                  className={`transition-colors disabled:opacity-40 ${terc ? "text-taupe underline" : "hover:text-rojo"}`}>
+                  {ETAPA_LABEL[et]}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
-        <button onClick={onAbrirCierre} disabled={ocupado}
-          className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-40">
-          {cerrando ? "Cancelar cierre" : orden.esMuestra ? "Cerrar muestra" : "Terminar orden"}
-        </button>
-        <button onClick={onEliminar} disabled={ocupado}
-          className="label-cayla border border-tinta/20 px-4 py-2.5 text-[10px] text-tinta/50 transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40">
-          Eliminar
-        </button>
+      {/* Resumen en una línea + acciones */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-tinta/10 pt-3">
+        <span className="text-xs text-tinta/55">
+          Estimado · <span className="font-medium text-tinta">{money(orden.costoUnitario)}/prenda</span>
+          {orden.precioTaller > 0 && (
+            <>
+              {" · deja "}<span className="font-medium text-tinta">{money(margen)}</span>{` · ${pct}% `}
+              <span className={`ml-0.5 inline-block h-2 w-2 translate-y-px rounded-full ${s.dot}`} />
+              <span className="ml-1 text-tinta/45">{s.txt}</span>
+            </>
+          )}
+        </span>
+        <div className="flex items-center gap-3">
+          <button onClick={onEliminar} disabled={ocupado}
+            className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo disabled:opacity-40">
+            Eliminar
+          </button>
+          <button onClick={onAbrirCierre} disabled={ocupado}
+            className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-40">
+            {cerrando ? "Cancelar cierre" : orden.esMuestra ? "Cerrar muestra" : "Terminar orden"}
+          </button>
+        </div>
       </div>
 
       {cerrando && <CierreOrden orden={orden} onCerrado={onCerrado} onError={onError} />}
