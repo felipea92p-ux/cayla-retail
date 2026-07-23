@@ -12,18 +12,24 @@ export async function GET() {
 
   const { data: personaRow } = await supabase
     .from("personas")
-    .select("id, nombre, rol, sede_id, sedes(codigo)")
+    .select("id, nombre, rol, sede_id")
     .eq("auth_user_id", user.id)
     .single();
   if (!personaRow) return new Response("Sin persona vinculada", { status: 403 });
 
-  const sede = Array.isArray(personaRow.sedes) ? personaRow.sedes[0] : personaRow.sedes;
+  const { data: sedeRow } = await supabase
+    .from("sedes")
+    .select("codigo")
+    .eq("id", personaRow.sede_id)
+    .maybeSingle();
+  // Mapa de roles de dynamic → app (admin = Líder; el resto = integrante).
+  const rol: "lider" | "integrante" = personaRow.rol === "admin" ? "lider" : "integrante";
   const persona = {
     id: personaRow.id,
     nombre: personaRow.nombre,
-    rol: personaRow.rol as "lider" | "integrante",
+    rol,
     sedeId: personaRow.sede_id,
-    sedeCodigo: sede?.codigo ?? "",
+    sedeCodigo: sedeRow?.codigo ?? "",
   };
   const esLider = persona.rol === "lider";
 

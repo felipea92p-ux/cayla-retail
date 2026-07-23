@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mapaSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 import { METODOS_PAGO, type MetodoPago, type GastoCategoria } from "@cayla-retail/shared";
 
@@ -66,10 +67,12 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
   const { data: cajasData } = await supabase
     .from("cajas")
     .select(
-      "id, monto_apertura, abierta_en, monto_cierre_contado, monto_cierre_esperado, diferencia, cerrada_en, estado, sedes(codigo)"
+      "id, monto_apertura, abierta_en, monto_cierre_contado, monto_cierre_esperado, diferencia, cerrada_en, estado, sede_id"
     )
     .gte("abierta_en", desde.toISOString())
     .order("abierta_en", { ascending: false });
+
+  const sedes = await mapaSedes();
 
   const { data: ventasData } = await supabase
     .from("ventas")
@@ -86,10 +89,9 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
   });
 
   const cajas: CajaConDetalle[] = (cajasData ?? []).map((c) => {
-    const sede = Array.isArray(c.sedes) ? c.sedes[0] : c.sedes;
     return {
       id: c.id,
-      sedeCodigo: sede?.codigo ?? "",
+      sedeCodigo: sedes.get(c.sede_id)?.codigo ?? "",
       abiertaEn: c.abierta_en,
       cerradaEn: c.cerrada_en,
       estado: c.estado as "abierta" | "cerrada",
@@ -132,19 +134,19 @@ export async function getGastos(persona: PersonaActual, ventanaDias = 30): Promi
 
   const { data } = await supabase
     .from("gastos")
-    .select("id, categoria, subtotal, igv, total, especificacion, created_at, sedes(codigo)")
+    .select("id, categoria, subtotal, igv, total, especificacion, created_at, sede_id")
     .gte("created_at", desde.toISOString())
     .order("created_at", { ascending: false });
 
+  const sedes = await mapaSedes();
   const totalPorCategoria: Record<string, number> = {};
   let total = 0;
   const gastos: GastoConDetalle[] = (data ?? []).map((g) => {
-    const sede = Array.isArray(g.sedes) ? g.sedes[0] : g.sedes;
     totalPorCategoria[g.categoria] = (totalPorCategoria[g.categoria] ?? 0) + Number(g.total);
     total += Number(g.total);
     return {
       id: g.id,
-      sedeCodigo: sede?.codigo ?? "",
+      sedeCodigo: sedes.get(g.sede_id)?.codigo ?? "",
       categoria: g.categoria as GastoCategoria,
       subtotal: Number(g.subtotal),
       igv: Number(g.igv),

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mapaSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 
 export type VarianteConStock = {
@@ -33,21 +34,22 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
 
   if (errVariantes || !variantes) return [];
 
-  const { data: stockRows } = await supabase
-    .from("stock")
-    .select("variante_id, cantidad, stock_minimo, sedes(codigo)");
+  const [{ data: stockRows }, sedes] = await Promise.all([
+    supabase.from("stock").select("variante_id, cantidad, stock_minimo, sede_id"),
+    mapaSedes(),
+  ]);
 
   const stockPorVariante = new Map<string, Record<string, number>>();
   const minimoPorVariante = new Map<string, Record<string, number>>();
   (stockRows ?? []).forEach((r) => {
-    const sede = Array.isArray(r.sedes) ? r.sedes[0] : r.sedes;
-    if (!sede) return;
+    const codigo = sedes.get(r.sede_id)?.codigo;
+    if (!codigo) return;
     const actual = stockPorVariante.get(r.variante_id) ?? {};
-    actual[sede.codigo] = r.cantidad;
+    actual[codigo] = r.cantidad;
     stockPorVariante.set(r.variante_id, actual);
     if (r.stock_minimo != null) {
       const minimos = minimoPorVariante.get(r.variante_id) ?? {};
-      minimos[sede.codigo] = r.stock_minimo;
+      minimos[codigo] = r.stock_minimo;
       minimoPorVariante.set(r.variante_id, minimos);
     }
   });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
+import { mapaSedes } from "@/lib/sedes";
 
 // Búsqueda global (el dolor #1 del negocio, nombrado por Felipe en el descubrimiento:
 // "no saber si se tiene stock e ir a almacén a buscarlo a ciegas"). Resultado en
@@ -13,15 +14,16 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   const term = (q ?? "").trim().toLowerCase();
 
   const supabase = await createClient();
-  const [variantes, { data: stockRows }] = await Promise.all([
+  const [variantes, { data: stockRows }, sedes] = await Promise.all([
     getCatalogoConStock(persona),
-    supabase.from("stock").select("variante_id, cantidad, sedes(codigo, tipo), contenedores(codigo)"),
+    supabase.from("stock").select("variante_id, cantidad, sede_id, contenedores(codigo)"),
+    mapaSedes(),
   ]);
 
   // varianteId → detalle por sede (cantidad + contenedor si es almacén)
   const detallePorVariante = new Map<string, { sede: string; esAlmacen: boolean; cantidad: number; contenedor: string | null }[]>();
   (stockRows ?? []).forEach((r) => {
-    const sede = Array.isArray(r.sedes) ? r.sedes[0] : r.sedes;
+    const sede = sedes.get(r.sede_id);
     const contenedor = Array.isArray(r.contenedores) ? r.contenedores[0] : r.contenedores;
     if (!sede) return;
     const lista = detallePorVariante.get(r.variante_id) ?? [];

@@ -46,7 +46,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
     getEERRMensual(persona, anio, mes),
     supabase
       .from("gastos")
-      .select("id, categoria, total, metodo_pago, especificacion, created_at, sedes(codigo)")
+      .select("id, categoria, total, metodo_pago, especificacion, created_at, sede_id")
       .gte("created_at", desde)
       .lt("created_at", hasta)
       .order("created_at", { ascending: false }),
@@ -187,7 +187,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
               </thead>
               <tbody className="divide-y divide-tinta/5">
                 {gastosData.map((g) => {
-                  const sede = Array.isArray(g.sedes) ? g.sedes[0] : g.sedes;
+                  const sede = sedes.find((s) => s.id === g.sede_id);
                   return (
                     <tr key={g.id}>
                       <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(g.created_at)}</td>

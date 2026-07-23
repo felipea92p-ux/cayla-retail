@@ -18,7 +18,7 @@ export default async function EfectivoPage() {
     supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
     supabase
       .from("depositos_bancarios")
-      .select("id, fecha, monto, nota, sedes(codigo)")
+      .select("id, fecha, monto, nota, sede_id")
       .order("fecha", { ascending: false })
       .limit(15),
   ]);
@@ -47,7 +47,7 @@ export default async function EfectivoPage() {
         ) : (
           <div className="divide-y divide-tinta/5 card-cayla">
             {depositos.map((d) => {
-              const sede = Array.isArray(d.sedes) ? d.sedes[0] : d.sedes;
+              const sede = (sedes ?? []).find((s) => s.id === d.sede_id);
               return (
                 <div key={d.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span className="text-tinta/55">{d.fecha}</span>

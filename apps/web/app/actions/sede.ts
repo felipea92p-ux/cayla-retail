@@ -20,7 +20,8 @@ export async function cambiarSedeActiva(sedeId: string) {
     .select("rol")
     .eq("auth_user_id", user.id)
     .single();
-  if (persona?.rol !== "lider") return;
+  // El rol viene de dynamic: 'admin' es el Líder que puede cambiar de sede.
+  if (persona?.rol !== "admin") return;
 
   const { data: sede } = await supabase
     .from("sedes")
