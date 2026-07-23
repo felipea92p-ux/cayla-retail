@@ -23,12 +23,12 @@ export default async function ProduccionPage() {
     supabase
       .from("producciones")
       .select(
-        "id, cantidad, costo_unitario, costo_tela, costo_avios, costo_maquila, precio_taller, detalle, es_muestra, estado, inventariado_at, etapas, fecha_entrega, productos(referencia)"
+        "id, cantidad, costo_unitario, costo_tela, costo_avios, costo_maquila, precio_taller, detalle, es_muestra, estado, inventariado_at, etapas, fecha_entrega, productos(referencia, material)"
       )
       .eq("unidad_id", taller.id)
       .order("created_at", { ascending: false })
       .limit(60),
-    supabase.from("productos").select("id, referencia").order("referencia").limit(500),
+    supabase.from("productos").select("id, referencia, material").order("referencia").limit(500),
   ]);
 
   const ids = (producciones ?? []).map((p) => p.id);
@@ -52,6 +52,7 @@ export default async function ProduccionPage() {
     return {
       id: p.id,
       modelo: prod?.referencia ?? "(modelo)",
+      material: prod?.material ?? null,
       detalle: p.detalle ?? null,
       esMuestra: p.es_muestra,
       estado: p.estado,
@@ -69,6 +70,9 @@ export default async function ProduccionPage() {
   });
 
   const modelos = (modelosData ?? []).map((m) => ({ id: m.id, referencia: m.referencia }));
+  const materiales = [
+    ...new Set((modelosData ?? []).map((m) => m.material).filter((x): x is string => !!x && x.trim() !== "")),
+  ].sort();
 
   return (
     <div className="space-y-8">
@@ -80,7 +84,7 @@ export default async function ProduccionPage() {
         </p>
       </div>
 
-      <OrdenesProduccion unidadId={taller.id} modelos={modelos} ordenes={ordenes} />
+      <OrdenesProduccion unidadId={taller.id} modelos={modelos} materiales={materiales} ordenes={ordenes} />
     </div>
   );
 }

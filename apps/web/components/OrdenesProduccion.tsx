@@ -9,6 +9,7 @@ export type OrdenLinea = { varianteId: string; talla: string | null; color: stri
 export type OrdenRow = {
   id: string;
   modelo: string;
+  material: string | null;
   detalle: string | null;
   esMuestra: boolean;
   estado: string;
@@ -24,8 +25,21 @@ export type OrdenRow = {
   lineas: OrdenLinea[];
 };
 
-const ETAPAS = ["corte", "confeccion", "acabado"] as const;
-const ETAPA_LABEL: Record<string, string> = { corte: "Corte", confeccion: "Confección", acabado: "Acabado" };
+// El proceso se parte en DOS tipos de orden (decisión con Felipe, jul-2026):
+// MUESTRA = desarrollar el modelo, una sola vez · PRODUCCIÓN = fabricar el lote, cada vez.
+// Un modelo que "ya tiene muestra" arranca directo en Producción.
+type EtapaDef = { key: string; label: string; desc: string };
+const ETAPAS_MUESTRA: EtapaDef[] = [
+  { key: "patronaje", label: "Patronaje", desc: "Crear el molde base del modelo." },
+  { key: "muestra", label: "Muestra y aprobación", desc: "Coser un prototipo y revisarlo antes de producir." },
+  { key: "escalado", label: "Escalado y ploteo", desc: "Molde a todas las tallas + trazar la marca (tizado) sobre la tela." },
+];
+const ETAPAS_PRODUCCION: EtapaDef[] = [
+  { key: "corte", label: "Corte", desc: "Tender la tela y cortar las piezas." },
+  { key: "confeccion", label: "Confección", desc: "Costura, ojal y botón — armar la prenda." },
+  { key: "acabado", label: "Acabados", desc: "Planchado, limpiar hilos, control de calidad, etiqueta y empaque." },
+];
+const etapasDe = (esMuestra: boolean): EtapaDef[] => (esMuestra ? ETAPAS_MUESTRA : ETAPAS_PRODUCCION);
 
 // Umbrales del semáforo — margen = precio a tienda − costo directo, como % del precio.
 // Alto a propósito: de ese margen salen costura, taller y utilidad (mano de obra fija).
@@ -62,10 +76,12 @@ const labelCls = "label-cayla text-[9px] text-tinta/45";
 export function OrdenesProduccion({
   unidadId,
   modelos,
+  materiales,
   ordenes,
 }: {
   unidadId: string;
   modelos: ModeloOpcion[];
+  materiales: string[];
   ordenes: OrdenRow[];
 }) {
   const router = useRouter();
@@ -112,7 +128,7 @@ export function OrdenesProduccion({
 
       {error && <p className="rounded-lg border border-rojo/30 bg-rojo/5 px-3 py-2 text-sm text-rojo">{error}</p>}
 
-      {abierto && <NuevaOrdenForm unidadId={unidadId} modelos={modelos} onDone={() => { setAbierto(false); router.refresh(); }} onError={setError} />}
+      {abierto && <NuevaOrdenForm unidadId={unidadId} modelos={modelos} materiales={materiales} onDone={() => { setAbierto(false); router.refresh(); }} onError={setError} />}
 
       {/* En proceso */}
       {enProceso.length > 0 && (
@@ -159,6 +175,7 @@ export function OrdenesProduccion({
                     <tr key={o.id}>
                       <td className="px-3 py-2.5 font-medium text-tinta">
                         {o.modelo}
+                        {o.material && <span className="ml-2 text-[11px] font-normal text-tinta/40">· {o.material}</span>}
                         {o.detalle && <span className="ml-2 text-[11px] font-normal text-tinta/40">{o.detalle}</span>}
                         {o.esMuestra && <span className="label-cayla ml-2 text-[8px] text-taupe">muestra</span>}
                       </td>
@@ -211,6 +228,8 @@ function OrdenEnProceso({
   onCerrado: () => void;
   onError: (m: string) => void;
 }) {
+  const etapas = etapasDe(orden.esMuestra);
+  const [verGlosario, setVerGlosario] = useState(false);
   const s = semaforo(orden.precioTaller, orden.costoUnitario);
   const margen = Math.round((orden.precioTaller - orden.costoUnitario) * 100) / 100;
   const pct = orden.precioTaller > 0 ? Math.round((margen / orden.precioTaller) * 100) : 0;
@@ -224,6 +243,9 @@ function OrdenEnProceso({
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="font-display text-base text-tinta">{orden.modelo}</span>
+          {orden.material && (
+            <span className="ml-2 rounded-full border border-tinta/15 px-2 py-0.5 align-middle text-[9px] text-tinta/45">{orden.material}</span>
+          )}
           <p className="mt-0.5 text-xs text-tinta/45">{sub}</p>
         </div>
         <span className="label-cayla shrink-0 rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[9px] text-ambar">
@@ -231,43 +253,55 @@ function OrdenEnProceso({
         </span>
       </div>
 
-      {/* Etapas: un control por etapa (toque = hecho / pendiente) */}
-      {!orden.esMuestra && (
-        <div className="mt-4">
-          <p className="label-cayla text-[9px] text-tinta/40">Etapas — toca para marcar hecha</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {ETAPAS.map((et) => {
-              const estado = orden.etapas?.[et] ?? "pendiente";
-              const cls =
-                estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde"
-                : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
-                : "border-tinta/20 text-tinta/55 hover:border-tinta/45";
-              return (
-                <button key={et} type="button" disabled={ocupado}
-                  onClick={() => onEtapa(et, estado === "hecho" ? "pendiente" : "hecho")}
-                  className={`label-cayla rounded-full border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
-                  {estado === "hecho" && <span className="mr-1">✓</span>}
-                  {ETAPA_LABEL[et]}
-                  {estado === "tercerizado" && <span className="ml-1 opacity-70">· afuera</span>}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-tinta/35">
-            <span>¿Tercerizaste alguna?</span>
-            {ETAPAS.map((et) => {
-              const terc = (orden.etapas?.[et] ?? "pendiente") === "tercerizado";
-              return (
-                <button key={et} type="button" disabled={ocupado}
-                  onClick={() => onEtapa(et, terc ? "pendiente" : "tercerizado")}
-                  className={`transition-colors disabled:opacity-40 ${terc ? "text-taupe underline" : "hover:text-rojo"}`}>
-                  {ETAPA_LABEL[et]}
-                </button>
-              );
-            })}
-          </div>
+      {/* Etapas — se adaptan al tipo de orden (muestra = desarrollo, producción = fabricación). */}
+      <div className="mt-4">
+        <div className="flex items-center gap-2">
+          <p className="label-cayla text-[9px] text-tinta/40">
+            {orden.esMuestra ? "Etapas de desarrollo" : "Etapas"} — toca para marcar hecha
+          </p>
+          <button type="button" onClick={() => setVerGlosario((v) => !v)}
+            className="flex h-4 w-4 items-center justify-center rounded-full border border-tinta/25 text-[9px] leading-none text-tinta/45 transition-colors hover:border-rojo hover:text-rojo"
+            aria-label="Qué significa cada etapa">i</button>
         </div>
-      )}
+        {verGlosario && (
+          <ul className="mt-2 space-y-1 rounded-lg border border-tinta/10 bg-crema px-3 py-2 text-[11px] text-tinta/55">
+            {etapas.map((e) => (
+              <li key={e.key}><span className="font-medium text-tinta/75">{e.label}:</span> {e.desc}</li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-2 flex flex-wrap gap-2">
+          {etapas.map((e) => {
+            const estado = orden.etapas?.[e.key] ?? "pendiente";
+            const cls =
+              estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde"
+              : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
+              : "border-tinta/20 text-tinta/55 hover:border-tinta/45";
+            return (
+              <button key={e.key} type="button" disabled={ocupado}
+                onClick={() => onEtapa(e.key, estado === "hecho" ? "pendiente" : "hecho")}
+                className={`label-cayla rounded-full border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
+                {estado === "hecho" && <span className="mr-1">✓</span>}
+                {e.label}
+                {estado === "tercerizado" && <span className="ml-1 opacity-70">· afuera</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-tinta/35">
+          <span>¿Tercerizaste alguna?</span>
+          {etapas.map((e) => {
+            const terc = (orden.etapas?.[e.key] ?? "pendiente") === "tercerizado";
+            return (
+              <button key={e.key} type="button" disabled={ocupado}
+                onClick={() => onEtapa(e.key, terc ? "pendiente" : "tercerizado")}
+                className={`transition-colors disabled:opacity-40 ${terc ? "text-taupe underline" : "hover:text-rojo"}`}>
+                {e.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Resumen en una línea + acciones */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-tinta/10 pt-3">
@@ -387,10 +421,11 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
 }
 
 function NuevaOrdenForm({
-  unidadId, modelos, onDone, onError,
+  unidadId, modelos, materiales, onDone, onError,
 }: {
   unidadId: string;
   modelos: ModeloOpcion[];
+  materiales: string[];
   onDone: () => void;
   onError: (m: string) => void;
 }) {
@@ -399,6 +434,7 @@ function NuevaOrdenForm({
   const [q, setQ] = useState("");
   const [productoId, setProductoId] = useState("");
   const [referencia, setReferencia] = useState("");
+  const [material, setMaterial] = useState("");
   const [tallasRaw, setTallasRaw] = useState("");
   const [coloresRaw, setColoresRaw] = useState("");
   const [qty, setQty] = useState<Record<string, string>>({});
@@ -459,6 +495,7 @@ function NuevaOrdenForm({
       p_es_muestra: esMuestra,
       p_fecha_entrega: fechaEntrega || undefined,
       p_marcar_terminado: marcarTerminado && !esMuestra,
+      p_material: modoNuevo ? (material.trim() || undefined) : undefined,
       p_nota: undefined,
     });
     setLoading(false);
@@ -475,7 +512,7 @@ function NuevaOrdenForm({
             {o.t}
           </button>
         ))}
-        {esMuestra && <span className="self-center text-[11px] text-tinta/40">La muestra es una prueba: su costo queda en el modelo y no entra al inventario.</span>}
+        {esMuestra && <span className="self-center text-[11px] text-tinta/40">Muestra = desarrollo del modelo (patrón, prototipo, escalado). Su costo queda en el modelo y no entra al inventario.</span>}
       </div>
 
       <div className="space-y-2">
@@ -488,9 +525,18 @@ function NuevaOrdenForm({
           ))}
         </div>
         {modoNuevo ? (
-          <div className="space-y-1.5">
-            <label className={labelCls}>Nombre del modelo</label>
-            <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Short Sastre Lino" className={inputCls} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Nombre del modelo</label>
+              <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Short Sastre Lino" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Material / tela</label>
+              <input value={material} onChange={(e) => setMaterial(e.target.value)} list="materiales-cayla" placeholder="Lino" className={inputCls} />
+              <datalist id="materiales-cayla">
+                {materiales.map((m) => <option key={m} value={m} />)}
+              </datalist>
+            </div>
           </div>
         ) : (
           <div className="space-y-1.5">

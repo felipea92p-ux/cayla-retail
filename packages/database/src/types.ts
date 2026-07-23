@@ -1077,6 +1077,7 @@ export type Database = {
           genero: string | null
           id: string
           marca: string | null
+          material: string | null
           referencia: string
           sku_padre: string
           temporada: string | null
@@ -1092,6 +1093,7 @@ export type Database = {
           genero?: string | null
           id?: string
           marca?: string | null
+          material?: string | null
           referencia: string
           sku_padre: string
           temporada?: string | null
@@ -1107,6 +1109,7 @@ export type Database = {
           genero?: string | null
           id?: string
           marca?: string | null
+          material?: string | null
           referencia?: string
           sku_padre?: string
           temporada?: string | null
@@ -1506,6 +1509,7 @@ export type Database = {
           p_es_muestra?: boolean
           p_fecha_entrega?: string
           p_marcar_terminado?: boolean
+          p_material?: string
           p_nota?: string
           p_precio_taller: number
           p_producto_id?: string
