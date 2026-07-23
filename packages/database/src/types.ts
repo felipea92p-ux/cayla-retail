@@ -37,7 +37,7 @@ export type Database = {
       [_ in never]: never
     }
   }
-  public: {
+  retail: {
     Tables: {
       ajustes_efectivo: {
         Row: {

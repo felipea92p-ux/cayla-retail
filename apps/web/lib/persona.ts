@@ -31,7 +31,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
 
   const { data, error } = await supabase
     .from("personas")
-    .select("id, nombre, rol, sede_id, sedes(codigo)")
+    .select("id, nombre, rol, sede_id")
     .eq("auth_user_id", user.id)
     .single();
 
@@ -39,13 +39,25 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
     redirect("/login?error=sin_persona");
   }
 
-  const sede = Array.isArray(data.sedes) ? data.sedes[0] : data.sedes;
+  // Los roles viven en dynamic (admin / supervisor_sede / integrante). La app usa
+  // dos niveles: 'lider' (ve todo) e 'integrante' (su sede). Mapeo: admin → lider;
+  // supervisor_sede e integrante → integrante (el "supervisor ve sus reportes" se
+  // afina después). Así el resto de la app sigue razonando con lider/integrante.
+  const rol: "lider" | "integrante" = data.rol === "admin" ? "lider" : "integrante";
+
   let sedeId = data.sede_id;
-  let sedeCodigo = sede?.codigo ?? "";
+  // El código de la sede va en consulta aparte: la vista retail.sedes no soporta el
+  // "embed" por relación (es una vista sobre las sedes de dynamic).
+  const { data: sedeBase } = await supabase
+    .from("sedes")
+    .select("codigo")
+    .eq("id", data.sede_id)
+    .maybeSingle();
+  let sedeCodigo = sedeBase?.codigo ?? "";
 
   // Selector de sede del Líder: la cookie solo cambia la PERSPECTIVA de la app; el
-  // permiso real lo valida el servidor en cada operación (fn_puede_operar_sede, 0012).
-  if (data.rol === "lider") {
+  // permiso real lo valida el servidor en cada operación (retail.puede_operar_sede).
+  if (rol === "lider") {
     const cookieStore = await cookies();
     const activa = cookieStore.get(COOKIE_SEDE)?.value;
     if (activa && activa !== data.sede_id) {
@@ -64,7 +76,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   return {
     id: data.id,
     nombre: data.nombre,
-    rol: data.rol as "lider" | "integrante",
+    rol,
     sedeId,
     sedeCodigo,
   };
