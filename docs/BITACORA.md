@@ -26,6 +26,15 @@ unificado. Sigue sin confirmar si las 22 tablas y las vistas puente están
 completas y sirviendo datos reales — próximo paso queda anotado en el backlog
 como dos `select` de una línea, no una investigación nueva.
 
+**Mismo día, segundo chequeo:** Felipe corrió los dos `select` pendientes.
+`retail.sedes` devolvió 5 filas (no vacío) y `information_schema.tables` para el
+schema `retail` devolvió 28 (más que las ~22 esperadas — las migraciones de
+producción `0024`-`0029`, escritas después de la unificación, sumaron tablas
+propias encima). Cierra la duda del hallazgo #1: la unificación con Dynamic está
+aplicada y con datos reales, no a medias ni rota. Backlog actualizado: el ítem
+pasa de ARREGLAR (riesgo) a CERRADO; queda solo una deuda de documentación (falta
+el ADR y el `02_*.sql` que crea el schema, nunca se guardó en el repo).
+
 ## 2026-07-16
 Fase 1 (inventario multi-sede) verificada en vivo. Felipe pausó el plan de retomar la
 Fase 2 financiera y pidió en su lugar "Inventario Inteligente" (rotación, alertas,

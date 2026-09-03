@@ -28,21 +28,6 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`unificación retail↔dynamic`: el schema existe en producción, pero no está
-      confirmado que los 11 pasos se aplicaran completos ni que las vistas puente
-      sirvan datos reales de Dynamic.** Verificado 2026-09-03: `NEXT_PUBLIC_SUPABASE_URL`
-      de producción SÍ apunta al proyecto donde vive `retail` — `select schema_name
-      from information_schema.schemata where schema_name = 'retail'` devuelve la
-      fila. Eso descarta el peor escenario (la app rota o desincronizada del repo
-      hace 6 semanas). Lo que sigue sin confirmar: si las 22 tablas que promete
-      `supabase/unificacion/06_contabilidad_produccion.sql` están todas ahí (falta
-      `02_*.sql` en el repo — el paso que crea el schema en sí no dejó archivo,
-      solo se infiere de la cabecera de `03_candados.sql`), y si las vistas puente
-      (`v_personas_publica`, `v_sedes_publica` del plan original, o su equivalente
-      dentro de `retail`) están devolviendo personas/sedes reales de Dynamic o
-      datos vacíos/viejos. Próximo chequeo, un solo `select`: `select count(*) from
-      information_schema.tables where table_schema = 'retail'` (esperar ~22-23) y
-      un `select count(*) from retail.sedes` para confirmar que no está vacío.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
 - [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el
@@ -52,6 +37,11 @@ importante que ha entrado a este archivo desde que existe.
       (proyecto hermano) corre 302 pruebas pgTAP sobre su propio dinero; acá el
       principio 7 ("pasos verificables") se cumple con el navegador pero no queda
       capturado para que no se repita un bug ya resuelto.
+- [ ] `unificación retail↔dynamic`: confirmada aplicada y con datos (ver CERRADO),
+      pero sin documentar formalmente — falta el ADR que debió escribirse en
+      julio (principio 8) y el `02_*.sql` que crea el schema en sí nunca quedó en
+      el repo (se infiere solo de la cabecera de `03_candados.sql`). Deuda de
+      documentación, no de funcionamiento. Reversible: sí, es solo escribir.
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 
@@ -139,11 +129,16 @@ importante que ha entrado a este archivo desde que existe.
 - [x] 2026-07-19 — Motor contable de doble partida (`0019`-`0023`): plan de cuentas
       PCGE, `registrar_asiento` con cuadre forzado, activos fijos con depreciación
       NIIF/SUNAT automática, fix de recursión infinita en RLS de identidad.
-- [x] ~2026-07-20/23 (sin confirmar por Felipe) — Unificación de identidad: retail
-      deja de tener sus propias `sedes`/`personas` y pasa a leerlas de Dynamic vía
-      un schema `retail` dedicado dentro del proyecto Dynamo, con vistas puente y
-      RPCs migradas (`supabase/unificacion/01`-`11`). **Ver ARREGLAR #1 — no hay
-      evidencia de que esto se haya aplicado en producción.**
+- [x] ~2026-07-20/23, confirmado en producción 2026-09-03 — Unificación de
+      identidad: retail deja de tener sus propias `sedes`/`personas` y pasa a
+      leerlas de Dynamic vía un schema `retail` dedicado dentro del proyecto
+      Dynamic, con vistas puente y RPCs migradas (`supabase/unificacion/01`-`11`).
+      Verificado con Felipe contra el SQL Editor de producción: el schema
+      `retail` existe, tiene 28 tablas (más que las ~22 originales — las
+      migraciones de producción `0024`-`0029`, posteriores a la unificación,
+      sumaron tablas nuevas encima), y `retail.sedes` devuelve 5 filas reales, no
+      vacío. Descarta el riesgo que abrió esta auditoría: la app NO llevaba 6
+      semanas rota. Pendiente solo la documentación (ver ARREGLAR).
 
 ## 📎 De sesiones previas de Claude Code (contexto, no repetir)
 
