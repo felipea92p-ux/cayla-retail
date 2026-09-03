@@ -11,6 +11,30 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **`almacen interno` (BLOQUEA `catalogo real` de abajo): "Recibir mercadería" es
+      HOY el único camino para crear un producto — no hay pantalla "+ Nuevo
+      producto" aparte — y esa pantalla no tiene a dónde escribir.** Confirmado
+      2026-09-03: la unificación nunca recreó las sedes-almacén (TRU-ALM/AQP-ALM/
+      LIM-ALM existían en el retail original, `0008_almacen.sql`, pero no se
+      migraron — `retail.sede_meta` solo tiene tienda/fabrica/corporativo). Recibir,
+      Almacén y "Bajar a tienda" buscan una sede `tipo='almacen'` que no existe en
+      ninguna de las 4 sedes operativas (TRU/AQP/003/LIM) → bloqueadas las tres.
+      Diseño ya decidido con Felipe (no una sede hermana nueva en Dynamic — un
+      contenedor `tipo='almacen'` + tabla `retail.stock_almacen` dentro de la misma
+      sede) y migración completa ya escrita en
+      `supabase/unificacion/12_almacen_interno.sql` (sin commitear, SIN APLICAR).
+      **No pegar todavía**: dos verificaciones adversariales la marcaron insegura —
+      hace `CREATE OR REPLACE` sobre `fn_aplicar_movimiento`/`recalcular_stock`
+      asumiendo que coinciden con el repo, sin confirmarlo contra producción (a
+      diferencia de `retail.sedes`, que sí se verificó con un SELECT real), y
+      `retail.recibir_lote` YA se sabe que diverge (el frontend le manda
+      `p_orden_compra_id`/`p_orden_produccion_id` que el archivo del repo no
+      tiene). Próximo paso: pedirle a Felipe `select pg_get_functiondef(...)` de
+      esas 3 funciones en producción antes de tocar nada. El Taller (LIM) queda
+      con su contenedor creado pero SIN integrar — `registrar_produccion`/
+      `cerrar_produccion` siguen sin usarlo — decisión pendiente de Felipe: si lo
+      terminado del Taller debe pasar por el almacén interno o seguir directo al
+      piso como hoy.
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
       que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
       (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
@@ -19,7 +43,8 @@ importante que ha entrado a este archivo desde que existe.
       plan de captura real de `docs/PLAN-DE-TRABAJO.md` §5 (por semana, sin parar
       la venta) usando `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e
       Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
-      esquema).
+      esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
+      cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
 - [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson
       TM-T20III. Depende de: cuenta Nubefact (gestión de Felipe, no código).
       Reversible: sí.
@@ -31,6 +56,21 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`seguridad`: `retail.recibir_lote` es `SECURITY DEFINER` y no valida sede —
+      cualquier autenticado podría recibir mercadería en la sede de otro.** Hallazgo
+      del 2026-09-03 (no buscado, salió al investigar el almacén interno): a
+      diferencia de `retail.registrar_movimiento`, que sí llama a
+      `retail.puede_operar_sede` (`supabase/unificacion/07_funciones_operacion.sql:65`),
+      `retail.recibir_lote` (`supabase/unificacion/08_funciones_finanzas.sql:129-171`)
+      no la llama en ningún punto del cuerpo. Es exactamente el hueco que la
+      migración `0012_rpc_valida_sede.sql` (pre-unificación) se escribió para
+      cerrar — la reescritura de la unificación lo reabrió sin que quedara
+      documentado. Agravante relacionado: `retail.puede_operar_sede`
+      (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id` que
+      sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
+      candado para una sede que no es la propia. Arreglar junto con la migración
+      de `almacen interno` (arriba), no antes — necesita la misma verificación
+      contra producción para no romper `recibir_lote` a ciegas.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
 - [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el
