@@ -11,3 +11,4 @@ supabase/.branches/
 supabase/.temp/
 .vercel
 .env*
+.claude/settings.local.json
