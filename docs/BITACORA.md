@@ -17,6 +17,15 @@ hace 6 semanas. No se puede saber leyendo código; queda como primer punto a
 verificar con Felipe contra Vercel/Supabase antes de construir nada más. Backlog
 reescrito completo con esto como ítem #1 de ARREGLAR.
 
+## 2026-09-03 (verificación — el schema `retail` sí existe en producción)
+Felipe corrió en el SQL Editor de producción: `select schema_name from
+information_schema.schemata where schema_name = 'retail'` → devolvió la fila. El
+peor escenario (app rota 6 semanas, o desincronizada del repo) queda descartado:
+`NEXT_PUBLIC_SUPABASE_URL` de producción sí apunta al proyecto con el schema
+unificado. Sigue sin confirmar si las 22 tablas y las vistas puente están
+completas y sirviendo datos reales — próximo paso queda anotado en el backlog
+como dos `select` de una línea, no una investigación nueva.
+
 ## 2026-07-16
 Fase 1 (inventario multi-sede) verificada en vivo. Felipe pausó el plan de retomar la
 Fase 2 financiera y pidió en su lugar "Inventario Inteligente" (rotación, alertas,

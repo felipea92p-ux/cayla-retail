@@ -28,26 +28,21 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`unificación retail↔dynamic`: estado real en producción sin verificar —
-      riesgo de que la app lleve 6 semanas rota, o de que el próximo deploy la
-      rompa.** `apps/web/lib/supabase/client.ts` y `server.ts` (HEAD, commit del
-      23-jul) fuerzan `db: { schema: "retail" }` en TODAS las consultas — ya no
-      apuntan al esquema `public` de las 29 migraciones locales. Eso solo funciona
-      si existe un esquema llamado `retail` en el proyecto Supabase al que apunte
-      `NEXT_PUBLIC_SUPABASE_URL` de producción. Los 11 scripts que lo crean viven en
-      `supabase/unificacion/*.sql` con instrucciones de correrlos a mano **en el
-      proyecto de cayla-DYNAMIC** — igual que las migraciones de Dynamic, nadie los
-      aplica solo. Y `cayla-dynamic/supabase/migrations/0097` (27-jul, CUATRO días
-      *después* del último commit de esta unificación) dice explícitamente: *"el
-      puente con CAYLA retail todavía no existe"*. Eso deja dos escenarios, y solo
-      Felipe los distingue mirando Vercel: (a) el `NEXT_PUBLIC_SUPABASE_URL` de
-      producción sigue apuntando al proyecto original de retail (schema `public`)
-      y la app de producción **no corre el código de HEAD** — está desincronizada
-      del repo; o (b) ya apunta al proyecto de Dynamic y **cada consulta falla**
-      porque el schema `retail` no existe ahí. Ninguna de las dos se resuelve
-      leyendo código — se verifica en el dashboard de Vercel (env vars) y con un
-      `select` de prueba en el SQL Editor que corresponda. Es la primera pregunta
-      de la próxima sesión, antes de construir nada más encima.
+- [ ] **`unificación retail↔dynamic`: el schema existe en producción, pero no está
+      confirmado que los 11 pasos se aplicaran completos ni que las vistas puente
+      sirvan datos reales de Dynamic.** Verificado 2026-09-03: `NEXT_PUBLIC_SUPABASE_URL`
+      de producción SÍ apunta al proyecto donde vive `retail` — `select schema_name
+      from information_schema.schemata where schema_name = 'retail'` devuelve la
+      fila. Eso descarta el peor escenario (la app rota o desincronizada del repo
+      hace 6 semanas). Lo que sigue sin confirmar: si las 22 tablas que promete
+      `supabase/unificacion/06_contabilidad_produccion.sql` están todas ahí (falta
+      `02_*.sql` en el repo — el paso que crea el schema en sí no dejó archivo,
+      solo se infiere de la cabecera de `03_candados.sql`), y si las vistas puente
+      (`v_personas_publica`, `v_sedes_publica` del plan original, o su equivalente
+      dentro de `retail`) están devolviendo personas/sedes reales de Dynamic o
+      datos vacíos/viejos. Próximo chequeo, un solo `select`: `select count(*) from
+      information_schema.tables where table_schema = 'retail'` (esperar ~22-23) y
+      un `select count(*) from retail.sedes` para confirmar que no está vacío.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
 - [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el
