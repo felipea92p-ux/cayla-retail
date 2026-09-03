@@ -18,10 +18,21 @@
 --      nada) y dejan su propio rastro en `movimientos` — la misma tabla
 --      append-only de siempre, no una bitácora paralela.
 --   4. Cualquier entrada/salida/ajuste/traslado que NO use el contenedor
---      'almacen' sigue exactamente igual que hoy — cero cambio de
---      comportamiento para el piso de venta y los traslados entre sedes
---      (TRU→AQP, etc.), que son la mayoría del histórico real en
---      `movimientos`.
+--      'almacen' sigue calculando el saldo exactamente igual que hoy en
+--      `retail.stock` — mismas filas, misma aritmética, para el piso de
+--      venta y los traslados entre sedes (TRU→AQP, etc.), que son la
+--      mayoría del histórico real en `movimientos`.
+--   5. CAMBIO REAL (no "cero cambio", para que este encabezado no mienta):
+--      se agrega una validación nueva — si un movimiento trae `contenedor_id`,
+--      se comprueba que ese contenedor sea de la sede correcta (la propia,
+--      o la destino si es traslado) antes de aplicarlo, y se aborta con
+--      excepción si no. Hoy production NO tiene ese chequeo. Es aditivo y
+--      defensivo (convierte un estado imposible silencioso en un error
+--      ruidoso, principio 4 de CLAUDE.md) — verificado contra los dos
+--      únicos llamadores reales que mandan `p_contenedor_id` hoy
+--      (`MovimientoModal.tsx:89`, `RecibirLoteForm.tsx:236`): ninguno de
+--      los dos dispararía la excepción, así que no cambia ningún flujo que
+--      hoy funcione.
 --
 -- QUÉ ASUME
 --   - `retail.sede_meta` (creada por el paso "02" que nunca quedó
@@ -35,19 +46,31 @@
 --     mercadería" y "Bajar a tienda" no tenían adónde escribir en
 --     producción — esto no migra datos reales de un almacén viejo: los
 --     construye recién. No hay nada que limpiar ni borrar.
---   - `retail.fn_aplicar_movimiento(uuid)` y `retail.recalcular_stock()`
---     no tienen, en producción, una firma ni un cuerpo distintos de los
---     que están en supabase/unificacion/07_funciones_operacion.sql y
---     08_funciones_finanzas.sql — se verificó que ningún llamador (RPCs
---     de producción/ventas/traslados) les manda parámetros de más.
---     OJO: esto NO vale para `retail.recibir_lote` — el frontend
---     (RecibirLoteForm.tsx) la llama con `p_orden_compra_id` /
---     `p_orden_produccion_id`, que el archivo del repo NO tiene. Por eso
---     este archivo NO toca `retail.recibir_lote` (ver pregunta abierta al
---     final de la respuesta) — no hace falta tocarla igual: ya reenvía
---     `contenedor_id` por ítem a `movimientos`, así que el punto 4 de
---     arriba basta para que "recibir hacia el almacén" funcione sin
---     reescribir esa función a ciegas.
+--   - `retail.fn_aplicar_movimiento(uuid)` y `retail.recalcular_stock()`:
+--     VERIFICADO 2026-09-03 con `pg_get_functiondef(...)` contra producción
+--     real (no asumido) — los dos cuerpos coinciden byte por byte con la
+--     versión de `supabase/unificacion/07_funciones_operacion.sql` y
+--     `08_funciones_finanzas.sql`. El `create or replace` de abajo es
+--     seguro: la parte "piso" queda textualmente igual salvo el punto 5
+--     de arriba (la validación nueva de contenedor/sede).
+--   - `retail.puede_operar_sede(uuid)`: VERIFICADO 2026-09-03, existe con
+--     esa firma exacta (`language sql stable`). No tiene la cláusula de
+--     `tienda_asociada_id` que sí tenía la versión pre-unificación
+--     (`0012_rpc_valida_sede.sql`) — pero con este diseño (almacén = la
+--     misma sede, no una hermana) esa cláusula ya no hace falta: una
+--     integrante valida directo contra su propia sede.
+--   - `retail.recibir_lote`: VERIFICADO 2026-09-03 — la nota anterior de
+--     este archivo (que asumía parámetros `p_orden_compra_id`/
+--     `p_orden_produccion_id`) estaba MAL: la función real no los tiene,
+--     esos existen solo en la versión pre-unificación local
+--     (`0017_ordenes_compra.sql`/`0018_produccion.sql`). El cuerpo real sí
+--     reenvía `contenedor_id` por ítem a `movimientos` como se esperaba,
+--     así que el punto 4 de arriba basta para que "recibir hacia el
+--     almacén" funcione sin tocar `recibir_lote` en este archivo. Lo que
+--     SÍ hay que tocar en `recibir_lote` es otra cosa, ya resuelta aparte:
+--     no valida la sede del que llama (ver
+--     `13_recibir_lote_valida_sede.sql`, hallazgo de seguridad
+--     independiente de este archivo).
 --
 -- POR QUÉ SE ELIGIÓ ASÍ
 --   DECIDÍ: una tabla nueva y aislada (`retail.stock_almacen`, PK

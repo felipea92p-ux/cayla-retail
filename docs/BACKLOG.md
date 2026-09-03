@@ -56,21 +56,36 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`seguridad`: `retail.recibir_lote` es `SECURITY DEFINER` y no valida sede —
-      cualquier autenticado podría recibir mercadería en la sede de otro.** Hallazgo
-      del 2026-09-03 (no buscado, salió al investigar el almacén interno): a
-      diferencia de `retail.registrar_movimiento`, que sí llama a
-      `retail.puede_operar_sede` (`supabase/unificacion/07_funciones_operacion.sql:65`),
-      `retail.recibir_lote` (`supabase/unificacion/08_funciones_finanzas.sql:129-171`)
-      no la llama en ningún punto del cuerpo. Es exactamente el hueco que la
-      migración `0012_rpc_valida_sede.sql` (pre-unificación) se escribió para
-      cerrar — la reescritura de la unificación lo reabrió sin que quedara
-      documentado. Agravante relacionado: `retail.puede_operar_sede`
-      (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id` que
-      sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
-      candado para una sede que no es la propia. Arreglar junto con la migración
-      de `almacen interno` (arriba), no antes — necesita la misma verificación
-      contra producción para no romper `recibir_lote` a ciegas.
+- [ ] **`recibir_lote`: migración `0031` escrita y verificada, pendiente de
+      correr en producción (ADR-0004).** Confirmado con `pg_get_functiondef`
+      contra producción y contra el frontend (`RecibirLoteForm.tsx`): la
+      unificación migró una copia de `recibir_lote` más vieja que la `0018`
+      local, perdiendo tres cosas — no valida sede (mismo hueco que
+      `0012_rpc_valida_sede.sql` ya había cerrado), no guarda `categoria_id`
+      (cada producto nuevo por "Recibir mercadería" queda sin categoría, pese
+      a que el formulario sí la manda — rompe justo lo de `0030`), y no acepta
+      `p_orden_compra_id` (recibir ligado a una orden de compra falla). Las
+      tres restauradas en `0031_recibir_lote_completo.sql`, con la lógica ya
+      probada de la 0018 — sin `BEGIN…ROLLBACK` local esta vez (puerto 54322
+      ocupado por el Supabase local de `cayla-dynamic`, otra sesión). Pendiente
+      de que Felipe la pegue en producción con el cuerpo schema-calificado.
+      Agravante relacionado, sin arreglar todavía: `retail.puede_operar_sede`
+      (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id`
+      que sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
+      candado para una sede que no es la propia.
+- [ ] **`producción`: reconciliar `ordenes_produccion` (modelo viejo) con
+      `producciones` (modelo vigente desde `0025`-`0029`) — nunca se propagó.**
+      Encontrado al intentar arreglar `recibir_lote`: `inventario/recibir/
+      page.tsx:52,57` todavía consulta `retail.ordenes_produccion` y una
+      columna `retail.lotes.orden_produccion_id` que **no existe** en
+      producción (verificado: `retail.lotes` solo tiene `orden_compra_id`).
+      El frontend manda `p_orden_produccion_id` a `recibir_lote`
+      (`RecibirLoteForm.tsx:218`) y siempre falla cuando se usa. Deliberadamente
+      fuera de `0031` — decidido con Felipe 2026-09-03. Necesita: decidir si
+      `producciones` reemplaza del todo a `ordenes_produccion` (¿se puede
+      dropear la vieja?), una columna nueva en `lotes` para el vínculo, y
+      reescribir la consulta de "producciones pendientes de recibir" contra el
+      modelo nuevo. Reversible: sí, nada de esto se ha tocado todavía.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
 - [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el
