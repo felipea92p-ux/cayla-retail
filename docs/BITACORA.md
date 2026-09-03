@@ -35,6 +35,16 @@ aplicada y con datos reales, no a medias ni rota. Backlog actualizado: el ítem
 pasa de ARREGLAR (riesgo) a CERRADO; queda solo una deuda de documentación (falta
 el ADR y el `02_*.sql` que crea el schema, nunca se guardó en el repo).
 
+## 2026-09-03 (arranca Frente 1 — captura del catálogo real)
+Felipe pidió seguir con el catálogo real. Antes de tocar la captura física, se
+retomó una decisión de julio que quedó escrita en `docs/PLAN-DE-TRABAJO.md` §4 y
+nunca se migró: 5 categorías nuevas (Conjuntos, Enterizos, Chalecos, Bodys,
+Blazers/Sacos) respaldadas por el historial real de compras. Felipe pidió ver el
+detalle completo antes de aprobar ("2 y 4" a la pregunta: explicar más Y dejar
+espacio a ajustes) — se mostró la tabla con tallas sugeridas propuestas y no pidió
+cambios. Migración `0030_categorias_captura_real.sql` escrita (aditiva, sin tocar
+esquema) y ADR-0003. Pendiente: que Felipe la corra en el SQL Editor de producción.
+
 ## 2026-07-16
 Fase 1 (inventario multi-sede) verificada en vivo. Felipe pausó el plan de retomar la
 Fase 2 financiera y pidió en su lugar "Inventario Inteligente" (rotación, alertas,

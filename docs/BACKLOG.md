@@ -12,11 +12,14 @@ importante que ha entrado a este archivo desde que existe.
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
-      que queda, sin cambiar desde julio. El sistema ya tiene todo (categorías,
-      fotos, etiquetas, ubicaciones, mínimos, y ahora producción con costeo real);
-      falta el conteo físico por tienda. Guía ya escrita en
-      `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e Inteligencia trabajan
-      con datos de juguete. Reversible: sí (son datos, no esquema).
+      que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
+      (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
+      pendiente de correrla en producción — es el paso 0 antes de capturar nada,
+      para no re-taxonomizar cientos de prendas después. Con eso corrido, sigue el
+      plan de captura real de `docs/PLAN-DE-TRABAJO.md` §5 (por semana, sin parar
+      la venta) usando `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e
+      Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
+      esquema).
 - [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson
       TM-T20III. Depende de: cuenta Nubefact (gestión de Felipe, no código).
       Reversible: sí.
