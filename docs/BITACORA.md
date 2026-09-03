@@ -3,6 +3,20 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-03 (auditoría — la bitácora estaba congelada desde julio)
+Felipe pidió retomar CAYLA retail; la carpeta local llegó vacía a la sesión y se
+repobló (clon/sync de otra Mac) mientras se investigaba. Corrí `/backlog`: la
+bitácora y el backlog llevaban parados desde el 19-20 de julio pero el repo tiene
+commits reales hasta el 23, incluida una fase de "Unificación" (retail pasa a leer
+`sedes`/`personas` de Dynamic vía schema dedicado) nunca documentada aquí.
+Hallazgo que manda sobre todo lo demás: el código de HEAD fuerza
+`db:{schema:"retail"}` en cada consulta, pero `cayla-dynamic/supabase/migrations/0097`
+(27-jul, posterior) dice explícitamente que el puente con retail "todavía no
+existe" — o producción quedó desincronizada del repo, o cada consulta falla desde
+hace 6 semanas. No se puede saber leyendo código; queda como primer punto a
+verificar con Felipe contra Vercel/Supabase antes de construir nada más. Backlog
+reescrito completo con esto como ítem #1 de ARREGLAR.
+
 ## 2026-07-16
 Fase 1 (inventario multi-sede) verificada en vivo. Felipe pausó el plan de retomar la
 Fase 2 financiera y pidió en su lugar "Inventario Inteligente" (rotación, alertas,
