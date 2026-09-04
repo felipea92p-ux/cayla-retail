@@ -20,6 +20,7 @@ export type VarianteConStock = {
   stockPorSede: Record<string, number>; // codigo de sede -> cantidad
   minimoPorSede: Record<string, number>; // solo sedes con mínimo propio definido
   stockTotal: number;
+  ultimaVenta: string | null; // más reciente entre sedes, null si nunca se vendió
 }
 
 export async function getCatalogoConStock(persona: PersonaActual): Promise<VarianteConStock[]> {
@@ -35,12 +36,16 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   if (errVariantes || !variantes) return [];
 
   const [{ data: stockRows }, sedes] = await Promise.all([
-    supabase.from("stock").select("variante_id, cantidad, stock_minimo, sede_id"),
+    supabase.from("stock").select("variante_id, cantidad, stock_minimo, sede_id, ultima_venta"),
     mapaSedes(),
   ]);
 
   const stockPorVariante = new Map<string, Record<string, number>>();
   const minimoPorVariante = new Map<string, Record<string, number>>();
+  // Última venta por variante = la más reciente ENTRE SEDES. Sellada solo con
+  // motivo='venta' en fn_aplicar_movimiento (migración 0011) — no se "rejuvenece"
+  // con bajadas de almacén a tienda, que son salida pero no venta.
+  const ultimaVentaPorVariante = new Map<string, string>();
   (stockRows ?? []).forEach((r) => {
     const codigo = sedes.get(r.sede_id)?.codigo;
     if (!codigo) return;
@@ -51,6 +56,10 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
       const minimos = minimoPorVariante.get(r.variante_id) ?? {};
       minimos[codigo] = r.stock_minimo;
       minimoPorVariante.set(r.variante_id, minimos);
+    }
+    if (r.ultima_venta) {
+      const actualVenta = ultimaVentaPorVariante.get(r.variante_id);
+      if (!actualVenta || r.ultima_venta > actualVenta) ultimaVentaPorVariante.set(r.variante_id, r.ultima_venta);
     }
   });
 
@@ -84,6 +93,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         stockPorSede: porSede,
         minimoPorSede: minimoPorVariante.get(v.id) ?? {},
         stockTotal,
+        ultimaVenta: ultimaVentaPorVariante.get(v.id) ?? null,
       };
     });
 }

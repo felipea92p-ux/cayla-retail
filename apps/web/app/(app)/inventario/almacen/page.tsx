@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { AlmacenStockList } from "@/components/AlmacenStockList";
 import { InventarioNav } from "@/components/InventarioNav";
@@ -8,12 +9,9 @@ export default async function AlmacenPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: almacen } = await supabase
-    .from("sedes")
-    .select("id, codigo")
-    .eq("tienda_asociada_id", persona.sedeId)
-    .eq("tipo", "almacen")
-    .maybeSingle();
+  const sedes = await getSedes();
+  const almacen =
+    sedes.find((s) => s.tienda_asociada_id === persona.sedeId && s.tipo === "almacen") ?? null;
 
   if (!almacen) {
     return (

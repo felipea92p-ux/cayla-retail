@@ -1,5 +1,6 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { InventarioNav } from "@/components/InventarioNav";
 import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
@@ -8,11 +9,10 @@ export default async function InventarioPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const [{ variantes }, sedesResult] = await Promise.all([
+  const [{ variantes }, todasSedes] = await Promise.all([
     getCatalogoInteligente(persona),
-    supabase.from("sedes").select("id, codigo, tipo").order("codigo"),
+    getSedes(),
   ]);
-  const todasSedes = sedesResult.data ?? [];
   const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
   const almacenPropio = todasSedes.find((s) => s.tipo === "almacen" && s.codigo === `${persona.sedeCodigo}-ALM`) ?? null;
 

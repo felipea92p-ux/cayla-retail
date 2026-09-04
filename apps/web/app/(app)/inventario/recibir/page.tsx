@@ -1,5 +1,6 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { RecibirLoteForm } from "@/components/RecibirLoteForm";
 import { InventarioNav } from "@/components/InventarioNav";
@@ -8,12 +9,9 @@ export default async function RecibirLotePage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: almacen } = await supabase
-    .from("sedes")
-    .select("id, codigo")
-    .eq("tienda_asociada_id", persona.sedeId)
-    .eq("tipo", "almacen")
-    .maybeSingle();
+  const sedes = await getSedes();
+  const almacen =
+    sedes.find((s) => s.tienda_asociada_id === persona.sedeId && s.tipo === "almacen") ?? null;
 
   if (!almacen) {
     return (
@@ -30,24 +28,33 @@ export default async function RecibirLotePage() {
     );
   }
 
-  const [{ data: contenedores }, { data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes] =
-    await Promise.all([
-      supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", almacen.id).order("codigo"),
-      supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
-      supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
-      supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-      getCatalogoConStock(persona),
-    ]);
-
-  const { data: ordenesRows } = await supabase
-    .from("ordenes_compra")
-    .select("id, proveedor, monto_estimado")
-    .eq("sede_destino_id", persona.sedeId)
-    .in("estado", ["pendiente", "confirmada"])
-    .order("created_at", { ascending: false });
-
-  // Producciones del Taller en camino a esta tienda, aún sin recibir (sin lote ligado)
-  const [{ data: produccionesRows }, { data: lotesLigados }] = await Promise.all([
+  // Ninguna de estas depende del resultado de otra (solo de `almacen`, ya resuelto
+  // arriba sin viaje de red porque getSedes() está cacheado por request) — antes
+  // iban en 3 rondas secuenciales (Promise.all grande → ordenesRows → Promise.all
+  // chico) esperando cada una a la anterior sin motivo. Una sola ronda. — arreglo
+  // de performance (mismo diagnóstico que /inventario).
+  const [
+    { data: contenedores },
+    { data: productos },
+    { data: categoriasRows },
+    { data: proveedoresRows },
+    variantes,
+    { data: ordenesRows },
+    { data: produccionesRows },
+    { data: lotesLigados },
+  ] = await Promise.all([
+    supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", almacen.id).order("codigo"),
+    supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
+    supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+    getCatalogoConStock(persona),
+    supabase
+      .from("ordenes_compra")
+      .select("id, proveedor, monto_estimado")
+      .eq("sede_destino_id", persona.sedeId)
+      .in("estado", ["pendiente", "confirmada"])
+      .order("created_at", { ascending: false }),
+    // Producciones del Taller en camino a esta tienda, aún sin recibir (sin lote ligado)
     supabase
       .from("ordenes_produccion")
       .select("id, cantidad_planeada, cantidad_producida, estado, variantes(talla, color, productos(referencia))")
