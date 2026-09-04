@@ -8,14 +8,15 @@ export default async function RecibirLotePage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: almacen } = await supabase
-    .from("sedes")
-    .select("id, codigo")
-    .eq("tienda_asociada_id", persona.sedeId)
-    .eq("tipo", "almacen")
-    .maybeSingle();
+  const { data: contenedores } = await supabase
+    .from("contenedores")
+    .select("id, codigo, tipo")
+    .eq("sede_id", persona.sedeId)
+    .order("codigo");
 
-  if (!almacen) {
+  const contenedorAlmacen = (contenedores ?? []).find((c) => c.tipo === "almacen") ?? null;
+
+  if (!contenedorAlmacen) {
     return (
       <div className="space-y-6">
         <div>
@@ -24,15 +25,14 @@ export default async function RecibirLotePage() {
         </div>
         <InventarioNav />
         <p className="card-cayla p-5 text-sm text-tinta/60">
-          Tu sede ({persona.sedeCodigo}) no tiene un almacén asociado — esta pantalla es solo para tiendas.
+          Tu sede ({persona.sedeCodigo}) no tiene un almacén configurado — esta pantalla es solo para sedes con inventario.
         </p>
       </div>
     );
   }
 
-  const [{ data: contenedores }, { data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes] =
+  const [{ data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes] =
     await Promise.all([
-      supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", almacen.id).order("codigo"),
       supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
       supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
       supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
@@ -46,28 +46,14 @@ export default async function RecibirLotePage() {
     .in("estado", ["pendiente", "confirmada"])
     .order("created_at", { ascending: false });
 
-  // Producciones del Taller en camino a esta tienda, aún sin recibir (sin lote ligado)
-  const [{ data: produccionesRows }, { data: lotesLigados }] = await Promise.all([
-    supabase
-      .from("ordenes_produccion")
-      .select("id, cantidad_planeada, cantidad_producida, estado, variantes(talla, color, productos(referencia))")
-      .eq("destino_sede_id", persona.sedeId)
-      .in("estado", ["en_proceso", "completada"])
-      .order("created_at", { ascending: false }),
-    supabase.from("lotes").select("orden_produccion_id").not("orden_produccion_id", "is", null),
-  ]);
-  const yaRecibidas = new Set((lotesLigados ?? []).map((l) => l.orden_produccion_id));
-  const produccionesPendientes = (produccionesRows ?? [])
-    .filter((p) => !yaRecibidas.has(p.id))
-    .map((p) => {
-      const variante = Array.isArray(p.variantes) ? p.variantes[0] : p.variantes;
-      const producto = variante ? (Array.isArray(variante.productos) ? variante.productos[0] : variante.productos) : null;
-      const detalle = [variante?.talla, variante?.color].filter(Boolean).join("/");
-      return {
-        id: p.id,
-        descripcion: `${producto?.referencia ?? "?"}${detalle ? ` ${detalle}` : ""} · ${p.cantidad_producida}/${p.cantidad_planeada} hechas`,
-      };
-    });
+  // Producciones del Taller en camino a esta tienda: DESACTIVADO a propósito.
+  // `ordenes_produccion` es el modelo viejo; `producciones` (desde 0025-0029) lo
+  // reemplazó, pero nunca se propagó — `lotes` no tiene columna para ligar una
+  // producción nueva, así que "ya recibida" no se puede calcular hoy. Reconciliar
+  // los dos modelos es tarea aparte, decidida con Felipe 2026-09-03 (ver
+  // docs/BACKLOG.md, ADR-0004). Mientras tanto, vacío en vez de mostrar datos que
+  // no distinguen pendiente de ya recibida.
+  const produccionesPendientes: { id: string; descripcion: string }[] = [];
 
   const variantesExistentes = variantes.map((v) => ({
     varianteId: v.varianteId,
@@ -93,15 +79,16 @@ export default async function RecibirLotePage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario · Almacén {almacen.codigo}</p>
+        <p className="label-cayla text-[10px] text-tinta/45">Inventario · {persona.sedeCodigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       </div>
 
       <InventarioNav />
 
       <RecibirLoteForm
-        sedeAlmacenId={almacen.id}
-        sedeAlmacenCodigo={almacen.codigo}
+        sedeId={persona.sedeId}
+        sedeCodigo={persona.sedeCodigo}
+        contenedorAlmacenId={contenedorAlmacen.id}
         contenedores={contenedores ?? []}
         productosExistentes={productosExistentes}
         variantesExistentes={variantesExistentes}

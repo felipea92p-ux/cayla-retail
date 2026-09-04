@@ -10,15 +10,11 @@ export default async function InventarioPage() {
 
   const [{ variantes }, sedesResult] = await Promise.all([
     getCatalogoInteligente(persona),
-    supabase.from("sedes").select("id, codigo, tipo").order("codigo"),
+    supabase.from("sedes").select("id, codigo").order("codigo"),
   ]);
-  const todasSedes = sedesResult.data ?? [];
-  const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
-  const almacenPropio = todasSedes.find((s) => s.tipo === "almacen" && s.codigo === `${persona.sedeCodigo}-ALM`) ?? null;
-
-  const { data: contenedoresAlmacen } = almacenPropio
-    ? await supabase.from("contenedores").select("id, codigo").eq("sede_id", almacenPropio.id).order("codigo")
-    : { data: [] };
+  const sedesOperativas = (sedesResult.data ?? []).filter(
+    (s): s is { id: string; codigo: string } => s.id != null && s.codigo != null
+  );
 
   // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
   const porProducto = new Map<string, ProductoAgrupado>();
@@ -62,13 +58,7 @@ export default async function InventarioPage() {
 
       <InventarioNav />
 
-      <InventarioAgrupado
-        productos={productos}
-        sedeActual={sedeActual}
-        todasLasSedes={sedesOperativas}
-        almacenPropio={almacenPropio}
-        contenedoresAlmacen={contenedoresAlmacen ?? []}
-      />
+      <InventarioAgrupado productos={productos} sedeActual={sedeActual} todasLasSedes={sedesOperativas} />
     </div>
   );
 }

@@ -54,8 +54,9 @@ function slug(texto: string) {
 const ETIQUETA_ORIGEN: Record<OrigenLote, string> = { taller: "Taller propio", proveedor: "Proveedor externo" };
 
 export function RecibirLoteForm({
-  sedeAlmacenId,
-  sedeAlmacenCodigo,
+  sedeId,
+  sedeCodigo,
+  contenedorAlmacenId,
   contenedores,
   productosExistentes,
   variantesExistentes,
@@ -64,8 +65,10 @@ export function RecibirLoteForm({
   ordenesPendientes = [],
   produccionesPendientes = [],
 }: {
-  sedeAlmacenId: string;
-  sedeAlmacenCodigo: string;
+  sedeId: string;
+  sedeCodigo: string;
+  /** Contenedor tipo 'almacen' de esta sede — a donde caen las prendas por defecto (recibidas, sin bajar a piso todavía). */
+  contenedorAlmacenId: string;
   contenedores: Contenedor[];
   productosExistentes: ProductoExistente[];
   variantesExistentes: VarianteExistente[];
@@ -88,7 +91,7 @@ export function RecibirLoteForm({
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
 
-  const contenedorDefault = contenedores[0]?.id ?? "";
+  const contenedorDefault = contenedorAlmacenId;
 
   const resultadosVariantes = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -211,7 +214,7 @@ export function RecibirLoteForm({
 
     const supabase = createClient();
     const { error } = await supabase.rpc("recibir_lote", {
-      p_sede_id: sedeAlmacenId,
+      p_sede_id: sedeId,
       p_origen: origen,
       p_proveedor: origen === "proveedor" ? proveedor.trim() || undefined : undefined,
       p_orden_compra_id: origen === "proveedor" && ordenCompraId ? ordenCompraId : undefined,
@@ -577,7 +580,7 @@ export function RecibirLoteForm({
 
       {contenedores.length === 0 && (
         <p className="text-xs text-amber-600">
-          Todavía no hay contenedores creados para el almacén {sedeAlmacenCodigo} — puedes recibir igual sin ubicación.
+          Todavía no hay contenedores creados para {sedeCodigo} — puedes recibir igual sin ubicación.
         </p>
       )}
 

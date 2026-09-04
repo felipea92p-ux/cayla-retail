@@ -11,30 +11,52 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **`almacen interno` (BLOQUEA `catalogo real` de abajo): "Recibir mercadería" es
-      HOY el único camino para crear un producto — no hay pantalla "+ Nuevo
-      producto" aparte — y esa pantalla no tiene a dónde escribir.** Confirmado
-      2026-09-03: la unificación nunca recreó las sedes-almacén (TRU-ALM/AQP-ALM/
-      LIM-ALM existían en el retail original, `0008_almacen.sql`, pero no se
-      migraron — `retail.sede_meta` solo tiene tienda/fabrica/corporativo). Recibir,
-      Almacén y "Bajar a tienda" buscan una sede `tipo='almacen'` que no existe en
-      ninguna de las 4 sedes operativas (TRU/AQP/003/LIM) → bloqueadas las tres.
-      Diseño ya decidido con Felipe (no una sede hermana nueva en Dynamic — un
-      contenedor `tipo='almacen'` + tabla `retail.stock_almacen` dentro de la misma
-      sede) y migración completa ya escrita en
-      `supabase/unificacion/12_almacen_interno.sql` (sin commitear, SIN APLICAR).
-      **No pegar todavía**: dos verificaciones adversariales la marcaron insegura —
-      hace `CREATE OR REPLACE` sobre `fn_aplicar_movimiento`/`recalcular_stock`
-      asumiendo que coinciden con el repo, sin confirmarlo contra producción (a
-      diferencia de `retail.sedes`, que sí se verificó con un SELECT real), y
-      `retail.recibir_lote` YA se sabe que diverge (el frontend le manda
-      `p_orden_compra_id`/`p_orden_produccion_id` que el archivo del repo no
-      tiene). Próximo paso: pedirle a Felipe `select pg_get_functiondef(...)` de
-      esas 3 funciones en producción antes de tocar nada. El Taller (LIM) queda
-      con su contenedor creado pero SIN integrar — `registrar_produccion`/
-      `cerrar_produccion` siguen sin usarlo — decisión pendiente de Felipe: si lo
-      terminado del Taller debe pasar por el almacén interno o seguir directo al
-      piso como hoy.
+- [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
+      backend completo, frontend adaptado, falta la prueba en vivo por Felipe.**
+      "Recibir mercadería" era el único camino para crear un producto y no
+      tenía a dónde escribir (la unificación nunca recreó las sedes-almacén
+      TRU-ALM/AQP-ALM/LIM-ALM del retail original). Decisión: el almacén deja
+      de ser una sede hermana — pasa a ser un contenedor `tipo='almacen'`
+      dentro de la misma sede + tabla `retail.stock_almacen` aparte.
+      `supabase/unificacion/12_almacen_interno.sql` pegado y verificado: 4
+      contenedores (TRU/AQP/003/LIM, CCO sin ninguno — confirmado con
+      `select` real). Las 3 funciones que reescribe (`fn_aplicar_movimiento`,
+      `recalcular_stock`, `puede_operar_sede`) se verificaron byte por byte
+      contra producción ANTES de pegar, no se asumieron. Frontend actualizado
+      en 7 archivos (`inventario/recibir`, `RecibirLoteForm`,
+      `inventario/almacen`, `AlmacenStockList`, `BajarATiendaModal`,
+      `inventario` catálogo, `InventarioAgrupado`) — ya no buscan una sede
+      `tipo='almacen'`, usan el contenedor de la propia sede. Tipos de
+      `packages/database` regenerados contra el proyecto correcto
+      (`--project-id` de cayla-DYNAMIC, `--schema retail`) — el script de
+      `gen-types` en `package.json` sigue apuntando al proyecto viejo de
+      retail y hay que corregirlo a mano la próxima vez (ver ítem de tipos
+      abajo). **Sin decidir todavía:** si lo terminado del Taller (LIM) debe
+      pasar por el almacén interno (con su propio "bajar a piso") o seguir
+      directo al piso como hoy — su contenedor ya existe, pero
+      `registrar_produccion`/`cerrar_produccion` no lo usan. Y "Devolver a
+      almacén" (piso → almacén) quedó con su RPC (`retail.devolver_a_almacen`)
+      pero sin conectar en el frontend — pregunta de UX abierta con Felipe
+      (¿botón propio, o dentro de `MovimientoModal`?). **Falta lo único que
+      de verdad lo cierra: que Felipe entre un producto real por la pantalla
+      y confirme que aparece.**
+- [ ] **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
+      luz 30 errores en 14 archivos que nadie tocó hoy — deuda real, no
+      ruido de esta sesión.** `retail.sedes`/`retail.personas` son VISTAS
+      (join contra `public` de Dynamic) — Postgres no le garantiza a Supabase
+      que sus columnas nunca sean nulas, así que el tipo real es
+      `string | null` donde el proyecto viejo (con el que se generaban los
+      tipos hasta hoy) decía `string`. Afecta `finanzas/*`, `produccion/page.tsx`,
+      `producto/[varianteId]/page.tsx`, `layout.tsx`, `actions/sede.ts`,
+      `api/export/inventario`, `PatrimonioEditor.tsx`, `lib/finanzas-nucleo.ts`,
+      `lib/panel.ts`, `lib/persona.ts`, `lib/sedes.ts` — ninguno tocado en esta
+      sesión. `next build` (sin `ignoreBuildErrors` en `next.config`) fallaría
+      hoy con estos 30 errores. Necesita su propia sesión, revisando caso por
+      caso si el `null` es real (¿puede una sede no tener código?) o si basta
+      con filtrar/asegurar como se hizo en `inventario/page.tsx` esta sesión.
+      Aparte: `packages/database/package.json` (`gen-types`) sigue apuntando al
+      proyecto viejo de retail — corregirlo al de Dynamic + `--schema retail`
+      para que esto no se repita.
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
       que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
       (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
@@ -69,24 +91,33 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`recibir_lote`: arreglo pegado en producción 2026-09-03, pendiente de
-      confirmar el resultado (ADR-0004).** Dos sesiones paralelas llegaron a
-      esta función el mismo día por caminos distintos y convergieron en el
-      mismo arreglo — buena señal, no ruido: `pg_get_functiondef` contra
-      producción + `RecibirLoteForm.tsx` mostraron que la unificación migró
-      una copia de `recibir_lote` más vieja que la `0018` local, perdiendo
-      tres cosas — no valida sede (mismo hueco que `0012_rpc_valida_sede.sql`
-      ya había cerrado), no guarda `categoria_id` (cada producto nuevo por
-      "Recibir mercadería" quedaba sin categoría, pese a que el formulario sí
-      la manda — rompía lo de `0030`), y no aceptaba `p_orden_compra_id`
-      (recibir ligado a una orden de compra fallaba). Versión local (idéntica
-      a 0018) en `supabase/migrations/0031_recibir_lote_completo.sql`; cuerpo
-      schema-calificado para producción en
-      `supabase/unificacion/14_recibir_lote_produccion.sql` — el archivo
-      `13_recibir_lote_valida_sede.sql` quedó marcado SUPERADO (mismo
-      hallazgo de sede, alcance más angosto). Felipe pegó la versión completa
-      en el SQL Editor — falta confirmar el mensaje de resultado antes de
-      cerrar este ítem.
+- [x] **`recibir_lote`: arreglado y confirmado en producción 2026-09-03
+      (ADR-0004) — cerrado, con un susto en el camino que vale registrar.**
+      Dos sesiones paralelas llegaron a esta función el mismo día por caminos
+      distintos y convergieron en el mismo arreglo: la unificación había
+      migrado una copia de `recibir_lote` más vieja que la `0018` local, sin
+      validar sede, sin guardar `categoria_id` (rompía la taxonomía de
+      `0030`) y sin aceptar `p_orden_compra_id`. Cuerpo schema-calificado
+      pegado en `supabase/unificacion/14_recibir_lote_produccion.sql`
+      (7 parámetros); `13_recibir_lote_valida_sede.sql` quedó SUPERADO (mismo
+      hallazgo, alcance más angosto). **Lo que salió mal al pegar:**
+      `CREATE OR REPLACE` con un parámetro nuevo (`p_orden_compra_id`) no
+      reemplaza la función vieja de 6 parámetros — Postgres las trata como
+      dos funciones distintas y crea una segunda, dejando **dos versiones de
+      `recibir_lote` conviviendo a la vez** (la vieja insegura + la nueva
+      completa). Se detectó regenerando `packages/database/src/types.ts`
+      contra el proyecto correcto (el generador mostró un tipo unión con dos
+      firmas) — no por una revisión manual. Cualquier "Recibir mercadería"
+      sin orden de compra ligada (la mayoría) habría fallado con
+      "function is not unique". Verificado con
+      `select oid::regprocedure from pg_proc where proname='recibir_lote'
+      and pronamespace='retail'::regnamespace` (2 filas), corregido con
+      `drop function retail.recibir_lote(uuid,text,jsonb,text,text,text)`
+      (la de 6), reverificado (1 fila, la de 7). Lección para la próxima
+      migración que le agregue un parámetro a una función existente: un
+      `CREATE OR REPLACE` que cambia la firma no reemplaza nada — hay que
+      `DROP` la firma vieja explícitamente, o verificar con
+      `pg_proc`/`regprocedure` que no quedó una sobrecarga fantasma.
       Agravante relacionado, sin arreglar todavía: `retail.puede_operar_sede`
       (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id`
       que sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
