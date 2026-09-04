@@ -3,6 +3,33 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-04 (alta de producto con matriz talla × color)
+Felipe pidió crear un producto ("Reflixme") pensando en todo — tallas y
+colores incluidos — y encontró el hueco real: "Recibir mercadería" crea un
+`producto` nuevo por CADA ítem agregado con "+ Agregar prenda nueva", así que
+pedir la misma referencia varias veces (una por talla/color) deja productos
+duplicados en vez de un modelo con N variantes. Se construyó
+`crear_producto_con_variantes` + pantalla `/inventario/producto/nuevo` (solo
+Líder): chips de talla/color, matriz generada con SKU/costo/precio editable
+por fila, un solo INSERT a `productos` + N a `variantes`, sin tocar stock
+(nace con 0 unidades hasta el primer lote real). Antes de comitear, un
+`git fetch` mostró que esta rama estaba 12 commits detrás de `origin/main`
+(otra sesión en paralelo, misma máquina, ya había cerrado almacén interno,
+facturación parte 1 y el fix de seguridad de `recibir_lote` — ver ADR-0004);
+se fusionó todo antes de tocar nada más, con un solo conflicto real en
+`packages/database/src/types.ts` (se tomó la versión regenerada y se le
+reinsertó a mano la entrada de la función nueva). Se siguió el mismo patrón
+dual que `recibir_lote`: versión local sin prefijo en
+`0033_crear_producto_variantes.sql`, versión schema-calificada lista para
+pegar en producción en `supabase/unificacion/16_crear_producto_variantes.sql`
+— Claude no pega SQL en producción directo, eso lo hace Felipe. `next build`
+completo (no solo `tsc`) corrido a propósito: la sesión paralela ya había
+encontrado que `tsc` solo no bastaba para atrapar los 30 errores de
+null-safety que bloqueaban el deploy. Empujado a `main` (fast-forward limpio)
+a pedido explícito de Felipe; falta que pegue el archivo 16 en el SQL Editor
+y confirme que el producto aparece en Catálogo — cierra de paso la
+verificación pendiente de "almacén interno".
+
 ## 2026-09-03 (auditoría — la bitácora estaba congelada desde julio)
 Felipe pidió retomar CAYLA retail; la carpeta local llegó vacía a la sesión y se
 repobló (clon/sync de otra Mac) mientras se investigaba. Corrí `/backlog`: la

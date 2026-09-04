@@ -83,6 +83,24 @@ importante que ha entrado a este archivo desde que existe.
       completo. También depende de la Epson TM-T20III para imprimir el
       comprobante ya aceptado. Reversible: sí, es una tabla nueva sin datos
       reales todavía.
+- [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
+      `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
+      producción.** "Recibir mercadería" crea un `producto` nuevo por CADA
+      ítem agregado con "+ Agregar prenda nueva": pedir la misma referencia
+      varias veces (una por talla/color) dejaba varios productos duplicados
+      en vez de un modelo con N variantes. Nueva pantalla
+      `/inventario/producto/nuevo` (solo Líder): referencia + familia/
+      categoría + chips de talla/color + matriz generada con precio/costo/
+      SKU editable por fila → un solo INSERT a `productos` + N a `variantes`,
+      sin tocar `stock`/`movimientos` (el modelo nace con 0 unidades hasta el
+      primer lote real). Mismo patrón dual que `recibir_lote` (ADR-0004):
+      versión local sin prefijo en `0033_crear_producto_variantes.sql`,
+      versión schema-calificada para pegar en el SQL Editor de producción en
+      `supabase/unificacion/16_crear_producto_variantes.sql`. **Pendiente:
+      que Felipe pegue el archivo 16 en producción y cree un producto real
+      (ej. varias tallas/colores) para confirmar que aparece en Catálogo** —
+      cierra además la verificación que le faltaba a `almacen interno` de
+      arriba ("que Felipe entre un producto real por la pantalla").
 - [ ] `produccion — insumos del taller`: la receta de costo (`0024`-`0029`) calcula
       con tela+avíos como costo directo declarado a mano, pero sigue sin inventario
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el
