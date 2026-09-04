@@ -26,7 +26,10 @@ export default async function RegistrarContablePage() {
   ]);
 
   const cuentas = cuentasRes.data ?? [];
-  const unidades = sedesRes.data ?? [];
+  const unidades = (sedesRes.data ?? []).filter(
+    (s): s is { id: string; codigo: string; nombre: string; tipo: string } =>
+      s.id != null && s.codigo != null && s.nombre != null && s.tipo != null
+  );
 
   return (
     <div className="space-y-8">

@@ -13,7 +13,7 @@ export default async function EfectivoPage() {
   if (persona.rol !== "lider") redirect("/");
 
   const supabase = await createClient();
-  const [cuadre, { data: sedes }, { data: depositos }] = await Promise.all([
+  const [cuadre, { data: sedesData }, { data: depositos }] = await Promise.all([
     getCuadreEfectivo(),
     supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
     supabase
@@ -22,6 +22,7 @@ export default async function EfectivoPage() {
       .order("fecha", { ascending: false })
       .limit(15),
   ]);
+  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
 
   return (
     <div className="space-y-8">

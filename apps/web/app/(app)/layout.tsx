@@ -14,7 +14,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select("id, codigo, tipo")
       .neq("tipo", "almacen")
       .order("codigo");
-    sedesOperativas = (data ?? []).map((s) => ({ id: s.id, codigo: s.codigo }));
+    sedesOperativas = (data ?? [])
+      .filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null)
+      .map((s) => ({ id: s.id, codigo: s.codigo }));
   }
 
   return (

@@ -53,7 +53,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
     supabase.from("sedes").select("id, codigo").neq("tipo", "almacen").order("codigo"),
   ]);
 
-  const sedes = sedesResult.data ?? [];
+  const sedes = (sedesResult.data ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? { id: persona.sedeId, codigo: persona.sedeCodigo };
   const otrasSedes = sedes.filter((s) => s.id !== sedeActual.id);
 

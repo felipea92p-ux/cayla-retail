@@ -9,5 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function mapaSedes(): Promise<Map<string, { codigo: string; tipo: string }>> {
   const supabase = await createClient();
   const { data } = await supabase.from("sedes").select("id, codigo, tipo");
-  return new Map((data ?? []).map((s) => [s.id, { codigo: s.codigo, tipo: s.tipo }]));
+  const filas = (data ?? []).filter(
+    (s): s is { id: string; codigo: string; tipo: string } => s.id != null && s.codigo != null && s.tipo != null
+  );
+  return new Map(filas.map((s) => [s.id, { codigo: s.codigo, tipo: s.tipo }]));
 }
