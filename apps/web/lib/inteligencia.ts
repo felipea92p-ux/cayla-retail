@@ -46,18 +46,19 @@ export async function getCatalogoInteligente(
 ): Promise<ResumenInteligencia> {
   const supabase = await createClient();
   const verMonto = persona.rol === "lider";
-
-  const variantes = await getCatalogoConStock(persona);
   const desde = new Date(Date.now() - ventanaDias * DIA_MS);
 
-  const { data: movimientos } = await supabase
-    .from("movimientos")
-    .select("variante_id, tipo, cantidad, motivo, monto, created_at")
-    .gte("created_at", desde.toISOString());
-
-  const { data: stockRows } = await supabase.from("stock").select("variante_id, sede_id, ultima_venta");
-
-  const { data: variantesFechas } = await supabase.from("variantes").select("id, created_at");
+  // Las 2 consultas son independientes entre sí — en paralelo en vez de encadenadas.
+  // La última venta y la fecha de alta por variante ya vienen calculadas en
+  // getCatalogoConStock (misma fila de `stock`/`variantes` que ya trae cantidad y
+  // created_at), así que no se vuelven a pedir esas tablas acá.
+  const [variantes, { data: movimientos }] = await Promise.all([
+    getCatalogoConStock(persona),
+    supabase
+      .from("movimientos")
+      .select("variante_id, tipo, cantidad, motivo, monto, created_at")
+      .gte("created_at", desde.toISOString()),
+  ]);
 
   const ventasPorVariante = new Map<string, { unidades: number; monto: number }>();
   (movimientos ?? []).forEach((m) => {
@@ -67,20 +68,6 @@ export async function getCatalogoInteligente(
     acc.monto += Number(m.monto) || 0;
     ventasPorVariante.set(m.variante_id, acc);
   });
-
-  // Estancamiento = días sin VENDER (no sin cualquier salida): una bajada de almacén a
-  // tienda es una salida del almacén pero no una venta, y no debe "rejuvenecer" el
-  // producto. Por eso se mira ultima_venta (sellada solo con motivo='venta' en
-  // fn_aplicar_movimiento, migración 0011), no ultima_salida.
-  const ultimaVentaPorVariante = new Map<string, string>();
-  (stockRows ?? []).forEach((r) => {
-    if (!r.ultima_venta) return;
-    const actual = ultimaVentaPorVariante.get(r.variante_id);
-    if (!actual || r.ultima_venta > actual) ultimaVentaPorVariante.set(r.variante_id, r.ultima_venta);
-  });
-
-  const ingresoPorVariante = new Map<string, string>();
-  (variantesFechas ?? []).forEach((v) => ingresoPorVariante.set(v.id, v.created_at));
 
   const ahora = Date.now();
 
@@ -109,7 +96,11 @@ export async function getCatalogoInteligente(
     const velocidadDiaria = ventas.unidades / ventanaDias;
     const diasInventario = velocidadDiaria > 0 ? Math.round((v.stockTotal / velocidadDiaria) * 10) / 10 : null;
 
-    const refFecha = ultimaVentaPorVariante.get(v.varianteId) ?? ingresoPorVariante.get(v.varianteId) ?? null;
+    // Estancamiento = días sin VENDER (no sin cualquier salida): una bajada de almacén a
+    // tienda es una salida del almacén pero no una venta, y no debe "rejuvenecer" el
+    // producto. Por eso se mira ultimaVenta (sellada solo con motivo='venta' en
+    // fn_aplicar_movimiento, migración 0011), no ultima_salida.
+    const refFecha = v.ultimaVenta ?? v.creadaEn ?? null;
     const diasSinVenta = refFecha ? Math.floor((ahora - new Date(refFecha).getTime()) / DIA_MS) : null;
     const estancado = v.stockTotal > 0 && diasSinVenta !== null && diasSinVenta > UMBRAL_ESTANCADO_DIAS;
 

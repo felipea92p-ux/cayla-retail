@@ -8,11 +8,25 @@ export default async function RecibirLotePage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: contenedores } = await supabase
-    .from("contenedores")
-    .select("id, codigo, tipo")
-    .eq("sede_id", persona.sedeId)
-    .order("codigo");
+  // Ninguna de estas depende del resultado de otra — antes iban en varias rondas
+  // secuenciales esperando cada una a la anterior sin motivo. Una sola ronda.
+  // (El almacén ya no es una sede aparte: es el contenedor tipo='almacen' de la
+  // propia sede, por eso la consulta de `contenedores` va aquí directo con
+  // persona.sedeId, sin necesitar resolver ninguna sede-almacén primero.)
+  const [{ data: contenedores }, { data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes, { data: ordenesRows }] =
+    await Promise.all([
+      supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", persona.sedeId).order("codigo"),
+      supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
+      supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
+      supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+      getCatalogoConStock(persona),
+      supabase
+        .from("ordenes_compra")
+        .select("id, proveedor, monto_estimado")
+        .eq("sede_destino_id", persona.sedeId)
+        .in("estado", ["pendiente", "confirmada"])
+        .order("created_at", { ascending: false }),
+    ]);
 
   const contenedorAlmacen = (contenedores ?? []).find((c) => c.tipo === "almacen") ?? null;
 
@@ -30,21 +44,6 @@ export default async function RecibirLotePage() {
       </div>
     );
   }
-
-  const [{ data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes] =
-    await Promise.all([
-      supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
-      supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
-      supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-      getCatalogoConStock(persona),
-    ]);
-
-  const { data: ordenesRows } = await supabase
-    .from("ordenes_compra")
-    .select("id, proveedor, monto_estimado")
-    .eq("sede_destino_id", persona.sedeId)
-    .in("estado", ["pendiente", "confirmada"])
-    .order("created_at", { ascending: false });
 
   // Producciones del Taller en camino a esta tienda: DESACTIVADO a propósito.
   // `ordenes_produccion` es el modelo viejo; `producciones` (desde 0025-0029) lo

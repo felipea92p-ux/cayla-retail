@@ -1,20 +1,17 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
-import { createClient } from "@/lib/supabase/server";
+import { getSedes } from "@/lib/sedes";
 import { InventarioNav } from "@/components/InventarioNav";
 import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
 
 export default async function InventarioPage() {
   const persona = await requirePersonaActual();
-  const supabase = await createClient();
 
-  const [{ variantes }, sedesResult] = await Promise.all([
-    getCatalogoInteligente(persona),
-    supabase.from("sedes").select("id, codigo").order("codigo"),
-  ]);
-  const sedesOperativas = (sedesResult.data ?? []).filter(
-    (s): s is { id: string; codigo: string } => s.id != null && s.codigo != null
-  );
+  // getSedes() ya está cacheado por request (el layout lo pidió primero) — resolverlo
+  // acá no cuesta un viaje de red nuevo, y va en paralelo con getCatalogoInteligente
+  // en vez de esperarlo.
+  const [{ variantes }, todasSedes] = await Promise.all([getCatalogoInteligente(persona), getSedes()]);
+  const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
 
   // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
   const porProducto = new Map<string, ProductoAgrupado>();

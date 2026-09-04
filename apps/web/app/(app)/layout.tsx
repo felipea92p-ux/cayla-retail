@@ -1,5 +1,5 @@
 import { requirePersonaActual } from "@/lib/persona";
-import { createClient } from "@/lib/supabase/server";
+import { getSedes } from "@/lib/sedes";
 import { AppShell } from "@/components/AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -8,15 +8,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Tiendas + taller para el selector de sede del Líder (una Encargada no cambia de sede).
   let sedesOperativas: { id: string; codigo: string }[] = [];
   if (persona.rol === "lider") {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("sedes")
-      .select("id, codigo, tipo")
-      .neq("tipo", "almacen")
-      .order("codigo");
-    sedesOperativas = (data ?? [])
-      .filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null)
-      .map((s) => ({ id: s.id, codigo: s.codigo }));
+    const sedes = await getSedes();
+    sedesOperativas = sedes.filter((s) => s.tipo !== "almacen").map((s) => ({ id: s.id, codigo: s.codigo }));
   }
 
   return (
