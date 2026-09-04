@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
@@ -57,12 +58,22 @@ export default async function InventarioPage() {
           <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
         </div>
-        <a
-          href="/api/export/inventario"
-          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-        >
-          Exportar Excel
-        </a>
+        <div className="flex gap-2">
+          {persona.rol === "lider" && (
+            <Link
+              href="/inventario/producto/nuevo"
+              className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+            >
+              + Nuevo producto
+            </Link>
+          )}
+          <a
+            href="/api/export/inventario"
+            className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          >
+            Exportar Excel
+          </a>
+        </div>
       </div>
 
       <InventarioNav />

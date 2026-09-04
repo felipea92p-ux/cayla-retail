@@ -1565,6 +1565,18 @@ export type Database = {
         }
         Returns: string
       }
+      crear_producto_con_variantes: {
+        Args: {
+          p_categoria_id?: string
+          p_genero?: string
+          p_marca?: string
+          p_referencia: string
+          p_sku_padre: string
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       registrar_movimiento: {
         Args: {
           p_canal?: string

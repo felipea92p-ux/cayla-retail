@@ -73,7 +73,12 @@ function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
     { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo o lote al almacén" },
     { href: "/inventario/almacen", etiqueta: "Bajar a tienda", detalle: "Pasar prendas del almacén al piso" },
-    ...(esLider ? [{ href: "/finanzas", etiqueta: "Registrar gasto", detalle: "Alquiler, servicios, transporte…" }] : []),
+    ...(esLider
+      ? [
+          { href: "/inventario/producto/nuevo", etiqueta: "Nuevo producto", detalle: "Dar de alta un modelo con sus tallas y colores" },
+          { href: "/finanzas", etiqueta: "Registrar gasto", detalle: "Alquiler, servicios, transporte…" },
+        ]
+      : []),
   ];
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
