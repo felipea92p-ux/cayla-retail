@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GASTO_CATEGORIAS, type GastoCategoria } from "@cayla-retail/shared";
+import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 const IGV = 0.18;
 
@@ -80,130 +81,97 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center">
-      <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h2 className="text-base font-semibold text-neutral-900">Registrar gasto</h2>
-        <p className="mt-1 text-xs text-neutral-400">
-          ¿Es una inversión (mueble, herramienta, remodelación)? No va aquí: regístrala como
-          activo en Finanzas → Patrimonio. Los insumos del taller tampoco: viven en el costo
-          de cada prenda al recibirla.
-        </p>
-
-        <form onSubmit={onSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-neutral-700">Sede</label>
-              <select
-                value={sedeSeleccionada}
-                onChange={(e) => setSedeSeleccionada(e.target.value)}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-              >
-                {todasLasSedes.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.codigo}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-neutral-700">Categoría</label>
-              <select
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value as GastoCategoria)}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-              >
-                {GASTO_CATEGORIAS.map((c) => (
-                  <option key={c} value={c}>
-                    {ETIQUETA_CATEGORIA[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
+    <Modal
+      titulo="Registrar gasto"
+      subtitulo="¿Es una inversión (mueble, herramienta, remodelación)? No va aquí: regístrala como activo en Finanzas → Patrimonio. Los insumos del taller tampoco: viven en el costo de cada prenda al recibirla."
+      onClose={onClose}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-neutral-700">Método de pago</label>
-            <select
-              value={metodoPago}
-              onChange={(e) => setMetodoPago(e.target.value as (typeof METODOS_GASTO)[number])}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            >
-              {METODOS_GASTO.map((m) => (
-                <option key={m} value={m}>
-                  {ETIQUETA_METODO_GASTO[m]}
+            <label className={campoEtiqueta}>Sede</label>
+            <select value={sedeSeleccionada} onChange={(e) => setSedeSeleccionada(e.target.value)} className={campoSelect}>
+              {todasLasSedes.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.codigo}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-neutral-400">
-              Si fue en efectivo, el sistema lo descuenta del cuadre de la sede.
-            </p>
           </div>
-
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-neutral-700">Total pagado (S/)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.10"
-              autoFocus
-              value={total}
-              onChange={(e) => setTotal(Number(e.target.value))}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            />
-            <p className="text-xs text-neutral-400">Lo que dice el comprobante — el subtotal e IGV se calculan solos.</p>
+            <label className={campoEtiqueta}>Categoría</label>
+            <select value={categoria} onChange={(e) => setCategoria(e.target.value as GastoCategoria)} className={campoSelect}>
+              {GASTO_CATEGORIAS.map((c) => (
+                <option key={c} value={c}>
+                  {ETIQUETA_CATEGORIA[c]}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-neutral-700">Subtotal (S/)</label>
-              <input
-                type="number"
-                value={subtotal}
-                readOnly
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-neutral-700">IGV (S/)</label>
-              <input
-                type="number"
-                value={igv}
-                readOnly
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500"
-              />
-            </div>
-          </div>
+        <div className="space-y-1.5">
+          <label className={campoEtiqueta}>Método de pago</label>
+          <select
+            value={metodoPago}
+            onChange={(e) => setMetodoPago(e.target.value as (typeof METODOS_GASTO)[number])}
+            className={campoSelect}
+          >
+            {METODOS_GASTO.map((m) => (
+              <option key={m} value={m}>
+                {ETIQUETA_METODO_GASTO[m]}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-tinta/45">Si fue en efectivo, el sistema lo descuenta del cuadre de la sede.</p>
+        </div>
 
+        <div className="space-y-1.5">
+          <label className={campoEtiqueta}>Total pagado (S/)</label>
+          <input
+            type="number"
+            min={0}
+            step="0.10"
+            autoFocus
+            value={total}
+            onChange={(e) => setTotal(Number(e.target.value))}
+            className={campoTexto}
+          />
+          <p className="text-xs text-tinta/45">Lo que dice el comprobante — el subtotal e IGV se calculan solos.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-neutral-700">Especificación</label>
-            <input
-              value={especificacion}
-              onChange={(e) => setEspecificacion(e.target.value)}
-              placeholder="Ej. Alquiler julio, luz, etc."
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            />
+            <label className={campoEtiqueta}>Subtotal (S/)</label>
+            <input type="number" value={subtotal} readOnly className={`${campoTexto} text-tinta/50`} />
           </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 rounded-lg bg-neutral-900 px-3 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
-            >
-              {loading ? "Guardando…" : "Guardar gasto"}
-            </button>
+          <div className="space-y-1.5">
+            <label className={campoEtiqueta}>IGV (S/)</label>
+            <input type="number" value={igv} readOnly className={`${campoTexto} text-tinta/50`} />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className={campoEtiqueta}>Especificación</label>
+          <input
+            value={especificacion}
+            onChange={(e) => setEspecificacion(e.target.value)}
+            placeholder="Ej. Alquiler julio, luz, etc."
+            className={campoTexto}
+          />
+        </div>
+
+        {error && <p className="text-sm text-rojo">{error}</p>}
+
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onClose} className={botonCancelar}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={loading} className={botonPrimario}>
+            {loading ? "Guardando…" : "Guardar gasto"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
