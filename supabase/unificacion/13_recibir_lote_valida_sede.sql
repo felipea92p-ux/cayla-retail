@@ -1,4 +1,10 @@
 -- ============================================================================
+-- SUPERADO — NO PEGAR ESTE ARCHIVO. Usar en su lugar
+-- supabase/unificacion/14_recibir_lote_produccion.sql (incluye este mismo
+-- chequeo de sede + categoria_id + p_orden_compra_id, ver ADR-0004).
+-- Se conserva solo como registro de cómo se encontró el hallazgo el
+-- 2026-09-03 — no como archivo pendiente de aplicar.
+-- ============================================================================
 -- FIX DE SEGURIDAD · retail.recibir_lote valida la sede del que llama
 -- Correr en cayla-DYNAMIC. Solo toca `retail`.
 --

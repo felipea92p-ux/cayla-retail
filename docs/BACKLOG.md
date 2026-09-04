@@ -56,19 +56,24 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`recibir_lote`: migración `0031` escrita y verificada, pendiente de
-      correr en producción (ADR-0004).** Confirmado con `pg_get_functiondef`
-      contra producción y contra el frontend (`RecibirLoteForm.tsx`): la
-      unificación migró una copia de `recibir_lote` más vieja que la `0018`
-      local, perdiendo tres cosas — no valida sede (mismo hueco que
-      `0012_rpc_valida_sede.sql` ya había cerrado), no guarda `categoria_id`
-      (cada producto nuevo por "Recibir mercadería" queda sin categoría, pese
-      a que el formulario sí la manda — rompe justo lo de `0030`), y no acepta
-      `p_orden_compra_id` (recibir ligado a una orden de compra falla). Las
-      tres restauradas en `0031_recibir_lote_completo.sql`, con la lógica ya
-      probada de la 0018 — sin `BEGIN…ROLLBACK` local esta vez (puerto 54322
-      ocupado por el Supabase local de `cayla-dynamic`, otra sesión). Pendiente
-      de que Felipe la pegue en producción con el cuerpo schema-calificado.
+- [ ] **`recibir_lote`: arreglo pegado en producción 2026-09-03, pendiente de
+      confirmar el resultado (ADR-0004).** Dos sesiones paralelas llegaron a
+      esta función el mismo día por caminos distintos y convergieron en el
+      mismo arreglo — buena señal, no ruido: `pg_get_functiondef` contra
+      producción + `RecibirLoteForm.tsx` mostraron que la unificación migró
+      una copia de `recibir_lote` más vieja que la `0018` local, perdiendo
+      tres cosas — no valida sede (mismo hueco que `0012_rpc_valida_sede.sql`
+      ya había cerrado), no guarda `categoria_id` (cada producto nuevo por
+      "Recibir mercadería" quedaba sin categoría, pese a que el formulario sí
+      la manda — rompía lo de `0030`), y no aceptaba `p_orden_compra_id`
+      (recibir ligado a una orden de compra fallaba). Versión local (idéntica
+      a 0018) en `supabase/migrations/0031_recibir_lote_completo.sql`; cuerpo
+      schema-calificado para producción en
+      `supabase/unificacion/14_recibir_lote_produccion.sql` — el archivo
+      `13_recibir_lote_valida_sede.sql` quedó marcado SUPERADO (mismo
+      hallazgo de sede, alcance más angosto). Felipe pegó la versión completa
+      en el SQL Editor — falta confirmar el mensaje de resultado antes de
+      cerrar este ítem.
       Agravante relacionado, sin arreglar todavía: `retail.puede_operar_sede`
       (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id`
       que sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
