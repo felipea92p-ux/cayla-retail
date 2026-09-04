@@ -9,16 +9,21 @@ export default async function InventarioPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const [{ variantes }, todasSedes] = await Promise.all([
-    getCatalogoInteligente(persona),
-    getSedes(),
-  ]);
+  // getSedes() ya está cacheado por request (el layout lo pidió primero) — resolverlo
+  // acá no cuesta un viaje de red nuevo, y permite calcular almacenPropio ANTES de
+  // lanzar getCatalogoInteligente, para que la consulta a `contenedores` (que depende
+  // de almacenPropio.id) vaya en paralelo con la rama más lenta en vez de esperarla.
+  const todasSedes = await getSedes();
   const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
   const almacenPropio = todasSedes.find((s) => s.tipo === "almacen" && s.codigo === `${persona.sedeCodigo}-ALM`) ?? null;
 
-  const { data: contenedoresAlmacen } = almacenPropio
-    ? await supabase.from("contenedores").select("id, codigo").eq("sede_id", almacenPropio.id).order("codigo")
-    : { data: [] };
+  const [{ variantes }, contenedoresRes] = await Promise.all([
+    getCatalogoInteligente(persona),
+    almacenPropio
+      ? supabase.from("contenedores").select("id, codigo").eq("sede_id", almacenPropio.id).order("codigo")
+      : Promise.resolve({ data: [] as { id: string; codigo: string }[] }),
+  ]);
+  const contenedoresAlmacen = contenedoresRes.data;
 
   // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
   const porProducto = new Map<string, ProductoAgrupado>();

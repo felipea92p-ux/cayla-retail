@@ -48,17 +48,16 @@ export async function getCatalogoInteligente(
   const verMonto = persona.rol === "lider";
   const desde = new Date(Date.now() - ventanaDias * DIA_MS);
 
-  // Las 4 consultas son independientes entre sí — en paralelo en vez de encadenadas,
-  // que era un viaje de red completo esperando al anterior por cada una. La última
-  // venta por variante ya viene calculada en getCatalogoConStock (misma fila de
-  // `stock` que trae la cantidad), así que no se vuelve a pedir esa tabla acá.
-  const [variantes, { data: movimientos }, { data: variantesFechas }] = await Promise.all([
+  // Las 2 consultas son independientes entre sí — en paralelo en vez de encadenadas.
+  // La última venta y la fecha de alta por variante ya vienen calculadas en
+  // getCatalogoConStock (misma fila de `stock`/`variantes` que ya trae cantidad y
+  // created_at), así que no se vuelven a pedir esas tablas acá.
+  const [variantes, { data: movimientos }] = await Promise.all([
     getCatalogoConStock(persona),
     supabase
       .from("movimientos")
       .select("variante_id, tipo, cantidad, motivo, monto, created_at")
       .gte("created_at", desde.toISOString()),
-    supabase.from("variantes").select("id, created_at"),
   ]);
 
   const ventasPorVariante = new Map<string, { unidades: number; monto: number }>();
@@ -69,9 +68,6 @@ export async function getCatalogoInteligente(
     acc.monto += Number(m.monto) || 0;
     ventasPorVariante.set(m.variante_id, acc);
   });
-
-  const ingresoPorVariante = new Map<string, string>();
-  (variantesFechas ?? []).forEach((v) => ingresoPorVariante.set(v.id, v.created_at));
 
   const ahora = Date.now();
 
@@ -104,7 +100,7 @@ export async function getCatalogoInteligente(
     // tienda es una salida del almacén pero no una venta, y no debe "rejuvenecer" el
     // producto. Por eso se mira ultimaVenta (sellada solo con motivo='venta' en
     // fn_aplicar_movimiento, migración 0011), no ultima_salida.
-    const refFecha = v.ultimaVenta ?? ingresoPorVariante.get(v.varianteId) ?? null;
+    const refFecha = v.ultimaVenta ?? v.creadaEn ?? null;
     const diasSinVenta = refFecha ? Math.floor((ahora - new Date(refFecha).getTime()) / DIA_MS) : null;
     const estancado = v.stockTotal > 0 && diasSinVenta !== null && diasSinVenta > UMBRAL_ESTANCADO_DIAS;
 

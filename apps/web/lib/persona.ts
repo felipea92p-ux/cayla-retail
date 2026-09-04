@@ -30,11 +30,12 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
 
   if (!user) redirect("/login");
 
-  const { data, error } = await supabase
-    .from("personas")
-    .select("id, nombre, rol, sede_id")
-    .eq("auth_user_id", user.id)
-    .single();
+  // getSedes() no depende de la fila de `personas` (recién se cruzan abajo por id)
+  // — van en paralelo en vez de uno esperando al otro.
+  const [{ data, error }, sedes] = await Promise.all([
+    supabase.from("personas").select("id, nombre, rol, sede_id").eq("auth_user_id", user.id).single(),
+    getSedes(),
+  ]);
 
   if (error || !data) {
     redirect("/login?error=sin_persona");
@@ -50,7 +51,6 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   // El código de la sede sale del mapa cacheado por request (getSedes()), no de una
   // consulta aparte: la vista retail.sedes no soporta el "embed" por relación (es una
   // vista sobre las sedes de dynamic).
-  const sedes = await getSedes();
   let sedeCodigo = sedes.find((s) => s.id === data.sede_id)?.codigo ?? "";
 
   // Selector de sede del Líder: la cookie solo cambia la PERSPECTIVA de la app; el
