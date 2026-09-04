@@ -37,7 +37,11 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
     getSedes(),
   ]);
 
-  if (error || !data) {
+  // `retail.personas` es una vista puente sobre Dynamic (ver ADR de unificación) —
+  // Postgres no le garantiza a Supabase que id/nombre/sede_id nunca sean nulos, pero
+  // en la práctica una persona sin sede no puede operar ninguna pantalla de la app:
+  // se trata igual que "sin persona", con el mismo mensaje.
+  if (error || !data || !data.id || !data.nombre || !data.sede_id) {
     redirect("/login?error=sin_persona");
   }
 

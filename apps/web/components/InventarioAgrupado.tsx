@@ -28,14 +28,10 @@ export function InventarioAgrupado({
   productos,
   sedeActual,
   todasLasSedes,
-  almacenPropio,
-  contenedoresAlmacen,
 }: {
   productos: ProductoAgrupado[];
   sedeActual: Sede;
   todasLasSedes: Sede[];
-  almacenPropio: { id: string; codigo: string } | null;
-  contenedoresAlmacen: { id: string; codigo: string }[];
 }) {
   const [q, setQ] = useState("");
   const [familia, setFamilia] = useState("");
@@ -83,10 +79,12 @@ export function InventarioAgrupado({
     });
   }
 
-  const otrasSedes = [
-    ...todasLasSedes.filter((s) => s.id !== sedeActual.id).map((s) => ({ ...s, esAlmacen: false })),
-    ...(almacenPropio ? [{ ...almacenPropio, esAlmacen: true }] : []),
-  ];
+  // El almacén ya no es una sede aparte (se movió a un contenedor dentro de la
+  // propia sede-tienda) — "Enviar" solo ofrece sedes reales como destino.
+  // "Devolver a almacén" queda pendiente de decidir con Felipe dónde vive en
+  // la UI (ver docs/BACKLOG.md); mientras tanto MovimientoModal recibe
+  // contenedoresAlmacen=[] y su rama de devolución queda inalcanzable.
+  const otrasSedes = todasLasSedes.filter((s) => s.id !== sedeActual.id).map((s) => ({ ...s, esAlmacen: false }));
 
   const toggleCls = (activo: boolean) =>
     `label-cayla border px-3 py-1.5 text-[9px] transition-colors ${
@@ -229,7 +227,7 @@ export function InventarioAgrupado({
           sedeId={sedeActual.id}
           sedeCodigo={sedeActual.codigo}
           otrasSedes={otrasSedes}
-          contenedoresAlmacen={contenedoresAlmacen}
+          contenedoresAlmacen={[]}
           tipoFijo={modal.tipo}
           onClose={() => setModal(null)}
         />

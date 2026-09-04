@@ -35,6 +35,48 @@ aplicada y con datos reales, no a medias ni rota. Backlog actualizado: el ítem
 pasa de ARREGLAR (riesgo) a CERRADO; queda solo una deuda de documentación (falta
 el ADR y el `02_*.sql` que crea el schema, nunca se guardó en el repo).
 
+## 2026-09-03 (arranca Frente 1 — captura del catálogo real)
+Felipe pidió seguir con el catálogo real. Antes de tocar la captura física, se
+retomó una decisión de julio que quedó escrita en `docs/PLAN-DE-TRABAJO.md` §4 y
+nunca se migró: 5 categorías nuevas (Conjuntos, Enterizos, Chalecos, Bodys,
+Blazers/Sacos) respaldadas por el historial real de compras. Felipe pidió ver el
+detalle completo antes de aprobar ("2 y 4" a la pregunta: explicar más Y dejar
+espacio a ajustes) — se mostró la tabla con tallas sugeridas propuestas y no pidió
+cambios. Migración `0030_categorias_captura_real.sql` escrita (aditiva, sin tocar
+esquema) y ADR-0003. Pendiente: que Felipe la corra en el SQL Editor de producción.
+
+## 2026-09-03 (recibir_lote — la unificación perdió tres cosas)
+Con `0030` ya corrida, se comparó `retail.recibir_lote` de producción contra el
+frontend y contra `supabase/migrations/0018` (la última versión local antes de
+la unificación). Confirmado con `pg_get_functiondef`: la unificación migró una
+copia más vieja — sin validar sede (mismo hueco que `0012` ya había cerrado),
+sin guardar `categoria_id` (cada producto nuevo quedaba sin categoría pese a
+que el formulario sí la manda — rompía lo de `0030`), y sin aceptar
+`p_orden_compra_id` (recibir ligado a una compra fallaba). Felipe pidió
+arreglar las tres juntas. Al escribir el fix salió una cuarta cosa, más
+grande: el frontend también manda `p_orden_produccion_id`, pero apunta a un
+modelo de Producción (`ordenes_produccion`) que las migraciones `0025`-`0029`
+reemplazaron por `producciones` sin propagar el cambio — ni `lotes` tiene
+columna para ese vínculo, ni la pantalla de recibir se actualizó. Felipe
+decidió dejarlo como tarea aparte, no meterlo en el mismo arreglo. Migración
+`0031` escrita (local, idéntica a 0018) + ADR-0004, con el cuerpo
+schema-calificado listo para pegar en producción. Sin `BEGIN…ROLLBACK` local
+esta vez — el puerto de Supabase local estaba ocupado por otra sesión
+(cayla-dynamic).
+
+## 2026-09-03 (hallazgo de una sesión paralela — almacén interno)
+Mientras se trabajaba la taxonomía con Felipe, otra sesión (misma Mac, otro
+proceso) descubrió que "Recibir mercadería" está bloqueada en producción: la
+unificación nunca recreó las sedes-almacén (TRU-ALM/AQP-ALM/LIM-ALM), así que
+Recibir y "Bajar a tienda" no tienen dónde escribir. Diseñó y dejó lista (sin
+aplicar, sin commitear) `supabase/unificacion/12_almacen_interno.sql` — un
+contenedor tipo 'almacen' por sede en vez de una sede hermana — y encontró de
+paso el hueco de seguridad de `recibir_lote` (ver arriba). Se commiteó su
+trabajo sin tocarlo. Verificado 2026-09-03 (esta sesión): `fn_aplicar_movimiento`
+y `recalcular_stock` de producción coinciden exactos con lo que la migración
+asume — es seguro pegarla — pero `recibir_lote` queda fuera de esa migración a
+propósito (ver entrada de arriba).
+
 ## 2026-07-16
 Fase 1 (inventario multi-sede) verificada en vivo. Felipe pausó el plan de retomar la
 Fase 2 financiera y pidió en su lugar "Inventario Inteligente" (rotación, alertas,

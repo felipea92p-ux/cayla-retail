@@ -18,6 +18,11 @@ export type Sede = {
  * todas las columnas de la vista (no solo id/codigo/tipo) para que cualquier
  * página pueda filtrar en JS sin volver a pedirle la tabla a Supabase — arreglo
  * de performance.
+ *
+ * `retail.sedes` es una vista puente sobre Dynamic — Postgres no le garantiza a
+ * Supabase que sus columnas nunca sean nulas, así que se filtra acá, una sola
+ * vez, en vez de que cada llamador tenga que volver a decidir qué hacer con un
+ * id o código nulo.
  */
 export const getSedes = cache(async (): Promise<Sede[]> => {
   const supabase = await createClient();
@@ -25,7 +30,9 @@ export const getSedes = cache(async (): Promise<Sede[]> => {
     .from("sedes")
     .select("id, codigo, nombre, tipo, tienda_asociada_id, activo")
     .order("codigo");
-  return data ?? [];
+  return (data ?? []).filter(
+    (s): s is Sede => s.id != null && s.codigo != null && s.nombre != null && s.tipo != null && s.activo != null
+  );
 });
 
 export async function mapaSedes(): Promise<Map<string, { codigo: string; tipo: string }>> {

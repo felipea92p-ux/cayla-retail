@@ -8,9 +8,8 @@ type Props = {
   varianteId: string;
   referencia: string;
   sku: string;
-  sedeAlmacenId: string;
-  sedeTiendaId: string;
-  sedeTiendaCodigo: string;
+  sedeId: string;
+  sedeCodigo: string;
   stockDisponible: number;
   onClose: () => void;
 };
@@ -19,9 +18,8 @@ export function BajarATiendaModal({
   varianteId,
   referencia,
   sku,
-  sedeAlmacenId,
-  sedeTiendaId,
-  sedeTiendaCodigo,
+  sedeId,
+  sedeCodigo,
   stockDisponible,
   onClose,
 }: Props) {
@@ -36,12 +34,10 @@ export function BajarATiendaModal({
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_movimiento", {
+    const { error } = await supabase.rpc("bajar_a_piso", {
+      p_sede_id: sedeId,
       p_variante_id: varianteId,
-      p_sede_id: sedeAlmacenId,
-      p_tipo: "traslado",
       p_cantidad: cantidad,
-      p_sede_destino_id: sedeTiendaId,
     });
 
     setLoading(false);
@@ -58,7 +54,7 @@ export function BajarATiendaModal({
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-6 sm:rounded-2xl">
         <h2 className="text-base font-semibold text-neutral-900">Bajar a tienda</h2>
         <p className="mb-4 text-xs text-neutral-400">
-          {referencia} · {sku} → {sedeTiendaCodigo}
+          {referencia} · {sku} → piso de {sedeCodigo}
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">

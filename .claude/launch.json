@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cayla-retail-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["pnpm", "--filter", "web", "dev"],
+      "port": 3000
+    }
+  ]
+}

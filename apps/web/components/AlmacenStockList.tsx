@@ -10,19 +10,16 @@ type ItemAlmacen = {
   talla: string | null;
   color: string | null;
   cantidad: number;
-  contenedorCodigo: string | null;
 };
 
 export function AlmacenStockList({
   items,
-  sedeAlmacenId,
-  sedeTiendaId,
-  sedeTiendaCodigo,
+  sedeId,
+  sedeCodigo,
 }: {
   items: ItemAlmacen[];
-  sedeAlmacenId: string;
-  sedeTiendaId: string;
-  sedeTiendaCodigo: string;
+  sedeId: string;
+  sedeCodigo: string;
 }) {
   const [abierto, setAbierto] = useState<ItemAlmacen | null>(null);
 
@@ -42,7 +39,6 @@ export function AlmacenStockList({
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold text-neutral-900">{it.cantidad}</p>
-              <p className="text-xs text-neutral-400">{it.contenedorCodigo ?? "sin contenedor"}</p>
             </div>
             <button
               onClick={() => setAbierto(it)}
@@ -59,9 +55,8 @@ export function AlmacenStockList({
           varianteId={abierto.varianteId}
           referencia={abierto.referencia}
           sku={abierto.sku}
-          sedeAlmacenId={sedeAlmacenId}
-          sedeTiendaId={sedeTiendaId}
-          sedeTiendaCodigo={sedeTiendaCodigo}
+          sedeId={sedeId}
+          sedeCodigo={sedeCodigo}
           stockDisponible={abierto.cantidad}
           onClose={() => setAbierto(null)}
         />

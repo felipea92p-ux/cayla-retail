@@ -2,29 +2,17 @@ import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
-import { createClient } from "@/lib/supabase/server";
 import { InventarioNav } from "@/components/InventarioNav";
 import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
 
 export default async function InventarioPage() {
   const persona = await requirePersonaActual();
-  const supabase = await createClient();
 
   // getSedes() ya está cacheado por request (el layout lo pidió primero) — resolverlo
-  // acá no cuesta un viaje de red nuevo, y permite calcular almacenPropio ANTES de
-  // lanzar getCatalogoInteligente, para que la consulta a `contenedores` (que depende
-  // de almacenPropio.id) vaya en paralelo con la rama más lenta en vez de esperarla.
-  const todasSedes = await getSedes();
+  // acá no cuesta un viaje de red nuevo, y va en paralelo con getCatalogoInteligente
+  // en vez de esperarlo.
+  const [{ variantes }, todasSedes] = await Promise.all([getCatalogoInteligente(persona), getSedes()]);
   const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
-  const almacenPropio = todasSedes.find((s) => s.tipo === "almacen" && s.codigo === `${persona.sedeCodigo}-ALM`) ?? null;
-
-  const [{ variantes }, contenedoresRes] = await Promise.all([
-    getCatalogoInteligente(persona),
-    almacenPropio
-      ? supabase.from("contenedores").select("id, codigo").eq("sede_id", almacenPropio.id).order("codigo")
-      : Promise.resolve({ data: [] as { id: string; codigo: string }[] }),
-  ]);
-  const contenedoresAlmacen = contenedoresRes.data;
 
   // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
   const porProducto = new Map<string, ProductoAgrupado>();
@@ -78,13 +66,7 @@ export default async function InventarioPage() {
 
       <InventarioNav />
 
-      <InventarioAgrupado
-        productos={productos}
-        sedeActual={sedeActual}
-        todasLasSedes={sedesOperativas}
-        almacenPropio={almacenPropio}
-        contenedoresAlmacen={contenedoresAlmacen ?? []}
-      />
+      <InventarioAgrupado productos={productos} sedeActual={sedeActual} todasLasSedes={sedesOperativas} />
     </div>
   );
 }

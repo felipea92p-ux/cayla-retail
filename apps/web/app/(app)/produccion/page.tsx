@@ -11,8 +11,9 @@ export default async function ProduccionPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: sedes } = await supabase.from("sedes").select("id, codigo, tipo");
-  const taller = (sedes ?? []).find((s) => s.tipo === "fabrica");
+  const { data: sedesData } = await supabase.from("sedes").select("id, codigo, tipo");
+  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null);
+  const taller = sedes.find((s) => s.tipo === "fabrica");
 
   const esLider = persona.rol === "lider";
   const esTaller = taller != null && persona.sedeId === taller.id;

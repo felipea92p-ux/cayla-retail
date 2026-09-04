@@ -8,7 +8,7 @@ export default async function ComprasPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const [{ data: ordenes }, { data: sedes }, { data: proveedores }] = await Promise.all([
+  const [{ data: ordenes }, { data: sedesData }, { data: proveedores }] = await Promise.all([
     supabase
       .from("ordenes_compra")
       .select("id, proveedor, estado, fecha, fecha_estimada, monto_estimado, nota, sedes!ordenes_compra_sede_destino_id_fkey(codigo)")
@@ -17,6 +17,8 @@ export default async function ComprasPage() {
     supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
   ]);
+
+  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
 
   const filas: OrdenCompra[] = (ordenes ?? []).map((o) => {
     const sede = Array.isArray(o.sedes) ? o.sedes[0] : o.sedes;

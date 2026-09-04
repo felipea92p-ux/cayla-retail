@@ -11,15 +11,78 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
+      backend completo, frontend adaptado, falta la prueba en vivo por Felipe.**
+      "Recibir mercadería" era el único camino para crear un producto y no
+      tenía a dónde escribir (la unificación nunca recreó las sedes-almacén
+      TRU-ALM/AQP-ALM/LIM-ALM del retail original). Decisión: el almacén deja
+      de ser una sede hermana — pasa a ser un contenedor `tipo='almacen'`
+      dentro de la misma sede + tabla `retail.stock_almacen` aparte.
+      `supabase/unificacion/12_almacen_interno.sql` pegado y verificado: 4
+      contenedores (TRU/AQP/003/LIM, CCO sin ninguno — confirmado con
+      `select` real). Las 3 funciones que reescribe (`fn_aplicar_movimiento`,
+      `recalcular_stock`, `puede_operar_sede`) se verificaron byte por byte
+      contra producción ANTES de pegar, no se asumieron. Frontend actualizado
+      en 7 archivos (`inventario/recibir`, `RecibirLoteForm`,
+      `inventario/almacen`, `AlmacenStockList`, `BajarATiendaModal`,
+      `inventario` catálogo, `InventarioAgrupado`) — ya no buscan una sede
+      `tipo='almacen'`, usan el contenedor de la propia sede. Tipos de
+      `packages/database` regenerados contra el proyecto correcto
+      (`--project-id` de cayla-DYNAMIC, `--schema retail`) — el script de
+      `gen-types` en `package.json` sigue apuntando al proyecto viejo de
+      retail y hay que corregirlo a mano la próxima vez (ver ítem de tipos
+      abajo). **Sin decidir todavía:** si lo terminado del Taller (LIM) debe
+      pasar por el almacén interno (con su propio "bajar a piso") o seguir
+      directo al piso como hoy — su contenedor ya existe, pero
+      `registrar_produccion`/`cerrar_produccion` no lo usan. Y "Devolver a
+      almacén" (piso → almacén) quedó con su RPC (`retail.devolver_a_almacen`)
+      pero sin conectar en el frontend — pregunta de UX abierta con Felipe
+      (¿botón propio, o dentro de `MovimientoModal`?). **Falta lo único que
+      de verdad lo cierra: que Felipe entre un producto real por la pantalla
+      y confirme que aparece.**
+- [ ] **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
+      luz 30 errores en 14 archivos que nadie tocó hoy — deuda real, no
+      ruido de esta sesión.** `retail.sedes`/`retail.personas` son VISTAS
+      (join contra `public` de Dynamic) — Postgres no le garantiza a Supabase
+      que sus columnas nunca sean nulas, así que el tipo real es
+      `string | null` donde el proyecto viejo (con el que se generaban los
+      tipos hasta hoy) decía `string`. Afecta `finanzas/*`, `produccion/page.tsx`,
+      `producto/[varianteId]/page.tsx`, `layout.tsx`, `actions/sede.ts`,
+      `api/export/inventario`, `PatrimonioEditor.tsx`, `lib/finanzas-nucleo.ts`,
+      `lib/panel.ts`, `lib/persona.ts`, `lib/sedes.ts` — ninguno tocado en esta
+      sesión. `next build` (sin `ignoreBuildErrors` en `next.config`) fallaría
+      hoy con estos 30 errores. Necesita su propia sesión, revisando caso por
+      caso si el `null` es real (¿puede una sede no tener código?) o si basta
+      con filtrar/asegurar como se hizo en `inventario/page.tsx` esta sesión.
+      Aparte: `packages/database/package.json` (`gen-types`) sigue apuntando al
+      proyecto viejo de retail — corregirlo al de Dynamic + `--schema retail`
+      para que esto no se repita.
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
-      que queda, sin cambiar desde julio. El sistema ya tiene todo (categorías,
-      fotos, etiquetas, ubicaciones, mínimos, y ahora producción con costeo real);
-      falta el conteo físico por tienda. Guía ya escrita en
-      `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e Inteligencia trabajan
-      con datos de juguete. Reversible: sí (son datos, no esquema).
-- [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson
-      TM-T20III. Depende de: cuenta Nubefact (gestión de Felipe, no código).
-      Reversible: sí.
+      que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
+      (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
+      pendiente de correrla en producción — es el paso 0 antes de capturar nada,
+      para no re-taxonomizar cientos de prendas después. Con eso corrido, sigue el
+      plan de captura real de `docs/PLAN-DE-TRABAJO.md` §5 (por semana, sin parar
+      la venta) usando `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e
+      Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
+      esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
+      cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
+- [ ] **`finanzas F3` — parte 1 construida 2026-09-04 (ADR-0005), parte 2 sin
+      empezar.** Felipe pidió facturación electrónica hablando directo con la
+      API de SUNAT (SEE del Contribuyente), no vía OSE/Nubefact como asumía
+      este ítem originalmente. Construido y verificado (Postgres local
+      aislado, sin tocar el stack de cayla-dynamic): `0032_comprobantes.sql`
+      — tablas `comprobantes`/`series_comprobantes`, RPCs
+      `emitir_comprobante`/`registrar_serie_comprobante` (candado `for update`
+      por serie, factura sin RUC es imposible por constraint), pantalla
+      `/finanzas/facturacion` con su entrada en `FinanzasNav`. El comprobante
+      queda "Pendiente de enviar" — el envío real a SUNAT (XML UBL 2.1
+      firmado, SOAP, CDR) es la parte 2, sin empezar: depende de que Felipe
+      decida con Claude SEE propio (certificado digital + homologación SUNAT,
+      semanas) vs. OSE (Nubefact, días) — ver ADR-0005 para el trade-off
+      completo. También depende de la Epson TM-T20III para imprimir el
+      comprobante ya aceptado. Reversible: sí, es una tabla nueva sin datos
+      reales todavía.
 - [ ] `produccion — insumos del taller`: la receta de costo (`0024`-`0029`) calcula
       con tela+avíos como costo directo declarado a mano, pero sigue sin inventario
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el
@@ -28,6 +91,64 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`patrimonio_items.categoria` no existe en producción (ADR-0006,
+      2026-09-04) — mismo patrón que `recibir_lote` (ADR-0004), sin arreglar
+      todavía.** La unificación de julio copió `patrimonio_items` desde la
+      migración `0013`, antes de que `0019` le agregara `categoria`.
+      `PatrimonioEditor.tsx` inserta esa columna en cada ítem — el insert
+      falla en producción hoy. Migración lista en
+      `supabase/unificacion/15_patrimonio_categoria.sql`
+      (`alter table retail.patrimonio_items add column if not exists
+      categoria text;`), **falta que Felipe la pegue en el SQL Editor**.
+      Mientras tanto, `packages/database/src/types.ts` se corrigió a mano
+      (no regenerado) para reflejar que la columna SÍ debe existir —
+      `next build` ya no falla por esto, pero el bug de producción sigue
+      vivo hasta que se corra el SQL. Reversible: sí, un `alter table`
+      aditivo.
+- [x] **`recibir_lote`: arreglado y confirmado en producción 2026-09-03
+      (ADR-0004) — cerrado, con un susto en el camino que vale registrar.**
+      Dos sesiones paralelas llegaron a esta función el mismo día por caminos
+      distintos y convergieron en el mismo arreglo: la unificación había
+      migrado una copia de `recibir_lote` más vieja que la `0018` local, sin
+      validar sede, sin guardar `categoria_id` (rompía la taxonomía de
+      `0030`) y sin aceptar `p_orden_compra_id`. Cuerpo schema-calificado
+      pegado en `supabase/unificacion/14_recibir_lote_produccion.sql`
+      (7 parámetros); `13_recibir_lote_valida_sede.sql` quedó SUPERADO (mismo
+      hallazgo, alcance más angosto). **Lo que salió mal al pegar:**
+      `CREATE OR REPLACE` con un parámetro nuevo (`p_orden_compra_id`) no
+      reemplaza la función vieja de 6 parámetros — Postgres las trata como
+      dos funciones distintas y crea una segunda, dejando **dos versiones de
+      `recibir_lote` conviviendo a la vez** (la vieja insegura + la nueva
+      completa). Se detectó regenerando `packages/database/src/types.ts`
+      contra el proyecto correcto (el generador mostró un tipo unión con dos
+      firmas) — no por una revisión manual. Cualquier "Recibir mercadería"
+      sin orden de compra ligada (la mayoría) habría fallado con
+      "function is not unique". Verificado con
+      `select oid::regprocedure from pg_proc where proname='recibir_lote'
+      and pronamespace='retail'::regnamespace` (2 filas), corregido con
+      `drop function retail.recibir_lote(uuid,text,jsonb,text,text,text)`
+      (la de 6), reverificado (1 fila, la de 7). Lección para la próxima
+      migración que le agregue un parámetro a una función existente: un
+      `CREATE OR REPLACE` que cambia la firma no reemplaza nada — hay que
+      `DROP` la firma vieja explícitamente, o verificar con
+      `pg_proc`/`regprocedure` que no quedó una sobrecarga fantasma.
+      Agravante relacionado, sin arreglar todavía: `retail.puede_operar_sede`
+      (`03_candados.sql:53-55`) tampoco tiene la cláusula `tienda_asociada_id`
+      que sí tenía la versión local (`0012`) — hoy solo Líder/admin pasaría ese
+      candado para una sede que no es la propia.
+- [ ] **`producción`: reconciliar `ordenes_produccion` (modelo viejo) con
+      `producciones` (modelo vigente desde `0025`-`0029`) — nunca se propagó.**
+      Encontrado al intentar arreglar `recibir_lote`: `inventario/recibir/
+      page.tsx:52,57` todavía consulta `retail.ordenes_produccion` y una
+      columna `retail.lotes.orden_produccion_id` que **no existe** en
+      producción (verificado: `retail.lotes` solo tiene `orden_compra_id`).
+      El frontend manda `p_orden_produccion_id` a `recibir_lote`
+      (`RecibirLoteForm.tsx:218`) y siempre falla cuando se usa. Deliberadamente
+      fuera de `0031` — decidido con Felipe 2026-09-03. Necesita: decidir si
+      `producciones` reemplaza del todo a `ordenes_produccion` (¿se puede
+      dropear la vieja?), una columna nueva en `lotes` para el vínculo, y
+      reescribir la consulta de "producciones pendientes de recibir" contra el
+      modelo nuevo. Reversible: sí, nada de esto se ha tocado todavía.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
 - [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el

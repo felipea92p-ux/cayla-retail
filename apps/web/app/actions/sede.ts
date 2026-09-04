@@ -28,7 +28,7 @@ export async function cambiarSedeActiva(sedeId: string) {
     .select("id, tipo")
     .eq("id", sedeId)
     .maybeSingle();
-  if (!sede || sede.tipo === "almacen") return; // solo tiendas y taller, no almacenes
+  if (!sede || !sede.id || sede.tipo === "almacen") return; // solo tiendas y taller, no almacenes
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_SEDE, sede.id, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });

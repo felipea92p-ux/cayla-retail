@@ -124,7 +124,9 @@ export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
         .order("cerrada_en", { ascending: false }),
     ]);
 
-  return (sedesData ?? []).map((s) => {
+  const sedesValidas = (sedesData ?? []).filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null);
+
+  return sedesValidas.map((s) => {
     const suma = (rows: { sede_id: string; monto?: unknown; monto_total?: unknown; total?: unknown }[] | null) =>
       (rows ?? [])
         .filter((r) => r.sede_id === s.id)

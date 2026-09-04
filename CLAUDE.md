@@ -69,6 +69,31 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 - Tono al frenar una decisión riesgosa: firme pero calmado — explica el porqué y el
   trade-off, propone la ruta más sólida, y deja la decisión final a Felipe.
 
+## Cómo aplicar SQL a producción (crítico desde la unificación con Dynamic, jul-2026)
+
+**Producción de retail NO vive en su propio proyecto Supabase — vive DENTRO del
+proyecto de cayla-dynamic, en un schema llamado `retail`.** Verificado 2026-09-03:
+`select schema_name from information_schema.schemata where schema_name = 'retail'`
+devuelve la fila, con 28 tablas ahí adentro (más que las ~22 que prometía la
+unificación original — las migraciones de producción `0024`-`0029`, posteriores,
+sumaron tablas propias). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al
+proyecto de Dynamic, no al proyecto original de retail.
+
+**Toda migración que pegues en el SQL Editor de producción necesita el prefijo
+`retail.` en cada tabla** (o un `set search_path to retail, public;` al principio
+del script). Sin eso, el SQL Editor busca en `public` por defecto — y en el
+proyecto Dynamic, `public` es el schema de Dynamic, no el de retail. El síntoma es
+`relation "..." does not exist` (42P01), y parece que la tabla no existiera cuando
+en realidad solo se está mirando el cajón equivocado.
+
+Le pasó a la primera migración pegada en producción después de la unificación
+(`0030`, 2026-09-03) — costó un round-trip de error antes de corregirlo. Las
+migraciones en `supabase/migrations/*.sql` se escriben SIN el prefijo (así corren
+limpias contra el Postgres local, que sí usa `public` sin problema porque cada
+proyecto local es su propio Postgres aislado, ajeno a la unificación). El prefijo
+`retail.` se agrega SOLO al pegar en el SQL Editor de producción — nunca en el
+archivo del repo, para no romper `npx supabase db reset` local.
+
 ## Convenciones de código (adaptadas a este repo)
 
 - Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,

@@ -72,7 +72,9 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
 
   const { data: sedesData } = await supabase.from("sedes").select("id, codigo, tipo");
   const sedePorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
-  const tiendas = (sedesData ?? []).filter((s) => s.tipo === "tienda").map((s) => ({ id: s.id, codigo: s.codigo }));
+  const tiendas = (sedesData ?? [])
+    .filter((s): s is { id: string; codigo: string; tipo: string | null } => s.tipo === "tienda" && s.id != null && s.codigo != null)
+    .map((s) => ({ id: s.id, codigo: s.codigo }));
   const esLider = persona.rol === "lider";
 
   // Receta de costo del Taller (solo Líder — el costo es sensible)

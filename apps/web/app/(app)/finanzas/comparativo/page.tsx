@@ -25,7 +25,7 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
     supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
     supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
   ]);
-  const sedes = sedesData ?? [];
+  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
 
   return (
     <div className="space-y-8">

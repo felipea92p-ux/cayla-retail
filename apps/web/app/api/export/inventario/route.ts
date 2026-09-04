@@ -15,7 +15,9 @@ export async function GET() {
     .select("id, nombre, rol, sede_id")
     .eq("auth_user_id", user.id)
     .single();
-  if (!personaRow) return new Response("Sin persona vinculada", { status: 403 });
+  if (!personaRow || !personaRow.id || !personaRow.nombre || !personaRow.sede_id) {
+    return new Response("Sin persona vinculada", { status: 403 });
+  }
 
   const { data: sedeRow } = await supabase
     .from("sedes")
