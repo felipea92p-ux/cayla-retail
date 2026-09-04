@@ -91,6 +91,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`patrimonio_items.categoria` no existe en producción (ADR-0006,
+      2026-09-04) — mismo patrón que `recibir_lote` (ADR-0004), sin arreglar
+      todavía.** La unificación de julio copió `patrimonio_items` desde la
+      migración `0013`, antes de que `0019` le agregara `categoria`.
+      `PatrimonioEditor.tsx` inserta esa columna en cada ítem — el insert
+      falla en producción hoy. Migración lista en
+      `supabase/unificacion/15_patrimonio_categoria.sql`
+      (`alter table retail.patrimonio_items add column if not exists
+      categoria text;`), **falta que Felipe la pegue en el SQL Editor**.
+      Mientras tanto, `packages/database/src/types.ts` se corrigió a mano
+      (no regenerado) para reflejar que la columna SÍ debe existir —
+      `next build` ya no falla por esto, pero el bug de producción sigue
+      vivo hasta que se corra el SQL. Reversible: sí, un `alter table`
+      aditivo.
 - [x] **`recibir_lote`: arreglado y confirmado en producción 2026-09-03
       (ADR-0004) — cerrado, con un susto en el camino que vale registrar.**
       Dos sesiones paralelas llegaron a esta función el mismo día por caminos

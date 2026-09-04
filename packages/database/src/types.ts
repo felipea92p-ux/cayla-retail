@@ -940,6 +940,7 @@ export type Database = {
       }
       patrimonio_items: {
         Row: {
+          categoria: string | null
           created_at: string
           id: string
           monto: number
@@ -949,6 +950,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string | null
           created_at?: string
           id?: string
           monto?: number
@@ -958,6 +960,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string | null
           created_at?: string
           id?: string
           monto?: number

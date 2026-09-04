@@ -1,0 +1,26 @@
+-- ============================================================================
+-- FIX DE DRIFT · retail.patrimonio_items le falta la columna `categoria`
+-- Correr en cayla-DYNAMIC. Solo toca `retail`.
+--
+-- HALLAZGO (2026-09-04, ADR-0006)
+--   La unificación de julio (06_contabilidad_produccion.sql) creó
+--   retail.patrimonio_items con las columnas de la migración local 0013,
+--   pero la 0019 (posterior, agrega `categoria`) nunca se propagó — mismo
+--   patrón que recibir_lote (ADR-0004): la unificación copió una versión de
+--   la tabla más vieja que la última local. Confirmado regenerando
+--   packages/database contra el proyecto correcto: el tipo de
+--   retail.patrimonio_items no trae `categoria` en absoluto.
+--
+-- EFECTO REAL
+--   PatrimonioEditor.tsx inserta {nombre, tipo, categoria, monto, nota} — ese
+--   insert falla en producción hoy (PostgREST rechaza una columna que no
+--   existe). Cualquier intento de agregar un ítem de patrimonio con categoría
+--   está roto desde la unificación, sin que nadie lo haya notado todavía.
+--
+-- VERIFICAR DESPUÉS DE PEGAR
+--   select column_name from information_schema.columns
+--   where table_schema = 'retail' and table_name = 'patrimonio_items';
+--   -- debe incluir 'categoria'
+-- ============================================================================
+
+alter table retail.patrimonio_items add column if not exists categoria text;
