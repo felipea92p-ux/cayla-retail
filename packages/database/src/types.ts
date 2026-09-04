@@ -417,6 +417,94 @@ export type Database = {
         }
         Relationships: []
       }
+      comprobantes: {
+        Row: {
+          cliente_nombre: string | null
+          cliente_num_doc: string | null
+          cliente_tipo_doc: string
+          created_at: string
+          enviado_at: string | null
+          estado: string
+          id: string
+          igv: number
+          moneda: string
+          motivo_rechazo: string | null
+          numero: number
+          respuesta_sunat: Json | null
+          sede_id: string
+          serie: string
+          subtotal: number
+          tipo: string
+          total: number
+          usuario_id: string | null
+          venta_id: string | null
+        }
+        Insert: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          cliente_tipo_doc?: string
+          created_at?: string
+          enviado_at?: string | null
+          estado?: string
+          id?: string
+          igv?: number
+          moneda?: string
+          motivo_rechazo?: string | null
+          numero: number
+          respuesta_sunat?: Json | null
+          sede_id: string
+          serie: string
+          subtotal?: number
+          tipo: string
+          total: number
+          usuario_id?: string | null
+          venta_id?: string | null
+        }
+        Update: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          cliente_tipo_doc?: string
+          created_at?: string
+          enviado_at?: string | null
+          estado?: string
+          id?: string
+          igv?: number
+          moneda?: string
+          motivo_rechazo?: string | null
+          numero?: number
+          respuesta_sunat?: Json | null
+          sede_id?: string
+          serie?: string
+          subtotal?: number
+          tipo?: string
+          total?: number
+          usuario_id?: string | null
+          venta_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprobantes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprobantes_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contenedores: {
         Row: {
           codigo: string
@@ -1220,6 +1308,38 @@ export type Database = {
           },
         ]
       }
+      series_comprobantes: {
+        Row: {
+          id: string
+          sede_id: string
+          serie: string
+          siguiente_numero: number
+          tipo: string
+        }
+        Insert: {
+          id?: string
+          sede_id: string
+          serie: string
+          siguiente_numero?: number
+          tipo: string
+        }
+        Update: {
+          id?: string
+          sede_id?: string
+          serie?: string
+          siguiente_numero?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_comprobantes_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock: {
         Row: {
           cantidad: number
@@ -1580,6 +1700,24 @@ export type Database = {
           p_variante_id: string
           p_venta_id?: string
         }
+        Returns: string
+      }
+      emitir_comprobante: {
+        Args: {
+          p_cliente_nombre?: string
+          p_cliente_num_doc?: string
+          p_cliente_tipo_doc?: string
+          p_igv: number
+          p_sede_id: string
+          p_subtotal: number
+          p_tipo: string
+          p_total: number
+          p_venta_id?: string
+        }
+        Returns: string
+      }
+      registrar_serie_comprobante: {
+        Args: { p_sede_id: string; p_serie: string; p_tipo: string }
         Returns: string
       }
       registrar_venta: {

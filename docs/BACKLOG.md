@@ -45,9 +45,22 @@ importante que ha entrado a este archivo desde que existe.
       Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
       esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
       cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
-- [ ] `finanzas F3`: comprobante electrónico (Nubefact/SUNAT) con la Epson
-      TM-T20III. Depende de: cuenta Nubefact (gestión de Felipe, no código).
-      Reversible: sí.
+- [ ] **`finanzas F3` — parte 1 construida 2026-09-04 (ADR-0005), parte 2 sin
+      empezar.** Felipe pidió facturación electrónica hablando directo con la
+      API de SUNAT (SEE del Contribuyente), no vía OSE/Nubefact como asumía
+      este ítem originalmente. Construido y verificado (Postgres local
+      aislado, sin tocar el stack de cayla-dynamic): `0032_comprobantes.sql`
+      — tablas `comprobantes`/`series_comprobantes`, RPCs
+      `emitir_comprobante`/`registrar_serie_comprobante` (candado `for update`
+      por serie, factura sin RUC es imposible por constraint), pantalla
+      `/finanzas/facturacion` con su entrada en `FinanzasNav`. El comprobante
+      queda "Pendiente de enviar" — el envío real a SUNAT (XML UBL 2.1
+      firmado, SOAP, CDR) es la parte 2, sin empezar: depende de que Felipe
+      decida con Claude SEE propio (certificado digital + homologación SUNAT,
+      semanas) vs. OSE (Nubefact, días) — ver ADR-0005 para el trade-off
+      completo. También depende de la Epson TM-T20III para imprimir el
+      comprobante ya aceptado. Reversible: sí, es una tabla nueva sin datos
+      reales todavía.
 - [ ] `produccion — insumos del taller`: la receta de costo (`0024`-`0029`) calcula
       con tela+avíos como costo directo declarado a mano, pero sigue sin inventario
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el

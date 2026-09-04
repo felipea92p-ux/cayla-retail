@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 const SECCIONES = [
   { href: "/finanzas", etiqueta: "Resumen" },
   { href: "/finanzas/registrar", etiqueta: "Registrar" },
+  { href: "/finanzas/facturacion", etiqueta: "Facturación" },
   { href: "/finanzas/balances", etiqueta: "Balances" },
   { href: "/finanzas/activos", etiqueta: "Activos" },
   { href: "/finanzas/efectivo", etiqueta: "Efectivo" },
