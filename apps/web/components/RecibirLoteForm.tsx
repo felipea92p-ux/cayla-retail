@@ -166,6 +166,36 @@ export function RecibirLoteForm({
     setQ("");
   }
 
+  // "+ Agregar prenda nueva" con una referencia que YA existe en el catálogo
+  // intentaría crear un segundo producto con el mismo sku_padre — la base lo
+  // rechaza (constraint), pero antes de hoy el aviso era un error crudo de
+  // Postgres. Detecta el choque por nombre exacto (sin mayúsculas/espacios) y
+  // ofrece convertir el ítem a "nueva variante de este modelo" en vez de
+  // dejar que falle al enviar.
+  function productoExistenteQueCoincide(referencia: string): ProductoExistente | null {
+    const term = referencia.trim().toLowerCase();
+    if (!term) return null;
+    return productosExistentes.find((p) => p.referencia.trim().toLowerCase() === term) ?? null;
+  }
+
+  function convertirAExistente(clientId: string, p: ProductoExistente) {
+    setItems((actual) =>
+      actual.map((it) =>
+        it.clientId === clientId
+          ? {
+              ...it,
+              modo: "nueva_variante",
+              productoId: p.id,
+              referencia: p.referencia,
+              categoriaId: p.categoriaId ?? undefined,
+              skuPadre: undefined,
+              sku: "",
+            }
+          : it
+      )
+    );
+  }
+
   function agregarProductoNuevo(referenciaInicial = "") {
     const ref = referenciaInicial.trim();
     setItems((actual) => [
@@ -259,7 +289,11 @@ export function RecibirLoteForm({
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(
+        error.message.includes("productos_sku_padre_key")
+          ? "Ya existe un producto con esa referencia — búscalo en \"¿Reingreso de algo que ya existe?\" en vez de crear uno nuevo."
+          : error.message
+      );
       return;
     }
     setOk({ items: items.length, unidades: items.reduce((total, it) => total + it.cantidad, 0) });
@@ -519,6 +553,27 @@ export function RecibirLoteForm({
                   </Campo>
                 </div>
               )}
+
+              {it.modo === "nuevo_producto" &&
+                (() => {
+                  const coincide = productoExistenteQueCoincide(it.referencia);
+                  if (!coincide) return null;
+                  return (
+                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      <span>
+                        Ya existe un producto llamado &ldquo;{coincide.referencia}&rdquo; — esto crearía uno
+                        duplicado.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => convertirAExistente(it.clientId, coincide)}
+                        className="ml-auto rounded border border-amber-400 bg-white px-2 py-1 font-medium hover:bg-amber-100"
+                      >
+                        Usar el producto existente
+                      </button>
+                    </div>
+                  );
+                })()}
 
               {it.modo !== "existente" && (
                 <div className="mb-2 grid grid-cols-3 gap-2">
