@@ -72,7 +72,7 @@ export function ProformasPanel({
     tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
 
   const vigentes = proformas.filter((p) => p.estado === "vigente");
-  const porVencer = vigentes.filter((p) => p.vence_at && new Date(p.vence_at).getTime() - Date.now() < 48 * 3600 * 1000);
+  const porVencer = vigentes.filter((p) => p.porVencer);
   const montoVigente = vigentes.reduce((acc, p) => acc + Number(p.total), 0);
 
   function cerrarModal() {
@@ -190,11 +190,21 @@ export function ProformasPanel({
                 {[...proformas]
                   .sort((a, b) => {
                     const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
-                    return orden[a.estado] - orden[b.estado];
+                    // Y dentro de las vigentes, las que están por vencer primero
+                    // (el comentario de arriba lo prometía; el orden no lo hacía).
+                    return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
                   })
                   .map((p) => (
                     <tr key={p.id}>
-                      <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(p.created_at)}</td>
+                      <td className="px-3 py-2.5 text-tinta/60">
+                        {p.porVencer && (
+                          <span
+                            title="Vence en menos de 48 horas"
+                            className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ambar align-middle"
+                          />
+                        )}
+                        {formatearFecha(p.created_at)}
+                      </td>
                       <td className="px-3 py-2.5 text-tinta/60">{p.cliente_nombre ?? "Cliente varios"}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(p.total))}</td>
                       <td className="px-3 py-2.5">
