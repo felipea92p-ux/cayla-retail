@@ -3,6 +3,20 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Catálogo no mostraba lo recibido — faltaba conectar el almacén interno)
+Felipe registró una recepción de prueba y preguntó por qué no aparecía en su
+stock. No era un bug de datos: "Recibir mercadería" sí mete las unidades a
+`retail.stock_almacen` (el almacén interno, construido el 09-03), pero
+`getCatalogoConStock` (lo que alimenta Catálogo, Vender, Comercial, etc.)
+solo leía `retail.stock` (piso) — nadie había conectado esa fuente al
+frontend todavía. Se agregó `stockAlmacenPorSede/Total` a `VarianteConStock`
+de forma aditiva (Vender sigue viendo solo piso, para no ofrecer como
+vendible algo que sigue en la bodega) y Catálogo ahora muestra "+N en
+almacén" junto al stock total. Aprendizaje para explicarle a Felipe: recibir
+≠ tener en venta — el paso "Bajar a tienda" en Almacén es el que de verdad
+habilita vender algo recién llegado.
+
+
 ## 2026-09-05 (hallazgo real: faltaban 25 de 30 categorías en producción)
 Felipe llenó "Recibir mercadería" con un ejemplo real (Blusa Manga Larga,
 proveedor EGTI) y notó que Categoría no ofrecía "Blusas" — solo las 5 de
