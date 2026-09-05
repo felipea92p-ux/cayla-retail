@@ -27,6 +27,17 @@ if [ -z "$STAGED" ]; then
   exit 0
 fi
 
+# Los clientes gráficos de git (GitHub Desktop, el panel de VS Code, etc.) no
+# heredan el PATH del shell, así que `pnpm` puede no existir aquí. Si pasa, se
+# AVISA y se deja pasar: un hook que bloquea todos los commits porque no encuentra
+# una herramienta es un estorbo, y el remedio sería desactivarlo para siempre.
+if ! command -v pnpm >/dev/null 2>&1; then
+  printf '\n  ! No encuentro `pnpm` en el PATH: me salto la revisión previa.\n'
+  printf '    Suele pasar al commitear desde una app gráfica de git.\n'
+  printf '    Revisa a mano con: pnpm lint && pnpm --filter web test\n\n'
+  exit 0
+fi
+
 TMP=$(mktemp -d) || exit 1
 trap 'rm -rf "$TMP"' EXIT
 FALLO=0
