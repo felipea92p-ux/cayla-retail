@@ -53,6 +53,10 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   const [consulta, setConsulta] = useState<Consulta | null>(null);
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
+  // Contador del botón "Verificar": la consulta ya es automática, pero cuando
+  // el padrón no responde o la red falla hace falta una forma explícita de
+  // reintentar sin tener que borrar y volver a tipear el número.
+  const [reintento, setReintento] = useState(0);
 
   const etiqueta = ETIQUETA[tipo];
   const validacion = validarDocumento(tipo, numero);
@@ -95,7 +99,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       control.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave, validacion.valido]);
+  }, [clave, validacion.valido, reintento]);
 
   const chip = (valor: string, bueno: boolean) => (
     <span
@@ -121,16 +125,31 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
             la venta sigue igual.
           </Ayuda>
         </label>
-        <input
-          required={obligatorio}
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={largoDocumento(tipo)}
-          placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
-          value={numero}
-          onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
-          className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 font-mono text-sm tracking-wider"
-        />
+        <div className="mt-1 flex gap-2">
+          <input
+            required={obligatorio}
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={largoDocumento(tipo)}
+            placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
+            value={numero}
+            onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
+            className="w-full border border-tinta/20 bg-crema px-3 py-2 font-mono text-sm tracking-wider"
+          />
+          <button
+            type="button"
+            disabled={!validacion.valido || actual?.fase === "cargando"}
+            onClick={() => {
+              // Se limpia el candado de "ya consulté esto" para que el mismo
+              // número pueda volver a preguntarse.
+              ultima.current = "";
+              setReintento((n) => n + 1);
+            }}
+            className="label-cayla shrink-0 border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
+          >
+            {actual?.fase === "cargando" ? "…" : "Verificar"}
+          </button>
+        </div>
         {/* Una sola línea de estado bajo el campo: nunca dos mensajes peleando. */}
         <div className="mt-1 min-h-[1rem] text-[11px]">
           {!vacio && !validacion.valido && <span className="text-rojo">{validacion.motivo}</span>}

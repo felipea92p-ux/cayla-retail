@@ -549,6 +549,42 @@ export type Database = {
           },
         ]
       }
+      configuracion_empresa: {
+        Row: {
+          email: string | null
+          id: boolean
+          nombre_comercial: string | null
+          razon_social: string
+          resolucion_autorizacion: string | null
+          ruc: string
+          telefono: string | null
+          updated_at: string
+          web: string | null
+        }
+        Insert: {
+          email?: string | null
+          id?: boolean
+          nombre_comercial?: string | null
+          razon_social: string
+          resolucion_autorizacion?: string | null
+          ruc: string
+          telefono?: string | null
+          updated_at?: string
+          web?: string | null
+        }
+        Update: {
+          email?: string | null
+          id?: boolean
+          nombre_comercial?: string | null
+          razon_social?: string
+          resolucion_autorizacion?: string | null
+          ruc?: string
+          telefono?: string | null
+          updated_at?: string
+          web?: string | null
+        }
+        Relationships: []
+      }
       cuentas_contables: {
         Row: {
           activo: boolean
@@ -1654,10 +1690,16 @@ export type Database = {
         Row: {
           activo: boolean | null
           codigo: string | null
+          departamento: string | null
+          direccion: string | null
+          distrito: string | null
           id: string | null
           nombre: string | null
+          provincia: string | null
+          telefono: string | null
           tienda_asociada_id: string | null
           tipo: string | null
+          ubigeo: string | null
         }
         Relationships: [
           {

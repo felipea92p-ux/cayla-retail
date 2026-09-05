@@ -35,6 +35,19 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
+/** Una línea del comprobante tal como se escribe en el mostrador: con el
+ *  precio que ve la clienta, o sea CON IGV. La conversión a precio sin IGV
+ *  (que es lo que guarda `comprobantes.items` y transmite Lucode) se hace al
+ *  emitir, en un solo lugar. */
+type ItemForm = { descripcion: string; cantidad: number; valorUnitario: number };
+
+const ITEM_VACIO: ItemForm = { descripcion: "", cantidad: 1, valorUnitario: 0 };
+const IGV_FACTOR = 1.18;
+
+function totalItem(item: ItemForm) {
+  return Math.round(item.cantidad * item.valorUnitario * 100) / 100;
+}
+
 function formatearFecha(iso: string) {
   return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
     new Date(iso)
@@ -91,7 +104,11 @@ export function ComprobantesPanel({
   // Formulario de emisión
   const [sedeId, setSedeId] = useState(sedeActualId);
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
-  const [total, setTotal] = useState(0);
+  // El total NO se escribe a mano: sale de los ítems. Un total tecleado que no
+  // cuadre con las líneas es un comprobante que SUNAT rechaza y un número
+  // oficial quemado — mismo criterio que recalcular la plata server-side.
+  const [items, setItems] = useState<ItemForm[]>([ITEM_VACIO]);
+  const total = Math.round(items.reduce((acc, it) => acc + totalItem(it), 0) * 100) / 100;
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   // Estado imposible eliminado por diseño: el tipo de documento NO es un estado
@@ -113,10 +130,20 @@ export function ComprobantesPanel({
   const pendientes = comprobantes.filter((c) => c.estado === "pendiente" || c.estado === "enviado").length;
   const rechazados = comprobantes.filter((c) => c.estado === "rechazado").length;
 
+  function actualizarItem(i: number, cambios: Partial<ItemForm>) {
+    setItems((prev) => prev.map((it, j) => (j === i ? { ...it, ...cambios } : it)));
+  }
+  function agregarItem() {
+    setItems((prev) => [...prev, { ...ITEM_VACIO }]);
+  }
+  function quitarItem(i: number) {
+    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, j) => j !== i)));
+  }
+
   function cerrarModal() {
     setModal(null);
     setError(null);
-    setTotal(0);
+    setItems([{ ...ITEM_VACIO }]);
     setClienteNumDoc("");
     setClienteNombre("");
     setSerieTexto("");
@@ -125,15 +152,26 @@ export function ComprobantesPanel({
 
   async function onEmitir(e: React.FormEvent) {
     e.preventDefault();
+    const itemsValidos = items.filter((it) => it.descripcion.trim() && it.cantidad > 0 && it.valorUnitario > 0);
+    if (itemsValidos.length === 0) {
+      setError("Agrega al menos un ítem con descripción, cantidad y precio.");
+      return;
+    }
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    // IGV incluido en el total (19.83% del total = IGV, práctica estándar
-    // cuando el precio ya lo incluye) — la desagregación exacta por línea
-    // queda para cuando esto se conecte a `ventas` (ver nota al pie).
-    const igv = Math.round((total - total / 1.18) * 100) / 100;
+    // El precio se escribe CON IGV (es el que ve la clienta); SUNAT y
+    // `comprobantes.items` lo quieren SIN IGV. La conversión ocurre solo aquí.
+    const igv = Math.round((total - total / IGV_FACTOR) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const { error } = await supabase.rpc("emitir_comprobante", {
+      p_items: itemsValidos.map((it) => ({
+        descripcion: it.descripcion.trim(),
+        cantidad: it.cantidad,
+        // 6 decimales: Lucode recalcula el total desde este precio y un
+        // céntimo de diferencia hace que SUNAT rechace el comprobante entero.
+        precio_unitario: Number((it.valorUnitario / IGV_FACTOR).toFixed(6)),
+      })),
       p_sede_id: sedeId,
       p_tipo: tipo,
       p_subtotal: subtotal,
@@ -269,6 +307,7 @@ export function ComprobantesPanel({
                   <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">SUNAT</th>
+                  <th className="label-cayla px-3 py-2 text-[9px]">Imprimir</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
@@ -303,6 +342,30 @@ export function ComprobantesPanel({
                         {errorTransmision?.id === c.id && (
                           <p className="mt-1 max-w-48 text-[10px] text-rojo/80">{errorTransmision.detalle}</p>
                         )}
+                      </td>
+                      {/* Impresión: el A4 se descarga del servidor y el ticket
+                          abre la vista optimizada para la Epson TM-T20III. Se
+                          puede imprimir aunque SUNAT todavía no responda — el
+                          número ya es oficial desde que se reservó. */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`/api/comprobantes/${c.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="label-cayla border border-tinta/20 px-2 py-1 text-[9px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+                          >
+                            A4
+                          </a>
+                          <a
+                            href={`/comprobantes/${c.id}/ticket`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="label-cayla border border-tinta/20 px-2 py-1 text-[9px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+                          >
+                            Ticket
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -363,16 +426,59 @@ export function ComprobantesPanel({
             </div>
 
             <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Total (incluye IGV)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={total || ""}
-                onChange={(e) => setTotal(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-              />
+              <div className="mb-1 flex items-center justify-between">
+                <label className="label-cayla block text-[9px] text-tinta/45">Ítems (precio incluye IGV)</label>
+                <button type="button" onClick={agregarItem} className="label-cayla text-[9px] text-tinta/50 hover:text-rojo">
+                  + Agregar ítem
+                </button>
+              </div>
+              <div className="space-y-2">
+                {items.map((item, i) => (
+                  <div key={i} className="flex items-end gap-1.5 border border-tinta/10 p-2">
+                    <div className="flex-1">
+                      <input
+                        placeholder="Descripción"
+                        value={item.descripcion}
+                        onChange={(e) => actualizarItem(i, { descripcion: e.target.value })}
+                        className="w-full border border-tinta/20 bg-crema px-2 py-1.5 text-xs"
+                      />
+                      <div className="mt-1 flex gap-1.5">
+                        <input
+                          type="number"
+                          step="1"
+                          min="1"
+                          placeholder="Cant."
+                          value={item.cantidad || ""}
+                          onChange={(e) => actualizarItem(i, { cantidad: Number(e.target.value) })}
+                          className="w-16 border border-tinta/20 bg-crema px-2 py-1.5 text-xs"
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Precio"
+                          value={item.valorUnitario || ""}
+                          onChange={(e) => actualizarItem(i, { valorUnitario: Number(e.target.value) })}
+                          className="w-24 border border-tinta/20 bg-crema px-2 py-1.5 text-xs"
+                        />
+                        <span className="flex-1 self-center text-right text-xs text-tinta/60">{money(totalItem(item))}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => quitarItem(i)}
+                      disabled={items.length === 1}
+                      className="shrink-0 px-1.5 py-1.5 text-xs text-tinta/40 hover:text-rojo disabled:opacity-30"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-tinta/10 pt-2">
+                <span className="label-cayla text-[9px] text-tinta/45">Total</span>
+                <span className="font-display text-lg text-tinta">{money(total)}</span>
+              </div>
             </div>
 
             <ConsultaDocumento

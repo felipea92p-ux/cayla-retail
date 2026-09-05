@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (rama de impresión, reconciliada contra main)
+La rama `claude/electronic-receipt-structure-29400a` estaba construida sobre un
+`main` 30+ commits viejo, más una implementación duplicada de la consulta de
+DNI/RUC. Se rehízo encima del `main` real, conservando SOLO lo que main no
+tenía: **PDF A4, ticket térmico para la Epson TM-T20III, número a letras**, la
+dirección fiscal por sede y `configuracion_empresa` (migración `0040`,
+producción `unificacion/23`). Se descartó su tabla `comprobante_items` y su
+redefinición de `emitir_comprobante`: main ya resolvió eso con
+`comprobantes.items` en jsonb (ADR-0009) y de ahí cuelga el conector de Lucode
+— el código de impresión se adaptó a leer el jsonb, y como el jsonb no modela
+descuentos, la columna "Dscto." salió del impreso. Se rescató además su
+formulario de ítems por línea, ahora mapeado a `p_items` de main: el precio se
+escribe CON IGV (el que ve la clienta) y se convierte a precio sin IGV en un
+solo lugar, con 6 decimales, porque Lucode recalcula el total desde ahí y un
+céntimo de diferencia hace que SUNAT rechace el comprobante. El total del
+formulario dejó de escribirse a mano: sale de los ítems, porque un total
+tecleado que no cuadre con las líneas es un número oficial quemado.
+Sobre la consulta de documento: main ya la hacía **automática** al completar el
+número (ADR-0008); se le agregó el botón **Verificar** que pidió Felipe, que
+sirve de reintento explícito cuando el padrón no responde, sin quitar lo
+automático. Para que funcione en Vercel hacen falta `PADRON_PROVEEDOR`,
+`PADRON_TOKEN`, `LUCODE_TOKEN` y las de Supabase en Environment Variables; y
+para que el PDF no responda 404 hay que pegar `unificacion/23` en producción.
+
 ## 2026-09-05 (PRIMERA TRANSMISIÓN REAL A SUNAT + choque de sesiones paralelas)
 Sesión en paralelo que terminó enseñando más por el error que por el código.
 **Lo que sirve y queda:** se transmitió a SUNAT, en producción, la boleta
