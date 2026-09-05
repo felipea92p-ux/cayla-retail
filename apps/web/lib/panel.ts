@@ -33,10 +33,9 @@ export async function getPanelLider(persona: PersonaActual): Promise<PanelLider 
     supabase.from("stock").select("sede_id, cantidad, variantes(costo)"),
   ]);
 
-  // `retail.sedes` es una vista puente sobre Dynamic — filtra las filas sin
-  // id/codigo (no debería pasar en la práctica, pero la vista no lo garantiza).
-  const sedesValidas = (sedes ?? []).filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null);
-  const codigoPorId = new Map(sedesValidas.map((s) => [s.id, s.codigo]));
+  // getSedes() ya filtra filas sin id/codigo/etc. (retail.sedes es una vista puente
+  // sobre Dynamic que no garantiza no-nulos) — no hace falta filtrar de nuevo acá.
+  const codigoPorId = new Map(sedes.map((s) => [s.id, s.codigo]));
   const sedesAbiertas = new Set((cajasAbiertas ?? []).map((c) => c.sede_id));
 
   let ventasHoyTotal = 0;
@@ -61,7 +60,7 @@ export async function getPanelLider(persona: PersonaActual): Promise<PanelLider 
   return {
     ventasHoyTotal,
     ventasHoyPorSede: [...ventasPorSede.entries()].map(([codigo, monto]) => ({ codigo, monto })).sort((a, b) => b.monto - a.monto),
-    cajasTiendas: sedesValidas
+    cajasTiendas: sedes
       .filter((s) => s.tipo === "tienda")
       .map((s) => ({ codigo: s.codigo, abierta: sedesAbiertas.has(s.id) })),
     valorInventarioTotal,
