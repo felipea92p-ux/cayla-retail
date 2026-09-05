@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getEERRMensual, mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
@@ -42,7 +43,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
 
   const supabase = await createClient();
   const { desde, hasta } = mesLimaUTC(anio, mes);
-  const [eerr, { data: gastosData }, sedesResult] = await Promise.all([
+  const [eerr, { data: gastosData }, todasSedes] = await Promise.all([
     getEERRMensual(persona, anio, mes),
     supabase
       .from("gastos")
@@ -50,10 +51,10 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       .gte("created_at", desde)
       .lt("created_at", hasta)
       .order("created_at", { ascending: false }),
-    supabase.from("sedes").select("id, codigo").neq("tipo", "almacen").order("codigo"),
+    getSedes(),
   ]);
 
-  const sedes = (sedesResult.data ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
+  const sedes = todasSedes.filter((s) => s.tipo !== "almacen");
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? { id: persona.sedeId, codigo: persona.sedeCodigo };
   const otrasSedes = sedes.filter((s) => s.id !== sedeActual.id);
 

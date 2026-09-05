@@ -27,7 +27,6 @@ export type Proveedor = {
 type FormState = {
   nombre: string;
   ruc: string;
-  categoria: string;
   marca: string;
   contacto: string;
   telefono: string;
@@ -36,15 +35,19 @@ type FormState = {
   cuentaBancaria: string;
 };
 
+// "Categoría" se quitó del formulario a propósito (por ahora): con
+// `productos.proveedor_id` el vínculo real producto↔proveedor vive en el
+// catálogo, y taguear categoría aparte en el proveedor duplicaba la misma
+// idea de dos formas distintas. El campo sigue en la tabla (datos de SINATRA)
+// y se sigue mostrando/buscando en la lista — solo no se edita desde acá.
 const FORM_VACIO: FormState = {
-  nombre: "", ruc: "", categoria: "", marca: "", contacto: "", telefono: "", direccion: "", banco: "", cuentaBancaria: "",
+  nombre: "", ruc: "", marca: "", contacto: "", telefono: "", direccion: "", banco: "", cuentaBancaria: "",
 };
 
 function aFormulario(p: Proveedor): FormState {
   return {
     nombre: p.nombre,
     ruc: p.ruc ?? "",
-    categoria: p.categoria ?? "",
     marca: p.marca ?? "",
     contacto: p.contacto ?? "",
     telefono: p.telefono ?? "",
@@ -106,7 +109,6 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
     const payload = {
       nombre: form.nombre.trim(),
       ruc: form.ruc.trim() || null,
-      categoria: form.categoria.trim() || null,
       marca: form.marca.trim() || null,
       contacto: form.contacto.trim() || null,
       telefono: form.telefono.trim() || null,
@@ -171,8 +173,6 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
               <input required autoFocus value={form.nombre} onChange={(e) => campo("nombre", e.target.value)} className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">RUC</label>
               <input value={form.ruc} onChange={(e) => campo("ruc", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Categoría</label>
-              <input value={form.categoria} onChange={(e) => campo("categoria", e.target.value)} placeholder="Ej. Blusas, Bisutería" className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Marca</label>
               <input value={form.marca} onChange={(e) => campo("marca", e.target.value)} placeholder="Línea que maneja este proveedor" className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Contacto</label>

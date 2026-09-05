@@ -12,11 +12,10 @@ export default async function NuevoProductoPage() {
   if (persona.rol !== "lider") redirect("/inventario");
 
   const supabase = await createClient();
-  const { data: categoriasRows } = await supabase
-    .from("categorias")
-    .select("id, familia, nombre, tallas_sugeridas")
-    .order("familia")
-    .order("nombre");
+  const [{ data: categoriasRows }, { data: proveedoresRows }] = await Promise.all([
+    supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+  ]);
 
   const categorias = (categoriasRows ?? []).map((c) => ({
     id: c.id,
@@ -34,7 +33,7 @@ export default async function NuevoProductoPage() {
 
       <InventarioNav />
 
-      <NuevoProductoForm categorias={categorias} />
+      <NuevoProductoForm categorias={categorias} proveedores={proveedoresRows ?? []} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { OrdenesProduccion, type OrdenRow, type OrdenLinea } from "@/components/OrdenesProduccion";
 
@@ -11,8 +12,7 @@ export default async function ProduccionPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: sedesData } = await supabase.from("sedes").select("id, codigo, tipo");
-  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null);
+  const sedes = await getSedes();
   const taller = sedes.find((s) => s.tipo === "fabrica");
 
   const esLider = persona.rol === "lider";

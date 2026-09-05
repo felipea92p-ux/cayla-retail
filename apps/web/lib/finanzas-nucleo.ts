@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 
 // Núcleo financiero F1 (jubilación de SINATRA — docs/ANALISIS-SINATRA.md).
@@ -44,9 +45,9 @@ export async function getEERRMensual(persona: PersonaActual, anio: number, mes: 
   const supabase = await createClient();
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
-  const [{ data: sedesData }, { data: ventasData }, { data: movs }, { data: variantesData }, { data: gastosData }] =
+  const [sedesData, { data: ventasData }, { data: movs }, { data: variantesData }, { data: gastosData }] =
     await Promise.all([
-      supabase.from("sedes").select("id, codigo"),
+      getSedes(),
       supabase.from("ventas").select("sede_id, monto_total").gte("created_at", desde).lt("created_at", hasta),
       supabase
         .from("movimientos")
@@ -59,7 +60,7 @@ export async function getEERRMensual(persona: PersonaActual, anio: number, mes: 
       supabase.from("gastos").select("sede_id, total").gte("created_at", desde).lt("created_at", hasta),
     ]);
 
-  const codigoDe = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
+  const codigoDe = new Map(sedesData.map((s) => [s.id, s.codigo]));
   const costoDe = new Map((variantesData ?? []).map((v) => [v.id, Number(v.costo)]));
 
   type Fila = { ventas: number; cogs: number; mermas: number; gastos: number };
@@ -110,9 +111,9 @@ export type CuadreSede = {
 export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
   const supabase = await createClient();
 
-  const [{ data: sedesData }, { data: ajustes }, { data: ventasEf }, { data: gastosEf }, { data: depositos }, { data: cierres }] =
+  const [todasSedes, { data: ajustes }, { data: ventasEf }, { data: gastosEf }, { data: depositos }, { data: cierres }] =
     await Promise.all([
-      supabase.from("sedes").select("id, codigo, tipo").eq("tipo", "tienda").order("codigo"),
+      getSedes(),
       supabase.from("ajustes_efectivo").select("sede_id, monto"),
       supabase.from("ventas").select("sede_id, monto_total").eq("metodo_pago", "efectivo"),
       supabase.from("gastos").select("sede_id, total").eq("metodo_pago", "efectivo"),
@@ -124,9 +125,8 @@ export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
         .order("cerrada_en", { ascending: false }),
     ]);
 
-  const sedesValidas = (sedesData ?? []).filter((s): s is { id: string; codigo: string; tipo: string | null } => s.id != null && s.codigo != null);
-
-  return sedesValidas.map((s) => {
+  const sedesData = todasSedes.filter((s) => s.tipo === "tienda");
+  return sedesData.map((s) => {
     const suma = (rows: { sede_id: string; monto?: unknown; monto_total?: unknown; total?: unknown }[] | null) =>
       (rows ?? [])
         .filter((r) => r.sede_id === s.id)
@@ -167,12 +167,12 @@ export async function getComparativoAnual(persona: PersonaActual, sedeCodigo?: s
   if (persona.rol !== "lider") return null;
   const supabase = await createClient();
 
-  const [{ data: sedesData }, { data: historicos }, { data: ventasData }] = await Promise.all([
-    supabase.from("sedes").select("id, codigo"),
+  const [sedesData, { data: historicos }, { data: ventasData }] = await Promise.all([
+    getSedes(),
     supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
     supabase.from("ventas").select("sede_id, monto_total, created_at"),
   ]);
-  const codigoDe = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
+  const codigoDe = new Map(sedesData.map((s) => [s.id, s.codigo]));
 
   const acumulado = new Map<string, number>(); // "anio-mes" -> monto
   const sumar = (anio: number, mes: number, monto: number) => {

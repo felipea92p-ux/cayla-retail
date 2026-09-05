@@ -20,18 +20,13 @@ export async function GET() {
     return new Response("Sin persona vinculada", { status: 403 });
   }
 
-  const { data: sedeRow } = await supabase
-    .from("sedes")
-    .select("codigo")
-    .eq("id", personaRow.sede_id)
-    .maybeSingle();
   const rol = mapearRol(personaRow.rol);
   const persona = {
     id: personaRow.id,
     nombre: personaRow.nombre,
     rol,
     sedeId: personaRow.sede_id,
-    sedeCodigo: sedeRow?.codigo ?? "",
+    sedeCodigo: "", // getCatalogoConStock no la usa — evita un round-trip a `sedes` sin necesidad
   };
   const esLider = persona.rol === "lider";
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getComparativoAnual } from "@/lib/finanzas-nucleo";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { HistoricosEditor } from "@/components/HistoricosEditor";
@@ -20,12 +21,12 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
 
   const { sede } = await searchParams;
   const supabase = await createClient();
-  const [comparativo, { data: sedesData }, { data: historicos }] = await Promise.all([
+  const [comparativo, todasSedes, { data: historicos }] = await Promise.all([
     getComparativoAnual(persona, sede || undefined),
-    supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
+    getSedes(),
     supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
   ]);
-  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
+  const sedes = todasSedes.filter((s) => s.tipo === "tienda");
 
   return (
     <div className="space-y-8">

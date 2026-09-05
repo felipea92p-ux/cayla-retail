@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCuadreEfectivo } from "@/lib/finanzas-nucleo";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { EfectivoPanel } from "@/components/EfectivoPanel";
@@ -13,16 +14,16 @@ export default async function EfectivoPage() {
   if (persona.rol !== "lider") redirect("/");
 
   const supabase = await createClient();
-  const [cuadre, { data: sedesData }, { data: depositos }] = await Promise.all([
+  const [cuadre, todasSedes, { data: depositos }] = await Promise.all([
     getCuadreEfectivo(),
-    supabase.from("sedes").select("id, codigo").eq("tipo", "tienda").order("codigo"),
+    getSedes(),
     supabase
       .from("depositos_bancarios")
       .select("id, fecha, monto, nota, sede_id")
       .order("fecha", { ascending: false })
       .limit(15),
   ]);
-  const sedes = (sedesData ?? []).filter((s): s is { id: string; codigo: string } => s.id != null && s.codigo != null);
+  const sedes = todasSedes.filter((s) => s.tipo === "tienda");
 
   return (
     <div className="space-y-8">

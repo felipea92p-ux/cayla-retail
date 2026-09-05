@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { RegistroContableForm } from "@/components/RegistroContableForm";
@@ -11,25 +12,17 @@ export default async function RegistrarContablePage() {
   if (persona.rol !== "lider") redirect("/");
 
   const supabase = await createClient();
-  const [cuentasRes, sedesRes] = await Promise.all([
+  const [cuentasRes, todasSedes] = await Promise.all([
     supabase
       .from("cuentas_contables")
       .select("codigo, nombre, elemento, es_contra, orden")
       .eq("activo", true)
       .order("orden"),
-    supabase
-      .from("sedes")
-      .select("id, codigo, nombre, tipo")
-      .eq("activo", true)
-      .in("tipo", ["tienda", "fabrica", "corporativo"])
-      .order("codigo"),
+    getSedes(),
   ]);
 
   const cuentas = cuentasRes.data ?? [];
-  const unidades = (sedesRes.data ?? []).filter(
-    (s): s is { id: string; codigo: string; nombre: string; tipo: string } =>
-      s.id != null && s.codigo != null && s.nombre != null && s.tipo != null
-  );
+  const unidades = todasSedes.filter((s) => s.activo && (["tienda", "fabrica", "corporativo"] as string[]).includes(s.tipo));
 
   return (
     <div className="space-y-8">

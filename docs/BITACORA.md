@@ -3,6 +3,32 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Fase 1 — conector real con Lucode en sandbox)
+Felipe pidió adelantar la Fase 1 (transmisión real a SUNAT vía Lucode, el PSE
+que ya tiene en sandbox, ADR-0005). Bloqueante encontrado antes de tocar
+Lucode: `comprobantes` nunca guardó detalle por ítem (solo subtotal/igv/total
+agregados) y la API de Lucode exige un array `items` — sin eso no hay nada
+válido que transmitir. Se agregó `comprobantes.items jsonb` con un fallback: si
+`ComprobantesPanel.tsx` (el único flujo real hoy, manual, sin desglose) no
+manda items, `emitir_comprobante`/`emitir_nota` arman uno genérico con el monto
+real; el desglose por SKU exacto queda pendiente de que Facturación se conecte
+a `ventas`/`movimientos` (decisión de UX de Felipe, no de esta fase). Se
+construyó `apps/web/lib/lucode.ts` (mismo patrón que `lib/padron.ts`,
+ADR-0008: nunca tumba la pantalla si Lucode no responde), la ruta
+`/api/lucode/emitir` y el botón "Transmitir" en `ComprobantesPanel.tsx`
+(visible solo en pendiente/rechazado). Bug real cazado probando la migración,
+no leyendo código: `CREATE OR REPLACE` con un parámetro nuevo al final no
+reemplaza la función vieja — Postgres la identifica por tipos de parámetros de
+entrada, así que quedaron dos versiones ambiguas hasta agregar un `DROP
+FUNCTION IF EXISTS` explícito de la firma vieja. ADR-0009. Migraciones
+renumeradas de 0035/0036 a 0037/0038 (y unificacion 18/19 a 20/21) porque para
+cuando se commitearon, otra sesión en paralelo ya había tomado esos números
+(ver entrada de proveedor habitual, abajo) — mismo contenido, solo cambió el
+nombre del archivo. Pendiente: Felipe pegue `20_comprobantes_items.sql` y
+`21_actualizar_transmision_comprobante.sql` en producción, y ponga su
+`LUCODE_TOKEN` real en `.env.local` (nunca en el chat) para la primera prueba
+real contra el sandbox de Lucode.
+
 ## 2026-09-05 (Proforma: la pantalla que faltaba desde la Fase 0)
 Felipe pidió "diseñemos algo que nos permita emitir boletas y facturas". Boleta
 y factura ya emitían (con verificación RENIEC/SUNAT, ADR-0008) — lo que
@@ -23,6 +49,38 @@ se aplicó a producción después de la última regeneración. Se agregaron a ma
 completo: el script de `gen-types` sigue apuntando al proyecto viejo de retail
 (deuda ya trackeada). `next build` completo corrido y limpio, no solo `tsc` —
 la lección de la sesión anterior sobre que uno solo no basta.
+
+## 2026-09-05 (hallazgo real: faltaban 25 de 30 categorías en producción)
+Felipe llenó "Recibir mercadería" con un ejemplo real (Blusa Manga Larga,
+proveedor EGTI) y notó que Categoría no ofrecía "Blusas" — solo las 5 de
+`0030_categorias_captura_real.sql`. Causa raíz encontrada leyendo el propio
+repo: `supabase/unificacion/04_catalogo.sql` (paso 4 de la unificación con
+Dynamic, jul-2026) recreó la tabla `retail.categorias` desde cero pero nunca
+volvió a correr las 30 filas semilla de `0009_categorias.sql` — solo definió
+la estructura. Las 5 de `0030` fueron las PRIMERAS que existieron en
+producción, no una adición a 30 previas. El gap llevaba desde julio sin
+notarse porque el catálogo real recién empezó a cargarse el 09-03. Repuestas
+las 25 faltantes (`0036` local, `unificacion/19` producción, `on conflict do
+nothing`, seguro de correr). De paso, Felipe notó que Costo/Precio/Stock
+mínimo en el mismo formulario solo tenían placeholder — se veían idénticos
+una vez llenos porque el placeholder desaparece al escribir; se agregaron
+etiquetas fijas a todos los campos del ítem, y la confirmación al recibir
+ahora dice cuántos ítems/unidades entraron con enlaces a Catálogo/Almacén.
+
+## 2026-09-05 (proveedor habitual del producto — cierra la pregunta de Felipe)
+Felipe probó Proveedores (le gustó editar/desactivar) y preguntó cómo debía
+relacionarse con "Nuevo producto": ¿primero el proveedor, luego el producto
+"de ese proveedor"? Se explicó el patrón de los ERP serios (Shopify: vendor
+como etiqueta del producto; Odoo/QuickBooks: proveedor preferido en el
+producto vs. proveedor real por orden de compra/recepción — dos preguntas
+distintas, no una) y se completó la mitad que faltaba: `productos.proveedor_id`
+(opcional, no candado) + selector en `NuevoProductoForm`. La otra mitad
+("¿quién trajo este lote?") ya existía desde Fase 3 en `lotes.proveedor_id` —
+no se tocó. De paso, a pedido de Felipe, se quitó "Categoría" del formulario
+de Proveedores (duplicaba la misma idea que ahora vive en el vínculo
+producto↔proveedor). Migración local `0035`, producción en
+`unificacion/18_productos_proveedor.sql` (reemplaza a `16` si Felipe todavía
+no lo pegó). Empujado a `main` y a la rama propia a pedido explícito.
 
 ## 2026-09-05 (Fase 0 confirmada en producción + reconciliación con 2 sesiones paralelas)
 Felipe pegó `17_facturacion_completa.sql` en producción. Confirmado con
