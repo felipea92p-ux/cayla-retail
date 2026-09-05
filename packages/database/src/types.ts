@@ -1907,7 +1907,12 @@ export type Database = {
         Returns: string
       }
       registrar_serie_comprobante: {
-        Args: { p_sede_id: string; p_serie: string; p_tipo: string }
+        Args: {
+          p_sede_id: string
+          p_serie: string
+          p_siguiente_numero?: number
+          p_tipo: string
+        }
         Returns: string
       }
       registrar_venta: {

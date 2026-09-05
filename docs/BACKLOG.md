@@ -109,6 +109,22 @@ importante que ha entrado a este archivo desde que existe.
       transmitir a medias. Independiente del código: el trámite SUNAT SOL de
       alta como PSE tercero (línea de arriba) sigue sin confirmarse hecho —
       bloquea sandbox→producción real aunque el código esté listo.
+      **ACTUALIZACIÓN 2026-09-05 (noche) — transmitir a producción YA FUNCIONA,
+      verificado con documentos reales.** Sandbox: boleta **B005-000001**
+      (S/189.90) ACEPTADA con CDR. Producción: boleta **B004-000001** (TRU,
+      S/1.00) transmitida y aceptada en cola por SUNAT (PENDIENTE, firmada, con
+      PDF). El token de Lucode autentica igual en ambos ambientes. Tres cosas
+      que esto deja pendientes: (1) **dar de baja B004-000001** desde el panel
+      de Lucode (resumen diario de bajas, 7 días) — es un documento legal por
+      una venta que no existió, y el sistema todavía no sabe anular; (2) al
+      configurar la base definitiva, registrar la serie **B004 de TRU con
+      próximo número 2** — ese correlativo ya está consumido ante SUNAT y
+      arrancar en 1 hace que rechace todo por duplicado; (3) pegar
+      `supabase/unificacion/22_serie_numero_inicial.sql`, que es lo que permite
+      fijar ese próximo número (antes la serie siempre nacía en 1). Numeración
+      acordada con Felipe: una serie por tienda — **TRU B004/F004, AQP B005/F005,
+      LIM B006/F006**. Nota de seguridad: el `LUCODE_TOKEN` terminó pegado en el
+      chat pese a la advertencia de arriba; conviene rotarlo desde el panel.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por

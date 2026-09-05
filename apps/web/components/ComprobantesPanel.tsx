@@ -105,6 +105,9 @@ export function ComprobantesPanel({
   const [serieSedeId, setSerieSedeId] = useState(sedeActualId);
   const [serieTipo, setSerieTipo] = useState<TipoComprobante>("boleta");
   const [serieTexto, setSerieTexto] = useState("");
+  // Vacío = el sistema sigue llevando el correlativo solo. Se llena únicamente
+  // para continuar una serie que ya venía emitiéndose fuera de este sistema.
+  const [serieNumero, setSerieNumero] = useState("");
 
   const totalMes = comprobantes.reduce((acc, c) => acc + Number(c.total), 0);
   const pendientes = comprobantes.filter((c) => c.estado === "pendiente" || c.estado === "enviado").length;
@@ -117,6 +120,7 @@ export function ComprobantesPanel({
     setClienteNumDoc("");
     setClienteNombre("");
     setSerieTexto("");
+    setSerieNumero("");
   }
 
   async function onEmitir(e: React.FormEvent) {
@@ -158,6 +162,8 @@ export function ComprobantesPanel({
       p_sede_id: serieSedeId,
       p_tipo: serieTipo,
       p_serie: serieTexto,
+      // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
+      p_siguiente_numero: serieNumero ? Number(serieNumero) : undefined,
     });
     if (error) {
       setError(error.message);
@@ -201,9 +207,11 @@ export function ComprobantesPanel({
           <h2 className="label-cayla text-[10px] text-tinta/45">
             Series por sede
             <Ayuda titulo="Series de comprobantes">
-              SUNAT asigna una serie (por ejemplo B001 para boletas, F001 para facturas) a cada
-              punto de emisión antes de poder facturar desde ahí. Regístrala aquí una sola vez por
-              sede y tipo — el sistema lleva el correlativo solo desde entonces.
+              La serie identifica desde qué tienda salió el comprobante: una letra según el tipo
+              (B para boleta, F para factura) más tres dígitos. En facturación electrónica las
+              defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
+              tienda (B004 Trujillo, B005 Arequipa, B006 Lima) para saber de dónde vino cada venta.
+              Regístrala una sola vez por sede y tipo; el correlativo lo lleva el sistema.
             </Ayuda>
           </h2>
           <button
@@ -416,8 +424,34 @@ export function ComprobantesPanel({
               </select>
             </div>
             <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Serie (la que dio SUNAT, ej. B001)</label>
-              <input required value={serieTexto} onChange={(e) => setSerieTexto(e.target.value.toUpperCase())} maxLength={4} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm uppercase" />
+              <label className="label-cayla block text-[9px] text-tinta/45">Serie (B### para boleta, F### para factura)</label>
+              <input
+                required
+                value={serieTexto}
+                onChange={(e) => setSerieTexto(e.target.value.toUpperCase())}
+                maxLength={4}
+                placeholder={serieTipo === "factura" ? "F001" : "B001"}
+                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm uppercase"
+              />
+            </div>
+            <div>
+              <label className="label-cayla block text-[9px] text-tinta/45">
+                Próximo número
+                <Ayuda titulo="Próximo número">
+                  Déjalo vacío si esta serie empieza de cero: el sistema arranca en 1 y lleva el
+                  correlativo solo. Llénalo únicamente si esta serie ya venía emitiéndose fuera de
+                  este sistema — pon el número que sigue al último emitido. Mandarle a SUNAT un
+                  número ya usado hace que el comprobante se rechace por duplicado.
+                </Ayuda>
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={serieNumero}
+                onChange={(e) => setSerieNumero(e.target.value)}
+                placeholder="1"
+                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+              />
             </div>
             {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">

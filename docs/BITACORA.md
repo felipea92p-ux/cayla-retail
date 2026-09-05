@@ -3,6 +3,42 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (PRIMERA TRANSMISIÓN REAL A SUNAT + choque de sesiones paralelas)
+Sesión en paralelo que terminó enseñando más por el error que por el código.
+**Lo que sirve y queda:** se transmitió a SUNAT, en producción, la boleta
+**B004-000001 (Trujillo, S/1.00, "Cliente varios")** — SUNAT la aceptó en cola
+(estado PENDIENTE, firmada) y devolvió su PDF. Antes se había probado el
+circuito completo en sandbox con **B005-000001 (S/189.90)**, ACEPTADA con CDR,
+cliente identificado por DNI verificado contra RENIEC. O sea: **transmitir a
+producción funciona hoy**, con el token de Lucode que Felipe ya tiene. Dos
+consecuencias operativas que hay que respetar sí o sí: (1) **B004-000001 ya
+está consumida ante SUNAT** — cuando se configure la base definitiva, la serie
+B004 de TRU debe registrarse con próximo número **2**, o SUNAT rechazará todo
+por duplicado; (2) esa boleta es un documento legal por una venta que no
+existió y **hay que darla de baja** (resumen diario de bajas, 7 días) desde el
+panel de Lucode. Numeración decidida con Felipe, una serie por tienda para
+saber de dónde vino cada venta: **TRU B004/F004, AQP B005/F005, LIM B006/F006**.
+De ahí sale el único código rescatado: `0039_serie_numero_inicial.sql` (+
+`unificacion/22`), que permite fijar el próximo correlativo al registrar una
+serie — antes siempre nacía en 1, sin forma de continuar una serie ya usada.
+Se corrigió también un error de fondo en la UI: decía "Serie (la que dio
+SUNAT)" y que SUNAT asigna las series. Falso en facturación electrónica: las
+define el emisor, sin autorización; solo mandan el formato y que el correlativo
+sea único y ascendente.
+**El error, que vale más que lo anterior:** esta sesión reimplementó desde cero
+el conector con Lucode y la verificación RENIEC/SUNAT **que ya existían en
+`origin/main`** (`lib/lucode.ts`, `/api/lucode/emitir`, `/api/padron`,
+comprobantes con ítems por ADR-0009), porque nunca hizo `git fetch` al abrir.
+Trabajó cinco commits sobre un `main` local desactualizado en 30+ commits. Al
+descubrirlo se descartó todo ese código en vez de mergearlo —habría dejado dos
+conectores, dos rutas, dos variables de entorno y migraciones 0033/0034/0035
+duplicadas con contenido distinto— y se rescató solo lo que main no tenía. La
+rama `prueba/lo-que-estes-cambiando` queda como registro. **Regla que este
+repo ya sabía y se saltó: `git fetch` ANTES de escribir la primera línea**; la
+propia bitácora ya documenta dos choques de sesiones paralelas antes de este.
+Aparte: el token de Lucode se pegó en el chat, justo lo que el backlog pedía no
+hacer — conviene rotarlo desde el panel.
+
 ## 2026-09-05 (Fase 2 — Egresos, primera pantalla nueva del reemplazo de Alegra)
 Con Fase 0/0.5/1 ya cerradas (por sesiones paralelas), primer trabajo propio de
 esta sesión sobre el plan: `/finanzas/egresos`, pantalla nueva que antes no
