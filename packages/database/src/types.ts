@@ -348,12 +348,14 @@ export type Database = {
           cliente_nombre: string | null
           cliente_num_doc: string | null
           cliente_tipo_doc: string
+          comprobante_original_id: string | null
           created_at: string
           enviado_at: string | null
           estado: string
           id: string
           igv: number
           moneda: string
+          motivo: string | null
           motivo_rechazo: string | null
           numero: number
           respuesta_sunat: Json | null
@@ -369,12 +371,14 @@ export type Database = {
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
+          comprobante_original_id?: string | null
           created_at?: string
           enviado_at?: string | null
           estado?: string
           id?: string
           igv?: number
           moneda?: string
+          motivo?: string | null
           motivo_rechazo?: string | null
           numero: number
           respuesta_sunat?: Json | null
@@ -390,12 +394,14 @@ export type Database = {
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
+          comprobante_original_id?: string | null
           created_at?: string
           enviado_at?: string | null
           estado?: string
           id?: string
           igv?: number
           moneda?: string
+          motivo?: string | null
           motivo_rechazo?: string | null
           numero?: number
           respuesta_sunat?: Json | null
@@ -408,6 +414,13 @@ export type Database = {
           venta_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comprobantes_comprobante_original_id_fkey"
+            columns: ["comprobante_original_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comprobantes_sede_id_fkey"
             columns: ["sede_id"]
@@ -427,6 +440,76 @@ export type Database = {
             columns: ["venta_id"]
             isOneToOne: false
             referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proformas: {
+        Row: {
+          cliente_nombre: string | null
+          cliente_num_doc: string | null
+          comprobante_id: string | null
+          created_at: string
+          estado: string
+          id: string
+          igv: number
+          items: Json
+          sede_id: string
+          subtotal: number
+          total: number
+          usuario_id: string | null
+          vence_at: string | null
+        }
+        Insert: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          comprobante_id?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          igv?: number
+          items: Json
+          sede_id: string
+          subtotal?: number
+          total: number
+          usuario_id?: string | null
+          vence_at?: string | null
+        }
+        Update: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          comprobante_id?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          igv?: number
+          items?: Json
+          sede_id?: string
+          subtotal?: number
+          total?: number
+          usuario_id?: string | null
+          vence_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proformas_comprobante_id_fkey"
+            columns: ["comprobante_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
             referencedColumns: ["id"]
           },
         ]
@@ -1616,6 +1699,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      convertir_proforma_a_comprobante: {
+        Args: {
+          p_cliente_nombre?: string
+          p_cliente_num_doc?: string
+          p_cliente_tipo_doc?: string
+          p_proforma_id: string
+          p_tipo: string
+          p_venta_id?: string
+        }
+        Returns: string
+      }
+      crear_proforma: {
+        Args: {
+          p_cliente_nombre?: string
+          p_cliente_num_doc?: string
+          p_igv: number
+          p_items: Json
+          p_sede_id: string
+          p_subtotal: number
+          p_total: number
+          p_vence_at?: string
+        }
+        Returns: string
+      }
       devolver_a_almacen: {
         Args: {
           p_cantidad: number
@@ -1640,6 +1747,17 @@ export type Database = {
           p_tipo: string
           p_total: number
           p_venta_id?: string
+        }
+        Returns: string
+      }
+      emitir_nota: {
+        Args: {
+          p_comprobante_original_id: string
+          p_igv: number
+          p_motivo: string
+          p_subtotal: number
+          p_tipo: string
+          p_total: number
         }
         Returns: string
       }

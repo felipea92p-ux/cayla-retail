@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getComprobantesMes, getSeriesComprobantes } from "@/lib/comprobantes";
+import { getProformasMes } from "@/lib/proformas";
 import { mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
 import { createClient } from "@/lib/supabase/server";
 import { VenderNav } from "@/components/VenderNav";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
+import { ProformasPanel } from "@/components/ProformasPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -25,9 +27,10 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
   const supabase = await createClient();
-  const [comprobantes, series, sedesResult] = await Promise.all([
+  const [comprobantes, series, proformas, sedesResult] = await Promise.all([
     getComprobantesMes(desde, hasta),
     getSeriesComprobantes(),
+    getProformasMes(desde, hasta),
     supabase.from("sedes").select("id, codigo").neq("tipo", "almacen").order("codigo"),
   ]);
   const sedes = (sedesResult.data ?? []).filter(
@@ -68,7 +71,13 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
 
       <VenderNav />
 
-      <ComprobantesPanel comprobantes={comprobantes} series={series} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+      {/* Proforma primero: es el trabajo pendiente (¿quién va a volver a comprar?),
+          antes que el historial ya cerrado de comprobantes (patrón Ramp, Ronda 2). */}
+      <ProformasPanel proformas={proformas} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+
+      <div className="border-t border-tinta/10 pt-8">
+        <ComprobantesPanel comprobantes={comprobantes} series={series} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+      </div>
     </div>
   );
 }

@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Proforma: la pantalla que faltaba desde la Fase 0)
+Felipe pidió "diseñemos algo que nos permita emitir boletas y facturas". Boleta
+y factura ya emitían (con verificación RENIEC/SUNAT, ADR-0008) — lo que
+faltaba, con backend listo desde la Fase 0 (ADR-0007) pero sin una sola
+pantalla que lo usara, era la Proforma. Se construyó `ProformasPanel.tsx` +
+`lib/proformas.ts`: crear proforma (sin verificación de documento — no es
+fiscal, no lo exige la ley) y "Convertir a comprobante" (sí exige RUC si se
+convierte a factura, reusa `ConsultaDocumento`). Nunca un `UPDATE` de estado —
+convertir llama a `convertir_proforma_a_comprobante`, que crea un comprobante
+nuevo. Proformas por vencer en 48h se ordenan primero (patrón "excepciones
+primero", Ronda 2) y usan `TarjetaIndicador` ya construido en Fase 0.5 en vez
+de repetir el markup de KPI a mano.
+
+`packages/database/src/types.ts` seguía sin `proformas` ni las columnas de
+NC/ND de la Fase 0 (`comprobante_original_id`, `motivo`) — la migración 0034/17
+se aplicó a producción después de la última regeneración. Se agregaron a mano
+(mismo patrón ya usado para `crear_producto_con_variantes`), no se regeneró
+completo: el script de `gen-types` sigue apuntando al proyecto viejo de retail
+(deuda ya trackeada). `next build` completo corrido y limpio, no solo `tsc` —
+la lección de la sesión anterior sobre que uno solo no basta.
+
 ## 2026-09-05 (Fase 0 confirmada en producción + reconciliación con 2 sesiones paralelas)
 Felipe pegó `17_facturacion_completa.sql` en producción. Confirmado con
 `pg_proc`/`information_schema.tables`: las 6 funciones y las 3 tablas
