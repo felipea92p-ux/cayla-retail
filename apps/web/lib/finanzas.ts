@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { mapaSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
-import { METODOS_PAGO, type MetodoPago, type GastoCategoria } from "@cayla-retail/shared";
+import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
 const DIA_MS = 86400000;
 
@@ -103,60 +103,6 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
   });
 
   return { ventanaDias, cajas, totalPorMetodo, total };
-}
-
-export type GastoConDetalle = {
-  id: string;
-  sedeCodigo: string;
-  categoria: GastoCategoria;
-  subtotal: number;
-  igv: number;
-  total: number;
-  especificacion: string | null;
-  createdAt: string;
-};
-
-export type ResumenGastos = {
-  ventanaDias: number;
-  gastos: GastoConDetalle[];
-  totalPorCategoria: Record<string, number>;
-  total: number;
-};
-
-/** Gastos operativos de la ventana. Líder-only (RLS ya lo exige, esto es defensa extra). */
-export async function getGastos(persona: PersonaActual, ventanaDias = 30): Promise<ResumenGastos> {
-  if (persona.rol !== "lider") {
-    return { ventanaDias, gastos: [], totalPorCategoria: {}, total: 0 };
-  }
-
-  const supabase = await createClient();
-  const desde = new Date(Date.now() - ventanaDias * DIA_MS);
-
-  const { data } = await supabase
-    .from("gastos")
-    .select("id, categoria, subtotal, igv, total, especificacion, created_at, sede_id")
-    .gte("created_at", desde.toISOString())
-    .order("created_at", { ascending: false });
-
-  const sedes = await mapaSedes();
-  const totalPorCategoria: Record<string, number> = {};
-  let total = 0;
-  const gastos: GastoConDetalle[] = (data ?? []).map((g) => {
-    totalPorCategoria[g.categoria] = (totalPorCategoria[g.categoria] ?? 0) + Number(g.total);
-    total += Number(g.total);
-    return {
-      id: g.id,
-      sedeCodigo: sedes.get(g.sede_id)?.codigo ?? "",
-      categoria: g.categoria as GastoCategoria,
-      subtotal: Number(g.subtotal),
-      igv: Number(g.igv),
-      total: Number(g.total),
-      especificacion: g.especificacion,
-      createdAt: g.created_at,
-    };
-  });
-
-  return { ventanaDias, gastos, totalPorCategoria, total };
 }
 
 export type EstadoResultadosPorSede = {

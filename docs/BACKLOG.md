@@ -109,10 +109,24 @@ importante que ha entrado a este archivo desde que existe.
       transmitir a medias. Independiente del código: el trámite SUNAT SOL de
       alta como PSE tercero (línea de arriba) sigue sin confirmarse hecho —
       bloquea sandbox→producción real aunque el código esté listo.
-      **Fase 0.5 (tokens de diseño) en construcción:** `packages/shared/src/
+      **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
-      ya creados por una sesión paralela; radios corregidos a 0px en toda la
-      app (brandbook pedía esquinas rectas, se habían desviado a 8-18px).
+      construidos (dos sesiones paralelas llegaron al mismo archivo, byte por
+      byte); radios corregidos a 0px en toda la app (brandbook pedía esquinas
+      rectas, se habían desviado a 8-18px). `tsc` limpio.
+      **Fase 2 (Egresos) — primera pantalla nueva construida y verificada en
+      vivo:** `/finanzas/egresos` (antes no existía; los gastos solo se veían
+      agregados dentro del EERR). Small multiples por sede (`TarjetaIndicador`
+      × 5, siempre visibles), tabla de detalle con cifras tabulares. Probado en
+      local (ADR-0010): un gasto de prueba en AQP solo movió esa tarjeta, las
+      otras tres quedaron en S/0 — segmentación por sede real, no agregada. De
+      paso: `RegistrarGastoModal`/`RegistrarGastoButton` nunca habían recibido
+      el sistema de identidad CAYLA (usaban `bg-white`/`rounded-2xl` desde que
+      se construyeron) — corregido; `METODOS_PAGO_GASTO` separado de
+      `METODOS_PAGO` (mismo nombre, dos constraints reales distintos —
+      `0013_finanzas_nucleo.sql` vs `0007_finanzas.sql`); `getGastos()` muerto
+      en `lib/finanzas.ts` borrado (nadie lo llamaba). Falta: auto-sugerencia
+      de categoría por texto (parte 2 de esta fase, no empezada).
       **Aparte, ya construido 2026-09-05 (ADR-0008):** verificación de cliente
       contra RENIEC/SUNAT antes de emitir (`packages/shared/src/documento.ts`,
       `apps/web/lib/padron.ts`, `ConsultaDocumento.tsx`) — encontró y corrigió

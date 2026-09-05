@@ -12,7 +12,7 @@ export function RegistrarGastoButton({ sedeId, sedeCodigo, otrasSedes }: { sedeI
     <>
       <button
         onClick={() => setAbierto(true)}
-        className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+        className="label-cayla bg-rojo px-3 py-2 text-[10px] text-crema transition-colors hover:bg-rojo-profundo"
       >
         Registrar gasto
       </button>

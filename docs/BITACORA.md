@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Fase 2 — Egresos, primera pantalla nueva del reemplazo de Alegra)
+Con Fase 0/0.5/1 ya cerradas (por sesiones paralelas), primer trabajo propio de
+esta sesión sobre el plan: `/finanzas/egresos`, pantalla nueva que antes no
+existía — los gastos solo se veían agregados dentro del EERR del Resumen, sin
+lista propia. Small multiples (hallazgo Ramp/Tufte, Ronda 2): una
+`TarjetaIndicador` por sede siempre visible, no un selector que esconda que
+una sede gasta distinto a otra — verificado en vivo (entorno local por fin
+funciona, ADR-0010): registré un gasto de prueba en AQP y solo esa tarjeta
+subió, las otras tres siguieron en S/0.
+
+De paso, dos huecos reales encontrados al construir: (1) `RegistrarGastoModal`/
+`RegistrarGastoButton` nunca habían recibido el sistema de identidad CAYLA —
+usaban `bg-white`/`rounded-2xl`/`text-red-600` desde que se construyeron, ajeno
+por completo a rojo/crema/tinta — corregido; (2) `METODOS_PAGO` compartido
+(efectivo/pos/yape/transferencia, para ventas) se estaba a punto de reusar para
+gastos, que tienen su propio constraint real distinto
+(efectivo/banco/yape/tarjeta, `0013_finanzas_nucleo.sql`) — mismo nombre, dos
+dominios. Se le dio su propio tipo (`MetodoPagoGasto`) en vez de forzar el
+existente. Aparte, `getGastos()`/`GastoConDetalle` en `lib/finanzas.ts` estaban
+muertos (nadie los llamaba, quedaron atrás cuando Felipe cambió el criterio a
+mes calendario) — se borraron en vez de sumarles un uso más. Las etiquetas de
+categoría/método, antes copiadas en 2-3 archivos, ahora viven una sola vez en
+`packages/shared/src/enums.ts`.
+
 ## 2026-09-05 (Fase 1 — conector real con Lucode en sandbox)
 Felipe pidió adelantar la Fase 1 (transmisión real a SUNAT vía Lucode, el PSE
 que ya tiene en sandbox, ADR-0005). Bloqueante encontrado antes de tocar

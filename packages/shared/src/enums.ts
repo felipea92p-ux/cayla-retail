@@ -35,6 +35,12 @@ export type EstadoOrdenProduccion = (typeof ESTADOS_ORDEN_PRODUCCION)[number];
 export const UMBRAL_ESTANCADO_DIAS = 45; // días sin ninguna Salida para considerar estancado
 export const LEAD_TIME_DIAS = 14; // días asumidos de reposición, para el reorder point
 
+// Una proforma "por vencer" es la clienta con más chance de volver a comprar hoy
+// (apps/web/lib/proformas.ts). 48h porque es el margen en que todavía se puede
+// llamar y cerrar la venta antes de que la cotización caduque — más corto no da
+// tiempo a reaccionar, más largo deja de ser una excepción y se vuelve ruido.
+export const HORAS_PROFORMA_POR_VENCER = 48;
+
 // Fase 2 financiera (apps/web/lib/finanzas.ts, supabase/migrations/0007_finanzas.sql).
 export const METODOS_PAGO = ["efectivo", "pos", "yape", "transferencia"] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
@@ -56,6 +62,31 @@ export const GASTO_CATEGORIAS = [
   "otro",
 ] as const;
 export type GastoCategoria = (typeof GASTO_CATEGORIAS)[number];
+
+export const ETIQUETA_GASTO_CATEGORIA: Record<GastoCategoria, string> = {
+  alquiler: "Alquiler",
+  servicios: "Servicios (luz, agua, internet)",
+  planilla: "Planilla / honorarios",
+  transporte: "Transporte / envíos / flete",
+  marketing: "Marketing",
+  mantenimiento: "Mantenimiento",
+  suministros: "Suministros (bolsas, empaques, útiles)",
+  otro: "Otro",
+};
+
+// Método de pago con el que CAYLA paga un gasto — dominio DISTINTO de
+// METODOS_PAGO (cómo paga la clienta una venta, 0007_finanzas.sql). Mismo
+// nombre, dos constraints reales distintos (0013_finanzas_nucleo.sql para
+// gastos, 0007 para ventas) — nunca se comparte el tipo entre los dos.
+export const METODOS_PAGO_GASTO = ["efectivo", "banco", "yape", "tarjeta"] as const;
+export type MetodoPagoGasto = (typeof METODOS_PAGO_GASTO)[number];
+
+export const ETIQUETA_METODO_PAGO_GASTO: Record<MetodoPagoGasto, string> = {
+  efectivo: "Efectivo (sale del cajón)",
+  banco: "Banco / transferencia",
+  yape: "Yape",
+  tarjeta: "Tarjeta",
+};
 
 // Fase 3: ingreso de mercadería y almacén (supabase/migrations/0008_almacen.sql).
 export const ORIGENES_LOTE = ["taller", "proveedor"] as const;

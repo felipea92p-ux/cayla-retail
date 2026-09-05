@@ -4,24 +4,12 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getEERRMensual, mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO, type GastoCategoria, type MetodoPagoGasto } from "@cayla-retail/shared";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
 import { Ayuda } from "@/components/Ayuda";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-const ETIQUETA_CATEGORIA: Record<string, string> = {
-  alquiler: "Alquiler",
-  servicios: "Servicios",
-  planilla: "Planilla / honorarios",
-  transporte: "Transporte",
-  marketing: "Marketing",
-  mantenimiento: "Mantenimiento",
-  suministros: "Suministros",
-  otro: "Otro",
-};
-
-const ETIQUETA_PAGO: Record<string, string> = { efectivo: "Efectivo", banco: "Banco", yape: "Yape", tarjeta: "Tarjeta" };
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -193,9 +181,11 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
                     <tr key={g.id}>
                       <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(g.created_at)}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">{sede?.codigo ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-tinta/60">{ETIQUETA_CATEGORIA[g.categoria] ?? g.categoria}</td>
                       <td className="px-3 py-2.5 text-tinta/60">
-                        {g.metodo_pago ? ETIQUETA_PAGO[g.metodo_pago] ?? g.metodo_pago : "—"}
+                        {ETIQUETA_GASTO_CATEGORIA[g.categoria as GastoCategoria] ?? g.categoria}
+                      </td>
+                      <td className="px-3 py-2.5 text-tinta/60">
+                        {g.metodo_pago ? ETIQUETA_METODO_PAGO_GASTO[g.metodo_pago as MetodoPagoGasto] ?? g.metodo_pago : "—"}
                       </td>
                       <td className="px-3 py-2.5 text-tinta/60">{g.especificacion ?? "—"}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(g.total))}</td>
