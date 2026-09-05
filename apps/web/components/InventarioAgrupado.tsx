@@ -168,7 +168,9 @@ export function InventarioAgrupado({
                 </div>
                 <div className="text-right">
                   <p className={`font-display text-xl ${stockTotal === 0 ? "text-rojo" : "text-tinta"}`}>{stockTotal}</p>
-                  {stockAlmacen > 0 && <p className="text-[10px] text-tinta/40">+{stockAlmacen} en almacén</p>}
+                  {stockAlmacen > 0 && (
+                    <p className="text-sm font-medium text-rojo/80">+{stockAlmacen} en almacén</p>
+                  )}
                 </div>
                 <p className="hidden text-right text-xs text-tinta/50 sm:block">{p.variantes.length}</p>
                 <p className="hidden text-right text-xs text-tinta/50 sm:block">
@@ -195,6 +197,16 @@ export function InventarioAgrupado({
                             <span className="bg-crema px-2 py-1 text-[11px] text-rojo">sin stock</span>
                           )}
                         </span>
+                        {Object.keys(v.stockAlmacenPorSede).length > 0 && (
+                          <span className="flex flex-wrap items-center gap-px border border-rojo/20 bg-rojo/5">
+                            <span className="px-1.5 text-[9px] text-rojo/70">almacén</span>
+                            {Object.entries(v.stockAlmacenPorSede).map(([codigo, cantidad]) => (
+                              <span key={codigo} className="bg-crema px-2 py-1 text-[11px] text-tinta/60">
+                                {codigo} <b className="font-display text-xs text-rojo/80">{cantidad}</b>
+                              </span>
+                            ))}
+                          </span>
+                        )}
                         {v.precio != null && <span className="text-xs text-tinta/55">S/{v.precio.toFixed(2)}</span>}
                         {v.reponerYa && <span className="label-cayla text-[8px] text-rojo">Reponer</span>}
                         <span className="ml-auto flex gap-2">
