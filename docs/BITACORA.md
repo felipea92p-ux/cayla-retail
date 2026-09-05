@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (hallazgo real: faltaban 25 de 30 categorías en producción)
+Felipe llenó "Recibir mercadería" con un ejemplo real (Blusa Manga Larga,
+proveedor EGTI) y notó que Categoría no ofrecía "Blusas" — solo las 5 de
+`0030_categorias_captura_real.sql`. Causa raíz encontrada leyendo el propio
+repo: `supabase/unificacion/04_catalogo.sql` (paso 4 de la unificación con
+Dynamic, jul-2026) recreó la tabla `retail.categorias` desde cero pero nunca
+volvió a correr las 30 filas semilla de `0009_categorias.sql` — solo definió
+la estructura. Las 5 de `0030` fueron las PRIMERAS que existieron en
+producción, no una adición a 30 previas. El gap llevaba desde julio sin
+notarse porque el catálogo real recién empezó a cargarse el 09-03. Repuestas
+las 25 faltantes (`0036` local, `unificacion/19` producción, `on conflict do
+nothing`, seguro de correr). De paso, Felipe notó que Costo/Precio/Stock
+mínimo en el mismo formulario solo tenían placeholder — se veían idénticos
+una vez llenos porque el placeholder desaparece al escribir; se agregaron
+etiquetas fijas a todos los campos del ítem, y la confirmación al recibir
+ahora dice cuántos ítems/unidades entraron con enlaces a Catálogo/Almacén.
+
 ## 2026-09-05 (proveedor habitual del producto — cierra la pregunta de Felipe)
 Felipe probó Proveedores (le gustó editar/desactivar) y preguntó cómo debía
 relacionarse con "Nuevo producto": ¿primero el proveedor, luego el producto

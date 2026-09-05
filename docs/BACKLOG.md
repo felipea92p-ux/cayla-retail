@@ -153,6 +153,18 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`retail.categorias` le faltan 25 de 30 filas en producción (mismo
+      patrón que ADR-0004/ADR-0006, sin arreglar todavía) — encontrado por
+      Felipe en vivo, 2026-09-05.** `04_catalogo.sql` (paso 4 de la
+      unificación) recreó la tabla desde cero pero nunca insertó la semilla
+      de `0009` — solo las 5 filas de `0030_categorias_captura_real.sql`
+      (pegadas después) existen hoy. "Blusas" y otras 14 de indumentaria más
+      todo calzado/accesorios/bisutería/belleza/papelería faltan. Migración
+      lista en `supabase/unificacion/19_categorias_completas.sql`
+      (`on conflict do nothing`, segura de correr), **falta que Felipe la
+      pegue en el SQL Editor**. Sin esto, "Recibir mercadería" y "Nuevo
+      producto" no pueden clasificar la mayoría del catálogo real.
+      Reversible: sí, son datos (insert aditivo).
 - [ ] **`patrimonio_items.categoria` no existe en producción (ADR-0006,
       2026-09-04) — mismo patrón que `recibir_lote` (ADR-0004), sin arreglar
       todavía.** La unificación de julio copió `patrimonio_items` desde la
