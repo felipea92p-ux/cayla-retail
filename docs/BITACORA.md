@@ -3,6 +3,35 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (facturación — verificar al cliente contra RENIEC/SUNAT antes de emitir)
+Felipe pidió que boletas y facturas lean el DNI (o el RUC, si es factura) y
+muestren en pantalla los datos del cliente para poder verificarlos antes de
+emitir. Se construyó como tres piezas separadas y no como un campo con una
+llamada adentro: validación pura (`packages/shared/src/documento.ts`), adaptador
+de proveedores (`apps/web/lib/padron.ts`, tres proveedores intercambiables por
+variable de entorno) y un campo reutilizable (`ConsultaDocumento.tsx`) que va a
+servir igual en el punto de venta. Decisiones y descartes en ADR-0008.
+
+Lo que manda del hallazgo: ni RENIEC ni SUNAT tienen API abierta —todo pasa por
+intermediarios que cobran por consulta y a veces desaparecen—, y Nubefact (el
+OSE ya elegido) no sirve para consultar, solo para emitir. Por eso el dígito
+verificador del RUC se calcula en casa: caza casi todos los tipeos sin gastar
+una consulta pagada y funciona sin internet. Y por eso lo que se muestra no es
+solo el nombre sino el estado y la condición del RUC: una factura a un RUC de
+baja o "no habido" la rechaza SUNAT y la clienta pierde el crédito fiscal, con
+el correlativo ya quemado.
+
+Dos bugs reales cazados por probar en vez de razonar: (1) el middleware mandaba
+a `/login` también a las rutas de API, así que un `fetch()` recibía HTML en vez
+de JSON y el formulario decía "no se pudo consultar" cuando en realidad la
+sesión había vencido — le pasaba igual a `/api/export/inventario` desde antes;
+(2) el formulario guardaba el tipo de documento como estado aparte del tipo de
+comprobante, así que tipear un DNI y luego cambiar a Factura dejaba
+"factura + dni" y la venta se caía recién al apretar Emitir. Ahora se deriva:
+el estado imposible no existe. Aparte, se confirmó que el stack local de retail
+es solo Postgres (los demás servicios no levantan y `retail` no está expuesto
+como schema), así que la app nunca ha corrido contra local — está en el backlog.
+
 ## 2026-09-05 (reemplazo total de Alegra — Fase 0: esquema legal completo)
 Felipe pidió reemplazar Alegra por completo, con un módulo propio superior a
 QuickBooks y estética de casa de moda de herencia. Se hicieron 27 preguntas de

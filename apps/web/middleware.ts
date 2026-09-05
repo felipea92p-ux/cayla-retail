@@ -29,8 +29,17 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
   const isAuthCallback = request.nextUrl.pathname.startsWith("/auth");
+  const isApi = request.nextUrl.pathname.startsWith("/api/");
 
   if (!user && !isLoginPage && !isAuthCallback) {
+    // A una pantalla se la manda al login; a una ruta de API, no. Un `fetch()`
+    // sigue el redirect en silencio, recibe el HTML del login y revienta al
+    // intentar leerlo como JSON — el formulario terminaba diciendo "no se pudo
+    // consultar" cuando lo que pasó fue que la sesión venció. Con esto, quien
+    // llama recibe un 401 que puede distinguir y explicar.
+    if (isApi) {
+      return NextResponse.json({ error: "Sesión vencida. Vuelve a entrar." }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
 import { Ayuda } from "@/components/Ayuda";
+import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 
 type Sede = { id: string; codigo: string };
 
@@ -64,9 +65,14 @@ export function ComprobantesPanel({
   const [sedeId, setSedeId] = useState(sedeActualId);
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [total, setTotal] = useState(0);
-  const [clienteTipoDoc, setClienteTipoDoc] = useState<"dni" | "ruc" | "sin_documento">("sin_documento");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
+  // Estado imposible eliminado por diseño: el tipo de documento NO es un estado
+  // aparte que pueda contradecir al tipo de comprobante — se deriva de él. Antes,
+  // tipear un DNI y luego cambiar a Factura dejaba "factura + dni", y la venta se
+  // caía recién al apretar Emitir, con la clienta esperando en el mostrador.
+  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
+    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
 
   // Formulario de serie
   const [serieSedeId, setSerieSedeId] = useState(sedeActualId);
@@ -81,7 +87,6 @@ export function ComprobantesPanel({
     setModal(null);
     setError(null);
     setTotal(0);
-    setClienteTipoDoc("sin_documento");
     setClienteNumDoc("");
     setClienteNombre("");
     setSerieTexto("");
@@ -286,7 +291,11 @@ export function ComprobantesPanel({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setTipo(t)}
+                    onClick={() => {
+                      setTipo(t);
+                      setClienteNumDoc("");
+                      setClienteNombre("");
+                    }}
                     className={`label-cayla flex-1 border px-3 py-2 text-[10px] transition-colors ${
                       tipo === t ? "border-rojo bg-rojo/10 text-rojo" : "border-tinta/20 text-tinta/50"
                     }`}
@@ -310,37 +319,14 @@ export function ComprobantesPanel({
               />
             </div>
 
-            {tipo === "factura" ? (
-              <>
-                <div>
-                  <label className="label-cayla block text-[9px] text-tinta/45">RUC del cliente</label>
-                  <input
-                    required
-                    value={clienteNumDoc}
-                    onChange={(e) => { setClienteNumDoc(e.target.value); setClienteTipoDoc("ruc"); }}
-                    className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="label-cayla block text-[9px] text-tinta/45">Razón social</label>
-                  <input
-                    required
-                    value={clienteNombre}
-                    onChange={(e) => setClienteNombre(e.target.value)}
-                    className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-                  />
-                </div>
-              </>
-            ) : (
-              <div>
-                <label className="label-cayla block text-[9px] text-tinta/45">DNI del cliente (opcional)</label>
-                <input
-                  value={clienteNumDoc}
-                  onChange={(e) => { setClienteNumDoc(e.target.value); setClienteTipoDoc(e.target.value ? "dni" : "sin_documento"); }}
-                  className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-                />
-              </div>
-            )}
+            <ConsultaDocumento
+              tipo={tipo === "factura" ? "ruc" : "dni"}
+              obligatorio={tipo === "factura"}
+              numero={clienteNumDoc}
+              onNumero={setClienteNumDoc}
+              nombre={clienteNombre}
+              onNombre={setClienteNombre}
+            />
 
             {error && <p className="text-xs text-rojo">{error}</p>}
 

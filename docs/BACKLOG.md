@@ -108,6 +108,26 @@ importante que ha entrado a este archivo desde que existe.
       (ej. varias tallas/colores) para confirmar que aparece en Catálogo** —
       cierra además la verificación que le faltaba a `almacen interno` de
       arriba ("que Felipe entre un producto real por la pantalla").
+- [ ] **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
+      Felipe contrate un proveedor y ponga dos variables de entorno.** El modal
+      de emisión ya lee el DNI/RUC y muestra a quién pertenece antes de emitir
+      (nombre o razón social, y para RUC además estado y condición, porque una
+      factura a un RUC de baja o "no habido" la rechaza SUNAT con el correlativo
+      ya quemado). Adaptadores para tres proveedores intercambiables — ADR-0008.
+      **Pendiente:** contratar `decolecta`, `apisnetpe` o `factiliza`, y poner
+      en Vercel `PADRON_PROVEEDOR` (uno de esos tres nombres) y `PADRON_TOKEN`.
+      Sin eso la pantalla funciona igual, avisando que la consulta automática no
+      está activada y dejando escribir el nombre a mano. Reversible: sí (no
+      toca el esquema).
+- [ ] `la app nunca ha corrido contra el Supabase local`: el stack local de
+      retail levanta solo Postgres (los demás contenedores no arrancan, choque
+      de puertos con cayla-dynamic), y `supabase/config.toml` expone
+      `["public", "graphql_public"]` mientras la app pide `schema: "retail"`.
+      Consecuencia real: cada pantalla nueva se verifica contra producción o no
+      se verifica. Descubierto 2026-09-05 al intentar demostrar la consulta de
+      DNI/RUC en el navegador. Decidir con Felipe si vale arreglarlo (exponer
+      `retail` en config + mover las tablas locales a ese schema) o dejarlo
+      declarado. Reversible: sí.
 - [ ] `produccion — insumos del taller`: la receta de costo (`0024`-`0029`) calcula
       con tela+avíos como costo directo declarado a mano, pero sigue sin inventario
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el

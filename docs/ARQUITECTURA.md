@@ -147,10 +147,29 @@ flowchart TB
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/finanzas/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
+- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
   `registrar_serie_comprobante`. El envío real a SUNAT no está conectado
-  todavía — ver ADR-0005.
+  todavía — ver ADR-0005. El modal de emisión usa `ConsultaDocumento.tsx`, el
+  único componente que llama a una ruta de API propia en vez de a una RPC:
+  `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
+  del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
+  `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+
+### 3.x Rutas de API (`app/api/**/route.ts`)
+
+Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
+cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
+
+- `/api/export/inventario` → CSV del catálogo (`lib/catalogo.ts`).
+- `/api/padron` → consulta de DNI/RUC contra el padrón externo. El token del
+  proveedor nunca sale del servidor. Devuelve siempre 200 con `fuente`
+  (`padron` | `historial` | `ninguna`) — "no pude averiguarlo" es una respuesta
+  normal, no un error. Antes de gastar una consulta pagada busca el documento
+  en `comprobantes` (memoria durable propia) y cachea en memoria por instancia.
+
+Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
+a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 
 ---
 
@@ -267,8 +286,14 @@ Integrante solo su sede (o su almacén asociado).
   aparte, deliberadamente fuera de alcance de ADR-0004.
 - **`retail.puede_operar_sede`** sigue sin la cláusula `tienda_asociada_id`
   que sí tenía la versión local.
-- Cobertura de tests: un solo archivo (`lib/registro-contable.test.ts`)
-  para todo el núcleo de dinero/inventario.
+- Cobertura de tests: tres archivos (`lib/registro-contable.test.ts`,
+  `lib/documento.test.ts`, `lib/padron.test.ts`, 43 pruebas). Sigue sin haber
+  ninguna sobre stock/movimientos, que es el núcleo con más consecuencia.
+- El stack local de Supabase de retail es **solo Postgres**: los demás
+  servicios no levantan (choque de puertos con cayla-dynamic) y `retail` no
+  está en `[api] schemas` de `config.toml`, mientras la app pide
+  `db: { schema: "retail" }`. Consecuencia: la app nunca ha corrido de punta a
+  punta contra local — lo local sirve para probar SQL, no pantallas.
 - `middleware.ts` usa convención deprecada de Next.js 16.
 
 ---
