@@ -76,3 +76,38 @@ duplica cuando se conecte el envío real — nace ya con su número definitivo.
 Queda pendiente, antes de que un comprobante emitido aquí sea legalmente
 válido ante SUNAT: decidir SEE propio vs. OSE con Felipe, y (si es SEE propio)
 que compre el certificado digital y corra la homologación.
+
+## Actualización 2026-09-05 — Parte 2: proveedor = Lucode (apisunat.pe), no Nubefact
+
+Felipe ya tiene una relación comercial activa con **Lucode** (plataforma
+`app.apisunat.pe`, planes por volumen de comprobantes — Plan 05, S/30/mes,
+500 comprobantes — más barato que el Plan API de Nubefact investigado
+previamente, S/70/mes para el mismo volumen) y credenciales de sandbox ya
+emitidas. Se decide usar Lucode en vez de Nubefact.
+
+**Corrección de terminología (Ronda de investigación anterior se equivocó en
+esto):** "PSE" SÍ es un término oficial de SUNAT, no una etiqueta propia de
+un proveedor — existe un menú real en SUNAT Operaciones en Línea: *Empresas /
+Comprobantes de pago / Factura Electrónica / Comunicación de Tercerización
+con PSE / Altas de PSE* (confirmado en el manual que Lucode envió, "ALTA
+PSE - SUNAT v2.pdf"). El mecanismo de Lucode es **tercerización PSE**, no
+homologación OSE: CAYLA sigue registrada ante SUNAT como "SEE - Del
+Contribuyente", pero autoriza a un tercero (PSE) a transmitir en su nombre —
+un mecanismo distinto al de un OSE certificado (Nubefact), aunque el
+resultado práctico para CAYLA (no construir firma XML/SOAP propia) es el
+mismo. Verificar en la próxima sesión si esto cambia en algo el modelo de
+"quién es responsable legal de la transmisión" frente a SUNAT — no se asume.
+
+**Trámite pendiente, hace Felipe, no requiere código:** dar de alta como PSE
+tercero, en SUNAT SOL con su propio RUC/clave SOL (Claude nunca toca esta
+credencial), dos RUCs — `20515809822` (GIOR TECHNOLOGY S.A.C.) y
+`20600337832` (VIDA SOFTWARE S.A.C.) — con fecha de inicio **mañana o
+posterior** (SUNAT no permite elegir el mismo día). Esto fija la fecha más
+temprana posible de arranque en producción: si el trámite se hace hoy, el
+sistema puede transmitir en producción como pronto mañana, nunca el mismo
+día.
+
+**Credenciales de Lucode:** Felipe las recibió por WhatsApp (plataforma,
+correo, contraseña). No se registran en este documento ni en ningún archivo
+del repo — van directo a `.env.local` (gitignorado) cuando se conecte la
+Fase 1, puestas por Felipe mismo.
