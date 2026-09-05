@@ -544,12 +544,16 @@ export function RecibirLoteForm({
                     />
                   </Campo>
                   <Campo etiqueta="Género">
-                    <input
+                    <select
                       value={it.genero ?? ""}
                       onChange={(e) => actualizar(it.clientId, "genero", e.target.value)}
-                      placeholder="Ej. Dama, Caballero, Unisex"
                       className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
+                    >
+                      <option value="">Elegir…</option>
+                      <option value="Dama">Dama</option>
+                      <option value="Caballero">Caballero</option>
+                      <option value="Unisex">Unisex</option>
+                    </select>
                   </Campo>
                 </div>
               )}

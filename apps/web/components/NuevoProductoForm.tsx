@@ -258,12 +258,16 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
           </div>
           <div className="space-y-1.5">
             <label className="text-sm text-tinta/70">Género</label>
-            <input
+            <select
               value={genero}
               onChange={(e) => setGenero(e.target.value)}
-              placeholder="Ej. Dama, Caballero, Unisex"
               className="w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
-            />
+            >
+              <option value="">Elegir…</option>
+              <option value="Dama">Dama</option>
+              <option value="Caballero">Caballero</option>
+              <option value="Unisex">Unisex</option>
+            </select>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm text-tinta/70">Temporada</label>
