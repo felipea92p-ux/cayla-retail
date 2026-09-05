@@ -88,7 +88,11 @@ allowed_cidrs_v6 = ["::/0"]
 # enabled = true
 
 [realtime]
-enabled = true
+# Apagado a propósito (2026-09-05): la app no lo usa y era de los primeros
+# contenedores en quedar "unhealthy", lo que abortaba `supabase start` entero y
+# dejaba el stack local con solo Postgres arriba. Menos piezas corriendo =
+# menos cosas que pueden impedir levantar el entorno.
+enabled = false
 # Bind realtime via either IPv4 or IPv6. (default: IPv4)
 # ip_version = "IPv6"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
@@ -375,7 +379,11 @@ authorization_url_path = "/oauth/consent"
 allow_dynamic_registration = false
 
 [edge_runtime]
-enabled = true
+# Apagado a propósito (2026-09-05): la app no lo usa y era de los primeros
+# contenedores en quedar "unhealthy", lo que abortaba `supabase start` entero y
+# dejaba el stack local con solo Postgres arriba. Menos piezas corriendo =
+# menos cosas que pueden impedir levantar el entorno.
+enabled = false
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
@@ -389,7 +397,11 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+# Apagado a propósito (2026-09-05): la app no lo usa y era de los primeros
+# contenedores en quedar "unhealthy", lo que abortaba `supabase start` entero y
+# dejaba el stack local con solo Postgres arriba. Menos piezas corriendo =
+# menos cosas que pueden impedir levantar el entorno.
+enabled = false
 port = 54427
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

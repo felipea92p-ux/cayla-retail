@@ -68,28 +68,45 @@ importante que ha entrado a este archivo desde que existe.
       esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
       cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
-      plan de 7 fases aprobado, Fase 0 cerrada 2026-09-05.** Felipe decidió
-      reemplazar Alegra por completo (facturación + contabilidad + gastos +
-      ingresos + resumen ejecutivo), no solo conectar SUNAT. Plan completo en
-      `~/.claude/plans/cozy-gathering-nova.md`, basado en 27 preguntas de
-      descubrimiento + investigación de 7 agentes (UX Stripe/Mercury/Ramp/
-      QuickBooks/Xero, estética de casas de moda de herencia, motores de
-      insights, Nubefact, normativa SUNAT). Decisiones ya cerradas: OSE =
-      Nubefact (no SEE propio — ver ADR-0005), corte limpio sin migrar
-      historial de Alegra, series propias por sede, insights SIEMPRE
-      segmentados por sede (ningún benchmark investigado lo hace, y es el
-      riesgo real de un negocio de 3 tiendas). **Fase 0 (ADR-0007) cerrada**:
-      `0034_facturacion_completa.sql` — proforma en tabla separada (nunca se
-      "promociona" con UPDATE), NC/ND con referencia obligatoria a un
-      comprobante aceptado (CHECK + trigger), `nota_debito` agregado. Probado
-      empíricamente en local (puerto reconfigurado a 54421-54429 para no
-      chocar con cayla-dynamic), cazó un bug real antes de entregarlo (check
-      duplicado de `series_comprobantes.tipo` desincronizado). **Pendiente:**
-      pegar `0034` en producción (Felipe), luego Fase 1 (integración real con
-      Nubefact — hoy el comprobante sigue en "Pendiente de enviar"). Aparte,
-      sin bloquear el proyecto: preguntarle al contador si CAYLA ya cruzó el
-      umbral SIRE (75 UIT, ~S/412,500/año) — obligación distinta del PLE (300
-      UIT) que probablemente ya aplica hoy.
+      plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
+      CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
+      decidió reemplazar Alegra por completo (facturación + contabilidad +
+      gastos + ingresos + resumen ejecutivo), no solo conectar SUNAT. Plan
+      completo en `~/.claude/plans/cozy-gathering-nova.md`.
+      **Corrección importante (ADR-0005, actualizado 2026-09-05):** el
+      proveedor de transmisión SUNAT NO es Nubefact — es **Lucode**
+      (`app.apisunat.pe`), con quien Felipe ya tenía relación comercial y
+      credenciales de sandbox emitidas; más barato que Nubefact (S/30/mes vs
+      S/70/mes al mismo volumen). El mecanismo es tercerización **PSE** (sí es
+      término oficial SUNAT — la investigación original se equivocó en eso),
+      no homologación OSE: CAYLA sigue como "SEE - Del Contribuyente" pero
+      autoriza a Lucode a transmitir en su nombre. **Trámite pendiente, hace
+      Felipe, no requiere código:** alta como PSE tercero en SUNAT SOL
+      (RUCs GIOR TECHNOLOGY `20515809822` / VIDA SOFTWARE `20600337832`, fecha
+      de inicio mañana o posterior — SUNAT no permite el mismo día). Mientras
+      no se dé de alta, no se puede transmitir en producción aunque el código
+      esté listo.
+      **Fase 0 (ADR-0007) — verificada en producción:** `17_facturacion_completa.sql`
+      pegado; confirmado con `pg_proc`/`information_schema.tables` que las 6
+      funciones y las 3 tablas (`comprobantes`, `series_comprobantes`,
+      `proformas`) existen. Proforma en tabla separada (nunca se "promociona"
+      con UPDATE), NC/ND con referencia obligatoria a un comprobante aceptado
+      (CHECK + trigger), `nota_debito` agregado.
+      **Fase 0.5 (tokens de diseño) en construcción:** `packages/shared/src/
+      design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
+      ya creados por una sesión paralela; radios corregidos a 0px en toda la
+      app (brandbook pedía esquinas rectas, se habían desviado a 8-18px).
+      **Aparte, ya construido 2026-09-05 (ADR-0008):** verificación de cliente
+      contra RENIEC/SUNAT antes de emitir (`packages/shared/src/documento.ts`,
+      `apps/web/lib/padron.ts`, `ConsultaDocumento.tsx`) — encontró y corrigió
+      2 bugs reales (middleware bloqueaba rutas de API, estado de tipo de
+      documento desincronizado del tipo de comprobante).
+      **Aparte, ya construido 2026-09-05:** `supabase/seed.sql` renombra
+      `public`→`retail` después de migrar en local — el stack local nunca
+      había podido correr con el mismo schema que producción hasta ahora.
+      **Pendiente, sin bloquear el proyecto:** preguntarle al contador si
+      CAYLA ya cruzó el umbral SIRE (75 UIT, ~S/412,500/año) — obligación
+      distinta del PLE (300 UIT) que probablemente ya aplica hoy.
 - [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
       `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
       producción.** "Recibir mercadería" crea un `producto` nuevo por CADA

@@ -3,6 +3,20 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Fase 0 confirmada en producción + reconciliación con 2 sesiones paralelas)
+Felipe pegó `17_facturacion_completa.sql` en producción. Confirmado con
+`pg_proc`/`information_schema.tables`: las 6 funciones y las 3 tablas
+(`comprobantes`, `series_comprobantes`, `proformas`) existen — Fase 0 cerrada
+de punta a punta, no solo "escrita". En el camino, dos sesiones paralelas
+habían avanzado bastante en el mismo árbol compartido: verificación RENIEC/
+SUNAT (ADR-0008), corrección del proveedor SUNAT a Lucode (no Nubefact — ver
+esa entrada abajo), Fase 0.5 de tokens de diseño empezada, y Proveedores
+(editar/desactivar) ya en GitHub. Un solo conflicto real al fusionar
+(`BITACORA.md`, aditivo — dos sesiones agregando entradas al mismo punto, se
+combinan sin perder nada). Backlog actualizado para reflejar el estado real:
+Lucode reemplaza a Nubefact en toda referencia, con el trámite pendiente que
+le toca a Felipe (alta como PSE tercero en SUNAT SOL, no antes de mañana).
+
 ## 2026-09-05 (facturación — verificar al cliente contra RENIEC/SUNAT antes de emitir)
 Felipe pidió que boletas y facturas lean el DNI (o el RUC, si es factura) y
 muestren en pantalla los datos del cliente para poder verificarlos antes de
