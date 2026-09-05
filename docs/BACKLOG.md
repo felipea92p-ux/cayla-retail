@@ -92,6 +92,23 @@ importante que ha entrado a este archivo desde que existe.
       `proformas`) existen. Proforma en tabla separada (nunca se "promociona"
       con UPDATE), NC/ND con referencia obligatoria a un comprobante aceptado
       (CHECK + trigger), `nota_debito` agregado.
+      **Fase 1 (Lucode, ADR-0009) — construida y verificada en local, falta
+      producción + credenciales:** `comprobantes.items jsonb` (con fallback
+      genérico si `ComprobantesPanel.tsx` no manda desglose — el desglose real
+      por SKU queda pendiente de conectar Facturación a `ventas`, decisión de
+      UX de Felipe), adaptador `apps/web/lib/lucode.ts`, ruta
+      `/api/lucode/emitir`, botón "Transmitir" visible en comprobantes
+      pendiente/rechazado. Local: `0037_comprobantes_items.sql` +
+      `0038_actualizar_transmision_comprobante.sql`. Producción:
+      `supabase/unificacion/20_comprobantes_items.sql` +
+      `21_actualizar_transmision_comprobante.sql`, sin pegar todavía.
+      **Pendiente, ambos bloquean la prueba real:** (1) que Felipe pegue esas
+      dos migraciones en el SQL Editor de producción; (2) que Felipe ponga su
+      `LUCODE_TOKEN` real en `.env.local` (`LUCODE_ENTORNO=sandbox`) — nunca en
+      el chat. Sin eso el botón responde "sin_credenciales", sin riesgo de
+      transmitir a medias. Independiente del código: el trámite SUNAT SOL de
+      alta como PSE tercero (línea de arriba) sigue sin confirmarse hecho —
+      bloquea sandbox→producción real aunque el código esté listo.
       **Fase 0.5 (tokens de diseño) en construcción:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       ya creados por una sesión paralela; radios corregidos a 0px en toda la
