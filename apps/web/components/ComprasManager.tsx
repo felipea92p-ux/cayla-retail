@@ -32,6 +32,48 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
+function fechaCorta(iso: string) {
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "short" }).format(new Date(iso));
+}
+
+// Línea de control pedido→llegada: el cuadrito de "hoy" recorre la línea entre
+// la fecha del pedido y la fecha estimada. Sin fecha estimada no hay línea que
+// trazar — la orden se muestra sin ella (ver render abajo).
+function progresoOrden(fecha: string, fechaEstimada: string): { pct: number; atrasada: boolean } {
+  const inicio = new Date(fecha).getTime();
+  const fin = new Date(fechaEstimada).getTime();
+  const hoy = Date.now();
+  const pct = fin <= inicio ? 100 : Math.max(0, Math.min(100, ((hoy - inicio) / (fin - inicio)) * 100));
+  return { pct, atrasada: hoy > fin };
+}
+
+function LineaControl({ fecha, fechaEstimada, recibida }: { fecha: string; fechaEstimada: string; recibida: boolean }) {
+  const { pct, atrasada } = progresoOrden(fecha, fechaEstimada);
+  const marcaAtrasada = atrasada && !recibida;
+  return (
+    <div className="mt-2 w-full">
+      <div className="relative h-px w-full bg-tinta/15">
+        <div className={`absolute inset-y-0 left-0 h-px ${marcaAtrasada ? "bg-rojo/50" : "bg-rojo"}`} style={{ width: `${pct}%` }} />
+        {/* Inicio: pedido */}
+        <span className="absolute top-1/2 left-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 border border-tinta bg-crema" />
+        {/* Hoy: recorre la línea */}
+        <span
+          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 border ${marcaAtrasada ? "border-rojo bg-rojo" : "border-tinta bg-tinta"}`}
+          style={{ left: `${pct}%`, transform: "translate(-50%, -50%)" }}
+        />
+        {/* Fin: llegada estimada */}
+        <span className="absolute top-1/2 right-0 h-2 w-2 translate-x-1/2 -translate-y-1/2 border border-tinta/30 bg-crema" />
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] text-tinta/40">
+        <span>Pedido {fechaCorta(fecha)}</span>
+        <span className={marcaAtrasada ? "text-rojo" : ""}>
+          {marcaAtrasada ? "Debería haber llegado" : "Llega"} {fechaCorta(fechaEstimada)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function ComprasManager({
   ordenes,
   sedes,
@@ -189,23 +231,27 @@ export function ComprasManager({
           </p>
         )}
         {ordenes.map((o) => (
-          <div key={o.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm">
-            <span
-              className={`label-cayla text-[9px] ${
-                o.estado === "recibida" ? "text-tinta/40" : o.estado === "cancelada" ? "text-tinta/30" : "text-rojo"
-              }`}
-            >
-              {ETIQUETA_ESTADO[o.estado] ?? o.estado}
-            </span>
-            <span className="font-medium text-tinta">{o.proveedor}</span>
-            <span className="text-tinta/50">→ {o.sedeCodigo}</span>
-            {o.montoEstimado != null && <span className="text-tinta/60">{money(o.montoEstimado)}</span>}
-            {o.fechaEstimada && <span className="text-tinta/45">llega ~{o.fechaEstimada}</span>}
-            {o.nota && <span className="text-tinta/40">· {o.nota}</span>}
-            {esLider && (o.estado === "pendiente" || o.estado === "confirmada") && (
-              <button onClick={() => cancelar(o.id)} className="label-cayla ml-auto text-[9px] text-tinta/40 hover:text-rojo">
-                Cancelar
-              </button>
+          <div key={o.id} className="px-4 py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span
+                className={`label-cayla text-[9px] ${
+                  o.estado === "recibida" ? "text-tinta/40" : o.estado === "cancelada" ? "text-tinta/30" : "text-rojo"
+                }`}
+              >
+                {ETIQUETA_ESTADO[o.estado] ?? o.estado}
+              </span>
+              <span className="font-medium text-tinta">{o.proveedor}</span>
+              <span className="text-tinta/50">→ {o.sedeCodigo}</span>
+              {o.montoEstimado != null && <span className="text-tinta/60">{money(o.montoEstimado)}</span>}
+              {o.nota && <span className="text-tinta/40">· {o.nota}</span>}
+              {esLider && (o.estado === "pendiente" || o.estado === "confirmada") && (
+                <button onClick={() => cancelar(o.id)} className="label-cayla ml-auto text-[9px] text-tinta/40 hover:text-rojo">
+                  Cancelar
+                </button>
+              )}
+            </div>
+            {o.fechaEstimada && (o.estado === "pendiente" || o.estado === "confirmada" || o.estado === "recibida") && (
+              <LineaControl fecha={o.fecha} fechaEstimada={o.fechaEstimada} recibida={o.estado === "recibida"} />
             )}
           </div>
         ))}
