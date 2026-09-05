@@ -622,9 +622,9 @@ export function RecibirLoteForm({
             ✓ Recibido: {ok.items} ítem{ok.items === 1 ? "" : "s"}, {ok.unidades} unidad{ok.unidades === 1 ? "" : "es"} en total.
           </p>
           <p className="mt-1 text-xs text-green-700">
-            Ya está en stock — revísalo en{" "}
-            <Link href="/inventario" className="underline">Catálogo</Link> (stock total por modelo) o en{" "}
-            <Link href="/inventario/almacen" className="underline">Almacén</Link> (por contenedor).
+            Quedó en tu <Link href="/inventario/almacen" className="underline">Almacén</Link> — todavía no está en el
+            piso de venta. En <Link href="/inventario" className="underline">Catálogo</Link> lo vas a ver como
+            &ldquo;+N en almacén&rdquo; junto al stock del modelo. Para poder venderlo, bájalo a tienda desde Almacén.
           </p>
         </div>
       )}

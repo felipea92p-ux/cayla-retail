@@ -17,9 +17,11 @@ export type VarianteConStock = {
   stockMinimo: number;
   costo: number | null; // null salvo Líder — el costo/margen es información sensible
   precio: number | null; // visible para todas: la Encargada lo necesita para vender
-  stockPorSede: Record<string, number>; // codigo de sede -> cantidad
+  stockPorSede: Record<string, number>; // codigo de sede -> cantidad EN PISO (vendible ahora)
   minimoPorSede: Record<string, number>; // solo sedes con mínimo propio definido
-  stockTotal: number;
+  stockTotal: number; // suma de stockPorSede — lo que se puede vender hoy
+  stockAlmacenPorSede: Record<string, number>; // recibido pero sin bajar a piso todavía
+  stockAlmacenTotal: number;
   ultimaVenta: string | null; // más reciente entre sedes, null si nunca se vendió
   creadaEn: string; // variantes.created_at — usado por inteligencia.ts para "días sin venta" si nunca vendió
 }
@@ -30,7 +32,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   // Las 3 consultas son independientes entre sí (el cruce entre variantes/stock/sedes
   // ocurre después, en JS, por variante_id/sede_id) — en paralelo en vez de esperar a
   // `variantes` sola antes de arrancar las otras dos.
-  const [{ data: variantes, error: errVariantes }, { data: stockRows }, sedes] = await Promise.all([
+  const [{ data: variantes, error: errVariantes }, { data: stockRows }, { data: stockAlmacenRows }, sedes] = await Promise.all([
     supabase
       .from("variantes")
       .select(
@@ -38,6 +40,11 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
       )
       .order("sku"),
     supabase.from("stock").select("variante_id, cantidad, stock_minimo, sede_id, ultima_venta"),
+    // Lo recibido que todavía no se bajó a piso — bolsa aparte desde el
+    // almacén interno (0011_produccion_material_etapas en adelante). Sin
+    // esto, "Recibir mercadería" mete unidades reales que no se ven en
+    // ningún lado del Catálogo hasta que alguien las baja a tienda.
+    supabase.from("stock_almacen").select("variante_id, cantidad, sede_id"),
     mapaSedes(),
   ]);
 
@@ -66,6 +73,15 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
     }
   });
 
+  const stockAlmacenPorVariante = new Map<string, Record<string, number>>();
+  (stockAlmacenRows ?? []).forEach((r) => {
+    const codigo = sedes.get(r.sede_id)?.codigo;
+    if (!codigo) return;
+    const actual = stockAlmacenPorVariante.get(r.variante_id) ?? {};
+    actual[codigo] = r.cantidad;
+    stockAlmacenPorVariante.set(r.variante_id, actual);
+  });
+
   const verCostos = persona.rol === "lider";
 
   return variantes
@@ -78,6 +94,8 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
       const categoriaRow = producto ? (Array.isArray(producto.categorias) ? producto.categorias[0] : producto.categorias) : null;
       const porSede = stockPorVariante.get(v.id) ?? {};
       const stockTotal = Object.values(porSede).reduce((a, b) => a + b, 0);
+      const porSedeAlmacen = stockAlmacenPorVariante.get(v.id) ?? {};
+      const stockAlmacenTotal = Object.values(porSedeAlmacen).reduce((a, b) => a + b, 0);
       return {
         varianteId: v.id,
         productoId: producto?.id ?? "",
@@ -96,6 +114,8 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         stockPorSede: porSede,
         minimoPorSede: minimoPorVariante.get(v.id) ?? {},
         stockTotal,
+        stockAlmacenPorSede: porSedeAlmacen,
+        stockAlmacenTotal,
         ultimaVenta: ultimaVentaPorVariante.get(v.id) ?? null,
         creadaEn: v.created_at,
       };
