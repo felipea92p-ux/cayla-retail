@@ -12,3 +12,7 @@ supabase/.temp/
 .vercel
 .env*
 .claude/settings.local.json
+
+# La plantilla sí se versiona (va sin valores). Debe ir al final: en git
+# gana la última regla que coincide, y `.env*` de arriba la anularía.
+!.env.example

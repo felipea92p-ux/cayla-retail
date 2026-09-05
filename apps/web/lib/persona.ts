@@ -16,6 +16,22 @@ export type PersonaActual = {
 
 const COOKIE_SEDE = "cayla_sede_activa";
 
+/** Traduce el rol tal como viene de la base al de dos niveles que usa la app:
+ *  'lider' (ve todo) e 'integrante' (su sede).
+ *
+ *  Acepta DOS vocabularios porque la base tiene dos formas según dónde corra:
+ *  en producción `retail.personas` es una vista puente sobre dynamic, que trae
+ *  admin / supervisor_sede / integrante; en local es la tabla del propio repo,
+ *  cuyo CHECK solo admite lider / integrante. Reconocer uno solo —como hacía
+ *  antes, únicamente 'admin'— convertía a cualquier Líder local en integrante y
+ *  lo sacaba de Finanzas, Facturación y Producción sin explicar por qué.
+ *
+ *  `supervisor_sede` se mapea a integrante a propósito: "el supervisor ve sus
+ *  reportes" es una decisión pendiente, no un olvido. */
+export function mapearRol(rol: string | null): "lider" | "integrante" {
+  return rol === "admin" || rol === "lider" ? "lider" : "integrante";
+}
+
 /** Trae la persona ligada al usuario logueado. Si no existe, no puede usar la app todavía
  *  (falta que un Líder la dé de alta) — se manda a /login con el mensaje. */
 // Memorizado por-request con React cache(): el layout, cada página y el menú
@@ -45,11 +61,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
     redirect("/login?error=sin_persona");
   }
 
-  // Los roles viven en dynamic (admin / supervisor_sede / integrante). La app usa
-  // dos niveles: 'lider' (ve todo) e 'integrante' (su sede). Mapeo: admin → lider;
-  // supervisor_sede e integrante → integrante (el "supervisor ve sus reportes" se
-  // afina después). Así el resto de la app sigue razonando con lider/integrante.
-  const rol: "lider" | "integrante" = data.rol === "admin" ? "lider" : "integrante";
+  const rol = mapearRol(data.rol);
 
   let sedeId = data.sede_id;
   // El código de la sede sale del mapa cacheado por request (getSedes()), no de una

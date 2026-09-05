@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mapearRol } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
 
 // Exporta el inventario completo como CSV (F2). Se abre directo en Excel /
@@ -24,8 +25,7 @@ export async function GET() {
     .select("codigo")
     .eq("id", personaRow.sede_id)
     .maybeSingle();
-  // Mapa de roles de dynamic → app (admin = Líder; el resto = integrante).
-  const rol: "lider" | "integrante" = personaRow.rol === "admin" ? "lider" : "integrante";
+  const rol = mapearRol(personaRow.rol);
   const persona = {
     id: personaRow.id,
     nombre: personaRow.nombre,

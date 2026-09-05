@@ -26,12 +26,17 @@
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
-  /* Radios — el tablero de estilo usa esquinas redondeadas (14px base) */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-xl: 14px;
-  --radius-2xl: 18px;
+  /* Radios — el brandbook CAYLA v3.0 pide esquinas rectas, sin excepción
+     (Hermès/The Row/Aesop: "cero sombras/gradientes/bordes redondeados" —
+     ver docs/BITACORA.md 2026-07-18). El tablero de estilo se había desviado
+     a 8-18px; corregido 2026-09-05 (confirmado con Felipe) — las utilidades
+     rounded-sm/md/lg/xl/2xl de toda la app colapsan a 0 desde este único
+     token, sin tocar rounded-full (círculos/avatares, escala aparte). */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
 
   /* Movimiento estándar del sistema */
   --default-transition-duration: 200ms;

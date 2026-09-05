@@ -10,9 +10,12 @@ enabled = true
 port = 54421
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public"]
+# `retail` va primero: es donde viven las tablas de este repo, tanto en
+# producción (dentro del proyecto de cayla-dynamic) como en local (ver
+# supabase/seed.sql, que renombra el schema después de migrar).
+schemas = ["retail", "public", "graphql_public"]
 # Extra schemas to add to the search_path of every request.
-extra_search_path = ["public", "extensions"]
+extra_search_path = ["retail", "public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
 max_rows = 1000
