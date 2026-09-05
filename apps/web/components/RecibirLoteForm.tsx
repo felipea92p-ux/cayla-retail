@@ -13,8 +13,16 @@ type VarianteExistente = { varianteId: string; sku: string; referencia: string; 
 
 type Modo = "existente" | "nueva_variante" | "nuevo_producto";
 
+// Campos que describen el producto, no la variante — al editarlos en un ítem
+// "nuevo_producto" se propagan a todo el grupo (mismo grupoId), para poder
+// escribir Referencia/Familia/Categoría/Marca/Género una sola vez aunque el
+// producto tenga varias tallas/colores apilados.
+const CAMPOS_PRODUCTO = new Set<keyof ItemLote>(["referencia", "familia", "categoriaId", "marca", "genero"]);
+
 type ItemLote = {
   clientId: string;
+  /** Agrupa las variantes (talla/color) de un mismo producto nuevo. Por defecto = clientId. */
+  grupoId: string;
   modo: Modo;
   varianteId?: string;
   productoId?: string;
@@ -123,11 +131,31 @@ export function RecibirLoteForm({
     return productosExistentes.filter((p) => p.referencia.toLowerCase().includes(term)).slice(0, 5);
   }, [productosExistentes, q]);
 
+  // Cada producto nuevo se renderiza como un solo bloque con todas sus
+  // variantes (talla/color) adentro; el resto (restock, nueva variante de un
+  // producto ya existente) sigue siendo un ítem suelto.
+  const bloques = useMemo(() => {
+    const vistos = new Set<string>();
+    const resultado: Array<{ tipo: "grupo"; items: ItemLote[] } | { tipo: "individual"; item: ItemLote }> = [];
+    for (const it of items) {
+      if (it.modo === "nuevo_producto") {
+        if (vistos.has(it.grupoId)) continue;
+        vistos.add(it.grupoId);
+        resultado.push({ tipo: "grupo", items: items.filter((x) => x.grupoId === it.grupoId) });
+      } else {
+        resultado.push({ tipo: "individual", item: it });
+      }
+    }
+    return resultado;
+  }, [items]);
+
   function agregarExistente(v: VarianteExistente) {
+    const id = crypto.randomUUID();
     setItems((actual) => [
       ...actual,
       {
-        clientId: crypto.randomUUID(),
+        clientId: id,
+        grupoId: id,
         modo: "existente",
         varianteId: v.varianteId,
         referencia: v.referencia,
@@ -145,10 +173,12 @@ export function RecibirLoteForm({
   }
 
   function agregarNuevaVarianteDeProducto(p: ProductoExistente) {
+    const id = crypto.randomUUID();
     setItems((actual) => [
       ...actual,
       {
-        clientId: crypto.randomUUID(),
+        clientId: id,
+        grupoId: id,
         modo: "nueva_variante",
         productoId: p.id,
         referencia: p.referencia,
@@ -178,10 +208,10 @@ export function RecibirLoteForm({
     return productosExistentes.find((p) => p.referencia.trim().toLowerCase() === term) ?? null;
   }
 
-  function convertirAExistente(clientId: string, p: ProductoExistente) {
+  function convertirAExistente(grupoId: string, p: ProductoExistente) {
     setItems((actual) =>
       actual.map((it) =>
-        it.clientId === clientId
+        it.grupoId === grupoId
           ? {
               ...it,
               modo: "nueva_variante",
@@ -198,10 +228,12 @@ export function RecibirLoteForm({
 
   function agregarProductoNuevo(referenciaInicial = "") {
     const ref = referenciaInicial.trim();
+    const id = crypto.randomUUID();
     setItems((actual) => [
       ...actual,
       {
-        clientId: crypto.randomUUID(),
+        clientId: id,
+        grupoId: id,
         modo: "nuevo_producto",
         referencia: ref,
         skuPadre: ref ? slug(ref) : "",
@@ -219,9 +251,15 @@ export function RecibirLoteForm({
   }
 
   function actualizar(clientId: string, campo: keyof ItemLote, valor: string | number) {
-    setItems((actual) =>
-      actual.map((it) => {
-        if (it.clientId !== clientId) return it;
+    setItems((actual) => {
+      const objetivo = actual.find((it) => it.clientId === clientId);
+      if (!objetivo) return actual;
+      // Un producto nuevo con varias tallas/colores apilados comparte un solo
+      // set de campos de producto — editarlos desde cualquier variante los
+      // actualiza en todas las del mismo grupo.
+      const propagarAlGrupo = objetivo.modo === "nuevo_producto" && CAMPOS_PRODUCTO.has(campo);
+      return actual.map((it) => {
+        if (it.clientId !== clientId && !(propagarAlGrupo && it.grupoId === objetivo.grupoId)) return it;
         const next = { ...it, [campo]: valor };
         // Auto-sugerir sku cuando ya hay suficiente info, sin pisar si el usuario ya lo editó a mano.
         if ((campo === "talla" || campo === "color" || campo === "referencia") && !it.sku) {
@@ -236,8 +274,8 @@ export function RecibirLoteForm({
           next.categoriaId = "";
         }
         return next;
-      })
-    );
+      });
+    });
   }
 
   function tallasSugeridasDe(categoriaId?: string): string[] | null {
@@ -247,6 +285,136 @@ export function RecibirLoteForm({
 
   function quitar(clientId: string) {
     setItems((actual) => actual.filter((it) => it.clientId !== clientId));
+  }
+
+  function quitarGrupo(grupoId: string) {
+    setItems((actual) => actual.filter((it) => it.grupoId !== grupoId));
+  }
+
+  // Clona los campos de producto de la última variante de este grupo y abre
+  // una fila nueva de talla/color/sku en blanco — así se agregan más tallas o
+  // colores de la misma prenda sin retipear referencia/familia/categoría.
+  function agregarVarianteAGrupo(grupoId: string) {
+    setItems((actual) => {
+      const idxUltimo = actual.reduce((acc, it, i) => (it.grupoId === grupoId ? i : acc), -1);
+      if (idxUltimo === -1) return actual;
+      const base = actual[idxUltimo];
+      const nuevo: ItemLote = { ...base, clientId: crypto.randomUUID(), sku: "", talla: "", color: "" };
+      return [...actual.slice(0, idxUltimo + 1), nuevo, ...actual.slice(idxUltimo + 1)];
+    });
+  }
+
+  // Grid de talla/color/sku/costo/precio/stock mínimo — una variante de un producto.
+  // Funciones normales (no componentes) para no perder el foco de los inputs:
+  // definir un componente adentro de otro componente crea un tipo nuevo en
+  // cada render y React remonta el subárbol entero en cada tecla.
+  function camposVariante(it: ItemLote) {
+    return (
+      <div className="mb-2 grid grid-cols-3 gap-2">
+        <p className="col-span-3 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+          Prenda (talla, color y precios)
+        </p>
+        <Campo etiqueta="Talla">
+          {(() => {
+            const tallas = tallasSugeridasDe(it.categoriaId);
+            return tallas && tallas.length > 0 ? (
+              <select
+                value={it.talla}
+                onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+              >
+                <option value="">Elegir…</option>
+                {tallas.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={it.talla}
+                onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+              />
+            );
+          })()}
+        </Campo>
+        <Campo etiqueta="Color">
+          <input
+            value={it.color}
+            onChange={(e) => actualizar(it.clientId, "color", e.target.value)}
+            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+          />
+        </Campo>
+        <Campo etiqueta="SKU">
+          <input
+            value={it.sku}
+            onChange={(e) => actualizar(it.clientId, "sku", e.target.value)}
+            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs font-mono"
+          />
+        </Campo>
+        <Campo etiqueta="Costo S/">
+          <input
+            type="number"
+            min={0}
+            step="0.10"
+            value={it.costo}
+            onChange={(e) => actualizar(it.clientId, "costo", Number(e.target.value))}
+            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+          />
+        </Campo>
+        <Campo etiqueta="Precio S/">
+          <input
+            type="number"
+            min={0}
+            step="0.10"
+            value={it.precio}
+            onChange={(e) => actualizar(it.clientId, "precio", Number(e.target.value))}
+            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+          />
+        </Campo>
+        <Campo etiqueta="Stock mínimo">
+          <input
+            type="number"
+            min={0}
+            value={it.stockMinimo}
+            onChange={(e) => actualizar(it.clientId, "stockMinimo", Number(e.target.value))}
+            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+          />
+        </Campo>
+      </div>
+    );
+  }
+
+  // Cantidad recibida + contenedor destino — cierra cada variante o ítem suelto.
+  function cantidadYContenedor(it: ItemLote) {
+    return (
+      <>
+        <p className="mb-0.5 text-[10px] text-neutral-400">Cantidad recibida</p>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={it.cantidad}
+            onChange={(e) => actualizar(it.clientId, "cantidad", Number(e.target.value))}
+            className="w-16 rounded border border-neutral-300 px-1.5 py-1 text-center text-xs"
+          />
+          <span className="text-xs text-neutral-400">en</span>
+          <select
+            value={it.contenedorId}
+            onChange={(e) => actualizar(it.clientId, "contenedorId", e.target.value)}
+            className="flex-1 rounded border border-neutral-300 px-2 py-1 text-xs"
+          >
+            <option value="">Sin contenedor</option>
+            {contenedores.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.codigo}
+              </option>
+            ))}
+          </select>
+        </div>
+      </>
+    );
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -478,208 +646,160 @@ export function RecibirLoteForm({
 
       {items.length > 0 && (
         <div className="space-y-3">
-          {items.map((it) => (
-            <div key={it.clientId} className="rounded-xl border border-neutral-200 bg-white p-3 text-sm">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="font-medium text-neutral-900">
-                  {it.modo === "nuevo_producto" ? it.referencia || "(nuevo producto)" : it.referencia}
-                  <span className="ml-2 text-xs font-normal text-neutral-400">
-                    {it.modo === "existente" ? "restock" : it.modo === "nueva_variante" ? "nueva variante" : "producto nuevo"}
-                  </span>
-                </p>
-                <button type="button" onClick={() => quitar(it.clientId)} className="text-xs text-red-500">
-                  Quitar
-                </button>
-              </div>
-
-              {it.modo === "nuevo_producto" && (
-                <div className="mb-2 grid grid-cols-2 gap-2">
-                  <p className="col-span-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-                    Producto
+          {bloques.map((bloque) =>
+            bloque.tipo === "individual" ? (
+              <div key={bloque.item.clientId} className="rounded-xl border border-neutral-200 bg-white p-3 text-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="font-medium text-neutral-900">
+                    {bloque.item.referencia}
+                    <span className="ml-2 text-xs font-normal text-neutral-400">
+                      {bloque.item.modo === "existente" ? "restock" : "nueva variante"}
+                    </span>
                   </p>
-                  <Campo etiqueta="Referencia">
-                    <input
-                      value={it.referencia}
-                      onChange={(e) => actualizar(it.clientId, "referencia", e.target.value)}
-                      placeholder="Ej. Blusa manga larga"
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                  <Campo etiqueta="Familia">
-                    <select
-                      value={it.familia ?? ""}
-                      onChange={(e) => actualizar(it.clientId, "familia", e.target.value)}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    >
-                      <option value="">Elegir…</option>
-                      {FAMILIAS.map((f) => (
-                        <option key={f} value={f}>
-                          {ETIQUETA_FAMILIA[f]}
-                        </option>
-                      ))}
-                    </select>
-                  </Campo>
-                  <Campo etiqueta="Categoría">
-                    <select
-                      value={it.categoriaId ?? ""}
-                      onChange={(e) => actualizar(it.clientId, "categoriaId", e.target.value)}
-                      disabled={!it.familia}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs disabled:bg-neutral-50 disabled:text-neutral-400"
-                    >
-                      <option value="">{it.familia ? "Elegir…" : "Elige familia primero"}</option>
-                      {categorias
-                        .filter((c) => c.familia === it.familia)
-                        .map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.nombre}
-                          </option>
-                        ))}
-                    </select>
-                  </Campo>
-                  <Campo etiqueta="Marca">
-                    <input
-                      value={it.marca ?? ""}
-                      onChange={(e) => actualizar(it.clientId, "marca", e.target.value)}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                  <Campo etiqueta="Género">
-                    <select
-                      value={it.genero ?? ""}
-                      onChange={(e) => actualizar(it.clientId, "genero", e.target.value)}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    >
-                      <option value="">Elegir…</option>
-                      <option value="Dama">Dama</option>
-                      <option value="Caballero">Caballero</option>
-                      <option value="Unisex">Unisex</option>
-                    </select>
-                  </Campo>
+                  <button type="button" onClick={() => quitar(bloque.item.clientId)} className="text-xs text-red-500">
+                    Quitar
+                  </button>
                 </div>
-              )}
-
-              {it.modo === "nuevo_producto" &&
-                (() => {
-                  const coincide = productoExistenteQueCoincide(it.referencia);
-                  if (!coincide) return null;
-                  return (
-                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                      <span>
-                        Ya existe un producto llamado &ldquo;{coincide.referencia}&rdquo; — esto crearía uno
-                        duplicado.
-                      </span>
+                {bloque.item.modo !== "existente" && camposVariante(bloque.item)}
+                {cantidadYContenedor(bloque.item)}
+              </div>
+            ) : (
+              (() => {
+                const base = bloque.items[0];
+                const coincide = productoExistenteQueCoincide(base.referencia);
+                return (
+                  <div key={base.grupoId} className="rounded-xl border border-neutral-200 bg-white p-3 text-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="font-medium text-neutral-900">
+                        {base.referencia || "(nuevo producto)"}
+                        <span className="ml-2 text-xs font-normal text-neutral-400">
+                          producto nuevo{bloque.items.length > 1 ? ` · ${bloque.items.length} variantes` : ""}
+                        </span>
+                      </p>
                       <button
                         type="button"
-                        onClick={() => convertirAExistente(it.clientId, coincide)}
-                        className="ml-auto rounded border border-amber-400 bg-white px-2 py-1 font-medium hover:bg-amber-100"
+                        onClick={() => quitarGrupo(base.grupoId)}
+                        className="text-xs text-red-500"
                       >
-                        Usar el producto existente
+                        Quitar
                       </button>
                     </div>
-                  );
-                })()}
 
-              {it.modo !== "existente" && (
-                <div className="mb-2 grid grid-cols-3 gap-2">
-                  <p className="col-span-3 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-                    Prenda (talla, color y precios)
-                  </p>
-                  <Campo etiqueta="Talla">
-                    {(() => {
-                      const tallas = tallasSugeridasDe(it.categoriaId);
-                      return tallas && tallas.length > 0 ? (
+                    <div className="mb-2 grid grid-cols-2 gap-2">
+                      <p className="col-span-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                        Producto
+                      </p>
+                      <Campo etiqueta="Referencia">
+                        <input
+                          value={base.referencia}
+                          onChange={(e) => actualizar(base.clientId, "referencia", e.target.value)}
+                          placeholder="Ej. Blusa manga larga"
+                          className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                        />
+                      </Campo>
+                      <Campo etiqueta="Familia">
                         <select
-                          value={it.talla}
-                          onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                          value={base.familia ?? ""}
+                          onChange={(e) => actualizar(base.clientId, "familia", e.target.value)}
                           className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
                         >
                           <option value="">Elegir…</option>
-                          {tallas.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
+                          {FAMILIAS.map((f) => (
+                            <option key={f} value={f}>
+                              {ETIQUETA_FAMILIA[f]}
                             </option>
                           ))}
                         </select>
-                      ) : (
+                      </Campo>
+                      <Campo etiqueta="Categoría">
+                        <select
+                          value={base.categoriaId ?? ""}
+                          onChange={(e) => actualizar(base.clientId, "categoriaId", e.target.value)}
+                          disabled={!base.familia}
+                          className="w-full rounded border border-neutral-300 px-2 py-1 text-xs disabled:bg-neutral-50 disabled:text-neutral-400"
+                        >
+                          <option value="">{base.familia ? "Elegir…" : "Elige familia primero"}</option>
+                          {categorias
+                            .filter((c) => c.familia === base.familia)
+                            .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.nombre}
+                              </option>
+                            ))}
+                        </select>
+                      </Campo>
+                      <Campo etiqueta="Marca">
                         <input
-                          value={it.talla}
-                          onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                          value={base.marca ?? ""}
+                          onChange={(e) => actualizar(base.clientId, "marca", e.target.value)}
                           className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
                         />
-                      );
-                    })()}
-                  </Campo>
-                  <Campo etiqueta="Color">
-                    <input
-                      value={it.color}
-                      onChange={(e) => actualizar(it.clientId, "color", e.target.value)}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                  <Campo etiqueta="SKU">
-                    <input
-                      value={it.sku}
-                      onChange={(e) => actualizar(it.clientId, "sku", e.target.value)}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs font-mono"
-                    />
-                  </Campo>
-                  <Campo etiqueta="Costo S/">
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.10"
-                      value={it.costo}
-                      onChange={(e) => actualizar(it.clientId, "costo", Number(e.target.value))}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                  <Campo etiqueta="Precio S/">
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.10"
-                      value={it.precio}
-                      onChange={(e) => actualizar(it.clientId, "precio", Number(e.target.value))}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                  <Campo etiqueta="Stock mínimo">
-                    <input
-                      type="number"
-                      min={0}
-                      value={it.stockMinimo}
-                      onChange={(e) => actualizar(it.clientId, "stockMinimo", Number(e.target.value))}
-                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                    />
-                  </Campo>
-                </div>
-              )}
+                      </Campo>
+                      <Campo etiqueta="Género">
+                        <select
+                          value={base.genero ?? ""}
+                          onChange={(e) => actualizar(base.clientId, "genero", e.target.value)}
+                          className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                        >
+                          <option value="">Elegir…</option>
+                          <option value="Dama">Dama</option>
+                          <option value="Caballero">Caballero</option>
+                          <option value="Unisex">Unisex</option>
+                        </select>
+                      </Campo>
+                    </div>
 
-              <p className="mb-0.5 text-[10px] text-neutral-400">Cantidad recibida</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  value={it.cantidad}
-                  onChange={(e) => actualizar(it.clientId, "cantidad", Number(e.target.value))}
-                  className="w-16 rounded border border-neutral-300 px-1.5 py-1 text-center text-xs"
-                />
-                <span className="text-xs text-neutral-400">en</span>
-                <select
-                  value={it.contenedorId}
-                  onChange={(e) => actualizar(it.clientId, "contenedorId", e.target.value)}
-                  className="flex-1 rounded border border-neutral-300 px-2 py-1 text-xs"
-                >
-                  <option value="">Sin contenedor</option>
-                  {contenedores.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.codigo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          ))}
+                    {coincide && (
+                      <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <span>
+                          Ya existe un producto llamado &ldquo;{coincide.referencia}&rdquo; — esto crearía uno
+                          duplicado.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => convertirAExistente(base.grupoId, coincide)}
+                          className="ml-auto rounded border border-amber-400 bg-white px-2 py-1 font-medium hover:bg-amber-100"
+                        >
+                          Usar el producto existente
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                      Variantes (talla, color y precios)
+                    </p>
+                    <div className="space-y-2">
+                      {bloque.items.map((it) => (
+                        <div key={it.clientId} className="rounded-lg border border-neutral-100 bg-neutral-50/60 p-2">
+                          {bloque.items.length > 1 && (
+                            <div className="mb-1 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => quitar(it.clientId)}
+                                className="text-[10px] text-red-500"
+                              >
+                                Quitar esta variante
+                              </button>
+                            </div>
+                          )}
+                          {camposVariante(it)}
+                          {cantidadYContenedor(it)}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => agregarVarianteAGrupo(base.grupoId)}
+                      className="mt-2 w-full rounded border border-dashed border-neutral-300 px-2 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-500 hover:bg-neutral-50"
+                    >
+                      + Otra talla/color de esta prenda
+                    </button>
+                  </div>
+                );
+              })()
+            )
+          )}
         </div>
       )}
 
