@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (proveedor habitual del producto — cierra la pregunta de Felipe)
+Felipe probó Proveedores (le gustó editar/desactivar) y preguntó cómo debía
+relacionarse con "Nuevo producto": ¿primero el proveedor, luego el producto
+"de ese proveedor"? Se explicó el patrón de los ERP serios (Shopify: vendor
+como etiqueta del producto; Odoo/QuickBooks: proveedor preferido en el
+producto vs. proveedor real por orden de compra/recepción — dos preguntas
+distintas, no una) y se completó la mitad que faltaba: `productos.proveedor_id`
+(opcional, no candado) + selector en `NuevoProductoForm`. La otra mitad
+("¿quién trajo este lote?") ya existía desde Fase 3 en `lotes.proveedor_id` —
+no se tocó. De paso, a pedido de Felipe, se quitó "Categoría" del formulario
+de Proveedores (duplicaba la misma idea que ahora vive en el vínculo
+producto↔proveedor). Migración local `0035`, producción en
+`unificacion/18_productos_proveedor.sql` (reemplaza a `16` si Felipe todavía
+no lo pegó). Empujado a `main` y a la rama propia a pedido explícito.
+
 ## 2026-09-05 (Fase 0 confirmada en producción + reconciliación con 2 sesiones paralelas)
 Felipe pegó `17_facturacion_completa.sql` en producción. Confirmado con
 `pg_proc`/`information_schema.tables`: las 6 funciones y las 3 tablas
