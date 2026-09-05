@@ -50,6 +50,19 @@ completo: el script de `gen-types` sigue apuntando al proyecto viejo de retail
 (deuda ya trackeada). `next build` completo corrido y limpio, no solo `tsc` —
 la lección de la sesión anterior sobre que uno solo no basta.
 
+## 2026-09-05 (Catálogo no mostraba lo recibido — faltaba conectar el almacén interno)
+Felipe registró una recepción de prueba y preguntó por qué no aparecía en su
+stock. No era un bug de datos: "Recibir mercadería" sí mete las unidades a
+`retail.stock_almacen` (el almacén interno, construido el 09-03), pero
+`getCatalogoConStock` (lo que alimenta Catálogo, Vender, Comercial, etc.)
+solo leía `retail.stock` (piso) — nadie había conectado esa fuente al
+frontend todavía. Se agregó `stockAlmacenPorSede/Total` a `VarianteConStock`
+de forma aditiva (Vender sigue viendo solo piso, para no ofrecer como
+vendible algo que sigue en la bodega) y Catálogo ahora muestra "+N en
+almacén" junto al stock total. Aprendizaje para explicarle a Felipe: recibir
+≠ tener en venta — el paso "Bajar a tienda" en Almacén es el que de verdad
+habilita vender algo recién llegado.
+
 ## 2026-09-05 (hallazgo real: faltaban 25 de 30 categorías en producción)
 Felipe llenó "Recibir mercadería" con un ejemplo real (Blusa Manga Larga,
 proveedor EGTI) y notó que Categoría no ofrecía "Blusas" — solo las 5 de
@@ -576,3 +589,22 @@ exportar Excel, conteo físico. Al cierre, Felipe pidió y se construyó el sele
 sede del Líder (TRU/AQP/LIM/Taller en la cabecera): cambia la perspectiva de toda la
 app sin tocar permisos — el servidor ya validaba por 0012. Verificado en vivo por
 Felipe ("bien muy bien").
+
+## 2026-09-04 (modernización de interfaces — primer paso)
+Felipe pidió "descargar skills para el diseño de todas las interfaces" y que la app
+sea "moderna". Antes de tocar código se auditó el repo: ya existe un sistema de
+identidad completo y verificado en producción (brandbook v3.0), y hay un precedente
+explícito del 18-jul donde se decidió que la esencia CAYLA manda sobre una estética
+genérica "tipo Apple". Se le presentó la tensión a Felipe con AskUserQuestion: eligió
+modernizar DENTRO del sistema CAYLA, usando Radix/shadcn solo como base de
+accesibilidad sin estilo propio, nunca el look por defecto de un kit externo.
+
+Se encontró el punto real de la petición: 6 modales del núcleo (abrir/cerrar caja,
+vender, bajar a tienda, registrar gasto, movimiento de stock) seguían con estilos
+genéricos pre-brandbook (blanco/negro/neutral-*), y ninguno de los 8 modales de la
+app atrapaba el foco ni cerraba con Escape. Se construyó `components/ui/Modal.tsx`
+(Radix Dialog + tokens CAYLA) y se migraron los 6 modales + `EfectivoPanel` →
+ADR-0003. Verificado en navegador (página de prueba temporal, borrada al cerrar):
+overlay y panel con la paleta correcta, Escape y click-afuera cierran. Pendiente,
+anotado en BACKLOG: `MenuNuevo` del AppShell sigue sin el mismo tratamiento (patrón
+distinto, no modal). Commiteado.

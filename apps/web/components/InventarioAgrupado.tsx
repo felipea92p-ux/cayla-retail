@@ -137,6 +137,7 @@ export function InventarioAgrupado({
       <div className="divide-y divide-tinta/10 card-cayla">
         {filtrados.map((p) => {
           const stockTotal = p.variantes.reduce((a, v) => a + v.stockTotal, 0);
+          const stockAlmacen = p.variantes.reduce((a, v) => a + v.stockAlmacenTotal, 0);
           const tieneReponer = p.variantes.some((v) => v.reponerYa);
           const tieneEstancado = p.variantes.some((v) => v.estancado);
           const velocidad = Math.round(p.variantes.reduce((a, v) => a + v.velocidadDiaria, 0) * 100) / 100;
@@ -165,9 +166,10 @@ export function InventarioAgrupado({
                     </p>
                   </div>
                 </div>
-                <p className={`font-display text-right text-xl ${stockTotal === 0 ? "text-rojo" : "text-tinta"}`}>
-                  {stockTotal}
-                </p>
+                <div className="text-right">
+                  <p className={`font-display text-xl ${stockTotal === 0 ? "text-rojo" : "text-tinta"}`}>{stockTotal}</p>
+                  {stockAlmacen > 0 && <p className="text-[10px] text-tinta/40">+{stockAlmacen} en almacén</p>}
+                </div>
                 <p className="hidden text-right text-xs text-tinta/50 sm:block">{p.variantes.length}</p>
                 <p className="hidden text-right text-xs text-tinta/50 sm:block">
                   {velocidad > 0 ? `${velocidad}/día` : "—"}

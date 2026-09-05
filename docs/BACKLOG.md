@@ -187,20 +187,31 @@ importante que ha entrado a este archivo desde que existe.
       pegue en el SQL Editor**. Sin esto, "Recibir mercadería" y "Nuevo
       producto" no pueden clasificar la mayoría del catálogo real.
       Reversible: sí, son datos (insert aditivo).
-- [ ] **`patrimonio_items.categoria` no existe en producción (ADR-0006,
-      2026-09-04) — mismo patrón que `recibir_lote` (ADR-0004), sin arreglar
-      todavía.** La unificación de julio copió `patrimonio_items` desde la
-      migración `0013`, antes de que `0019` le agregara `categoria`.
-      `PatrimonioEditor.tsx` inserta esa columna en cada ítem — el insert
-      falla en producción hoy. Migración lista en
-      `supabase/unificacion/15_patrimonio_categoria.sql`
-      (`alter table retail.patrimonio_items add column if not exists
-      categoria text;`), **falta que Felipe la pegue en el SQL Editor**.
-      Mientras tanto, `packages/database/src/types.ts` se corrigió a mano
-      (no regenerado) para reflejar que la columna SÍ debe existir —
-      `next build` ya no falla por esto, pero el bug de producción sigue
-      vivo hasta que se corra el SQL. Reversible: sí, un `alter table`
-      aditivo.
+- [x] **`patrimonio_items.categoria`: arreglado y confirmado en producción
+      2026-09-05 (ADR-0006) — cerrado.** La unificación de julio copió
+      `patrimonio_items` desde la migración `0013`, antes de que `0019` le
+      agregara `categoria`; `PatrimonioEditor.tsx` inserta esa columna en cada
+      ítem, así que agregar un ítem de patrimonio llevaba roto en producción
+      desde julio sin que nadie lo notara. Felipe pegó
+      `supabase/unificacion/15_patrimonio_categoria.sql` y confirmó con la
+      consulta de verificación: `information_schema.columns` ya devuelve
+      `categoria` en `retail.patrimonio_items`. Tercer caso del mismo patrón
+      de drift (con ADR-0004 y las categorías de `04_catalogo.sql`) — lo que
+      falta no es arreglar el siguiente, es dejar de no saber qué corrió en
+      producción (ver la deuda de `registro de migraciones aplicadas` abajo).
+- [ ] **`no hay registro de qué migración corrió en producción` — la deuda que
+      produce todas las anteriores.** `supabase/unificacion/` tiene 20 archivos
+      y el único registro de cuáles se pegaron vive en la memoria de Felipe y
+      en frases sueltas de este backlog. Los tres casos de drift de esta semana
+      (ADR-0004 `recibir_lote`, ADR-0006 `patrimonio_items.categoria`, y las 25
+      categorías que `04_catalogo.sql` nunca insertó) son el mismo agujero, no
+      tres bugs distintos: producción se desvía de local y nadie se entera
+      durante semanas, hasta que una pantalla falla delante de una clienta.
+      Arreglo propuesto: una tabla `retail.migraciones_aplicadas (archivo text
+      primary key, aplicada_at timestamptz default now())` y una línea al final
+      de cada script de unificación que inserte su propio nombre; con eso, una
+      sola consulta dice qué falta. Barato y aditivo. **Decidir con Felipe
+      cuándo** — después de vaciar la cola pendiente, no antes.
 - [x] **`recibir_lote`: arreglado y confirmado en producción 2026-09-03
       (ADR-0004) — cerrado, con un susto en el camino que vale registrar.**
       Dos sesiones paralelas llegaron a esta función el mismo día por caminos
@@ -271,6 +282,10 @@ importante que ha entrado a este archivo desde que existe.
 - [ ] `finanzas`: el costo de lo vendido usa el costo VIGENTE de cada prenda, no el
       costo del día de la venta. Inofensivo mientras los costos sean estables (nota
       del 17-jul); si algún día se mueven, distorsiona el histórico de EERR pasados.
+- [ ] `AppShell`: el panel "+ Nuevo" (`MenuNuevo`) sigue sin cerrar con `Escape` —
+      quedó fuera a propósito de la migración a `components/ui/Modal` (ADR-0003)
+      porque es un menú anclado al lateral/bottom-sheet, no un modal centrado; si se
+      toca, mismo criterio (Radix sin estilo propio, tokens CAYLA).
 
 ---
 
@@ -290,6 +305,14 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-04 — Modal compartido `components/ui/Modal.tsx` sobre Radix Dialog
+      (ADR-0003): los 6 modales del núcleo que seguían con estilos genéricos
+      pre-brandbook (abrir/cerrar caja, vender, bajar a tienda, registrar gasto,
+      movimiento de stock) migraron a los tokens CAYLA v3, y los 8 modales de la
+      app ganaron foco atrapado + cierre con `Escape` (antes ninguno lo tenía,
+      salvo `Ayuda.tsx` con lógica propia). Verificado en navegador con página de
+      prueba temporal (borrada al cerrar). Sin adoptar ningún kit visual externo —
+      Radix solo aporta comportamiento, el look sigue siendo 100% CAYLA.
 - [x] 2026-07-19/23 — Producción del Taller construida de punta a punta más allá de
       lo registrado en BITACORA: costeo por margen de contribución (`0024`),
       registrar producción por corrida (`0025`), producción a nivel de modelo
