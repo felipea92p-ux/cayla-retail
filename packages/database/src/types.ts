@@ -1671,6 +1671,7 @@ export type Database = {
           p_categoria_id?: string
           p_genero?: string
           p_marca?: string
+          p_proveedor_id?: string
           p_referencia: string
           p_sku_padre: string
           p_temporada?: string

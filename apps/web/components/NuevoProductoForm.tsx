@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
+type Proveedor = { id: string; nombre: string };
 
 type Fila = {
   key: string;
@@ -39,7 +40,7 @@ function claveCombo(talla: string | null, color: string | null) {
   return `${talla ?? ""}||${color ?? ""}`;
 }
 
-export function NuevoProductoForm({ categorias }: { categorias: Categoria[] }) {
+export function NuevoProductoForm({ categorias, proveedores }: { categorias: Categoria[]; proveedores: Proveedor[] }) {
   const router = useRouter();
 
   const [referencia, setReferencia] = useState("");
@@ -50,6 +51,7 @@ export function NuevoProductoForm({ categorias }: { categorias: Categoria[] }) {
   const [marca, setMarca] = useState("");
   const [genero, setGenero] = useState("");
   const [temporada, setTemporada] = useState("");
+  const [proveedorId, setProveedorId] = useState("");
 
   const [tallas, setTallas] = useState<string[]>([]);
   const [tallaNueva, setTallaNueva] = useState("");
@@ -160,6 +162,7 @@ export function NuevoProductoForm({ categorias }: { categorias: Categoria[] }) {
       p_genero: genero.trim() || undefined,
       p_marca: marca.trim() || undefined,
       p_temporada: temporada.trim() || undefined,
+      p_proveedor_id: proveedorId || undefined,
       p_variantes: filas.map((f) => ({
         sku: f.sku.trim(),
         talla: f.talla || undefined,
@@ -270,6 +273,24 @@ export function NuevoProductoForm({ categorias }: { categorias: Categoria[] }) {
               placeholder="Ej. Verano 2026"
               className="w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm text-tinta/70">Proveedor habitual</label>
+            <select
+              value={proveedorId}
+              onChange={(e) => setProveedorId(e.target.value)}
+              className="w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
+            >
+              <option value="">Sin proveedor específico</option>
+              {proveedores.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-tinta/40">
+              De quién viene normalmente este modelo — no bloquea recibirlo de otro proveedor después.
+            </p>
           </div>
         </div>
       </div>
