@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ORIGENES_LOTE, FAMILIAS, type OrigenLote, type Familia } from "@cayla-retail/shared";
@@ -53,6 +54,20 @@ function slug(texto: string) {
 
 const ETIQUETA_ORIGEN: Record<OrigenLote, string> = { taller: "Taller propio", proveedor: "Proveedor externo" };
 
+// Los campos compactos de cada ítem solo tenían placeholder — desaparece al
+// escribir y ya no se distingue qué campo es cuál (Felipe lo notó probando
+// con datos reales: costo/precio/stock mínimo se ven idénticos una vez
+// llenos). Envuelve cada input con una etiqueta fija arriba, sin agregar
+// una prop nueva por campo.
+function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-0.5 block text-[10px] text-neutral-400">{etiqueta}</span>
+      {children}
+    </label>
+  );
+}
+
 export function RecibirLoteForm({
   sedeId,
   sedeCodigo,
@@ -89,7 +104,7 @@ export function RecibirLoteForm({
   const [items, setItems] = useState<ItemLote[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState(false);
+  const [ok, setOk] = useState<{ items: number; unidades: number } | null>(null);
 
   const contenedorDefault = contenedorAlmacenId;
 
@@ -245,8 +260,8 @@ export function RecibirLoteForm({
       setError(error.message);
       return;
     }
+    setOk({ items: items.length, unidades: items.reduce((total, it) => total + it.cantidad, 0) });
     setItems([]);
-    setOk(true);
     router.refresh();
   }
 
@@ -433,51 +448,60 @@ export function RecibirLoteForm({
                   <p className="col-span-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
                     Producto
                   </p>
-                  <input
-                    value={it.referencia}
-                    onChange={(e) => actualizar(it.clientId, "referencia", e.target.value)}
-                    placeholder="Referencia (ej. Blusa manga larga)"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
-                  <select
-                    value={it.familia ?? ""}
-                    onChange={(e) => actualizar(it.clientId, "familia", e.target.value)}
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  >
-                    <option value="">Familia…</option>
-                    {FAMILIAS.map((f) => (
-                      <option key={f} value={f}>
-                        {ETIQUETA_FAMILIA[f]}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={it.categoriaId ?? ""}
-                    onChange={(e) => actualizar(it.clientId, "categoriaId", e.target.value)}
-                    disabled={!it.familia}
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:bg-neutral-50 disabled:text-neutral-400"
-                  >
-                    <option value="">Categoría…</option>
-                    {categorias
-                      .filter((c) => c.familia === it.familia)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
+                  <Campo etiqueta="Referencia">
+                    <input
+                      value={it.referencia}
+                      onChange={(e) => actualizar(it.clientId, "referencia", e.target.value)}
+                      placeholder="Ej. Blusa manga larga"
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
+                  <Campo etiqueta="Familia">
+                    <select
+                      value={it.familia ?? ""}
+                      onChange={(e) => actualizar(it.clientId, "familia", e.target.value)}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    >
+                      <option value="">Elegir…</option>
+                      {FAMILIAS.map((f) => (
+                        <option key={f} value={f}>
+                          {ETIQUETA_FAMILIA[f]}
                         </option>
                       ))}
-                  </select>
-                  <input
-                    value={it.marca ?? ""}
-                    onChange={(e) => actualizar(it.clientId, "marca", e.target.value)}
-                    placeholder="Marca"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
-                  <input
-                    value={it.genero ?? ""}
-                    onChange={(e) => actualizar(it.clientId, "genero", e.target.value)}
-                    placeholder="Género"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Categoría">
+                    <select
+                      value={it.categoriaId ?? ""}
+                      onChange={(e) => actualizar(it.clientId, "categoriaId", e.target.value)}
+                      disabled={!it.familia}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs disabled:bg-neutral-50 disabled:text-neutral-400"
+                    >
+                      <option value="">{it.familia ? "Elegir…" : "Elige familia primero"}</option>
+                      {categorias
+                        .filter((c) => c.familia === it.familia)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Marca">
+                    <input
+                      value={it.marca ?? ""}
+                      onChange={(e) => actualizar(it.clientId, "marca", e.target.value)}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
+                  <Campo etiqueta="Género">
+                    <input
+                      value={it.genero ?? ""}
+                      onChange={(e) => actualizar(it.clientId, "genero", e.target.value)}
+                      placeholder="Ej. Dama, Caballero, Unisex"
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
                 </div>
               )}
 
@@ -486,71 +510,78 @@ export function RecibirLoteForm({
                   <p className="col-span-3 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
                     Prenda (talla, color y precios)
                   </p>
-                  {(() => {
-                    const tallas = tallasSugeridasDe(it.categoriaId);
-                    return tallas && tallas.length > 0 ? (
-                      <select
-                        value={it.talla}
-                        onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
-                        className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                      >
-                        <option value="">Talla…</option>
-                        {tallas.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={it.talla}
-                        onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
-                        placeholder="Talla"
-                        className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                      />
-                    );
-                  })()}
-                  <input
-                    value={it.color}
-                    onChange={(e) => actualizar(it.clientId, "color", e.target.value)}
-                    placeholder="Color"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
-                  <input
-                    value={it.sku}
-                    onChange={(e) => actualizar(it.clientId, "sku", e.target.value)}
-                    placeholder="SKU"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs font-mono"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.10"
-                    value={it.costo}
-                    onChange={(e) => actualizar(it.clientId, "costo", Number(e.target.value))}
-                    placeholder="Costo S/"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.10"
-                    value={it.precio}
-                    onChange={(e) => actualizar(it.clientId, "precio", Number(e.target.value))}
-                    placeholder="Precio S/"
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={it.stockMinimo}
-                    onChange={(e) => actualizar(it.clientId, "stockMinimo", Number(e.target.value))}
-                    placeholder="Stock mín."
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs"
-                  />
+                  <Campo etiqueta="Talla">
+                    {(() => {
+                      const tallas = tallasSugeridasDe(it.categoriaId);
+                      return tallas && tallas.length > 0 ? (
+                        <select
+                          value={it.talla}
+                          onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                          className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                        >
+                          <option value="">Elegir…</option>
+                          {tallas.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={it.talla}
+                          onChange={(e) => actualizar(it.clientId, "talla", e.target.value)}
+                          className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                        />
+                      );
+                    })()}
+                  </Campo>
+                  <Campo etiqueta="Color">
+                    <input
+                      value={it.color}
+                      onChange={(e) => actualizar(it.clientId, "color", e.target.value)}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
+                  <Campo etiqueta="SKU">
+                    <input
+                      value={it.sku}
+                      onChange={(e) => actualizar(it.clientId, "sku", e.target.value)}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs font-mono"
+                    />
+                  </Campo>
+                  <Campo etiqueta="Costo S/">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.10"
+                      value={it.costo}
+                      onChange={(e) => actualizar(it.clientId, "costo", Number(e.target.value))}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
+                  <Campo etiqueta="Precio S/">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.10"
+                      value={it.precio}
+                      onChange={(e) => actualizar(it.clientId, "precio", Number(e.target.value))}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
+                  <Campo etiqueta="Stock mínimo">
+                    <input
+                      type="number"
+                      min={0}
+                      value={it.stockMinimo}
+                      onChange={(e) => actualizar(it.clientId, "stockMinimo", Number(e.target.value))}
+                      className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                    />
+                  </Campo>
                 </div>
               )}
 
+              <p className="mb-0.5 text-[10px] text-neutral-400">Cantidad recibida</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -585,7 +616,18 @@ export function RecibirLoteForm({
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {ok && <p className="text-sm text-green-600">Lote recibido correctamente.</p>}
+      {ok && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+          <p className="font-medium">
+            ✓ Recibido: {ok.items} ítem{ok.items === 1 ? "" : "s"}, {ok.unidades} unidad{ok.unidades === 1 ? "" : "es"} en total.
+          </p>
+          <p className="mt-1 text-xs text-green-700">
+            Ya está en stock — revísalo en{" "}
+            <Link href="/inventario" className="underline">Catálogo</Link> (stock total por modelo) o en{" "}
+            <Link href="/inventario/almacen" className="underline">Almacén</Link> (por contenedor).
+          </p>
+        </div>
+      )}
 
       <button
         type="submit"
