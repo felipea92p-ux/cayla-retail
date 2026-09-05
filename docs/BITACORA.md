@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (reemplazo total de Alegra — Fase 0: esquema legal completo)
+Felipe pidió reemplazar Alegra por completo, con un módulo propio superior a
+QuickBooks y estética de casa de moda de herencia. Se hicieron 27 preguntas de
+descubrimiento y se investigó con 7 agentes en paralelo (UX de Stripe/Mercury/
+Ramp/QuickBooks/Xero, estética Hermès/LVMH/Ralph Lauren/Aesop/The Row, motores
+de insights fintech, API de Nubefact y normativa SUNAT real). Hallazgo que
+manda: OSE=Nubefact confirmado (S/70/mes, hasta 500 comprobantes, locales sin
+límite); proforma/nota de venta NO es comprobante de pago (Art. 2, RS 007-99);
+ningún benchmark segmenta por sede física — CAYLA debe hacerlo desde el día 1
+o un consolidado esconde que una tienda cae mientras otra sube. Plan de 7 fases
+escrito y aprobado (`~/.claude/plans/cozy-gathering-nova.md`).
+
+Fase 0 completa: migración `0034_facturacion_completa.sql` — tabla `proformas`
+separada (nunca se "promociona" con UPDATE, se convierte creando un comprobante
+nuevo), NC/ND con referencia obligatoria a un comprobante ACEPTADO (CHECK de
+fila + trigger, dos capas), `nota_debito` agregado al tipo. Se probó
+empíricamente contra Postgres local (puerto reconfigurado a 54421-54429 para no
+chocar con el de cayla-dynamic) — y la prueba cazó un bug real antes de
+entregarlo: se me olvidó actualizar el check de `series_comprobantes.tipo`
+además del de `comprobantes.tipo`, la misma familia de deriva que ya costó
+ADR-0004 y ADR-0006. Corregido antes de commitear, no después. ADR-0007.
+
 ## 2026-09-04 (alta de producto con matriz talla × color)
 Felipe pidió crear un producto ("Reflixme") pensando en todo — tallas y
 colores incluidos — y encontró el hueco real: "Recibir mercadería" crea un

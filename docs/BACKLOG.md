@@ -67,22 +67,29 @@ importante que ha entrado a este archivo desde que existe.
       Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
       esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
       cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
-- [ ] **`finanzas F3` — parte 1 construida 2026-09-04 (ADR-0005), parte 2 sin
-      empezar.** Felipe pidió facturación electrónica hablando directo con la
-      API de SUNAT (SEE del Contribuyente), no vía OSE/Nubefact como asumía
-      este ítem originalmente. Construido y verificado (Postgres local
-      aislado, sin tocar el stack de cayla-dynamic): `0032_comprobantes.sql`
-      — tablas `comprobantes`/`series_comprobantes`, RPCs
-      `emitir_comprobante`/`registrar_serie_comprobante` (candado `for update`
-      por serie, factura sin RUC es imposible por constraint), pantalla
-      `/finanzas/facturacion` con su entrada en `FinanzasNav`. El comprobante
-      queda "Pendiente de enviar" — el envío real a SUNAT (XML UBL 2.1
-      firmado, SOAP, CDR) es la parte 2, sin empezar: depende de que Felipe
-      decida con Claude SEE propio (certificado digital + homologación SUNAT,
-      semanas) vs. OSE (Nubefact, días) — ver ADR-0005 para el trade-off
-      completo. También depende de la Epson TM-T20III para imprimir el
-      comprobante ya aceptado. Reversible: sí, es una tabla nueva sin datos
-      reales todavía.
+- [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
+      plan de 7 fases aprobado, Fase 0 cerrada 2026-09-05.** Felipe decidió
+      reemplazar Alegra por completo (facturación + contabilidad + gastos +
+      ingresos + resumen ejecutivo), no solo conectar SUNAT. Plan completo en
+      `~/.claude/plans/cozy-gathering-nova.md`, basado en 27 preguntas de
+      descubrimiento + investigación de 7 agentes (UX Stripe/Mercury/Ramp/
+      QuickBooks/Xero, estética de casas de moda de herencia, motores de
+      insights, Nubefact, normativa SUNAT). Decisiones ya cerradas: OSE =
+      Nubefact (no SEE propio — ver ADR-0005), corte limpio sin migrar
+      historial de Alegra, series propias por sede, insights SIEMPRE
+      segmentados por sede (ningún benchmark investigado lo hace, y es el
+      riesgo real de un negocio de 3 tiendas). **Fase 0 (ADR-0007) cerrada**:
+      `0034_facturacion_completa.sql` — proforma en tabla separada (nunca se
+      "promociona" con UPDATE), NC/ND con referencia obligatoria a un
+      comprobante aceptado (CHECK + trigger), `nota_debito` agregado. Probado
+      empíricamente en local (puerto reconfigurado a 54421-54429 para no
+      chocar con cayla-dynamic), cazó un bug real antes de entregarlo (check
+      duplicado de `series_comprobantes.tipo` desincronizado). **Pendiente:**
+      pegar `0034` en producción (Felipe), luego Fase 1 (integración real con
+      Nubefact — hoy el comprobante sigue en "Pendiente de enviar"). Aparte,
+      sin bloquear el proyecto: preguntarle al contador si CAYLA ya cruzó el
+      umbral SIRE (75 UIT, ~S/412,500/año) — obligación distinta del PLE (300
+      UIT) que probablemente ya aplica hoy.
 - [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
       `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
       producción.** "Recibir mercadería" crea un `producto` nuevo por CADA
