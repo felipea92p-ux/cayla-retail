@@ -100,6 +100,7 @@ export function RecibirLoteForm({
   const [ordenCompraId, setOrdenCompraId] = useState("");
   const [ordenProduccionId, setOrdenProduccionId] = useState("");
   const [numeroGuia, setNumeroGuia] = useState("");
+  const [nota, setNota] = useState("");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ItemLote[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -235,6 +236,7 @@ export function RecibirLoteForm({
       p_orden_compra_id: origen === "proveedor" && ordenCompraId ? ordenCompraId : undefined,
       p_orden_produccion_id: origen === "taller" && ordenProduccionId ? ordenProduccionId : undefined,
       p_numero_guia: numeroGuia || undefined,
+      p_nota: nota.trim() || undefined,
       p_items: items.map((it) => ({
         variante_id: it.modo === "existente" ? it.varianteId : undefined,
         producto_id: it.modo === "nueva_variante" ? it.productoId : undefined,
@@ -366,6 +368,19 @@ export function RecibirLoteForm({
             placeholder="Opcional"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
           />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <label className="text-sm font-medium text-neutral-700">Nota del lote</label>
+          <input
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Ej. Se pidieron 50, llegaron 46 — faltan 4, EGTI dice que llegan la próxima semana"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-neutral-400">
+            Queda guardada en el lote para siempre — el sistema no compara automático lo pedido vs. lo llegado, esta
+            es la forma de dejarlo registrado.
+          </p>
         </div>
       </div>
 
