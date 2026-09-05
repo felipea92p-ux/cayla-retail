@@ -2,39 +2,50 @@
 --
 -- Viene de la rama `claude/electronic-receipt-structure-29400a`
 -- (`0034_estructura_comprobante_electronico.sql`), reconciliada contra main.
--- De aquella migración se conserva SOLO lo que main no tiene y no choca:
--- la dirección fiscal por sede y la configuración de la empresa.
 --
--- Lo que se DESCARTÓ a propósito, y por qué: aquella migración también creaba
--- una tabla `comprobante_items` y redefinía `emitir_comprobante` para
--- recalcular los montos desde esas líneas. Main ya resolvió ese mismo problema
--- antes y distinto: `comprobantes.items` como jsonb (`0037`, ADR-0009), que es
--- de lo que depende el conector de Lucode para transmitir a SUNAT. Dos modelos
--- para lo mismo no pueden convivir — gana el que ya está en producción y del
--- que cuelga la transmisión. El código de impresión se adaptó a leer ese jsonb.
+-- Lo que se DESCARTÓ de aquella migración, y por qué: creaba una tabla
+-- `comprobante_items` y redefinía `emitir_comprobante` para recalcular los
+-- montos desde esas líneas. Main ya resolvió ese mismo problema antes y
+-- distinto: `comprobantes.items` como jsonb (`0037`, ADR-0009), que es de lo
+-- que depende el conector de Lucode para transmitir a SUNAT. Dos modelos para
+-- lo mismo no pueden convivir — gana el que ya está en producción. El código
+-- de impresión se adaptó a leer ese jsonb.
+--
+-- Lo que se CAMBIÓ respecto de aquella migración: la dirección fiscal NO se
+-- agrega como columnas de `sedes`. En producción `retail.sedes` es una VISTA
+-- puente sobre las sedes de cayla-dynamic (por eso los tipos generados solo le
+-- dan `Row`, sin `Insert`/`Update`): un `alter table` ahí falla, y la
+-- alternativa —agregarle columnas a la tabla base de Dynamic— sería que retail
+-- le mueva el modelo a otro producto para resolver un problema suyo. Por eso
+-- los datos fiscales viven en su propia tabla, referenciada por sede.
 
--- ==================== SEDES: dirección del punto de emisión ====================
-alter table sedes
-  add column if not exists direccion text,
-  add column if not exists ubigeo text,
-  add column if not exists departamento text,
-  add column if not exists provincia text,
-  add column if not exists distrito text,
-  add column if not exists telefono text;
+-- ==================== DATOS FISCALES POR SEDE ====================
+create table if not exists sede_datos_fiscales (
+  sede_id uuid primary key references sedes (id),
+  direccion text,
+  ubigeo text,
+  departamento text,
+  provincia text,
+  distrito text,
+  telefono text,
+  updated_at timestamptz not null default now()
+);
 
-comment on column sedes.ubigeo is 'Código de ubigeo INEI (6 dígitos), el que exige el formato de comprobante electrónico SUNAT.';
+comment on column sede_datos_fiscales.ubigeo is 'Código de ubigeo INEI (6 dígitos), el que exige el formato de comprobante electrónico SUNAT.';
 
--- Dato real de la sede de Trujillo, tomado de un comprobante ya emitido. Las
--- demás sedes quedan vacías a propósito: el PDF muestra el campo en blanco
--- antes que un dato inventado.
-update sedes set
-  direccion = 'LT. 26 MZ. Q URB. SAN ANDRES V ETAPA',
-  ubigeo = '130111',
-  departamento = 'La Libertad',
-  provincia = 'Trujillo',
-  distrito = 'Victor Larco Herrera',
-  telefono = '+51953585537'
-where codigo = 'TRU';
+-- Dato real de Trujillo, tomado de un comprobante ya emitido. Las demás sedes
+-- quedan sin fila a propósito: el impreso muestra el campo en blanco antes que
+-- un dato inventado en un documento legal.
+insert into sede_datos_fiscales (sede_id, direccion, ubigeo, departamento, provincia, distrito, telefono)
+select id, 'LT. 26 MZ. Q URB. SAN ANDRES V ETAPA', '130111', 'La Libertad', 'Trujillo', 'Victor Larco Herrera', '+51953585537'
+from sedes where codigo = 'TRU'
+on conflict (sede_id) do nothing;
+
+alter table sede_datos_fiscales enable row level security;
+
+drop policy if exists sede_datos_fiscales_select_autenticado on sede_datos_fiscales;
+create policy sede_datos_fiscales_select_autenticado on sede_datos_fiscales
+  for select using (auth.role() = 'authenticated');
 
 -- ==================== CONFIGURACIÓN DE EMPRESA (singleton) ====================
 -- Una sola fila siempre: `id boolean primary key default true check (id)` es el

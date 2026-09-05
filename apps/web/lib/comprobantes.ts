@@ -141,11 +141,17 @@ export async function getComprobanteCompleto(id: string): Promise<ComprobanteCom
   ]);
   if (!comprobante || !empresa) return null;
 
-  const { data: sede } = await supabase
-    .from("sedes")
-    .select("id, codigo, nombre, direccion, ubigeo, departamento, provincia, distrito, telefono")
-    .eq("id", comprobante.sede_id)
-    .maybeSingle();
+  // La dirección fiscal vive en su propia tabla, no en `sedes`: en producción
+  // `sedes` es una vista puente sobre cayla-dynamic y no admite columnas
+  // nuevas (ver 0040). Se traen por separado y se juntan acá.
+  const [{ data: sede }, { data: fiscales }] = await Promise.all([
+    supabase.from("sedes").select("id, codigo, nombre").eq("id", comprobante.sede_id).maybeSingle(),
+    supabase
+      .from("sede_datos_fiscales")
+      .select("direccion, ubigeo, departamento, provincia, distrito, telefono")
+      .eq("sede_id", comprobante.sede_id)
+      .maybeSingle(),
+  ]);
   if (!sede) return null;
 
   return {
@@ -153,7 +159,19 @@ export async function getComprobanteCompleto(id: string): Promise<ComprobanteCom
     subtotal: Number(comprobante.subtotal),
     igv: Number(comprobante.igv),
     items: itemsParaImprimir(comprobante.items),
-    sede: sede as SedeFiscal,
+    // Sin fila de datos fiscales el comprobante igual se imprime, con los
+    // campos de dirección en blanco: mejor eso que frenar una venta.
+    sede: {
+      id: sede.id ?? comprobante.sede_id,
+      codigo: sede.codigo ?? "",
+      nombre: sede.nombre ?? "",
+      direccion: fiscales?.direccion ?? null,
+      ubigeo: fiscales?.ubigeo ?? null,
+      departamento: fiscales?.departamento ?? null,
+      provincia: fiscales?.provincia ?? null,
+      distrito: fiscales?.distrito ?? null,
+      telefono: fiscales?.telefono ?? null,
+    },
     empresa: empresa as ConfiguracionEmpresa,
   };
 }
