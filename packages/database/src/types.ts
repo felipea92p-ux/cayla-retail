@@ -354,6 +354,7 @@ export type Database = {
           estado: string
           id: string
           igv: number
+          items: Json | null
           moneda: string
           motivo: string | null
           motivo_rechazo: string | null
@@ -377,6 +378,7 @@ export type Database = {
           estado?: string
           id?: string
           igv?: number
+          items?: Json | null
           moneda?: string
           motivo?: string | null
           motivo_rechazo?: string | null
@@ -400,6 +402,7 @@ export type Database = {
           estado?: string
           id?: string
           igv?: number
+          items?: Json | null
           moneda?: string
           motivo?: string | null
           motivo_rechazo?: string | null
@@ -1736,12 +1739,22 @@ export type Database = {
         Args: { p_produccion_id: string }
         Returns: undefined
       }
+      actualizar_transmision_comprobante: {
+        Args: {
+          p_comprobante_id: string
+          p_estado: string
+          p_motivo_rechazo?: string | null
+          p_respuesta_sunat?: Json
+        }
+        Returns: undefined
+      }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
           p_cliente_tipo_doc?: string
           p_igv: number
+          p_items?: Json
           p_sede_id: string
           p_subtotal: number
           p_tipo: string
@@ -1754,6 +1767,7 @@ export type Database = {
         Args: {
           p_comprobante_original_id: string
           p_igv: number
+          p_items?: Json
           p_motivo: string
           p_subtotal: number
           p_tipo: string

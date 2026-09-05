@@ -61,6 +61,33 @@ export function ComprobantesPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
+  // global: transmitir la fila 3 no debe deshabilitar el botón de la fila 1.
+  const [transmitiendoId, setTransmitiendoId] = useState<string | null>(null);
+  const [errorTransmision, setErrorTransmision] = useState<{ id: string; detalle: string } | null>(null);
+
+  async function onTransmitir(comprobanteId: string) {
+    setTransmitiendoId(comprobanteId);
+    setErrorTransmision(null);
+    try {
+      const respuesta = await fetch("/api/lucode/emitir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comprobante_id: comprobanteId }),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        setErrorTransmision({ id: comprobanteId, detalle: datos.error ?? "No se pudo transmitir" });
+        return;
+      }
+      router.refresh();
+    } catch {
+      setErrorTransmision({ id: comprobanteId, detalle: "No se pudo conectar con el servidor" });
+    } finally {
+      setTransmitiendoId(null);
+    }
+  }
+
   // Formulario de emisión
   const [sedeId, setSedeId] = useState(sedeActualId);
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
@@ -233,24 +260,45 @@ export function ComprobantesPanel({
                   <th className="label-cayla px-3 py-2 text-[9px]">Cliente</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
+                  <th className="label-cayla px-3 py-2 text-[9px]">SUNAT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
-                {comprobantes.map((c) => (
-                  <tr key={c.id}>
-                    <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(c.created_at)}</td>
-                    <td className="px-3 py-2.5 font-medium text-tinta">
-                      {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
-                    </td>
-                    <td className="px-3 py-2.5 text-tinta/60">{c.cliente_nombre ?? "Cliente varios"}</td>
-                    <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(c.total))}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={`label-cayla rounded-full border px-3 py-1 text-[9px] ${ESTADO_ESTILO[c.estado]}`}>
-                        {ESTADO_ETIQUETA[c.estado]}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {comprobantes.map((c) => {
+                  const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
+                  return (
+                    <tr key={c.id}>
+                      <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(c.created_at)}</td>
+                      <td className="px-3 py-2.5 font-medium text-tinta">
+                        {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
+                      </td>
+                      <td className="px-3 py-2.5 text-tinta/60">{c.cliente_nombre ?? "Cliente varios"}</td>
+                      <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(c.total))}</td>
+                      <td className="px-3 py-2.5">
+                        <span className={`label-cayla rounded-full border px-3 py-1 text-[9px] ${ESTADO_ESTILO[c.estado]}`}>
+                          {ESTADO_ETIQUETA[c.estado]}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {puedeTransmitir ? (
+                          <button
+                            type="button"
+                            onClick={() => onTransmitir(c.id)}
+                            disabled={transmitiendoId === c.id}
+                            className="label-cayla text-[9px] text-rojo underline decoration-rojo/40 underline-offset-2 hover:decoration-rojo disabled:text-tinta/30 disabled:no-underline"
+                          >
+                            {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
+                          </button>
+                        ) : (
+                          <span className="text-tinta/30">—</span>
+                        )}
+                        {errorTransmision?.id === c.id && (
+                          <p className="mt-1 max-w-48 text-[10px] text-rojo/80">{errorTransmision.detalle}</p>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
