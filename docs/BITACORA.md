@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-04 (Proveedores — editar, desactivar, banco/marca)
+Felipe revisó Proveedores y preguntó si estaba bien así. Hallazgo: el
+formulario solo insertaba, `activo` existía y el query ya filtraba por ella
+pero nada la usaba (no había forma de archivar un proveedor), y `marca`/
+`banco`/`cuenta_bancaria` vivían en el schema sin exponerse en pantalla.
+Cada fila (Líder) abre ahora el mismo formulario en modo edición con
+Desactivar/Reactivar — nunca se borra la fila — y se agregaron los tres
+campos que faltaban. Sin RPC nueva: `.update()` directo contra la tabla,
+mismo patrón que ya usaba el `.insert()` (RLS `proveedores_write_lider`
+cubre ambos). Empujado a `main` después de fast-forward con un commit nuevo
+en paralelo (traslado de Facturación de Finanzas a Vender, sin overlap).
+
 ## 2026-09-04 (alta de producto con matriz talla × color)
 Felipe pidió crear un producto ("Reflixme") pensando en todo — tallas y
 colores incluidos — y encontró el hueco real: "Recibir mercadería" crea un
