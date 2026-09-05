@@ -133,6 +133,28 @@ combinan sin perder nada). Backlog actualizado para reflejar el estado real:
 Lucode reemplaza a Nubefact en toda referencia, con el trámite pendiente que
 le toca a Felipe (alta como PSE tercero en SUNAT SOL, no antes de mañana).
 
+## 2026-09-05 (hook de pre-commit: el linter deja de ser opcional)
+`pnpm lint` llevaba días en rojo y nadie lo veía — así se coló a producción el
+`Date.now()` en el render de Proformas y un renombrado a medias que rompía el
+build. Se puso `.githooks/pre-commit`, activado solo con `pnpm install` (script
+`prepare` que apunta `core.hooksPath`, cero dependencias nuevas: es todo lo que
+hace husky).
+
+Lo que manda de la decisión fueron los NÚMEROS, no la opinión: `eslint` sobre el
+proyecto entero tarda **4 min 15 s**; sobre los archivos de un commit, ~15 s.
+Un hook de cuatro minutos no protege nada porque se saltea con `--no-verify` a la
+tercera vez. Por eso revisa solo lo que estás commiteando: tipos (7,5 s), tests
+(10 s) y lint (14 s) — ~19 s en total, y 0,5 s si el commit es solo de
+documentación o SQL. Se añadió `tsc` además de lo pedido porque era lo único que
+habría cazado el error que rompió el build hoy; los errores de tipos de archivos
+AJENOS avisan pero no bloquean, para que el trabajo a medias de otra sesión no
+te secuestre un commit terminado.
+
+Probado en los cinco escenarios antes de darlo por bueno: commit de solo docs
+(pasa en 0,5 s), error de lint (bloquea y señala la línea), error de tipos propio
+(bloquea), error de tipos ajeno (avisa y deja pasar), y todo limpio (pasa en
+18,7 s). Un hook sin probar es un hook que no existe.
+
 ## 2026-09-05 (el entorno local por fin existe)
 Felipe pidió arreglar lo del Supabase local. Eran tres causas encadenadas, no
 una: (1) `supabase start` aborta y borra TODOS los contenedores si uno solo
