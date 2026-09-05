@@ -38,6 +38,34 @@ combinan sin perder nada). Backlog actualizado para reflejar el estado real:
 Lucode reemplaza a Nubefact en toda referencia, con el trámite pendiente que
 le toca a Felipe (alta como PSE tercero en SUNAT SOL, no antes de mañana).
 
+## 2026-09-05 (el entorno local por fin existe)
+Felipe pidió arreglar lo del Supabase local. Eran tres causas encadenadas, no
+una: (1) `supabase start` aborta y borra TODOS los contenedores si uno solo
+falla el healthcheck, y fallaban cuatro —analytics, vector, realtime y storage—
+por saturación de tener dos stacks de Supabase en la misma máquina; como la CLI
+ve el contenedor de Postgres y dice "setup is running", el fallo era invisible.
+(2) La app pide el schema `retail` y las migraciones locales dejan todo en
+`public`. (3) `lib/persona.ts` solo reconocía el rol `admin` de dynamic, así que
+un Líder local se volvía integrante y quedaba fuera de media app.
+
+Lo que manda de la solución: el renombrado `public` → `retail` va en
+`supabase/seed.sql`, que corre SOLO en local — así las migraciones se siguen
+escribiendo sin prefijo (una sola forma, como manda CLAUDE.md) y el local queda
+con la misma forma que producción, sin que el código de la app tenga un camino
+distinto según dónde corra. Se descartó reescribir las 34 migraciones con
+prefijo `retail.` (mataría de paso el archivo dual que causó ADR-0004 y
+ADR-0006, pero es un proyecto aparte) y se descartó una variable de entorno para
+el schema, que es justo el patrón que produce bugs que nadie reproduce. ADR-0010.
+
+Ahora sí hay evidencia en vez de razonamiento: login real como "Felipe Alvarez ·
+Líder · AQP", `/vender/facturacion` cargando con las series del seed, un DNI
+incompleto respondiendo "Falta 1 dígito", una boleta real emitida
+(B001-000001, S/118.00) por la RPC contra el schema `retail`, y al reteclear el
+mismo DNI la tarjeta "MARIA FERNANDA ALVAREZ QUISPE — De un comprobante
+anterior". Eso último es el camino de degradación de ADR-0008 probado de punta a
+punta, sin proveedor de padrón y sin internet. Precio consciente: Storage queda
+apagado en local, así que subir fotos de producto no funciona ahí.
+
 ## 2026-09-05 (facturación — verificar al cliente contra RENIEC/SUNAT antes de emitir)
 Felipe pidió que boletas y facturas lean el DNI (o el RUC, si es factura) y
 muestren en pantalla los datos del cliente para poder verificarlos antes de

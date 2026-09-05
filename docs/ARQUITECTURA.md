@@ -289,11 +289,10 @@ Integrante solo su sede (o su almacén asociado).
 - Cobertura de tests: tres archivos (`lib/registro-contable.test.ts`,
   `lib/documento.test.ts`, `lib/padron.test.ts`, 43 pruebas). Sigue sin haber
   ninguna sobre stock/movimientos, que es el núcleo con más consecuencia.
-- El stack local de Supabase de retail es **solo Postgres**: los demás
-  servicios no levantan (choque de puertos con cayla-dynamic) y `retail` no
-  está en `[api] schemas` de `config.toml`, mientras la app pide
-  `db: { schema: "retail" }`. Consecuencia: la app nunca ha corrido de punta a
-  punta contra local — lo local sirve para probar SQL, no pantallas.
+- El entorno local ya corre la app completa (ADR-0010, 2026-09-05):
+  `supabase/seed.sql` renombra `public` → `retail` después de migrar, así el
+  local tiene la misma forma que producción. Storage queda apagado en local
+  (subir fotos no funciona ahí); el resto sí. Instrucciones en el README.
 - `middleware.ts` usa convención deprecada de Next.js 16.
 
 ---

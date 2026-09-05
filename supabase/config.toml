@@ -120,7 +120,16 @@ port = 54424
 # sender_name = "Admin"
 
 [storage]
-enabled = true
+# Apagado a propósito (2026-09-05). Es el único servicio que queda "unhealthy"
+# al levantar el stack local, y `supabase start` aborta y borra TODOS los
+# contenedores si uno solo falla — por eso el entorno local nunca llegaba a
+# existir. Sus propios logs muestran que arranca bien: lo que falla es el
+# healthcheck, con dos stacks de Supabase (retail + dynamic) compitiendo en la
+# misma máquina.
+# QUÉ SE PIERDE EN LOCAL: subir fotos de producto (lib/catalogo, bucket `fotos`).
+# Todo lo demás —catálogo, ventas, finanzas, facturación— funciona igual.
+# Para probar fotos: poner esto en `true` y apagar el stack de cayla-dynamic.
+enabled = false
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 

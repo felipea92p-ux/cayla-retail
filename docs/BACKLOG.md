@@ -136,15 +136,20 @@ importante que ha entrado a este archivo desde que existe.
       Sin eso la pantalla funciona igual, avisando que la consulta automática no
       está activada y dejando escribir el nombre a mano. Reversible: sí (no
       toca el esquema).
-- [ ] `la app nunca ha corrido contra el Supabase local`: el stack local de
-      retail levanta solo Postgres (los demás contenedores no arrancan, choque
-      de puertos con cayla-dynamic), y `supabase/config.toml` expone
-      `["public", "graphql_public"]` mientras la app pide `schema: "retail"`.
-      Consecuencia real: cada pantalla nueva se verifica contra producción o no
-      se verifica. Descubierto 2026-09-05 al intentar demostrar la consulta de
-      DNI/RUC en el navegador. Decidir con Felipe si vale arreglarlo (exponer
-      `retail` en config + mover las tablas locales a ese schema) o dejarlo
-      declarado. Reversible: sí.
+- [x] **`la app nunca ha corrido contra el Supabase local` — RESUELTO
+      2026-09-05 (ADR-0010).** Eran tres causas: healthchecks que abortaban
+      `supabase start` entero, el schema `retail` que en local no existía, y
+      `lib/persona.ts` sin reconocer el rol `lider`. Ahora `npx supabase start`
+      + `pnpm dev` levanta la app completa contra local (instrucciones en el
+      README). Verificado emitiendo una boleta real. Precio: Storage apagado en
+      local — subir fotos de producto no funciona ahí.
+- [ ] `migraciones duales (local sin prefijo / producción con prefijo retail.)`:
+      la causa raíz de ADR-0004 y ADR-0006 sigue viva — cada cambio de esquema
+      se escribe dos veces y las dos copias se desincronizan. Ahora que el local
+      corre en el schema `retail` (ADR-0010), la ruta para matarlo es más corta:
+      escribir las migraciones una sola vez, ya calificadas. Requiere revisar
+      las 32 funciones con `set search_path` y las vistas puente sobre dynamic.
+      No urgente, pero es la deuda que más caro ha salido hasta hoy.
 - [ ] `produccion — insumos del taller`: la receta de costo (`0024`-`0029`) calcula
       con tela+avíos como costo directo declarado a mano, pero sigue sin inventario
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el

@@ -60,16 +60,21 @@ set search_path to retail, public, extensions;
 
 -- Credenciales de desarrollo, a propósito obvias y sin valor fuera de esta
 -- máquina: felipe@cayla.local / cayla-local
+-- Los *_token en '' (no NULL) son obligatorios: GoTrue los escanea como string
+-- Go y una columna NULL revienta el login con "Database error querying schema".
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+  created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
 ) values (
   '00000000-0000-0000-0000-000000000000',
   '22222222-2222-4222-8222-000000000001',
   'authenticated', 'authenticated', 'felipe@cayla.local',
   extensions.crypt('cayla-local', extensions.gen_salt('bf')),
   now(), now(), now(),
-  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb
+  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+  '', '', '', '', '', '', '', ''
 ) on conflict (id) do nothing;
 
 -- GoTrue exige la identidad además del usuario: sin esta fila el login con
