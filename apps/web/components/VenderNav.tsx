@@ -3,19 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Sub-navegación del mundo Finanzas (F1 — jubilación de SINATRA):
-// los 4 reportes que Felipe marcó como irrenunciables, cada uno con su lugar.
+// Sub-navegación del mundo Vender: la caja del día y la facturación electrónica
+// (emitir un comprobante cierra una venta — no es un reporte, por eso vive
+// acá y no en Finanzas; movido de /finanzas/facturacion el 2026-09-03).
 const SECCIONES = [
-  { href: "/finanzas", etiqueta: "Resumen" },
-  { href: "/finanzas/registrar", etiqueta: "Registrar" },
-  { href: "/finanzas/balances", etiqueta: "Balances" },
-  { href: "/finanzas/activos", etiqueta: "Activos" },
-  { href: "/finanzas/efectivo", etiqueta: "Efectivo" },
-  { href: "/finanzas/comparativo", etiqueta: "Año vs año" },
-  { href: "/finanzas/patrimonio", etiqueta: "Patrimonio" },
+  { href: "/vender", etiqueta: "Caja del día" },
+  { href: "/vender/facturacion", etiqueta: "Facturación" },
 ];
 
-export function FinanzasNav() {
+export function VenderNav() {
   const pathname = usePathname();
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-tinta/10">

@@ -4,7 +4,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getComprobantesMes, getSeriesComprobantes } from "@/lib/comprobantes";
 import { mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
 import { createClient } from "@/lib/supabase/server";
-import { FinanzasNav } from "@/components/FinanzasNav";
+import { VenderNav } from "@/components/VenderNav";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -13,6 +13,8 @@ const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "
 // comprobantes con correlativo oficial ya mismo; el envío a SUNAT queda
 // pendiente de una decisión estructural (SEE propio vs. OSE) que Claude le
 // planteó a Felipe antes de construir esta pantalla.
+// Vive en Vender, no en Finanzas (movido 2026-09-03, pedido de Felipe): emitir
+// un comprobante cierra una venta, no es un reporte financiero.
 export default async function FacturacionPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const persona = await requirePersonaActual();
   if (persona.rol !== "lider") redirect("/");
@@ -41,21 +43,21 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Finanzas</p>
+          <p className="label-cayla text-[10px] text-tinta/45">Vender</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">
             Facturación · {MESES[mes - 1]} {anio}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/finanzas/facturacion?m=${mesPrevio}`}
+            href={`/vender/facturacion?m=${mesPrevio}`}
             className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
           >
             ← {MESES[(mes + 10) % 12]}
           </Link>
           {!esMesActual && (
             <Link
-              href={`/finanzas/facturacion?m=${mesSiguiente}`}
+              href={`/vender/facturacion?m=${mesSiguiente}`}
               className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
             >
               {MESES[mes % 12]} →
@@ -64,7 +66,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
         </div>
       </div>
 
-      <FinanzasNav />
+      <VenderNav />
 
       <ComprobantesPanel comprobantes={comprobantes} series={series} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
     </div>

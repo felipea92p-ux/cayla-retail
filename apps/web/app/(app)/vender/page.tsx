@@ -3,6 +3,7 @@ import { getCatalogoConStock } from "@/lib/catalogo";
 import { getCajaAbierta } from "@/lib/finanzas";
 import { createClient } from "@/lib/supabase/server";
 import { CajaPanel } from "@/components/CajaPanel";
+import { VenderNav } from "@/components/VenderNav";
 
 const LIMA_OFFSET_MS = 5 * 3600 * 1000;
 function inicioDiaLima(): Date {
@@ -56,6 +57,8 @@ export default async function VenderPage() {
         <p className="label-cayla text-[10px] text-tinta/45">Vender · {persona.sedeCodigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Caja del día</h1>
       </div>
+
+      <VenderNav />
 
       <CajaPanel
         sedeId={persona.sedeId}

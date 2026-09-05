@@ -143,7 +143,10 @@ completos antes de proponer nada. Trabajo en pasos verificables (principio 7), c
 uno con "cómo verificas tú que funciona" explícito. Al cerrar un paso o la sesión:
 actualizo `/docs/BACKLOG.md`, agrego 3 líneas a `/docs/BITACORA.md`, ADR en
 `/docs/adr/` el mismo día si hubo decisión estructural (principio 8), commit con
-Conventional Commits.
+Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura completa
+(rutas↔lib↔RPC/tablas, modelo de datos, RLS) — actualizarla cuando cambie el modelo
+de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
+(eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
 Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión).
