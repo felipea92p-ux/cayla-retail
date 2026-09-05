@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FotoProducto } from "@/components/FotoProducto";
 import { MinimosPorSede } from "@/components/MinimosPorSede";
@@ -66,47 +67,50 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { variantes } = await getCatalogoInteligente(persona);
+  const esLider = persona.rol === "lider";
+
+  // Las 4 son independientes entre sí: solo dependen de varianteId/persona (ya
+  // disponibles), no del resultado de las otras — antes iban en cascada de hasta 5
+  // rondas secuenciales.
+  const [{ variantes }, sedesData, { data: stockConContenedor }, { data: movimientos }] = await Promise.all([
+    getCatalogoInteligente(persona),
+    getSedes(),
+    supabase.from("stock").select("sede_id, contenedores(codigo)").eq("variante_id", varianteId),
+    supabase
+      .from("movimientos")
+      .select("id, tipo, cantidad, motivo, sede_id, sede_destino_id, usuario_id, nota, created_at")
+      .eq("variante_id", varianteId)
+      .order("created_at", { ascending: false })
+      .limit(200),
+  ]);
+
   const v = variantes.find((x) => x.varianteId === varianteId);
   if (!v) notFound();
 
-  const { data: sedesData } = await supabase.from("sedes").select("id, codigo, tipo");
-  const sedePorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
-  const tiendas = (sedesData ?? [])
-    .filter((s): s is { id: string; codigo: string; tipo: string | null } => s.tipo === "tienda" && s.id != null && s.codigo != null)
-    .map((s) => ({ id: s.id, codigo: s.codigo }));
-  const esLider = persona.rol === "lider";
+  const sedePorId = new Map(sedesData.map((s) => [s.id, s.codigo]));
+  const tiendas = sedesData.filter((s) => s.tipo === "tienda").map((s) => ({ id: s.id, codigo: s.codigo }));
+  const usuarioIds = [...new Set((movimientos ?? []).map((m) => m.usuario_id).filter(Boolean))] as string[];
 
-  // Receta de costo del Taller (solo Líder — el costo es sensible)
-  const [{ data: bomRows }, { data: productoRow }] = esLider
-    ? await Promise.all([
-        supabase.from("bom_items").select("id, insumo, cantidad_requerida, unidad, precio_unitario").eq("producto_id", v.productoId).order("created_at"),
-        supabase.from("productos").select("costo_mano_obra").eq("id", v.productoId).single(),
-      ])
-    : [{ data: null }, { data: null }];
+  // Estas 3 sí dependen de lo anterior (v.productoId / usuarioIds), pero no entre
+  // sí — van juntas en vez de una tras otra.
+  const [{ data: bomRows }, { data: productoRow }, { data: personasData }] = await Promise.all([
+    esLider
+      ? supabase.from("bom_items").select("id, insumo, cantidad_requerida, unidad, precio_unitario").eq("producto_id", v.productoId).order("created_at")
+      : Promise.resolve({ data: null as { id: string; insumo: string; cantidad_requerida: number; unidad: string; precio_unitario: number | null }[] | null }),
+    esLider
+      ? supabase.from("productos").select("costo_mano_obra").eq("id", v.productoId).single()
+      : Promise.resolve({ data: null as { costo_mano_obra: number | null } | null }),
+    usuarioIds.length
+      ? supabase.from("personas").select("id, nombre").in("id", usuarioIds)
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+  ]);
 
-  const { data: stockConContenedor } = await supabase
-    .from("stock")
-    .select("sede_id, contenedores(codigo)")
-    .eq("variante_id", varianteId);
   const contenedorPorSedeCodigo = new Map(
     (stockConContenedor ?? []).map((s) => {
       const contenedor = Array.isArray(s.contenedores) ? s.contenedores[0] : s.contenedores;
       return [sedePorId.get(s.sede_id) ?? "", contenedor?.codigo ?? null];
     })
   );
-
-  const { data: movimientos } = await supabase
-    .from("movimientos")
-    .select("id, tipo, cantidad, motivo, sede_id, sede_destino_id, usuario_id, nota, created_at")
-    .eq("variante_id", varianteId)
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  const usuarioIds = [...new Set((movimientos ?? []).map((m) => m.usuario_id).filter(Boolean))] as string[];
-  const { data: personasData } = usuarioIds.length
-    ? await supabase.from("personas").select("id, nombre").in("id", usuarioIds)
-    : { data: [] as { id: string; nombre: string }[] };
   const nombrePorId = new Map((personasData ?? []).map((p) => [p.id, p.nombre]));
 
   // Serie de stock: se ancla al total actual conocido (v.stockTotal) y camina hacia

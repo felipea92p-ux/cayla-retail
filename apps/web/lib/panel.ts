@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 
 // Panel del día del Líder (Inicio): el pulso del negocio en una pantalla.
@@ -25,8 +26,8 @@ export async function getPanelLider(persona: PersonaActual): Promise<PanelLider 
   const supabase = await createClient();
   const desde = inicioDiaLima().toISOString();
 
-  const [{ data: sedes }, { data: ventasHoy }, { data: cajasAbiertas }, { data: stockRows }] = await Promise.all([
-    supabase.from("sedes").select("id, codigo, tipo").order("codigo"),
+  const [sedes, { data: ventasHoy }, { data: cajasAbiertas }, { data: stockRows }] = await Promise.all([
+    getSedes(),
     supabase.from("ventas").select("sede_id, monto_total").gte("created_at", desde),
     supabase.from("cajas").select("sede_id").eq("estado", "abierta"),
     supabase.from("stock").select("sede_id, cantidad, variantes(costo)"),

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
+import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { Ayuda } from "@/components/Ayuda";
 
@@ -24,11 +25,15 @@ export default async function ComercialPage() {
   if (persona.rol !== "lider") redirect("/");
 
   const supabase = await createClient();
-  const { variantes, ventanaDias } = await getCatalogoInteligente(persona);
-
-  const desde = desdeISO(ventanaDias);
-  const [{ data: sedesData }, { data: ventasMov }] = await Promise.all([
-    supabase.from("sedes").select("id, codigo, tipo"),
+  // ventanaDias es siempre este default (nadie llama getCatalogoInteligente con un 2°
+  // argumento distinto acá) — se fija explícito para no tener que esperar la respuesta
+  // de esa función antes de poder calcular `desde` y lanzar las otras 2 consultas en
+  // la misma ronda, en vez de esperar a que termine la más lenta primero.
+  const VENTANA_DIAS = 30;
+  const desde = desdeISO(VENTANA_DIAS);
+  const [{ variantes, ventanaDias }, todasSedes, { data: ventasMov }] = await Promise.all([
+    getCatalogoInteligente(persona, VENTANA_DIAS),
+    getSedes(),
     supabase
       .from("movimientos")
       .select("sede_id, cantidad, monto")
@@ -36,7 +41,7 @@ export default async function ComercialPage() {
       .eq("motivo", "venta")
       .gte("created_at", desde),
   ]);
-  const codigoPorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
+  const codigoPorId = new Map(todasSedes.map((s) => [s.id, s.codigo]));
 
   // ==================== Sugerencias de reposición ====================
   // Compra sugerida: cubrir el punto de reorden con 50% de colchón. Es un punto de
