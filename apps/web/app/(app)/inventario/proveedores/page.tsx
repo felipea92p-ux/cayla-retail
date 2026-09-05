@@ -7,10 +7,11 @@ export default async function ProveedoresPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
+  // Trae también los inactivos: el Líder los necesita para poder reactivarlos
+  // (ProveedoresManager los oculta por defecto con un toggle "Mostrar inactivos").
   const { data: proveedores } = await supabase
     .from("proveedores")
-    .select("id, nombre, ruc, categoria, marca, score, contacto, telefono, direccion")
-    .eq("activo", true)
+    .select("id, nombre, ruc, categoria, marca, score, contacto, telefono, direccion, banco, cuenta_bancaria, activo")
     .order("nombre");
 
   return (
@@ -26,7 +27,11 @@ export default async function ProveedoresPage() {
       <InventarioNav />
 
       <ProveedoresManager
-        proveedores={(proveedores ?? []).map((p) => ({ ...p, score: p.score != null ? Number(p.score) : null }))}
+        proveedores={(proveedores ?? []).map((p) => ({
+          ...p,
+          score: p.score != null ? Number(p.score) : null,
+          cuentaBancaria: p.cuenta_bancaria,
+        }))}
         esLider={persona.rol === "lider"}
       />
     </div>

@@ -54,6 +54,18 @@ entregarlo: se me olvidó actualizar el check de `series_comprobantes.tipo`
 además del de `comprobantes.tipo`, la misma familia de deriva que ya costó
 ADR-0004 y ADR-0006. Corregido antes de commitear, no después. ADR-0007.
 
+## 2026-09-04 (Proveedores — editar, desactivar, banco/marca)
+Felipe revisó Proveedores y preguntó si estaba bien así. Hallazgo: el
+formulario solo insertaba, `activo` existía y el query ya filtraba por ella
+pero nada la usaba (no había forma de archivar un proveedor), y `marca`/
+`banco`/`cuenta_bancaria` vivían en el schema sin exponerse en pantalla.
+Cada fila (Líder) abre ahora el mismo formulario en modo edición con
+Desactivar/Reactivar — nunca se borra la fila — y se agregaron los tres
+campos que faltaban. Sin RPC nueva: `.update()` directo contra la tabla,
+mismo patrón que ya usaba el `.insert()` (RLS `proveedores_write_lider`
+cubre ambos). Empujado a `main` después de fast-forward con un commit nuevo
+en paralelo (traslado de Facturación de Finanzas a Vender, sin overlap).
+
 ## 2026-09-04 (alta de producto con matriz talla × color)
 Felipe pidió crear un producto ("Reflixme") pensando en todo — tallas y
 colores incluidos — y encontró el hueco real: "Recibir mercadería" crea un

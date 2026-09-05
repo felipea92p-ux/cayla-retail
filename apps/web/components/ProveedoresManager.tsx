@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 
 // Directorio único de proveedores (fin de las 3 copias desincronizadas de SINATRA:
 // TRU tenía 295 filas, AQP/LIM 287). Edición solo Líder; todas pueden consultar.
+// "Desactivar" nunca borra la fila — mueve `activo` a false (principio del
+// CLAUDE.md: archivar, no borrar), y queda reversible con "Reactivar".
 
 export type Proveedor = {
   id: string;
@@ -17,45 +19,119 @@ export type Proveedor = {
   contacto: string | null;
   telefono: string | null;
   direccion: string | null;
+  banco: string | null;
+  cuentaBancaria: string | null;
+  activo: boolean;
 };
+
+type FormState = {
+  nombre: string;
+  ruc: string;
+  categoria: string;
+  marca: string;
+  contacto: string;
+  telefono: string;
+  direccion: string;
+  banco: string;
+  cuentaBancaria: string;
+};
+
+const FORM_VACIO: FormState = {
+  nombre: "", ruc: "", categoria: "", marca: "", contacto: "", telefono: "", direccion: "", banco: "", cuentaBancaria: "",
+};
+
+function aFormulario(p: Proveedor): FormState {
+  return {
+    nombre: p.nombre,
+    ruc: p.ruc ?? "",
+    categoria: p.categoria ?? "",
+    marca: p.marca ?? "",
+    contacto: p.contacto ?? "",
+    telefono: p.telefono ?? "",
+    direccion: p.direccion ?? "",
+    banco: p.banco ?? "",
+    cuentaBancaria: p.cuentaBancaria ?? "",
+  };
+}
 
 export function ProveedoresManager({ proveedores, esLider }: { proveedores: Proveedor[]; esLider: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [abierto, setAbierto] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [ruc, setRuc] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [contacto, setContacto] = useState("");
-  const [direccion, setDireccion] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(FORM_VACIO);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const filtrados = useMemo(() => {
+    const base = mostrarInactivos ? proveedores : proveedores.filter((p) => p.activo);
     const term = q.trim().toLowerCase();
-    if (!term) return proveedores;
-    return proveedores.filter((p) =>
+    if (!term) return base;
+    return base.filter((p) =>
       `${p.nombre} ${p.categoria ?? ""} ${p.marca ?? ""} ${p.ruc ?? ""} ${p.contacto ?? ""}`.toLowerCase().includes(term)
     );
-  }, [proveedores, q]);
+  }, [proveedores, q, mostrarInactivos]);
+
+  function abrirNuevo() {
+    setEditandoId(null);
+    setForm(FORM_VACIO);
+    setError(null);
+    setAbierto(true);
+  }
+
+  function abrirEditar(p: Proveedor) {
+    if (!esLider) return;
+    setEditandoId(p.id);
+    setForm(aFormulario(p));
+    setError(null);
+    setAbierto(true);
+  }
+
+  function cerrar() {
+    setAbierto(false);
+    setEditandoId(null);
+    setForm(FORM_VACIO);
+    setError(null);
+  }
+
+  function campo<K extends keyof FormState>(clave: K, valor: string) {
+    setForm((actual) => ({ ...actual, [clave]: valor }));
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await createClient().from("proveedores").insert({
-      nombre: nombre.trim(),
-      ruc: ruc || null,
-      categoria: categoria || null,
-      telefono: telefono || null,
-      contacto: contacto || null,
-      direccion: direccion || null,
-    });
+    const payload = {
+      nombre: form.nombre.trim(),
+      ruc: form.ruc.trim() || null,
+      categoria: form.categoria.trim() || null,
+      marca: form.marca.trim() || null,
+      contacto: form.contacto.trim() || null,
+      telefono: form.telefono.trim() || null,
+      direccion: form.direccion.trim() || null,
+      banco: form.banco.trim() || null,
+      cuenta_bancaria: form.cuentaBancaria.trim() || null,
+    };
+    const supabase = createClient();
+    const { error } = editandoId
+      ? await supabase.from("proveedores").update(payload).eq("id", editandoId)
+      : await supabase.from("proveedores").insert(payload);
     setLoading(false);
     if (error) { setError(error.message); return; }
-    setAbierto(false);
-    setNombre(""); setRuc(""); setCategoria(""); setTelefono(""); setContacto(""); setDireccion("");
+    cerrar();
+    router.refresh();
+  }
+
+  async function cambiarActivo(activo: boolean) {
+    if (!editandoId) return;
+    setLoading(true);
+    setError(null);
+    const { error } = await createClient().from("proveedores").update({ activo }).eq("id", editandoId);
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    cerrar();
     router.refresh();
   }
 
@@ -72,7 +148,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
         />
         {esLider && (
           <button
-            onClick={() => setAbierto((v) => !v)}
+            onClick={abrirNuevo}
             className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
           >
             + Nuevo proveedor
@@ -80,25 +156,49 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
         )}
       </div>
 
+      {esLider && (
+        <label className="flex items-center gap-2 text-xs text-tinta/50">
+          <input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />
+          Mostrar inactivos
+        </label>
+      )}
+
       {abierto && (
         <form onSubmit={onSubmit} className="card-cayla p-5">
+          <p className="label-cayla mb-3 text-[10px] text-tinta/45">{editandoId ? "Editar proveedor" : "Nuevo proveedor"}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div><label className="label-cayla text-[10px] text-tinta/50">Nombre *</label>
-              <input required autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={inputCls} /></div>
+              <input required autoFocus value={form.nombre} onChange={(e) => campo("nombre", e.target.value)} className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">RUC</label>
-              <input value={ruc} onChange={(e) => setRuc(e.target.value)} className={inputCls} /></div>
+              <input value={form.ruc} onChange={(e) => campo("ruc", e.target.value)} className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Categoría</label>
-              <input value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ej. Blusas, Bisutería" className={inputCls} /></div>
+              <input value={form.categoria} onChange={(e) => campo("categoria", e.target.value)} placeholder="Ej. Blusas, Bisutería" className={inputCls} /></div>
+            <div><label className="label-cayla text-[10px] text-tinta/50">Marca</label>
+              <input value={form.marca} onChange={(e) => campo("marca", e.target.value)} placeholder="Línea que maneja este proveedor" className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Contacto</label>
-              <input value={contacto} onChange={(e) => setContacto(e.target.value)} className={inputCls} /></div>
+              <input value={form.contacto} onChange={(e) => campo("contacto", e.target.value)} className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Teléfono</label>
-              <input value={telefono} onChange={(e) => setTelefono(e.target.value)} className={inputCls} /></div>
+              <input value={form.telefono} onChange={(e) => campo("telefono", e.target.value)} className={inputCls} /></div>
             <div><label className="label-cayla text-[10px] text-tinta/50">Dirección</label>
-              <input value={direccion} onChange={(e) => setDireccion(e.target.value)} className={inputCls} /></div>
+              <input value={form.direccion} onChange={(e) => campo("direccion", e.target.value)} className={inputCls} /></div>
+            <div><label className="label-cayla text-[10px] text-tinta/50">Banco</label>
+              <input value={form.banco} onChange={(e) => campo("banco", e.target.value)} className={inputCls} /></div>
+            <div><label className="label-cayla text-[10px] text-tinta/50">Cuenta bancaria</label>
+              <input value={form.cuentaBancaria} onChange={(e) => campo("cuentaBancaria", e.target.value)} className={inputCls} /></div>
           </div>
           {error && <p className="mt-3 text-sm text-rojo">{error}</p>}
-          <div className="mt-4 flex gap-2">
-            <button type="button" onClick={() => setAbierto(false)} className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta">Cancelar</button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" onClick={cerrar} className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta">Cancelar</button>
+            {editandoId && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => cambiarActivo(!proveedores.find((p) => p.id === editandoId)?.activo)}
+                className="label-cayla flex-1 border border-rojo/40 px-3 py-2.5 text-[10px] text-rojo transition-colors hover:bg-rojo/5 disabled:opacity-50"
+              >
+                {proveedores.find((p) => p.id === editandoId)?.activo ? "Desactivar" : "Reactivar"}
+              </button>
+            )}
             <button type="submit" disabled={loading} className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
               {loading ? "Guardando…" : "Guardar"}
             </button>
@@ -110,9 +210,16 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
 
       <div className="divide-y divide-tinta/5 card-cayla">
         {filtrados.slice(0, 60).map((p) => (
-          <div key={p.id} className="px-4 py-3">
+          <div
+            key={p.id}
+            onClick={() => abrirEditar(p)}
+            className={`px-4 py-3 ${esLider ? "cursor-pointer hover:bg-sand" : ""}`}
+          >
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-medium text-tinta">{p.nombre}</p>
+              <p className="text-sm font-medium text-tinta">
+                {p.nombre}
+                {!p.activo && <span className="label-cayla ml-2 text-[9px] text-tinta/35">inactivo</span>}
+              </p>
               {p.score != null && <span className="label-cayla text-[9px] text-taupe">score {p.score}</span>}
             </div>
             <p className="mt-0.5 text-xs text-tinta/45">
