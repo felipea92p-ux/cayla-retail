@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { CuadreSede } from "@/lib/finanzas-nucleo";
 import { Ayuda } from "@/components/Ayuda";
+import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 type Sede = { id: string; codigo: string };
 
@@ -104,76 +105,61 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
       </div>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-tinta/30 sm:items-center">
-          <div className="w-full max-w-sm bg-crema p-6">
-            <h2 className="font-display text-lg text-tinta">
-              {modal === "deposito" ? "Depósito al banco" : "Ajuste de efectivo"}
-            </h2>
-            <p className="mb-4 mt-1 text-xs text-tinta/50">
-              {modal === "deposito"
-                ? "Efectivo que sale del cajón de la sede hacia el banco."
-                : "Corrige el teórico con motivo obligatorio (ej. saldo inicial del corte). Puede ser negativo."}
-            </p>
+        <Modal
+          titulo={modal === "deposito" ? "Depósito al banco" : "Ajuste de efectivo"}
+          subtitulo={
+            modal === "deposito"
+              ? "Efectivo que sale del cajón de la sede hacia el banco."
+              : "Corrige el teórico con motivo obligatorio (ej. saldo inicial del corte). Puede ser negativo."
+          }
+          onClose={() => setModal(null)}
+        >
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Sede</label>
+              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className={campoSelect}>
+                {sedes.map((s) => (
+                  <option key={s.id} value={s.id}>{s.codigo}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Monto (S/)</label>
+              <input
+                type="number"
+                step="0.10"
+                required
+                autoFocus
+                value={monto}
+                onChange={(e) => setMonto(Number(e.target.value))}
+                className={campoTexto}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>
+                {modal === "deposito" ? "Nota (opcional)" : "Motivo (obligatorio)"}
+              </label>
+              <input
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                required={modal === "ajuste"}
+                placeholder={modal === "deposito" ? "Ej. depósito BCP" : "Ej. saldo inicial del corte 19/07"}
+                className={campoTexto}
+              />
+            </div>
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="label-cayla text-[10px] text-tinta/50">Sede</label>
-                <select
-                  value={sedeId}
-                  onChange={(e) => setSedeId(e.target.value)}
-                  className="w-full card-cayla px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
-                >
-                  {sedes.map((s) => (
-                    <option key={s.id} value={s.id}>{s.codigo}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="label-cayla text-[10px] text-tinta/50">Monto (S/)</label>
-                <input
-                  type="number"
-                  step="0.10"
-                  required
-                  autoFocus
-                  value={monto}
-                  onChange={(e) => setMonto(Number(e.target.value))}
-                  className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="label-cayla text-[10px] text-tinta/50">
-                  {modal === "deposito" ? "Nota (opcional)" : "Motivo (obligatorio)"}
-                </label>
-                <input
-                  value={nota}
-                  onChange={(e) => setNota(e.target.value)}
-                  required={modal === "ajuste"}
-                  placeholder={modal === "deposito" ? "Ej. depósito BCP" : "Ej. saldo inicial del corte 19/07"}
-                  className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
-                />
-              </div>
+            {error && <p className="text-sm text-rojo">{error}</p>}
 
-              {error && <p className="text-sm text-rojo">{error}</p>}
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setModal(null)}
-                  className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
-                >
-                  {loading ? "Guardando…" : "Guardar"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => setModal(null)} className={botonCancelar}>
+                Cancelar
+              </button>
+              <button type="submit" disabled={loading} className={botonPrimario}>
+                {loading ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

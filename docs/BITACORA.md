@@ -515,3 +515,22 @@ exportar Excel, conteo físico. Al cierre, Felipe pidió y se construyó el sele
 sede del Líder (TRU/AQP/LIM/Taller en la cabecera): cambia la perspectiva de toda la
 app sin tocar permisos — el servidor ya validaba por 0012. Verificado en vivo por
 Felipe ("bien muy bien").
+
+## 2026-09-04 (modernización de interfaces — primer paso)
+Felipe pidió "descargar skills para el diseño de todas las interfaces" y que la app
+sea "moderna". Antes de tocar código se auditó el repo: ya existe un sistema de
+identidad completo y verificado en producción (brandbook v3.0), y hay un precedente
+explícito del 18-jul donde se decidió que la esencia CAYLA manda sobre una estética
+genérica "tipo Apple". Se le presentó la tensión a Felipe con AskUserQuestion: eligió
+modernizar DENTRO del sistema CAYLA, usando Radix/shadcn solo como base de
+accesibilidad sin estilo propio, nunca el look por defecto de un kit externo.
+
+Se encontró el punto real de la petición: 6 modales del núcleo (abrir/cerrar caja,
+vender, bajar a tienda, registrar gasto, movimiento de stock) seguían con estilos
+genéricos pre-brandbook (blanco/negro/neutral-*), y ninguno de los 8 modales de la
+app atrapaba el foco ni cerraba con Escape. Se construyó `components/ui/Modal.tsx`
+(Radix Dialog + tokens CAYLA) y se migraron los 6 modales + `EfectivoPanel` →
+ADR-0003. Verificado en navegador (página de prueba temporal, borrada al cerrar):
+overlay y panel con la paleta correcta, Escape y click-afuera cierran. Pendiente,
+anotado en BACKLOG: `MenuNuevo` del AppShell sigue sin el mismo tratamiento (patrón
+distinto, no modal). Commiteado.

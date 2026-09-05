@@ -249,6 +249,10 @@ importante que ha entrado a este archivo desde que existe.
 - [ ] `finanzas`: el costo de lo vendido usa el costo VIGENTE de cada prenda, no el
       costo del día de la venta. Inofensivo mientras los costos sean estables (nota
       del 17-jul); si algún día se mueven, distorsiona el histórico de EERR pasados.
+- [ ] `AppShell`: el panel "+ Nuevo" (`MenuNuevo`) sigue sin cerrar con `Escape` —
+      quedó fuera a propósito de la migración a `components/ui/Modal` (ADR-0003)
+      porque es un menú anclado al lateral/bottom-sheet, no un modal centrado; si se
+      toca, mismo criterio (Radix sin estilo propio, tokens CAYLA).
 
 ---
 
@@ -268,6 +272,14 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-04 — Modal compartido `components/ui/Modal.tsx` sobre Radix Dialog
+      (ADR-0003): los 6 modales del núcleo que seguían con estilos genéricos
+      pre-brandbook (abrir/cerrar caja, vender, bajar a tienda, registrar gasto,
+      movimiento de stock) migraron a los tokens CAYLA v3, y los 8 modales de la
+      app ganaron foco atrapado + cierre con `Escape` (antes ninguno lo tenía,
+      salvo `Ayuda.tsx` con lógica propia). Verificado en navegador con página de
+      prueba temporal (borrada al cerrar). Sin adoptar ningún kit visual externo —
+      Radix solo aporta comportamiento, el look sigue siendo 100% CAYLA.
 - [x] 2026-07-19/23 — Producción del Taller construida de punta a punta más allá de
       lo registrado en BITACORA: costeo por margen de contribución (`0024`),
       registrar producción por corrida (`0025`), producción a nivel de modelo
