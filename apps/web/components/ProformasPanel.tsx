@@ -8,6 +8,7 @@ import type { TipoComprobante } from "@/lib/comprobantes";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 type Sede = { id: string; codigo: string };
 
@@ -175,7 +176,7 @@ export function ProformasPanel({
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>
                   <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
@@ -216,7 +217,7 @@ export function ProformasPanel({
                         {p.estado === "vigente" && (
                           <button
                             onClick={() => setModal({ convertir: p })}
-                            className="label-cayla text-[9px] text-tinta/60 underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo"
+                            className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[9px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Convertir
                           </button>
@@ -232,33 +233,27 @@ export function ProformasPanel({
 
       {/* ==================== Modal: crear proforma ==================== */}
       {modal === "crear" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={onCrear}
-            className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5"
-          >
-            <h3 className="font-display text-lg text-tinta">Nueva proforma</h3>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+        <Modal titulo="Nueva proforma" onClose={cerrarModal}>
+          <form onSubmit={onCrear} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Sede</label>
+              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className={campoSelect}>
                 {sedes.map((s) => (
                   <option key={s.id} value={s.id}>{s.codigo}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Cliente (opcional)</label>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Cliente (opcional)</label>
               <input
                 value={clienteNombre}
                 onChange={(e) => setClienteNombre(e.target.value)}
                 placeholder="Nombre de la clienta"
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+                className={campoTexto}
               />
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Total (incluye IGV)</label>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Total (incluye IGV)</label>
               <input
                 type="number"
                 step="0.01"
@@ -266,50 +261,44 @@ export function ProformasPanel({
                 required
                 value={total || ""}
                 onChange={(e) => setTotal(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+                className={campoTexto}
               />
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Vigente por (días)</label>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Vigente por (días)</label>
               <input
                 type="number"
                 min="1"
                 required
                 value={venceEnDias}
                 onChange={(e) => setVenceEnDias(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+                className={campoTexto}
               />
             </div>
             {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+              <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar
               </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              <button type="submit" disabled={loading} className={botonPrimario}>
                 {loading ? "Guardando…" : "Guardar proforma"}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* ==================== Modal: convertir a comprobante ==================== */}
       {modal && typeof modal === "object" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={(e) => onConvertir(e, modal.convertir)}
-            className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5"
-          >
-            <h3 className="font-display text-lg text-tinta">Convertir a comprobante</h3>
+        <Modal titulo="Convertir a comprobante" onClose={cerrarModal}>
+          <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="space-y-4">
             <p className="text-xs text-tinta/60">
               {modal.convertir.cliente_nombre ?? "Cliente varios"} · {money(Number(modal.convertir.total))}
             </p>
 
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Tipo</label>
-              <div className="mt-1 flex gap-2">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Tipo</label>
+              <div className="flex gap-2">
                 {(["boleta", "factura"] as TipoComprobante[]).map((t) => (
                   <button
                     key={t}
@@ -340,15 +329,15 @@ export function ProformasPanel({
 
             {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+              <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar
               </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              <button type="submit" disabled={loading} className={botonPrimario}>
                 {loading ? "Emitiendo…" : "Emitir comprobante"}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

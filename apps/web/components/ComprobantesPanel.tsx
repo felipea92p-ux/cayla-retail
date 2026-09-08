@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 type Sede = { id: string; codigo: string };
 
@@ -226,7 +227,7 @@ export function ComprobantesPanel({
             Ninguna sede tiene serie registrada todavía. Sin esto, no se puede emitir nada.
           </p>
         ) : (
-          <div className="grid gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
             {series.map((s) => {
               const sede = sedes.find((sd) => sd.id === s.sede_id);
               return (
@@ -260,7 +261,7 @@ export function ComprobantesPanel({
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="border-b border-tinta/10 text-tinta/40">
                 <tr>
                   <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
@@ -293,7 +294,7 @@ export function ComprobantesPanel({
                             type="button"
                             onClick={() => onTransmitir(c.id)}
                             disabled={transmitiendoId === c.id}
-                            className="label-cayla text-[9px] text-rojo underline decoration-rojo/40 underline-offset-2 hover:decoration-rojo disabled:text-tinta/30 disabled:no-underline"
+                            className="label-cayla rounded border border-rojo/30 px-2.5 py-1.5 text-[9px] text-rojo transition-colors hover:bg-rojo/10 disabled:border-tinta/15 disabled:text-tinta/30"
                           >
                             {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
                           </button>
@@ -301,7 +302,7 @@ export function ComprobantesPanel({
                           <span className="text-tinta/30">—</span>
                         )}
                         {errorTransmision?.id === c.id && (
-                          <p className="mt-1 max-w-48 text-[10px] text-rojo/80">{errorTransmision.detalle}</p>
+                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[10px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
                         )}
                       </td>
                     </tr>
@@ -315,15 +316,8 @@ export function ComprobantesPanel({
 
       {/* ==================== Modal: emitir comprobante ==================== */}
       {modal === "emitir" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={onEmitir}
-            className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5 sm:rounded-xl"
-          >
-            <h3 className="font-display text-lg text-tinta">Emitir comprobante</h3>
-
+        <Modal titulo="Emitir comprobante" onClose={cerrarModal}>
+          <form onSubmit={onEmitir} className="space-y-4">
             <div className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2 text-xs text-tinta/70">
               Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
               está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
@@ -331,18 +325,18 @@ export function ComprobantesPanel({
               decisión se tome.
             </div>
 
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Sede</label>
+              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className={campoSelect}>
                 {sedes.map((s) => (
                   <option key={s.id} value={s.id}>{s.codigo}</option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Tipo</label>
-              <div className="mt-1 flex gap-2">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Tipo</label>
+              <div className="flex gap-2">
                 {(["boleta", "factura"] as TipoComprobante[]).map((t) => (
                   <button
                     key={t}
@@ -362,8 +356,8 @@ export function ComprobantesPanel({
               </div>
             </div>
 
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Total (incluye IGV)</label>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Total (incluye IGV)</label>
               <input
                 type="number"
                 step="0.01"
@@ -371,7 +365,7 @@ export function ComprobantesPanel({
                 required
                 value={total || ""}
                 onChange={(e) => setTotal(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+                className={campoTexto}
               />
             </div>
 
@@ -387,55 +381,49 @@ export function ComprobantesPanel({
             {error && <p className="text-xs text-rojo">{error}</p>}
 
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+              <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar
               </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              <button type="submit" disabled={loading} className={botonPrimario}>
                 {loading ? "Emitiendo…" : "Emitir"}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* ==================== Modal: registrar serie ==================== */}
       {modal === "serie" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={onRegistrarSerie}
-            className="relative w-full max-w-sm space-y-4 border border-sand bg-papel p-5 sm:rounded-xl"
-          >
-            <h3 className="font-display text-lg text-tinta">Registrar serie</h3>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={serieSedeId} onChange={(e) => setSerieSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+        <Modal titulo="Registrar serie" onClose={cerrarModal}>
+          <form onSubmit={onRegistrarSerie} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Sede</label>
+              <select value={serieSedeId} onChange={(e) => setSerieSedeId(e.target.value)} className={campoSelect}>
                 {sedes.map((s) => (
                   <option key={s.id} value={s.id}>{s.codigo}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Tipo</label>
-              <select value={serieTipo} onChange={(e) => setSerieTipo(e.target.value as TipoComprobante)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Tipo</label>
+              <select value={serieTipo} onChange={(e) => setSerieTipo(e.target.value as TipoComprobante)} className={campoSelect}>
                 <option value="boleta">Boleta</option>
                 <option value="factura">Factura</option>
               </select>
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Serie (B### para boleta, F### para factura)</label>
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>Serie (B### para boleta, F### para factura)</label>
               <input
                 required
                 value={serieTexto}
                 onChange={(e) => setSerieTexto(e.target.value.toUpperCase())}
                 maxLength={4}
                 placeholder={serieTipo === "factura" ? "F001" : "B001"}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm uppercase"
+                className={`${campoTexto} uppercase`}
               />
             </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">
+            <div className="space-y-1.5">
+              <label className={campoEtiqueta}>
                 Próximo número
                 <Ayuda titulo="Próximo número">
                   Déjalo vacío si esta serie empieza de cero: el sistema arranca en 1 y lleva el
@@ -450,20 +438,20 @@ export function ComprobantesPanel({
                 value={serieNumero}
                 onChange={(e) => setSerieNumero(e.target.value)}
                 placeholder="1"
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
+                className={campoTexto}
               />
             </div>
             {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+              <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar
               </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              <button type="submit" disabled={loading} className={botonPrimario}>
                 {loading ? "Guardando…" : "Guardar"}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );
