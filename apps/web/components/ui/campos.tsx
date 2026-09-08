@@ -228,7 +228,7 @@ export function Segmentado<T extends string>({
               tabIndex={o.valor === valor ? 0 : -1}
               onClick={() => onValor(o.valor)}
               onKeyDown={(e) => alTeclado(e, i)}
-              className={`label-cayla flex items-center justify-center rounded-t-md px-3 text-[11px] outline-none transition-all duration-260 focus-visible:bg-rojo/8 ${
+              className={`label-cayla flex items-center justify-center rounded-t-md px-3 text-[11px] outline-none transition-all duration-300 focus-visible:bg-rojo/8 ${
                 o.valor === valor ? "text-rojo" : "text-tinta/65 hover:text-tinta/80"
               }`}
             >
@@ -415,8 +415,11 @@ export function CampoSelect<T extends string>({
                 aria-selected={o.valor === valor}
                 onMouseEnter={() => setActivo(i)}
                 onClick={() => elegir(i)}
-                className={`relative flex cursor-pointer items-center px-3 py-2 text-sm transition-colors duration-150 ${
-                  i === activo ? "bg-rojo/8 text-tinta" : "text-tinta/80"
+                // El escalonado corto (30ms por fila) hace que la lista se lea
+                // como que se despliega, no como que aparece entera de golpe.
+                style={{ animationDelay: `${i * 30}ms` }}
+                className={`anim-revelar relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
+                  i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"
                 }`}
               >
                 {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}

@@ -725,3 +725,26 @@ Escape, segmentado que desliza y cambia el formulario a RUC, banda del correlati
 avisando la sede sin serie. Dos bugs propios encontrados y corregidos en el camino:
 el centrado del modal peleaba con el transform de la animación, y Escape sobre el
 desplegable abierto cerraba el modal entero. tsc, eslint y 51 tests en verde.
+
+## 2026-09-08 (legibilidad y suavizado — todo el sistema)
+Con Facturación ya en producción, Felipe pidió tres cosas para toda la app: texto más
+grande o con más contraste ("las letras pequeñas no se llegan a notar"), menos sharp /
+más smooth, y más animaciones. Lo segundo revierte su propia decisión del 05-sep
+(radio 0, sin sombras); se le marcó antes de tocar nada y confirmó el cambio de
+criterio → ADR-0012, para que no se lea como drift dentro de seis meses.
+
+Lo del texto resultó medible, no de gusto: `text-tinta/45` — la etiqueta más usada del
+sistema, 136 apariciones — daba 2.57:1 sobre crema, contra el mínimo AA de 4.5. El
+ámbar de los chips daba 3.07 y el verde 4.21. Se subió el PISO sin tocar el techo:
+tamaños 8→10/9→11/10→11/11→12, tokens xs 12→13 y sm 14→15 (mueve ~320 usos desde un
+solo lugar), piso de contraste en tinta/65, y verde/ámbar oscurecidos con hermanos
+"profundos" para el texto sobre su propio tinte. Medido después sobre el DOM
+renderizado: 0 elementos reprueban AA, el peor quedó en 4.72. `EtiquetasGenerator`
+quedó congelado a propósito — imprime en rollo físico de 62×29mm.
+
+Radios 0 → 4/8/12/16/22px y sombras reactivadas solo para lo que flota. Movimiento
+nuevo: salida animada del modal (antes desaparecía de golpe), globo de ayuda,
+escalonado del desplegable, alza al pasar el mouse y barrido de luz en los botones.
+61 archivos por sustitución mecánica, verificado con tsc, eslint, 51 tests, `next
+build` y medición de contraste en el navegador. Subido a GitHub y desplegado a Vercel
+sin consultar, por pedido explícito de Felipe al ser un cambio solo estético.

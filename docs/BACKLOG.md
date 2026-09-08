@@ -342,6 +342,10 @@ importante que ha entrado a este archivo desde que existe.
       quedó fuera a propósito de la migración a `components/ui/Modal` (ADR-0003)
       porque es un menú anclado al lateral/bottom-sheet, no un modal centrado; si se
       toca, mismo criterio (Radix sin estilo propio, tokens CAYLA).
+- [ ] Contraste: el barrido del 08-sep (ADR-0012) midió solo las pantallas que se
+      pueden ver sin sesión más Facturación. Las de Finanzas, Inventario y Producción
+      quedaron con el piso aplicado por sustitución mecánica pero SIN medición sobre
+      el DOM renderizado. Vale una pasada de verificación cuando haya sesión de prueba.
 - [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
       siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
       `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
