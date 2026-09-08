@@ -47,7 +47,7 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Finanzas</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Finanzas</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">
             Egresos · {MESES[mes - 1]} {anio}
           </h1>
@@ -55,14 +55,14 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
         <div className="flex items-center gap-2">
           <Link
             href={`/finanzas/egresos?m=${mesPrevio}`}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             ← {MESES[(mes + 10) % 12]}
           </Link>
           {!esMesActual && (
             <Link
               href={`/finanzas/egresos?m=${mesSiguiente}`}
-              className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+              className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
             >
               {MESES[mes % 12]} →
             </Link>
@@ -96,42 +96,42 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
       </div>
 
       <div className="card-cayla p-4">
-        <p className="label-cayla text-[9px] text-tinta/45">Total del mes</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Total del mes</p>
         <p className="font-display mt-1 text-3xl text-tinta">{money(total)}</p>
         {totalMesPrevio > 0 && (
-          <p className="mt-1 text-xs text-tinta/55">
+          <p className="mt-1 text-xs text-tinta/70">
             {money(totalMesPrevio)} el mes anterior
           </p>
         )}
       </div>
 
       <div>
-        <p className="label-cayla mb-2 text-[10px] text-tinta/45">Detalle ({gastos.length})</p>
+        <p className="label-cayla mb-2 text-[11px] text-tinta/65">Detalle ({gastos.length})</p>
         {gastos.length === 0 ? (
           <div className="card-cayla p-6">
-            <p className="font-display text-base italic text-tinta/50">Sin gastos registrados este mes.</p>
+            <p className="font-display text-base italic text-tinta/70">Sin gastos registrados este mes.</p>
           </div>
         ) : (
           <div className="overflow-x-auto card-cayla">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-sand text-left">
-                  <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Sede</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Categoría</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Especificación</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Método</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Monto</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Sede</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Categoría</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Especificación</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Método</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Monto</th>
                 </tr>
               </thead>
               <tbody>
                 {gastos.map((g) => (
                   <tr key={g.id} className="border-b border-sand/60 last:border-0 hover:bg-sand/40">
-                    <td className="px-3 py-2 text-tinta/70">{formatearFecha(g.createdAt)}</td>
-                    <td className="px-3 py-2 text-tinta/70">{g.sedeCodigo}</td>
+                    <td className="px-3 py-2 text-tinta/80">{formatearFecha(g.createdAt)}</td>
+                    <td className="px-3 py-2 text-tinta/80">{g.sedeCodigo}</td>
                     <td className="px-3 py-2 text-tinta">{ETIQUETA_GASTO_CATEGORIA[g.categoria]}</td>
-                    <td className="px-3 py-2 text-tinta/70">{g.especificacion ?? "—"}</td>
-                    <td className="px-3 py-2 text-tinta/70">{ETIQUETA_METODO_PAGO_GASTO[g.metodoPago]}</td>
+                    <td className="px-3 py-2 text-tinta/80">{g.especificacion ?? "—"}</td>
+                    <td className="px-3 py-2 text-tinta/80">{ETIQUETA_METODO_PAGO_GASTO[g.metodoPago]}</td>
                     <td className="font-display px-3 py-2 text-right tabular-nums text-tinta">{money(g.total)}</td>
                   </tr>
                 ))}

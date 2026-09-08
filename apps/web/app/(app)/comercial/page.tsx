@@ -89,19 +89,19 @@ export default async function ComercialPage() {
 
   const valorTotal = variantes.reduce((a, v) => a + (v.costo ?? 0) * v.stockTotal, 0);
 
-  const th = "label-cayla px-4 py-2 text-left text-[9px] text-tinta/40";
+  const th = "label-cayla px-4 py-2 text-left text-[11px] text-tinta/65";
   const td = "px-4 py-2.5 text-sm";
 
   return (
     <div className="space-y-10">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Comercial · últimos {ventanaDias} días</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Comercial · últimos {ventanaDias} días</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Decisiones con datos</h1>
       </div>
 
       {/* Sugerencias de reposición */}
       <div>
-        <h2 className="label-cayla mb-3 text-[10px] text-rojo">Qué reponer ya
+        <h2 className="label-cayla mb-3 text-[11px] text-rojo">Qué reponer ya
           <Ayuda titulo="Qué reponer ya">
             Las prendas que se están por agotar según qué tan rápido se venden. El sistema calcula
             cuántas comprar para no quedarte sin ellas antes de que llegue el próximo pedido. Deja de
@@ -109,7 +109,7 @@ export default async function ComercialPage() {
           </Ayuda>
         </h2>
         {sugerencias.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Nada urgente — el stock cubre la demanda actual.
           </p>
         ) : (
@@ -128,11 +128,11 @@ export default async function ComercialPage() {
                   <tr key={v.varianteId}>
                     <td className={td}>
                       <Link href={`/producto/${v.varianteId}`} className="text-tinta hover:text-rojo">
-                        {v.referencia} <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                        {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                       </Link>
                     </td>
-                    <td className={`${td} text-tinta/60`}>{v.stockTotal}</td>
-                    <td className={`${td} text-tinta/60`}>{v.velocidadDiaria > 0 ? v.velocidadDiaria : "—"}</td>
+                    <td className={`${td} text-tinta/75`}>{v.stockTotal}</td>
+                    <td className={`${td} text-tinta/75`}>{v.velocidadDiaria > 0 ? v.velocidadDiaria : "—"}</td>
                     <td className={`${td} font-display text-lg text-rojo`}>{v.sugerida}</td>
                   </tr>
                 ))}
@@ -140,7 +140,7 @@ export default async function ComercialPage() {
             </table>
           </div>
         )}
-        <p className="mt-2 text-xs text-tinta/40">
+        <p className="mt-2 text-xs text-tinta/65">
           Sugerencia = cubrir el punto de reorden con 50% de colchón. Se vuelve más precisa sola, a medida que se acumulan ventas reales.
         </p>
       </div>
@@ -148,7 +148,7 @@ export default async function ComercialPage() {
       {/* Rotación por familia */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Rotación por familia
+          <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Rotación por familia
             <Ayuda titulo="Rotación">
               Qué tan rápido se convierte tu mercadería en dinero. Una familia que rota mucho (se
               vende rápido) merece más de tu presupuesto de compra; una que rota poco, menos. Te dice
@@ -169,9 +169,9 @@ export default async function ComercialPage() {
                 {familiasOrdenadas.map(([nombre, a]) => (
                   <tr key={nombre}>
                     <td className={`${td} capitalize text-tinta`}>{nombre}</td>
-                    <td className={`${td} text-tinta/60`}>{a.unidades}</td>
-                    <td className={`${td} text-tinta/60`}>{money(a.monto)}</td>
-                    <td className={`${td} text-tinta/60`}>{a.stock}</td>
+                    <td className={`${td} text-tinta/75`}>{a.unidades}</td>
+                    <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
+                    <td className={`${td} text-tinta/75`}>{a.stock}</td>
                   </tr>
                 ))}
               </tbody>
@@ -180,7 +180,7 @@ export default async function ComercialPage() {
         </div>
 
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Top categorías por venta</h2>
+          <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Top categorías por venta</h2>
           <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
@@ -194,8 +194,8 @@ export default async function ComercialPage() {
                 {categoriasTop.map(([nombre, a]) => (
                   <tr key={nombre}>
                     <td className={`${td} text-tinta`}>{nombre}</td>
-                    <td className={`${td} text-tinta/60`}>{a.unidades}</td>
-                    <td className={`${td} text-tinta/60`}>{money(a.monto)}</td>
+                    <td className={`${td} text-tinta/75`}>{a.unidades}</td>
+                    <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -207,7 +207,7 @@ export default async function ComercialPage() {
       {/* Comparativo sedes + valor */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Ventas por sede</h2>
+          <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Ventas por sede</h2>
           <div className="overflow-x-auto card-cayla">
             <table className="w-full">
               <thead className="border-b border-tinta/10">
@@ -219,13 +219,13 @@ export default async function ComercialPage() {
               </thead>
               <tbody className="divide-y divide-tinta/5">
                 {sedesOrdenadas.length === 0 ? (
-                  <tr><td className={`${td} italic text-tinta/40`} colSpan={3}>Sin ventas en la ventana.</td></tr>
+                  <tr><td className={`${td} italic text-tinta/65`} colSpan={3}>Sin ventas en la ventana.</td></tr>
                 ) : (
                   sedesOrdenadas.map(([codigo, a]) => (
                     <tr key={codigo}>
                       <td className={`${td} text-tinta`}>{codigo}</td>
-                      <td className={`${td} text-tinta/60`}>{a.unidades}</td>
-                      <td className={`${td} text-tinta/60`}>{money(a.monto)}</td>
+                      <td className={`${td} text-tinta/75`}>{a.unidades}</td>
+                      <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
                     </tr>
                   ))
                 )}
@@ -235,7 +235,7 @@ export default async function ComercialPage() {
         </div>
 
         <div>
-          <h2 className="label-cayla mb-3 text-[10px] text-tinta/55">Dinero parado en stock (a costo)
+          <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Dinero parado en stock (a costo)
             <Ayuda titulo="Dinero parado en stock">
               Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. Es
               dinero que no rinde hasta que se vende — por eso conviene que rote, no que se acumule.
@@ -249,7 +249,7 @@ export default async function ComercialPage() {
                 .sort((a, b) => b[1].valorCosto - a[1].valorCosto)
                 .map(([nombre, a]) => (
                   <p key={nombre} className="flex justify-between text-sm">
-                    <span className="capitalize text-tinta/55">{nombre}</span>
+                    <span className="capitalize text-tinta/70">{nombre}</span>
                     <span className="text-tinta">{money(a.valorCosto)}</span>
                   </p>
                 ))}

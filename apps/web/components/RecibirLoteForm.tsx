@@ -70,7 +70,7 @@ const ETIQUETA_ORIGEN: Record<OrigenLote, string> = { taller: "Taller propio", p
 function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-0.5 block text-[10px] text-neutral-400">{etiqueta}</span>
+      <span className="mb-0.5 block text-[11px] text-neutral-400">{etiqueta}</span>
       {children}
     </label>
   );
@@ -311,7 +311,7 @@ export function RecibirLoteForm({
   function camposVariante(it: ItemLote) {
     return (
       <div className="mb-2 grid grid-cols-3 gap-2">
-        <p className="col-span-3 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+        <p className="col-span-3 text-xs font-medium uppercase tracking-wide text-neutral-400">
           Prenda (talla, color y precios)
         </p>
         <Campo etiqueta="Talla">
@@ -390,7 +390,7 @@ export function RecibirLoteForm({
   function cantidadYContenedor(it: ItemLote) {
     return (
       <>
-        <p className="mb-0.5 text-[10px] text-neutral-400">Cantidad recibida</p>
+        <p className="mb-0.5 text-[11px] text-neutral-400">Cantidad recibida</p>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -686,7 +686,7 @@ export function RecibirLoteForm({
                     </div>
 
                     <div className="mb-2 grid grid-cols-2 gap-2">
-                      <p className="col-span-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                      <p className="col-span-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
                         Producto
                       </p>
                       <Campo etiqueta="Referencia">
@@ -765,7 +765,7 @@ export function RecibirLoteForm({
                       </div>
                     )}
 
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
                       Variantes (talla, color y precios)
                     </p>
                     <div className="space-y-2">
@@ -776,7 +776,7 @@ export function RecibirLoteForm({
                               <button
                                 type="button"
                                 onClick={() => quitar(it.clientId)}
-                                className="text-[10px] text-red-500"
+                                className="text-[11px] text-red-500"
                               >
                                 Quitar esta variante
                               </button>

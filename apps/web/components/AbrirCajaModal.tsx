@@ -51,7 +51,7 @@ export function AbrirCajaModal({ sedeId, sedeCodigo, onClose }: Props) {
             onChange={(e) => setMontoApertura(Number(e.target.value))}
             className={campoTexto}
           />
-          <p className="text-xs text-tinta/45">El efectivo con el que arranca la caja hoy, para poder comparar al cierre.</p>
+          <p className="text-xs text-tinta/65">El efectivo con el que arranca la caja hoy, para poder comparar al cierre.</p>
         </div>
 
         {error && <p className="text-sm text-rojo">{error}</p>}

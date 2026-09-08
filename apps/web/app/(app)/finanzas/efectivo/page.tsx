@@ -28,9 +28,9 @@ export default async function EfectivoPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Finanzas</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Finanzas</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Cuadre de efectivo</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/70">
           Lo que debería haber en cada cajón, siempre al día. Registra el saldo inicial con
           &ldquo;Ajuste&rdquo; la primera vez.
         </p>
@@ -41,9 +41,9 @@ export default async function EfectivoPage() {
       <EfectivoPanel cuadre={cuadre} sedes={sedes ?? []} />
 
       <div>
-        <h2 className="label-cayla mb-3 text-[10px] text-tinta/45">Últimos depósitos al banco</h2>
+        <h2 className="label-cayla mb-3 text-[11px] text-tinta/65">Últimos depósitos al banco</h2>
         {!depositos || depositos.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Aún no hay depósitos registrados.
           </p>
         ) : (
@@ -52,9 +52,9 @@ export default async function EfectivoPage() {
               const sede = (sedes ?? []).find((s) => s.id === d.sede_id);
               return (
                 <div key={d.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                  <span className="text-tinta/55">{d.fecha}</span>
+                  <span className="text-tinta/70">{d.fecha}</span>
                   <span className="font-medium text-tinta">{sede?.codigo}</span>
-                  <span className="text-tinta/55">{d.nota ?? "—"}</span>
+                  <span className="text-tinta/70">{d.nota ?? "—"}</span>
                   <span className="font-medium text-tinta">S/{Number(d.monto).toFixed(2)}</span>
                 </div>
               );

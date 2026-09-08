@@ -37,9 +37,9 @@ export default async function ComprasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Compras</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/70">
           Pide, sigue y recibe: al recibir el lote ligado a una orden, se marca recibida sola.
         </p>
       </div>

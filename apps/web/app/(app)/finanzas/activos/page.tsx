@@ -40,45 +40,45 @@ export default async function ActivosPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Finanzas · {persona.sedeCodigo}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Finanzas · {persona.sedeCodigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Activos</h1>
-        <p className="mt-1 text-sm text-tinta/55">Tus máquinas y equipos, con su valor real de hoy.</p>
+        <p className="mt-1 text-sm text-tinta/70">Tus máquinas y equipos, con su valor real de hoy.</p>
       </div>
 
       <FinanzasNav />
 
       {activos.length === 0 ? (
-        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
           No hay activos registrados en esta unidad.
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-px border border-tinta/10 bg-tinta/10">
+          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
             <div className="bg-crema p-4">
-              <p className="label-cayla text-[9px] text-tinta/45">Bienes</p>
+              <p className="label-cayla text-[11px] text-tinta/65">Bienes</p>
               <p className="font-display mt-1 text-2xl text-tinta">{activos.length}</p>
             </div>
             <div className="bg-crema p-4">
-              <p className="label-cayla text-[9px] text-tinta/45">Costo total</p>
-              <p className="font-display mt-1 text-2xl text-tinta/70">{money(totalCosto)}</p>
+              <p className="label-cayla text-[11px] text-tinta/65">Costo total</p>
+              <p className="font-display mt-1 text-2xl text-tinta/80">{money(totalCosto)}</p>
             </div>
             <div className="bg-crema p-4">
-              <p className="label-cayla text-[9px] text-tinta/45">Valor hoy</p>
+              <p className="label-cayla text-[11px] text-tinta/65">Valor hoy</p>
               <p className="font-display mt-1 text-2xl text-rojo">{money(totalNeto)}</p>
             </div>
           </div>
 
           <div className="overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/40">
+              <thead className="border-b border-tinta/10 text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Bien</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Serie</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Categoría</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Desde</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Costo</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Desgaste</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Valor hoy</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Bien</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Serie</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Categoría</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Desde</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Costo</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Desgaste</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Valor hoy</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
@@ -87,11 +87,11 @@ export default async function ActivosPage() {
                   return (
                     <tr key={i}>
                       <td className="px-3 py-2.5 font-medium text-tinta">{a.nombre}</td>
-                      <td className="px-3 py-2.5 text-tinta/45">{a.serie ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-tinta/60">{CAT_NOMBRE[a.cuenta_codigo] ?? a.cuenta_codigo}</td>
-                      <td className="px-3 py-2.5 text-tinta/45">{fecha(a.fecha_adquisicion)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/60">{money(Number(a.costo))}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/45">
+                      <td className="px-3 py-2.5 text-tinta/65">{a.serie ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-tinta/75">{CAT_NOMBRE[a.cuenta_codigo] ?? a.cuenta_codigo}</td>
+                      <td className="px-3 py-2.5 text-tinta/65">{fecha(a.fecha_adquisicion)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/75">{money(Number(a.costo))}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/65">
                         −{money(Number(a.depreciacion_apertura))}
                       </td>
                       <td className="px-3 py-2.5 text-right font-medium tabular-nums text-tinta">{money(neto)}</td>
@@ -101,18 +101,18 @@ export default async function ActivosPage() {
               </tbody>
               <tfoot className="border-t border-tinta/10 font-medium text-tinta">
                 <tr>
-                  <td className="label-cayla px-3 py-2.5 text-[9px] text-tinta/45" colSpan={4}>
+                  <td className="label-cayla px-3 py-2.5 text-[11px] text-tinta/65" colSpan={4}>
                     Total
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{money(totalCosto)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-tinta/60">−{money(totalDep)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-tinta/75">−{money(totalDep)}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{money(totalNeto)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <p className="text-xs text-tinta/40">
+          <p className="text-xs text-tinta/65">
             El desgaste (depreciación) se calculó desde la fecha de compra de cada bien, con tasas SUNAT y valor
             residual, según NIIF.
           </p>

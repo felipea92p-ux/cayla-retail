@@ -57,7 +57,7 @@ export function HistoricosEditor({
     return (
       <button
         onClick={() => { cargar(sedeId, anio); setAbierto(true); }}
-        className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
       >
         Sembrar / editar históricos
       </button>
@@ -66,7 +66,7 @@ export function HistoricosEditor({
 
   return (
     <form onSubmit={onSubmit} className="card-cayla p-5">
-      <p className="label-cayla text-[10px] text-tinta/50">Totales mensuales históricos (desde SINATRA, una sola vez)</p>
+      <p className="label-cayla text-[11px] text-tinta/70">Totales mensuales históricos (desde SINATRA, una sola vez)</p>
       <div className="mt-3 flex gap-2">
         <select
           value={sedeId}
@@ -86,7 +86,7 @@ export function HistoricosEditor({
 
       <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
         {MESES.map((nombre, i) => (
-          <label key={nombre} className="text-xs text-tinta/50">
+          <label key={nombre} className="text-xs text-tinta/70">
             {nombre}
             <input
               type="number"
@@ -106,14 +106,14 @@ export function HistoricosEditor({
         <button
           type="button"
           onClick={() => setAbierto(false)}
-          className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta"
+          className="label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
+          className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
         >
           {loading ? "Guardando…" : "Guardar"}
         </button>

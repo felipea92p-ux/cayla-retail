@@ -123,12 +123,12 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <label className="label-cayla text-[10px] text-tinta/50">Buscar prenda para etiquetar</label>
+        <label className="label-cayla text-[10px] text-tinta/70">Buscar prenda para etiquetar</label>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Referencia, SKU, talla, color…"
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/35 focus:border-rojo"
+          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo"
         />
         {resultados.length > 0 && (
           <div className="divide-y divide-tinta/5 card-cayla">
@@ -139,9 +139,9 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-sand/40"
               >
                 <span className="text-tinta">
-                  {v.referencia} <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                  {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                 </span>
-                <span className="font-mono text-[10px] text-tinta/35">{v.sku}</span>
+                <span className="font-mono text-[10px] text-tinta/65">{v.sku}</span>
               </button>
             ))}
           </div>
@@ -156,9 +156,9 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
                 <div className="flex-1">
                   <p className="text-tinta">
                     {s.variante.referencia}{" "}
-                    <span className="text-tinta/45">{[s.variante.talla, s.variante.color].filter(Boolean).join("/")}</span>
+                    <span className="text-tinta/65">{[s.variante.talla, s.variante.color].filter(Boolean).join("/")}</span>
                   </p>
-                  <p className="font-mono text-[10px] text-tinta/35">{s.variante.sku}</p>
+                  <p className="font-mono text-[10px] text-tinta/65">{s.variante.sku}</p>
                 </div>
                 <input
                   type="number"
@@ -189,15 +189,15 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={imprimir}
-              className="label-cayla bg-tinta px-5 py-3 text-[10px] text-crema transition-colors hover:bg-rojo"
+              className="label-cayla rounded-md bg-tinta px-5 py-3 text-[10px] text-crema transition-colors hover:bg-rojo"
             >
               Imprimir {totalEtiquetas} etiqueta{totalEtiquetas === 1 ? "" : "s"}
             </button>
-            <label className="flex items-center gap-2 text-xs text-tinta/60">
+            <label className="flex items-center gap-2 text-xs text-tinta/75">
               <input type="checkbox" checked={conPrecio} onChange={(e) => setConPrecio(e.target.checked)} />
               Incluir precio
             </label>
-            <span className="text-xs text-tinta/40">
+            <span className="text-xs text-tinta/65">
               En el diálogo de impresión elige la Brother QL y papel de 62×29mm, margen 0.
             </span>
           </div>
@@ -230,7 +230,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
       )}
 
       {seleccion.length === 0 && (
-        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
           Busca una prenda y agrégala para generar sus etiquetas.
         </p>
       )}

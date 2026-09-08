@@ -18,11 +18,11 @@ const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
 };
 
 const ESTADO_ESTILO: Record<Comprobante["estado"], string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar",
-  aceptado: "border-verde/45 bg-verde/10 text-verde",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/45",
+  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
+  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
+  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
 };
 
 const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
@@ -184,17 +184,17 @@ export function ComprobantesPanel({
   return (
     <div className="space-y-6">
       {/* Resumen del mes */}
-      <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
         <div className="bg-crema p-4">
-          <p className="label-cayla text-[9px] text-tinta/45">Emitidos este mes</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Emitidos este mes</p>
           <p className="font-display mt-1 text-2xl text-tinta">{comprobantes.length}</p>
         </div>
         <div className="bg-crema p-4">
-          <p className="label-cayla text-[9px] text-tinta/45">Monto facturado</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Monto facturado</p>
           <p className="font-display mt-1 text-2xl text-tinta">{money(totalMes)}</p>
         </div>
         <div className="bg-crema p-4">
-          <p className="label-cayla text-[9px] text-tinta/45">
+          <p className="label-cayla text-[11px] text-tinta/65">
             Pendientes de enviar
             <Ayuda titulo="Pendiente de enviar">
               El comprobante ya tiene su número oficial reservado (nadie más puede usarlo), pero
@@ -210,7 +210,7 @@ export function ComprobantesPanel({
       {/* Series registradas */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[10px] text-tinta/45">
+          <h2 className="label-cayla text-[11px] text-tinta/65">
             Series por sede
             <Ayuda titulo="Series de comprobantes">
               La serie identifica desde qué tienda salió el comprobante: una letra según el tipo
@@ -225,20 +225,20 @@ export function ComprobantesPanel({
           </Boton>
         </div>
         {series.length === 0 ? (
-          <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/65">
             Ninguna sede tiene serie registrada todavía. Sin esto, no se puede emitir nada.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
             {series.map((s) => {
               const sede = sedes.find((sd) => sd.id === s.sede_id);
               return (
                 <div key={s.id} className="bg-crema p-3">
-                  <p className="text-xs text-tinta/50">{sede?.codigo ?? "—"} · {ETIQUETA_TIPO[s.tipo]}</p>
+                  <p className="text-xs text-tinta/70">{sede?.codigo ?? "—"} · {ETIQUETA_TIPO[s.tipo]}</p>
                   <p className="font-display mt-0.5 text-lg text-tinta">
                     {s.serie}-{String(s.siguiente_numero).padStart(6, "0")}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-tinta/40">próximo número</p>
+                  <p className="mt-0.5 text-[11px] text-tinta/65">próximo número</p>
                 </div>
               );
             })}
@@ -249,26 +249,27 @@ export function ComprobantesPanel({
       {/* Comprobantes del mes */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[10px] text-tinta/45">Comprobantes</h2>
+          <h2 className="label-cayla text-[11px] text-tinta/65">Comprobantes</h2>
           <Boton peso="primario" onClick={() => setModal("emitir")}>
             Emitir comprobante
           </Boton>
         </div>
         {comprobantes.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Sin comprobantes emitidos este mes.
           </p>
         ) : (
-          <div className="overflow-x-auto card-cayla">
-            <table className="w-full min-w-[640px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/40">
+          <div className="scroll-cayla card-cayla overflow-hidden">
+            <div className="scroll-cayla overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead className="border-b border-tinta/10 text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Comprobante</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">SUNAT</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Comprobante</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">SUNAT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
@@ -276,33 +277,33 @@ export function ComprobantesPanel({
                   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
                   return (
                     <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                      <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(c.created_at)}</td>
-                      <td className="px-3 py-2.5 font-medium text-tinta">
+                      <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
                         {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
                       </td>
-                      <td className="px-3 py-2.5 text-tinta/60">{c.cliente_nombre ?? "Cliente varios"}</td>
-                      <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(c.total))}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`label-cayla rounded-full border px-3 py-1 text-[9px] ${ESTADO_ESTILO[c.estado]}`}>
+                      <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
+                      <td className="px-3 py-3">
+                        <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${ESTADO_ESTILO[c.estado]}`}>
                           {ESTADO_ETIQUETA[c.estado]}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-3">
                         {puedeTransmitir ? (
                           <Boton
                             type="button"
                             peso="discreto"
                             onClick={() => onTransmitir(c.id)}
                             cargando={transmitiendoId === c.id}
-                            className="border-rojo/30 px-2.5 py-1.5 text-[9px] text-rojo hover:bg-rojo/8"
+                            className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
                           >
                             {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
                           </Boton>
                         ) : (
-                          <span className="text-tinta/30">—</span>
+                          <span className="text-tinta/65">—</span>
                         )}
                         {errorTransmision?.id === c.id && (
-                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[10px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
+                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
                         )}
                       </td>
                     </tr>
@@ -310,6 +311,7 @@ export function ComprobantesPanel({
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
@@ -317,6 +319,7 @@ export function ComprobantesPanel({
       {/* ==================== Modal: emitir comprobante ==================== */}
       {modal === "emitir" && (
         <Modal titulo="Emitir comprobante" ancho="max-w-md" onClose={cerrarModal}>
+          {(cerrar) => (
           <form onSubmit={onEmitir} className="mt-5 space-y-2">
             {/* Sede y tipo son las dos decisiones que determinan el correlativo,
                 así que van juntas y arriba de él: se leen como los dos diales
@@ -350,15 +353,15 @@ export function ComprobantesPanel({
                 llegaba en `series`; lo único que faltaba era mostrarlo.
                 La `key` fuerza el remontaje para que la cifra se re-asiente
                 cuando cambia la sede o el tipo — así el ojo nota que cambió. */}
-            <div className="-mx-6 border-y border-sand bg-papel px-6 py-3.5">
-              <p className="label-cayla text-[9px] text-tinta/40">Se va a reservar el número</p>
+            <div className="rounded-xl border border-sand bg-papel px-5 py-4">
+              <p className="label-cayla text-[11px] text-tinta/65">Se va a reservar el número</p>
               {serieDelComprobante ? (
                 <p
                   key={`${serieDelComprobante.serie}-${serieDelComprobante.siguiente_numero}`}
                   className="font-display anim-asentar mt-1.5 text-[1.75rem] leading-none tabular-nums text-tinta"
                 >
                   {serieDelComprobante.serie}
-                  <span className="text-tinta/25">-</span>
+                  <span className="text-tinta/65">-</span>
                   {String(serieDelComprobante.siguiente_numero).padStart(6, "0")}
                 </p>
               ) : (
@@ -391,7 +394,7 @@ export function ComprobantesPanel({
 
             {/* La nota va acá abajo y no arriba: explica qué pasa DESPUÉS de
                 apretar Emitir, así que se lee junto al botón que lo provoca. */}
-            <p className="border-l-2 border-ambar/50 pl-3 text-[11px] leading-relaxed text-tinta/60">
+            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
               Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
               está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
               propio vs. OSE. El comprobante queda &ldquo;Pendiente de enviar&rdquo; hasta que esa
@@ -403,7 +406,7 @@ export function ComprobantesPanel({
             )}
 
             <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
@@ -411,12 +414,14 @@ export function ComprobantesPanel({
               </Boton>
             </div>
           </form>
+          )}
         </Modal>
       )}
 
       {/* ==================== Modal: registrar serie ==================== */}
       {modal === "serie" && (
         <Modal titulo="Registrar serie" onClose={cerrarModal}>
+          {(cerrar) => (
           <form onSubmit={onRegistrarSerie} className="mt-5 space-y-2">
             <CampoSelect
               etiqueta="Sede"
@@ -466,7 +471,7 @@ export function ComprobantesPanel({
               <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
             )}
             <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
@@ -474,6 +479,7 @@ export function ComprobantesPanel({
               </Boton>
             </div>
           </form>
+          )}
         </Modal>
       )}
     </div>

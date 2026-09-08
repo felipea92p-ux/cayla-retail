@@ -27,9 +27,9 @@ export default async function RegistrarContablePage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Finanzas</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Finanzas</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Registrar</h1>
-        <p className="mt-1 text-sm text-tinta/55">
+        <p className="mt-1 text-sm text-tinta/70">
           Dilo en simple; el sistema arma la contabilidad de doble entrada por ti.
         </p>
       </div>
@@ -38,10 +38,10 @@ export default async function RegistrarContablePage() {
 
       {cuentas.length === 0 ? (
         <div className="card-cayla p-6">
-          <p className="font-display text-base italic text-tinta/50">
+          <p className="font-display text-base italic text-tinta/70">
             Aún no está el plan de cuentas.
           </p>
-          <p className="mt-1 text-xs text-tinta/45">
+          <p className="mt-1 text-xs text-tinta/65">
             Corre la migración 0020 en Supabase para crear las cuentas, y vuelve a esta pantalla.
           </p>
         </div>

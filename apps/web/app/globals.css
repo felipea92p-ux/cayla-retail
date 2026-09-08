@@ -19,35 +19,61 @@
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
   /* Semánticos (semáforo): separados del acento, jamás decoración */
-  --color-verde: #5f7a52;       /* Va bien / hecho */
-  --color-ambar: #b0812f;       /* Al filo / en proceso */
+  /* Oscurecidos el 2026-09-08: el ámbar daba 3.07:1 sobre crema y el verde
+     4.21:1 — los dos reprobaban AA (mínimo 4.5). Ahora dan 4.72 y 4.99. Mismo
+     lugar en el semáforo, solo con cuerpo suficiente para leerse. */
+  --color-verde: #556e49;       /* Va bien / hecho — 4.99:1 sobre crema */
+  --color-ambar: #8c631f;       /* Al filo / en proceso — 4.72:1 sobre crema */
+
+  /* Versiones profundas, SOLO para texto sobre su propio tinte (los chips de
+     estado). Un chip pinta el fondo con el mismo color al 10%, y eso le come
+     ~0.6 puntos de contraste al texto: `text-verde` sobre `bg-verde/10` cae a
+     4.39 y reprueba. Estos dos son los hermanos oscuros de la familia, como
+     `rojo-profundo` ya lo era del rojo. */
+  --color-verde-profundo: #44583a;
+  --color-ambar-profundo: #734f15;
+
+  /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
+     de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
+     13px y sm de 14 a 15px, y `text-2xl`/`3xl` quedan como estaban. Cambiarlo
+     desde el token mueve las ~320 apariciones de la app de una sola vez. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.55;
 
   /* Familias tipográficas */
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
-  /* Radios — el brandbook CAYLA v3.0 pide esquinas rectas, sin excepción
-     (Hermès/The Row/Aesop: "cero sombras/gradientes/bordes redondeados" —
-     ver docs/BITACORA.md 2026-07-18). El tablero de estilo se había desviado
-     a 8-18px; corregido 2026-09-05 (confirmado con Felipe) — las utilidades
-     rounded-sm/md/lg/xl/2xl de toda la app colapsan a 0 desde este único
-     token, sin tocar rounded-full (círculos/avatares, escala aparte). */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
+  /* Radios — REVERSIÓN de la decisión de esquinas rectas del 2026-09-05.
+     Felipe pidió el 2026-09-08 que el sistema fuera "menos sharp, más smooth".
+     Es un cambio de criterio suyo sobre el brandbook, no un drift: queda
+     asentado en ADR-0012. Toda la app se redondea desde estos cinco tokens,
+     igual que antes colapsaba a 0 desde acá — ninguna pantalla se toca a mano.
+     La escala es progresiva a propósito: un control chico con el mismo radio
+     que una tarjeta grande se ve deformado, no suave. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
 
   /* Movimiento estándar del sistema */
-  --default-transition-duration: 200ms;
-  --default-transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --default-transition-duration: 260ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 0.61, 0.28, 1);
 
-  /* El sistema no usa sombras: se desactivan las utilidades de sombra de Tailwind */
-  --shadow-sm: none;
-  --shadow: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-xl: none;
+  /* Sombras — antes desactivadas por brandbook. Reactivadas 2026-09-08 (ADR-0012)
+     SOLO para lo que flota (modal, desplegable, popover): un panel sin sombra
+     sobre un fondo del mismo color se ve recortado con tijera, que es
+     exactamente el "sharp" que Felipe pidió sacar. Son sombras de tinta, no
+     negras, y muy abiertas — sugieren aire, no relieve. Superficies pegadas al
+     fondo (tarjetas, tablas, celdas) siguen SIN sombra. */
+  --shadow-sm: 0 1px 2px rgb(26 26 24 / 0.05);
+  --shadow: 0 2px 8px -2px rgb(26 26 24 / 0.07);
+  --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
+  --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
+  --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
 }
 
 body {
@@ -81,11 +107,15 @@ body {
   letter-spacing: -0.005em;
 }
 
-/* Etiqueta de sección: versalitas con tracking amplio (9-10pt · +200 del brandbook) */
+/* Etiqueta de sección: versalitas. El tracking bajó de 0.2em a 0.13em el
+   2026-09-08: a 9px el aire entre letras compensaba el tamaño, pero con las
+   etiquetas ya en 11px ese mismo aire las volvía a romper en pedacitos. Peso
+   600 en vez de 500 — a este tamaño la versalita necesita cuerpo para no
+   desaparecer contra el crema. */
 .label-cayla {
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-weight: 500;
+  letter-spacing: 0.13em;
+  font-weight: 600;
 }
 
 /* ==================================================================
@@ -130,7 +160,7 @@ body {
    anima solo al entrar a la pantalla.
    ================================================================== */
 @theme {
-  --ease-cayla: cubic-bezier(0.2, 0.7, 0.3, 1);   /* entradas: rápido y frena */
+  --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1); /* entradas: arranca suave y frena largo */
   --ease-salida: cubic-bezier(0.4, 0, 1, 1);      /* salidas: arranca lento y se va */
 }
 
@@ -177,10 +207,63 @@ body {
 .scroll-cayla::-webkit-scrollbar-track { background: transparent; }
 .scroll-cayla::-webkit-scrollbar-thumb { background: var(--color-sand); }
 
+/* ---- Salidas (2026-09-08) --------------------------------------------
+   Antes lo que se cerraba desaparecía de golpe: el modal se desmontaba y
+   listo. Un elemento que entra suave y se va de un corte se siente más
+   brusco que uno que nunca se animó. */
+@keyframes cayla-salida {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); }
+}
+@keyframes cayla-hoja-salida {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 24px, 0); }
+}
+@keyframes cayla-velo-salida {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.anim-salida { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+.anim-velo-salida { animation: cayla-velo-salida 220ms var(--ease-salida) both; }
+@media (min-width: 640px) {
+  .anim-salida { animation-name: cayla-salida; }
+}
+
+/* ---- Globo de ayuda: crece desde su propia esquina, no desde el centro,
+        para que se lea como que sale DEL botón que tocaste. ---- */
+@keyframes cayla-globo {
+  from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.anim-globo {
+  animation: cayla-globo 240ms var(--ease-cayla) both;
+  transform-origin: top left;
+}
+
+/* ---- Alza: lo que se puede tocar se despega un poco al pasarle encima.
+        2px, no 8 — es un acuse de recibo, no un salto. ---- */
+.alza-cayla {
+  transition:
+    transform 260ms var(--ease-cayla),
+    box-shadow 260ms var(--ease-cayla),
+    border-color 260ms var(--ease-cayla);
+}
+.alza-cayla:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
+        gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
+@keyframes cayla-brillo {
+  from { transform: translate3d(-120%, 0, 0) skewX(-12deg); }
+  to { transform: translate3d(320%, 0, 0) skewX(-12deg); }
+}
+
 .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
-.anim-entrada { animation: cayla-hoja 320ms var(--ease-cayla) both; }
-.anim-revelar { animation: cayla-revelar 200ms var(--ease-cayla) both; }
-.anim-asentar { animation: cayla-asentar 260ms var(--ease-cayla) both; }
+.anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+.anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+.anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
 @media (min-width: 640px) {
   .anim-entrada { animation-name: cayla-entrada; }
@@ -193,9 +276,13 @@ body {
   .anim-velo,
   .anim-entrada,
   .anim-revelar,
-  .anim-asentar {
+  .anim-asentar,
+  .anim-globo,
+  .anim-salida,
+  .anim-velo-salida {
     animation-duration: 1ms;
   }
+  .alza-cayla:hover { transform: none; }
   .hilo-trabajando::after { animation: none; }
   *, *::before, *::after {
     transition-duration: 1ms !important;

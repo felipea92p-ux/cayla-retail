@@ -17,9 +17,9 @@ export default async function ProveedoresPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/70">
           Directorio único para las 3 sedes — se acabaron las copias desincronizadas.
         </p>
       </div>

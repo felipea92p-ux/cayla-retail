@@ -197,7 +197,7 @@ export function MovimientoModal({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-tinta/45">
+            <p className="text-xs text-tinta/65">
               ¿Es una venta? Usa el botón <span className="font-medium text-tinta">Vender</span> del dashboard — así
               queda asociada a la caja y al método de pago.
             </p>

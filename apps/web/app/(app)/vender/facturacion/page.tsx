@@ -46,7 +46,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Vender</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Vender</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">
             Facturación · {MESES[mes - 1]} {anio}
           </h1>
@@ -54,14 +54,14 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
         <div className="flex items-center gap-2">
           <Link
             href={`/vender/facturacion?m=${mesPrevio}`}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             ← {MESES[(mes + 10) % 12]}
           </Link>
           {!esMesActual && (
             <Link
               href={`/vender/facturacion?m=${mesSiguiente}`}
-              className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+              className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
             >
               {MESES[mes % 12]} →
             </Link>

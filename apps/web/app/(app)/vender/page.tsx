@@ -54,7 +54,7 @@ export default async function VenderPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Vender · {persona.sedeCodigo}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Vender · {persona.sedeCodigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Caja del día</h1>
       </div>
 
@@ -69,19 +69,19 @@ export default async function VenderPage() {
 
       <div>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="label-cayla text-[10px] text-tinta/45">Ventas de hoy</h2>
+          <h2 className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</h2>
           <p className="font-display text-xl text-tinta">S/{totalHoy.toFixed(2)}</p>
         </div>
         {!ventasHoy || ventasHoy.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Aún no hay ventas hoy.
           </p>
         ) : (
           <div className="divide-y divide-tinta/10 card-cayla">
             {ventasHoy.map((v) => (
               <div key={v.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                <span className="text-tinta/55">{formatearHora(v.created_at)}</span>
-                <span className="text-tinta/55">{ETIQUETA_METODO[v.metodo_pago] ?? v.metodo_pago}</span>
+                <span className="text-tinta/70">{formatearHora(v.created_at)}</span>
+                <span className="text-tinta/70">{ETIQUETA_METODO[v.metodo_pago] ?? v.metodo_pago}</span>
                 <span className="font-medium text-tinta">S/{Number(v.monto_total).toFixed(2)}</span>
               </div>
             ))}

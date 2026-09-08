@@ -138,7 +138,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
           <p className="text-xs text-neutral-500">
             {[v.talla, v.color, v.categoria, v.marca].filter(Boolean).join(" · ")}
           </p>
-          <p className="font-mono text-[11px] text-neutral-300">{v.sku}</p>
+          <p className="font-mono text-xs text-neutral-300">{v.sku}</p>
         </div>
         <div className="w-40 shrink-0 sm:w-48">
           <FotoProducto productoId={v.productoId} fotoUrl={v.fotoUrl} referencia={v.referencia} esLider={esLider} />

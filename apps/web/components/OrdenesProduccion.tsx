@@ -71,7 +71,7 @@ function parseEje(raw: string): string[] {
 
 const inputCls =
   "w-full border border-tinta/20 bg-crema px-3 py-2.5 text-sm text-tinta transition-colors focus:border-rojo focus:outline-none";
-const labelCls = "label-cayla text-[9px] text-tinta/45";
+const labelCls = "label-cayla text-[11px] text-tinta/65";
 
 export function OrdenesProduccion({
   unidadId,
@@ -121,7 +121,7 @@ export function OrdenesProduccion({
     <div className="space-y-6">
       <div className="flex items-center justify-end">
         <button onClick={() => setAbierto((v) => !v)}
-          className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo">
+          className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
           {abierto ? "Cerrar" : "+ Nueva orden"}
         </button>
       </div>
@@ -133,7 +133,7 @@ export function OrdenesProduccion({
       {/* En proceso */}
       {enProceso.length > 0 && (
         <div className="space-y-3">
-          <p className="label-cayla text-[10px] text-tinta/45">En proceso · marca solo las etapas que apliquen</p>
+          <p className="label-cayla text-[11px] text-tinta/65">En proceso · marca solo las etapas que apliquen</p>
           {enProceso.map((o) => (
             <OrdenEnProceso
               key={o.id} orden={o} ocupado={ocupadoId === o.id} cerrando={cerrandoId === o.id}
@@ -149,22 +149,22 @@ export function OrdenesProduccion({
 
       {/* Terminadas */}
       <div className="space-y-3">
-        <p className="label-cayla text-[10px] text-tinta/45">Terminadas · en el inventario del taller</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Terminadas · en el inventario del taller</p>
         {terminadas.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Aún no cierras ninguna orden al inventario.
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/40">
+              <thead className="border-b border-tinta/10 text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Modelo</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Entraron</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Costo real/prenda</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Precio tienda</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Semáforo</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Estado</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Modelo</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Entraron</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Costo real/prenda</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Precio tienda</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Semáforo</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
@@ -175,30 +175,30 @@ export function OrdenesProduccion({
                     <tr key={o.id}>
                       <td className="px-3 py-2.5 font-medium text-tinta">
                         {o.modelo}
-                        {o.material && <span className="ml-2 text-[11px] font-normal text-tinta/40">· {o.material}</span>}
-                        {o.detalle && <span className="ml-2 text-[11px] font-normal text-tinta/40">{o.detalle}</span>}
-                        {o.esMuestra && <span className="label-cayla ml-2 text-[8px] text-taupe">muestra</span>}
+                        {o.material && <span className="ml-2 text-xs font-normal text-tinta/65">· {o.material}</span>}
+                        {o.detalle && <span className="ml-2 text-xs font-normal text-tinta/65">{o.detalle}</span>}
+                        {o.esMuestra && <span className="label-cayla ml-2 text-[10px] text-taupe">muestra</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-tinta/55">{o.esMuestra ? "—" : o.cantidad}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/70">{money(o.costoUnitario)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/70">{o.precioTaller > 0 ? money(o.precioTaller) : "—"}</td>
+                      <td className="px-3 py-2.5 text-tinta/70">{o.esMuestra ? "—" : o.cantidad}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{money(o.costoUnitario)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{o.precioTaller > 0 ? money(o.precioTaller) : "—"}</td>
                       <td className="px-3 py-2.5">
                         <span className="flex items-center gap-2">
                           <span className={`inline-block h-2.5 w-2.5 rounded-full ${s.dot}`} />
-                          <span className="text-tinta/50">{o.precioTaller > 0 ? `${s.txt} · ${Math.round((m / o.precioTaller) * 100)}%` : s.txt}</span>
+                          <span className="text-tinta/70">{o.precioTaller > 0 ? `${s.txt} · ${Math.round((m / o.precioTaller) * 100)}%` : s.txt}</span>
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         {o.esMuestra ? (
-                          <span className="label-cayla text-[9px] text-taupe">muestra cerrada</span>
+                          <span className="label-cayla text-[11px] text-taupe">muestra cerrada</span>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             {ocupadoId === o.id ? (
-                              <span className="label-cayla text-[9px] text-tinta/40">Procesando…</span>
+                              <span className="label-cayla text-[11px] text-tinta/65">Procesando…</span>
                             ) : (
                               <>
-                                <span className="label-cayla text-[9px] text-verde">en inventario</span>
-                                <button onClick={() => revertir(o.id)} className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo">Revertir</button>
+                                <span className="label-cayla text-[11px] text-verde">en inventario</span>
+                                <button onClick={() => revertir(o.id)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">Revertir</button>
                               </>
                             )}
                           </div>
@@ -244,11 +244,11 @@ function OrdenEnProceso({
         <div>
           <span className="font-display text-base text-tinta">{orden.modelo}</span>
           {orden.material && (
-            <span className="ml-2 rounded-full border border-tinta/15 px-2 py-0.5 align-middle text-[9px] text-tinta/45">{orden.material}</span>
+            <span className="ml-2 rounded-full border border-tinta/15 px-2 py-0.5 align-middle text-[11px] text-tinta/65">{orden.material}</span>
           )}
-          <p className="mt-0.5 text-xs text-tinta/45">{sub}</p>
+          <p className="mt-0.5 text-xs text-tinta/65">{sub}</p>
         </div>
-        <span className="label-cayla shrink-0 rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[9px] text-ambar">
+        <span className="label-cayla shrink-0 rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar">
           {orden.esMuestra ? "Muestra" : "En proceso"}
         </span>
       </div>
@@ -256,17 +256,17 @@ function OrdenEnProceso({
       {/* Etapas — se adaptan al tipo de orden (muestra = desarrollo, producción = fabricación). */}
       <div className="mt-4">
         <div className="flex items-center gap-2">
-          <p className="label-cayla text-[9px] text-tinta/40">
+          <p className="label-cayla text-[11px] text-tinta/65">
             {orden.esMuestra ? "Etapas de desarrollo" : "Etapas"} — toca para marcar hecha
           </p>
           <button type="button" onClick={() => setVerGlosario((v) => !v)}
-            className="flex h-4 w-4 items-center justify-center rounded-full border border-tinta/25 text-[9px] leading-none text-tinta/45 transition-colors hover:border-rojo hover:text-rojo"
+            className="flex h-4 w-4 items-center justify-center rounded-full border border-tinta/25 text-[11px] leading-none text-tinta/65 transition-colors hover:border-rojo hover:text-rojo"
             aria-label="Qué significa cada etapa">i</button>
         </div>
         {verGlosario && (
-          <ul className="mt-2 space-y-1 rounded-lg border border-tinta/10 bg-crema px-3 py-2 text-[11px] text-tinta/55">
+          <ul className="mt-2 space-y-1 rounded-lg border border-tinta/10 bg-crema px-3 py-2 text-xs text-tinta/70">
             {etapas.map((e) => (
-              <li key={e.key}><span className="font-medium text-tinta/75">{e.label}:</span> {e.desc}</li>
+              <li key={e.key}><span className="font-medium text-tinta/80">{e.label}:</span> {e.desc}</li>
             ))}
           </ul>
         )}
@@ -274,13 +274,13 @@ function OrdenEnProceso({
           {etapas.map((e) => {
             const estado = orden.etapas?.[e.key] ?? "pendiente";
             const cls =
-              estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde"
+              estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde-profundo"
               : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
-              : "border-tinta/20 text-tinta/55 hover:border-tinta/45";
+              : "border-tinta/20 text-tinta/70 hover:border-tinta/45";
             return (
               <button key={e.key} type="button" disabled={ocupado}
                 onClick={() => onEtapa(e.key, estado === "hecho" ? "pendiente" : "hecho")}
-                className={`label-cayla rounded-full border px-3.5 py-1.5 text-[9px] transition-colors disabled:opacity-40 ${cls}`}>
+                className={`label-cayla rounded-full border px-3.5 py-1.5 text-[11px] transition-colors disabled:opacity-40 ${cls}`}>
                 {estado === "hecho" && <span className="mr-1">✓</span>}
                 {e.label}
                 {estado === "tercerizado" && <span className="ml-1 opacity-70">· afuera</span>}
@@ -288,7 +288,7 @@ function OrdenEnProceso({
             );
           })}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-tinta/35">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-tinta/65">
           <span>¿Tercerizaste alguna?</span>
           {etapas.map((e) => {
             const terc = (orden.etapas?.[e.key] ?? "pendiente") === "tercerizado";
@@ -305,23 +305,23 @@ function OrdenEnProceso({
 
       {/* Resumen en una línea + acciones */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-tinta/10 pt-3">
-        <span className="text-xs text-tinta/55">
+        <span className="text-xs text-tinta/70">
           Estimado · <span className="font-medium text-tinta">{money(orden.costoUnitario)}/prenda</span>
           {orden.precioTaller > 0 && (
             <>
               {" · deja "}<span className="font-medium text-tinta">{money(margen)}</span>{` · ${pct}% `}
               <span className={`ml-0.5 inline-block h-2 w-2 translate-y-px rounded-full ${s.dot}`} />
-              <span className="ml-1 text-tinta/45">{s.txt}</span>
+              <span className="ml-1 text-tinta/65">{s.txt}</span>
             </>
           )}
         </span>
         <div className="flex items-center gap-3">
           <button onClick={onEliminar} disabled={ocupado}
-            className="label-cayla text-[9px] text-tinta/40 transition-colors hover:text-rojo disabled:opacity-40">
+            className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo disabled:opacity-40">
             Eliminar
           </button>
           <button onClick={onAbrirCierre} disabled={ocupado}
-            className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-40">
+            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40">
             {cerrando ? "Cancelar cierre" : orden.esMuestra ? "Cerrar muestra" : "Terminar orden"}
           </button>
         </div>
@@ -365,7 +365,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
 
   return (
     <div className="mt-4 space-y-4 rounded-xl border border-rojo/40 bg-crema p-4">
-      <p className="text-xs text-tinta/55">
+      <p className="text-xs text-tinta/70">
         Confirma <span className="font-medium text-tinta">cuántas salieron buenas</span> y el <span className="font-medium text-tinta">costo real</span>. Eso es lo que entra al inventario.
       </p>
 
@@ -378,7 +378,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
               const menos = (Number(buenas[l.varianteId]) || 0) < l.cantidad;
               return (
                 <label key={l.varianteId} className="flex items-center gap-2 card-cayla px-2.5 py-1.5">
-                  <span className="flex-1 truncate text-xs text-tinta/70">{etiqueta} <span className="text-tinta/35">({l.cantidad})</span></span>
+                  <span className="flex-1 truncate text-xs text-tinta/80">{etiqueta} <span className="text-tinta/65">({l.cantidad})</span></span>
                   <input type="number" min={0} inputMode="numeric" value={buenas[l.varianteId] ?? ""}
                     onChange={(e) => setBuenas((p) => ({ ...p, [l.varianteId]: e.target.value }))}
                     className={`w-14 border bg-crema px-1.5 py-1 text-center text-sm focus:border-rojo focus:outline-none ${menos ? "border-rojo/50 text-rojo" : "border-tinta/20 text-tinta"}`} />
@@ -392,9 +392,9 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
       <div className="space-y-1.5">
         <label className={labelCls}>Costo real</label>
         <div className="grid grid-cols-3 gap-2">
-          <div><span className="mb-1 block text-[10px] text-tinta/40">Tela</span><input type="number" min={0} step="0.10" value={tela} onChange={(e) => setTela(e.target.value)} className={inputCls} /></div>
-          <div><span className="mb-1 block text-[10px] text-tinta/40">Avíos</span><input type="number" min={0} step="0.10" value={avios} onChange={(e) => setAvios(e.target.value)} className={inputCls} /></div>
-          <div><span className="mb-1 block text-[10px] text-tinta/40">Maquila / terceros</span><input type="number" min={0} step="0.10" value={maquila} onChange={(e) => setMaquila(e.target.value)} className={inputCls} /></div>
+          <div><span className="mb-1 block text-[11px] text-tinta/65">Tela</span><input type="number" min={0} step="0.10" value={tela} onChange={(e) => setTela(e.target.value)} className={inputCls} /></div>
+          <div><span className="mb-1 block text-[11px] text-tinta/65">Avíos</span><input type="number" min={0} step="0.10" value={avios} onChange={(e) => setAvios(e.target.value)} className={inputCls} /></div>
+          <div><span className="mb-1 block text-[11px] text-tinta/65">Maquila / terceros</span><input type="number" min={0} step="0.10" value={maquila} onChange={(e) => setMaquila(e.target.value)} className={inputCls} /></div>
         </div>
       </div>
 
@@ -404,16 +404,16 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
         )}
         <span><span className={labelCls}>Costo real / prenda</span><span className="font-display ml-2 text-lg text-tinta">{money(costoUnit)}</span></span>
         {orden.precioTaller > 0 && (
-          <span><span className={labelCls}>Deja para taller</span><span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span><span className="ml-1.5 text-sm text-tinta/40">{Math.round((margen / orden.precioTaller) * 100)}%</span></span>
+          <span><span className={labelCls}>Deja para taller</span><span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span><span className="ml-1.5 text-sm text-tinta/65">{Math.round((margen / orden.precioTaller) * 100)}%</span></span>
         )}
         <span className="ml-auto flex items-center gap-2">
           <span className={`inline-block h-2.5 w-2.5 rounded-full ${sem.dot}`} />
-          <span className="label-cayla text-[10px] text-tinta/55">{sem.txt}</span>
+          <span className="label-cayla text-[11px] text-tinta/70">{sem.txt}</span>
         </span>
       </div>
 
       <button onClick={confirmar} disabled={loading || (!orden.esMuestra && totalBuenas <= 0)}
-        className="label-cayla w-full bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-30">
+        className="label-cayla rounded-md w-full bg-tinta px-4 py-3 text-xs text-crema transition-colors hover:bg-rojo disabled:opacity-30">
         {loading ? "Cerrando…" : orden.esMuestra ? "Cerrar muestra" : "Confirmar y mandar al inventario"}
       </button>
     </div>
@@ -508,18 +508,18 @@ function NuevaOrdenForm({
       <div className="flex gap-2">
         {[{ v: false, t: "Producción" }, { v: true, t: "Muestra" }].map((o) => (
           <button key={String(o.v)} type="button" onClick={() => setEsMuestra(o.v)}
-            className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors ${esMuestra === o.v ? "border-rojo bg-crema text-tinta" : "border-tinta/15 text-tinta/45"}`}>
+            className={`label-cayla border px-3 py-1.5 text-[11px] transition-colors ${esMuestra === o.v ? "border-rojo bg-crema text-tinta" : "border-tinta/15 text-tinta/65"}`}>
             {o.t}
           </button>
         ))}
-        {esMuestra && <span className="self-center text-[11px] text-tinta/40">Muestra = desarrollo del modelo (patrón, prototipo, escalado). Su costo queda en el modelo y no entra al inventario.</span>}
+        {esMuestra && <span className="self-center text-xs text-tinta/65">Muestra = desarrollo del modelo (patrón, prototipo, escalado). Su costo queda en el modelo y no entra al inventario.</span>}
       </div>
 
       <div className="space-y-2">
         <div className="flex gap-2">
           {[{ v: true, t: "Modelo nuevo" }, { v: false, t: "Ya existe" }].map((o) => (
             <button key={String(o.v)} type="button" onClick={() => setModoNuevo(o.v)}
-              className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors ${modoNuevo === o.v ? "border-rojo bg-crema text-tinta" : "border-tinta/15 text-tinta/45"}`}>
+              className={`label-cayla border px-3 py-1.5 text-[11px] transition-colors ${modoNuevo === o.v ? "border-rojo bg-crema text-tinta" : "border-tinta/15 text-tinta/65"}`}>
               {o.t}
             </button>
           ))}
@@ -544,7 +544,7 @@ function NuevaOrdenForm({
             {seleccionado ? (
               <div className="flex items-center justify-between border border-tinta/15 bg-crema px-3 py-2 text-sm">
                 <span className="text-tinta">{seleccionado.referencia}</span>
-                <button type="button" onClick={() => setProductoId("")} className="label-cayla text-[9px] text-rojo">Cambiar</button>
+                <button type="button" onClick={() => setProductoId("")} className="label-cayla text-[11px] text-rojo">Cambiar</button>
               </div>
             ) : (
               <>
@@ -574,13 +574,13 @@ function NuevaOrdenForm({
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
               {combos.map((c) => (
                 <label key={c.key} className="flex items-center gap-2 border border-tinta/10 bg-crema px-2.5 py-1.5">
-                  <span className="flex-1 truncate text-xs text-tinta/70">{c.label}</span>
+                  <span className="flex-1 truncate text-xs text-tinta/80">{c.label}</span>
                   <input type="number" min={0} inputMode="numeric" value={qty[c.key] ?? ""} onChange={(e) => setQty((p) => ({ ...p, [c.key]: e.target.value }))} placeholder="0"
                     className="w-14 card-cayla px-1.5 py-1 text-center text-sm text-tinta focus:border-rojo focus:outline-none" />
                 </label>
               ))}
             </div>
-            <p className="text-xs text-tinta/45">Total planeado: <span className="font-medium text-tinta/70">{total} prendas</span></p>
+            <p className="text-xs text-tinta/65">Total planeado: <span className="font-medium text-tinta/80">{total} prendas</span></p>
           </div>
         ) : (
           <div className="space-y-1.5"><label className={labelCls}>Cantidad total (si no separas por talla/color)</label><input type="number" min={1} inputMode="numeric" value={cantidadSimple} onChange={(e) => setCantidadSimple(e.target.value)} placeholder="0" className={`${inputCls} max-w-40`} /></div>
@@ -595,7 +595,7 @@ function NuevaOrdenForm({
           <div className="space-y-1.5"><label className={labelCls}>Maquila / terceros</label><input type="number" min={0} step="0.10" value={maquila} onChange={(e) => setMaquila(e.target.value)} placeholder="0.00" className={inputCls} /></div>
           <div className="space-y-1.5"><label className={labelCls}>Precio a tienda (c/u)</label><input type="number" min={0} step="0.10" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="0.00" className={inputCls} /></div>
         </div>
-        <p className="text-[11px] text-tinta/40">Maquila cubre lo que mandas afuera: planchado de tela, corte de lotes grandes o difíciles, etc.</p>
+        <p className="text-xs text-tinta/65">Maquila cubre lo que mandas afuera: planchado de tela, corte de lotes grandes o difíciles, etc.</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-4 border-t border-tinta/10 pt-4">
@@ -603,21 +603,21 @@ function NuevaOrdenForm({
         {total > 0 && nTela + nAvios + nMaquila > 0 && (
           <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2">
             <span><span className={labelCls}>Costo est./prenda</span><span className="font-display ml-2 text-lg text-tinta">{money(costoUnit)}</span></span>
-            {nPrecio > 0 && <span><span className={labelCls}>Deja</span><span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span><span className="ml-1 text-sm text-tinta/40">{Math.round((margen / nPrecio) * 100)}%</span></span>}
-            <span className="flex items-center gap-2"><span className={`inline-block h-2.5 w-2.5 rounded-full ${sem.dot}`} /><span className="label-cayla text-[10px] text-tinta/55">{sem.txt}</span></span>
+            {nPrecio > 0 && <span><span className={labelCls}>Deja</span><span className={`font-display ml-2 text-lg ${margen < 0 ? "text-rojo" : "text-tinta"}`}>{money(margen)}</span><span className="ml-1 text-sm text-tinta/65">{Math.round((margen / nPrecio) * 100)}%</span></span>}
+            <span className="flex items-center gap-2"><span className={`inline-block h-2.5 w-2.5 rounded-full ${sem.dot}`} /><span className="label-cayla text-[11px] text-tinta/70">{sem.txt}</span></span>
           </div>
         )}
       </div>
 
       {!esMuestra && (
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/60">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-tinta/75">
           <input type="checkbox" checked={marcarTerminado} onChange={(e) => setMarcarTerminado(e.target.checked)} className="accent-rojo" />
           Ya está terminado — mándalo al inventario ahora (para lo que ya tienes hecho)
         </label>
       )}
 
       <button type="submit" disabled={loading || !listo}
-        className="label-cayla w-full bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-30">
+        className="label-cayla rounded-md w-full bg-tinta px-4 py-3 text-xs text-crema transition-colors hover:bg-rojo disabled:opacity-30">
         {loading ? "Guardando…" : marcarTerminado && !esMuestra ? "Abrir y mandar al inventario" : "Abrir orden"}
       </button>
     </form>

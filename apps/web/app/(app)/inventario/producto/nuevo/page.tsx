@@ -27,7 +27,7 @@ export default async function NuevoProductoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario · Catálogo</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Inventario · Catálogo</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Nuevo producto</h1>
       </div>
 

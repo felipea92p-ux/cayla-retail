@@ -22,9 +22,9 @@ export default async function MasPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">CAYLA</p>
+        <p className="label-cayla text-[11px] text-tinta/65">CAYLA</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">{persona.nombre}</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/70">
           {esLider ? "Líder" : "Encargada de atención al cliente"} · {persona.sedeCodigo}
         </p>
       </div>
@@ -33,7 +33,7 @@ export default async function MasPage() {
         {enlaces.map((e) => (
           <Link key={e.href} href={e.href} className="group block px-5 py-4 transition-colors hover:bg-sand/40">
             <p className="text-sm font-medium text-tinta group-hover:text-rojo">{e.etiqueta}</p>
-            <p className="mt-0.5 text-xs text-tinta/45">{e.detalle}</p>
+            <p className="mt-0.5 text-xs text-tinta/65">{e.detalle}</p>
           </Link>
         ))}
       </div>

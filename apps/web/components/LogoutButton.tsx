@@ -12,7 +12,7 @@ export function LogoutButton() {
         router.push("/login");
         router.refresh();
       }}
-      className="label-cayla text-[10px] text-tinta/50 transition-colors hover:text-rojo"
+      className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo"
     >
       Salir
     </button>

@@ -56,10 +56,10 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
+      <div className="grid gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
         {cuadre.map((c) => (
           <div key={c.sedeCodigo} className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">
+            <p className="label-cayla text-[11px] text-tinta/65">
               {c.sedeCodigo} · efectivo teórico
               <Ayuda titulo="Efectivo teórico">
                 Cuánto efectivo DEBERÍA haber en el cajón de esta tienda ahora mismo, según el sistema:
@@ -70,14 +70,14 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
             <p className={`font-display mt-1 text-3xl ${c.teorico < 0 ? "text-rojo" : "text-tinta"}`}>
               {money(c.teorico)}
             </p>
-            <div className="mt-3 space-y-1 text-xs text-tinta/50">
+            <div className="mt-3 space-y-1 text-xs text-tinta/70">
               <p className="flex justify-between"><span>Saldo inicial + ajustes</span><span>{money(c.ajustes)}</span></p>
               <p className="flex justify-between"><span>+ Ventas en efectivo</span><span>{money(c.ventasEfectivo)}</span></p>
               <p className="flex justify-between"><span>− Gastos en efectivo</span><span>{money(c.gastosEfectivo)}</span></p>
               <p className="flex justify-between"><span>− Depósitos al banco</span><span>{money(c.depositos)}</span></p>
             </div>
             {c.ultimaDiferenciaCierre != null && (
-              <p className="mt-3 border-t border-tinta/10 pt-2 text-xs text-tinta/50">
+              <p className="mt-3 border-t border-tinta/10 pt-2 text-xs text-tinta/70">
                 Último cierre:{" "}
                 <span className={c.ultimaDiferenciaCierre === 0 ? "text-tinta" : c.ultimaDiferenciaCierre > 0 ? "text-tinta" : "text-rojo"}>
                   {c.ultimaDiferenciaCierre > 0 ? "+" : ""}
@@ -92,13 +92,13 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setModal("deposito")}
-          className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+          className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
         >
           Registrar depósito al banco
         </button>
         <button
           onClick={() => setModal("ajuste")}
-          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
         >
           Ajuste / saldo inicial
         </button>

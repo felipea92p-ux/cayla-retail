@@ -64,7 +64,7 @@ function LineaControl({ fecha, fechaEstimada, recibida }: { fecha: string; fecha
         {/* Fin: llegada estimada */}
         <span className="absolute top-1/2 right-0 h-2 w-2 translate-x-1/2 -translate-y-1/2 border border-tinta/30 bg-crema" />
       </div>
-      <div className="mt-1 flex justify-between text-[9px] text-tinta/40">
+      <div className="mt-1 flex justify-between text-[11px] text-tinta/65">
         <span>Pedido {fechaCorta(fecha)}</span>
         <span className={marcaAtrasada ? "text-rojo" : ""}>
           {marcaAtrasada ? "Debería haber llegado" : "Llega"} {fechaCorta(fechaEstimada)}
@@ -135,13 +135,13 @@ export function ComprasManager({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="label-cayla text-[9px] text-tinta/45">Dinero comprometido en camino</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Dinero comprometido en camino</p>
           <p className="font-display text-2xl text-tinta">{money(comprometido)}</p>
         </div>
         {esLider && (
           <button
             onClick={() => setAbierto((v) => !v)}
-            className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
             + Nueva orden
           </button>
@@ -152,7 +152,7 @@ export function ComprasManager({
         <form onSubmit={crear} className="card-cayla p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="label-cayla text-[10px] text-tinta/50">Proveedor</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Proveedor</label>
               <select
                 value={proveedorId}
                 onChange={(e) => setProveedorId(e.target.value)}
@@ -173,7 +173,7 @@ export function ComprasManager({
               )}
             </div>
             <div className="space-y-1.5">
-              <label className="label-cayla text-[10px] text-tinta/50">Llega a</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Llega a</label>
               <select
                 value={sedeId}
                 onChange={(e) => setSedeId(e.target.value)}
@@ -183,7 +183,7 @@ export function ComprasManager({
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="label-cayla text-[10px] text-tinta/50">Monto estimado (S/)</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Monto estimado (S/)</label>
               <input
                 type="number"
                 min={0}
@@ -194,7 +194,7 @@ export function ComprasManager({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="label-cayla text-[10px] text-tinta/50">Fecha estimada de llegada</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Fecha estimada de llegada</label>
               <input
                 type="date"
                 value={fechaEstimada}
@@ -203,7 +203,7 @@ export function ComprasManager({
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <label className="label-cayla text-[10px] text-tinta/50">Nota</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Nota</label>
               <input
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
@@ -214,10 +214,10 @@ export function ComprasManager({
           </div>
           {error && <p className="mt-3 text-sm text-rojo">{error}</p>}
           <div className="mt-4 flex gap-2">
-            <button type="button" onClick={() => setAbierto(false)} className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta">
+            <button type="button" onClick={() => setAbierto(false)} className="label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+            <button type="submit" disabled={loading} className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
               {loading ? "Guardando…" : "Crear orden"}
             </button>
           </div>
@@ -226,7 +226,7 @@ export function ComprasManager({
 
       <div className="divide-y divide-tinta/5 card-cayla">
         {ordenes.length === 0 && (
-          <p className="font-display py-10 text-center text-base italic text-tinta/40">
+          <p className="font-display py-10 text-center text-base italic text-tinta/65">
             Sin órdenes de compra todavía.
           </p>
         )}
@@ -234,18 +234,18 @@ export function ComprasManager({
           <div key={o.id} className="px-4 py-3 text-sm">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span
-                className={`label-cayla text-[9px] ${
-                  o.estado === "recibida" ? "text-tinta/40" : o.estado === "cancelada" ? "text-tinta/30" : "text-rojo"
+                className={`label-cayla text-[11px] ${
+                  o.estado === "recibida" ? "text-tinta/65" : o.estado === "cancelada" ? "text-tinta/65" : "text-rojo"
                 }`}
               >
                 {ETIQUETA_ESTADO[o.estado] ?? o.estado}
               </span>
               <span className="font-medium text-tinta">{o.proveedor}</span>
-              <span className="text-tinta/50">→ {o.sedeCodigo}</span>
-              {o.montoEstimado != null && <span className="text-tinta/60">{money(o.montoEstimado)}</span>}
-              {o.nota && <span className="text-tinta/40">· {o.nota}</span>}
+              <span className="text-tinta/70">→ {o.sedeCodigo}</span>
+              {o.montoEstimado != null && <span className="text-tinta/75">{money(o.montoEstimado)}</span>}
+              {o.nota && <span className="text-tinta/65">· {o.nota}</span>}
               {esLider && (o.estado === "pendiente" || o.estado === "confirmada") && (
-                <button onClick={() => cancelar(o.id)} className="label-cayla ml-auto text-[9px] text-tinta/40 hover:text-rojo">
+                <button onClick={() => cancelar(o.id)} className="label-cayla ml-auto text-[11px] text-tinta/65 hover:text-rojo">
                   Cancelar
                 </button>
               )}

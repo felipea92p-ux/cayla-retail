@@ -13,10 +13,10 @@ import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrim
 type Sede = { id: string; codigo: string };
 
 const ESTADO_ESTILO: Record<Proforma["estado"], string> = {
-  vigente: "border-ambar/30 bg-ambar/10 text-ambar",
-  convertida: "border-verde/45 bg-verde/10 text-verde",
-  vencida: "border-tinta/20 bg-tinta/5 text-tinta/45",
-  anulada: "border-tinta/20 bg-tinta/5 text-tinta/45",
+  vigente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  convertida: "border-verde/45 bg-verde/10 text-verde-profundo",
+  vencida: "border-tinta/20 bg-tinta/5 text-tinta/65",
+  anulada: "border-tinta/20 bg-tinta/5 text-tinta/65",
 };
 
 const ESTADO_ETIQUETA: Record<Proforma["estado"], string> = {
@@ -154,7 +154,7 @@ export function ProformasPanel({
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[10px] text-tinta/45">
+          <h2 className="label-cayla text-[11px] text-tinta/65">
             Proformas
             <Ayuda titulo="Proforma / nota de venta">
               No es un comprobante de pago — no la reconoce SUNAT ni consume un número de serie.
@@ -164,26 +164,26 @@ export function ProformasPanel({
           </h2>
           <button
             onClick={() => setModal("crear")}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             Nueva proforma
           </button>
         </div>
 
         {proformas.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Sin proformas este mes.
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full min-w-[640px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/40">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead className="border-b border-tinta/10 text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]" />
+                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]" />
                 </tr>
               </thead>
               {/* Excepciones primero: vigentes (y entre ellas, por vencer) arriba de convertidas/vencidas. */}
@@ -197,7 +197,7 @@ export function ProformasPanel({
                   })
                   .map((p) => (
                     <tr key={p.id}>
-                      <td className="px-3 py-2.5 text-tinta/60">
+                      <td className="px-3 py-2.5 text-tinta/75">
                         {p.porVencer && (
                           <span
                             title="Vence en menos de 48 horas"
@@ -206,10 +206,10 @@ export function ProformasPanel({
                         )}
                         {formatearFecha(p.created_at)}
                       </td>
-                      <td className="px-3 py-2.5 text-tinta/60">{p.cliente_nombre ?? "Cliente varios"}</td>
+                      <td className="px-3 py-2.5 text-tinta/75">{p.cliente_nombre ?? "Cliente varios"}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(p.total))}</td>
                       <td className="px-3 py-2.5">
-                        <span className={`label-cayla border px-3 py-1 text-[9px] ${ESTADO_ESTILO[p.estado]}`}>
+                        <span className={`label-cayla border px-3 py-1 text-[11px] ${ESTADO_ESTILO[p.estado]}`}>
                           {ESTADO_ETIQUETA[p.estado]}
                         </span>
                       </td>
@@ -217,7 +217,7 @@ export function ProformasPanel({
                         {p.estado === "vigente" && (
                           <button
                             onClick={() => setModal({ convertir: p })}
-                            className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[9px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+                            className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Convertir
                           </button>
@@ -292,7 +292,7 @@ export function ProformasPanel({
       {modal && typeof modal === "object" && (
         <Modal titulo="Convertir a comprobante" onClose={cerrarModal}>
           <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="space-y-4">
-            <p className="text-xs text-tinta/60">
+            <p className="text-xs text-tinta/75">
               {modal.convertir.cliente_nombre ?? "Cliente varios"} · {money(Number(modal.convertir.total))}
             </p>
 
@@ -308,8 +308,8 @@ export function ProformasPanel({
                       setClienteNumDoc("");
                       setConvertirNombre("");
                     }}
-                    className={`label-cayla flex-1 border px-3 py-2 text-[10px] transition-colors ${
-                      tipo === t ? "border-rojo bg-rojo/10 text-rojo" : "border-tinta/20 text-tinta/50"
+                    className={`label-cayla flex-1 border px-3 py-2 text-[11px] transition-colors ${
+                      tipo === t ? "border-rojo bg-rojo/10 text-rojo-profundo" : "border-tinta/20 text-tinta/70"
                     }`}
                   >
                     {t === "boleta" ? "Boleta" : "Factura"}

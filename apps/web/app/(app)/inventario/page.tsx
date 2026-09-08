@@ -43,21 +43,21 @@ export default async function InventarioPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
         </div>
         <div className="flex gap-2">
           {persona.rol === "lider" && (
             <Link
               href="/inventario/producto/nuevo"
-              className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+              className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
             >
               + Nuevo producto
             </Link>
           )}
           <a
             href="/api/export/inventario"
-            className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
           >
             Exportar Excel
           </a>

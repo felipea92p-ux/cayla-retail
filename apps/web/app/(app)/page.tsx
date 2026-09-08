@@ -39,18 +39,18 @@ export default async function InicioPage() {
         <BuscadorHero />
 
         <div>
-          <p className="label-cayla mb-3 text-[10px] text-tinta/45">Acciones</p>
-          <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10">
+          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
             {accionesRapidas.map((a) => (
               <Link key={a.href} href={a.href} className="group bg-crema p-5 transition-colors hover:bg-papel">
                 <p className="text-sm font-medium text-tinta group-hover:text-rojo">{a.etiqueta}</p>
-                <p className="mt-1 text-xs text-tinta/45">{a.detalle}</p>
+                <p className="mt-1 text-xs text-tinta/65">{a.detalle}</p>
               </Link>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-tinta/60">
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-tinta/75">
           <span>
             Caja de {persona.sedeCodigo}:{" "}
             <Link href="/vender" className={cajaAbierta ? "text-tinta hover:text-rojo" : "text-rojo hover:underline"}>
@@ -71,30 +71,30 @@ export default async function InicioPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Hoy</p>
-        <div className="mt-3 grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-4">
+        <p className="label-cayla text-[11px] text-tinta/65">Hoy</p>
+        <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Ventas de hoy</p>
+            <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>
             <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.ventasHoyTotal ?? 0)}</p>
             {panel && panel.ventasHoyPorSede.length > 0 && (
-              <p className="mt-1 text-xs text-tinta/45">
+              <p className="mt-1 text-xs text-tinta/65">
                 {panel.ventasHoyPorSede.map((s) => `${s.codigo} ${money(s.monto)}`).join(" · ")}
               </p>
             )}
           </div>
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Cajas</p>
+            <p className="label-cayla text-[11px] text-tinta/65">Cajas</p>
             <div className="mt-2 space-y-1">
               {(panel?.cajasTiendas ?? []).map((c) => (
                 <p key={c.codigo} className="text-sm">
-                  <span className="text-tinta/60">{c.codigo}</span>{" "}
+                  <span className="text-tinta/75">{c.codigo}</span>{" "}
                   {c.abierta ? <span className="text-tinta">abierta</span> : <span className="text-rojo">cerrada</span>}
                 </p>
               ))}
             </div>
           </div>
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Reponer ya
+            <p className="label-cayla text-[11px] text-tinta/65">Reponer ya
               <Ayuda titulo="Reponer ya">
                 Cuántas prendas están por agotarse según qué tan rápido se venden. No esperes a
                 quedarte en cero: estas necesitan pedido pronto. El detalle y cuánto comprar está en
@@ -102,17 +102,17 @@ export default async function InicioPage() {
               </Ayuda>
             </p>
             <p className="font-display mt-1 text-3xl text-rojo">{reponerYa}</p>
-            <p className="mt-1 text-xs text-tinta/45">{estancados} estancada{estancados === 1 ? "" : "s"}</p>
+            <p className="mt-1 text-xs text-tinta/65">{estancados} estancada{estancados === 1 ? "" : "s"}</p>
           </div>
           <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Inventario a costo
+            <p className="label-cayla text-[11px] text-tinta/65">Inventario a costo
               <Ayuda titulo="Inventario a costo">
                 Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. No
                 es pérdida, pero es dinero dormido: rinde cuando se vende, no antes.
               </Ayuda>
             </p>
             <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.valorInventarioTotal ?? 0)}</p>
-            <Link href="/comercial" className="mt-1 inline-block text-xs text-tinta/45 hover:text-rojo">
+            <Link href="/comercial" className="mt-1 inline-block text-xs text-tinta/65 hover:text-rojo">
               Ver análisis →
             </Link>
           </div>
@@ -122,8 +122,8 @@ export default async function InicioPage() {
       {alertasReposicion.length > 0 && (
         <div className="card-cayla p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="label-cayla text-[10px] text-rojo">Reponer pronto</h2>
-            <Link href="/comercial" className="label-cayla text-[9px] text-tinta/40 hover:text-rojo">
+            <h2 className="label-cayla text-[11px] text-rojo">Reponer pronto</h2>
+            <Link href="/comercial" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
               Sugerencias de compra →
             </Link>
           </div>
@@ -131,8 +131,8 @@ export default async function InicioPage() {
             {alertasReposicion.slice(0, 5).map((v) => (
               <li key={v.varianteId}>
                 <Link href={`/producto/${v.varianteId}`} className="text-tinta transition-colors hover:text-rojo">
-                  {v.referencia} <span className="text-tinta/40">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
-                  <span className="text-tinta/40">({v.stockTotal} vs. reorden {v.reorderPoint})</span>
+                  {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
+                  <span className="text-tinta/65">({v.stockTotal} vs. reorden {v.reorderPoint})</span>
                 </Link>
               </li>
             ))}
@@ -141,12 +141,12 @@ export default async function InicioPage() {
       )}
 
       <div>
-        <p className="label-cayla mb-3 text-[10px] text-tinta/45">Acciones</p>
-        <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-4">
+        <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
           {accionesRapidas.map((a) => (
             <Link key={a.href} href={a.href} className="group bg-crema p-5 transition-colors hover:bg-papel">
               <p className="text-sm font-medium text-tinta group-hover:text-rojo">{a.etiqueta}</p>
-              <p className="mt-1 text-xs text-tinta/45">{a.detalle}</p>
+              <p className="mt-1 text-xs text-tinta/65">{a.detalle}</p>
             </Link>
           ))}
         </div>

@@ -18,9 +18,9 @@ export function BuscadorHero() {
         if (term) router.push(`/buscar?q=${encodeURIComponent(term)}`);
       }}
     >
-      <label className="label-cayla text-[10px] text-tinta/45">¿Tenemos…? Busca o escanea</label>
+      <label className="label-cayla text-[11px] text-tinta/65">¿Tenemos…? Busca o escanea</label>
       <div className="mt-2 flex items-center gap-3 border-b-2 border-tinta/25 pb-2 transition-colors focus-within:border-rojo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" className="h-6 w-6 shrink-0 text-tinta/30">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" className="h-6 w-6 shrink-0 text-tinta/65">
           <path d="M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35" />
         </svg>
         <input
@@ -28,7 +28,7 @@ export function BuscadorHero() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Referencia, talla, color o código…"
-          className="font-display w-full bg-transparent text-2xl text-tinta outline-none placeholder:text-tinta/25"
+          className="font-display w-full bg-transparent text-2xl text-tinta outline-none placeholder:text-tinta/55"
         />
       </div>
     </form>

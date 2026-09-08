@@ -146,12 +146,12 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar proveedor, categoría, RUC…"
-          className="min-w-52 flex-1 border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none placeholder:text-tinta/35 focus:border-rojo"
+          className="min-w-52 flex-1 border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo"
         />
         {esLider && (
           <button
             onClick={abrirNuevo}
-            className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
             + Nuevo proveedor
           </button>
@@ -159,7 +159,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
       </div>
 
       {esLider && (
-        <label className="flex items-center gap-2 text-xs text-tinta/50">
+        <label className="flex items-center gap-2 text-xs text-tinta/70">
           <input type="checkbox" checked={mostrarInactivos} onChange={(e) => setMostrarInactivos(e.target.checked)} />
           Mostrar inactivos
         </label>
@@ -167,46 +167,46 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
 
       {abierto && (
         <form onSubmit={onSubmit} className="card-cayla p-5">
-          <p className="label-cayla mb-3 text-[10px] text-tinta/45">{editandoId ? "Editar proveedor" : "Nuevo proveedor"}</p>
+          <p className="label-cayla mb-3 text-[11px] text-tinta/65">{editandoId ? "Editar proveedor" : "Nuevo proveedor"}</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div><label className="label-cayla text-[10px] text-tinta/50">Nombre *</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Nombre *</label>
               <input required autoFocus value={form.nombre} onChange={(e) => campo("nombre", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">RUC</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">RUC</label>
               <input value={form.ruc} onChange={(e) => campo("ruc", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Marca</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Marca</label>
               <input value={form.marca} onChange={(e) => campo("marca", e.target.value)} placeholder="Línea que maneja este proveedor" className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Contacto</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Contacto</label>
               <input value={form.contacto} onChange={(e) => campo("contacto", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Teléfono</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Teléfono</label>
               <input value={form.telefono} onChange={(e) => campo("telefono", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Dirección</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Dirección</label>
               <input value={form.direccion} onChange={(e) => campo("direccion", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Banco</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Banco</label>
               <input value={form.banco} onChange={(e) => campo("banco", e.target.value)} className={inputCls} /></div>
-            <div><label className="label-cayla text-[10px] text-tinta/50">Cuenta bancaria</label>
+            <div><label className="label-cayla text-[11px] text-tinta/70">Cuenta bancaria</label>
               <input value={form.cuentaBancaria} onChange={(e) => campo("cuentaBancaria", e.target.value)} className={inputCls} /></div>
           </div>
           {error && <p className="mt-3 text-sm text-rojo">{error}</p>}
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={cerrar} className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta">Cancelar</button>
+            <button type="button" onClick={cerrar} className="label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta">Cancelar</button>
             {editandoId && (
               <button
                 type="button"
                 disabled={loading}
                 onClick={() => cambiarActivo(!proveedores.find((p) => p.id === editandoId)?.activo)}
-                className="label-cayla flex-1 border border-rojo/40 px-3 py-2.5 text-[10px] text-rojo transition-colors hover:bg-rojo/5 disabled:opacity-50"
+                className="label-cayla rounded-md flex-1 border border-rojo/40 px-3 py-2.5 text-[11px] text-rojo transition-colors hover:bg-rojo/5 disabled:opacity-50"
               >
                 {proveedores.find((p) => p.id === editandoId)?.activo ? "Desactivar" : "Reactivar"}
               </button>
             )}
-            <button type="submit" disabled={loading} className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+            <button type="submit" disabled={loading} className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
               {loading ? "Guardando…" : "Guardar"}
             </button>
           </div>
         </form>
       )}
 
-      <p className="label-cayla text-[9px] text-tinta/40">{filtrados.length} de {proveedores.length} proveedores</p>
+      <p className="label-cayla text-[11px] text-tinta/65">{filtrados.length} de {proveedores.length} proveedores</p>
 
       <div className="divide-y divide-tinta/5 card-cayla">
         {filtrados.slice(0, 60).map((p) => (
@@ -218,22 +218,22 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm font-medium text-tinta">
                 {p.nombre}
-                {!p.activo && <span className="label-cayla ml-2 text-[9px] text-tinta/35">inactivo</span>}
+                {!p.activo && <span className="label-cayla ml-2 text-[11px] text-tinta/65">inactivo</span>}
               </p>
-              {p.score != null && <span className="label-cayla text-[9px] text-taupe">score {p.score}</span>}
+              {p.score != null && <span className="label-cayla text-[11px] text-taupe">score {p.score}</span>}
             </div>
-            <p className="mt-0.5 text-xs text-tinta/45">
+            <p className="mt-0.5 text-xs text-tinta/65">
               {[p.categoria, p.marca, p.ruc && `RUC ${p.ruc}`, p.telefono, p.contacto].filter(Boolean).join(" · ") || "Sin datos adicionales"}
             </p>
-            {p.direccion && <p className="mt-0.5 text-xs text-tinta/35">{p.direccion}</p>}
+            {p.direccion && <p className="mt-0.5 text-xs text-tinta/65">{p.direccion}</p>}
           </div>
         ))}
         {filtrados.length === 0 && (
-          <p className="font-display py-8 text-center text-base italic text-tinta/40">Sin proveedores aún.</p>
+          <p className="font-display py-8 text-center text-base italic text-tinta/65">Sin proveedores aún.</p>
         )}
       </div>
       {filtrados.length > 60 && (
-        <p className="text-xs text-tinta/40">Mostrando 60 — afina la búsqueda para ver el resto.</p>
+        <p className="text-xs text-tinta/65">Mostrando 60 — afina la búsqueda para ver el resto.</p>
       )}
     </div>
   );

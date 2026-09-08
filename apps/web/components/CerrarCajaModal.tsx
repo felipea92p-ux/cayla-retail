@@ -67,7 +67,7 @@ export function CerrarCajaModal({ cajaId, sedeCodigo, onClose }: Props) {
               onChange={(e) => setMontoContado(Number(e.target.value))}
               className={campoTexto}
             />
-            <p className="text-xs text-tinta/45">
+            <p className="text-xs text-tinta/65">
               Cuenta el efectivo antes de confirmar — el sistema recién te muestra cuánto debería haber después.
             </p>
           </div>
@@ -87,15 +87,15 @@ export function CerrarCajaModal({ cajaId, sedeCodigo, onClose }: Props) {
         <div className="space-y-4">
           <div className="card-cayla space-y-2 p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-tinta/50">Esperado</span>
+              <span className="text-tinta/70">Esperado</span>
               <span className="font-medium text-tinta">{money(resultado.montoEsperado)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-tinta/50">Contado</span>
+              <span className="text-tinta/70">Contado</span>
               <span className="font-medium text-tinta">{money(resultado.montoContado)}</span>
             </div>
             <div className="flex justify-between border-t border-sand pt-2">
-              <span className="text-tinta/50">Diferencia</span>
+              <span className="text-tinta/70">Diferencia</span>
               <span
                 className={`font-semibold ${
                   resultado.diferencia === 0 ? "text-tinta" : resultado.diferencia > 0 ? "text-verde" : "text-rojo"

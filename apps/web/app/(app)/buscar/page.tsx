@@ -44,12 +44,12 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Búsqueda</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Búsqueda</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
         </h1>
         {term && (
-          <p className="mt-1 text-sm text-tinta/45">
+          <p className="mt-1 text-sm text-tinta/65">
             {resultados.length === 0
               ? "Sin coincidencias — revisa la escritura o prueba con menos palabras."
               : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}`}
@@ -76,25 +76,25 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
                   <div>
                     <p className="text-sm font-medium text-tinta">
                       {v.referencia}{" "}
-                      <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
+                      <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
                     </p>
-                    <p className="mt-0.5 text-xs text-tinta/45">
+                    <p className="mt-0.5 text-xs text-tinta/65">
                       {[v.familia, v.categoria].filter(Boolean).join(" · ")}
                     </p>
-                    <p className="mt-1 font-mono text-[10px] text-tinta/30">{v.sku}</p>
+                    <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{v.stockTotal}</p>
-                  <p className="label-cayla text-[8px] text-tinta/40">{hayStock ? "en stock" : "agotada"}</p>
-                  {v.precio != null && <p className="mt-1 text-xs text-tinta/55">S/{v.precio.toFixed(2)}</p>}
+                  <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
+                  {v.precio != null && <p className="mt-1 text-xs text-tinta/70">S/{v.precio.toFixed(2)}</p>}
                 </div>
               </div>
 
               {detalles.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-px border border-tinta/10 bg-tinta/10">
+                <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
                   {detalles.map((d) => (
-                    <span key={d.sede} className="bg-crema px-3 py-1.5 text-xs text-tinta/70">
+                    <span key={d.sede} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
                       {d.sede} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
                       {d.esAlmacen && (
                         <span className="text-rojo"> · {d.contenedor ?? "sin ubicación"}</span>

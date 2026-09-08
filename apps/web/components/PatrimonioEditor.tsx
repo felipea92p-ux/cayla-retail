@@ -58,7 +58,7 @@ export function PatrimonioEditor() {
     return (
       <button
         onClick={() => setAbierto(true)}
-        className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
       >
         + Agregar partida
       </button>
@@ -69,7 +69,7 @@ export function PatrimonioEditor() {
     <form onSubmit={onSubmit} className="card-cayla p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="label-cayla text-[10px] text-tinta/50">
+          <label className="label-cayla text-[11px] text-tinta/70">
             Tipo
             <Ayuda titulo="Activo o pasivo">
               Activo = algo que CAYLA TIENE y le da valor (un mueble, un equipo, plata en el banco).
@@ -91,7 +91,7 @@ export function PatrimonioEditor() {
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="label-cayla text-[10px] text-tinta/50">
+          <label className="label-cayla text-[11px] text-tinta/70">
             Categoría
             <Ayuda titulo="Categoría (IME)">
               Aquí clasificas tu IME. Muebles y enseres para estantes, mostradores y remodelación;
@@ -110,7 +110,7 @@ export function PatrimonioEditor() {
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="label-cayla text-[10px] text-tinta/50">Nombre / detalle</label>
+          <label className="label-cayla text-[11px] text-tinta/70">Nombre / detalle</label>
           <input
             required
             autoFocus
@@ -121,7 +121,7 @@ export function PatrimonioEditor() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="label-cayla text-[10px] text-tinta/50">Monto (S/)</label>
+          <label className="label-cayla text-[11px] text-tinta/70">Monto (S/)</label>
           <input
             type="number"
             step="0.01"
@@ -136,10 +136,10 @@ export function PatrimonioEditor() {
       {error && <p className="mt-3 text-sm text-rojo">{error}</p>}
 
       <div className="mt-4 flex gap-2">
-        <button type="button" onClick={() => setAbierto(false)} className="label-cayla flex-1 border border-tinta/25 px-3 py-2.5 text-[10px] text-tinta">
+        <button type="button" onClick={() => setAbierto(false)} className="label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta">
           Cancelar
         </button>
-        <button type="submit" disabled={loading} className="label-cayla flex-1 bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+        <button type="submit" disabled={loading} className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
           {loading ? "Guardando…" : "Guardar"}
         </button>
       </div>

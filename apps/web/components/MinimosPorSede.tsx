@@ -53,7 +53,7 @@ export function MinimosPorSede({
     return (
       <button
         onClick={() => setEditando(true)}
-        className="label-cayla border border-tinta/25 px-3 py-2 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
       >
         Mínimos por sede
       </button>
@@ -62,12 +62,12 @@ export function MinimosPorSede({
 
   return (
     <div className="card-cayla p-4">
-      <p className="label-cayla text-[10px] text-tinta/50">
-        Mínimo por sede <span className="text-tinta/35">(vacío = general: {minimoGeneral})</span>
+      <p className="label-cayla text-[11px] text-tinta/70">
+        Mínimo por sede <span className="text-tinta/65">(vacío = general: {minimoGeneral})</span>
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
         {sedes.map((s) => (
-          <label key={s.id} className="text-xs text-tinta/55">
+          <label key={s.id} className="text-xs text-tinta/70">
             {s.codigo}
             <input
               type="number"
@@ -82,13 +82,13 @@ export function MinimosPorSede({
       </div>
       {error && <p className="mt-2 text-xs text-rojo">{error}</p>}
       <div className="mt-3 flex gap-2">
-        <button onClick={() => setEditando(false)} className="label-cayla border border-tinta/25 px-3 py-2 text-[9px] text-tinta">
+        <button onClick={() => setEditando(false)} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta">
           Cancelar
         </button>
         <button
           onClick={guardar}
           disabled={loading}
-          className="label-cayla bg-tinta px-3 py-2 text-[9px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
+          className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
         >
           {loading ? "Guardando…" : "Guardar"}
         </button>

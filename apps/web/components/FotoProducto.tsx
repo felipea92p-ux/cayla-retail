@@ -71,7 +71,7 @@ export function FotoProducto({
           <Image src={fotoUrl} alt={referencia} fill unoptimized className="object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <p className="font-display px-4 text-center text-sm italic text-tinta/35">Sin foto todavía</p>
+            <p className="font-display px-4 text-center text-sm italic text-tinta/65">Sin foto todavía</p>
           </div>
         )}
       </div>
@@ -81,7 +81,7 @@ export function FotoProducto({
           <button
             onClick={() => inputRef.current?.click()}
             disabled={subiendo}
-            className="label-cayla border border-tinta/25 px-3 py-2 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50"
+            className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50"
           >
             {subiendo ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Subir foto"}
           </button>

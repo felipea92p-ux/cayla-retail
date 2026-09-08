@@ -81,7 +81,7 @@ export function RecetaCosto({
     return (
       <button
         onClick={() => setAbierto(true)}
-        className="label-cayla border border-tinta/25 px-3 py-2 text-[9px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
       >
         Receta de costo{sugerido > 0 ? ` · S/${sugerido.toFixed(2)}` : ""}
       </button>
@@ -91,8 +91,8 @@ export function RecetaCosto({
   return (
     <div className="card-cayla p-4">
       <div className="flex items-center justify-between">
-        <p className="label-cayla text-[10px] text-tinta/50">Receta de costo del modelo</p>
-        <button onClick={() => setAbierto(false)} className="label-cayla text-[9px] text-tinta/40 hover:text-rojo">
+        <p className="label-cayla text-[11px] text-tinta/70">Receta de costo del modelo</p>
+        <button onClick={() => setAbierto(false)} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
           Cerrar
         </button>
       </div>
@@ -102,12 +102,12 @@ export function RecetaCosto({
           {items.map((i) => (
             <div key={i.id} className="flex items-center justify-between px-3 py-2 text-xs">
               <span className="text-tinta">
-                {i.insumo} <span className="text-tinta/45">· {i.cantidad} {i.unidad}</span>
-                {i.precioUnitario != null && <span className="text-tinta/45"> × S/{i.precioUnitario.toFixed(2)}</span>}
+                {i.insumo} <span className="text-tinta/65">· {i.cantidad} {i.unidad}</span>
+                {i.precioUnitario != null && <span className="text-tinta/65"> × S/{i.precioUnitario.toFixed(2)}</span>}
               </span>
               <span className="flex items-center gap-3">
-                <span className="text-tinta/60">S/{(i.cantidad * (i.precioUnitario ?? 0)).toFixed(2)}</span>
-                <button onClick={() => quitarItem(i.id)} className="label-cayla text-[8px] text-rojo">Quitar</button>
+                <span className="text-tinta/75">S/{(i.cantidad * (i.precioUnitario ?? 0)).toFixed(2)}</span>
+                <button onClick={() => quitarItem(i.id)} className="label-cayla text-[10px] text-rojo">Quitar</button>
               </span>
             </div>
           ))}
@@ -115,42 +115,42 @@ export function RecetaCosto({
       )}
 
       <form onSubmit={agregarItem} className="mt-3 flex flex-wrap items-end gap-2">
-        <label className="flex-1 text-[10px] text-tinta/50">
+        <label className="flex-1 text-[11px] text-tinta/70">
           Insumo
           <input value={insumo} onChange={(e) => setInsumo(e.target.value)} placeholder="Ej. Tela chalis"
             className="mt-1 w-full border-b border-tinta/20 bg-transparent px-1 py-1.5 text-sm text-tinta outline-none focus:border-rojo" />
         </label>
-        <label className="w-16 text-[10px] text-tinta/50">
+        <label className="w-16 text-[11px] text-tinta/70">
           Cant.
           <input type="number" min={0} step="0.01" value={cantidad} onChange={(e) => setCantidad(Number(e.target.value))}
             className="mt-1 w-full border-b border-tinta/20 bg-transparent px-1 py-1.5 text-sm text-tinta outline-none focus:border-rojo" />
         </label>
-        <label className="w-16 text-[10px] text-tinta/50">
+        <label className="w-16 text-[11px] text-tinta/70">
           Unidad
           <input value={unidad} onChange={(e) => setUnidad(e.target.value)}
             className="mt-1 w-full border-b border-tinta/20 bg-transparent px-1 py-1.5 text-sm text-tinta outline-none focus:border-rojo" />
         </label>
-        <label className="w-20 text-[10px] text-tinta/50">
+        <label className="w-20 text-[11px] text-tinta/70">
           S/ unit.
           <input type="number" min={0} step="0.01" value={precio} onChange={(e) => setPrecio(Number(e.target.value))}
             className="mt-1 w-full border-b border-tinta/20 bg-transparent px-1 py-1.5 text-sm text-tinta outline-none focus:border-rojo" />
         </label>
-        <button type="submit" disabled={loading} className="label-cayla border border-tinta/25 px-3 py-2 text-[9px] text-tinta hover:border-rojo hover:text-rojo disabled:opacity-50">
+        <button type="submit" disabled={loading} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta hover:border-rojo hover:text-rojo disabled:opacity-50">
           + Agregar
         </button>
       </form>
 
       <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-tinta/10 pt-3">
-        <label className="text-[10px] text-tinta/50">
+        <label className="text-[11px] text-tinta/70">
           Mano de obra (S/ por prenda)
           <input type="number" min={0} step="0.10" value={manoObra} onChange={(e) => setManoObra(Number(e.target.value))} onBlur={guardarManoObra}
             className="mt-1 w-28 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-sm text-tinta outline-none focus:border-rojo" />
         </label>
         <div className="ml-auto text-right">
-          <p className="label-cayla text-[9px] text-tinta/45">Costo sugerido</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Costo sugerido</p>
           <p className="font-display text-2xl text-tinta">S/{sugerido.toFixed(2)}</p>
           {costoActual != null && (
-            <p className="text-xs text-tinta/45">actual: S/{costoActual.toFixed(2)}</p>
+            <p className="text-xs text-tinta/65">actual: S/{costoActual.toFixed(2)}</p>
           )}
         </div>
       </div>
@@ -159,7 +159,7 @@ export function RecetaCosto({
         <button
           onClick={aplicarCosto}
           disabled={loading}
-          className="label-cayla mt-3 w-full bg-tinta px-3 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
+          className="label-cayla rounded-md mt-3 w-full bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50"
         >
           Aplicar S/{sugerido.toFixed(2)} como costo a todas las tallas/colores del modelo
         </button>

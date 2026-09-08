@@ -41,14 +41,14 @@ export function TarjetaIndicador({
   return (
     <div className="card-cayla p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="label-cayla text-[9px] text-tinta/45">{etiqueta}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
         {sparkline && sparkline.length > 1 && <Sparkline puntos={sparkline} critico={critico} />}
       </div>
       <p className={`font-display mt-1 text-2xl ${critico ? "text-rojo" : "text-tinta"}`}>{valor}</p>
       {comparativo && (
-        <p className={`mt-1 text-xs ${comparativo.positivo ? "text-verde" : "text-tinta/60"}`}>{comparativo.texto}</p>
+        <p className={`mt-1 text-xs ${comparativo.positivo ? "text-verde" : "text-tinta/75"}`}>{comparativo.texto}</p>
       )}
-      {alerta && <p className="mt-2 text-xs leading-snug text-tinta/70">{alerta}</p>}
+      {alerta && <p className="mt-2 text-xs leading-snug text-tinta/80">{alerta}</p>}
     </div>
   );
 }

@@ -76,7 +76,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-tinta/40 sm:items-center">
       <div className="card-cayla w-full max-w-sm p-6">
         <h2 className="font-display text-lg text-tinta">Registrar gasto</h2>
-        <p className="mt-1 text-xs text-tinta/55">
+        <p className="mt-1 text-xs text-tinta/70">
           ¿Es una inversión (mueble, herramienta, remodelación)? No va aquí: regístrala como
           activo en Finanzas → Patrimonio. Los insumos del taller tampoco: viven en el costo
           de cada prenda al recibirla.
@@ -85,7 +85,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="label-cayla text-[9px] text-tinta/55">Sede</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Sede</label>
               <select
                 value={sedeSeleccionada}
                 onChange={(e) => setSedeSeleccionada(e.target.value)}
@@ -99,7 +99,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="label-cayla text-[9px] text-tinta/55">Categoría</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Categoría</label>
               <select
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value as GastoCategoria)}
@@ -115,7 +115,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
           </div>
 
           <div className="space-y-1.5">
-            <label className="label-cayla text-[9px] text-tinta/55">Método de pago</label>
+            <label className="label-cayla text-[11px] text-tinta/70">Método de pago</label>
             <select
               value={metodoPago}
               onChange={(e) => setMetodoPago(e.target.value as MetodoPagoGasto)}
@@ -127,11 +127,11 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
                 </option>
               ))}
             </select>
-            <p className="text-xs text-tinta/45">Si fue en efectivo, el sistema lo descuenta del cuadre de la sede.</p>
+            <p className="text-xs text-tinta/65">Si fue en efectivo, el sistema lo descuenta del cuadre de la sede.</p>
           </div>
 
           <div className="space-y-1.5">
-            <label className="label-cayla text-[9px] text-tinta/55">Total pagado (S/)</label>
+            <label className="label-cayla text-[11px] text-tinta/70">Total pagado (S/)</label>
             <input
               type="number"
               min={0}
@@ -141,32 +141,32 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
               onChange={(e) => setTotal(Number(e.target.value))}
               className="font-display w-full border border-tinta/20 bg-crema px-3 py-2 text-lg text-tinta"
             />
-            <p className="text-xs text-tinta/45">Lo que dice el comprobante — el subtotal e IGV se calculan solos.</p>
+            <p className="text-xs text-tinta/65">Lo que dice el comprobante — el subtotal e IGV se calculan solos.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="label-cayla text-[9px] text-tinta/55">Subtotal (S/)</label>
+              <label className="label-cayla text-[11px] text-tinta/70">Subtotal (S/)</label>
               <input
                 type="number"
                 value={subtotal}
                 readOnly
-                className="w-full border border-sand bg-papel px-3 py-2 text-sm tabular-nums text-tinta/60"
+                className="w-full border border-sand bg-papel px-3 py-2 text-sm tabular-nums text-tinta/75"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="label-cayla text-[9px] text-tinta/55">IGV (S/)</label>
+              <label className="label-cayla text-[11px] text-tinta/70">IGV (S/)</label>
               <input
                 type="number"
                 value={igv}
                 readOnly
-                className="w-full border border-sand bg-papel px-3 py-2 text-sm tabular-nums text-tinta/60"
+                className="w-full border border-sand bg-papel px-3 py-2 text-sm tabular-nums text-tinta/75"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="label-cayla text-[9px] text-tinta/55">Especificación</label>
+            <label className="label-cayla text-[11px] text-tinta/70">Especificación</label>
             <input
               value={especificacion}
               onChange={(e) => setEspecificacion(e.target.value)}
@@ -181,7 +181,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-tinta/20 px-3 py-2.5 text-sm text-tinta/70 transition-colors hover:border-rojo hover:text-rojo"
+              className="flex-1 border border-tinta/20 px-3 py-2.5 text-sm text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
             >
               Cancelar
             </button>

@@ -188,10 +188,10 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
     <form onSubmit={onSubmit} className="space-y-6">
       {/* ==================== Datos del producto ==================== */}
       <div className="card-cayla space-y-3 p-4">
-        <p className="label-cayla text-[10px] text-tinta/45">Producto</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Producto</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Referencia (nombre del modelo)</label>
+            <label className="text-sm text-tinta/80">Referencia (nombre del modelo)</label>
             <input
               value={referencia}
               onChange={(e) => onReferenciaChange(e.target.value)}
@@ -200,7 +200,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">SKU del modelo</label>
+            <label className="text-sm text-tinta/80">SKU del modelo</label>
             <input
               value={skuPadre}
               onChange={(e) => {
@@ -212,7 +212,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Familia</label>
+            <label className="text-sm text-tinta/80">Familia</label>
             <select
               value={familia}
               onChange={(e) => {
@@ -230,12 +230,12 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Categoría</label>
+            <label className="text-sm text-tinta/80">Categoría</label>
             <select
               value={categoriaId}
               onChange={(e) => onCategoriaChange(e.target.value)}
               disabled={!familia}
-              className="w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta outline-none focus:border-rojo disabled:bg-sand disabled:text-tinta/40"
+              className="w-full border border-tinta/20 bg-crema px-3 py-2 text-sm text-tinta outline-none focus:border-rojo disabled:bg-sand disabled:text-tinta/65"
             >
               <option value="">{familia ? "Elegir…" : "Elige familia primero"}</option>
               {categorias
@@ -248,7 +248,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Marca</label>
+            <label className="text-sm text-tinta/80">Marca</label>
             <input
               value={marca}
               onChange={(e) => setMarca(e.target.value)}
@@ -257,7 +257,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Género</label>
+            <label className="text-sm text-tinta/80">Género</label>
             <select
               value={genero}
               onChange={(e) => setGenero(e.target.value)}
@@ -270,7 +270,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Temporada</label>
+            <label className="text-sm text-tinta/80">Temporada</label>
             <input
               value={temporada}
               onChange={(e) => setTemporada(e.target.value)}
@@ -279,7 +279,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Proveedor habitual</label>
+            <label className="text-sm text-tinta/80">Proveedor habitual</label>
             <select
               value={proveedorId}
               onChange={(e) => setProveedorId(e.target.value)}
@@ -292,7 +292,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
                 </option>
               ))}
             </select>
-            <p className="text-xs text-tinta/40">
+            <p className="text-xs text-tinta/65">
               De quién viene normalmente este modelo — no bloquea recibirlo de otro proveedor después.
             </p>
           </div>
@@ -301,12 +301,12 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
 
       {/* ==================== Tallas y colores ==================== */}
       <div className="card-cayla space-y-4 p-4">
-        <p className="label-cayla text-[10px] text-tinta/45">Tallas y colores</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Tallas y colores</p>
 
         <div className="space-y-2">
-          <label className="text-sm text-tinta/70">Tallas</label>
+          <label className="text-sm text-tinta/80">Tallas</label>
           {categoriaId && categorias.find((c) => c.id === categoriaId)?.tallasSugeridas == null && (
-            <p className="text-xs text-tinta/45">Esta categoría no tiene tallas sugeridas — agrégalas a mano.</p>
+            <p className="text-xs text-tinta/65">Esta categoría no tiene tallas sugeridas — agrégalas a mano.</p>
           )}
           <div className="flex flex-wrap gap-1.5">
             {tallas.map((t) => (
@@ -334,14 +334,14 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
               placeholder="Agregar talla (ej. M)"
               className="flex-1 border border-tinta/20 bg-crema px-3 py-1.5 text-sm text-tinta outline-none focus:border-rojo"
             />
-            <button type="button" onClick={agregarTalla} className="label-cayla border border-tinta/25 px-3 py-1.5 text-[10px] text-tinta hover:border-rojo hover:text-rojo">
+            <button type="button" onClick={agregarTalla} className="label-cayla rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo">
               + Agregar
             </button>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm text-tinta/70">Colores</label>
+          <label className="text-sm text-tinta/80">Colores</label>
           <div className="flex flex-wrap gap-1.5">
             {colores.map((c) => (
               <button
@@ -368,7 +368,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
               placeholder="Agregar color (ej. Negro)"
               className="flex-1 border border-tinta/20 bg-crema px-3 py-1.5 text-sm text-tinta outline-none focus:border-rojo"
             />
-            <button type="button" onClick={agregarColor} className="label-cayla border border-tinta/25 px-3 py-1.5 text-[10px] text-tinta hover:border-rojo hover:text-rojo">
+            <button type="button" onClick={agregarColor} className="label-cayla rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo">
               + Agregar
             </button>
           </div>
@@ -376,7 +376,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
 
         <div className="grid gap-3 border-t border-tinta/10 pt-3 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Costo S/ (por defecto)</label>
+            <label className="text-sm text-tinta/80">Costo S/ (por defecto)</label>
             <input
               type="number"
               min={0}
@@ -387,7 +387,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Precio S/ (por defecto)</label>
+            <label className="text-sm text-tinta/80">Precio S/ (por defecto)</label>
             <input
               type="number"
               min={0}
@@ -398,7 +398,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-tinta/70">Stock mínimo (por defecto)</label>
+            <label className="text-sm text-tinta/80">Stock mínimo (por defecto)</label>
             <input
               type="number"
               min={0}
@@ -413,7 +413,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
           <button
             type="button"
             onClick={generarVariantes}
-            className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema hover:bg-rojo"
+            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema hover:bg-rojo"
           >
             Generar variantes ({(tallas.length || 1) * (colores.length || 1)})
           </button>
@@ -421,7 +421,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             <button
               type="button"
               onClick={aplicarPreciosBase}
-              className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta hover:border-rojo hover:text-rojo"
+              className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo"
             >
               Aplicar costo/precio/mínimo a todas
             </button>
@@ -432,10 +432,10 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
       {/* ==================== Tabla de variantes generadas ==================== */}
       {filas.length > 0 && (
         <div className="card-cayla space-y-2 overflow-x-auto p-4">
-          <p className="label-cayla text-[10px] text-tinta/45">Variantes ({filas.length})</p>
-          <table className="w-full min-w-[640px] text-sm">
+          <p className="label-cayla text-[11px] text-tinta/65">Variantes ({filas.length})</p>
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
-              <tr className="text-left text-xs text-tinta/45">
+              <tr className="text-left text-xs text-tinta/65">
                 <th className="pb-2 pr-2">Talla</th>
                 <th className="pb-2 pr-2">Color</th>
                 <th className="pb-2 pr-2">SKU</th>
@@ -448,8 +448,8 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
             <tbody>
               {filas.map((f) => (
                 <tr key={f.key} className="border-t border-tinta/10">
-                  <td className="py-1.5 pr-2 text-tinta/70">{f.talla ?? "—"}</td>
-                  <td className="py-1.5 pr-2 text-tinta/70">{f.color ?? "—"}</td>
+                  <td className="py-1.5 pr-2 text-tinta/80">{f.talla ?? "—"}</td>
+                  <td className="py-1.5 pr-2 text-tinta/80">{f.color ?? "—"}</td>
                   <td className="py-1.5 pr-2">
                     <input
                       value={f.sku}
@@ -495,23 +495,23 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-tinta/45">
+          <p className="text-xs text-tinta/65">
             Quita las combinaciones que no existen físicamente (ej. no fabricas XL en Blanco).
           </p>
         </div>
       )}
 
       {error && <p className="text-sm text-rojo">{error}</p>}
-      {ok && <p className="text-sm text-tinta/70">{ok}</p>}
+      {ok && <p className="text-sm text-tinta/80">{ok}</p>}
 
       <button
         type="submit"
         disabled={loading || filas.length === 0}
-        className="label-cayla w-full bg-tinta px-4 py-3 text-[10px] text-crema hover:bg-rojo disabled:opacity-50"
+        className="label-cayla rounded-md w-full bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo disabled:opacity-50"
       >
         {loading ? "Creando…" : `Crear producto (${filas.length} variante${filas.length === 1 ? "" : "s"})`}
       </button>
-      <p className="text-center text-xs text-tinta/40">
+      <p className="text-center text-xs text-tinta/65">
         El producto queda en el catálogo con 0 unidades en todas las sedes — para ingresar stock usa
         &ldquo;Recibir mercadería&rdquo;. La foto se agrega después, desde la ficha del producto.
       </p>

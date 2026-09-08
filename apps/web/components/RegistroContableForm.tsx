@@ -173,7 +173,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
 
   const inputCls =
     "w-full border border-tinta/20 bg-crema px-3 py-2.5 text-sm text-tinta transition-colors focus:border-rojo focus:outline-none";
-  const labelCls = "label-cayla text-[9px] text-tinta/45";
+  const labelCls = "label-cayla text-[11px] text-tinta/65";
 
   return (
     <form onSubmit={onSubmit} className="space-y-7">
@@ -192,7 +192,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
                   activo ? "border-rojo bg-papel" : "border-tinta/15 bg-crema hover:border-rojo/40"
                 }`}
               >
-                <span className={activo ? "text-rojo" : "text-tinta/35"}>
+                <span className={activo ? "text-rojo" : "text-tinta/65"}>
                   <Icono id={e.id} />
                 </span>
                 <span className="text-sm font-medium leading-tight text-tinta">{e.titulo}</span>
@@ -200,7 +200,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
             );
           })}
         </div>
-        <p className="text-xs leading-relaxed text-tinta/50">{ev.descripcion}</p>
+        <p className="text-xs leading-relaxed text-tinta/70">{ev.descripcion}</p>
       </div>
 
       {/* 2. Unidad + fecha */}
@@ -276,7 +276,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
                   }`}
                 >
                   <span className="block text-xs font-medium text-tinta">{c.etiqueta}</span>
-                  <span className="mt-0.5 block text-[10px] leading-tight text-tinta/45">{c.nota}</span>
+                  <span className="mt-0.5 block text-[11px] leading-tight text-tinta/65">{c.nota}</span>
                 </button>
               );
             })}
@@ -315,7 +315,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
         <div className="card-cayla">
           <div className="flex items-center justify-between border-b border-tinta/10 px-4 py-2.5">
             <p className={labelCls}>Qué cambia</p>
-            <span className={`label-cayla text-[9px] ${cuadra ? "text-tinta/40" : "text-rojo"}`}>
+            <span className={`label-cayla text-[11px] ${cuadra ? "text-tinta/65" : "text-rojo"}`}>
               {cuadra ? "cuadra ✓" : "revisa"}
             </span>
           </div>
@@ -324,7 +324,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
               <li key={i} className="flex items-center justify-between px-4 py-3">
                 <span className="flex items-center gap-3">
                   <span
-                    className={`font-display text-xl leading-none ${e.costoso ? "text-tinta/40" : "text-rojo"}`}
+                    className={`font-display text-xl leading-none ${e.costoso ? "text-tinta/65" : "text-rojo"}`}
                   >
                     {e.sube ? "↑" : "↓"}
                   </span>
@@ -335,26 +335,26 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
             ))}
           </ul>
           <details className="group border-t border-tinta/10">
-            <summary className="label-cayla flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[9px] text-tinta/40 transition-colors hover:text-rojo">
+            <summary className="label-cayla flex cursor-pointer select-none items-center justify-between px-4 py-2.5 text-[11px] text-tinta/65 transition-colors hover:text-rojo">
               Ver el asiento contable (debe / haber)
               <span className="transition-transform group-open:rotate-90">›</span>
             </summary>
             <table className="w-full text-left text-xs">
-              <thead className="text-tinta/35">
+              <thead className="text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-4 py-1.5 text-[8px] font-normal">Cuenta</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[8px] font-normal">Debe</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[8px] font-normal">Haber</th>
+                  <th className="label-cayla px-4 py-1.5 text-[10px] font-normal">Cuenta</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Debe</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Haber</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
                 {lineas.map((l, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-2 text-tinta/70">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-tinta/60">
+                    <td className="px-4 py-2 text-tinta/80">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-tinta/75">
                       {l.debe > 0 ? money(l.debe) : ""}
                     </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-tinta/60">
+                    <td className="px-4 py-2 text-right tabular-nums text-tinta/75">
                       {l.haber > 0 ? money(l.haber) : ""}
                     </td>
                   </tr>
@@ -362,7 +362,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
               </tbody>
               <tfoot className="border-t border-tinta/10 text-tinta">
                 <tr>
-                  <td className="label-cayla px-4 py-2 text-right text-[8px] text-tinta/40">Total</td>
+                  <td className="label-cayla px-4 py-2 text-right text-[10px] text-tinta/65">Total</td>
                   <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalDebe)}</td>
                   <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalHaber)}</td>
                 </tr>
@@ -382,7 +382,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
       <button
         type="submit"
         disabled={loading || !cuadra}
-        className="label-cayla w-full bg-tinta px-4 py-3.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:cursor-not-allowed disabled:opacity-30"
+        className="label-cayla rounded-md w-full bg-tinta px-4 py-3.5 text-xs text-crema transition-colors hover:bg-rojo disabled:cursor-not-allowed disabled:opacity-30"
       >
         {loading ? "Guardando…" : "Registrar"}
       </button>

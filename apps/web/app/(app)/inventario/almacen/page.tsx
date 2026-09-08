@@ -19,11 +19,11 @@ export default async function AlmacenPage() {
     return (
       <div className="space-y-6">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Almacén</h1>
         </div>
         <InventarioNav />
-        <p className="card-cayla p-5 text-sm text-tinta/60">
+        <p className="card-cayla p-5 text-sm text-tinta/75">
           Tu sede ({persona.sedeCodigo}) no tiene un almacén configurado.
         </p>
       </div>
@@ -55,13 +55,13 @@ export default async function AlmacenPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Inventario · {persona.sedeCodigo}</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario · {persona.sedeCodigo}</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Almacén</h1>
-          <p className="mt-1 text-xs text-tinta/45">{items.length} referencias con stock</p>
+          <p className="mt-1 text-xs text-tinta/65">{items.length} referencias con stock</p>
         </div>
         <Link
           href="/inventario/recibir"
-          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
         >
           + Recibir
         </Link>

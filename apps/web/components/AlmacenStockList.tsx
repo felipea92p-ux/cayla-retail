@@ -34,7 +34,7 @@ export function AlmacenStockList({
           <div>
             <p className="text-sm font-medium text-neutral-900">{it.referencia}</p>
             <p className="text-xs text-neutral-500">{[it.talla, it.color].filter(Boolean).join(" · ")}</p>
-            <p className="mt-0.5 font-mono text-[11px] text-neutral-300">{it.sku}</p>
+            <p className="mt-0.5 font-mono text-xs text-neutral-300">{it.sku}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">

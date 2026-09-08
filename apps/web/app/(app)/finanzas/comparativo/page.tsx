@@ -31,7 +31,7 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Finanzas</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Finanzas</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Año contra año</h1>
       </div>
 
@@ -40,8 +40,8 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
           href="/finanzas/comparativo"
-          className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors ${
-            !sede ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo"
+          className={`label-cayla border px-3 py-1.5 text-[11px] transition-colors ${
+            !sede ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/70 hover:border-rojo hover:text-rojo"
           }`}
         >
           Todas
@@ -50,8 +50,8 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
           <Link
             key={s.id}
             href={`/finanzas/comparativo?sede=${s.codigo}`}
-            className={`label-cayla border px-3 py-1.5 text-[9px] transition-colors ${
-              sede === s.codigo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo"
+            className={`label-cayla border px-3 py-1.5 text-[11px] transition-colors ${
+              sede === s.codigo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/70 hover:border-rojo hover:text-rojo"
             }`}
           >
             {s.codigo}
@@ -61,20 +61,20 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
       </div>
 
       {!comparativo || comparativo.anios.length === 0 ? (
-        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
           Aún no hay datos — siembra los históricos o registra ventas.
         </p>
       ) : (
         <div className="overflow-x-auto card-cayla">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-tinta/10 text-tinta/40">
+            <thead className="border-b border-tinta/10 text-tinta/65">
               <tr>
-                <th className="label-cayla px-3 py-2 text-[9px]">Mes</th>
+                <th className="label-cayla px-3 py-2 text-[11px]">Mes</th>
                 {comparativo.anios.map((a) => (
-                  <th key={a} className="label-cayla px-3 py-2 text-right text-[9px]">{a}</th>
+                  <th key={a} className="label-cayla px-3 py-2 text-right text-[11px]">{a}</th>
                 ))}
                 {comparativo.anios.length >= 2 && (
-                  <th className="label-cayla px-3 py-2 text-right text-[9px]">Δ último año</th>
+                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Δ último año</th>
                 )}
               </tr>
             </thead>
@@ -89,12 +89,12 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
                   <tr key={f.mes}>
                     <td className="px-3 py-2.5 font-medium text-tinta">{MESES[f.mes - 1]}</td>
                     {comparativo.anios.map((a) => (
-                      <td key={a} className="px-3 py-2.5 text-right text-tinta/60">
+                      <td key={a} className="px-3 py-2.5 text-right text-tinta/75">
                         {f.porAnio[a] > 0 ? money(f.porAnio[a]) : "—"}
                       </td>
                     ))}
                     {comparativo.anios.length >= 2 && (
-                      <td className={`px-3 py-2.5 text-right font-medium ${delta == null ? "text-tinta/30" : delta >= 0 ? "text-tinta" : "text-rojo"}`}>
+                      <td className={`px-3 py-2.5 text-right font-medium ${delta == null ? "text-tinta/65" : delta >= 0 ? "text-tinta" : "text-rojo"}`}>
                         {delta == null ? "—" : `${delta > 0 ? "+" : ""}${delta}%`}
                       </td>
                     )}
@@ -104,7 +104,7 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
             </tbody>
             <tfoot className="border-t border-tinta/15">
               <tr>
-                <td className="label-cayla px-3 py-2.5 text-[9px] text-tinta/50">Total</td>
+                <td className="label-cayla px-3 py-2.5 text-[11px] text-tinta/70">Total</td>
                 {comparativo.anios.map((a) => (
                   <td key={a} className="font-display px-3 py-2.5 text-right text-sm text-tinta">
                     {money(comparativo.totalPorAnio[a] ?? 0)}

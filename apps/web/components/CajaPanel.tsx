@@ -31,12 +31,12 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
     return (
       <div className="flex items-center justify-between card-cayla p-5">
         <div>
-          <p className="label-cayla text-[10px] text-rojo">Caja cerrada</p>
-          <p className="mt-1.5 text-sm text-tinta/60">Abre la caja de {sedeCodigo} para registrar ventas hoy.</p>
+          <p className="label-cayla text-[11px] text-rojo">Caja cerrada</p>
+          <p className="mt-1.5 text-sm text-tinta/75">Abre la caja de {sedeCodigo} para registrar ventas hoy.</p>
         </div>
         <button
           onClick={() => setModal("abrir")}
-          className="label-cayla shrink-0 bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+          className="label-cayla rounded-md shrink-0 bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
         >
           Abrir caja
         </button>
@@ -48,21 +48,21 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
   return (
     <div className="flex items-center justify-between card-cayla p-5">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/55">Caja abierta · {sedeCodigo}</p>
-        <p className="mt-1.5 text-sm text-tinta/60">
+        <p className="label-cayla text-[11px] text-tinta/70">Caja abierta · {sedeCodigo}</p>
+        <p className="mt-1.5 text-sm text-tinta/75">
           Apertura <span className="font-display text-base text-tinta">S/{cajaAbierta.montoApertura.toFixed(2)}</span>
         </p>
       </div>
       <div className="flex shrink-0 gap-2">
         <button
           onClick={() => setModal("vender")}
-          className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+          className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
         >
           Vender
         </button>
         <button
           onClick={() => setModal("cerrar")}
-          className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
         >
           Cerrar
         </button>

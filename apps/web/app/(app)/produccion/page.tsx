@@ -78,9 +78,9 @@ export default async function ProduccionPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Taller · {taller.codigo}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Taller · {taller.codigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/70">
           Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
         </p>
       </div>

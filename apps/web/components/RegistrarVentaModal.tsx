@@ -121,9 +121,9 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
                   className="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-sand"
                 >
                   <span>
-                    {v.referencia} <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                    {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                   </span>
-                  <span className="text-xs text-tinta/45">stock {v.stockAqui}</span>
+                  <span className="text-xs text-tinta/65">stock {v.stockAqui}</span>
                 </button>
               ))}
             </div>
@@ -136,7 +136,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
               <div key={it.varianteId} className="card-cayla flex items-center gap-2 p-2 text-sm">
                 <div className="flex-1">
                   <p className="font-medium text-tinta">{it.referencia}</p>
-                  <p className="font-mono text-[11px] text-tinta/45">{it.sku}</p>
+                  <p className="font-mono text-xs text-tinta/65">{it.sku}</p>
                 </div>
                 <input
                   type="number"

@@ -34,11 +34,11 @@ export default async function RecibirLotePage() {
     return (
       <div className="space-y-6">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
         </div>
         <InventarioNav />
-        <p className="card-cayla p-5 text-sm text-tinta/60">
+        <p className="card-cayla p-5 text-sm text-tinta/75">
           Tu sede ({persona.sedeCodigo}) no tiene un almacén configurado — esta pantalla es solo para sedes con inventario.
         </p>
       </div>
@@ -78,7 +78,7 @@ export default async function RecibirLotePage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Inventario · {persona.sedeCodigo}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Inventario · {persona.sedeCodigo}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       </div>
 

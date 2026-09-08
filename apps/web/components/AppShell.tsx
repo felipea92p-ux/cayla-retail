@@ -56,12 +56,12 @@ function BuscadorGlobal({ compacto = false }: { compacto?: boolean }) {
       className={compacto ? "w-full" : "w-full max-w-md"}
     >
       <div className="flex items-center gap-2 border-b border-tinta/20 px-1 py-1.5 transition-colors focus-within:border-rojo">
-        <Icono d={IC.buscar} className="h-4 w-4 shrink-0 text-tinta/35" />
+        <Icono d={IC.buscar} className="h-4 w-4 shrink-0 text-tinta/65" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar o escanear prenda…"
-          className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/35"
+          className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
         />
       </div>
     </form>
@@ -84,11 +84,11 @@ function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div className="absolute inset-0 bg-tinta/30" />
       <div className="absolute inset-x-4 bottom-24 border border-tinta/15 bg-crema p-2 sm:inset-x-auto sm:bottom-auto sm:left-60 sm:top-24 sm:w-80">
-        <p className="label-cayla px-3 pb-1 pt-2 text-[9px] text-tinta/40">Nuevo</p>
+        <p className="label-cayla px-3 pb-1 pt-2 text-[11px] text-tinta/65">Nuevo</p>
         {acciones.map((a) => (
           <Link key={a.href} href={a.href} onClick={onClose} className="block px-3 py-2.5 transition-colors hover:bg-sand">
             <p className="text-sm font-medium text-tinta">{a.etiqueta}</p>
-            <p className="text-xs text-tinta/45">{a.detalle}</p>
+            <p className="text-xs text-tinta/65">{a.detalle}</p>
           </Link>
         ))}
       </div>
@@ -127,7 +127,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
         <div className="px-4 pb-4">
           <button
             onClick={() => setNuevoAbierto(true)}
-            className="label-cayla flex w-full items-center justify-center gap-2 bg-tinta py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
+            className="label-cayla flex w-full items-center justify-center gap-2 bg-tinta py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
             <Icono d={IC.nuevo} className="h-3.5 w-3.5" /> Nuevo
           </button>
@@ -139,7 +139,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
               key={i.href}
               href={i.href}
               className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                activo(i.href) ? "bg-sand font-medium text-tinta" : "text-tinta/60 hover:text-rojo"
+                activo(i.href) ? "bg-sand font-medium text-tinta" : "text-tinta/75 hover:text-rojo"
               }`}
             >
               <Icono d={i.icono} />
@@ -150,7 +150,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
 
         <div className="border-t border-tinta/10 px-5 py-4">
           <p className="truncate text-sm text-tinta">{persona.nombre}</p>
-          <p className="mt-0.5 text-xs text-tinta/45">
+          <p className="mt-0.5 text-xs text-tinta/65">
             {esLider ? "Líder" : "Encargada"} · {persona.sedeCodigo}
           </p>
           <div className="mt-2"><LogoutButton /></div>
@@ -167,7 +167,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
           {esLider && sedesOperativas.length > 0 ? (
             <SedeSwitcher sedes={sedesOperativas} sedeActualId={persona.sedeId} />
           ) : (
-            <span className="label-cayla text-[9px] text-tinta/40">{persona.sedeCodigo}</span>
+            <span className="label-cayla text-[11px] text-tinta/65">{persona.sedeCodigo}</span>
           )}
         </div>
       </header>
@@ -181,9 +181,9 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-tinta/10 bg-crema sm:hidden">
         <div className="grid grid-cols-5">
           {items.filter((i) => i.movil).slice(0, 2).map((i) => (
-            <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-1 py-2.5 ${activo(i.href) ? "text-rojo" : "text-tinta/50"}`}>
+            <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-1 py-2.5 ${activo(i.href) ? "text-rojo" : "text-tinta/70"}`}>
               <Icono d={i.icono} className="h-5 w-5" />
-              <span className="text-[10px]">{i.etiqueta}</span>
+              <span className="text-[11px]">{i.etiqueta}</span>
             </Link>
           ))}
           {/* Botón + central — el "+ Nuevo" de QuickBooks, siempre a un toque */}
@@ -193,9 +193,9 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
             </span>
           </button>
           {items.filter((i) => i.movil).slice(2).map((i) => (
-            <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-1 py-2.5 ${activo(i.href) ? "text-rojo" : "text-tinta/50"}`}>
+            <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-1 py-2.5 ${activo(i.href) ? "text-rojo" : "text-tinta/70"}`}>
               <Icono d={i.icono} className="h-5 w-5" />
-              <span className="text-[10px]">{i.etiqueta}</span>
+              <span className="text-[11px]">{i.etiqueta}</span>
             </Link>
           ))}
         </div>

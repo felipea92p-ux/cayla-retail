@@ -100,8 +100,8 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
 
   const chip = (valor: string, bueno: boolean) => (
     <span
-      className={`label-cayla rounded-full border px-2.5 py-0.5 text-[9px] ${
-        bueno ? "border-verde/45 bg-verde/10 text-verde" : "border-rojo/40 bg-rojo/10 text-rojo"
+      className={`label-cayla rounded-full border px-2.5 py-0.5 text-[11px] ${
+        bueno ? "border-verde/45 bg-verde/10 text-verde-profundo" : "border-rojo/40 bg-rojo/10 text-rojo-profundo"
       }`}
     >
       {valor}
@@ -169,22 +169,22 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
                   {datos.condicion && chip(datos.condicion, datos.condicion === "HABIDO")}
                 </div>
               )}
-              {datos.direccion && <p className="mt-1.5 text-[11px] leading-snug text-tinta/50">{datos.direccion}</p>}
-              <p className="mt-1.5 text-[10px] text-tinta/35">
+              {datos.direccion && <p className="mt-1.5 text-xs leading-snug text-tinta/70">{datos.direccion}</p>}
+              <p className="mt-1.5 text-[11px] text-tinta/65">
                 {datos.fuente === "padron"
                   ? `Según ${etiqueta.padron}, consultado ahora`
                   : "De un comprobante anterior — no se pudo consultar el padrón ahora"}
               </p>
             </>
           ) : (
-            <p className="text-[11px] leading-snug text-tinta/55">
+            <p className="text-xs leading-snug text-tinta/70">
               {MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón."} Escribe el nombre a
               mano y confírmalo con la clienta antes de emitir.
             </p>
           )}
 
           {datos.advertencias.map((a) => (
-            <p key={a} className="mt-2 border-t border-rojo/20 pt-2 text-[11px] leading-snug text-rojo">
+            <p key={a} className="mt-2 border-t border-rojo/20 pt-2 text-xs leading-snug text-rojo">
               {a}
             </p>
           ))}

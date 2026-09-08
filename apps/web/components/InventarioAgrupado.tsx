@@ -87,8 +87,8 @@ export function InventarioAgrupado({
   const otrasSedes = todasLasSedes.filter((s) => s.id !== sedeActual.id).map((s) => ({ ...s, esAlmacen: false }));
 
   const toggleCls = (activo: boolean) =>
-    `label-cayla border px-3 py-1.5 text-[9px] transition-colors ${
-      activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/55 hover:border-rojo hover:text-rojo"
+    `label-cayla border px-3 py-1.5 text-[11px] transition-colors ${
+      activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/70 hover:border-rojo hover:text-rojo"
     }`;
   const selectCls =
     "card-cayla px-2.5 py-1.5 text-xs text-tinta outline-none transition-colors focus:border-rojo";
@@ -99,7 +99,7 @@ export function InventarioAgrupado({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Filtrar por nombre, talla, color, código…"
-        className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/35 focus:border-rojo"
+        className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/55 focus:border-rojo"
       />
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -113,20 +113,20 @@ export function InventarioAgrupado({
         </select>
         <button className={toggleCls(soloReponer)} onClick={() => setSoloReponer((v) => !v)}>Reponer ya</button>
         <button className={toggleCls(soloEstancado)} onClick={() => setSoloEstancado((v) => !v)}>Estancado</button>
-        <span className="label-cayla ml-auto text-[9px] text-tinta/40">
+        <span className="label-cayla ml-auto text-[11px] text-tinta/65">
           {filtrados.length} modelo{filtrados.length === 1 ? "" : "s"}
         </span>
       </div>
 
       {filtrados.length === 0 && (
-        <p className="font-display py-10 text-center text-base italic text-tinta/40">
+        <p className="font-display py-10 text-center text-base italic text-tinta/65">
           {productos.length === 0 ? "Aún no hay prendas cargadas." : "Sin resultados con estos filtros."}
         </p>
       )}
 
       {/* Cabecera de tabla (escritorio) */}
       {filtrados.length > 0 && (
-        <div className="label-cayla hidden grid-cols-[1fr_110px_90px_120px] gap-3 border-b border-tinta/15 px-4 pb-2 text-[9px] text-tinta/40 sm:grid">
+        <div className="label-cayla hidden grid-cols-[1fr_110px_90px_120px] gap-3 border-b border-tinta/15 px-4 pb-2 text-[11px] text-tinta/65 sm:grid">
           <span>Producto</span>
           <span className="text-right">Stock total</span>
           <span className="text-right">Tallas</span>
@@ -158,10 +158,10 @@ export function InventarioAgrupado({
                   <div>
                     <p className="text-sm font-medium text-tinta">
                       {p.referencia}
-                      {tieneReponer && <span className="label-cayla ml-2 text-[8px] text-rojo">Reponer</span>}
-                      {tieneEstancado && <span className="label-cayla ml-2 text-[8px] text-taupe">Estancado</span>}
+                      {tieneReponer && <span className="label-cayla ml-2 text-[10px] text-rojo">Reponer</span>}
+                      {tieneEstancado && <span className="label-cayla ml-2 text-[10px] text-taupe">Estancado</span>}
                     </p>
-                    <p className="mt-0.5 text-xs text-tinta/45">
+                    <p className="mt-0.5 text-xs text-tinta/65">
                       {[p.familia, p.categoria, p.marca].filter(Boolean).join(" · ")}
                     </p>
                   </div>
@@ -172,8 +172,8 @@ export function InventarioAgrupado({
                     <p className="text-sm font-medium text-rojo/80">+{stockAlmacen} en almacén</p>
                   )}
                 </div>
-                <p className="hidden text-right text-xs text-tinta/50 sm:block">{p.variantes.length}</p>
-                <p className="hidden text-right text-xs text-tinta/50 sm:block">
+                <p className="hidden text-right text-xs text-tinta/70 sm:block">{p.variantes.length}</p>
+                <p className="hidden text-right text-xs text-tinta/70 sm:block">
                   {velocidad > 0 ? `${velocidad}/día` : "—"}
                 </p>
               </button>
@@ -187,38 +187,38 @@ export function InventarioAgrupado({
                         <Link href={`/producto/${v.varianteId}`} className="min-w-28 text-sm text-tinta hover:text-rojo">
                           {[v.talla, v.color].filter(Boolean).join(" · ") || "Única"}
                         </Link>
-                        <span className="flex flex-wrap gap-px border border-tinta/10 bg-tinta/10">
+                        <span className="flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
                           {Object.entries(v.stockPorSede).map(([codigo, cantidad]) => (
-                            <span key={codigo} className="bg-crema px-2 py-1 text-[11px] text-tinta/60">
+                            <span key={codigo} className="bg-crema px-2 py-1 text-xs text-tinta/75">
                               {codigo} <b className="font-display text-xs text-tinta">{cantidad}</b>
                             </span>
                           ))}
                           {Object.keys(v.stockPorSede).length === 0 && (
-                            <span className="bg-crema px-2 py-1 text-[11px] text-rojo">sin stock</span>
+                            <span className="bg-crema px-2 py-1 text-xs text-rojo">sin stock</span>
                           )}
                         </span>
                         {Object.keys(v.stockAlmacenPorSede).length > 0 && (
-                          <span className="flex flex-wrap items-center gap-px border border-rojo/20 bg-rojo/5">
-                            <span className="px-1.5 text-[9px] text-rojo/70">almacén</span>
+                          <span className="flex flex-wrap items-center gap-px overflow-hidden rounded-xl border border-rojo/20 bg-rojo/5">
+                            <span className="px-1.5 text-[11px] text-rojo/70">almacén</span>
                             {Object.entries(v.stockAlmacenPorSede).map(([codigo, cantidad]) => (
-                              <span key={codigo} className="bg-crema px-2 py-1 text-[11px] text-tinta/60">
+                              <span key={codigo} className="bg-crema px-2 py-1 text-xs text-tinta/75">
                                 {codigo} <b className="font-display text-xs text-rojo/80">{cantidad}</b>
                               </span>
                             ))}
                           </span>
                         )}
-                        {v.precio != null && <span className="text-xs text-tinta/55">S/{v.precio.toFixed(2)}</span>}
-                        {v.reponerYa && <span className="label-cayla text-[8px] text-rojo">Reponer</span>}
+                        {v.precio != null && <span className="text-xs text-tinta/70">S/{v.precio.toFixed(2)}</span>}
+                        {v.reponerYa && <span className="label-cayla text-[10px] text-rojo">Reponer</span>}
                         <span className="ml-auto flex gap-2">
                           <button
                             onClick={() => setModal({ variante: v, tipo: "traslado" })}
-                            className="label-cayla border border-tinta/20 px-2.5 py-1.5 text-[8px] text-tinta/70 transition-colors hover:border-rojo hover:text-rojo"
+                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[10px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Enviar
                           </button>
                           <button
                             onClick={() => setModal({ variante: v, tipo: "ajuste" })}
-                            className="label-cayla border border-tinta/20 px-2.5 py-1.5 text-[8px] text-tinta/70 transition-colors hover:border-rojo hover:text-rojo"
+                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[10px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Ajustar
                           </button>

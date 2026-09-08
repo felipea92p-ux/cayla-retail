@@ -27,16 +27,16 @@ import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type Reac
 function Hilo({ activo, trabajando = false }: { activo: boolean; trabajando?: boolean }) {
   return (
     <>
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-tinta/20" />
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-x-0 bottom-0 h-[1.5px] origin-center bg-rojo transition-transform duration-300 ease-cayla ${
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-center rounded-full bg-rojo transition-transform duration-300 ease-cayla ${
           activo ? "scale-x-100" : "scale-x-0"
         }`}
       />
       {trabajando && (
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[1.5px] overflow-hidden">
-          <span className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
+          <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
         </span>
       )}
     </>
@@ -63,7 +63,7 @@ type CampoProps = {
 };
 
 const TONO_PIE = {
-  neutro: "text-tinta/45",
+  neutro: "text-tinta/65",
   error: "text-rojo",
   aviso: "text-ambar",
 } as const;
@@ -71,12 +71,12 @@ const TONO_PIE = {
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, children }: CampoProps) {
   return (
     <div>
-      <label id={idEtiqueta} htmlFor={htmlFor} className="label-cayla block text-[9px] text-tinta/45">
+      <label id={idEtiqueta} htmlFor={htmlFor} className="label-cayla block text-[11px] text-tinta/65">
         {etiqueta}
         {ayuda}
       </label>
       <div className="mt-1.5">{children}</div>
-      <div className={`mt-1 min-h-[0.9rem] text-[11px] leading-tight ${TONO_PIE[tono]}`}>
+      <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {pie ? <span className="anim-revelar block">{pie}</span> : null}
       </div>
     </div>
@@ -117,7 +117,7 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, class
             setEnfocado(false);
             props.onBlur?.(e);
           }}
-          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/25 ${
+          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${
             mono ? "font-mono tabular-nums tracking-wider" : ""
           } ${className}`}
         />
@@ -147,7 +147,7 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", classNam
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
       <div className="relative flex items-baseline gap-2">
-        <span aria-hidden className="font-display select-none pb-1 text-lg leading-none text-tinta/30">
+        <span aria-hidden className="font-display select-none pb-1 text-lg leading-none text-tinta/65">
           {moneda}
         </span>
         <input
@@ -162,7 +162,7 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", classNam
             props.onBlur?.(e);
           }}
           // Las flechitas del type=number rompen la lectura de instrumento.
-          className={`font-display w-full bg-transparent pb-1 text-[1.75rem] leading-none tabular-nums text-tinta outline-none placeholder:text-tinta/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
+          className={`font-display w-full bg-transparent pb-1 text-[1.75rem] leading-none tabular-nums text-tinta outline-none placeholder:text-tinta/55 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />
         <Hilo activo={enfocado} />
       </div>
@@ -228,18 +228,18 @@ export function Segmentado<T extends string>({
               tabIndex={o.valor === valor ? 0 : -1}
               onClick={() => onValor(o.valor)}
               onKeyDown={(e) => alTeclado(e, i)}
-              className={`label-cayla flex items-center justify-center px-3 text-[10px] outline-none transition-colors duration-200 focus-visible:bg-rojo/5 ${
-                o.valor === valor ? "text-rojo" : "text-tinta/40 hover:text-tinta/70"
+              className={`label-cayla flex items-center justify-center rounded-t-md px-3 text-[11px] outline-none transition-all duration-260 focus-visible:bg-rojo/8 ${
+                o.valor === valor ? "text-rojo" : "text-tinta/65 hover:text-tinta/80"
               }`}
             >
               {o.texto}
             </button>
           ))}
         </div>
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-tinta/20" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />
         <span
           aria-hidden
-          className="pointer-events-none absolute bottom-0 left-0 h-[1.5px] bg-rojo transition-transform duration-300 ease-cayla"
+          className="pointer-events-none absolute bottom-0 left-0 h-[2px] rounded-full bg-rojo transition-transform duration-300 ease-cayla"
           style={{ width: `${100 / opciones.length}%`, transform: `translateX(${indice * 100}%)` }}
         />
       </div>
@@ -383,13 +383,13 @@ export function CampoSelect<T extends string>({
           aria-controls={`${id}-lista`}
           onClick={() => (abierto ? cerrar(false) : abrir())}
           onKeyDown={alTeclado}
-          className="flex w-full items-center justify-between gap-2 bg-transparent px-0.5 py-2 text-left text-sm outline-none"
+          className="flex w-full items-center justify-between gap-2 rounded-t-md bg-transparent px-0.5 py-2 text-left text-sm outline-none transition-colors hover:bg-tinta/[0.03]"
         >
-          <span className={elegida ? "text-tinta" : "text-tinta/30"}>{elegida?.texto ?? marcador}</span>
+          <span className={elegida ? "text-tinta" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
           <svg
             aria-hidden
             viewBox="0 0 10 6"
-            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/35"}`}
+            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
           >
             <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
           </svg>
@@ -405,7 +405,7 @@ export function CampoSelect<T extends string>({
             tabIndex={-1}
             aria-activedescendant={`${id}-op-${activo}`}
             onKeyDown={alTeclado}
-            className="anim-revelar absolute inset-x-0 top-full z-50 mt-px max-h-56 overflow-y-auto border border-tinta/15 bg-papel py-1 outline-none"
+            className="anim-revelar scroll-cayla absolute inset-x-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none"
           >
             {opciones.map((o, i) => (
               <li
@@ -416,13 +416,13 @@ export function CampoSelect<T extends string>({
                 onMouseEnter={() => setActivo(i)}
                 onClick={() => elegir(i)}
                 className={`relative flex cursor-pointer items-center px-3 py-2 text-sm transition-colors duration-150 ${
-                  i === activo ? "bg-rojo/8 text-tinta" : "text-tinta/70"
+                  i === activo ? "bg-rojo/8 text-tinta" : "text-tinta/80"
                 }`}
               >
                 {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
                 <span
                   aria-hidden
-                  className={`absolute left-0 top-0 h-full w-[1.5px] bg-rojo transition-transform duration-200 ease-cayla ${
+                  className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
                     o.valor === valor ? "scale-y-100" : "scale-y-0"
                   }`}
                 />
@@ -445,8 +445,8 @@ export function CampoSelect<T extends string>({
    ------------------------------------------------------------------ */
 const PESO_BOTON = {
   primario: "bg-tinta text-crema hover:bg-rojo disabled:bg-tinta/30",
-  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/25",
-  discreto: "border border-tinta/20 text-tinta/60 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/25",
+  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
+  discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
 } as const;
 
 export function Boton({
@@ -463,13 +463,24 @@ export function Boton({
     <button
       {...props}
       disabled={props.disabled || cargando}
-      className={`label-cayla relative overflow-hidden px-3 py-2.5 text-[10px] outline-none transition-all duration-200 ease-cayla active:scale-[0.985] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-rojo disabled:cursor-not-allowed ${PESO_BOTON[peso]} ${className}`}
+      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] outline-none transition-all ease-cayla active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
     >
-      {children}
+      {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
+          pintado. Es el único gradiente del sistema, y existe solo como
+          movimiento — un botón que solo cambia de color de golpe es
+          justamente el "seco" que había que sacar. */}
+      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
+        <span
+          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
+            peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
+          }`}
+        />
+      </span>
+      <span className="relative">{children}</span>
       {cargando && (
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
+        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
           <span
-            className={`block h-full w-1/3 [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${peso === "primario" ? "bg-crema" : "bg-rojo"}`}
+            className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${peso === "primario" ? "bg-crema" : "bg-rojo"}`}
           />
         </span>
       )}
