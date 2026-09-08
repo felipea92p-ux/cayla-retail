@@ -1307,6 +1307,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reposicion_silenciada: {
+        Row: {
+          created_at: string
+          silenciada_hasta: string
+          silenciada_por: string | null
+          variante_id: string
+        }
+        Insert: {
+          created_at?: string
+          silenciada_hasta: string
+          silenciada_por?: string | null
+          variante_id: string
+        }
+        Update: {
+          created_at?: string
+          silenciada_hasta?: string
+          silenciada_por?: string | null
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicion_silenciada_silenciada_por_fkey"
+            columns: ["silenciada_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicion_silenciada_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: true
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sede_meta: {
         Row: {
           created_at: string
@@ -1930,6 +1966,10 @@ export type Database = {
       }
       set_etapa_produccion: {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
+        Returns: undefined
+      }
+      silenciar_alerta_reposicion: {
+        Args: { p_dias?: number; p_variante_id: string }
         Returns: undefined
       }
     }

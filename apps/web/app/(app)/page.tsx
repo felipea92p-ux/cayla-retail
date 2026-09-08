@@ -5,6 +5,7 @@ import { getCajaAbierta } from "@/lib/finanzas";
 import { getPanelLider } from "@/lib/panel";
 import { BuscadorHero } from "@/components/BuscadorHero";
 import { Ayuda } from "@/components/Ayuda";
+import { AlertaReposicion } from "@/components/AlertaReposicion";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -22,7 +23,9 @@ export default async function InicioPage() {
     getPanelLider(persona),
   ]);
 
-  const reponerYa = variantes.filter((v) => v.reponerYa).length;
+  // Con orden en camino o pospuesta a propósito ya no es algo que el líder tenga que
+  // resolver de nuevo — no debe seguir contando como pendiente (ver inteligencia.ts).
+  const reponerYa = variantes.filter((v) => v.reponerYa && !v.produccionAbiertaId && !v.silenciadaHasta).length;
   const estancados = variantes.filter((v) => v.estancado).length;
 
   const accionesRapidas = [
@@ -127,13 +130,14 @@ export default async function InicioPage() {
               Sugerencias de compra →
             </Link>
           </div>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2.5 text-sm">
             {alertasReposicion.slice(0, 5).map((v) => (
-              <li key={v.varianteId}>
+              <li key={v.varianteId} className="flex flex-wrap items-center justify-between gap-2">
                 <Link href={`/producto/${v.varianteId}`} className="text-tinta transition-colors hover:text-rojo">
                   {v.referencia} <span className="text-tinta/40">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
                   <span className="text-tinta/40">({v.stockTotal} vs. reorden {v.reorderPoint})</span>
                 </Link>
+                <AlertaReposicion variante={v} esLider={esLider} />
               </li>
             ))}
           </ul>

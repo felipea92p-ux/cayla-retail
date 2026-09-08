@@ -21,6 +21,10 @@ export type VarianteInteligente = VarianteConStock & {
   reponerYa: boolean;
   /** Sedes cuyo stock está por debajo de SU mínimo propio (stock.stock_minimo, Fase B). */
   sedesBajoMinimo: string[];
+  /** Hay una producción borrador abierta (registrar_produccion sin cerrar) que ya cubre esta alerta. */
+  produccionAbiertaId: string | null;
+  /** El líder pospuso la alerta hasta esta fecha — pasado ese plazo, vuelve a alertar sola. */
+  silenciadaHasta: string | null;
   // Campos con sesgo monetario: null para Integrante (mismo criterio que costo/precio en getCatalogoConStock).
   montoVentana: number | null;
   sellThrough: number | null;
@@ -48,17 +52,37 @@ export async function getCatalogoInteligente(
   const verMonto = persona.rol === "lider";
   const desde = new Date(Date.now() - ventanaDias * DIA_MS);
 
-  // Las 2 consultas son independientes entre sí — en paralelo en vez de encadenadas.
+  // Las 4 consultas son independientes entre sí — en paralelo en vez de encadenadas.
   // La última venta y la fecha de alta por variante ya vienen calculadas en
   // getCatalogoConStock (misma fila de `stock`/`variantes` que ya trae cantidad y
   // created_at), así que no se vuelven a pedir esas tablas acá.
-  const [variantes, { data: movimientos }] = await Promise.all([
+  const [variantes, { data: movimientos }, { data: silenciadas }, { data: produccionesAbiertas }] = await Promise.all([
     getCatalogoConStock(persona),
     supabase
       .from("movimientos")
       .select("variante_id, tipo, cantidad, motivo, monto, created_at")
       .gte("created_at", desde.toISOString()),
+    supabase
+      .from("reposicion_silenciada")
+      .select("variante_id, silenciada_hasta")
+      .gt("silenciada_hasta", new Date().toISOString()),
+    // Borrador de Taller sin cerrar (inventariado_at null) por variante — mientras exista,
+    // "reponer ya" ya tiene una orden en camino y no debe seguir gritando en rojo.
+    supabase
+      .from("producciones")
+      .select("id, produccion_lineas(variante_id)")
+      .is("inventariado_at", null),
   ]);
+
+  const silenciadaHastaPorVariante = new Map<string, string>(
+    (silenciadas ?? []).map((s) => [s.variante_id, s.silenciada_hasta])
+  );
+  const produccionAbiertaPorVariante = new Map<string, string>();
+  (produccionesAbiertas ?? []).forEach((p) => {
+    (p.produccion_lineas ?? []).forEach((l: { variante_id: string }) => {
+      if (!produccionAbiertaPorVariante.has(l.variante_id)) produccionAbiertaPorVariante.set(l.variante_id, p.id);
+    });
+  });
 
   const ventasPorVariante = new Map<string, { unidades: number; monto: number }>();
   (movimientos ?? []).forEach((m) => {
@@ -143,6 +167,8 @@ export async function getCatalogoInteligente(
       reorderPoint,
       reponerYa,
       sedesBajoMinimo,
+      produccionAbiertaId: produccionAbiertaPorVariante.get(v.varianteId) ?? null,
+      silenciadaHasta: silenciadaHastaPorVariante.get(v.varianteId) ?? null,
       montoVentana: verMonto ? Math.round(ventas.monto * 100) / 100 : null,
       sellThrough,
       claseABC: verMonto ? claseABCPorVariante.get(v.varianteId) ?? null : null,
@@ -150,8 +176,12 @@ export async function getCatalogoInteligente(
     };
   });
 
+  // Ya con orden en camino o pospuesta a propósito: sigue "por debajo del punto de
+  // reorden" (reponerYa no cambia, es la verdad de stock), pero ya no es una alerta
+  // ACTIVA que el líder tenga que resolver de nuevo — no debe seguir contando ni
+  // apareciendo en el listado de pendientes.
   const alertasReposicion = resultado
-    .filter((v) => v.reponerYa)
+    .filter((v) => v.reponerYa && !v.produccionAbiertaId && !v.silenciadaHasta)
     .sort((a, b) => (b.reorderPoint - b.stockTotal) - (a.reorderPoint - a.stockTotal))
     .slice(0, 8);
 

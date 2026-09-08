@@ -66,7 +66,12 @@ export default async function InventarioPage() {
 
       <InventarioNav />
 
-      <InventarioAgrupado productos={productos} sedeActual={sedeActual} todasLasSedes={sedesOperativas} />
+      <InventarioAgrupado
+        productos={productos}
+        sedeActual={sedeActual}
+        todasLasSedes={sedesOperativas}
+        esLider={persona.rol === "lider"}
+      />
     </div>
   );
 }

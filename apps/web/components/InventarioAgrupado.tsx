@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { VarianteInteligente } from "@/lib/inteligencia";
 import { MovimientoModal } from "@/components/MovimientoModal";
+import { AlertaReposicion } from "@/components/AlertaReposicion";
 
 // Catálogo agrupado por producto (rediseño UX 2026-07-18, aprobado por Felipe):
 // una fila por modelo con su stock total, expandible a la matriz de tallas/colores.
@@ -28,10 +29,12 @@ export function InventarioAgrupado({
   productos,
   sedeActual,
   todasLasSedes,
+  esLider,
 }: {
   productos: ProductoAgrupado[];
   sedeActual: Sede;
   todasLasSedes: Sede[];
+  esLider: boolean;
 }) {
   const [q, setQ] = useState("");
   const [familia, setFamilia] = useState("");
@@ -182,8 +185,18 @@ export function InventarioAgrupado({
               {expandido && (
                 <div className="border-t border-tinta/10 bg-crema px-4 py-3">
                   <div className="space-y-2">
-                    {p.variantes.map((v) => (
-                      <div key={v.varianteId} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-tinta/5 pb-2 last:border-0 last:pb-0">
+                    {p.variantes.map((v) => {
+                      // Borde izquierdo: rojo = alerta activa sin resolver, ámbar = ya tiene
+                      // orden en camino o está pospuesta a propósito (sigue bajando, a la vista
+                      // pero sin gritar rojo). Nada = no hace falta reponer.
+                      const bordeCls =
+                        v.reponerYa && !v.produccionAbiertaId && !v.silenciadaHasta
+                          ? "border-l-2 border-l-rojo/50 pl-2"
+                          : v.produccionAbiertaId || v.silenciadaHasta
+                            ? "border-l-2 border-l-ambar/40 pl-2"
+                            : "";
+                      return (
+                      <div key={v.varianteId} className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-tinta/5 pb-2 last:border-0 last:pb-0 ${bordeCls}`}>
                         <Link href={`/producto/${v.varianteId}`} className="min-w-28 text-sm text-tinta hover:text-rojo">
                           {[v.talla, v.color].filter(Boolean).join(" · ") || "Única"}
                         </Link>
@@ -208,7 +221,7 @@ export function InventarioAgrupado({
                           </span>
                         )}
                         {v.precio != null && <span className="text-xs text-tinta/55">S/{v.precio.toFixed(2)}</span>}
-                        {v.reponerYa && <span className="label-cayla text-[8px] text-rojo">Reponer</span>}
+                        <AlertaReposicion variante={v} esLider={esLider} />
                         <span className="ml-auto flex gap-2">
                           <button
                             onClick={() => setModal({ variante: v, tipo: "traslado" })}
@@ -224,7 +237,8 @@ export function InventarioAgrupado({
                           </button>
                         </span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
