@@ -316,6 +316,13 @@ importante que ha entrado a este archivo desde que existe.
       quedó fuera a propósito de la migración a `components/ui/Modal` (ADR-0003)
       porque es un menú anclado al lateral/bottom-sheet, no un modal centrado; si se
       toca, mismo criterio (Radix sin estilo propio, tokens CAYLA).
+- [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
+      siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
+      `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
+      Facturación con campos que sí tienen estado (hilo de foco, desplegable propio,
+      segmentado). Migrar pantalla por pantalla, nunca de un saque: los strings
+      viejos siguen exportados justamente para que la migración sea opcional.
+      Esperar a que Felipe confirme que le gusta el diseño en Facturación primero.
 
 ---
 

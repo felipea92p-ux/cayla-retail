@@ -20,10 +20,16 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-tinta/30" />
-        <Dialog.Content
-          className={`fixed inset-x-0 bottom-0 z-50 max-h-[90vh] w-full overflow-y-auto rounded-t-xl bg-crema p-6 outline-none sm:inset-x-auto sm:inset-y-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl ${ancho}`}
-        >
+        <Dialog.Overlay className="anim-velo fixed inset-0 z-50 bg-tinta/30 backdrop-blur-[1px]" />
+        {/* El centrado vive en este contenedor y NO en el panel: una animación
+            de entrada usa `transform`, y si el centrado también fuera un
+            transform (-translate-1/2), la animación lo pisaría y el modal
+            saldría corrido. `pointer-events-none` acá + `auto` en el panel deja
+            que el clic afuera siga llegando al velo para cerrar. */}
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+          <Dialog.Content
+            className={`anim-entrada scroll-cayla pointer-events-auto max-h-[90vh] w-full overflow-y-auto border-t border-sand bg-crema p-6 outline-none sm:border ${ancho}`}
+          >
           <Dialog.Title asChild>
             <h2 className="font-display text-lg text-tinta">{titulo}</h2>
           </Dialog.Title>
@@ -36,7 +42,8 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             <Dialog.Description className="sr-only">{titulo}</Dialog.Description>
           )}
           {children}
-        </Dialog.Content>
+          </Dialog.Content>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   );

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
+import { CampoTexto } from "@/components/ui/campos";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -109,41 +110,54 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
 
   const datos = actual?.fase === "listo" ? actual.datos : null;
 
+  // Una sola línea de estado bajo el campo, por prioridad: nunca dos mensajes
+  // peleando (si el número es inválido no se dispara consulta, así que en la
+  // práctica solo uno puede estar vivo — el orden lo deja garantizado).
+  const estado: { pie: React.ReactNode; tono: "neutro" | "error" | "aviso" } =
+    !vacio && !validacion.valido
+      ? { pie: validacion.motivo, tono: "error" }
+      : actual?.fase === "cargando"
+        ? { pie: `Consultando ${etiqueta.padron}…`, tono: "neutro" }
+        : actual?.fase === "error"
+          ? { pie: actual.mensaje, tono: "aviso" }
+          : { pie: null, tono: "neutro" };
+
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="label-cayla block text-[9px] text-tinta/45">
-          {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
+    <div className="space-y-1">
+      <CampoTexto
+        etiqueta={
+          <>
+            {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
+          </>
+        }
+        ayuda={
           <Ayuda titulo={`Consulta de ${tipo.toUpperCase()}`}>
             Al escribir el número completo, el sistema le pregunta a {etiqueta.padron} de quién es y
             muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir
             a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y
             la venta sigue igual.
           </Ayuda>
-        </label>
-        <input
-          required={obligatorio}
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={largoDocumento(tipo)}
-          placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
-          value={numero}
-          onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
-          className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 font-mono text-sm tracking-wider"
-        />
-        {/* Una sola línea de estado bajo el campo: nunca dos mensajes peleando. */}
-        <div className="mt-1 min-h-[1rem] text-[11px]">
-          {!vacio && !validacion.valido && <span className="text-rojo">{validacion.motivo}</span>}
-          {actual?.fase === "cargando" && <span className="text-tinta/45">Consultando {etiqueta.padron}…</span>}
-          {actual?.fase === "error" && <span className="text-ambar">{actual.mensaje}</span>}
-        </div>
-      </div>
+        }
+        pie={estado.pie}
+        tono={estado.tono}
+        mono
+        trabajando={actual?.fase === "cargando"}
+        required={obligatorio}
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={largoDocumento(tipo)}
+        placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
+        value={numero}
+        onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
+      />
 
-      {/* Tarjeta de verificación: lo que se ve antes de emitir. */}
+      {/* Tarjeta de verificación: lo que se ve antes de emitir. El borde de
+          canto en rojo reemplaza al recuadro relleno — mismo lenguaje que el
+          hilo vivo de los campos, en vez de una "alerta" de otro sistema. */}
       {datos && (
         <div
-          className={`rounded-md border px-3 py-2.5 ${
-            datos.advertencias.length > 0 ? "border-rojo/35 bg-rojo/5" : "border-tinta/15 bg-crema"
+          className={`anim-revelar border-l-2 bg-papel py-2.5 pl-3 pr-3 ${
+            datos.advertencias.length > 0 ? "border-rojo" : "border-sand"
           }`}
         >
           {datos.nombre ? (
@@ -155,7 +169,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
                   {datos.condicion && chip(datos.condicion, datos.condicion === "HABIDO")}
                 </div>
               )}
-              {datos.direccion && <p className="mt-1.5 text-[11px] text-tinta/50">{datos.direccion}</p>}
+              {datos.direccion && <p className="mt-1.5 text-[11px] leading-snug text-tinta/50">{datos.direccion}</p>}
               <p className="mt-1.5 text-[10px] text-tinta/35">
                 {datos.fuente === "padron"
                   ? `Según ${etiqueta.padron}, consultado ahora`
@@ -177,15 +191,18 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
         </div>
       )}
 
-      <div>
-        <label className="label-cayla block text-[9px] text-tinta/45">{etiqueta.nombre}</label>
-        <input
+      {/* Solo aparece cuando hay algo que escribir. Con el nombre ya confirmado
+          arriba, repetirlo en un campo editable invita a corregir justo el dato
+          que SUNAT contrasta contra el documento. */}
+      {!datos?.nombre && (
+        <CampoTexto
+          etiqueta={etiqueta.nombre}
           required={obligatorio}
           value={nombre}
           onChange={(e) => onNombre(e.target.value)}
-          className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
         />
-      </div>
+      )}
     </div>
   );
+
 }

@@ -668,3 +668,28 @@ ADR-0003. Verificado en navegador (página de prueba temporal, borrada al cerrar
 overlay y panel con la paleta correcta, Escape y click-afuera cierran. Pendiente,
 anotado en BACKLOG: `MenuNuevo` del AppShell sigue sin el mismo tratamiento (patrón
 distinto, no modal). Commiteado.
+
+## 2026-09-08 (campos con estado y capa de movimiento)
+Felipe pidió rediseñar "emitir comprobante" — desplegables, campos, etiquetas,
+animaciones — "futurista y elegante" y reutilizable, sin tocar la lógica interna que
+él está trabajando en paralelo. Se le marcó la tensión antes de escribir código:
+"futurista" en su forma habitual (glassmorphism, glow, gradientes, redondeos) choca
+con el brandbook v3.0, cuyos tokens de radio están en 0 y cuyas sombras están
+desactivadas a propósito. Se resolvió como instrumento de precisión: el futurismo
+viene del comportamiento, no de la decoración. Cero colores nuevos → ADR-0011.
+
+Se construyó `components/ui/campos.tsx` (Campo, CampoTexto, CampoMonto, CampoSelect,
+Segmentado, Boton) sobre un solo dispositivo visual — el "hilo vivo", 1px que se
+dibuja en rojo al enfocar — más una capa de movimiento en `globals.css` con
+`prefers-reduced-motion`. `CampoSelect` es un listbox propio con teclado completo, sin
+sumar dependencias. El modal de emisión ahora muestra el correlativo que se va a
+reservar ANTES de emitir, o avisa que la sede no tiene serie: el dato ya venía en la
+prop `series` y solo faltaba mostrarlo — antes eso se descubría con la RPC fallando y
+la clienta en el mostrador.
+
+Verificado en navegador con ruta de prueba temporal (borrada al cerrar): modal
+centrado en escritorio y hoja desde abajo en móvil, desplegable con flechas/Enter/
+Escape, segmentado que desliza y cambia el formulario a RUC, banda del correlativo
+avisando la sede sin serie. Dos bugs propios encontrados y corregidos en el camino:
+el centrado del modal peleaba con el transform de la animación, y Escape sobre el
+desplegable abierto cerraba el modal entero. tsc, eslint y 51 tests en verde.

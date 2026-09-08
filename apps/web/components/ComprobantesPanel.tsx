@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
+import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 
 type Sede = { id: string; codigo: string };
 
@@ -114,6 +115,10 @@ export function ComprobantesPanel({
   const pendientes = comprobantes.filter((c) => c.estado === "pendiente" || c.estado === "enviado").length;
   const rechazados = comprobantes.filter((c) => c.estado === "rechazado").length;
 
+  // Serie que le toca a la combinación elegida en el modal de emisión. Es
+  // derivado puro de props + estado que ya existían: no consulta nada nuevo.
+  const serieDelComprobante = series.find((s) => s.sede_id === sedeId && s.tipo === tipo);
+
   function cerrarModal() {
     setModal(null);
     setError(null);
@@ -215,12 +220,9 @@ export function ComprobantesPanel({
               Regístrala una sola vez por sede y tipo; el correlativo lo lleva el sistema.
             </Ayuda>
           </h2>
-          <button
-            onClick={() => setModal("serie")}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
-          >
+          <Boton peso="discreto" onClick={() => setModal("serie")}>
             Registrar serie
-          </button>
+          </Boton>
         </div>
         {series.length === 0 ? (
           <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/40">
@@ -248,12 +250,9 @@ export function ComprobantesPanel({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="label-cayla text-[10px] text-tinta/45">Comprobantes</h2>
-          <button
-            onClick={() => setModal("emitir")}
-            className="label-cayla bg-tinta px-3 py-2 text-[10px] text-crema transition-colors hover:bg-rojo"
-          >
+          <Boton peso="primario" onClick={() => setModal("emitir")}>
             Emitir comprobante
-          </button>
+          </Boton>
         </div>
         {comprobantes.length === 0 ? (
           <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
@@ -276,7 +275,7 @@ export function ComprobantesPanel({
                 {comprobantes.map((c) => {
                   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
                   return (
-                    <tr key={c.id}>
+                    <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
                       <td className="px-3 py-2.5 text-tinta/60">{formatearFecha(c.created_at)}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">
                         {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
@@ -290,14 +289,15 @@ export function ComprobantesPanel({
                       </td>
                       <td className="px-3 py-2.5">
                         {puedeTransmitir ? (
-                          <button
+                          <Boton
                             type="button"
+                            peso="discreto"
                             onClick={() => onTransmitir(c.id)}
-                            disabled={transmitiendoId === c.id}
-                            className="label-cayla rounded border border-rojo/30 px-2.5 py-1.5 text-[9px] text-rojo transition-colors hover:bg-rojo/10 disabled:border-tinta/15 disabled:text-tinta/30"
+                            cargando={transmitiendoId === c.id}
+                            className="border-rojo/30 px-2.5 py-1.5 text-[9px] text-rojo hover:bg-rojo/8"
                           >
                             {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
-                          </button>
+                          </Boton>
                         ) : (
                           <span className="text-tinta/30">—</span>
                         )}
@@ -316,58 +316,69 @@ export function ComprobantesPanel({
 
       {/* ==================== Modal: emitir comprobante ==================== */}
       {modal === "emitir" && (
-        <Modal titulo="Emitir comprobante" onClose={cerrarModal}>
-          <form onSubmit={onEmitir} className="space-y-4">
-            <div className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2 text-xs text-tinta/70">
-              Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
-              está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
-              propio vs. OSE. El comprobante queda &ldquo;Pendiente de enviar&rdquo; hasta que esa
-              decisión se tome.
+        <Modal titulo="Emitir comprobante" ancho="max-w-md" onClose={cerrarModal}>
+          <form onSubmit={onEmitir} className="mt-5 space-y-2">
+            {/* Sede y tipo son las dos decisiones que determinan el correlativo,
+                así que van juntas y arriba de él: se leen como los dos diales
+                que mueven la cifra de abajo. */}
+            <div className="grid gap-x-5 sm:grid-cols-2">
+            <CampoSelect
+              etiqueta="Sede"
+              valor={sedeId}
+              onValor={setSedeId}
+              opciones={sedes.map((s) => ({ valor: s.id, texto: s.codigo }))}
+            />
+
+            <Segmentado
+              etiqueta="Tipo"
+              valor={tipo}
+              onValor={(t) => {
+                setTipo(t);
+                setClienteNumDoc("");
+                setClienteNombre("");
+              }}
+              opciones={[
+                { valor: "boleta", texto: ETIQUETA_TIPO.boleta },
+                { valor: "factura", texto: ETIQUETA_TIPO.factura },
+              ] as const}
+            />
             </div>
 
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className={campoSelect}>
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
-                ))}
-              </select>
+            {/* El número que se va a reservar, antes de reservarlo. Es lo más
+                importante del formulario: un correlativo es irreversible y hasta
+                ahora solo se veía DESPUÉS de emitir, en la tabla. El dato ya
+                llegaba en `series`; lo único que faltaba era mostrarlo.
+                La `key` fuerza el remontaje para que la cifra se re-asiente
+                cuando cambia la sede o el tipo — así el ojo nota que cambió. */}
+            <div className="-mx-6 border-y border-sand bg-papel px-6 py-3.5">
+              <p className="label-cayla text-[9px] text-tinta/40">Se va a reservar el número</p>
+              {serieDelComprobante ? (
+                <p
+                  key={`${serieDelComprobante.serie}-${serieDelComprobante.siguiente_numero}`}
+                  className="font-display anim-asentar mt-1.5 text-[1.75rem] leading-none tabular-nums text-tinta"
+                >
+                  {serieDelComprobante.serie}
+                  <span className="text-tinta/25">-</span>
+                  {String(serieDelComprobante.siguiente_numero).padStart(6, "0")}
+                </p>
+              ) : (
+                <p className="anim-asentar mt-1.5 text-xs leading-relaxed text-ambar">
+                  {sedes.find((s) => s.id === sedeId)?.codigo ?? "Esta sede"} todavía no tiene serie de{" "}
+                  {ETIQUETA_TIPO[tipo].toLowerCase()} registrada. Regístrala antes de emitir.
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Tipo</label>
-              <div className="flex gap-2">
-                {(["boleta", "factura"] as TipoComprobante[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setTipo(t);
-                      setClienteNumDoc("");
-                      setClienteNombre("");
-                    }}
-                    className={`label-cayla flex-1 border px-3 py-2 text-[10px] transition-colors ${
-                      tipo === t ? "border-rojo bg-rojo/10 text-rojo" : "border-tinta/20 text-tinta/50"
-                    }`}
-                  >
-                    {ETIQUETA_TIPO[t]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Total (incluye IGV)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={total || ""}
-                onChange={(e) => setTotal(Number(e.target.value))}
-                className={campoTexto}
-              />
-            </div>
+            <CampoMonto
+              etiqueta="Total (incluye IGV)"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              placeholder="0.00"
+              value={total || ""}
+              onChange={(e) => setTotal(Number(e.target.value))}
+            />
 
             <ConsultaDocumento
               tipo={tipo === "factura" ? "ruc" : "dni"}
@@ -378,15 +389,26 @@ export function ComprobantesPanel({
               onNombre={setClienteNombre}
             />
 
-            {error && <p className="text-xs text-rojo">{error}</p>}
+            {/* La nota va acá abajo y no arriba: explica qué pasa DESPUÉS de
+                apretar Emitir, así que se lee junto al botón que lo provoca. */}
+            <p className="border-l-2 border-ambar/50 pl-3 text-[11px] leading-relaxed text-tinta/60">
+              Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
+              está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
+              propio vs. OSE. El comprobante queda &ldquo;Pendiente de enviar&rdquo; hasta que esa
+              decisión se tome.
+            </p>
 
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className={botonCancelar}>
+            {error && (
+              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
+            )}
+
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className={botonPrimario}>
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Emitiendo…" : "Emitir"}
-              </button>
+              </Boton>
             </div>
           </form>
         </Modal>
@@ -395,60 +417,61 @@ export function ComprobantesPanel({
       {/* ==================== Modal: registrar serie ==================== */}
       {modal === "serie" && (
         <Modal titulo="Registrar serie" onClose={cerrarModal}>
-          <form onSubmit={onRegistrarSerie} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Sede</label>
-              <select value={serieSedeId} onChange={(e) => setSerieSedeId(e.target.value)} className={campoSelect}>
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Tipo</label>
-              <select value={serieTipo} onChange={(e) => setSerieTipo(e.target.value as TipoComprobante)} className={campoSelect}>
-                <option value="boleta">Boleta</option>
-                <option value="factura">Factura</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Serie (B### para boleta, F### para factura)</label>
-              <input
-                required
-                value={serieTexto}
-                onChange={(e) => setSerieTexto(e.target.value.toUpperCase())}
-                maxLength={4}
-                placeholder={serieTipo === "factura" ? "F001" : "B001"}
-                className={`${campoTexto} uppercase`}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>
-                Próximo número
+          <form onSubmit={onRegistrarSerie} className="mt-5 space-y-2">
+            <CampoSelect
+              etiqueta="Sede"
+              valor={serieSedeId}
+              onValor={setSerieSedeId}
+              opciones={sedes.map((s) => ({ valor: s.id, texto: s.codigo }))}
+            />
+            <CampoSelect
+              etiqueta="Tipo"
+              valor={serieTipo}
+              onValor={setSerieTipo}
+              opciones={[
+                { valor: "boleta", texto: ETIQUETA_TIPO.boleta },
+                { valor: "factura", texto: ETIQUETA_TIPO.factura },
+              ] as const}
+            />
+            <CampoTexto
+              etiqueta="Serie"
+              pie="Una letra según el tipo más tres dígitos."
+              mono
+              required
+              value={serieTexto}
+              onChange={(e) => setSerieTexto(e.target.value.toUpperCase())}
+              maxLength={4}
+              placeholder={serieTipo === "factura" ? "F001" : "B001"}
+              className="uppercase"
+            />
+            <CampoTexto
+              etiqueta="Próximo número"
+              ayuda={
                 <Ayuda titulo="Próximo número">
                   Déjalo vacío si esta serie empieza de cero: el sistema arranca en 1 y lleva el
                   correlativo solo. Llénalo únicamente si esta serie ya venía emitiéndose fuera de
                   este sistema — pon el número que sigue al último emitido. Mandarle a SUNAT un
                   número ya usado hace que el comprobante se rechace por duplicado.
                 </Ayuda>
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={serieNumero}
-                onChange={(e) => setSerieNumero(e.target.value)}
-                placeholder="1"
-                className={campoTexto}
-              />
-            </div>
-            {error && <p className="text-xs text-rojo">{error}</p>}
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className={botonCancelar}>
+              }
+              pie="Vacío = el sistema lo lleva solo."
+              mono
+              type="number"
+              min="1"
+              value={serieNumero}
+              onChange={(e) => setSerieNumero(e.target.value)}
+              placeholder="1"
+            />
+            {error && (
+              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
+            )}
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className={botonPrimario}>
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Guardando…" : "Guardar"}
-              </button>
+              </Boton>
             </div>
           </form>
         </Modal>
