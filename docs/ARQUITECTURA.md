@@ -217,13 +217,28 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 
 ### 4.3 RLS sin `tenant_id`
 
-Helpers `security definer` (`fn_es_lider`, `fn_sede_actual_persona`,
-`fn_persona_actual`) leen `personas` por `auth.uid()` **sin** pasar por
-RLS — necesario desde la migración `0023` para romper una recursión
-infinita (policy de `personas` → llama `fn_es_lider()` → vuelve a
+Helpers `security definer` leen `personas` por `auth.uid()` **sin** pasar
+por RLS — necesario desde la migración `0023` para romper una recursión
+infinita (policy de `personas` → llama al helper de líder → vuelve a
 consultar `personas` → evalúa la policy de nuevo → *stack depth limit
 exceeded*). La sede reemplaza la dimensión de aislamiento: Líder ve todo,
 Integrante solo su sede (o su almacén asociado).
+
+**Nombres reales en producción vs. nombres de las migraciones locales**
+(divergieron en la unificación con Dynamic, jul-2026 — confirmado por
+auditoría de solo lectura el 2026-09-05, ver ADR-0011; **usar siempre la
+columna de producción al pegar SQL en el editor de producción**):
+
+| Migraciones locales (`supabase/migrations/0003_rls.sql`, `0023`) | Producción real (schema `retail`) |
+|---|---|
+| `fn_es_lider()` | `retail.es_lider()` |
+| `fn_sede_actual_persona()` | `retail.mi_sede()` |
+| `fn_persona_actual()` | no existe en producción con ningún nombre (no la usa ninguna policy real) |
+| — (no existía como tal) | `retail.puede_operar_sede(sede_id)` — consolida "es líder O es su sede" en una sola función; por eso `stock_select` y varias de `ordenes_produccion`/`ordenes_compra` tienen una sola policy en producción donde el local tiene dos |
+
+`personas` y `sedes` son **vistas** en producción, no tablas — por eso
+`relrowsecurity = false` en ambas al auditarlas; las vistas no soportan
+`ALTER TABLE ... ENABLE ROW SECURITY`, no es un hueco de seguridad.
 
 ### 4.4 Estados imposibles por diseño (no por código)
 
@@ -263,6 +278,10 @@ Integrante solo su sede (o su almacén asociado).
   producción divergió de la versión local durante la unificación con
   Dynamic (jul-2026): el script copió una versión vieja de la función.
   Ver §6.
+- **ADR-0011** (sep-5) — los helpers RLS (`fn_es_lider`, `fn_sede_actual_persona`)
+  no existen en producción con esos nombres; ahí son `retail.es_lider()`,
+  `retail.mi_sede()`, `retail.puede_operar_sede(sede_id)`. Mismo patrón de
+  drift de unificación que ADR-0004/0006, sin hueco de seguridad — ver §4.3.
 
 ---
 
