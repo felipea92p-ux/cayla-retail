@@ -3,6 +3,38 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-08 (el deploy no es el sistema: producción estaba a medio configurar)
+Felipe reportó que la consulta de DNI/RUC "antes funcionaba y ya no". El código
+estaba bien: el token `sk_` responde 200 contra apis.net.pe y `lib/padron.ts`
+maneja la v1 desde `6dca050`. Lo que faltaba era la mitad de la configuración —
+producción tenía `PADRON_PROVEEDOR` pero no `PADRON_TOKEN`, y `sin_proveedor`
+se dispara igual con que falte una sola de las dos, mostrando el mismo texto
+que si no hubiera nada configurado. `.env.local` nunca se despliega; Vercel
+necesita sus propias variables y nadie las había puesto. `.env.example`
+además seguía listando solo `decolecta/apisnetpe/factiliza`, así que la doc
+empujaba a configurar `apisnetpe` (v2) con un token `sk_`, que responde 401.
+
+**El hallazgo que vale más que el arreglo:** buscando eso se vio que producción
+tampoco tiene `LUCODE_TOKEN` ni `LUCODE_ENTORNO`, y que `retail.comprobantes`
+está vacía. O sea, la boleta B004-000001 del 5-sep no salió del deploy: salió
+de `npm run dev` en la computadora de Felipe, apuntando a la base de producción
+y al SUNAT de producción. **Hoy el sistema que opera de verdad es el local de
+Felipe, no lo que está desplegado** — algo que nadie había escrito y que cambia
+cómo se lee todo el estado del proyecto.
+
+Y una tercera capa: producción estaba tres migraciones atrás en facturación
+(`unificacion/20`, `21` y `22` nunca se pegaron en el SQL Editor). Por eso
+registrar una serie fallaba con "Could not find the function ... in the schema
+cache": PostgREST resuelve por firma exacta y ahí vivía la de 3 parámetros. Se
+aplicaron las tres y se verificó que no quedaran sobrecargas duplicadas, el
+riesgo que el propio archivo advierte. Se aprovechó que `comprobantes` y
+`series_comprobantes` estaban en cero: no hubo datos que migrar.
+
+Lo que queda abierto y va al backlog: no existe forma de saber qué archivos de
+`supabase/unificacion/` están aplicados en producción. Se descubrió por una
+pantalla rota, no por una alerta — y esta vez salió barato solo porque no había
+datos.
+
 ## 2026-09-05 (PRIMERA TRANSMISIÓN REAL A SUNAT + choque de sesiones paralelas)
 Sesión en paralelo que terminó enseñando más por el error que por el código.
 **Lo que sirve y queda:** se transmitió a SUNAT, en producción, la boleta

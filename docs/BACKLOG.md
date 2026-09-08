@@ -205,9 +205,35 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`retail.categorias` le faltan 25 de 30 filas en producción (mismo
+- [ ] **No hay forma de saber qué archivos de `supabase/unificacion/` están
+      aplicados en producción — 2026-09-08.** Se descubrió que `20`, `21` y
+      `22` nunca se habían pegado, y solo porque una pantalla se rompió
+      ("Could not find the function ... in the schema cache" al registrar una
+      serie). Ya aplicadas y verificadas, pero el problema de fondo sigue: el
+      historial de migraciones de Supabase no conoce esta carpeta. El ítem de
+      categorías de aquí abajo muestra el otro lado del mismo problema: se
+      arregló y nadie lo supo hasta que se contó a mano hoy. Salió barato
+      porque `comprobantes` y
+      `series_comprobantes` estaban vacías. Mínimo viable: un script que
+      compare las funciones/columnas que cada archivo promete contra
+      `pg_proc`/`information_schema` y liste lo que falta.
+
+- [ ] **Producción no tiene `LUCODE_TOKEN` ni `LUCODE_ENTORNO` — 2026-09-08.**
+      El botón "Transmitir" de `/vender/facturacion` responde
+      `sin_credenciales` en el deploy: facturar a SUNAT solo funciona desde el
+      `npm run dev` de Felipe. Es la razón real de por qué B004-000001 salió de
+      su computadora y no del deploy (ver BITACORA del 08-09). Decidir con
+      Felipe si el deploy debe poder transmitir —y entonces el token de
+      producción vive en Vercel— o si eso se queda deliberadamente en local
+      hasta que haya más de una persona operando.
+
+- [x] **RESUELTO (verificado 2026-09-08: `select count(*)` devuelve 37 filas,
+      por encima de las 30 esperadas). Se aplicó en algún momento entre el
+      05-09 y hoy sin que nadie lo anotara — que es justo el ítem de arriba.
+      Texto original abajo, como quedó registrado el 2026-09-05:**
+      `retail.categorias` le faltan 25 de 30 filas en producción (mismo
       patrón que ADR-0004/ADR-0006, sin arreglar todavía) — encontrado por
-      Felipe en vivo, 2026-09-05.** `04_catalogo.sql` (paso 4 de la
+      Felipe en vivo, 2026-09-05. `04_catalogo.sql` (paso 4 de la
       unificación) recreó la tabla desde cero pero nunca insertó la semilla
       de `0009` — solo las 5 filas de `0030_categorias_captura_real.sql`
       (pegadas después) existen hoy. "Blusas" y otras 14 de indumentaria más
