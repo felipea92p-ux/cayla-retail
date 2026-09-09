@@ -774,3 +774,30 @@ responde `sin_credenciales`. La máquina de Felipe sí puede transmitir
 `sandbox` ahí, un "Transmitir" de hoy queda "Aceptado" en la app sin haber llegado a
 SUNAT, y nada en `respuesta_sunat` dice de qué ambiente vino: eso es un estado
 inconsistente de verdad (principio 2), no un detalle de configuración.
+
+## 2026-09-09 (la lentitud era geografía, no datos)
+Felipe reportó pantallas lentas y pidió apostar por local-first. Se midió antes de
+proponer, y la hipótesis obvia resultó falsa: la base responde en **0.862 ms** — 19
+variantes, 28 movimientos, todo el schema `retail` por debajo de 1 MB. No hay consulta
+que optimizar ni índice que agregar. La causa es geográfica: `X-Vercel-Id: iad1::…`
+delata que la función corre en Washington D.C. mientras Supabase está en `sa-east-1`
+(São Paulo), así que cada consulta cruza el continente y vuelve. Medido desde Perú, una
+página **estática ya cacheada en el edge** tarda 430 ms de TTFB — ese es el piso, antes
+de consultar nada. Encima, cada navegación encadena 4 viajes secuenciales, y dos son el
+mismo `auth.getUser()` pedido dos veces (`middleware.ts:31` y `lib/persona.ts:52`: el
+`cache()` de React memoriza dentro de un render, pero middleware y RSC son invocaciones
+distintas). Hallazgos menores: las 28 rutas salen `ƒ` sin una sola directiva de caché en
+todo el repo, `next.config.ts` está vacío, y `getEstadoResultados` (`lib/finanzas.ts:150`)
+tiene 5 consultas independientes en fila india que el resto del repo ya había migrado a
+`Promise.all`. El bundle quedó descartado como causa: 352 kB gzip, rango normal.
+
+Se le marcó a Felipe la tensión de su propio pedido: local-first es la apuesta correcta
+y se mantiene como destino, pero no es lo que está lento hoy — hacerlo primero sería
+arreglar la capa equivocada, semanas de trabajo tras las cuales la primera carga
+seguiría cruzando a Washington. Eligió el orden propuesto (Fase 0: región + cascadas +
+`getClaims()`; Fase 1: caché y streaming; Fase 2: local-first) y decidió la regla de
+negocio que faltaba: si se cae el internet en plena venta, se vende offline **solo con
+stock de sobra**; si es la última unidad, bloquea — el punto medio entre perder la venta
+y sobrevender. La arquitectura queda asentada en ADR-0013: lecturas replicadas al
+navegador, escrituras siempre por RPC con `movimientos` como única fuente de verdad.
+Nada de código tocado todavía, por pedido explícito suyo.

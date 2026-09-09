@@ -215,9 +215,39 @@ importante que ha entrado a este archivo desde que existe.
       real de materia prima (decisión de julio: "insumos después"). Sin esto, el
       Taller no sabe cuándo se queda sin tela hasta que pasa. Depende de: decidir
       con Felipe si ya toca retomarlo o sigue postergado. Reversible: sí.
+- [ ] `local-first de lecturas (Fase 2 del ADR-0013)`: replicar catálogo, stock,
+      precios y sedes al navegador para que las pantallas pinten en 0 ms y la tienda
+      siga operando con el wifi caído. Lo hace inusualmente viable el volumen: el
+      negocio entero pesa <1 MB hoy y ~1-2 MB con 5.000 variantes — entra completo en
+      IndexedDB. **Las escrituras NO se replican**: venta, movimiento y recepción
+      siguen pasando por los RPC, `movimientos` sigue siendo la única fuente de verdad
+      (principio 4). Escrituras local-first sin arbitraje dejarían el stock en −1
+      cuando dos sedes venden offline la misma última unidad — rompe el principio 2.
+      Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
+      **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
+      él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
+      **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
+      Washington igual. Tendrá su propio ADR con el motor de sincronización elegido.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Fase 0 de latencia: la app corre en Washington y la base en São Paulo —
+      2026-09-09, decidido en ADR-0013, sin aplicar.** Diagnóstico medido: la base
+      responde en **0.862 ms** (19 variantes, 28 movimientos, <1 MB de schema) y el
+      sistema tarda ~2 s. Todo el tiempo es red. `X-Vercel-Id: iad1::…` confirma que
+      la función corre en Washington D.C. contra Supabase en `sa-east-1`; una página
+      **estática ya cacheada** tarda 430 ms de TTFB desde Perú. Encima, cada
+      navegación hace 4 viajes secuenciales, dos de los cuales son el mismo
+      `auth.getUser()` pedido dos veces (`middleware.ts:31` y `lib/persona.ts:52` —
+      el `cache()` de React no cruza entre middleware y render). Los tres pasos, en
+      orden de riesgo creciente: (1) mover la función a `gru1`; (2) `Promise.all` en
+      `getEstadoResultados` (`lib/finanzas.ts:150-172`, 5 consultas independientes en
+      fila india) y `getDiarioCaja` (3 más); (3) claves JWT asimétricas +
+      `getClaims()` para matar el `getUser()` duplicado — este último toca auth en
+      producción, va al final y con los otros dos ya verificados. **Medir antes y
+      después de cada uno por separado; el que no supere el ruido se revierte.**
+      Falta confirmar si `iad1` fue decisión o default: el token de Vercel da 403
+      sobre el scope `cayla`.
 - [ ] **No hay forma de saber qué archivos de `supabase/unificacion/` están
       aplicados en producción — 2026-09-08.** Se descubrió que `20`, `21` y
       `22` nunca se habían pegado, y solo porque una pantalla se rompió
