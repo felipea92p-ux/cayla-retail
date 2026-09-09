@@ -26,7 +26,7 @@ export default async function MasPage() {
         <p className="label-cayla text-[11px] text-tinta/65">CAYLA</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">{persona.nombre}</h1>
         <p className="mt-1 text-sm text-tinta/70">
-          {esLider ? "Líder" : "Encargada de atención al cliente"} · {persona.sedeCodigo}
+          {esLider ? "Líder" : esTaller ? "Taller" : "Encargada de atención al cliente"} · {persona.sedeCodigo}
         </p>
       </div>
 

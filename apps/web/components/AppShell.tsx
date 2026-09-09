@@ -181,11 +181,17 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
    arrastrar un buscador de "próximo elemento tabulable" para un menú
    de cinco opciones. Nunca deja el foco flotando, que era el problema.
    ------------------------------------------------------------------ */
-function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void }) {
+function MenuNuevo({ esLider, esTaller, onClose }: { esLider: boolean; esTaller: boolean; onClose: () => void }) {
   const acciones = [
-    { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
+    // Vender y bajar a piso son de tienda. En el Taller no existen, y ofrecerlas
+    // desde el "+" seria la misma mentira que esconder del lateral por otra puerta.
+    ...(esTaller
+      ? []
+      : [
+          { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
+          { href: "/inventario/almacen", etiqueta: "Bajar a tienda", detalle: "Pasar prendas del almacén al piso" },
+        ]),
     { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo o lote al almacén" },
-    { href: "/inventario/almacen", etiqueta: "Bajar a tienda", detalle: "Pasar prendas del almacén al piso" },
     ...(esLider
       ? [
           { href: "/inventario/producto/nuevo", etiqueta: "Nuevo producto", detalle: "Dar de alta un modelo con sus tallas y colores" },
@@ -350,7 +356,18 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
   // sentada — y coincide exactamente con lo que solo ve el Líder, así que a
   // una Encargada el segundo grupo no le aparece vacío, no le aparece.
   const grupos = [
-    { titulo: "Operación", items: [inicio, vender, inventario, ...(esLider || esTaller ? [produccion] : [])] },
+    // El Taller no tiene caja ni piso de venta: ofrecerle "Vender" seria abrirle
+    // la puerta a una caja abierta en una fabrica, un estado que despues alguien
+    // tiene que explicar. Produccion, en cambio, es literalmente su trabajo.
+    {
+      titulo: "Operación",
+      items: [
+        inicio,
+        ...(esTaller ? [] : [vender]),
+        inventario,
+        ...(esLider || esTaller ? [produccion] : []),
+      ],
+    },
     { titulo: "Dirección", items: esLider ? [comercial, finanzas] : [] },
   ].filter((g) => g.items.length > 0);
 
@@ -420,7 +437,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-tinta">{persona.nombre}</p>
               <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                {esLider ? "Líder" : "Encargada"} · {persona.sedeCodigo}
+                {esLider ? "Líder" : esTaller ? "Taller" : "Encargada"} · {persona.sedeCodigo}
               </p>
             </div>
             <LogoutButton />
@@ -495,7 +512,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
         </div>
       </nav>
 
-      {nuevoAbierto && <MenuNuevo esLider={esLider} onClose={cerrarNuevo} />}
+      {nuevoAbierto && <MenuNuevo esLider={esLider} esTaller={esTaller} onClose={cerrarNuevo} />}
     </div>
   );
 }
