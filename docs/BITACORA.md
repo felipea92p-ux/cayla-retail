@@ -2184,3 +2184,18 @@ migraciones duales que el BACKLOG ya tenía anotada.
 Y una lección de método: la afirmación "esto explica aquello" es una hipótesis hasta que
 alguien la mide. Estaba escrita en un ADR con tono de hecho. Medir costó diez segundos.
 
+
+## 2026-09-09 (verificación post-despliegue de la robustez: 18 pantallas, ninguna rota)
+Felipe empujó los 10 commits pendientes. Verificado en producción con sesión iniciada: se
+recorrieron **las 18 pantallas de la app** buscando el texto de las barreras de error
+("Esta pantalla no está mostrando datos" / "El sistema no pudo arrancar").
+
+Resultado: **18 de 18 en HTTP 200, ninguna rota.**
+
+Ese era el riesgo real del cambio y por eso se comprobó: `exigir()` convierte fallos que
+antes eran invisibles en pantallas que se caen. Si alguna consulta llevaba meses fallando en
+silencio, hoy se habría visto. Ninguna lo estaba — o sea que el sistema funcionaba de verdad,
+no por accidente, y ahora además avisa cuando deje de hacerlo.
+
+Rutas públicas sanas también: `/login` 200, `/inventario` 307 al login, `/api/padron` 401 con
+su JSON. La región sigue en `gru1`.
