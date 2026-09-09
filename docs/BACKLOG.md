@@ -418,6 +418,26 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 
+- [ ] **`cacheComponents` (Fase 1b del ADR-0013) — NECESITA SU PROPIA SESIÓN, no es
+      un flag que se prende.** Es lo que haría que el armazón (nav, cabecera) aparezca
+      al instante mientras los datos entran por streaming — la mejora de percepción más
+      grande que queda. Pero medido contra este repo el 2026-09-09, la migración toca:
+      **16 puntos de IO síncrono** (`Date.now()` / `new Date()` en `finanzas.ts`,
+      `finanzas-nucleo.ts`, `inteligencia.ts`, `panel.ts`, `lucode.ts`, `comercial/page.tsx`,
+      `vender/page.tsx`, `producto/[varianteId]/page.tsx`, `api/export`, `api/padron`) que
+      con `cacheComponents` son **error de build durante el prerender**, y que el escape
+      `instant = false` explícitamente NO perdona — hay que envolver en `<Suspense>` y
+      llamar `connection()` antes, o mover a componente de cliente; y **24 archivos** que
+      llaman `requirePersonaActual()` → `cookies()`, cada uno necesitando su boundary de
+      Suspense. Además `revalidate`/`dynamic`/`fetchCache` pasan a `use cache` + `cacheLife`,
+      y `<Activity>` cambia el ciclo de vida: el estado de componentes **sobrevive** a la
+      navegación, así que desplegables y diálogos abiertos se quedan abiertos al volver
+      (hay que revisar los 8 modales). Vercel publica una skill oficial para conducirla:
+      `npx skills add vercel/next.js --skill next-cache-components-adoption`, con modo
+      incremental que abre un PR mecánico por ruta. **No se hizo el 09-09 porque otras
+      sesiones tenían abiertos `app/(app)/page.tsx`, `lib/panel.ts` y el rediseño del riel
+      del lateral (ADR-0014)** — y esta migración toca casi todas las páginas. Retomar
+      cuando el árbol esté quieto.
 - [ ] `inteligencia`: umbral de estancado (45d) y lead time (14d) siguen siendo
       constantes globales, no por categoría/sede. Sigue sin justificarse afinarlo:
       no hay datos reales de venta todavía (depende de `catalogo real` arriba).

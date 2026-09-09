@@ -980,3 +980,39 @@ De paso me corregí a mí mismo: la firma "Donde el estilo transforma." la habí
 existiendo eso dejaba la misma frase de dos colores según la pantalla, así que las tres
 apariciones (login, /mas, lateral) quedaron en `taupe-profundo`. tsc, eslint y 63 tests
 en verde.
+
+## 2026-09-09 (Fase 1 — lo que sí entró, y por qué `cacheComponents` no)
+Fase 1 se planificó con tres piezas: caché del router, `cacheComponents` para que el
+armazón aparezca al instante, y cachear `sedes` de verdad. Al ir a construirlas, dos de
+las tres se cayeron por razones distintas, y ambas caídas son el contenido real del día.
+
+**Lo que entró.** `staleTimes.dynamic = 30`: el default de Next es 0, así que volver
+atrás a una pantalla ya vista repetía el render completo en el servidor — desde Perú
+~400ms para ver algo que se acababa de mirar, y en el mostrador se navega Vender →
+Inventario → Vender todo el tiempo. Subirlo es seguro por una disciplina que el repo ya
+tenía: los 22 componentes que mutan algo llaman `router.refresh()` al terminar, lo que
+invalida esa caché entera. Se verificaron uno por uno (venta, recepción de lote, gasto,
+movimiento, caja) ANTES de subir el valor, no después. Y `turbopack.root`, que silencia
+la inferencia equivocada de la raíz del workspace; se comprobó instrumentando la config
+temporalmente para ver el path resuelto, en vez de asumir que `__dirname` apuntaba donde
+uno cree.
+
+**Lo que se cayó por medición, no por pereza.** `cacheComponents` no es un flag que se
+prende: con él, `Date.now()` y `new Date()` durante el prerender son **error de build**, y
+el escape `instant = false` explícitamente no los perdona. Este repo tiene **16 de esos**
+en código de servidor, más **24 archivos** que llaman `requirePersonaActual()` → `cookies()`
+y necesitarían cada uno su `<Suspense>`. Encima `<Activity>` cambia el ciclo de vida —el
+estado sobrevive a la navegación, así que los 8 modales hay que revisarlos uno a uno. Es
+una migración de casi todas las páginas, y hoy había otras sesiones con `app/(app)/page.tsx`,
+`lib/panel.ts` y el rediseño del riel abiertos. Se difiere a su propia sesión con el árbol
+quieto; Vercel publica una skill oficial para conducirla (`next-cache-components-adoption`).
+
+**Lo que se descartó por ser inútil.** Cachear `sedes` globalmente sonaba obvio —5 filas
+que no cambian nunca, pedidas en cada carga— pero al mirar el código no gana nada: ya sale
+dentro del `Promise.all` de `requirePersonaActual`, **en paralelo con la consulta a
+`personas`, que es por usuario y no se puede cachear**. Eliminar el viaje de `sedes` no
+acorta la ruta crítica ni un milisegundo, porque el otro viaje de esa misma tanda sigue
+ahí. Y hacerlo habría costado caro: `unstable_cache` corre fuera del contexto de request,
+así que `cookies()` revienta adentro, y un cliente anónimo chocaría con la política
+`sedes_select_autenticado`. Habría que debilitar RLS o meter una service key al proyecto
+para ganar cero. Se anota como idea muerta para que no se vuelva a proponer.
