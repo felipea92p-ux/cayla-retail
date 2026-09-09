@@ -589,8 +589,8 @@ export function ComprobantesPanel({
 
             <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
               {anulando.tipo === "boleta"
-                ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que el comprobante queda en “Anulación en trámite” hasta que confirme — no es un error."
-                : "Se envía la comunicación de baja a SUNAT. Si ya pasó el plazo, SUNAT la rechaza y hay que emitir una nota de crédito en vez de anular."}
+                ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
+                : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
             </p>
 
             <CampoTexto

@@ -195,6 +195,23 @@ importante que ha entrado a este archivo desde que existe.
       diario salen de la documentación, no de una respuesta real.
       **Corrección al dato del backlog:** `retail.comprobantes` NO estaba vacía;
       la serie **B004 de TRU va por el número 3**, no el 2 que decía arriba.
+      **(b1) HECHO 2026-09-09 — anulación PROBADA contra el sandbox real.**
+      Encontró y corrigió dos bugs del adaptador que la documentación tapaba:
+      ninguno de los dos endpoints acepta el cuerpo plano. Boleta va con
+      `{documento:"resumen_diario", documentos_afectados:[…]}` y factura con
+      `{documento:"comunicacion_baja", motivo, documento_afectado:{…}}`. Los dos
+      devuelven PENDIENTE, así que "Anulación en trámite" es el camino normal
+      de TODA anulación, no solo de boletas (ADR-0016).
+      **BLOQUEO DE ORDEN, importante:** el deploy vivo llama a
+      `actualizar_transmision_comprobante` con 4 argumentos y producción ya
+      solo tiene la de 5. **No poner `LUCODE_TOKEN` en Vercel antes de
+      desplegar el código**, o "Transmitir" mandaría el documento a SUNAT y
+      fallaría al guardarlo. Orden: push → deploy → token.
+      **Falta (b2):** `LUCODE_TOKEN` en Vercel, `LUCODE_ENTORNO=produccion` SOLO
+      en Production y `sandbox` en Preview/Development.
+      **Falta también:** cerrar el ciclo de una anulación en trámite
+      (`consultarEstadoLucode` → promover a `anulado`); hoy queda en trámite
+      hasta que alguien mire el panel de Lucode.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por

@@ -7,8 +7,9 @@ ambiente; no se anula un pendiente; no se anula sin motivo; no se anula con una
 nota viva colgada; una baja en trámite NO escribe 'anulado'; una confirmada sí,
 con motivo y `anulado_por`. Código verificado (tsc, eslint, 51 tests).
 **Aplicado en producción el 2026-09-09** (`unificacion/24`; restricción
-`VALIDADO`). **Falta la llamada real a Lucode**, que sigue sin probarse contra
-el sandbox — ver "Lo que falta confirmar".
+`VALIDADO`) **y probado contra el sandbox real de Lucode el mismo día** — la
+prueba encontró dos errores en el adaptador que la documentación no dejaba ver;
+ver "Lo que la prueba real corrigió". Falta desplegar el código a Vercel.
 
 ## Contexto
 
@@ -79,21 +80,44 @@ propia regla; nosotros no la adivinamos.
   que jamás ocurrió. Queda para un ítem propio: qué hacer con un correlativo
   reservado que nunca se transmitió.
 
-## Lo que falta confirmar en sandbox real
+## Lo que la prueba real corrigió (2026-09-09)
 
-Se construyó contra la documentación pública, no contra respuestas reales:
+Se construyó contra la documentación pública y **se probó llamando de verdad al
+sandbox**. La prueba encontró que la documentación describe mal el cuerpo de los
+**dos** endpoints — ninguno acepta la forma plana que decía `llms-full.txt`:
 
-- El campo del motivo en `/voided` es **`motivo`** (documentado, con default
-  "ANULACIÓN DE OPERACIÓN"), no `motivo_de_anulacion` como decía el adaptador
-  — ese nombre no aparece en ninguna página de `docs.apisunat.pe`. Corregido acá,
-  sin probar.
-- La forma de la respuesta de `/api/v3/daily-summary`: se asume que `traducirEstado`
-  la lee igual que la de `/documents`. No está confirmado.
-- Si el resumen diario devuelve ACEPTADO al toque o siempre PENDIENTE.
+| | Lo que decía la doc | Lo que el sandbox acepta |
+|---|---|---|
+| Boleta (`/daily-summary`) | `{documento:"boleta", serie, numero, accion_resumen}` | `{documento:"resumen_diario", documentos_afectados:[{accion_resumen, documento, serie, numero}]}` |
+| Factura (`/voided`) | `{documento:"factura", serie, numero, motivo}` | `{documento:"comunicacion_baja", motivo, documento_afectado:{documento, serie, numero}}` |
 
-Hasta que eso se pruebe en sandbox, el botón puede fallar con el error crudo del
-proveedor — que es el comportamiento correcto, no un bug: nunca escribe un estado
-que no le confirmaron.
+El error que devolvían era distinto en cada uno y ninguno decía "falta un
+envoltorio": `Undefined array key "documentos_afectados"` el primero, `El campo
+documento seleccionado no es válido` el segundo. La clave conceptual que la doc
+no explicita: el `documento` de la raíz es el tipo del documento que se está
+**emitiendo** —una comunicación de baja y un resumen diario son documentos
+tributarios propios— y el comprobante que se da de baja va **anidado**. Uno usa
+lista (`documentos_afectados`) y el otro objeto (`documento_afectado`, singular).
+
+**El hallazgo que confirma la decisión 2 de este ADR:** los dos caminos
+devuelven **`PENDIENTE`**, no `ACEPTADO`. El de boletas hasta lo dice con todas
+sus letras — *"El resumen diario fue firmado correctamente, pero aún no ha sido
+validado por la SUNAT"*. O sea que "Anulación en trámite" no es un caso raro del
+resumen diario: es el camino normal de **toda** anulación, factura incluida. Si
+la RPC hubiera escrito `'anulado'` con la primera respuesta 200, el sistema
+estaría dando por dado de baja algo que SUNAT todavía no miró.
+
+## Lo que sigue sin confirmar
+
+- **El plazo.** Una página de la doc dice 3 días, otra 5, y SUNAT habla de 7. El
+  sistema sigue sin bloquear por fecha: intenta y muestra el rechazo textual.
+- **La forma de la respuesta de `/voided`.** Devuelve 200 con todo en null: sin
+  `hash`, sin `mensaje`, sin ticket visible. `traducirEstado` lo lee como
+  `PENDIENTE`, que es la lectura conservadora — pero no sabemos si adentro
+  viene un identificador para consultar la baja después.
+- **Cómo se confirma una baja en trámite.** Hoy queda "en trámite" para siempre
+  hasta que alguien mire el panel de Lucode. Cerrar ese ciclo
+  (`consultarEstadoLucode` y promover a `anulado`) es el siguiente paso.
 
 ## Consecuencias
 

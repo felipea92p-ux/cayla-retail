@@ -1173,3 +1173,40 @@ vuelta en los dos sentidos, Inicio/Fin, "b" saltando a "Bajar a tienda", Espacio
 de verdad, y Tab y Escape cerrando con el foco de vuelta en el botón sin caer en el enlace
 de atrás. tsc, eslint y 63 tests en verde. Con esto quedan cerradas las tres cosas que el
 lateral había dejado anotadas.
+
+## 2026-09-09 (b1: la primera llamada real encontró dos bugs que la doc tapaba)
+El plan era poner el token en Vercel. Antes de eso apareció un riesgo de orden que había
+que decir: el deploy vivo llama a `actualizar_transmision_comprobante` con 4 argumentos y
+producción ya solo tiene la de 5 (por la migración 23 recién pegada). Poner el token sin
+desplegar el código habría hecho lo peor posible — transmitir el documento a SUNAT y
+fallar al guardarlo. Hoy no pasa solo porque la ruta corta antes, en `sin_credenciales`.
+Y desplegar exige pushear 19 commits, 14 de otras sesiones, incluida una reescritura de
+auth que su propia sesión marcó "pendiente de desplegar". Felipe eligió probar en local.
+
+No se pudo levantar el dev (ya corría otro `next dev` de otra sesión, PID 37052, y Next
+no permite dos para el mismo directorio; no se mató su proceso). Así que se probó lo
+único que de verdad estaba sin verificar: el contrato con Lucode, llamando al sandbox
+con el adaptador REAL del repo, no con un payload inventado.
+
+**Encontró dos bugs que solo una llamada real podía mostrar.** La documentación describe
+mal el cuerpo de LOS DOS endpoints de anulación: ninguno acepta la forma plana. Boleta
+necesita `{documento:"resumen_diario", documentos_afectados:[...]}` y factura
+`{documento:"comunicacion_baja", motivo, documento_afectado:{...}}`. Los errores no
+ayudaban: `Undefined array key "documentos_afectados"` uno, `El campo documento
+seleccionado no es válido` el otro. Corregidos y reprobados: los dos devuelven `ok`.
+
+**Y confirmaron la decisión más discutible de ADR-0016:** los dos caminos responden
+PENDIENTE, no ACEPTADO — el de boletas lo dice con todas sus letras, "firmado
+correctamente, pero aún no ha sido validado por la SUNAT". O sea que "Anulación en
+trámite" no era un caso raro del resumen diario: es el camino normal de toda anulación.
+Si la RPC hubiera escrito 'anulado' con el primer 200, el sistema estaría dando por dado
+de baja algo que SUNAT ni miró.
+
+**Lo que Felipe aprende acá:** la documentación de un proveedor es una hipótesis, no un
+hecho. Estos dos bugs pasaron tsc, eslint, 63 tests y una revisión de esquema completa —
+ninguna de esas herramientas puede saber qué espera un servidor ajeno. La única prueba
+que valía era la llamada, y costó diez minutos. Fíjate el orden que salvó esto: se probó
+en SANDBOX antes de poner el token de producción, así que el precio de estar equivocado
+fue cero.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**

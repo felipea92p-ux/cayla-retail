@@ -36,13 +36,18 @@
 //     Verificar con una nota_debito real en sandbox antes de confiar en esto.
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
-//   - Anulación (paso c, 2026-09-09): que factura/notas van por
-//     `/api/v3/voided` y boletas por `/api/v3/daily-summary` con
-//     `accion_resumen: "anular"` está confirmado en `docs.apisunat.pe/llms-full.txt`.
-//     El plazo NO: una página dice 3 días, otra 5, y SUNAT habla de 7 — por eso
-//     el sistema no bloquea por fecha, deja que el proveedor rechace y muestra
-//     su motivo. Ni el nombre del campo `motivo` ni la forma de la respuesta
-//     del resumen diario están probados contra el sandbox real.
+//   - Anulación (paso c): PROBADA contra el sandbox real el 2026-09-09, y la
+//     prueba encontró que la documentación pública miente en la forma del
+//     cuerpo de los DOS endpoints. Lo que funciona de verdad está escrito en
+//     cada función. Los dos caminos devuelven PENDIENTE, no ACEPTADO: SUNAT
+//     procesa la baja después, para boletas Y para facturas.
+//     El plazo sigue sin confirmarse: una página dice 3 días, otra 5, y SUNAT
+//     habla de 7 — por eso el sistema no bloquea por fecha, deja que el
+//     proveedor rechace y muestra su motivo.
+//   - La forma de la RESPUESTA de /voided sigue sin entenderse del todo:
+//     devuelve 200 con todo en null (sin hash, sin mensaje). `traducirEstado`
+//     lo lee como PENDIENTE, que es la lectura conservadora — nunca da por
+//     anulado lo que no le confirmaron.
 
 export type EntornoLucode = "sandbox" | "produccion";
 
@@ -260,11 +265,18 @@ export async function anularDocumentoLucode(
   numero: number,
   motivo: string
 ): Promise<ResultadoLucode> {
-  // El campo es `motivo`, no `motivo_de_anulacion`: la documentación de
-  // /voided lo lista con default "ANULACIÓN DE OPERACIÓN". El nombre anterior
-  // no aparece en ninguna página de docs.apisunat.pe — se corrigió al
-  // construir el paso (c), y sigue SIN probarse contra el sandbox real.
-  const r = await llamar("/api/v3/voided", { documento: tipo, serie, numero, motivo });
+  // La forma NO es plana. El `documento` de la raíz es el tipo del documento
+  // que se está EMITIENDO —una comunicación de baja es un documento tributario
+  // propio— y el comprobante que se da de baja va anidado en
+  // `documento_afectado` (singular, objeto; el resumen diario de boletas usa
+  // una lista, este no). Mandarlo plano devuelve "El campo documento
+  // seleccionado no es válido". Verificado contra el sandbox real el
+  // 2026-09-09. El campo del motivo es `motivo` y va en la raíz, no adentro.
+  const r = await llamar("/api/v3/voided", {
+    documento: "comunicacion_baja",
+    motivo,
+    documento_afectado: { documento: tipo, serie, numero: String(numero) },
+  });
   if (!r.ok) return r;
   return traducirEstado(r.json);
 }
@@ -272,13 +284,23 @@ export async function anularDocumentoLucode(
 /** Resumen Diario — el ÚNICO camino para dar de baja una boleta. SUNAT no
  *  acepta comunicación de baja individual para boletas, y el resumen se
  *  procesa de forma diferida: por eso la respuesta puede volver PENDIENTE y
- *  quien llama no debe leer eso como "ya está anulada". */
+ *  quien llama no debe leer eso como "ya está anulada".
+ *
+ *  La forma del cuerpo NO es la de /voided: el resumen es un documento propio
+ *  ("resumen_diario") que ENVUELVE una lista de documentos afectados. Mandarlo
+ *  plano —serie/numero en la raíz, como hacía la primera versión de esto—
+ *  devuelve `Undefined array key "documentos_afectados"`. Verificado contra el
+ *  sandbox real el 2026-09-09, no solo contra la documentación.
+ *
+ *  Se manda UN documento por llamada aunque el campo sea una lista: agrupar
+ *  varias bajas en un mismo resumen ataría el resultado de todas a una sola
+ *  respuesta, y no se sabría cuál falló. */
 export async function anularBoletaLucode(serie: string, numero: number): Promise<ResultadoLucode> {
   const r = await llamar("/api/v3/daily-summary", {
-    documento: "boleta",
-    serie,
-    numero,
-    accion_resumen: "anular",
+    documento: "resumen_diario",
+    documentos_afectados: [
+      { accion_resumen: "anular", documento: "boleta", serie, numero: String(numero) },
+    ],
   });
   if (!r.ok) return r;
   return traducirEstado(r.json);
