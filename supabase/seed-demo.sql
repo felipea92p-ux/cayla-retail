@@ -89,19 +89,18 @@ join variantes vr on vr.sku = e.sku
 join sedes s on s.codigo = e.sede;
 
 -- ==================== 3. Cajas ====================
--- AQP y TRU quedan ABIERTAS y LIM cerrada, para que la tarjeta "Cajas" muestre
--- "2 de 3" con su alerta nombrando a LIM — el estado interesante, ni el
--- todo-bien ni el todo-mal.
+-- Las tres quedan ABIERTAS, pero la de LIM lleva 3 días así. Es el caso que
+-- separa las dos mitades del Inicio: la tarjeta "Cajas" dice el ESTADO ("3 de 3
+-- abiertas", sin rojo — tener la caja abierta es lo normal) y la bandeja de
+-- pendientes dice la ACCIÓN ("1 caja de días anteriores sin cerrar"), que es lo
+-- único que de verdad exige que alguien haga algo.
 insert into cajas (sede_id, monto_apertura, abierta_por, abierta_en, estado)
 select s.id, 100.00, (select id from personas order by created_at limit 1),
-       date_trunc('day', timezone('America/Lima', now())) at time zone 'America/Lima',
-       case when s.codigo = 'LIM' then 'cerrada' else 'abierta' end
+       (date_trunc('day', timezone('America/Lima', now()))
+          - make_interval(days => case when s.codigo = 'LIM' then 3 else 0 end)
+          + interval '9 hours') at time zone 'America/Lima',
+       'abierta'
 from sedes s where s.codigo in ('TRU', 'AQP', 'LIM');
-
-update cajas
-set monto_cierre_contado = 100.00, monto_cierre_esperado = 100.00, diferencia = 0,
-    cerrada_por = (select id from personas order by created_at limit 1), cerrada_en = now()
-where estado = 'cerrada';
 
 -- ==================== 4. Ventas de las últimas 2 semanas ====================
 -- `dias` = cuántos días atrás en hora de Lima; `hora`/`minu` = hora local.
@@ -207,6 +206,79 @@ from (
   group by variante_id, sede_id
 ) m
 where m.variante_id = s.variante_id and m.sede_id = s.sede_id;
+
+-- ==================== 6. Pendientes ====================
+-- Lo que alimenta la bandeja del Inicio. Cada fila es un estado que en la
+-- operación real exige que alguien haga algo hoy; sin ellas el bloque no
+-- aparece (a propósito) y no habría forma de verlo funcionar.
+
+-- Rechazado por SUNAT: el estado más caro del sistema. El correlativo ya quedó
+-- consumido y el documento no vale. `entorno_transmision` es obligatorio en
+-- todo lo que no sea 'pendiente'.
+insert into comprobantes (sede_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc,
+                          cliente_nombre, moneda, subtotal, igv, total, estado,
+                          entorno_transmision, motivo_rechazo, created_at)
+select s.id, 'boleta', 'B001', 1, 'dni', '44556677', 'ROSA QUISPE MAMANI', 'PEN',
+       58.47, 10.53, 69.00, 'rechazado', 'sandbox',
+       '2335 - El documento electronico ya fue dado de baja',
+       (date_trunc('day', timezone('America/Lima', now())) - interval '2 days' + interval '18 hours')
+         at time zone 'America/Lima'
+from sedes s where s.codigo = 'AQP';
+
+-- Emitido hace tres días y nunca transmitido: el olvido con plazo corriendo.
+insert into comprobantes (sede_id, tipo, serie, numero, cliente_tipo_doc,
+                          cliente_nombre, moneda, subtotal, igv, total, estado, created_at)
+select s.id, 'boleta', 'B001', 2, 'sin_documento', 'Cliente varios', 'PEN',
+       117.80, 21.20, 139.00, 'pendiente',
+       (date_trunc('day', timezone('America/Lima', now())) - interval '3 days' + interval '17 hours')
+         at time zone 'America/Lima'
+from sedes s where s.codigo = 'AQP';
+
+-- La serie tiene que quedar donde la dejó la demo: con `siguiente_numero` en 1,
+-- la primera boleta emitida desde la pantalla chocaría contra el
+-- unique(tipo, serie, numero) que ya ocupan las dos de arriba. Es el mismo
+-- problema real que dejó B004-000001 en producción (BITACORA 05-09).
+update series_comprobantes set siguiente_numero = 3 where tipo = 'boleta' and serie = 'B001';
+
+-- Taller: una corrida terminada que nunca entró al inventario (las prendas
+-- existen y el sistema no lo sabe: todo lo que se calcula sobre stock queda mal
+-- mientras dure) y otra que ya pasó su fecha de entrega.
+insert into producciones (unidad_id, producto_id, fecha, cantidad, costo_tela, costo_avios,
+                          costo_maquila, precio_taller, es_muestra, estado, detalle,
+                          fecha_entrega, inventariado_at, creado_por, created_at)
+select t.id, p.id,
+       (timezone('America/Lima', now()) - interval '12 days')::date,
+       24, 380.00, 90.00, 240.00, 69.00, false, 'terminado',
+       'Blusa satinada — corrida 12',
+       (timezone('America/Lima', now()) - interval '2 days')::date,
+       null,
+       (select id from personas order by created_at limit 1),
+       timezone('America/Lima', now()) - interval '12 days'
+from sedes t, productos p
+where t.tipo = 'fabrica' and p.sku_padre = 'DEMO-BLU';
+
+insert into producciones (unidad_id, producto_id, fecha, cantidad, costo_tela, costo_avios,
+                          costo_maquila, precio_taller, es_muestra, estado, detalle,
+                          fecha_entrega, creado_por, created_at)
+select t.id, p.id,
+       (timezone('America/Lima', now()) - interval '20 days')::date,
+       15, 620.00, 140.00, 300.00, 139.00, false, 'en_proceso',
+       'Blazer de lino — corrida 13',
+       (timezone('America/Lima', now()) - interval '4 days')::date,
+       (select id from personas order by created_at limit 1),
+       timezone('America/Lima', now()) - interval '20 days'
+from sedes t, productos p
+where t.tipo = 'fabrica' and p.sku_padre = 'DEMO-BLA';
+
+-- Compras: una orden que según su propia fecha estimada ya debió llegar. Solo
+-- se siembra CON fecha estimada — una orden sin ella no se marca atrasada
+-- nunca, porque nadie sabe cuándo debía llegar.
+insert into ordenes_compra (proveedor, estado, sede_destino_id, fecha, fecha_estimada, monto_estimado, nota)
+select 'Textiles Gamarra SAC', 'confirmada', s.id,
+       (timezone('America/Lima', now()) - interval '21 days')::date,
+       (timezone('America/Lima', now()) - interval '5 days')::date,
+       2400.00, 'Reposicion de blusas satinadas'
+from sedes s where s.codigo = 'TRU';
 
 do $resumen$
 declare

@@ -3,6 +3,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getCajaAbierta } from "@/lib/finanzas";
 import { getPanelLider } from "@/lib/panel";
+import { getPendientes } from "@/lib/pendientes";
 import { BuscadorHero } from "@/components/BuscadorHero";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador, normalizarSparkline } from "@/components/TarjetaIndicador";
@@ -20,9 +21,10 @@ export default async function InicioPage() {
   // El panel del Líder se arma sobre las MISMAS variantes que ya trae el catálogo
   // (de ahí sale el inventario a costo), así que va después en vez de en paralelo:
   // se cambia un viaje ligero a Supabase por dejar de releer `stock` entero.
-  const [{ variantes, alertasReposicion }, cajaAbierta] = await Promise.all([
+  const [{ variantes, alertasReposicion }, cajaAbierta, pendientes] = await Promise.all([
     getCatalogoInteligente(persona),
     getCajaAbierta(persona.sedeId),
+    getPendientes(persona),
   ]);
   const panel = await getPanelLider(persona, variantes);
 
@@ -113,10 +115,11 @@ export default async function InicioPage() {
                 : undefined
             }
           />
+          {/* Sin `critico`: una caja cerrada de noche es lo normal, no una alerta. Lo
+              que sí lo es —una caja que amaneció abierta— vive en la bandeja de abajo. */}
           <TarjetaIndicador
             etiqueta="Cajas"
             valor={`${cajas.length - cajasCerradas.length} de ${cajas.length} abiertas`}
-            critico={cajasCerradas.length > 0}
             alerta={cajasCerradas.length > 0 ? `${cajasCerradas.join(", ")} con la caja cerrada` : undefined}
           />
           <TarjetaIndicador
@@ -155,6 +158,27 @@ export default async function InicioPage() {
           />
         </div>
       </div>
+
+      {/* Bandeja de pendientes: la cola de trabajo, no un resumen. Si no hay nada
+          que hacer el bloque NO existe — nunca una fila de ceros, que es como se
+          enseña a ignorar una zona de la pantalla (ver lib/pendientes.ts). */}
+      {pendientes.length > 0 && (
+        <div className="card-cayla p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Pendientes</p>
+          <ul className="mt-2 divide-y divide-tinta/10">
+            {pendientes.map((p) => (
+              <li key={p.clave} className="py-2.5">
+                <Link href={p.href} className="group block">
+                  <p className={`text-sm ${p.critico ? "text-rojo" : "text-tinta"} group-hover:underline`}>
+                    {p.etiqueta}
+                  </p>
+                  {p.detalle && <p className="mt-0.5 text-xs text-tinta/65">{p.detalle}</p>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {alertasReposicion.length > 0 && (
         <div className="card-cayla p-5">

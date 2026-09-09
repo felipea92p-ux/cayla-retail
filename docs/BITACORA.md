@@ -1268,3 +1268,40 @@ escribe una cantidad a mano.
 commitear: `lib/panel.ts`, `lib/panel-serie.ts` (+ pruebas), `components/TarjetaIndicador.tsx`,
 `app/(app)/page.tsx`, `supabase/migrations/0042`, `supabase/unificacion/25`, `supabase/seed-demo.sql`,
 `docs/adr/0020`.
+
+## 2026-09-09 (Inicio, paso 2 — la bandeja de pendientes: estado vs. acción)
+
+El Inicio pasa a tener dos mitades con naturalezas distintas, y la diferencia es
+lo que hace útil el bloque nuevo. Las 4 tarjetas de arriba describen un ESTADO
+("vendiste S/306", "3 de 3 cajas abiertas"). La bandeja de abajo lista ACCIONES:
+cosas con consecuencia si nadie las hace hoy. Seis, cada una con su contador y su
+enlace a la pantalla donde se resuelve — patrón "Activity Cues" de Dynamics 365:
+comprobantes rechazados por SUNAT, comprobantes emitidos y nunca transmitidos,
+cajas que amanecieron abiertas, producción terminada sin inventariar, producción
+pasada de su fecha de entrega, y órdenes de compra que ya debieron llegar.
+
+**Lo que Felipe aprendió y no era obvio:** el valor del bloque está en cuándo NO
+aparece. Un tablero que muestra "0 pendientes · 0 rechazados · 0 atrasados"
+enseña a ignorar esa zona de la pantalla, y el día que salga un número real ya
+nadie lo mira. Así que si no hay nada que hacer, el bloque no existe — verificado
+en vivo neutralizando las seis condiciones y recargando: desaparece entero, sin
+encabezado huérfano. De la misma familia es la decisión de dónde va el rojo: solo
+lo llevan los tres que tienen plazo legal o dinero suelto (SUNAT × 2 y la caja
+sin cerrar). Si se pintara todo, el rojo dejaría de significar nada.
+
+Eso obligó a corregir algo del paso 1: la tarjeta "Cajas" pintaba de rojo toda
+caja cerrada, pero una caja cerrada de noche es lo normal, no una alerta. Ahora
+la tarjeta dice el estado sin rojo ("3 de 3 abiertas") y la alerta de verdad —una
+caja que lleva días abierta— vive en la bandeja. Dos reglas más que quedaron
+escritas: una orden de compra SIN `fecha_estimada` no se marca atrasada nunca
+(no sabemos cuándo debía llegar, y avisar de algo que quizá no lo está es la
+forma más rápida de que la bandeja pierda credibilidad), y un comprobante
+emitido HOY y todavía sin transmitir tampoco cuenta: sigue en el flujo normal.
+
+El seed de demostración se extendió para poder ver todo esto (comprobante
+rechazado con su código real de SUNAT, uno sin transmitir, caja de LIM abierta
+hace 3 días, dos corridas del Taller y una orden de compra vencida). De paso
+dejó registrada una trampa real: al sembrar comprobantes a mano hay que mover
+`series_comprobantes.siguiente_numero`, o la primera boleta emitida desde la
+pantalla choca contra el `unique(tipo, serie, numero)` — el mismo problema que
+dejó B004-000001 en producción el 05-09.
