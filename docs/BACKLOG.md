@@ -101,9 +101,12 @@ importante que ha entrado a este archivo desde que existe.
       pendiente/rechazado. Local: `0037_comprobantes_items.sql` +
       `0038_actualizar_transmision_comprobante.sql`. Producción:
       `supabase/unificacion/20_comprobantes_items.sql` +
-      `21_actualizar_transmision_comprobante.sql`, sin pegar todavía.
-      **Pendiente, ambos bloquean la prueba real:** (1) que Felipe pegue esas
-      dos migraciones en el SQL Editor de producción; (2) que Felipe ponga su
+      `21_actualizar_transmision_comprobante.sql` — **aplicadas en producción
+      el 2026-09-08**, junto con `22_serie_numero_inicial.sql` (ver BITÁCORA
+      de ese día; el texto de abajo quedó como se escribió el 05-09).
+      **Pendiente, ambos bloquean la prueba real:** (1) ~~que Felipe pegue esas
+      dos migraciones en el SQL Editor de producción~~ **hecho 2026-09-08**;
+      (2) que Felipe ponga su
       `LUCODE_TOKEN` real en `.env.local` (`LUCODE_ENTORNO=sandbox`) — nunca en
       el chat. Sin eso el botón responde "sin_credenciales", sin riesgo de
       transmitir a medias. Independiente del código: el trámite SUNAT SOL de
@@ -125,6 +128,16 @@ importante que ha entrado a este archivo desde que existe.
       acordada con Felipe: una serie por tienda — **TRU B004/F004, AQP B005/F005,
       LIM B006/F006**. Nota de seguridad: el `LUCODE_TOKEN` terminó pegado en el
       chat pese a la advertencia de arriba; conviene rotarlo desde el panel.
+      **ACTUALIZACIÓN 2026-09-09 — la pantalla decía que SUNAT no estaba
+      conectado.** El modal de emisión seguía con el texto de la Fase 0 ("el
+      envío a SUNAT todavía no está conectado — ver SEE propio vs. OSE"), falso
+      desde el 05-09 y apuntando a una decisión que ya no existe (es Lucode
+      como PSE, ADR-0005). Corregido: ahora dice que Emitir reserva el número y
+      que "Transmitir" es lo que lo manda. `ARQUITECTURA.md` repetía la misma
+      afirmación y nunca había documentado `/api/lucode/emitir` ni
+      `actualizar_transmision_comprobante` — agregados. El bloqueo real no era
+      ese texto sino las variables de Lucode que faltan en Vercel (ítem propio
+      más abajo, 2026-09-08).
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por

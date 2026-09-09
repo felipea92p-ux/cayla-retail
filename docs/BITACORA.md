@@ -748,3 +748,25 @@ escalonado del desplegable, alza al pasar el mouse y barrido de luz en los boton
 61 archivos por sustitución mecánica, verificado con tsc, eslint, 51 tests, `next
 build` y medición de contraste en el navegador. Subido a GitHub y desplegado a Vercel
 sin consultar, por pedido explícito de Felipe al ser un cambio solo estético.
+
+## 2026-09-09 (la pantalla mentía: SUNAT sí estaba conectado)
+Felipe preguntó si el aviso del modal de emisión —"el envío a SUNAT todavía no está
+conectado, ver SEE propio vs. OSE"— seguía vigente. No: es texto de la Fase 0, falso
+desde el 05-09, y peor, manda a decidir algo que ya se decidió y que no era ninguna de
+las dos opciones que nombra (ni SEE propio ni OSE: Lucode como PSE, ADR-0005). En la
+misma pantalla ya vivía el botón "Transmitir" que sí manda a SUNAT.
+
+Corregido el texto del modal y el comentario de cabecera de `ComprobantesPanel.tsx`;
+`ARQUITECTURA.md` repetía la misma afirmación en la línea de `/vender/facturacion` y
+nunca había documentado `/api/lucode/emitir` ni la RPC
+`actualizar_transmision_comprobante` — agregados los dos. tsc, eslint y 51 tests en
+verde. De paso se corrigió el BACKLOG, que todavía daba las migraciones
+`unificacion/20`/`21` por pegar cuando la BITÁCORA del 08-09 dice que se aplicaron.
+
+**Lo que Felipe aprende acá:** un texto de interfaz es tan estado del sistema como una
+tabla — envejece igual y nadie lo revisa, porque no rompe ningún test. Este llevaba
+cuatro días diciéndole a quien está en el mostrador que no había nada que hacer después
+de "Emitir", cuando faltaba exactamente un clic. Lo que sí sigue bloqueado no es el
+código: producción no tiene `LUCODE_TOKEN` en Vercel, así que en el deploy "Transmitir"
+responde `sin_credenciales` — y ahora `.env.local` tampoco lo tiene, porque
+`vercel env pull` lo sobrescribió.

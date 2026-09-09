@@ -149,8 +149,9 @@ flowchart TB
   `registrar_gasto`.
 - `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
-  `registrar_serie_comprobante`. El envío real a SUNAT no está conectado
-  todavía — ver ADR-0005. El modal de emisión usa `ConsultaDocumento.tsx`, el
+  `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
+  botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
+  ADR-0009). El modal de emisión usa `ConsultaDocumento.tsx`, el
   único componente que llama a una ruta de API propia en vez de a una RPC:
   `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
@@ -162,6 +163,12 @@ Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
 cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 
 - `/api/export/inventario` → CSV del catálogo (`lib/catalogo.ts`).
+- `/api/lucode/emitir` → transmite a SUNAT, vía Lucode (PSE), un comprobante
+  que `emitir_comprobante`/`emitir_nota` ya reservó. Traduce el formato propio
+  a la forma del proveedor en `lib/lucode.ts` — cambiar de PSE es cambiar ese
+  archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
+  estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
+  le inventa un estado ni se reintenta solo. ADR-0009.
 - `/api/padron` → consulta de DNI/RUC contra el padrón externo. El token del
   proveedor nunca sale del servidor. Devuelve siempre 200 con `fuente`
   (`padron` | `historial` | `ninguna`) — "no pude averiguarlo" es una respuesta
@@ -211,7 +218,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
-| `emitir_comprobante` / `registrar_serie_comprobante` | Reserva boleta/factura con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT — ver ADR-0005 |
+| `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
+| `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
 

@@ -43,10 +43,12 @@ function formatearFecha(iso: string) {
   );
 }
 
-// Panel de Facturación electrónica (F3, parte 1): reserva comprobantes con su
-// correlativo oficial ya mismo — el envío a SUNAT (firma XML, SOAP, CDR) es un
-// paso aparte, deliberadamente no construido todavía (ver nota en el modal de
-// emisión). Mismo patrón que EfectivoPanel: un componente, dos modales, una tabla.
+// Panel de Facturación electrónica: reserva el comprobante con su correlativo
+// oficial ya mismo (RPC en Postgres puro) y lo transmite a SUNAT por Lucode en
+// un paso aparte — el botón "Transmitir" de cada fila (ADR-0005, ADR-0009).
+// Reservar y transmitir siguen separados a propósito: emitir no puede depender
+// de que un proveedor externo esté arriba (principio 9).
+// Mismo patrón que EfectivoPanel: un componente, dos modales, una tabla.
 export function ComprobantesPanel({
   comprobantes,
   series,
@@ -395,10 +397,9 @@ export function ComprobantesPanel({
             {/* La nota va acá abajo y no arriba: explica qué pasa DESPUÉS de
                 apretar Emitir, así que se lee junto al botón que lo provoca. */}
             <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
-              Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
-              está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
-              propio vs. OSE. El comprobante queda &ldquo;Pendiente de enviar&rdquo; hasta que esa
-              decisión se tome.
+              Esto reserva el número oficial y guarda el comprobante — todavía no lo manda a
+              SUNAT. Queda &ldquo;Pendiente de enviar&rdquo; hasta que aprietes
+              &ldquo;Transmitir&rdquo; en la lista de abajo, que es lo que lo envía.
             </p>
 
             {error && (
