@@ -98,6 +98,14 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
     }
   }, []);
 
+  // Cuando el servidor vuelve a mandar el conteo (solo pasa al abrirlo, al crear una
+  // prenda o al reintentar la cola — nunca por escaneo), su versión manda sobre la
+  // optimista. Sin esto, una prenda creada al vuelo quedaría dos veces en la lista: la
+  // fila local con id inventado y la real que llega del servidor.
+  useEffect(() => {
+    setLineas(conteo?.lineas ?? []);
+  }, [conteo]);
+
   const enfocarBuscador = useCallback(() => {
     // `requestAnimationFrame` y no un foco directo: el input de cantidad todavía puede
     // tener el foco cuando React re-renderiza, y el navegador lo devuelve solo.
@@ -329,6 +337,18 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
             setDesconocido(null);
             setTermino("");
             enfocarBuscador();
+            // LA ÚNICA EXCEPCIÓN a la regla de no refrescar (ver cabecera), y hace
+            // falta: el mapa de códigos viene del servidor, así que la prenda recién
+            // creada todavía no es escaneable en esta sesión. Sin esto, volver a
+            // escanear el mismo código reabre el formulario de alta y la Encargada
+            // lo llena de nuevo — y el mismo modelo aparece en dos pilas todo el
+            // tiempo durante un censo.
+            //
+            // El costo es aceptable porque esto ocurre una vez por prenda NUEVA, no
+            // por escaneo: crear ya implica llenar un formulario, así que los ~322 ms
+            // del viaje no se notan. Escanear, que es el gesto de las 500 veces, sigue
+            // sin tocar el servidor para leer.
+            router.refresh();
           }}
         />
       )}
