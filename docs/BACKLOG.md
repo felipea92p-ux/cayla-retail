@@ -134,13 +134,35 @@ importante que ha entrado a este archivo desde que existe.
       `unificacion/29`** (categorías que el archivo no conoce, variantes
       duplicadas, SKUs repetidos). Si el de duplicados devuelve filas, se resuelve
       una por una — nunca borrando.
-- [ ] **`censo`: los bloques que faltan.** Sesiones de conteo (`conteos` +
-      `conteo_lineas` + RPCs, con `cantidad_sistema` congelado al contar y cierre
-      solo por Líder = la aprobación que pidió Felipe), la pantalla de captura por
-      matriz (talla × color, una tarjeta por color en móvil), la pantalla de
-      conteo con la pistola, el resumen de varianza, y etiquetas en lote. **Ojo al
-      entrar al frontend: hay otra sesión trabajando ahí** (`AppShell.tsx`,
-      `vender/`, los modales) — coordinar antes.
+- [x] **`sesiones de conteo` — hecho y verificado en local 2026-09-09
+      (`0048_conteos.sql`, ADR-0027); falta pegar `unificacion/30` al final de la
+      cola.** Dos tablas y siete RPC. Un conteo que puede crear prendas al vuelo
+      es un censo; un censo sobre un catálogo cargado es un conteo — la misma
+      operación, así que no hay código de "carga inicial" que se abandone.
+      `cantidad_sistema` se congela AL CONTAR (si se vende algo entre contar y
+      cerrar, la venta sobrevive; leyendo el sistema al cerrar se borraría).
+      `ajuste` con signo en vez de un `tipo='conteo'` nuevo, porque
+      `recalcular_stock` conoce cuatro tipos y un quinto quedaría excluido en
+      silencio. **Verificado con una Encargada real:** abre, crea la prenda
+      adoptando su código de fábrica, cuenta 4 — y al cerrar recibe "Solo un líder
+      puede cerrar un conteo". El stock quedó en 0 hasta que el Líder cerró.
+- [ ] **`censo`: las pantallas.** Es lo único que falta para que el equipo pueda
+      usarlo — las RPC están, las manos no. Captura por matriz (talla × color, una
+      tarjeta por color en móvil de 375px), pantalla de conteo con la pistola
+      (buscador siempre enfocado, conteo a ciegas, "crear esta prenda" cuando el
+      código no existe), resumen de varianza en soles, y etiquetas en lote (con
+      tope de ~120 por tanda). Más `lib/conteo.ts` con proyección delgada: hoy
+      `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
+      las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
+      el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
+- [ ] **Orden de pegado en producción, pendiente de Felipe (5 archivos, en este
+      orden exacto):** `unificacion/26` → `27` → `28` → `29` → `30`. Cada uno
+      depende del anterior: 26/27 reemplazan el mismo cuerpo de función (al revés
+      se pierde `ultima_venta`), 29 necesita los colores de 28, y 30 necesita el
+      ajuste con signo de 27 y los códigos de 29. Los pre-flight de `27` y `29`
+      hay que **correrlos y leerlos** antes: buscan stock negativo, movimientos en
+      cero, categorías desconocidas y variantes duplicadas. Si aparecen
+      duplicados, se resuelven uno por uno — nunca borrando.
 - [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
       movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
       función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con

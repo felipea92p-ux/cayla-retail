@@ -2100,3 +2100,39 @@ correr dos veces. Probado corriéndolo dos veces: la segunda no cambia nada.
 
 Producción no se tocó: es DDL en el proyecto compartido con Dynamic.
 
+
+## 2026-09-09 (organización del inventario, bloque 4 — el censo es el primer conteo)
+
+`0048_conteos.sql` + `unificacion/30` + ADR-0027. Dos tablas (`conteos`, `conteo_lineas`) y
+siete RPC. **La idea que sostiene todo:** un conteo que puede crear prendas al vuelo es un
+censo, y un censo sobre un catálogo ya cargado es un conteo — son la misma operación. Por eso
+no hay código de "carga inicial" que se use una vez y se abandone.
+
+**El permiso que hace posible el censo, verificado con una Encargada real de AQP.** Abre el
+conteo, crea "Blusa Reflixme M Azul marino" al vuelo adoptando su código de fábrica
+`7501111111111`, y cuenta 4. Intenta cerrar: *"Solo un líder puede cerrar un conteo — es la
+aprobación de lo contado"*. **El stock se quedó en 0 hasta que Felipe cerró.** Eso es
+exactamente lo que Felipe pidió: las Encargadas cuentan, él aprueba, y recién ahí entra.
+Comparación en la misma prueba: la puerta vieja (`crear_producto_con_variantes`) sí la rechaza.
+
+**La decisión más fina, y la que más fácil se hacía mal: `cantidad_sistema` se congela al
+contar, no al cerrar.** Sistema 10 → a las 15:00 cuenta 8 → a las 15:30 se vende 1 → cierra a
+las 16:00. Con el sistema congelado: 8−10 = −2 sobre 9 = **7**, correcto. Leyendo el sistema al
+cerrar: 8−9 = −1 sobre 9 = 8, y **la venta desaparece**. Un conteo afirma un instante, no el
+presente. Probado reproduciendo el escenario entero.
+
+Y `ajuste` con signo en vez de un `tipo='conteo'` nuevo, por una razón que vale anotar:
+`recalcular_stock` conoce cuatro tipos y nada más, así que un tipo nuevo quedaría excluido EN
+SILENCIO — el día que alguien corriera la red de seguridad para arreglar otra cosa, el censo
+entero se borraría. Bug latente que estalla meses después.
+
+**Lo que aprendió Felipe:** que una prueba que falla no prueba que el código esté mal. La
+primera corrida dijo "FALLA — la venta se perdió"; el código estaba bien y la **aserción**
+estaba mal (conté 3 sobre 10 y esperaba el resultado de contar 8 sobre 10). Averiguar cuál de
+los dos miente es parte del trabajo, no un trámite — y en este caso la respuesta correcta era
+volver a correr el escenario exacto del diseño, no cambiar el código para que la prueba pasara.
+
+**Confirmación de un hallazgo ajeno:** una prueba lateral chocó con
+`crear_producto_con_variantes(unknown, unknown, jsonb) is not unique` — las dos sobrecargas que
+la otra sesión ya documentó en ADR-0026 y dejó pendientes de decisión de Felipe. No es nuevo;
+es una segunda confirmación de que ese arreglo hace falta.
