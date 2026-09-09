@@ -452,6 +452,26 @@ importante que ha entrado a este archivo desde que existe.
       `.maybeSingle()` donde "no hay fila" es respuesta legitima pero un error no, y
       `tolerar()` para lo secundario. Las barreras `(app)/error.tsx` y `global-error.tsx`
       quedaron verificadas en vivo el mismo dia.
+      **CORRECCIÓN 2026-09-09 (barrido posterior sobre TODO `apps/web`):** ese "de 20 a 1" es
+      correcto **para la lista que auditó** —la que este BACKLOG nombraba—, pero el patrón
+      sigue vivo fuera de ella. Contando destructuraciones `{ data: x }` sin `error`, quedan
+      **52 lecturas en 16 archivos**. Las que importan, por lo que alimentan:
+      · `lib/finanzas-nucleo.ts` (13) — EERR, cuadre de efectivo, comparativo, patrimonio.
+        `getEERRMensual` (`:48`) hace `(ventasData ?? []).forEach(...)`: si la consulta de
+        `ventas` falla, el Estado de Resultados dibuja **S/0 en ventas** con cara de
+        normalidad. Es, literalmente, el ejemplo que `lib/resultado.ts` usa en su cabecera
+        para explicar por qué existe.
+      · `lib/contabilidad.ts` (8) — Balance, Flujo de Efectivo, Cambios en el Patrimonio.
+      · `lib/pendientes.ts` (4) — la bandeja del Inicio. Su diseño se apoya en que "el valor
+        del bloque está en cuándo NO aparece"; si la consulta falla, no aparece, y eso se
+        lee como "todo al día". La forma más cara de mentir que tiene el sistema.
+      · `lib/panel.ts` (2), `lib/egresos.ts` (2), `lib/actividad.ts` (2),
+        `lib/inteligencia.ts` (1), y 5 pantallas más.
+      Verificadas y descartadas como falsos positivos: los tres `auth.getClaims()` (si falla,
+      no hay sesión y la ruta redirige al login) y `FotoProducto:54` (`getPublicUrl` arma una
+      URL en memoria, no devuelve error).
+      Regla para elegir, la misma de siempre: ¿alguien puede tomar una decisión de negocio
+      mirando ese dato? Si sí, `exigir()`.
 - [ ] **No hay ninguna pantalla para dar de alta un activo fijo.** `finanzas/activos/page.tsx:54`
       solo LEE `activos_fijos`; ningún componente del repo escribe esa tabla, así que los
       activos entran hoy a mano por SQL. Encontrado el 09-09 al hacer accionables los estados
@@ -477,13 +497,17 @@ importante que ha entrado a este archivo desde que existe.
       cuando alguien suba una foto demasiado grande, se copia el mensaje y se agrega a
       `HUELLAS` **con su prueba** en `lib/error-escritura.test.ts`.
 
-- [ ] **Verificar en vivo el camino de venta con la pistola Zebra.** Lo construido el 09-09
+- [x] **RESUELTO — verificado en vivo con la pistola Zebra el 2026-09-09 por Felipe: nada falló.** Lo construido el 09-09
       (escaneo dentro del modal de venta, Enter que ya no registra la venta a medio
       escaneo, tope contra el stock de la sede, acuse con el monto) pasa build, lint,
       tsc y 77 pruebas, **pero no se pudo probar en el navegador**: el layout redirige al
       login y no corresponde que Claude escriba la contraseña. Hay que hacerlo con la
-      pistola real, no simulando el tecleo: confirmar que un escaneo agrega la prenda, que
-      dos escaneos seguidos NO cierran la venta, y que el foco vuelve al buscador solo.
+      pistola real, no simulando el tecleo. Felipe lo probó y confirmó que nada falló: el
+      escaneo agrega la prenda, dos escaneos seguidos no cierran la venta, y el tope contra
+      el stock de la sede frena con el número.
+      **Lo que NO se hizo, y se decidió no hacer:** cronometrar a una persona nueva. Sin ese
+      número, "facilidad de aprendizaje" —la dimensión del apartado D que esta tanda de
+      trabajo vino a cerrar— sigue sin línea base contra la cual comparar la próxima vez.
 
 - [x] **RESUELTO — `recalcular_stock()` aplicada y verificada en producción
       2026-09-09 (ADR-0020). Encontró 2 filas desincronizadas el primer día;
