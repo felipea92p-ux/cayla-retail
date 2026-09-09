@@ -177,7 +177,7 @@ export function OrdenesProduccion({
                         {o.modelo}
                         {o.material && <span className="ml-2 text-xs font-normal text-tinta/65">· {o.material}</span>}
                         {o.detalle && <span className="ml-2 text-xs font-normal text-tinta/65">{o.detalle}</span>}
-                        {o.esMuestra && <span className="label-cayla ml-2 text-[10px] text-taupe">muestra</span>}
+                        {o.esMuestra && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">muestra</span>}
                       </td>
                       <td className="px-3 py-2.5 text-tinta/70">{o.esMuestra ? "—" : o.cantidad}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{money(o.costoUnitario)}</td>
@@ -190,7 +190,7 @@ export function OrdenesProduccion({
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         {o.esMuestra ? (
-                          <span className="label-cayla text-[11px] text-taupe">muestra cerrada</span>
+                          <span className="label-cayla text-[11px] text-taupe-profundo">muestra cerrada</span>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             {ocupadoId === o.id ? (
@@ -275,7 +275,7 @@ function OrdenEnProceso({
             const estado = orden.etapas?.[e.key] ?? "pendiente";
             const cls =
               estado === "hecho" ? "border-verde/45 bg-verde/10 text-verde-profundo"
-              : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe"
+              : estado === "tercerizado" ? "border-taupe/40 bg-sand/40 text-taupe-profundo"
               : "border-tinta/20 text-tinta/70 hover:border-tinta/45";
             return (
               <button key={e.key} type="button" disabled={ocupado}
@@ -295,7 +295,7 @@ function OrdenEnProceso({
             return (
               <button key={e.key} type="button" disabled={ocupado}
                 onClick={() => onEtapa(e.key, terc ? "pendiente" : "tercerizado")}
-                className={`transition-colors disabled:opacity-40 ${terc ? "text-taupe underline" : "hover:text-rojo"}`}>
+                className={`transition-colors disabled:opacity-40 ${terc ? "text-taupe-profundo underline" : "hover:text-rojo"}`}>
                 {e.label}
               </button>
             );

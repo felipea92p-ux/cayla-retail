@@ -958,3 +958,25 @@ Hallazgo de paso, **solo local**: hay un `package.json` + `package-lock.json` su
 como raíz del workspace en vez del repo. En Vercel no pasa —el contenedor de build no
 tiene ese home—, así que no afecta producción. Se arregla con `turbopack.root` en
 `next.config.ts`; se deja para la Fase 1, que va a tocar ese archivo igual.
+
+## 2026-09-09 (taupe deja de ser color de texto — ADR-0017)
+Primero de los dos pasos que pidió Felipe después del lateral. `--color-taupe`
+(#a47865) da 3.39:1 sobre crema y 3.21:1 sobre `bg-sand/40`: reprueba AA en todos los
+fondos donde se usa, y siete de sus nueve usos son información operativa, no adorno —
+los chips "Estancado", "muestra", "tercerizado", la categoría de un activo, el score de
+un proveedor. ADR-0012 no lo vio porque esos 9 usos viven en pantallas que necesitan
+sesión y el barrido de esa vez solo midió lo visible sin login.
+
+Se agregó `--color-taupe-profundo: #805c4c` — mismo tono (18.1°) y saturación, la
+luminosidad baja de 52% a 40% — y se pasaron los 9 usos de texto. Da 5.23:1 sobre crema,
+4.94 sobre sand/40 y 4.72 sobre su propio tinte; medido después sobre el DOM renderizado
+en `/login`: 5.21. El borde `border-taupe/40` de OrdenesProduccion queda como estaba: un
+borde no es texto. El matiz que quedó escrito en el ADR es que acá "profundo" NO
+significa lo mismo que en ADR-0012 — verde y ámbar solo fallaban sobre su propio tinte,
+taupe falla en todos lados, así que el profundo lo reemplaza en todo texto.
+
+De paso me corregí a mí mismo: la firma "Donde el estilo transforma." la había puesto en
+`tinta/65` en el lateral porque era el arreglo seguro sin token nuevo. Con el token
+existiendo eso dejaba la misma frase de dos colores según la pantalla, así que las tres
+apariciones (login, /mas, lateral) quedaron en `taupe-profundo`. tsc, eslint y 63 tests
+en verde.

@@ -39,7 +39,7 @@ export default async function MasPage() {
       </div>
 
       <div className="flex items-center justify-between border-t border-tinta/10 pt-5">
-        <p className="font-display text-sm italic text-taupe">Donde el estilo transforma.</p>
+        <p className="font-display text-sm italic text-taupe-profundo">Donde el estilo transforma.</p>
         <LogoutButton />
       </div>
     </div>

@@ -313,7 +313,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
         {/* El lateral terminaba en un vacío de media pantalla. La firma de la
             marca le da un piso al bloque de abajo, en vez de dejar el aire
             colgando entre el último ítem y la persona. */}
-        <p className="font-display px-7 pb-5 pt-6 text-xs italic text-tinta/65">Donde el estilo transforma.</p>
+        <p className="font-display px-7 pb-5 pt-6 text-xs italic text-taupe-profundo">Donde el estilo transforma.</p>
 
         <div className="border-t border-tinta/10 px-7 py-5">
           <div className="flex items-center gap-3">

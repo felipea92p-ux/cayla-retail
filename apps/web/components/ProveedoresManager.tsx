@@ -220,7 +220,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
                 {p.nombre}
                 {!p.activo && <span className="label-cayla ml-2 text-[11px] text-tinta/65">inactivo</span>}
               </p>
-              {p.score != null && <span className="label-cayla text-[11px] text-taupe">score {p.score}</span>}
+              {p.score != null && <span className="label-cayla text-[11px] text-taupe-profundo">score {p.score}</span>}
             </div>
             <p className="mt-0.5 text-xs text-tinta/65">
               {[p.categoria, p.marca, p.ruc && `RUC ${p.ruc}`, p.telefono, p.contacto].filter(Boolean).join(" · ") || "Sin datos adicionales"}

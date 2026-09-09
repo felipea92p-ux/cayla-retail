@@ -53,7 +53,7 @@ function LoginForm() {
           <h1 className="font-display mt-5 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
             CAYLA
           </h1>
-          <p className="font-display mt-1 text-base italic text-taupe">Donde el estilo transforma.</p>
+          <p className="font-display mt-1 text-base italic text-taupe-profundo">Donde el estilo transforma.</p>
         </div>
 
         <div className="space-y-5">

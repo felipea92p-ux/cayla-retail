@@ -31,6 +31,19 @@
      4.39 y reprueba. Estos dos son los hermanos oscuros de la familia, como
      `rojo-profundo` ya lo era del rojo. */
   --color-verde-profundo: #44583a;
+  /* Taupe es el caso distinto de la familia: verde y ámbar SÍ pasaban sobre
+     crema y solo reprobaban sobre su propio tinte, pero `--color-taupe`
+     (#a47865) da 3.39:1 sobre crema y 3.21:1 sobre `bg-sand/40` — reprueba en
+     todos lados. Así que acá el hermano profundo no es "para el tinte": es el
+     taupe cuando es TEXTO, punto. Mismo tono (18.1°) y misma saturación, la
+     luminosidad baja de 52% a 40%. Da 5.23:1 sobre crema, 4.94 sobre sand/40 y
+     4.72 sobre taupe/10.
+       --color-taupe            → SOLO bordes y tintes (border-taupe/40). Nunca texto.
+       --color-taupe-profundo   → todo texto que antes era taupe.
+     Encontrado el 2026-09-09 midiendo el lateral; ADR-0012 no lo había visto
+     porque sus 9 usos viven en pantallas que necesitan sesión. Ver ADR-0017. */
+  --color-taupe-profundo: #805c4c;
+
   --color-ambar-profundo: #734f15;
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja

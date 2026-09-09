@@ -159,7 +159,7 @@ export function InventarioAgrupado({
                     <p className="text-sm font-medium text-tinta">
                       {p.referencia}
                       {tieneReponer && <span className="label-cayla ml-2 text-[10px] text-rojo">Reponer</span>}
-                      {tieneEstancado && <span className="label-cayla ml-2 text-[10px] text-taupe">Estancado</span>}
+                      {tieneEstancado && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">Estancado</span>}
                     </p>
                     <p className="mt-0.5 text-xs text-tinta/65">
                       {[p.familia, p.categoria, p.marca].filter(Boolean).join(" · ")}

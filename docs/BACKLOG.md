@@ -436,15 +436,9 @@ importante que ha entrado a este archivo desde que existe.
       pueden ver sin sesión más Facturación. Las de Finanzas, Inventario y Producción
       quedaron con el piso aplicado por sustitución mecánica pero SIN medición sobre
       el DOM renderizado. Vale una pasada de verificación cuando haya sesión de prueba.
-      **Hallazgo concreto del 09-sep:** `text-taupe` (#a47865) sobre crema da **3.39:1**
-      y reprueba AA — la promesa de ADR-0012 ("0 elementos reprueban") no lo cubría
-      porque los 9 usos viven en pantallas con sesión. Son: la firma "Donde el estilo
-      transforma." en `app/(app)/mas/page.tsx:42` y `app/login/page.tsx:56`, los chips
-      `text-[10px]` de `InventarioAgrupado.tsx:162`, `OrdenesProduccion.tsx:180/193/278/298`
-      y `finanzas/patrimonio/page.tsx:67`, y el score de `ProveedoresManager.tsx:223`.
-      En el lateral ya se resolvió pasando la firma a `tinta/65`. Decidir si taupe deja
-      de ser color de texto (solo bordes/tintes) o si se le crea un `taupe-profundo`,
-      como ya tienen verde, ámbar y rojo.
+      El hallazgo de taupe que salió acá el 09-sep ya está cerrado (ADR-0017,
+      `--color-taupe-profundo`); lo que queda es el barrido de las pantallas con
+      sesión, que es más ancho que ese solo color.
 - [ ] `SedeSwitcher`: con el lateral y el buscador ya en la gramática nueva (ADR-0014),
       el selector de sede quedó como el único control de la cabecera que sigue siendo un
       `<select>` nativo — en Windows dibuja su propia lista gris, que es exactamente lo
