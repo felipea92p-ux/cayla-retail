@@ -169,6 +169,19 @@ importante que ha entrado a este archivo desde que existe.
       y qué hacer con un correlativo reservado que nunca se transmitió.
       **Queda solo (b):** `LUCODE_TOKEN` y `LUCODE_ENTORNO` en Vercel —
       `produccion` SOLO en Production, `sandbox` en Preview y Development.
+      **SQL DE (a) Y (c) CORRIDO Y PROBADO EN LOCAL 2026-09-09.** `db reset`:
+      las 41 migraciones aplican en orden, las dos restricciones quedan
+      `VALIDADO` y `actualizar_transmision_comprobante` tiene una sola firma
+      (sin sobrecarga). Siete reglas probadas contra Postgres real. **Falta
+      pegar en producción `unificacion/23_...` y `24_...`** (en ese orden; la
+      24 depende de la 23), y probar la llamada real a Lucode en sandbox.
+      **Hallazgo nuevo — el local de la app no es el local del repo:** corren
+      dos stacks, `cayla-retail` (54421/54422) y `cayla-dynamic` (54321/54322),
+      y `apps/web/.env.local` apunta al de Dynamic, cuyo schema `retail` no
+      tiene `comprobantes`/`series_comprobantes`/`proformas`. Mientras siga
+      así, ninguna pantalla de Facturación se puede verificar en navegador
+      local. Decidir cuál de los dos es "el local" de este repo y dejarlo
+      escrito — hoy `supabase db reset` administra uno y la app lee el otro.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por

@@ -1,10 +1,14 @@
 # ADR-0016 — Anular un comprobante: dos caminos según el tipo, y solo el líder
 
 **Fecha:** 2026-09-09
-**Estado:** Código construido y verificado (tsc, eslint, 51 tests). SQL escrito,
-**sin correr todavía**: `supabase/migrations/0041_anular_comprobante.sql` (local)
-y `supabase/unificacion/24_anular_comprobante.sql` (producción). La llamada real
-a Lucode **no está probada contra el sandbox** — ver "Lo que falta confirmar".
+**Estado:** Aplicado y probado en local (2026-09-09). Siete reglas verificadas
+contra Postgres real, suplantando a la líder sembrada: no se marca aceptado sin
+ambiente; no se anula un pendiente; no se anula sin motivo; no se anula con una
+nota viva colgada; una baja en trámite NO escribe 'anulado'; una confirmada sí,
+con motivo y `anulado_por`. Código verificado (tsc, eslint, 51 tests).
+**Falta producción** (`supabase/unificacion/24_anular_comprobante.sql`) **y la
+llamada real a Lucode**, que sigue sin probarse contra el sandbox — ver "Lo que
+falta confirmar".
 
 ## Contexto
 

@@ -1,9 +1,11 @@
 # ADR-0015 — El comprobante guarda contra qué ambiente se transmitió
 
 **Fecha:** 2026-09-09
-**Estado:** Código construido y verificado (tsc, eslint, 51 tests). SQL escrito,
-**sin correr todavía** en ningún Postgres: `supabase/migrations/0040_comprobante_entorno_transmision.sql`
-(local) y `supabase/unificacion/23_comprobante_entorno_transmision.sql` (producción).
+**Estado:** Aplicado y probado en local (`supabase db reset`, 2026-09-09: las 41
+migraciones corren en orden y `0040` aplica limpia; restricción `VALIDADO` y una
+sola firma de `actualizar_transmision_comprobante`, sin sobrecarga). Código
+verificado (tsc, eslint, 51 tests). **Falta producción:**
+`supabase/unificacion/23_comprobante_entorno_transmision.sql` sin pegar.
 
 ## Contexto
 

@@ -1016,3 +1016,39 @@ ahí. Y hacerlo habría costado caro: `unstable_cache` corre fuera del contexto 
 así que `cookies()` revienta adentro, y un cliente anónimo chocaría con la política
 `sedes_select_autenticado`. Habría que debilitar RLS o meter una service key al proyecto
 para ganar cero. Se anota como idea muerta para que no se vuelva a proponer.
+
+## 2026-09-09 (0040 y 0041 corridas: el local no era lo que decía ser)
+Al ir a correr las migraciones apareció que `supabase_migrations` registraba hasta la
+0035 aplicada, pero `retail.comprobantes` no tenía `comprobante_original_id` ni
+`motivo` (columnas de la 0034) y `emitir_nota` no existía. El número registrado y el
+esquema real no coincidían — arrastre de la renumeración de migraciones que ADR-0009 ya
+documenta. Y por el diseño de ADR-0010 (el seed renombra `public`→`retail` DESPUÉS de
+migrar), `supabase migration up` no puede arreglarlo: aplicaría contra un `public`
+vacío. La única salida es `db reset`, que Felipe autorizó con el costo medido — 1
+comprobante de prueba, todo lo demás lo regenera el seed.
+
+Reset corrido: las 41 migraciones aplican en orden. Verificado en Postgres real, no por
+inspección: la restricción de ambiente y la de motivo quedan `VALIDADO` (el bloque que
+las valida solas funcionó), y `actualizar_transmision_comprobante` tiene UNA sola firma
+de 5 argumentos — el drop de la vieja evitó la sobrecarga que rompió PostgREST el 08-09.
+Después, siete reglas probadas suplantando a la líder sembrada: aceptado sin ambiente
+rechazado; anular un pendiente rechazado; anular sin motivo rechazado; anular con una
+nota viva rechazado; baja en trámite deja el estado en "aceptado" y solo pone
+`anulacion_solicitada_at`; baja confirmada escribe 'anulado' con motivo y `anulado_por`.
+
+**El hallazgo que queda para el proyecto:** hay DOS stacks locales corriendo —
+`cayla-retail` (API 54421 / DB 54422) y `cayla-dynamic` (54321 / 54322) — y
+`apps/web/.env.local` apunta al de **Dynamic**, cuyo schema `retail` no tiene
+`comprobantes` ni `series_comprobantes` ni `proformas`. O sea: el "local" que levanta
+la app y el "local" que administra `supabase db reset` desde este repo NO son la misma
+base. Por eso no se verificó la pantalla en navegador — y explica de dónde salía la
+sensación de que "en local no se ve lo que acabo de migrar". No se tocó `.env.local`:
+tiene los tokens de Felipe y la sesión de latencia está midiendo contra local ahora.
+
+**Lo que Felipe aprende acá:** "está aplicado" no es un hecho hasta que lo dice la base,
+no la tabla de migraciones. Acá el registro decía 0035 y el esquema decía otra cosa —
+y ese desfase es justo lo que hace que una migración "ya probada" falle en producción.
+Correrla contra un Postgres de verdad y preguntarle a `pg_constraint` y `pg_proc` qué
+quedó es la diferencia entre creer y saber.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
