@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 type Props = {
@@ -36,7 +37,7 @@ export function CerrarCajaModal({ cajaId, sedeCodigo, onClose }: Props) {
 
     setLoading(false);
     if (error || !data) {
-      setError(error?.message ?? "No se pudo cerrar la caja");
+      setError(traducirError(error, "cerrar la caja"));
       return;
     }
     setResultado({
