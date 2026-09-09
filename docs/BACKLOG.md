@@ -155,14 +155,31 @@ importante que ha entrado a este archivo desde que existe.
       `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
       las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
       el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
-- [ ] **Orden de pegado en producción, pendiente de Felipe (5 archivos, en este
-      orden exacto):** `unificacion/26` → `27` → `28` → `29` → `30`. Cada uno
-      depende del anterior: 26/27 reemplazan el mismo cuerpo de función (al revés
-      se pierde `ultima_venta`), 29 necesita los colores de 28, y 30 necesita el
-      ajuste con signo de 27 y los códigos de 29. Los pre-flight de `27` y `29`
-      hay que **correrlos y leerlos** antes: buscan stock negativo, movimientos en
-      cero, categorías desconocidas y variantes duplicadas. Si aparecen
-      duplicados, se resuelven uno por uno — nunca borrando.
+- [ ] **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
+      de producción **verificado contra la base el 2026-09-09** (no contra estos
+      documentos, que decían otra cosa): la `25`, la `26` y la `31` **ya están
+      aplicadas** — el encabezado de ADR-0020 decía que la 25 estaba pendiente
+      cuando su propio cuerpo dice que se aplicó, y nadie había registrado que la
+      26 ya se pegó. Faltan solo esas cuatro.
+      Cada una depende de la anterior: la 29 arma el código de cada prenda con el
+      código de color que crea la 28, y la 30 no puede registrar un conteo hacia
+      abajo sin el ajuste con signo de la 27.
+      **Los siete pre-flight se corrieron contra producción y dieron todos 0**
+      (stock negativo, stock_almacen negativo, movimientos en cero, movimientos
+      negativos que no son ajuste, categorías desconocidas, variantes duplicadas,
+      SKU repetidos). Las 37 categorías calzan exactas con los prefijos de la 29.
+      No hay nada que limpiar antes: se pueden pegar seguidas.
+      Guía paso a paso con el SQL listo para copiar:
+      `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
+      artifact "Lo que falta pegar".
+- [ ] **Dos colores escritos a mano que no calzan con los 29.** Los va a destapar
+      la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
+      (2 variantes) — 5 de las 19 variantes de producción. Arena es un color real
+      del catálogo de CAYLA y probablemente convenga agregarlo (`ARN`, familia
+      tierra); "azul" hay que decidir si es marino o claro. Mientras no tengan
+      color resuelto, esas 5 variantes **no reciben código corto** — es
+      deliberado (ADR-0025: el código no se inventa), y en cuanto se les asigne
+      color, `retail.fn_asignar_codigo_variante` se los da.
 - [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
       movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
       función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con

@@ -2,8 +2,11 @@
 
 **Fecha:** 2026-09-09
 **Estado:** aplicado y verificado en local
-(`supabase/migrations/0044_almacen_interno.sql`, `0045_ajuste_con_signo.sql`);
-pendiente de pegar en producción (`supabase/unificacion/26_…`, luego `27_…`)
+(`supabase/migrations/0044_almacen_interno.sql`, `0045_ajuste_con_signo.sql`).
+**`unificacion/26` ya está aplicado en producción** (verificado contra la base el
+2026-09-09: `fn_aplicar_movimiento` conserva la línea de `ultima_venta`).
+**`unificacion/27` sigue pendiente** — es el que trae la guarda del ajuste y las
+tres redes de no-negatividad, que producción todavía no tiene.
 
 ## Contexto
 
