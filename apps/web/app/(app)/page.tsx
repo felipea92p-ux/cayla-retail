@@ -5,6 +5,7 @@ import { getCajaAbierta } from "@/lib/finanzas";
 import { getPanelLider } from "@/lib/panel";
 import { BuscadorHero } from "@/components/BuscadorHero";
 import { Ayuda } from "@/components/Ayuda";
+import { TarjetaIndicador, normalizarSparkline } from "@/components/TarjetaIndicador";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -16,11 +17,14 @@ export default async function InicioPage() {
   const persona = await requirePersonaActual();
   const esLider = persona.rol === "lider";
 
-  const [{ variantes, alertasReposicion }, cajaAbierta, panel] = await Promise.all([
+  // El panel del Líder se arma sobre las MISMAS variantes que ya trae el catálogo
+  // (de ahí sale el inventario a costo), así que va después en vez de en paralelo:
+  // se cambia un viaje ligero a Supabase por dejar de releer `stock` entero.
+  const [{ variantes, alertasReposicion }, cajaAbierta] = await Promise.all([
     getCatalogoInteligente(persona),
     getCajaAbierta(persona.sedeId),
-    getPanelLider(persona),
   ]);
+  const panel = await getPanelLider(persona, variantes);
 
   const reponerYa = variantes.filter((v) => v.reponerYa).length;
   const estancados = variantes.filter((v) => v.estancado).length;
@@ -68,54 +72,87 @@ export default async function InicioPage() {
   }
 
   // ==================== Inicio de Líder: panel del día ====================
+  const cajas = panel?.cajasTiendas ?? [];
+  const cajasCerradas = cajas.filter((c) => !c.abierta).map((c) => c.codigo);
+  const valorAlmacen = panel?.valorAlmacenTotal ?? 0;
+
+  // Comparativo honesto: el mismo día de la semana pasada contado hasta esta
+  // misma hora (el porqué está en panel.ts). Sin base no se muestra nada — un
+  // "+100%" contra cero no informa, solo decora.
+  const ventasHoy = panel?.ventasHoyTotal ?? 0;
+  const baseSemanaPasada = panel?.ventasSemanaPasadaAEstaHora ?? 0;
+  const comparativoVentas =
+    baseSemanaPasada > 0
+      ? {
+          texto: `${ventasHoy >= baseSemanaPasada ? "+" : ""}${(((ventasHoy - baseSemanaPasada) / baseSemanaPasada) * 100).toFixed(0)}% vs. la semana pasada`,
+          positivo: ventasHoy >= baseSemanaPasada,
+        }
+      : undefined;
+
   return (
     <div className="space-y-10">
       <div>
         <p className="label-cayla text-[11px] text-tinta/65">Hoy</p>
-        <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>
-            <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.ventasHoyTotal ?? 0)}</p>
-            {panel && panel.ventasHoyPorSede.length > 0 && (
-              <p className="mt-1 text-xs text-tinta/65">
-                {panel.ventasHoyPorSede.map((s) => `${s.codigo} ${money(s.monto)}`).join(" · ")}
-              </p>
-            )}
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[11px] text-tinta/65">Cajas</p>
-            <div className="mt-2 space-y-1">
-              {(panel?.cajasTiendas ?? []).map((c) => (
-                <p key={c.codigo} className="text-sm">
-                  <span className="text-tinta/75">{c.codigo}</span>{" "}
-                  {c.abierta ? <span className="text-tinta">abierta</span> : <span className="text-rojo">cerrada</span>}
-                </p>
-              ))}
-            </div>
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[11px] text-tinta/65">Reponer ya
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <TarjetaIndicador
+            etiqueta="Ventas de hoy"
+            ayuda={
+              <Ayuda titulo="Ventas de hoy">
+                Lo vendido hoy en todas las sedes. La comparación es contra el MISMO día de la
+                semana pasada y solo hasta esta misma hora: un martes se parece a otro martes, y a
+                las 10am ninguna tienda vendió todavía su día entero. La línea de arriba son los
+                últimos 14 días.
+              </Ayuda>
+            }
+            valor={money(ventasHoy)}
+            comparativo={comparativoVentas}
+            sparkline={panel ? normalizarSparkline(panel.ventasSerie) : undefined}
+            pie={
+              panel && panel.ventasHoyPorSede.length > 0
+                ? panel.ventasHoyPorSede.map((s) => `${s.codigo} ${money(s.monto)}`).join(" · ")
+                : undefined
+            }
+          />
+          <TarjetaIndicador
+            etiqueta="Cajas"
+            valor={`${cajas.length - cajasCerradas.length} de ${cajas.length} abiertas`}
+            critico={cajasCerradas.length > 0}
+            alerta={cajasCerradas.length > 0 ? `${cajasCerradas.join(", ")} con la caja cerrada` : undefined}
+          />
+          <TarjetaIndicador
+            etiqueta="Reponer ya"
+            ayuda={
               <Ayuda titulo="Reponer ya">
                 Cuántas prendas están por agotarse según qué tan rápido se venden. No esperes a
                 quedarte en cero: estas necesitan pedido pronto. El detalle y cuánto comprar está en
                 Comercial.
               </Ayuda>
-            </p>
-            <p className="font-display mt-1 text-3xl text-rojo">{reponerYa}</p>
-            <p className="mt-1 text-xs text-tinta/65">{estancados} estancada{estancados === 1 ? "" : "s"}</p>
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[11px] text-tinta/65">Inventario a costo
+            }
+            valor={String(reponerYa)}
+            critico={reponerYa > 0}
+            pie={`${estancados} estancada${estancados === 1 ? "" : "s"}`}
+          />
+          <TarjetaIndicador
+            etiqueta="Inventario a costo"
+            ayuda={
               <Ayuda titulo="Inventario a costo">
-                Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. No
-                es pérdida, pero es dinero dormido: rinde cuando se vende, no antes.
+                Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó.
+                Cuenta lo que está en el piso de venta Y lo que sigue en el almacén sin bajar. No es
+                pérdida, pero es dinero dormido: rinde cuando se vende, no antes.
               </Ayuda>
-            </p>
-            <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.valorInventarioTotal ?? 0)}</p>
-            <Link href="/comercial" className="mt-1 inline-block text-xs text-tinta/65 hover:text-rojo">
-              Ver análisis →
-            </Link>
-          </div>
+            }
+            valor={money(panel?.valorInventarioTotal ?? 0)}
+            pie={
+              <>
+                <span className="block">
+                  {valorAlmacen > 0 ? `Incluye ${money(valorAlmacen)} en almacén` : "Incluye el almacén (hoy vacío)"}
+                </span>
+                <Link href="/comercial" className="mt-0.5 inline-block hover:text-rojo">
+                  Ver análisis →
+                </Link>
+              </>
+            }
+          />
         </div>
       </div>
 
