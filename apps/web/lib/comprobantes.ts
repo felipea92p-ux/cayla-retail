@@ -18,6 +18,10 @@ export type Comprobante = {
   estado: EstadoComprobante;
   entorno_transmision: EntornoTransmision;
   motivo_rechazo: string | null;
+  motivo_anulacion: string | null;
+  /** Con esto lleno y `estado` todavía "aceptado", la baja se pidió pero SUNAT
+   *  no la confirmó: el resumen diario de boletas se procesa diferido. */
+  anulacion_solicitada_at: string | null;
   created_at: string;
   sede_id: string;
 };
@@ -37,7 +41,7 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
   const { data } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, created_at, sede_id"
+      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, anulacion_solicitada_at, created_at, sede_id"
     )
     .gte("created_at", desde)
     .lt("created_at", hasta)

@@ -42,11 +42,19 @@ const ESTILO_PRUEBA = "border-dashed border-tinta/30 bg-tinta/5 text-tinta/75";
 function esPrueba(c: Comprobante) {
   return c.entorno_transmision === "sandbox";
 }
+// La baja se pidió pero SUNAT no la confirmó: el resumen diario de boletas se
+// procesa diferido. Decir "Anulado" acá sería adelantarse a SUNAT.
+function anulacionEnTramite(c: Comprobante) {
+  return c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
+}
 function etiquetaEstado(c: Comprobante) {
-  return esPrueba(c) ? `${ESTADO_ETIQUETA[c.estado]} · prueba` : ESTADO_ETIQUETA[c.estado];
+  const base = anulacionEnTramite(c) ? "Anulación en trámite" : ESTADO_ETIQUETA[c.estado];
+  return esPrueba(c) ? `${base} · prueba` : base;
 }
 function estiloEstado(c: Comprobante) {
-  return esPrueba(c) ? ESTILO_PRUEBA : ESTADO_ESTILO[c.estado];
+  if (esPrueba(c)) return ESTILO_PRUEBA;
+  if (anulacionEnTramite(c)) return "border-ambar/30 bg-ambar/10 text-ambar-profundo";
+  return ESTADO_ESTILO[c.estado];
 }
 
 function money(n: number) {
@@ -77,7 +85,7 @@ export function ComprobantesPanel({
   sedeActualId: string;
 }) {
   const router = useRouter();
-  const [modal, setModal] = useState<"emitir" | "serie" | null>(null);
+  const [modal, setModal] = useState<"emitir" | "serie" | "anular" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,6 +113,40 @@ export function ComprobantesPanel({
       setErrorTransmision({ id: comprobanteId, detalle: "No se pudo conectar con el servidor" });
     } finally {
       setTransmitiendoId(null);
+    }
+  }
+
+  // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
+  // pero `anular_comprobante` lo vuelve a exigir en la base.
+  const [anulando, setAnulando] = useState<Comprobante | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
+  const [errorAnulacion, setErrorAnulacion] = useState<string | null>(null);
+  const [enviandoAnulacion, setEnviandoAnulacion] = useState(false);
+
+  async function onAnular(e: React.FormEvent) {
+    e.preventDefault();
+    if (!anulando) return;
+    setEnviandoAnulacion(true);
+    setErrorAnulacion(null);
+    try {
+      const respuesta = await fetch("/api/lucode/anular", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comprobante_id: anulando.id, motivo: motivoAnulacion }),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        setErrorAnulacion(datos.error ?? "No se pudo anular");
+        return;
+      }
+      setModal(null);
+      setAnulando(null);
+      setMotivoAnulacion("");
+      router.refresh();
+    } catch {
+      setErrorAnulacion("No se pudo conectar con el servidor");
+    } finally {
+      setEnviandoAnulacion(false);
     }
   }
 
@@ -304,6 +346,7 @@ export function ComprobantesPanel({
               <tbody className="divide-y divide-tinta/5">
                 {comprobantes.map((c) => {
                   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
+                  const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
                   return (
                     <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
                       <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
@@ -328,8 +371,27 @@ export function ComprobantesPanel({
                           >
                             {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
                           </Boton>
+                        ) : puedeAnular ? (
+                          <Boton
+                            type="button"
+                            peso="discreto"
+                            onClick={() => {
+                              setAnulando(c);
+                              setMotivoAnulacion("");
+                              setErrorAnulacion(null);
+                              setModal("anular");
+                            }}
+                            className="px-2.5 py-1.5 text-[11px]"
+                          >
+                            Anular
+                          </Boton>
                         ) : (
                           <span className="text-tinta/65">—</span>
+                        )}
+                        {c.motivo_anulacion && (
+                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-tinta/65">
+                            {c.motivo_anulacion}
+                          </p>
                         )}
                         {errorTransmision?.id === c.id && (
                           <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
@@ -504,6 +566,60 @@ export function ComprobantesPanel({
               </Boton>
               <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Guardando…" : "Guardar"}
+              </Boton>
+            </div>
+          </form>
+          )}
+        </Modal>
+      )}
+
+      {/* ==================== Modal: anular ==================== */}
+      {modal === "anular" && anulando && (
+        <Modal titulo="Anular comprobante" onClose={cerrarModal}>
+          {(cerrar) => (
+          <form onSubmit={onAnular} className="mt-5 space-y-2">
+            <div className="border-l-2 border-rojo/50 pl-3">
+              <p className="font-display text-base text-tinta">
+                {ETIQUETA_TIPO[anulando.tipo]} {anulando.serie}-{String(anulando.numero).padStart(6, "0")}
+              </p>
+              <p className="text-xs leading-relaxed text-tinta/75">
+                {anulando.cliente_nombre ?? "Cliente varios"} · {money(Number(anulando.total))}
+              </p>
+            </div>
+
+            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+              {anulando.tipo === "boleta"
+                ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que el comprobante queda en “Anulación en trámite” hasta que confirme — no es un error."
+                : "Se envía la comunicación de baja a SUNAT. Si ya pasó el plazo, SUNAT la rechaza y hay que emitir una nota de crédito en vez de anular."}
+            </p>
+
+            <CampoTexto
+              etiqueta="Motivo"
+              ayuda={
+                <Ayuda titulo="Por qué se pide el motivo">
+                  Queda guardado en el comprobante, con tu nombre y la fecha. Anular es dar de baja
+                  un documento legal: dentro de seis meses, “se anuló” sin razón no le sirve a
+                  nadie. Sé concreto — “se emitió por error, la venta no se hizo” dice más que
+                  “error”.
+                </Ayuda>
+              }
+              required
+              minLength={3}
+              value={motivoAnulacion}
+              onChange={(e) => setMotivoAnulacion(e.target.value)}
+              placeholder="Se emitió por error, la venta no se hizo"
+            />
+
+            {errorAnulacion && (
+              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{errorAnulacion}</p>
+            )}
+
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+                Cancelar
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={enviandoAnulacion}>
+                {enviandoAnulacion ? "Anulando…" : "Anular"}
               </Boton>
             </div>
           </form>

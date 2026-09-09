@@ -36,6 +36,13 @@
 //     Verificar con una nota_debito real en sandbox antes de confiar en esto.
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
+//   - Anulación (paso c, 2026-09-09): que factura/notas van por
+//     `/api/v3/voided` y boletas por `/api/v3/daily-summary` con
+//     `accion_resumen: "anular"` está confirmado en `docs.apisunat.pe/llms-full.txt`.
+//     El plazo NO: una página dice 3 días, otra 5, y SUNAT habla de 7 — por eso
+//     el sistema no bloquea por fecha, deja que el proveedor rechace y muestra
+//     su motivo. Ni el nombre del campo `motivo` ni la forma de la respuesta
+//     del resumen diario están probados contra el sandbox real.
 
 export type EntornoLucode = "sandbox" | "produccion";
 
@@ -244,13 +251,35 @@ export async function consultarEstadoLucode(tipo: TipoDocumentoLucode, serie: st
   return traducirEstado(r.json);
 }
 
+/** Comunicación de Baja — el camino de SUNAT para anular facturas y notas.
+ *  NO sirve para boletas: esas van por el resumen diario, ver
+ *  `anularBoletaLucode`. El tipo lo hace imposible, no es una convención. */
 export async function anularDocumentoLucode(
   tipo: Exclude<TipoDocumentoLucode, "boleta">,
   serie: string,
   numero: number,
   motivo: string
 ): Promise<ResultadoLucode> {
-  const r = await llamar("/api/v3/voided", { documento: tipo, serie, numero, motivo_de_anulacion: motivo });
+  // El campo es `motivo`, no `motivo_de_anulacion`: la documentación de
+  // /voided lo lista con default "ANULACIÓN DE OPERACIÓN". El nombre anterior
+  // no aparece en ninguna página de docs.apisunat.pe — se corrigió al
+  // construir el paso (c), y sigue SIN probarse contra el sandbox real.
+  const r = await llamar("/api/v3/voided", { documento: tipo, serie, numero, motivo });
+  if (!r.ok) return r;
+  return traducirEstado(r.json);
+}
+
+/** Resumen Diario — el ÚNICO camino para dar de baja una boleta. SUNAT no
+ *  acepta comunicación de baja individual para boletas, y el resumen se
+ *  procesa de forma diferida: por eso la respuesta puede volver PENDIENTE y
+ *  quien llama no debe leer eso como "ya está anulada". */
+export async function anularBoletaLucode(serie: string, numero: number): Promise<ResultadoLucode> {
+  const r = await llamar("/api/v3/daily-summary", {
+    documento: "boleta",
+    serie,
+    numero,
+    accion_resumen: "anular",
+  });
   if (!r.ok) return r;
   return traducirEstado(r.json);
 }

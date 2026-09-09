@@ -893,3 +893,38 @@ Verificado: `tsc`, `eslint`, 51 tests y `next build` en verde. **Sin desplegar**
 commits sin subir y 3 son de otras sesiones — hacer push habría desplegado trabajo ajeno
 sin su visto bueno. La medición real del antes/después queda pendiente del despliegue;
 hasta entonces la mejora es una estimación, no un hecho.
+
+## 2026-09-09 (paso "c": el sistema ya sabe deshacer)
+Felipe eligió construir la anulación ANTES de darle credenciales de producción a las
+sedes — el orden correcto: el botón de facturar llega cuando ya existe el de deshacer.
+Investigado contra `docs.apisunat.pe/llms-full.txt`, no de memoria: SUNAT tiene DOS
+caminos, no uno. Factura y notas van por comunicación de baja (`/api/v3/voided`);
+las boletas NO se pueden dar de baja individualmente, van por resumen diario
+(`/api/v3/daily-summary` con `accion_resumen: "anular"`). El adaptador ya excluía
+`boleta` de su firma — quien lo escribió sabía que faltaba la otra mitad.
+
+Construido (ADR-0016): `anularBoletaLucode` en el adaptador, ruta `/api/lucode/anular`,
+RPC `anular_comprobante` con motivo obligatorio, `anulado_por` y `anulado_at`, y botón
++ modal en la fila. Tres reglas que valen más que el botón: "anulado" solo se escribe
+cuando SUNAT lo confirma (si el resumen diario vuelve PENDIENTE, la fila dice "Anulación
+en trámite"); no se anula un comprobante con notas vivas colgadas; y el sistema NO
+decide el plazo — la doc de Lucode se contradice (3 vs 5 días) y SUNAT habla de 7, así
+que se intenta y se muestra el rechazo textual del proveedor. Decisión de Felipe: anular
+es solo de líder, y la regla vive en la RPC, no en la pantalla.
+
+De paso se corrigió el nombre del campo del motivo en `/voided`: el adaptador mandaba
+`motivo_de_anulacion`, que no aparece en ninguna página de la documentación; el
+documentado es `motivo`. tsc, eslint y 51 tests en verde. **Nada de esto está probado
+contra el sandbox real ni corrido en Postgres** — Docker sigue abajo.
+
+**Lo que Felipe aprende acá:** cuando una API externa tiene dos caminos para lo que
+parece una sola acción, meterlos en una función con un `if` adentro no simplifica: hace
+que el próximo que lea el código asuma que anular una boleta y anular una factura son lo
+mismo. No lo son — una es síncrona y la otra la procesa SUNAT después. El código debe
+dejar ver la diferencia que el negocio ya tiene.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.** Archivos de esta
+sesión: `ComprobantesPanel.tsx`, `lib/lucode.ts`, `lib/comprobantes.ts`,
+`app/api/lucode/{emitir,anular}/route.ts`, `app/(app)/vender/facturacion/page.tsx`,
+`packages/database/src/types.ts`, `supabase/migrations/0040_*` y `0041_*`,
+`supabase/unificacion/23_*` y `24_*`, `docs/adr/0015-*` y `0016-*`, BACKLOG y BITÁCORA.

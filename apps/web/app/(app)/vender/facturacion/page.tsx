@@ -11,10 +11,12 @@ import { ProformasPanel } from "@/components/ProformasPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// Facturación electrónica (F3, parte 1 de 2 — ver docs/BACKLOG.md). Reserva
-// comprobantes con correlativo oficial ya mismo; el envío a SUNAT queda
-// pendiente de una decisión estructural (SEE propio vs. OSE) que Claude le
-// planteó a Felipe antes de construir esta pantalla.
+// Facturación electrónica. Reserva comprobantes con correlativo oficial y los
+// transmite a SUNAT por Lucode (PSE) desde la misma pantalla; anular es un
+// tercer paso aparte. Ver ADR-0005, ADR-0009, ADR-0015 y ADR-0016.
+// Toda la pantalla es de líder: emitir, transmitir y anular mueven documentos
+// legales, y el redirect de abajo es la primera de las tres capas que lo
+// exigen (pantalla, RPC, RLS).
 // Vive en Vender, no en Finanzas (movido 2026-09-03, pedido de Felipe): emitir
 // un comprobante cierra una venta, no es un reporte financiero.
 export default async function FacturacionPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {

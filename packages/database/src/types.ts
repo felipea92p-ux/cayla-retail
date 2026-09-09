@@ -349,6 +349,9 @@ export type Database = {
           cliente_num_doc: string | null
           cliente_tipo_doc: string
           comprobante_original_id: string | null
+          anulacion_solicitada_at: string | null
+          anulado_at: string | null
+          anulado_por: string | null
           created_at: string
           enviado_at: string | null
           entorno_transmision: string | null
@@ -358,7 +361,9 @@ export type Database = {
           items: Json | null
           moneda: string
           motivo: string | null
+          motivo_anulacion: string | null
           motivo_rechazo: string | null
+          respuesta_anulacion: Json | null
           numero: number
           respuesta_sunat: Json | null
           sede_id: string
@@ -374,6 +379,9 @@ export type Database = {
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
           comprobante_original_id?: string | null
+          anulacion_solicitada_at?: string | null
+          anulado_at?: string | null
+          anulado_por?: string | null
           created_at?: string
           enviado_at?: string | null
           entorno_transmision?: string | null
@@ -383,8 +391,10 @@ export type Database = {
           items?: Json | null
           moneda?: string
           motivo?: string | null
+          motivo_anulacion?: string | null
           motivo_rechazo?: string | null
           numero: number
+          respuesta_anulacion?: Json | null
           respuesta_sunat?: Json | null
           sede_id: string
           serie: string
@@ -399,6 +409,9 @@ export type Database = {
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
           comprobante_original_id?: string | null
+          anulacion_solicitada_at?: string | null
+          anulado_at?: string | null
+          anulado_por?: string | null
           created_at?: string
           enviado_at?: string | null
           entorno_transmision?: string | null
@@ -408,8 +421,10 @@ export type Database = {
           items?: Json | null
           moneda?: string
           motivo?: string | null
+          motivo_anulacion?: string | null
           motivo_rechazo?: string | null
           numero?: number
+          respuesta_anulacion?: Json | null
           respuesta_sunat?: Json | null
           sede_id?: string
           serie?: string
@@ -1740,6 +1755,15 @@ export type Database = {
       }
       eliminar_produccion: {
         Args: { p_produccion_id: string }
+        Returns: undefined
+      }
+      anular_comprobante: {
+        Args: {
+          p_comprobante_id: string
+          p_confirmada: boolean
+          p_motivo: string
+          p_respuesta?: Json
+        }
         Returns: undefined
       }
       actualizar_transmision_comprobante: {

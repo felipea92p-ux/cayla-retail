@@ -154,6 +154,21 @@ importante que ha entrado a este archivo desde que existe.
       legal por accidente. **Sigue (c):** anulación dentro del sistema
       (`anularDocumentoLucode` ya existe en el adaptador, sin ruta ni botón, y
       la RPC rechaza `anulado` a propósito).
+      **PASO (c) HECHO 2026-09-09 — ADR-0016, anulación dentro del sistema.**
+      Ruta `/api/lucode/anular` + RPC `anular_comprobante` (solo líder, motivo
+      obligatorio, `anulado_por`) + botón en la fila. Dos caminos según tipo,
+      como exige SUNAT: `/api/v3/voided` para factura/notas,
+      `/api/v3/daily-summary` con `accion_resumen: "anular"` para boletas
+      (verificado en `docs.apisunat.pe/llms-full.txt`). "Anulado" solo se
+      escribe con confirmación de SUNAT; si vuelve PENDIENTE la fila dice
+      "Anulación en trámite". **Falta correr el SQL** (`0041_anular_comprobante.sql`
+      local / `unificacion/24_...` producción) **y probar la llamada real en
+      sandbox** — el nombre del campo `motivo` en /voided y la forma de la
+      respuesta del resumen diario salen de la documentación, no de una
+      respuesta real. Abierto: cerrar solo el ciclo de una anulación en trámite,
+      y qué hacer con un correlativo reservado que nunca se transmitió.
+      **Queda solo (b):** `LUCODE_TOKEN` y `LUCODE_ENTORNO` en Vercel —
+      `produccion` SOLO en Production, `sandbox` en Preview y Development.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por
