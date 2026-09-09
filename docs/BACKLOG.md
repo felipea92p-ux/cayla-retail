@@ -247,8 +247,23 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **Fase 0 de latencia: la app corre en Washington y la base en São Paulo —
-      2026-09-09, decidido en ADR-0013, sin aplicar.** Diagnóstico medido: la base
+- [ ] **Fase 0 de latencia: escrita y verificada en local (commit `a7ca384`) —
+      FALTA DESPLEGAR Y VOLVER A MEDIR. 2026-09-09, ADR-0013.** Lo único que queda
+      es `git push` (hoy hay 6 commits sin subir, 3 de otras sesiones — no se
+      empujaron para no desplegar trabajo ajeno sin su visto bueno) y después
+      confirmar con `curl -sI <dominio>/login | grep -i x-vercel-id`: si dice
+      `gru1`, la región tomó; si sigue diciendo `iad1`, el Root Directory del
+      proyecto no es `apps/web` y hay que mover `vercel.json` a la raíz o fijar
+      la región desde el panel (Settings → Functions). **Medir el TTFB antes y
+      después de cada cambio por separado; el que no supere el ruido se revierte.**
+      Lo aplicado: (1) `apps/web/vercel.json` con `regions: ["gru1"]`;
+      (2) `Promise.all` en `getEstadoResultados` y `getDiarioCaja`, y `sedes`
+      pasó a salir de `getSedes()` cacheado — esa consulta desaparece, no se
+      paraleliza; (3) `getUser()` → `getClaims()` en `middleware.ts` y
+      `lib/persona.ts`. **El riesgo que se temía en (3) no existía:** el proyecto
+      ya firma con ES256 asimétrica (verificado en el JWKS), así que la validación
+      es local con WebCrypto y no hubo que tocar auth en producción.
+      Diagnóstico original, por si hay que rediscutirlo: Diagnóstico medido: la base
       responde en **0.862 ms** (19 variantes, 28 movimientos, <1 MB de schema) y el
       sistema tarda ~2 s. Todo el tiempo es red. `X-Vercel-Id: iad1::…` confirma que
       la función corre en Washington D.C. contra Supabase en `sa-east-1`; una página

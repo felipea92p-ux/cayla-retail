@@ -862,3 +862,34 @@ sesión: `ComprobantesPanel.tsx`, `lib/lucode.ts`, `lib/comprobantes.ts`,
 `supabase/migrations/0040_*.sql`, `supabase/unificacion/23_*.sql`, `docs/adr/0013-*`,
 BACKLOG y BITÁCORA. NO son de esta sesión y quedan sin tocar: `AppShell.tsx`,
 `globals.css`, `ui/campos.tsx`, `app/auth/`.
+
+## 2026-09-09 (Fase 0 aplicada — de la geografía al código)
+Felipe dio luz verde a la Fase 0 del ADR-0013 y se aplicó completa, con una advertencia
+suya: había varias sesiones trabajando en paralelo sobre el mismo árbol. Se verificó
+antes de escribir nada — las otras estaban en `lucode.ts`, `comprobantes.ts`,
+`AppShell.tsx`, `campos.tsx` y `globals.css`; la Fase 0 iba sobre `finanzas.ts`,
+`middleware.ts`, `persona.ts` y config. Cero cruce. (Detalle simpático: la sesión de
+"Rediseño inicio" reescribió `lib/panel.ts` haciendo la misma clase de optimización —
+quitar la relectura de `stock`, reusar `getSedes()` cacheado — sin coordinación previa.)
+
+Los tres cambios: (1) `apps/web/vercel.json` fija la región en `gru1`; el archivo va en
+`apps/web/` y no en la raíz porque el `package.json` raíz no declara `next` — si Vercel
+construyera desde ahí no detectaría el framework, y el middleware que sí corre hoy no
+existiría. Es una inferencia, no un dato leído: la config del proyecto Vercel da 403, así
+que se confirma tras desplegar mirando `X-Vercel-Id`. (2) `getEstadoResultados` pasó de 5
+consultas en fila india a `Promise.all` de 4, porque `sedes` salió de `getSedes()`
+cacheado — esa consulta desaparece del todo en vez de paralelizarse; `getDiarioCaja`
+igual, de 3 a una tanda. (3) `getUser()` → `getClaims()` en middleware y persona.
+
+Lo más útil del día fue una suposición que se cayó al verificarla. El ADR daba por hecho
+que (3) exigiría migrar el proyecto a claves JWT asimétricas — cambio de auth en
+producción, y encima compartido con Dynamic, así que se había planificado como el paso
+riesgoso, al final y por separado. Bastó pedir `/auth/v1/.well-known/jwks.json` para ver
+que **el proyecto ya firma con ES256 asimétrica**: la verificación ya podía ser local con
+WebCrypto y no había nada que migrar. La fase estuvo a punto de partirse en dos y de
+gastar una consulta a Felipe por un riesgo inexistente. Queda anotado en el ADR.
+
+Verificado: `tsc`, `eslint`, 51 tests y `next build` en verde. **Sin desplegar**: quedan 6
+commits sin subir y 3 son de otras sesiones — hacer push habría desplegado trabajo ajeno
+sin su visto bueno. La medición real del antes/después queda pendiente del despliegue;
+hasta entonces la mejora es una estimación, no un hecho.
