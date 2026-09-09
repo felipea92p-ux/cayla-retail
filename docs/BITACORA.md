@@ -1433,3 +1433,34 @@ Y no mejora el `/login` de 430 ms, que es CDN y no depende de la región de func
 
 **Sigue sin medirse lo único que importa:** el TTFB de una pantalla CON sesión iniciada.
 Es el número que todo este trabajo pretende bajar y nadie lo ha tomado nunca.
+
+## 2026-09-09 (por fin la medición real: la región funcionó y el costo no está en los datos)
+Con permiso de Felipe se midió desde su propio navegador, con sesión iniciada — lo único
+que faltaba y que ninguna medición anterior podía dar.
+
+**La región funcionó.** `x-vercel-id` en una petición que SÍ ejecuta función devuelve
+`iad1::gru1::…` — **dos** segmentos: el primero es el borde que recibió, el segundo es
+dónde ejecutó. `gru1` = São Paulo. Las mediciones con `curl` daban un solo segmento
+porque las respondía el proxy o el CDN sin llegar nunca a la función.
+
+**La pantalla real, con sesión:** navegación completa a `/inventario` con TTFB de **131 ms**
+y carga total de **750 ms** (HTML de 9.3 kB, conexión reutilizada). Forzando render dinámico
+por RSC: TTFB ~300-400 ms, total ~390-500 ms. O sea: el sistema está entre **300 y 750 ms**,
+no en los ~2 s que se venían asumiendo. Ese "~2 s" nunca existió como medición.
+
+**Y el hallazgo que manda:** se midieron cuatro rutas de peso muy distinto y **no hay
+correlación entre lo que la pantalla hace y lo que tarda**. `/mas` (47 líneas, casi solo
+enlaces, 11 kB) tardó 409 ms; `/comercial`, la más pesada del sistema (24.5 kB, catálogo +
+inteligencia + ABC + traslados), tardó 297 ms. La liviana es la más lenta.
+
+Eso significa que lo que queda **no es trabajo de datos: es sobrecosto fijo por petición** —
+consistente con los 0.86 ms que tarda la base. Y explica la estructura que queda: la
+petición entra por `iad1` (Washington) aunque la función corra en `gru1`, así que cada carga
+hace Perú → Washington → São Paulo → Washington → Perú. El desvío del borde no lo
+controlamos; la región de la función sí, y ya está donde debe.
+
+**Consecuencia para la Fase 2, y es a favor:** como el costo es por-petición y no por-dato,
+cachear datos no ayudaría — lo que ayuda es **no hacer la petición**, que es exactamente lo
+que hace local-first. El diagnóstico de ADR-0018 sobrevive a la medición. Lo que cambia es
+la magnitud del premio: pasa de "arreglar un sistema roto" a "volver instantáneo un sistema
+que ya responde decente". Eso ya no es decisión técnica, es de Felipe.
