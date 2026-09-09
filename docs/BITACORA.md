@@ -2005,3 +2005,39 @@ mismo día: escribir la regla no alcanza, hay que ponerla donde no se pueda salt
 
 **Nota de sesiones paralelas:** esta vez salió bien. La otra sesión construyó **sobre** el
 bloque 1 (`ce51374`: tradujo al castellano las dos redes que trajo `0045`) en vez de chocar.
+
+## 2026-09-09 (cierre: las tres pruebas pendientes, todas en verde)
+Con el Supabase local reiniciado por Felipe, se probaron las tres cosas que quedaban. Entorno
+montado otra vez en un worktree aparte (Next no permite dos `dev` en el mismo directorio) con
+las variables pasadas en línea, sin crear ningún `.env`.
+
+**Tropiezo del que vale aprender:** el primer intento seguía fallando, ahora con "Invalid
+schema: retail". La causa era mía: estaba apuntando al puerto **54321**, el default de
+Supabase, cuando `supabase/config.toml` de este repo define la API en **54421**. Es decir,
+estuve hablando todo el rato con OTRA instancia local de Supabase que también corre en esta
+máquina. El síntoma —"el schema retail no existe"— parecía un problema del repo y era un
+puerto equivocado. Mismo patrón del día: el instrumento apuntando al lugar equivocado.
+
+Con el puerto correcto, entrando como Líder (la sesión de `localhost` se comparte entre
+puertos, así que se heredó la de Felipe):
+
+1. **`(app)/error.tsx` — la barrera de sección.** Página de prueba que lanza desde `exigir()`:
+   sale "NO SE PUDO CARGAR / Esta pantalla no está mostrando datos", con Reintentar, Volver al
+   inicio y el código para logs. Y el detalle que confirma que es la de SECCIÓN y no la
+   global: el contenido salió dentro de `<main>` **con la navegación intacta** — solo se
+   reemplazó la pantalla, no la app entera.
+
+2. **`tolerar()` — la franja de aviso.** Rompiendo a propósito la consulta del historial de
+   `/vender` (columna inexistente, solo en el worktree): la caja **sigue operativa** —"Abre la
+   caja de AQP", con su botón— y debajo la franja: "No se pudo cargar las ventas de hoy. Lo
+   demás de esta pantalla sí está al día. Puedes seguir vendiendo con normalidad." Es
+   exactamente el intercambio que Felipe eligió: nunca dejar a una Encargada sin vender por un
+   historial.
+
+3. **El arreglo de `actions/sede.ts`.** El selector cambió de AQP a TRU y la pantalla lo
+   siguió ("VENDER · TRU", "Abre la caja de TRU"). Antes del arreglo esto no hacía nada en
+   local, en silencio, porque la acción comparaba contra `'admin'` y en local el rol es
+   `'lider'`.
+
+Con esto queda verificado en vivo TODO lo construido hoy salvo lo ya medido en producción.
+Entorno desmontado: servidor detenido, worktree eliminado, repo principal sin rastros.
