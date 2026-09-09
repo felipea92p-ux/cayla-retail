@@ -768,5 +768,9 @@ tabla — envejece igual y nadie lo revisa, porque no rompe ningún test. Este l
 cuatro días diciéndole a quien está en el mostrador que no había nada que hacer después
 de "Emitir", cuando faltaba exactamente un clic. Lo que sí sigue bloqueado no es el
 código: producción no tiene `LUCODE_TOKEN` en Vercel, así que en el deploy "Transmitir"
-responde `sin_credenciales` — y ahora `.env.local` tampoco lo tiene, porque
-`vercel env pull` lo sobrescribió.
+responde `sin_credenciales`. La máquina de Felipe sí puede transmitir
+(`apps/web/.env.local` tiene token y `LUCODE_ENTORNO=sandbox`) — el archivo que
+`vercel env pull` sobrescribió es el `.env.local` de la raíz, que Next no lee. Con
+`sandbox` ahí, un "Transmitir" de hoy queda "Aceptado" en la app sin haber llegado a
+SUNAT, y nada en `respuesta_sunat` dice de qué ambiente vino: eso es un estado
+inconsistente de verdad (principio 2), no un detalle de configuración.

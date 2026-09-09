@@ -1,10 +1,10 @@
 # ADR-0009 — `comprobantes.items` + conector Lucode (Fase 1 completa)
 
 **Fecha:** 2026-09-05
-**Estado:** Migración escrita y verificada en local (`0037_comprobantes_items.sql`,
-`0038_actualizar_transmision_comprobante.sql`), pendiente de pegar en producción
-(`supabase/unificacion/20_comprobantes_items.sql` y
-`21_actualizar_transmision_comprobante.sql`). Parte de la Fase 1 del plan de
+**Estado:** APLICADO. Migraciones verificadas en local
+(`0037_comprobantes_items.sql`, `0038_actualizar_transmision_comprobante.sql`) y
+**pegadas en producción el 2026-09-08** (`supabase/unificacion/20_comprobantes_items.sql`
+y `21_actualizar_transmision_comprobante.sql`, ver BITÁCORA de ese día). Parte de la Fase 1 del plan de
 reemplazo de Alegra (`~/.claude/plans/cozy-gathering-nova.md`).
 
 Nota de numeración: estas migraciones nacieron como `0035`/`0036` y
