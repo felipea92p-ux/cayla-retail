@@ -1,8 +1,9 @@
 # ADR-0026 — Cómo sabemos qué corrió en producción, y por qué la firma vieja se borra
 
 **Fecha:** 2026-09-09
-**Estado:** Aplicado (el verificador). **Pendiente de decisión de Felipe:** el arreglo de las
-cuatro funciones sobrecargadas, que es DDL en el proyecto compartido con Dynamic.
+**Estado:** Aplicado. El verificador está en `scripts/migraciones/`; las cuatro funciones
+sobrecargadas se arreglaron en local (`0049`) y **producción se midió el mismo día y estaba
+limpia**, así que no hubo DDL que decidir allá.
 **Afecta:** `scripts/migraciones/` (nuevo), y de aquí en adelante toda migración que cambie la
 firma de una función.
 
@@ -75,9 +76,29 @@ explain select retail.registrar_movimiento(p_variante_id => …, p_sede_id => �
 Con `p_contenedor_id` agregado resuelve bien. O sea: en la base local, **una devolución al
 almacén funciona y un ajuste, una merma o un traslado normal no** — porque `MovimientoModal`
 solo manda `p_contenedor_id` cuando es devolución, y `supabase-js` borra del JSON las claves
-`undefined`. La misma forma explica dos cosas que el BACKLOG atribuía a otra causa:
-`recibir_lote` no aparece en los tipos generados, y `RecibirLoteForm` "siempre falla cuando se
-usa".
+`undefined`.
+
+### La corrección que trajo medir producción (mismo día)
+
+Al escribir esto se dio por hecho que producción tendría lo mismo, y que eso explicaba dos
+pendientes del BACKLOG (`recibir_lote` fuera de los tipos generados, y `RecibirLoteForm`
+"siempre falla cuando se usa"). **Felipe corrió la consulta y producción NO tiene ninguna
+función duplicada.** Esa inferencia era falsa para producción: allá esos dos síntomas tienen
+otra causa, todavía sin diagnosticar. En local el problema sí era real y sí está arreglado.
+
+**Y el porqué de la divergencia vale más que el bug.** Las dos bases se construyen por caminos
+distintos:
+
+- **Local** replica el historial completo. `0002_functions.sql` crea `registrar_movimiento` con
+  10 argumentos y `0008_almacen.sql` la redefine con 12 — `create or replace` con firma nueva no
+  reemplaza, así que la de 10 queda viva para siempre en cada `db reset`.
+- **Producción** nunca vio ese historial. `unificacion/07_funciones_operacion.sql:55` la define
+  **una sola vez**, ya con las 12. Recibió el estado final consolidado, no la secuencia.
+
+De ahí la conclusión incómoda: **la base local no es una réplica fiel de producción**, y la
+diferencia no es de datos sino de forma. Un bug encontrado en local puede no existir allá —
+acaba de pasar— y uno de producción puede no reproducirse acá. Es el costo real de la deuda de
+migraciones duales que el BACKLOG ya tenía anotada, ahora con un caso concreto detrás.
 
 **La regla, desde hoy:** toda migración que le agregue o quite un argumento a una función
 existente lleva su `drop function <nombre>(<tipos de la firma vieja>);` en el mismo archivo, con
@@ -89,9 +110,11 @@ los tipos explícitos. Sin eso, `create or replace` no es un reemplazo: es una b
   rojo permanente sin acción clara; el día que entre, se decide ahí qué convierte en fallo.
 - Empareja por nombre pelado, sin schema. Dos objetos homónimos en schemas distintos se
   confundirían — precio aceptado a cambio de que el mismo objeto se reconozca entre entornos.
-- **Lo que este ADR NO hace: arreglar las cuatro sobrecargas.** Borrar funciones en producción es
-  DDL en el proyecto compartido con Dynamic, o sea "parar y confirmar con Felipe" (CLAUDE.md), y
-  además hay otra sesión escribiendo migraciones en paralelo. Queda el diagnóstico, la prueba y
-  la orden exacta; la decisión es de él.
-- Falta saber si producción tiene las mismas cuatro. Se responde corriendo `inventario.sql` allá
-  — que es, precisamente, para lo que existe.
+- **El arreglo se escribió, pero no se corrió en producción, y resultó ser lo correcto.** Borrar
+  funciones allá es DDL en el proyecto compartido con Dynamic — "parar y confirmar con Felipe"
+  (CLAUDE.md). Se le entregó primero la comprobación de diez segundos, no el script: medir salió
+  más barato que arreglar, y evitó correr un DDL destructivo sobre una base que no lo necesitaba.
+- **Producción verificada limpia el 2026-09-09**: cero funciones con más de una firma en
+  `retail`. `supabase/unificacion/31_…sql` queda como remedio en reserva, no como pendiente —
+  su cabecera lo dice. La consulta que lo comprueba está en esa misma cabecera y tarda diez
+  segundos; vale repetirla cada vez que se toque la firma de una función.

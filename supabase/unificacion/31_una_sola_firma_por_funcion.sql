@@ -3,6 +3,16 @@
 -- Correr en cayla-DYNAMIC (SQL Editor). Todo en el cajón `retail`.
 -- Gemelo de `supabase/migrations/0049_una_sola_firma_por_funcion.sql`.
 --
+-- ⚠ NO HIZO FALTA. Verificado en producción el 2026-09-09: cero funciones con más
+--   de una firma en `retail`. Producción nunca acumuló duplicados porque no
+--   replicó el historial de migraciones — `unificacion/07_funciones_operacion.sql`
+--   define `registrar_movimiento` una sola vez, ya con sus 12 argumentos. El
+--   problema era exclusivo de la base LOCAL, que sí replica todo (ADR-0026).
+--
+--   Este archivo queda como REMEDIO EN RESERVA, no como pendiente. Si algún día la
+--   comprobación de abajo devuelve filas, esto lo arregla — pero primero se ajustan
+--   las firmas de la lista a las que existan de verdad allá.
+--
 -- ANTES DE CORRERLO, la comprobación de 10 segundos. Pega SOLO esto y mira qué
 -- responde (`explain` no ejecuta nada, solo resuelve la llamada):
 --

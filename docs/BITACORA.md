@@ -2161,3 +2161,26 @@ y no pasaba nada — indistinguible de "no tienes permiso". Ahora revienta y se 
 
 79 pruebas (subieron de 68 con trabajo de otras sesiones), eslint sin un solo warning, `tsc`
 y `next build` en verde.
+
+## 2026-09-09 (producción estaba limpia, y eso enseñó más que el bug)
+Felipe corrió la comprobación en el SQL Editor de Dynamic: **cero funciones con más de
+una firma en `retail`**. La inferencia que yo había escrito horas antes —que las
+sobrecargas explicaban que `recibir_lote` no esté en los tipos generados y que
+`RecibirLoteForm` "siempre falla cuando se usa"— era falsa para producción. Corregido en
+ADR-0026 y en el BACKLOG: allá esos dos síntomas siguen sin causa conocida, y el arreglo
+`0049` valió solo para local, donde el problema sí era real.
+
+**Lo que Felipe aprendió y no era obvio, y vale más que el bug:** las dos bases se
+construyen por caminos distintos. Local replica el historial COMPLETO —`0002_functions`
+crea `registrar_movimiento` con 10 argumentos, `0008_almacen` la redefine con 12, y como
+`create or replace` con firma nueva no reemplaza, la de 10 sobrevive a cada `db reset`—.
+Producción nunca vio esa secuencia: `unificacion/07_funciones_operacion.sql:55` la define
+UNA sola vez, ya con las 12. O sea que **la base local no es una réplica fiel de
+producción**, y la diferencia no está en los datos sino en la forma del schema. Un bug
+encontrado en local puede no existir allá (acaba de pasar) y uno de producción puede no
+reproducirse acá. Es el costo real, con un caso concreto detrás, de la deuda de
+migraciones duales que el BACKLOG ya tenía anotada.
+
+Y una lección de método: la afirmación "esto explica aquello" es una hipótesis hasta que
+alguien la mide. Estaba escrita en un ADR con tono de hecho. Medir costó diez segundos.
+

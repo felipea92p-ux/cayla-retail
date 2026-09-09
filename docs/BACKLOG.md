@@ -621,7 +621,7 @@ importante que ha entrado a este archivo desde que existe.
       de drift (con ADR-0004 y las categorías de `04_catalogo.sql`) — lo que
       falta no es arreglar el siguiente, es dejar de no saber qué corrió en
       producción (ver la deuda de `registro de migraciones aplicadas` abajo).
-- [ ] **CUATRO FUNCIONES TIENEN DOS O TRES FIRMAS VIVAS, y una llamada normal no resuelve.**
+- [x] **RESUELTO — CUATRO FUNCIONES TENÍAN DOS O TRES FIRMAS VIVAS EN LOCAL. Producción estaba limpia.**
       Encontrado 2026-09-09 por `pnpm migraciones:verificar` en su primera corrida, contra la
       base LOCAL: `registrar_movimiento` (10 y 12 args), `recibir_lote` (6, 7 y 8),
       `registrar_produccion` (11, 13 y 15), `crear_producto_con_variantes` (7 y 8). Probado con
@@ -629,8 +629,15 @@ importante que ha entrado a este archivo desde que existe.
       `function is not unique`. En la práctica, en local, **una devolución al almacén funciona y
       un ajuste, una merma o un traslado normal no** — `MovimientoModal` solo manda
       `p_contenedor_id` cuando es devolución, y `supabase-js` borra las claves `undefined`.
-      Explica además dos cosas que este BACKLOG atribuía a otra causa: que `recibir_lote` no
-      esté en los tipos generados, y que `RecibirLoteForm` "siempre falla cuando se usa".
+      **Corrección del mismo día, y es importante:** se dio por hecho que esto explicaba que
+      `recibir_lote` no esté en los tipos generados y que `RecibirLoteForm` "siempre falla
+      cuando se usa". Felipe corrió la consulta y **producción no tiene ninguna función
+      duplicada**, así que allá esos dos síntomas siguen sin causa conocida. El motivo de la
+      divergencia: local replica el historial completo (`0002` crea la de 10 args, `0008` la
+      redefine con 12 y la vieja queda viva), y producción recibió el estado final consolidado
+      —`unificacion/07_funciones_operacion.sql:55` la define UNA vez con 12—. O sea: **la base
+      local no es una réplica fiel de producción**, y no por los datos sino por la forma. Es el
+      costo concreto de la deuda de migraciones duales.
       **Falta saber si producción tiene lo mismo** — se responde corriendo
       `scripts/migraciones/inventario.sql` allá.
       **ARREGLO LISTO, falta pegarlo.** `supabase/migrations/0049_una_sola_firma_por_funcion.sql`
