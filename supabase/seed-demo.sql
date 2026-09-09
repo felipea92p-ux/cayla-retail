@@ -134,6 +134,12 @@ from (values
   ( 7, 17, 50, 'TRU', 'DEMO-ARE-U', 3, 'yape'),
   ( 7, 19, 10, 'AQP', 'DEMO-BLA-M', 1, 'transferencia'),
   ( 6, 18,  0, 'TRU', 'DEMO-BLU-M', 1, 'efectivo'),
+  -- Estas tres dejan la talla L en CERO en AQP mientras a TRU le sobran 9: es el
+  -- caso que dispara la sugerencia de traslado del Inicio. Sin una sede en cero,
+  -- ese bloque no tiene nada que decir y no aparece.
+  ( 6, 17, 30, 'AQP', 'DEMO-BLU-L', 3, 'efectivo'),
+  ( 4, 16,  0, 'AQP', 'DEMO-BLU-L', 2, 'yape'),
+  ( 2, 19,  0, 'AQP', 'DEMO-BLU-L', 2, 'pos'),
   ( 5, 16, 40, 'AQP', 'DEMO-BLU-M', 2, 'pos'),
   ( 5, 19,  0, 'TRU', 'DEMO-BLU-S', 2, 'efectivo'),
   ( 4, 17, 10, 'TRU', 'DEMO-BLU-M', 3, 'efectivo'),
@@ -206,6 +212,15 @@ from (
   group by variante_id, sede_id
 ) m
 where m.variante_id = s.variante_id and m.sede_id = s.sede_id;
+
+-- Un límite por sede puesto a mano (lo que en la app se fija en
+-- /producto/[varianteId] con la RPC `fijar_stock_minimo`). TRU se queda con 2
+-- blusas talla M y su límite es 5: el Inicio debe sugerir el traslado AUNQUE
+-- TRU no esté en cero. Es el caso que la regla vieja —"solo si está en cero"—
+-- no veía. La talla L queda como el otro caso, el de cero exacto en AQP.
+update stock set stock_minimo = 5
+where variante_id = (select id from variantes where sku = 'DEMO-BLU-M')
+  and sede_id = (select id from sedes where codigo = 'TRU');
 
 -- ==================== 6. Pendientes ====================
 -- Lo que alimenta la bandeja del Inicio. Cada fila es un estado que en la

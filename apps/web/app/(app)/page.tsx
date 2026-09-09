@@ -21,7 +21,7 @@ export default async function InicioPage() {
   // El panel del Líder se arma sobre las MISMAS variantes que ya trae el catálogo
   // (de ahí sale el inventario a costo), así que va después en vez de en paralelo:
   // se cambia un viaje ligero a Supabase por dejar de releer `stock` entero.
-  const [{ variantes, alertasReposicion }, cajaAbierta, pendientes] = await Promise.all([
+  const [{ variantes, alertasReposicion, alertasTraslado }, cajaAbierta, pendientes] = await Promise.all([
     getCatalogoInteligente(persona),
     getCajaAbierta(persona.sedeId),
     getPendientes(persona),
@@ -197,6 +197,40 @@ export default async function InicioPage() {
                 </Link>
               </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {/* `alertasTraslado` se calculaba en inteligencia.ts desde que ese archivo existe
+          y no lo leía ninguna pantalla. Es lo más barato del Inicio: viene en la misma
+          llamada que ya se hacía, sin una consulta más. */}
+      {alertasTraslado.length > 0 && (
+        <div className="card-cayla p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="label-cayla text-[11px] text-tinta/65">Mover entre tiendas</h2>
+            <Link href="/inventario" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+              Ver inventario →
+            </Link>
+          </div>
+          <ul className="space-y-2 text-sm">
+            {alertasTraslado.slice(0, 5).map((v) => {
+              const t = v.sugerenciaTraslado;
+              if (!t) return null;
+              return (
+                <li key={v.varianteId}>
+                  <Link href={`/producto/${v.varianteId}`} className="text-tinta transition-colors hover:text-rojo">
+                    {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
+                    <span className="text-tinta/65">
+                      {t.sedeOrigenCodigo} → {t.sedeDestinoCodigo} ·{" "}
+                      {t.limiteDestino > 0
+                        ? `${t.sedeDestinoCodigo} tiene ${t.stockDestino}, su mínimo es ${t.limiteDestino}`
+                        : `${t.sedeDestinoCodigo} está en cero`}{" "}
+                      · a {t.sedeOrigenCodigo} le sobran {t.sobranteOrigen}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

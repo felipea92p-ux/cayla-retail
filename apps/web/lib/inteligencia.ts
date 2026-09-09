@@ -9,6 +9,12 @@ export type SugerenciaTraslado = {
   sedeDestinoCodigo: string;
   sedeOrigenCodigo: string;
   stockOrigen: number;
+  /** Lo que hay hoy en la sede que necesita. */
+  stockDestino: number;
+  /** El límite de esa sede: el suyo propio si alguien lo fijó, si no el general. */
+  limiteDestino: number;
+  /** Cuántas puede ceder el origen sin bajar de su propio límite. */
+  sobranteOrigen: number;
 };
 
 export type VarianteInteligente = VarianteConStock & {
@@ -119,14 +125,35 @@ export async function getCatalogoInteligente(
     // así que se evalúa cada sede como posible destino, no solo persona.sedeCodigo.
     let sugerenciaTraslado: SugerenciaTraslado | null = null;
     if (verMonto) {
+      // El límite lo pone la encargada por sede en /producto/[varianteId] (RPC
+      // `fijar_stock_minimo`). Dejarlo vacío significa "usa el mínimo general"
+      // — es lo que promete `MinimosPorSede` y lo que se respeta acá.
+      const limiteDe = (codigo: string) => v.minimoPorSede[codigo] ?? v.stockMinimo;
+
       let mejor: SugerenciaTraslado | null = null;
       Object.entries(v.stockPorSede)
-        .filter(([, cantidad]) => cantidad === 0)
-        .forEach(([sedeDestino]) => {
+        // Destino: la sede cayó por debajo de SU propio límite (decisión de
+        // Felipe, 2026-09-09). Antes solo avisaba con la sede en cero exacto,
+        // y una tienda con 1 unidad de algo que vuela está casi igual de mal.
+        // El `max(limite, 1)` conserva la regla vieja cuando no hay límite
+        // fijado: nada de lo que hoy avisa deja de avisar.
+        .filter(([codigo, cantidad]) => cantidad < Math.max(limiteDe(codigo), 1))
+        .forEach(([sedeDestino, stockDestino]) => {
           Object.entries(v.stockPorSede).forEach(([sedeOrigen, cantidad]) => {
             if (sedeOrigen === sedeDestino) return;
-            if (cantidad >= Math.max(2 * v.stockMinimo, 2) && (!mejor || cantidad > mejor.stockOrigen)) {
-              mejor = { sedeDestinoCodigo: sedeDestino, sedeOrigenCodigo: sedeOrigen, stockOrigen: cantidad };
+            // El origen tampoco puede quedar por debajo del suyo: tapar un hueco
+            // abriendo otro no es una sugerencia, es mover el problema de tienda.
+            const sobranteOrigen = cantidad - limiteDe(sedeOrigen);
+            if (sobranteOrigen < 1 || cantidad < 2) return;
+            if (!mejor || sobranteOrigen > mejor.sobranteOrigen) {
+              mejor = {
+                sedeDestinoCodigo: sedeDestino,
+                sedeOrigenCodigo: sedeOrigen,
+                stockOrigen: cantidad,
+                stockDestino,
+                limiteDestino: limiteDe(sedeDestino),
+                sobranteOrigen,
+              };
             }
           });
         });
@@ -155,9 +182,19 @@ export async function getCatalogoInteligente(
     .sort((a, b) => (b.reorderPoint - b.stockTotal) - (a.reorderPoint - a.stockTotal))
     .slice(0, 8);
 
+  // Primero la sede que más lejos quedó de su límite, no la que más tiene para
+  // ceder: lo urgente es el hueco, no el excedente.
+  const faltanEnDestino = (v: VarianteInteligente) => {
+    const t = v.sugerenciaTraslado;
+    return t ? Math.max(t.limiteDestino, 1) - t.stockDestino : 0;
+  };
   const alertasTraslado = resultado
     .filter((v) => v.sugerenciaTraslado)
-    .sort((a, b) => (b.sugerenciaTraslado?.stockOrigen ?? 0) - (a.sugerenciaTraslado?.stockOrigen ?? 0))
+    .sort(
+      (a, b) =>
+        faltanEnDestino(b) - faltanEnDestino(a) ||
+        (b.sugerenciaTraslado?.sobranteOrigen ?? 0) - (a.sugerenciaTraslado?.sobranteOrigen ?? 0)
+    )
     .slice(0, 8);
 
   return { ventanaDias, variantes: resultado, alertasReposicion, alertasTraslado };

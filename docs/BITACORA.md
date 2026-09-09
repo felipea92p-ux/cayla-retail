@@ -1305,3 +1305,36 @@ dejó registrada una trampa real: al sembrar comprobantes a mano hay que mover
 `series_comprobantes.siguiente_numero`, o la primera boleta emitida desde la
 pantalla choca contra el `unique(tipo, serie, numero)` — el mismo problema que
 dejó B004-000001 en producción el 05-09.
+
+## 2026-09-09 (Inicio, paso 3 — el traslado deja de mirar el cero y mira el límite)
+
+El paso iba a ser el más barato del plan: mostrar `alertasTraslado`, que
+`inteligencia.ts` calculaba desde que existe y no leía ninguna pantalla —
+trabajo pagado y tirado, cero consultas nuevas para rescatarlo. Al explicarle a
+Felipe la limitación del algoritmo (solo avisa con una sede en CERO exacto, así
+que una tienda con 1 unidad de algo que vuela no aparece nunca), decidió
+cambiar la regla: **que el aviso lo dispare el límite que cada sede fija, no el
+cero.**
+
+Lo bueno es que ese límite ya existía entero y nadie lo estaba aprovechando:
+`stock.stock_minimo` se fija por sede desde `/producto/[varianteId]` con la RPC
+`fijar_stock_minimo` (componente `MinimosPorSede`, Fase B), pero solo alimentaba
+"reponer ya". El traslado lo ignoraba. O sea que la función que Felipe pedía ya
+estaba a medio construir hacía meses, en el lado del negocio, sin conectar.
+
+**Lo que Felipe aprendió y no era obvio:** cambiar un umbral obliga a cambiar
+también la explicación. Con la regla vieja el motivo era evidente y no había
+nada que decir ("está en cero"). Con un límite configurable, el mismo número
+significa cosas distintas en cada tienda: 2 blusas están bien en una sede con
+límite 1 y mal en una con límite 5. Por eso la línea ahora dice el porqué —
+"TRU tiene 2, su mínimo es 5"— y no solo el número. Un aviso configurable que no
+dice contra qué se configuró es un aviso que nadie sabe si creer.
+
+Dos decisiones que se tomaron de paso, ambas consecuencia de la de Felipe y no
+opcionales: (1) `max(límite, 1)` conserva el comportamiento viejo donde nadie
+fijó un límite, así que nada de lo que avisaba hoy deja de avisar — y respeta lo
+que `MinimosPorSede` le promete a la usuaria, que vacío significa "usa el mínimo
+general", no cero; (2) el origen tampoco puede quedar por debajo del suyo:
+tapar un hueco abriendo otro no es una sugerencia, es mover el problema de
+tienda. Y el orden pasó a ser por lo que le FALTA al destino, no por lo que le
+sobra al origen: lo urgente es el hueco, no el excedente.
