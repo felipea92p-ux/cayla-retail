@@ -481,11 +481,6 @@ importante que ha entrado a este archivo desde que existe.
 - [ ] `finanzas`: el costo de lo vendido usa el costo VIGENTE de cada prenda, no el
       costo del día de la venta. Inofensivo mientras los costos sean estables (nota
       del 17-jul); si algún día se mueven, distorsiona el histórico de EERR pasados.
-- [ ] `AppShell`: el panel "+ Nuevo" (`MenuNuevo`) sigue sin atrapar el foco (no es
-      un `Modal` de Radix: es un menú anclado, no un diálogo). El 2026-09-09 se le
-      agregó `Escape`, clic afuera, devolución de foco al botón que lo abrió y foco de
-      entrada al panel (ADR-0014), que era el 95% de lo que faltaba. Si algún día crece
-      en opciones, ahí sí corresponde `role="menu"` completo o migrarlo a `Modal`.
 - [ ] Contraste: el barrido del 08-sep (ADR-0012) midió solo las pantallas que se
       pueden ver sin sesión más Facturación. Las de Finanzas, Inventario y Producción
       quedaron con el piso aplicado por sustitución mecánica pero SIN medición sobre

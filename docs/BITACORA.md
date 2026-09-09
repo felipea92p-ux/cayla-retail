@@ -1142,3 +1142,27 @@ que no es el propio, donde el nombre de una función (`fn_es_lider` en local,
 `es_lider` en producción) no es el mismo.
 
 **SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
+
+## 2026-09-09 (el "+ Nuevo" es un menú, no un diálogo — ADR-0019)
+Tercero y último de los pendientes que quedaron del lateral. La pregunta "¿lo migramos a
+`Modal`?" se había reabierto tres veces (ADR-0003 lo dejó afuera a propósito, ADR-0014 lo
+resolvió a medias), así que esta vez quedó como ADR en lugar de comentario. La respuesta
+es no, y no por ahorrar: atrapar el foco es el patrón de un DIÁLOGO. Un menú hace lo
+contrario — el tabulador lo cierra y sigue de largo.
+
+Lo que seguía roto no era la falta de trampa de foco: era que Tab recorría las cinco
+opciones y después seguía por la app de atrás, tapada por el velo pero entera tabulable.
+Quien navega con teclado terminaba escribiendo en un formulario que no podía ver. Se
+implementó el patrón menu button completo: `role="menu"`/`menuitem`, `aria-haspopup="menu"`
+en los dos disparadores, flechas con vuelta, Inicio/Fin, Espacio (Enter ya andaba solo,
+son `<a>`), tipeo para saltar, y Tab cerrando. El teclado es el mismo de `CampoSelect`:
+se levantó de ahí, no se inventó, así que se comporta igual.
+
+Una diferencia con la letra del patrón, asumida: la W3C dice que Tab mueve al siguiente
+elemento de la página; acá devuelve el foco al botón que abrió. Cuesta un Tab más y evita
+arrastrar para siempre un buscador de "próximo tabulable" por un menú de cinco opciones.
+Verificado en navegador con ruta de prueba temporal (borrada al cerrar): flechas con
+vuelta en los dos sentidos, Inicio/Fin, "b" saltando a "Bajar a tienda", Espacio navegando
+de verdad, y Tab y Escape cerrando con el foco de vuelta en el botón sin caer en el enlace
+de atrás. tsc, eslint y 63 tests en verde. Con esto quedan cerradas las tres cosas que el
+lateral había dejado anotadas.

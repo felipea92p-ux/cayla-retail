@@ -159,8 +159,29 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
   );
 }
 
+/* ------------------------------------------------------------------
+   MenuNuevo — el panel del botón "+ Nuevo".
+
+   NO es un `Modal` de Radix a propósito, y no por ahorrar: atrapar el
+   foco es el patrón de un DIÁLOGO. Un menú hace lo contrario — el
+   tabulador lo CIERRA y sigue de largo. Migrarlo a `Modal` le pondría
+   el comportamiento de otra cosa.
+
+   Lo que sí seguía faltando (BACKLOG desde ADR-0003) era el teclado del
+   patrón menu button: flechas entre opciones, Inicio/Fin, Espacio para
+   activar, tipeo para saltar, y sobre todo que Tab no recorriera el
+   panel para terminar dentro de la app que está detrás del velo —
+   visualmente bloqueada, pero perfectamente tabulable.
+
+   El teclado es el mismo de `CampoSelect` (campos.tsx), lo que también
+   quiere decir que se comporta igual: se levantó de ahí, no se inventó.
+   Una diferencia con el patrón de la W3C, asumida: ahí Tab cierra y
+   mueve al SIGUIENTE elemento de la página; acá cierra y devuelve el
+   foco al botón que abrió. Cuesta un Tab más y evita tener que
+   arrastrar un buscador de "próximo elemento tabulable" para un menú
+   de cinco opciones. Nunca deja el foco flotando, que era el problema.
+   ------------------------------------------------------------------ */
 function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void }) {
-  const panel = useRef<HTMLDivElement>(null);
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
     { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo o lote al almacén" },
@@ -173,9 +194,19 @@ function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void
       : []),
   ];
 
-  // Escape cierra (pendiente del BACKLOG desde ADR-0003) y el foco entra al
-  // panel: se abre desde el final del árbol, así que sin esto el tabulador
-  // seguía recorriendo la app de atrás antes de llegar a las opciones.
+  const [activo, setActivo] = useState(0);
+  const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+  const tipeo = useRef({ texto: "", reloj: 0 });
+
+  // El foco entra al panel al abrirse: se monta al final del árbol, así que
+  // sin esto el tabulador recorría toda la app antes de llegar a las opciones.
+  useEffect(() => {
+    filas.current[0]?.focus();
+  }, []);
+
+  // Escape queda en `document` y no en el panel: si alguien hizo clic en el
+  // velo, el foco puede haber salido de las filas, y Escape tiene que cerrar
+  // igual. Es la única tecla que no depende de dónde esté parado el foco.
   useEffect(() => {
     const alTeclado = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -184,34 +215,96 @@ function MenuNuevo({ esLider, onClose }: { esLider: boolean; onClose: () => void
       }
     };
     document.addEventListener("keydown", alTeclado);
-    panel.current?.querySelector("a")?.focus();
     return () => document.removeEventListener("keydown", alTeclado);
   }, [onClose]);
+
+  function irA(i: number) {
+    const n = (i + acciones.length) % acciones.length;
+    setActivo(n);
+    filas.current[n]?.focus();
+  }
+
+  function alTeclado(e: React.KeyboardEvent) {
+    switch (e.key) {
+      case "Tab":
+        // Cierra en vez de dejar pasar: sin esto el tabulador sale del panel
+        // y sigue por la app de atrás, que está tapada por el velo pero
+        // entera tabulable.
+        e.preventDefault();
+        onClose();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        irA(activo + 1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        irA(activo - 1);
+        break;
+      case "Home":
+        e.preventDefault();
+        irA(0);
+        break;
+      case "End":
+        e.preventDefault();
+        irA(acciones.length - 1);
+        break;
+      case " ":
+        // Enter ya navega solo (es un <a>); Espacio no activa un enlace.
+        e.preventDefault();
+        filas.current[activo]?.click();
+        break;
+      default: {
+        if (e.key.length !== 1) return;
+        if (Date.now() - tipeo.current.reloj > 500) tipeo.current.texto = "";
+        tipeo.current.reloj = Date.now();
+        tipeo.current.texto += e.key.toLowerCase();
+        const i = acciones.findIndex((a) => a.etiqueta.toLowerCase().startsWith(tipeo.current.texto));
+        if (i >= 0) irA(i);
+      }
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div className="anim-velo absolute inset-0 bg-tinta/25 backdrop-blur-[2px]" />
       <div
-        ref={panel}
-        role="group"
+        role="menu"
         aria-label="Nuevo"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={alTeclado}
         className="anim-entrada card-cayla absolute inset-x-4 bottom-24 p-2 shadow-lg sm:inset-x-auto sm:bottom-auto sm:left-lateral sm:top-24 sm:ml-4 sm:w-[21rem]"
       >
-        <p className="label-cayla px-3.5 pb-1.5 pt-2.5 text-[11px] text-tinta/65">Nuevo</p>
+        {/* `role="menu"` solo admite hijos de menú, así que el encabezado sale
+            del árbol de accesibilidad: el nombre del panel ya lo da aria-label. */}
+        <p aria-hidden className="label-cayla px-3.5 pb-1.5 pt-2.5 text-[11px] text-tinta/65">Nuevo</p>
         {acciones.map((a, i) => (
           <Link
             key={a.href}
             href={a.href}
+            role="menuitem"
+            // Un menú es UNA parada de tabulador, no una por opción — y acá
+            // además Tab lo cierra, así que ninguna fila entra en la secuencia.
+            tabIndex={-1}
+            ref={(el) => {
+              filas.current[i] = el;
+            }}
             onClick={onClose}
+            // El mouse manda sobre el mismo índice que las flechas, igual que en
+            // el desplegable de campos.tsx: así nunca hay dos filas encendidas.
+            onMouseEnter={() => setActivo(i)}
             // Escalonado de 30ms por fila, el mismo del desplegable de campos.tsx:
             // la lista se lee como que se despliega, no como que aparece entera.
             style={{ animationDelay: `${i * 30}ms` }}
-            className="anim-revelar group relative block rounded-lg px-3.5 py-3 outline-none transition-colors hover:bg-sand/60 focus-visible:bg-sand/60"
+            className={`anim-revelar relative block rounded-lg px-3.5 py-3 outline-none transition-colors ${
+              i === activo ? "bg-sand/60" : ""
+            }`}
           >
             <span
               aria-hidden
-              className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 scale-y-0 rounded-full bg-rojo transition-transform duration-200 ease-cayla group-hover:scale-y-100 group-focus-visible:scale-y-100"
+              className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
+                i === activo ? "scale-y-100" : "scale-y-0"
+              }`}
             />
             <p className="text-sm font-medium text-tinta">{a.etiqueta}</p>
             <p className="mt-0.5 text-xs text-tinta/65">{a.detalle}</p>
@@ -292,7 +385,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
         </Link>
 
         <div className="px-3 pb-7">
-          <Boton peso="primario" onClick={abrirNuevo} className="w-full" aria-haspopup="true" aria-expanded={nuevoAbierto}>
+          <Boton peso="primario" onClick={abrirNuevo} className="w-full" aria-haspopup="menu" aria-expanded={nuevoAbierto}>
             <span className="flex items-center justify-center gap-2">
               <Icono d={IC.nuevo} className="h-3.5 w-3.5" /> Nuevo
             </span>
@@ -374,7 +467,14 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
           {columnas.map((c, n) =>
             c === null ? (
               // Botón + central — el "+ Nuevo" de QuickBooks, siempre a un toque
-              <button key="nuevo" onClick={abrirNuevo} aria-label="Nuevo" className="flex flex-col items-center justify-center py-2">
+              <button
+                key="nuevo"
+                onClick={abrirNuevo}
+                aria-label="Nuevo"
+                aria-haspopup="menu"
+                aria-expanded={nuevoAbierto}
+                className="flex flex-col items-center justify-center py-2"
+              >
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-tinta text-crema shadow-md transition-transform duration-200 ease-cayla active:scale-95">
                   <Icono d={IC.nuevo} className="h-5 w-5" />
                 </span>
