@@ -2136,3 +2136,28 @@ volver a correr el escenario exacto del diseño, no cambiar el código para que 
 `crear_producto_con_variantes(unknown, unknown, jsonb) is not unique` — las dos sobrecargas que
 la otra sesión ya documentó en ADR-0026 y dejó pendientes de decisión de Felipe. No es nuevo;
 es una segunda confirmación de que ese arreglo hace falta.
+
+## 2026-09-09 (cerrada la auditoría de lecturas silenciosas: de 20 a 1)
+Se completaron las ~15 que faltaban. El repo pasó de **20 consultas que descartaban el error
+de Supabase a 1**, y esa única es deliberada y está documentada en su propio archivo.
+
+Apareció un tercer comportamiento que no estaba previsto y resultó el más importante:
+**`exigirOpcional()`**, para las consultas `.maybeSingle()` donde "no hay fila" es una
+respuesta legítima. El caso que lo motivó es el mejor ejemplo de todo el trabajo:
+`getCajaAbierta` devolvía `null` **tanto si no había caja abierta como si la consulta
+fallaba**. La pantalla decía "caja cerrada" en ambos casos — invitando a abrir una segunda
+caja sobre una que sí estaba abierta. Ese es exactamente el estado imposible que prohíbe el
+principio 2, y estaba escondido dentro de un `const { data }`. Lo mismo con el contenedor de
+almacén: "tu sede no tiene almacén configurado" cuando lo que pasó fue que se cayó la red.
+
+En las rutas de API el arreglo es distinto, porque ahí lanzar no sirve: tienen que devolver
+el estado correcto. Las tres de Lucode reportaban un fallo de consulta como **"Comprobante no
+encontrado" (404)** — en facturación eso hace que alguien re-emita una boleta que sí existe.
+Ahora 503 dice "reintenta" y 404 dice "no está", que son cosas distintas. El export y el
+padrón acusaban al usuario con "Sin persona vinculada" (403) por un fallo del servidor.
+
+Y la Server Action del selector de sede: si su consulta se caía, el Líder tocaba el selector
+y no pasaba nada — indistinguible de "no tienes permiso". Ahora revienta y se ve.
+
+79 pruebas (subieron de 68 con trabajo de otras sesiones), eslint sin un solo warning, `tsc`
+y `next build` en verde.
