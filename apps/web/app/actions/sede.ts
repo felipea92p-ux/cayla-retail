@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { mapearRol } from "@/lib/persona";
 
 const COOKIE_SEDE = "cayla_sede_activa";
 
@@ -10,18 +11,26 @@ const COOKIE_SEDE = "cayla_sede_activa";
 // Una Encargada no puede cambiarse de sede — se ignora la llamada.
 export async function cambiarSedeActiva(sedeId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  // getClaims() en vez de getUser(): verifica el JWT localmente (ES256 asimétrica), sin
+  // viaje a Supabase Auth. Mismo cambio que proxy.ts y lib/persona.ts — ADR-0013.
+  const { data: verificado } = await supabase.auth.getClaims();
+  const authUserId = verificado?.claims?.sub;
+  if (!authUserId) return;
 
   const { data: persona } = await supabase
     .from("personas")
     .select("rol")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", authUserId)
     .single();
-  // El rol viene de dynamic: 'admin' es el Líder que puede cambiar de sede.
-  if (persona?.rol !== "admin") return;
+  // `personas.rol` trae DOS vocabularios según dónde corra: en producción es una vista
+  // puente sobre Dynamic y dice 'admin'; en local es la tabla del propio repo, cuyo CHECK
+  // solo admite 'lider'. `mapearRol` conoce ambos y es la única traducción del sistema.
+  //
+  // Comparar contra 'admin' a secas —como hacía esta línea— dejaba al Líder sin selector
+  // de sede en desarrollo local: la acción retornaba en silencio, sin error ni aviso, y en
+  // producción funcionaba, así que el bug era invisible. Es exactamente el mismo fallo que
+  // `mapearRol` ya había arreglado en lib/persona.ts; este archivo se quedó atrás.
+  if (mapearRol(persona?.rol ?? null) !== "lider") return;
 
   const { data: sede } = await supabase
     .from("sedes")
