@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
-import { getSedes } from "@/lib/sedes";
+import { getSedes, type Sede } from "@/lib/sedes";
 import { getEgresosMes } from "@/lib/egresos";
 import { mesActualLima } from "@/lib/finanzas-nucleo";
 import { ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO } from "@cayla-retail/shared";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTarjetas } from "@/components/Esqueleto";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
 
@@ -36,8 +38,6 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
   const sedes = todasSedes.filter((s) => s.tipo !== "almacen" && s.activo);
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? sedes[0];
   const otrasSedes = sedes.filter((s) => s.id !== sedeActual?.id);
-
-  const { gastos, porSede, total, totalMesPrevio } = await getEgresosMes(sedes, anio, mes);
 
   const mesPrevio = mes === 1 ? `${anio - 1}-12` : `${anio}-${mes - 1}`;
   const mesSiguiente = mes === 12 ? `${anio + 1}-1` : `${anio}-${mes + 1}`;
@@ -74,6 +74,22 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
       </div>
 
       <FinanzasNav />
+
+      {/* Solo esto espera la red: la cabecera, la navegación de meses y el botón de
+          registrar gasto ya están arriba, dibujados. `sedes` sale de getSedes(), que el
+          layout ya memorizó, así que la cabecera no paga viaje por ellas. — ADR-0021. */}
+      <Suspense fallback={<EsqueletoTarjetas tarjetas={4} />}>
+        <Egresos sedes={sedes} anio={anio} mes={mes} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Egresos({ sedes, anio, mes }: { sedes: Sede[]; anio: number; mes: number }) {
+  const { gastos, porSede, total, totalMesPrevio } = await getEgresosMes(sedes, anio, mes);
+
+  return (
+    <>
 
       {/* Small multiples: una tarjeta por sede, siempre las 4 a la vista —
           nunca un dropdown que esconda que una sede gasta distinto a otra. */}
@@ -140,6 +156,6 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

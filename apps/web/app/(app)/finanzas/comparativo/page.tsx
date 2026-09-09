@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getComparativoAnual } from "@/lib/finanzas-nucleo";
-import { getSedes } from "@/lib/sedes";
+import { getSedes, type Sede } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { tolerar } from "@/lib/resultado";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 import { HistoricosEditor } from "@/components/HistoricosEditor";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -20,12 +23,11 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
   if (persona.rol !== "lider") redirect("/");
 
   const { sede } = await searchParams;
-  const supabase = await createClient();
-  const [comparativo, todasSedes, { data: historicos }] = await Promise.all([
-    getComparativoAnual(persona, sede || undefined),
-    getSedes(),
-    supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
-  ]);
+
+  // Solo `getSedes()` —memorizada por el layout, sin viaje nuevo— para poder pintar el
+  // selector de sedes de inmediato: es navegación, y hacerla esperar la comparación
+  // significaría no poder cambiar de tienda hasta que cargue la tabla. — ADR-0021.
+  const todasSedes = await getSedes();
   const sedes = todasSedes.filter((s) => s.tipo === "tienda");
 
   return (
@@ -57,9 +59,40 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
             {s.codigo}
           </Link>
         ))}
-        <span className="ml-auto"><HistoricosEditor sedes={sedes} existentes={(historicos ?? []).map((h) => ({ ...h, monto: Number(h.monto) }))} /></span>
+        <span className="ml-auto">
+          <Suspense fallback={null}>
+            <EditorHistoricos sedes={sedes} />
+          </Suspense>
+        </span>
       </div>
 
+      <Suspense fallback={<EsqueletoTabla filas={7} />}>
+        <Comparacion sede={sede} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** El editor de históricos necesita su propia consulta; el selector de arriba no. */
+async function EditorHistoricos({ sedes }: { sedes: Sede[] }) {
+  const supabase = await createClient();
+  const { datos } = tolerar(
+    await supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
+    "los históricos sembrados"
+  );
+  // Si falla, se oculta el botón en vez de tumbar la pantalla: sembrar históricos es una
+  // tarea ocasional del Líder, no algo que bloquee mirar el comparativo.
+  if (!datos) return null;
+  return <HistoricosEditor sedes={sedes} existentes={datos.map((h) => ({ ...h, monto: Number(h.monto) }))} />;
+}
+
+/** La comparación año contra año: lo pesado de la pantalla. */
+async function Comparacion({ sede }: { sede?: string }) {
+  const persona = await requirePersonaActual(); // memorizado por request
+  const comparativo = await getComparativoAnual(persona, sede || undefined);
+
+  return (
+    <>
       {!comparativo || comparativo.anios.length === 0 ? (
         <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
           Aún no hay datos — siembra los históricos o registra ventas.
@@ -116,6 +149,6 @@ export default async function ComparativoPage({ searchParams }: { searchParams: 
           </table>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getEstadosContables } from "@/lib/contabilidad";
 import { mesActualLima } from "@/lib/finanzas-nucleo";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 import { Ayuda } from "@/components/Ayuda";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -28,17 +30,14 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
   const actual = mesActualLima();
   const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
 
-  const e = await getEstadosContables(persona, anio, mes);
-  if (!e) redirect("/");
-
   const mesPrevio = mes === 1 ? `${anio - 1}-12` : `${anio}-${mes - 1}`;
   const mesSiguiente = mes === 12 ? `${anio + 1}-1` : `${anio}-${mes + 1}`;
   const esMesActual = anio === actual.anio && mes === actual.mes;
 
-  const H2 = "font-display text-lg text-tinta";
-  const fila = "flex items-center justify-between px-4 py-2 text-sm";
-  const filaTotal = "flex items-center justify-between border-t border-tinta/15 px-4 py-2.5 text-sm font-medium";
 
+  // La cabecera y las flechas de mes salen de la URL, no de la contabilidad. Antes
+  // esperaban a que se calcularan los CUATRO estados financieros completos solo para
+  // poder dibujar "Septiembre 2026". — ADR-0021.
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -59,6 +58,26 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
       </div>
 
       <FinanzasNav />
+
+      <Suspense fallback={<EsqueletoTabla filas={10} />}>
+        <Estados anio={anio} mes={mes} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Los cuatro estados financieros: lo pesado de la pantalla. */
+async function Estados({ anio, mes }: { anio: number; mes: number }) {
+  const persona = await requirePersonaActual(); // memorizado por request
+  const e = await getEstadosContables(persona, anio, mes);
+  if (!e) redirect("/");
+
+  const H2 = "font-display text-lg text-tinta";
+  const fila = "flex items-center justify-between px-4 py-2 text-sm";
+  const filaTotal = "flex items-center justify-between border-t border-tinta/15 px-4 py-2.5 text-sm font-medium";
+
+  return (
+    <>
 
       {/* ==================== 1 · ESTADO DE RESULTADOS ==================== */}
       <section>
@@ -294,6 +313,6 @@ export default async function BalancesPage({ searchParams }: { searchParams: Pro
         Aún con simplificaciones declaradas (Balance a hoy, costo vigente, sin depreciación ni cuentas
         por pagar). Ver el manual contable del proyecto para el detalle.
       </p>
-    </div>
+    </>
   );
 }

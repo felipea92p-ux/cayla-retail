@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getEERRMensual, mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
@@ -6,6 +7,7 @@ import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO, type GastoCategoria, type MetodoPagoGasto } from "@cayla-retail/shared";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
 import { Ayuda } from "@/components/Ayuda";
 
@@ -29,27 +31,12 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
   const actual = mesActualLima();
   const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
 
-  const supabase = await createClient();
-  const { desde, hasta } = mesLimaUTC(anio, mes);
-  const [eerr, { data: gastosData }, todasSedes] = await Promise.all([
-    getEERRMensual(persona, anio, mes),
-    supabase
-      .from("gastos")
-      .select("id, categoria, total, metodo_pago, especificacion, created_at, sede_id")
-      .gte("created_at", desde)
-      .lt("created_at", hasta)
-      .order("created_at", { ascending: false }),
-    getSedes(),
-  ]);
-
-  const sedes = todasSedes.filter((s) => s.tipo !== "almacen");
-  const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? { id: persona.sedeId, codigo: persona.sedeCodigo };
-  const otrasSedes = sedes.filter((s) => s.id !== sedeActual.id);
-
   const mesPrevio = mes === 1 ? `${anio - 1}-12` : `${anio}-${mes - 1}`;
   const mesSiguiente = mes === 12 ? `${anio + 1}-1` : `${anio}-${mes + 1}`;
   const esMesActual = anio === actual.anio && mes === actual.mes;
 
+  // El mes sale de la URL, no del EERR. Antes el título y las flechas de mes esperaban a
+  // que se calculara el estado de resultados completo. — ADR-0021.
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -78,6 +65,36 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       </div>
 
       <FinanzasNav />
+
+      <Suspense fallback={<EsqueletoTabla filas={6} />}>
+        <Resumen anio={anio} mes={mes} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** El EERR del mes y el detalle de gastos: lo que sí espera la red. */
+async function Resumen({ anio, mes }: { anio: number; mes: number }) {
+  const persona = await requirePersonaActual(); // memorizado por request
+  const supabase = await createClient();
+  const { desde, hasta } = mesLimaUTC(anio, mes);
+  const [eerr, { data: gastosData }, todasSedes] = await Promise.all([
+    getEERRMensual(persona, anio, mes),
+    supabase
+      .from("gastos")
+      .select("id, categoria, total, metodo_pago, especificacion, created_at, sede_id")
+      .gte("created_at", desde)
+      .lt("created_at", hasta)
+      .order("created_at", { ascending: false }),
+    getSedes(),
+  ]);
+
+  const sedes = todasSedes.filter((s) => s.tipo !== "almacen");
+  const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? { id: persona.sedeId, codigo: persona.sedeCodigo };
+  const otrasSedes = sedes.filter((s) => s.id !== sedeActual.id);
+
+  return (
+    <>
 
       {/* Estado de Resultados del mes */}
       <div>
@@ -197,6 +214,6 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
