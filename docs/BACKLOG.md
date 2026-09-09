@@ -63,15 +63,62 @@ importante que ha entrado a este archivo desde que existe.
       proyecto viejo de retail — corregirlo al de Dynamic + `--schema retail`
       para que esto no se repita.
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
-      que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
-      (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
-      pendiente de correrla en producción — es el paso 0 antes de capturar nada,
-      para no re-taxonomizar cientos de prendas después. Con eso corrido, sigue el
-      plan de captura real de `docs/PLAN-DE-TRABAJO.md` §5 (por semana, sin parar
-      la venta) usando `docs/GUIA-CARGA-CATALOGO.md`. Sin esto, Comercial e
-      Inteligencia trabajan con datos de juguete. Reversible: sí (son datos, no
-      esquema). **Depende de `almacen interno` de arriba** — sin almacén no hay
-      cómo recibir, y sin recibir no hay cómo crear un producto nuevo.
+      que queda. **Cambió de estrategia el 2026-09-09: deja de ser captura gradual
+      y pasa a ser un CENSO de una vez.** El plan de `PLAN-DE-TRABAJO.md` §5 ("es
+      un ritmo, no un evento") llevaba dos meses sin moverse, y tiene un defecto
+      que explica por qué: mientras el catálogo esté a medias, "stock dice 0" es
+      ambiguo (¿se agotó, o nunca se capturó?), así que ninguna alerta ni clase
+      ABC es confiable, nadie usa el sistema, y nadie lo llena. El censo rompe el
+      círculo: desde el día X, 0 significa cero.
+      **Decisiones de Felipe (2026-09-09):** solo el piso de las 3 tiendas (no la
+      trastienda); costo por modelo, no por talla/color; código corto nuevo
+      (`BLU-0042-AZM-M`); las Encargadas cuentan y Felipe aprueba al cerrar el
+      conteo. Y el dato que más cambia el diseño: **casi todas las prendas ya
+      traen código de barras de fábrica**, así que el censo escanea desde el
+      minuto uno en vez de imprimir y pegar 900 etiquetas primero.
+      Plan completo en `~/.claude/plans/analiza-el-modulo-de-cached-jellyfish.md`.
+      **Avance:** bloques 0 y 1 hechos y verificados en local (ver los dos ítems de
+      abajo). Faltan: colores (vocabulario cerrado), códigos + `codigos_barras`,
+      conteos, y las pantallas de captura por matriz y de conteo.
+      **Consecuencia operativa del alcance que hay que decirle al equipo:** como
+      no se cuenta la trastienda, `stock_almacen` queda en 0 y "Bajar a tienda"
+      va a fallar por stock insuficiente. Lo que baje de atrás entra como
+      "Recibir", no como "Bajar a tienda".
+- [x] **`almacen interno en el riel numerado` — hecho y verificado en local
+      2026-09-09 (`0044_almacen_interno.sql`); falta pegar `unificacion/26` en
+      producción.** `stock_almacen`, el contenedor `tipo='almacen'`,
+      `bajar_a_piso` y `devolver_a_almacen` solo existían en producción desde el
+      3-sep, así que `npx supabase db reset` dejaba una base local donde
+      `catalogo.ts:47` consultaba una tabla inexistente. Y apareció la deriva
+      inversa: `unificacion/12` reescribió `fn_aplicar_movimiento` partiendo de un
+      cuerpo anterior a `0011` y **perdió `ultima_venta`** — en producción la
+      columna existe y nadie la escribe, así que "Días sin venta" mide la edad de
+      la variante desde que se creó y todo el catálogo aparece estancado para
+      siempre. `unificacion/26_ultima_venta_en_aplicar_movimiento.sql` la restaura
+      y hace backfill desde `movimientos`. **Pendiente de Felipe: pegar `26` en el
+      SQL Editor de producción, ANTES que `27`.**
+- [x] **`el ajuste lleva signo` — hecho y verificado en local 2026-09-09
+      (`0045_ajuste_con_signo.sql`, ADR-0023); falta pegar `unificacion/27`.**
+      Era imposible registrar un conteo MENOR a lo que dice el sistema: la rama
+      `ajuste` proponía la fila con el delta y Postgres evalúa el CHECK sobre la
+      fila propuesta — el mismo bug de ADR-0020, a cincuenta líneas de la función
+      que ese ADR daba por segura. Y producción **nunca tuvo**
+      `stock_cantidad_no_negativa`, así que allá no habría explotado: habría
+      creado stock negativo en silencio. Se arregla con
+      asegurar→bloquear→verificar→sumar bajo `for update`, y se ponen las tres
+      redes que faltaban (`stock`, `stock_almacen`, y `movimientos.cantidad <> 0`
+      con signo solo para el ajuste). **Pendiente de Felipe: correr el pre-flight
+      de `unificacion/27` y LEERLO antes de aplicar** — si hay filas negativas o
+      movimientos en cero, se miran una por una y se corrigen con movimientos,
+      nunca borrando.
+- [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
+      movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
+      función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con
+      cantidad 0 solo para guardar el mínimo, y el `delete` final la borra si esa
+      variante todavía no tiene ningún movimiento en esa sede. Se dejó anotado en
+      el comentario del bloque 7 de `0044` en vez de cambiarlo por cuenta propia,
+      porque es una decisión de quien escribió ADR-0020. Arreglo probable: sumar
+      `and s.stock_minimo is null` al `delete`.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
       plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
       CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
