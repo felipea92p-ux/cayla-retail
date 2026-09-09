@@ -1757,3 +1757,39 @@ centrado mientras esperaba TODO; ahora muestra la cabecera, la navegación, los 
 esqueleto con la forma del contenido. Es una mejora de qué se ve durante la espera, no de
 cuánto dura. Se mantiene por eso —y porque el `tolerar()` de `/vender` es robustez
 independiente de la velocidad—, pero **deja de contarse como ganancia de velocidad**.
+
+## 2026-09-09 (la medición que redirige todo: el cuello es el cliente, no la red)
+Se midieron en el navegador de Felipe las dos cosas que faltaban.
+
+**`staleTimes: 30` funciona.** Navegando con clics reales entre `/vender` e `/inventario`:
+la primera ida y vuelta hizo 1 petición `?_rsc=` cada una; **la segunda hizo CERO**. La
+caché del router sirve la pantalla sin tocar el servidor. Confirmado.
+
+**Y ahí apareció lo que da vuelta el diagnóstico del día: con CERO peticiones de red, la
+navegación sigue tardando ~1000 ms.**
+
+| Navegación | Peticiones | Tiempo |
+|---|---|---|
+| 1ª ida a /vender | 1 | 1447 ms |
+| 1ª vuelta a /inventario | 1 | 1004 ms |
+| 2ª ida a /vender | **0** | 1010 ms |
+| 2ª vuelta a /inventario | **0** | 993 ms |
+
+Con red y sin red tarda lo mismo. Se descartó que fuera la capa de animación midiendo con
+`textContent` (existe apenas React monta el nodo) además de `innerText` (solo cuando ya es
+visible): ambos dan ~1000 ms, así que no es el CSS, es el montaje.
+
+**Consecuencia:** todo el trabajo del día —región, viajes de red, cascadas, streaming— atacó
+el camino del SERVIDOR. Y el tiempo que la Encargada siente al tocar un enlace está dominado
+por ~1 s de trabajo del CLIENTE que nada de eso toca. Es el mismo error de forma que ya se
+cometió dos veces hoy: optimizar donde se estaba mirando en vez de donde estaba el costo.
+
+Esto también recalibra local-first una vez más: eliminar la petición no bajaría de ~1 s si
+el montaje del árbol de React sigue costando eso. **Antes de cualquier otra cosa de
+rendimiento hay que perfilar el cliente** — cuánto de ese segundo es hidratación, cuánto son
+los 37 componentes marcados `"use client"`, y cuánto el tamaño del árbol.
+
+**La barrera de error sigue sin verificarse.** Se intentó forzarla con
+`/producto/esto-no-es-un-uuid`, pero esa ruta maneja el caso y devuelve 404 correctamente
+—buen comportamiento, pero no ejercita el boundary—. Forzar un fallo real de consulta en
+producción exigiría romper algo a propósito; queda pendiente probarlo en local con sesión.
