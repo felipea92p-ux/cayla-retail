@@ -399,14 +399,23 @@ importante que ha entrado a este archivo desde que existe.
       compare las funciones/columnas que cada archivo promete contra
       `pg_proc`/`information_schema` y liste lo que falta.
 
-- [ ] **Producción no tiene `LUCODE_TOKEN` ni `LUCODE_ENTORNO` — 2026-09-08.**
-      El botón "Transmitir" de `/vender/facturacion` responde
-      `sin_credenciales` en el deploy: facturar a SUNAT solo funciona desde el
-      `npm run dev` de Felipe. Es la razón real de por qué B004-000001 salió de
-      su computadora y no del deploy (ver BITACORA del 08-09). Decidir con
-      Felipe si el deploy debe poder transmitir —y entonces el token de
-      producción vive en Vercel— o si eso se queda deliberadamente en local
-      hasta que haya más de una persona operando.
+- [x] **RESUELTO — Felipe puso las variables el 2026-09-08 por la noche, y
+      nadie lo anotó (otra vez el ítem de "no sabemos qué está aplicado").**
+      Verificado 2026-09-09 con `vercel env ls`: `LUCODE_TOKEN` y
+      `LUCODE_ENTORNO=produccion` existen en Production desde hace 19h, y el
+      token es el mismo que el de `apps/web/.env.local`. El deploy transmite:
+      **B004-000002 (08-09 17:35) y B004-000003 (09-09 11:57) salieron de ahí**,
+      no de la computadora de Felipe. La segunda ya trae
+      `entorno_transmision='produccion'` escrito, o sea que corrió contra la RPC
+      de 5 argumentos del código desplegado a las 11:50 — circuito completo
+      verificado en producción. Texto original abajo, como se escribió el 08-09:
+      *"Producción no tiene LUCODE_TOKEN ni LUCODE_ENTORNO. El botón Transmitir
+      responde sin_credenciales en el deploy; facturar a SUNAT solo funciona
+      desde el npm run dev de Felipe."*
+      **Sigue pendiente y es de seguridad:** el token nunca se rotó pese a haber
+      pasado por el chat el 05-09, y es el MISMO que ahora vive en Vercel.
+      Rotarlo en app.apisunat.pe → Organizaciones, y actualizar los dos lugares
+      (Vercel y `apps/web/.env.local`).
 
 - [x] **RESUELTO (verificado 2026-09-08: `select count(*)` devuelve 37 filas,
       por encima de las 30 esperadas). Se aplicó en algún momento entre el

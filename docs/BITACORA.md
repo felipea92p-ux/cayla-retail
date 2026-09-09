@@ -1338,3 +1338,31 @@ general", no cero; (2) el origen tampoco puede quedar por debajo del suyo:
 tapar un hueco abriendo otro no es una sugerencia, es mover el problema de
 tienda. Y el orden pasó a ser por lo que le FALTA al destino, no por lo que le
 sobra al origen: lo urgente es el hueco, no el excedente.
+
+## 2026-09-09 (b2 ya estaba hecho, y el circuito completo se probó solo)
+Al ir a poner `LUCODE_TOKEN` en Vercel, el CLI respondió que la variable ya existía.
+`vercel env ls`: `LUCODE_TOKEN` y `LUCODE_ENTORNO=produccion` estaban puestas desde
+hacía 19 horas — Felipe las configuró la noche del 08-09 y no quedó anotado. El backlog
+seguía diciendo lo contrario, que es el mismo agujero de "nadie sabe qué está aplicado"
+que ya nos costó un reset local hoy.
+
+Eso explica de dónde salió B004-000002: del deploy, no de la máquina de Felipe. Y
+apareció **B004-000003** (09-09 11:57) con `entorno_transmision='produccion'` ya escrito
+— un dato que SOLO puede escribir la RPC de 5 argumentos. Cruzado con las horas de los
+deploys (11:50:31 el del push, 12:07:16 un redeploy), queda probado que el circuito
+completo funciona en producción: pantalla → Lucode → SUNAT → base, con el código nuevo.
+
+**Mi error del día, para que quede:** dije que el deploy seguía sirviendo código viejo.
+Falso. Estaba leyendo una copia de CDN cacheada antes de las 11:50 (`X-Vercel-Cache:
+HIT`, `Age: 192`) y usando una clase CSS como marcador, que es un indicador frágil. El
+marcador bueno lo declara el propio HTML: `data-dpl-id`, que `vercel inspect` ata al
+deployment exacto. Un chequeo indirecto que da negativo no prueba nada; solo prueba que
+el chequeo era malo.
+
+**Lo que Felipe aprende acá:** la configuración también es estado del sistema, y también
+envejece sin avisar. Dos veces en un día el repo dijo una cosa y la realidad otra — las
+migraciones en local, y estas variables. Ninguna de las dos se descubrió por una alerta:
+las dos salieron porque alguien fue a mirar. Escribir "ya lo configuré" cuesta diez
+segundos y es lo único que evita que la próxima sesión trabaje sobre un mapa viejo.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
