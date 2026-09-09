@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCuadreEfectivo } from "@/lib/finanzas-nucleo";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 import { EfectivoPanel } from "@/components/EfectivoPanel";
 
 // Cuadre de efectivo continuo (F1): responde en todo momento "¿cuánto efectivo
@@ -13,18 +15,8 @@ export default async function EfectivoPage() {
   const persona = await requirePersonaActual();
   if (persona.rol !== "lider") redirect("/");
 
-  const supabase = await createClient();
-  const [cuadre, todasSedes, { data: depositos }] = await Promise.all([
-    getCuadreEfectivo(),
-    getSedes(),
-    supabase
-      .from("depositos_bancarios")
-      .select("id, fecha, monto, nota, sede_id")
-      .order("fecha", { ascending: false })
-      .limit(15),
-  ]);
-  const sedes = todasSedes.filter((s) => s.tipo === "tienda");
-
+  // La cabecera y la navegación de Finanzas no dependen de ninguna consulta.
+  // Antes esperaban a que llegaran todos los datos de la pantalla. — ADR-0021.
   return (
     <div className="space-y-8">
       <div>
@@ -37,6 +29,30 @@ export default async function EfectivoPage() {
       </div>
 
       <FinanzasNav />
+
+      <Suspense fallback={<EsqueletoTabla filas={4} />}>
+        <Contenido />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Todo lo que sí espera la red. */
+async function Contenido() {
+
+  const supabase = await createClient();
+  const [cuadre, todasSedes, { data: depositos }] = await Promise.all([
+    getCuadreEfectivo(),
+    getSedes(),
+    supabase
+      .from("depositos_bancarios")
+      .select("id, fecha, monto, nota, sede_id")
+      .order("fecha", { ascending: false })
+      .limit(15),
+  ]);
+  const sedes = todasSedes.filter((s) => s.tipo === "tienda");
+  return (
+    <>
 
       <EfectivoPanel cuadre={cuadre} sedes={sedes ?? []} />
 
@@ -62,6 +78,6 @@ export default async function EfectivoPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

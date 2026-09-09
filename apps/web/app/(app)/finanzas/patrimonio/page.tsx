@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getPatrimonio } from "@/lib/finanzas-nucleo";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 import { PatrimonioEditor } from "@/components/PatrimonioEditor";
 
 function money(n: number) {
@@ -26,9 +28,8 @@ export default async function PatrimonioPage() {
   const persona = await requirePersonaActual();
   if (persona.rol !== "lider") redirect("/");
 
-  const p = await getPatrimonio(persona);
-  if (!p) redirect("/");
-
+  // La cabecera y la navegación de Finanzas no dependen de ninguna consulta.
+  // Antes esperaban a que llegaran todos los datos de la pantalla. — ADR-0021.
   return (
     <div className="space-y-8">
       <div>
@@ -37,6 +38,22 @@ export default async function PatrimonioPage() {
       </div>
 
       <FinanzasNav />
+
+      <Suspense fallback={<EsqueletoTabla filas={5} />}>
+        <Contenido />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Todo lo que sí espera la red. */
+async function Contenido() {
+  const persona = await requirePersonaActual(); // memorizado por request
+
+  const p = await getPatrimonio(persona);
+  if (!p) redirect("/");
+  return (
+    <>
 
       <div className="card-cayla p-6 text-center">
         <p className="label-cayla text-[11px] text-tinta/65">Patrimonio neto</p>
@@ -98,6 +115,6 @@ export default async function PatrimonioPage() {
         Los dos primeros activos los calcula el sistema en vivo. Las demás partidas (cuentas
         bancarias, deudas, activos fijos) las mantienes tú con &ldquo;+ Agregar partida&rdquo;.
       </p>
-    </div>
+    </>
   );
 }

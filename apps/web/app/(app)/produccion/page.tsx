@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { OrdenesProduccion, type OrdenRow, type OrdenLinea } from "@/components/OrdenesProduccion";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 
 // Producción (Taller): una sola forma de producir — la Orden de producción.
 // Se abre con costo estimado y variantes, avanza por etapas (corte → confección →
@@ -10,8 +12,6 @@ import { OrdenesProduccion, type OrdenRow, type OrdenLinea } from "@/components/
 // que entra al inventario del taller.
 export default async function ProduccionPage() {
   const persona = await requirePersonaActual();
-  const supabase = await createClient();
-
   const sedes = await getSedes();
   const taller = sedes.find((s) => s.tipo === "fabrica");
 
@@ -20,13 +20,35 @@ export default async function ProduccionPage() {
   if (!esLider && !esTaller) redirect("/");
   if (!taller) redirect("/");
 
+  // La cabecera solo necesita saber en qué taller estás — y `getSedes()` ya está
+  // memorizada por el layout, así que no cuesta viaje. Las órdenes, que sí son consulta
+  // pesada (60 órdenes + sus líneas + 500 modelos), bajan aparte. — ADR-0021.
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Taller · {taller.codigo}</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
+        <p className="mt-1 text-sm text-tinta/70">
+          Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
+        </p>
+      </div>
+
+      <Suspense fallback={<EsqueletoTabla filas={5} />}>
+        <Ordenes unidadId={taller.id} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Ordenes({ unidadId }: { unidadId: string }) {
+  const supabase = await createClient();
   const [{ data: producciones }, { data: modelosData }] = await Promise.all([
     supabase
       .from("producciones")
       .select(
         "id, cantidad, costo_unitario, costo_tela, costo_avios, costo_maquila, precio_taller, detalle, es_muestra, estado, inventariado_at, etapas, fecha_entrega, productos(referencia, material)"
       )
-      .eq("unidad_id", taller.id)
+      .eq("unidad_id", unidadId)
       .order("created_at", { ascending: false })
       .limit(60),
     supabase.from("productos").select("id, referencia, material").order("referencia").limit(500),
@@ -75,17 +97,5 @@ export default async function ProduccionPage() {
     ...new Set((modelosData ?? []).map((m) => m.material).filter((x): x is string => !!x && x.trim() !== "")),
   ].sort();
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Taller · {taller.codigo}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-        <p className="mt-1 text-sm text-tinta/70">
-          Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
-        </p>
-      </div>
-
-      <OrdenesProduccion unidadId={taller.id} modelos={modelos} materiales={materiales} ordenes={ordenes} />
-    </div>
-  );
+  return <OrdenesProduccion unidadId={unidadId} modelos={modelos} materiales={materiales} ordenes={ordenes} />;
 }

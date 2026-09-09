@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 
 const CAT_NOMBRE: Record<string, string> = {
   "333": "Maquinaria y equipo",
@@ -24,6 +26,29 @@ export default async function ActivosPage() {
   const persona = await requirePersonaActual();
   if (persona.rol !== "lider") redirect("/");
 
+  // La cabecera y la navegación de Finanzas no dependen de ninguna consulta.
+  // Antes esperaban a que llegaran todos los datos de la pantalla. — ADR-0021.
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Finanzas · {persona.sedeCodigo}</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">Activos</h1>
+        <p className="mt-1 text-sm text-tinta/70">Tus máquinas y equipos, con su valor real de hoy.</p>
+      </div>
+
+      <FinanzasNav />
+
+      <Suspense fallback={<EsqueletoTabla filas={5} />}>
+        <Contenido />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Todo lo que sí espera la red. */
+async function Contenido() {
+  const persona = await requirePersonaActual(); // memorizado por request
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("activos_fijos")
@@ -36,16 +61,8 @@ export default async function ActivosPage() {
   const totalCosto = activos.reduce((a, x) => a + Number(x.costo), 0);
   const totalDep = activos.reduce((a, x) => a + Number(x.depreciacion_apertura), 0);
   const totalNeto = totalCosto - totalDep;
-
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Finanzas · {persona.sedeCodigo}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Activos</h1>
-        <p className="mt-1 text-sm text-tinta/70">Tus máquinas y equipos, con su valor real de hoy.</p>
-      </div>
-
-      <FinanzasNav />
+    <>
 
       {activos.length === 0 ? (
         <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
@@ -118,6 +135,6 @@ export default async function ActivosPage() {
           </p>
         </>
       )}
-    </div>
+    </>
   );
 }

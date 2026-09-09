@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
 import { mapaSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 
 // Búsqueda global (el dolor #1 del negocio, nombrado por Felipe en el descubrimiento:
 // "no saber si se tiene stock e ir a almacén a buscarlo a ciegas"). Resultado en
@@ -10,19 +13,51 @@ import { mapaSedes } from "@/lib/sedes";
 // La pistola Zebra funciona aquí sin configurar nada: tipea el código y da Enter.
 export default async function BuscarPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const persona = await requirePersonaActual();
-  const term = (q ?? "").trim().toLowerCase();
+  const term = (q ?? "").trim();
 
+  // El título sale de lo que la Encargada acaba de escribir: no depende de ninguna
+  // consulta, así que se dibuja de inmediato. Antes esperaba a que cargara el catálogo
+  // ENTERO — con la pistola Zebra eso se siente como si el escaneo no hubiera entrado.
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Búsqueda</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
+        </h1>
+      </div>
+
+      {term === "" ? null : (
+        <Suspense key={term} fallback={<EsqueletoTabla filas={4} />}>
+          <Resultados term={term.toLowerCase()} textoOriginal={q ?? ""} />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
+/**
+ * La parte que viaja por la red. `key={term}` en el Suspense de arriba es deliberado: sin
+  * él, cambiar de búsqueda reusaría el boundary ya resuelto y la Encargada seguiría viendo
+  * los resultados VIEJOS mientras llegan los nuevos, sin señal de que están cargando. Con
+  * el key, cada término monta su propio boundary y vuelve a mostrar el esqueleto.
+ */
+async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
+  const persona = await requirePersonaActual();
   const supabase = await createClient();
-  const [variantes, { data: stockRows }, sedes] = await Promise.all([
+  const [variantes, resStock, sedes] = await Promise.all([
     getCatalogoConStock(persona),
     supabase.from("stock").select("variante_id, cantidad, sede_id, contenedores(codigo)"),
     mapaSedes(),
   ]);
 
+  // Buscar es la pantalla del "no ir al almacén a ciegas": si el stock no cargó, decir
+  // "sin coincidencias" mandaría a alguien a buscar algo que sí está. Falla en duro.
+  const stockRows = exigir(resStock, "el stock por sede");
+
   // varianteId → detalle por sede (cantidad + contenedor si es almacén)
   const detallePorVariante = new Map<string, { sede: string; esAlmacen: boolean; cantidad: number; contenedor: string | null }[]>();
-  (stockRows ?? []).forEach((r) => {
+  stockRows.forEach((r) => {
     const sede = sedes.get(r.sede_id);
     const contenedor = Array.isArray(r.contenedores) ? r.contenedores[0] : r.contenedores;
     if (!sede) return;
@@ -31,31 +66,21 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
     detallePorVariante.set(r.variante_id, lista);
   });
 
-  const resultados = term
-    ? variantes
-        .filter((v) =>
-          `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.familia ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""}`
-            .toLowerCase()
-            .includes(term)
-        )
-        .slice(0, 30)
-    : [];
+  const resultados = variantes
+    .filter((v) =>
+      `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.familia ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""}`
+        .toLowerCase()
+        .includes(term)
+    )
+    .slice(0, 30);
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Búsqueda</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
-        </h1>
-        {term && (
-          <p className="mt-1 text-sm text-tinta/65">
-            {resultados.length === 0
-              ? "Sin coincidencias — revisa la escritura o prueba con menos palabras."
-              : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}`}
-          </p>
-        )}
-      </div>
+      <p className="text-sm text-tinta/65">
+        {resultados.length === 0
+          ? `Sin coincidencias para "${textoOriginal}" — revisa la escritura o prueba con menos palabras.`
+          : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}`}
+      </p>
 
       <div className="space-y-3">
         {resultados.map((v) => {

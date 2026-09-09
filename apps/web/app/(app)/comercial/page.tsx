@@ -1,16 +1,22 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { Ayuda } from "@/components/Ayuda";
+import { EsqueletoTabla } from "@/components/Esqueleto";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
 const DIA_MS = 86400000;
+
+/** Ventana de análisis. A nivel de módulo para que la cabecera no tenga que esperar
+ *  la consulta solo para saber que dice "últimos 30 días". */
+const VENTANA_DIAS = 30;
 
 function desdeISO(dias: number) {
   return new Date(Date.now() - dias * DIA_MS).toISOString();
@@ -24,14 +30,34 @@ export default async function ComercialPage() {
   const persona = await requirePersonaActual();
   if (persona.rol !== "lider") redirect("/");
 
+  // La cabecera no depende de ninguna consulta: el rótulo dice "últimos 30 días" y eso es
+  // una constante, no un dato. Antes esperaba a que llegaran el catálogo inteligente, las
+  // sedes y los movimientos de la ventana solo para poder dibujarse. — ADR-0021.
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Comercial · últimos {VENTANA_DIAS} días</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">Decisiones con datos</h1>
+      </div>
+
+      <Suspense fallback={<EsqueletoTabla filas={10} />}>
+        <Analisis />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Las cuatro respuestas comerciales. Todo esto sí espera la red. */
+async function Analisis() {
+  const persona = await requirePersonaActual();
+
   const supabase = await createClient();
   // ventanaDias es siempre este default (nadie llama getCatalogoInteligente con un 2°
   // argumento distinto acá) — se fija explícito para no tener que esperar la respuesta
   // de esa función antes de poder calcular `desde` y lanzar las otras 2 consultas en
   // la misma ronda, en vez de esperar a que termine la más lenta primero.
-  const VENTANA_DIAS = 30;
   const desde = desdeISO(VENTANA_DIAS);
-  const [{ variantes, ventanaDias }, todasSedes, { data: ventasMov }] = await Promise.all([
+  const [{ variantes }, todasSedes, { data: ventasMov }] = await Promise.all([
     getCatalogoInteligente(persona, VENTANA_DIAS),
     getSedes(),
     supabase
@@ -94,10 +120,6 @@ export default async function ComercialPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Comercial · últimos {ventanaDias} días</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Decisiones con datos</h1>
-      </div>
 
       {/* Sugerencias de reposición */}
       <div>
