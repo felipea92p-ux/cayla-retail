@@ -82,22 +82,42 @@ comment on function retail.recalcular_stock() is
 --     where proname = 'recalcular_stock' and pronamespace = 'retail'::regnamespace;
 --     -- debe devolver exactamente 1 fila: retail.recalcular_stock()
 --
--- (b) Que reconstruir NO cambie nada — si el stock de producción está sano,
---     recalcular no debe mover ni una unidad. Correr las tres de una:
+-- (b) Que reconstruir NO cambie nada — si el stock está sano, recalcular no
+--     debe mover ni una unidad.
 --
---     create temporary table _antes as
+--     OJO CON LA TABLA DE RESPALDO: tiene que ser REAL, no `temporary`. El SQL
+--     Editor de Supabase corre cada ejecución en una conexión distinta del pool,
+--     así que una tabla temporal muere al terminar la consulta y con ella la
+--     única copia del estado previo — justo cuando aparece algo que investigar.
+--     Pasó de verdad la primera vez que se corrió esto en producción
+--     (2026-09-09): el conteo dio 2 diferencias y ya no había con qué compararlas.
+--
+--     create table retail._stock_antes_0020 as
 --       select variante_id, sede_id, cantidad, stock_minimo from retail.stock;
+--
 --     select retail.recalcular_stock();
---     select count(*) as diferencias
---     from _antes a
+--
+--     select vr.sku, se.codigo as sede, a.cantidad as antes, s.cantidad as ahora,
+--            (select count(*) from retail.movimientos m
+--              where m.variante_id = coalesce(a.variante_id, s.variante_id)
+--                and (m.sede_id = coalesce(a.sede_id, s.sede_id)
+--                     or m.sede_destino_id = coalesce(a.sede_id, s.sede_id))) as respaldo
+--     from retail._stock_antes_0020 a
 --     full join retail.stock s
 --       on s.variante_id = a.variante_id and s.sede_id = a.sede_id
+--     left join retail.variantes vr on vr.id = coalesce(a.variante_id, s.variante_id)
+--     left join retail.sedes     se on se.id = coalesce(a.sede_id, s.sede_id)
 --     where a.cantidad is distinct from s.cantidad
 --        or a.stock_minimo is distinct from s.stock_minimo;
---     -- debe devolver 0
+--     -- sin filas = todo cuadraba
 --
---     Si devuelve algo distinto de 0, NO es que el arreglo esté mal: es que
---     `stock` y `movimientos` ya estaban desincronizados y la red de seguridad
---     acaba de hacer su trabajo por primera vez. Revisar esas filas antes de
---     dar nada por bueno.
+--     Si devuelve filas, NO es que el arreglo esté mal: es que `stock` y
+--     `movimientos` ya estaban desincronizados y la red de seguridad acaba de
+--     hacer su trabajo por primera vez. La columna `respaldo` decide qué hacer:
+--       · respaldo > 0  → la fila tiene historial; el valor NUEVO es el correcto.
+--       · respaldo = 0  → había stock sin ningún movimiento detrás (típico de
+--         datos migrados a mano). Esa fila se BORRÓ y hay que reponerla desde
+--         `retail._stock_antes_0020`, que para eso quedó guardada.
+--
+--     Cuando termines de revisar: drop table retail._stock_antes_0020;
 -- ============================================================================

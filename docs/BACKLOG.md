@@ -320,7 +320,16 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`recalcular_stock()` arreglada en local, SIN PEGAR EN PRODUCCIÓN —
+- [x] **RESUELTO — `recalcular_stock()` aplicada y verificada en producción
+      2026-09-09 (ADR-0020). Encontró 2 filas desincronizadas el primer día;
+      las 10 filas de stock siguen siendo 10 y todas tienen movimientos
+      detrás, así que corrigió cantidades sin borrar nada (eran SKUs de prueba
+      de la unificación, no catálogo real). Queda una lección de procedimiento
+      registrada en el ADR: la verificación usaba `create temporary table` y el
+      SQL Editor de Supabase la destruye entre ejecuciones, así que se supo que
+      había 2 diferencias y ya no hubo con qué compararlas. Corregido en
+      `unificacion/25`. Texto original abajo:**
+      **`recalcular_stock()` arreglada en local, SIN PEGAR EN PRODUCCIÓN —
       2026-09-09, ADR-0020.** La red de seguridad del inventario
       (ARQUITECTURA.md §4.2) nunca pudo correr en una base con ventas: Postgres
       evalúa los CHECK sobre la fila propuesta antes de resolver el

@@ -69,7 +69,23 @@ datos con historial.
 - Verificado en local contra los datos de `supabase/seed-demo.sql`: reproduce
   exactamente el mismo stock que el seed calculó por su cuenta (14 filas, **0
   diferencias**), y un `stock_minimo` puesto a mano sobrevivió.
-- **En producción está sin aplicar.** El archivo `unificacion/25` trae al final
+- **Aplicado en producción el 2026-09-09, y encontró algo el primer día.** La
+  verificación devolvió **2 diferencias**: `retail.stock` y `retail.movimientos`
+  llevaban meses discrepando en dos filas y nadie podía saberlo, porque la única
+  herramienta capaz de detectarlo no podía ni ejecutarse. Revisado después: las
+  10 filas de stock siguen siendo 10 y **todas tienen movimientos detrás** (entre
+  1 y 5), así que no se borró nada — la función corrigió dos cantidades hacia el
+  neto de la fuente de verdad. Las filas afectadas eran SKUs de prueba de la
+  unificación (`A`, `B`, `T…`), no catálogo real.
+- **Lección del procedimiento, más cara que el bug:** la verificación original
+  usaba `create temporary table` para guardar el estado previo. El SQL Editor de
+  Supabase corre cada ejecución en una conexión distinta del pool, así que esa
+  tabla murió antes de poder comparar contra ella — se supo que había 2
+  diferencias y ya no había con qué mirarlas. Una verificación que destruye su
+  propia evidencia es peor que no tenerla: da confianza cuando todo cuadra y deja
+  ciego justo cuando no. Corregido en `unificacion/25`: la tabla de respaldo es
+  real y se borra a mano al final.
+- El archivo `unificacion/25` trae al final
   la verificación para correr después: que quede una sola función con ese
   nombre (lección de ADR-0004) y que reconstruir no mueva ni una unidad. Si esa
   segunda consulta devuelve algo distinto de 0, no es que el arreglo esté mal:

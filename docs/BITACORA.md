@@ -1464,3 +1464,33 @@ cachear datos no ayudaría — lo que ayuda es **no hacer la petición**, que es
 que hace local-first. El diagnóstico de ADR-0018 sobrevive a la medición. Lo que cambia es
 la magnitud del premio: pasa de "arreglar un sistema roto" a "volver instantáneo un sistema
 que ya responde decente". Eso ya no es decisión técnica, es de Felipe.
+
+## 2026-09-09 (la red de seguridad corre por primera vez y encuentra 2 filas)
+
+Felipe pegó `unificacion/25` en producción y corrió la verificación: **2
+diferencias**. `retail.stock` y `retail.movimientos` llevaban meses discrepando
+en dos filas sin que nadie pudiera enterarse, porque la única herramienta capaz
+de detectarlo —`recalcular_stock()`— no podía ni ejecutarse (ADR-0020). Revisado
+después: las 10 filas de stock siguen siendo 10 y **todas tienen entre 1 y 5
+movimientos detrás**, así que no se borró nada; la función corrigió dos
+cantidades hacia el neto de la fuente de verdad. Las filas eran SKUs de prueba
+de la unificación (`A`, `B`, `T281d432ae4f`), no catálogo real.
+
+**Lo que Felipe aprendió, y vale más que el arreglo:** una verificación puede
+destruir su propia evidencia. La que escribí guardaba el estado previo en un
+`create temporary table`, y el SQL Editor de Supabase corre cada ejecución en
+una conexión distinta del pool — la tabla murió al terminar la primera consulta.
+Resultado: se supo que había 2 diferencias y ya no había con qué mirarlas. Eso
+es peor que no tener verificación: cuando todo cuadra da confianza, y cuando NO
+cuadra deja ciego justo en el momento que importa. La regla que queda: una
+verificación que compara "antes y después" tiene que persistir el "antes" en
+una tabla real, y borrarla a mano al final. Corregido en `unificacion/25`.
+
+Segunda lección, del push de hoy: verifiqué tres commits y se subieron cuatro.
+Entre el chequeo y el `git push` otra sesión commiteó sobre el mismo `main`
+local. La verificación era correcta cuando se hizo y quedó vieja al ejecutar.
+En un repo donde varias sesiones commitean a la misma rama, "verifico y después
+pusheo" tiene una ventana abierta: hay que fijar el rango y pushear ese SHA
+(`git push origin <sha>:main`). El cuarto commit resultó inofensivo —revisado
+después, usa `getClaims()` y `mapearRol()`, patrones que ya corrían en
+producción— pero eso fue suerte, no proceso.
