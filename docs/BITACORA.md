@@ -1210,3 +1210,61 @@ en SANDBOX antes de poner el token de producción, así que el precio de estar e
 fue cero.
 
 **SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
+
+## 2026-09-09 (el Inicio: pasos 0 y 1 — y la red de seguridad que nunca funcionó)
+
+Rediseño del Inicio contra cómo lo resuelven los ERPs serios (cues de Dynamics 365,
+KPI Scorecard de NetSuite, Activities de Odoo). Del plan de 6 pasos entraron dos.
+**Paso 0:** `getPanelLider` dejó de releer `stock` entero con su join a `variantes`
+para sumar el inventario a costo — ahora lo saca de las variantes que la pantalla ya
+cargó. El Inicio era la pantalla más visitada y la que más leía. Efecto de lado que
+vale más que el rendimiento: el inventario a costo del Inicio y el de Comercial salen
+del mismo cálculo, así que ya no pueden discrepar. **Paso 1:** las 4 cifras pasaron a
+`TarjetaIndicador` (la de Finanzas, extendida con dos huecos opcionales: `ayuda` y
+`pie`), con mini-línea de 14 días y comparativo. Decisión de Felipe: el inventario a
+costo ahora **incluye el almacén**, con una línea chica que lo dice — la mercadería
+recibida y sin bajar es la plata más dormida que hay, esconderla la volvía invisible.
+
+**Lo que Felipe aprendió y no era obvio:** un porcentaje necesita dos cosas del mismo
+tamaño. El comparativo no es contra ayer sino contra el mismo día de la semana pasada
+**y solo hasta esta misma hora**: a las 10am ninguna tienda vendió su día entero, así
+que comparar contra el día completo pinta un rojo permanente por las mañanas que no
+significa nada. En TRU, que vende casi todo entre 5 y 8 de la tarde, ese número mal
+hecho se aprende a ignorar en una semana. La aritmética de "qué día es esto" en hora
+de Lima salió a `lib/panel-serie.ts` (puro, sin Supabase) con 12 pruebas que fijan los
+bordes donde UTC y Lima no coinciden — una venta a las 11pm en Trujillo cayendo en el
+día equivocado no rompe nada, solo deja la cifra mal, en silencio.
+
+**El hallazgo de la sesión, que no era del Inicio:** `retail.recalcular_stock()` —lo
+que ARQUITECTURA.md §4.2 llama la red de seguridad del inventario— **nunca pudo correr
+en una base con ventas.** Insertaba las salidas como `-sum(cantidad)` confiando en que
+el `on conflict do update` las restara de la fila existente, pero Postgres evalúa los
+CHECK sobre la fila PROPUESTA antes de detectar el conflicto: `stock_cantidad_no_negativa`
+la rechazaba antes de que el update llegara a existir. Confirmado con una reproducción
+de 4 líneas, no por deducción. Arreglado calculando el neto por (variante, sede) en una
+sola pasada (ADR-0020, `0042` local + `unificacion/25` sin pegar). De paso salió un
+segundo defecto del mismo tamaño: el `truncate` de la versión vieja borraba también
+`stock_minimo` y `contenedor_id`, que no se derivan de `movimientos` — arreglar solo el
+error de Postgres habría entregado algo peor, una función que ahora sí corre y borra en
+silencio los mínimos de cada sede.
+
+**Tres trampas de entorno que costaron media hora y valen más que el tiempo perdido:**
+(1) hay **dos** `.env.local` —el de la raíz, restos de un `vercel env pull` con los
+valores literales `"[SENSITIVE]"`, y el de `apps/web`, que es el que Next lee—; diagnostiqué
+sobre el equivocado y llegué a una conclusión falsa antes de corregirme. (2) El servidor
+de desarrollo tiene `NEXT_PUBLIC_SUPABASE_URL` **exportada en su terminal**, y en Next eso
+le gana al archivo: `apps/web/.env.local` dice `:54321` (stack de dynamic) pero la app
+habla con `:54421` (stack de retail). Se resolvió mirando `auth.users.last_sign_in_at` en
+las dos bases, no razonando. (3) `retail.stock_almacen` **no existe en local** — solo la
+crea `unificacion/12`, que es de producción — así que la línea del almacén no se puede
+verificar acá. Cuarto caso del patrón de migraciones duales.
+
+Y para poder ver funcionar algo alguna vez: `supabase/seed-demo.sql`, opt-in (no está en
+`config.toml`), 28 ventas en 14 días con forma, una prenda que dispara "reponer ya" y otra
+estancada. Respeta la regla: inserta `movimientos` con su fecha real y deriva `stock`, nunca
+escribe una cantidad a mano.
+
+**SESIÓN EN CURSO — quedan los pasos 2 a 6 del Inicio.** Lo de esta parte es seguro de
+commitear: `lib/panel.ts`, `lib/panel-serie.ts` (+ pruebas), `components/TarjetaIndicador.tsx`,
+`app/(app)/page.tsx`, `supabase/migrations/0042`, `supabase/unificacion/25`, `supabase/seed-demo.sql`,
+`docs/adr/0020`.

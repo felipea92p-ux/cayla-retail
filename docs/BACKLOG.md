@@ -40,7 +40,12 @@ importante que ha entrado a este archivo desde que existe.
       (¿botón propio, o dentro de `MovimientoModal`?). **Falta lo único que
       de verdad lo cierra: que Felipe entre un producto real por la pantalla
       y confirme que aparece.**
-- [ ] **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
+- [x] **RESUELTO (verificado 2026-09-09: `npx tsc --noEmit` sale con exit 0 y
+      `next build` compila las 28 rutas). Se arregló en algún momento entre el
+      03-09 y hoy sin que nadie lo anotara — mismo patrón que el ítem de
+      "no hay registro de qué corrió" de más abajo, pero en el código. Texto
+      original abajo, como quedó registrado el 2026-09-03:**
+      **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
       luz 30 errores en 14 archivos que nadie tocó hoy — deuda real, no
       ruido de esta sesión.** `retail.sedes`/`retail.personas` son VISTAS
       (join contra `public` de Dynamic) — Postgres no le garantiza a Supabase
@@ -304,6 +309,50 @@ importante que ha entrado a este archivo desde que existe.
       Washington igual. Tendrá su propio ADR con el motor de sincronización elegido.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
+
+- [ ] **`recalcular_stock()` arreglada en local, SIN PEGAR EN PRODUCCIÓN —
+      2026-09-09, ADR-0020.** La red de seguridad del inventario
+      (ARQUITECTURA.md §4.2) nunca pudo correr en una base con ventas: Postgres
+      evalúa los CHECK sobre la fila propuesta antes de resolver el
+      `on conflict`, así que la fila negativa moría antes del update.
+      `supabase/migrations/0042_recalcular_stock_neto.sql` aplicada y verificada
+      en local (0 diferencias contra el stock calculado aparte).
+      **Falta que Felipe pegue `supabase/unificacion/25_recalcular_stock_neto.sql`
+      en el SQL Editor de producción** y corra las dos verificaciones que trae al
+      final. Ojo con la segunda: si devuelve algo distinto de 0, no es que el
+      arreglo esté mal — es que `stock` y `movimientos` ya estaban
+      desincronizados y la red hizo su trabajo por primera vez.
+
+- [ ] **`retail.stock_almacen` no existe en local — 2026-09-09.** Solo la crea
+      `supabase/unificacion/12_almacen_interno.sql`, que es de producción;
+      ninguna migración de `supabase/migrations/` la tiene. `lib/catalogo.ts`
+      la consulta sin revisar el error, así que en local devuelve `{}` en
+      silencio: el almacén se ve vacío y "Recibir mercadería" / "Bajar a tienda"
+      no son verificables en local. Cuarto caso del patrón de migraciones
+      duales (con ADR-0004, ADR-0006 y las categorías). Es también lo que
+      impide verificar la línea "Incluye S/X en almacén" del Inicio sin
+      producción.
+
+- [ ] **Dos `.env.local` y uno de ellos con basura — 2026-09-09.** El de la raíz
+      tiene `NEXT_PUBLIC_SUPABASE_URL="[SENSITIVE]"` y la clave igual: restos de
+      un `vercel env pull` del 08-09 (cuando una variable es *Sensitive* en
+      Vercel, el CLI no la puede descifrar y escribe ese literal). Hoy no rompe
+      nada porque Next lee el de `apps/web`, pero hizo perder media hora de
+      diagnóstico en esta sesión. **Peor todavía:** el servidor de desarrollo
+      tiene `NEXT_PUBLIC_SUPABASE_URL` exportada en su terminal, y en Next eso le
+      gana al archivo — `apps/web/.env.local` dice `:54321` (stack local de
+      dynamic) y la app en realidad habla con `:54421` (stack local de retail).
+      Mínimo viable: borrar el `.env.local` de la raíz y dejar en el README qué
+      puerto es cuál.
+
+- [ ] **`esTaller === "TALLER"` esconde Producción en producción — 2026-09-09.**
+      `AppShell.tsx:216` y `mas/page.tsx:10` detectan el Taller por código de
+      sede, pero tras la unificación la sede del Taller se llama **`LIM`**
+      (`unificacion/01_sedes.sql:35` la mapea a `tipo='fabrica'` justamente
+      porque su código no es TALLER). Hoy, en producción, la persona del Taller
+      no ve el enlace a Producción en ningún lado. `packages/shared/src/enums.ts:5`
+      también quedó viejo (lista `TALLER`, le faltan `003` y `CCO`). Arreglo:
+      detectar por `tipo === 'fabrica'`. Va en el paso 6 del plan del Inicio.
 
 - [ ] **Fase 0 de latencia: escrita y verificada en local (commit `a7ca384`) —
       FALTA DESPLEGAR Y VOLVER A MEDIR. 2026-09-09, ADR-0013.** Lo único que queda
