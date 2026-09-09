@@ -397,15 +397,13 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **Streaming COMPLETO en las 10 pantallas; falta verificarlo en vivo — 2026-09-09, ADR-0021.**
-      Las diez pantallas ya dibujan la estructura sin esperar los datos. **Lo único que
-      falta es verlo funcionar.** Compila y pasa 68 pruebas, pero que
-      la estructura aparezca ANTES que los datos hay que verlo corriendo con sesión
-      iniciada — igual que la barrera de error de `(app)/error.tsx`. Al desplegar, medir
-      con el navegador de Felipe como se hizo con la región: hoy `/inventario` da TTFB
-      131 ms y carga completa 750 ms; lo que hay que confirmar es que a los 131 ms se vea
-      la pantalla armada y no un Cargando….
-
+- [x] **Streaming en las 10 pantallas: hecho y verificado, con resultado NEGATIVO en
+      tiempo — 2026-09-09, ADR-0021.** Funciona mecánicamente (el HTML trae el esqueleto
+      y llega en 3 trozos), pero **no movió los tiempos**: TTFB 131→124 ms y carga total
+      750→730 ms, dentro del ruido. La razón: entre el primer byte y el HTML completo solo
+      hay ~100 ms, así que había poco que repartir. Se mantiene porque cambia QUÉ se ve
+      durante la espera (estructura en vez de "Cargando…"), no por velocidad. **No volver
+      a proponer streaming como solución de rendimiento en este repo.**
 - [ ] **Terminar de aplicar `exigir()`/`tolerar()`: quedan ~15 lecturas que fallan en
       silencio — 2026-09-09.** La auditoría encontró 20 consultas que descartaban el error
       de Supabase contra 1 que lo revisaba. Se arreglaron los tres cimientos donde un dato
@@ -513,8 +511,12 @@ importante que ha entrado a este archivo desde que existe.
       también quedó viejo (lista `TALLER`, le faltan `003` y `CCO`). Arreglo:
       detectar por `tipo === 'fabrica'`. Va en el paso 6 del plan del Inicio.
 
-- [ ] **Fase 0 de latencia: escrita y verificada en local (commit `a7ca384`) —
-      FALTA DESPLEGAR Y VOLVER A MEDIR. 2026-09-09, ADR-0013.** Lo único que queda
+- [x] **Fase 0 de latencia: DESPLEGADA Y VERIFICADA EN PRODUCCIÓN el 2026-09-09.**
+      La función corre en `gru1` (São Paulo): confirmado con `x-vercel-id: iad1::gru1::…`
+      — dos segmentos, el segundo es dónde ejecuta. Las mediciones anteriores daban un
+      solo segmento porque las respondía el proxy en el borde sin llegar a la función.
+      Pantalla con sesión: TTFB 124 ms, carga total 730 ms. **Registro original abajo,
+      por si hay que rediscutirlo:** Lo único que queda
       es `git push` (hoy hay 6 commits sin subir, 3 de otras sesiones — no se
       empujaron para no desplegar trabajo ajeno sin su visto bueno) y después
       confirmar con `curl -sI <dominio>/login | grep -i x-vercel-id`: si dice
