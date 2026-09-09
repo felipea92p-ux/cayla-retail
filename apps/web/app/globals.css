@@ -59,6 +59,14 @@
   --radius-xl: 16px;
   --radius-2xl: 22px;
 
+  /* Ancho del lateral — UNA sola fuente de verdad. El <aside>, la cabecera
+     fija y el <main> leen el mismo token (`w-lateral`, `left-lateral`,
+     `ml-lateral`). Antes eran tres números sueltos (`w-56`, `left-56`,
+     `ml-56`) más un cuarto desalineado en el panel "+ Nuevo" (`left-60`),
+     y por eso el panel abría 16px corrido del borde del lateral.
+     Subió de 14rem a 17rem el 2026-09-09 (ADR-0014). */
+  --spacing-lateral: 17rem;
+
   /* Movimiento estándar del sistema */
   --default-transition-duration: 260ms;
   --default-transition-timing-function: cubic-bezier(0.22, 0.61, 0.28, 1);

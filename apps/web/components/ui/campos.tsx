@@ -23,8 +23,11 @@ import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type Reac
    ya vivía.
    ==================================================================== */
 
-/** El hilo vivo. Se dibuja desde el centro cuando el campo está activo. */
-function Hilo({ activo, trabajando = false }: { activo: boolean; trabajando?: boolean }) {
+/** El hilo vivo. Se dibuja desde el centro cuando el campo está activo.
+    Exportado el 2026-09-09: el buscador global del AppShell usa el mismo
+    dispositivo, y tenerlo definido dos veces era garantía de que un día
+    se movieran por separado. */
+export function Hilo({ activo, trabajando = false }: { activo: boolean; trabajando?: boolean }) {
   return (
     <>
       <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />

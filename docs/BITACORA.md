@@ -801,3 +801,33 @@ stock de sobra**; si es la última unidad, bloquea — el punto medio entre perd
 y sobrevender. La arquitectura queda asentada en ADR-0013: lecturas replicadas al
 navegador, escrituras siempre por RPC con `movimientos` como única fuente de verdad.
 Nada de código tocado todavía, por pedido explícito suyo.
+
+## 2026-09-09 (el riel del lateral — ADR-0014)
+Felipe pidió rediseñar el menú lateral: "muy chico, muy hacia arriba, muy junto",
+más futurista y elegante, con las animaciones ya establecidas pero algo innovador, y
+"solo cambios estéticos" para poder pushear desde otra sesión sin sorpresas. Las tres
+quejas eran medibles: lateral de 224px, filas de 39px con 2px de aire, y 6 ítems
+apretados arriba dejando ~380px de vacío muerto abajo. Debajo había algo de fondo: el
+lateral era el último rincón que seguía marcando "dónde estás" con un bloque `bg-sand`
+plano, la gramática de julio, mientras desde ADR-0011 todo el resto usa el hilo vivo.
+
+Se resolvió con UN riel que se desliza entre filas en vez de seis luces que se
+prenden — el indicador del `Segmentado` puesto de canto, con la forma exacta de la
+marca del desplegable: dos piezas que ya existían, unidas. Lo innovador propio: al
+pasar el mouse por una fila apagada aparece el mismo riel en gris, donde va a quedar
+el rojo si sueltas el clic ("estás acá / irías allá"). El alto de fila y el paso del
+riel salen de las mismas dos constantes, así que no puede desalinearse y no hay que
+medir el DOM. Ancho 224→272px desde un token nuevo (`--spacing-lateral`), que además
+destapó que el panel "+ Nuevo" abría 16px corrido por un `left-60` suelto. Dos grupos,
+Operación y Dirección, que coinciden con lo que solo ve el Líder; con un solo grupo el
+título se oculta. De paso se cerró un pendiente del BACKLOG desde ADR-0003: `Escape`
+cierra el "+ Nuevo" y el foco vuelve al botón.
+
+Verificado en navegador con ruta de prueba temporal bajo `/auth` (el único prefijo que
+el middleware deja pasar sin sesión; borrada al cerrar): riel en los 6 destinos, marca
+fantasma, vista de Encargada sin el grupo "Dirección", `Escape` + devolución de foco,
+riel del celular deslizándose, y contraste medido sobre el DOM. Ahí salió un hallazgo:
+`text-taupe` sobre crema da 3.39:1 y reprueba AA — la firma del lateral quedó en
+`tinta/65`, y los otros 9 usos de taupe de la app quedaron anotados en BACKLOG.
+`tsc`, `eslint`, 51 tests y `next build` en verde. **Commiteado sin pushear**, por
+pedido de Felipe: el push sale de otra sesión.

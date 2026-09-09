@@ -381,14 +381,31 @@ importante que ha entrado a este archivo desde que existe.
 - [ ] `finanzas`: el costo de lo vendido usa el costo VIGENTE de cada prenda, no el
       costo del día de la venta. Inofensivo mientras los costos sean estables (nota
       del 17-jul); si algún día se mueven, distorsiona el histórico de EERR pasados.
-- [ ] `AppShell`: el panel "+ Nuevo" (`MenuNuevo`) sigue sin cerrar con `Escape` —
-      quedó fuera a propósito de la migración a `components/ui/Modal` (ADR-0003)
-      porque es un menú anclado al lateral/bottom-sheet, no un modal centrado; si se
-      toca, mismo criterio (Radix sin estilo propio, tokens CAYLA).
+- [ ] `AppShell`: el panel "+ Nuevo" (`MenuNuevo`) sigue sin atrapar el foco (no es
+      un `Modal` de Radix: es un menú anclado, no un diálogo). El 2026-09-09 se le
+      agregó `Escape`, clic afuera, devolución de foco al botón que lo abrió y foco de
+      entrada al panel (ADR-0014), que era el 95% de lo que faltaba. Si algún día crece
+      en opciones, ahí sí corresponde `role="menu"` completo o migrarlo a `Modal`.
 - [ ] Contraste: el barrido del 08-sep (ADR-0012) midió solo las pantallas que se
       pueden ver sin sesión más Facturación. Las de Finanzas, Inventario y Producción
       quedaron con el piso aplicado por sustitución mecánica pero SIN medición sobre
       el DOM renderizado. Vale una pasada de verificación cuando haya sesión de prueba.
+      **Hallazgo concreto del 09-sep:** `text-taupe` (#a47865) sobre crema da **3.39:1**
+      y reprueba AA — la promesa de ADR-0012 ("0 elementos reprueban") no lo cubría
+      porque los 9 usos viven en pantallas con sesión. Son: la firma "Donde el estilo
+      transforma." en `app/(app)/mas/page.tsx:42` y `app/login/page.tsx:56`, los chips
+      `text-[10px]` de `InventarioAgrupado.tsx:162`, `OrdenesProduccion.tsx:180/193/278/298`
+      y `finanzas/patrimonio/page.tsx:67`, y el score de `ProveedoresManager.tsx:223`.
+      En el lateral ya se resolvió pasando la firma a `tinta/65`. Decidir si taupe deja
+      de ser color de texto (solo bordes/tintes) o si se le crea un `taupe-profundo`,
+      como ya tienen verde, ámbar y rojo.
+- [ ] `SedeSwitcher`: con el lateral y el buscador ya en la gramática nueva (ADR-0014),
+      el selector de sede quedó como el único control de la cabecera que sigue siendo un
+      `<select>` nativo — en Windows dibuja su propia lista gris, que es exactamente lo
+      que `CampoSelect` (ADR-0011) existe para evitar. Cambiarlo es reemplazar el
+      `<select>` por `CampoSelect`, sin tocar `cambiarSedeActiva` ni el `useTransition`.
+      No entró el 09-sep por disciplina de alcance: Felipe pidió el menú lateral.
+
 - [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
       siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
       `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
