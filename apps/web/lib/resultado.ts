@@ -49,6 +49,22 @@ export function exigir<T>(resultado: ResultadoConsulta<T>, que: string): T {
   return resultado.data;
 }
 
+/**
+ * Como `exigir()`, pero para consultas donde "no hay fila" es una respuesta legítima y no
+ * un fallo — las de `.maybeSingle()`: ¿hay una caja abierta ahora? ¿esta sede tiene almacén?
+ *
+ * La distinción importa más de lo que parece. Con `const { data }` a secas, un error de red
+ * y un "no hay caja abierta" llegan idénticos: `data === null`. La pantalla dice "caja
+ * cerrada" y alguien intenta abrir una segunda caja sobre una que sí estaba abierta. Acá el
+ * fallo revienta y el vacío pasa, que son cosas distintas y deben tratarse distinto.
+ */
+export function exigirOpcional<T>(resultado: ResultadoConsulta<T>, que: string): T | null {
+  if (resultado.error) {
+    throw new Error(`No se pudo leer ${que}: ${resultado.error.message}`);
+  }
+  return resultado.data;
+}
+
 /** Lo que `tolerar()` entrega: los datos si llegaron, y el aviso para pintar si no. */
 export type Tolerado<T> = { datos: T | null; fallo: string | null };
 

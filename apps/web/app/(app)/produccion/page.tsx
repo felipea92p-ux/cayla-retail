@@ -5,6 +5,7 @@ import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
 import { OrdenesProduccion, type OrdenRow, type OrdenLinea } from "@/components/OrdenesProduccion";
 import { EsqueletoTabla } from "@/components/Esqueleto";
+import { exigir } from "@/lib/resultado";
 
 // Producción (Taller): una sola forma de producir — la Orden de producción.
 // Se abre con costo estimado y variantes, avanza por etapas (corte → confección →
@@ -55,15 +56,20 @@ async function Ordenes({ unidadId }: { unidadId: string }) {
   ]);
 
   const ids = (producciones ?? []).map((p) => p.id);
-  const { data: lineasData } = ids.length
-    ? await supabase
-        .from("produccion_lineas")
-        .select("produccion_id, variante_id, cantidad, variantes(talla, color)")
-        .in("produccion_id", ids)
-    : { data: [] };
+  // Las líneas son las CANTIDADES por talla y color de cada orden. Si fallan, el tablero
+  // muestra órdenes sin desglose y parecen vacías.
+  const lineasData = ids.length
+    ? exigir(
+        await supabase
+          .from("produccion_lineas")
+          .select("produccion_id, variante_id, cantidad, variantes(talla, color)")
+          .in("produccion_id", ids),
+        "las líneas de las órdenes de producción"
+      )
+    : [];
 
   const lineasPorOrden = new Map<string, OrdenLinea[]>();
-  for (const l of lineasData ?? []) {
+  for (const l of lineasData) {
     const v = Array.isArray(l.variantes) ? l.variantes[0] : l.variantes;
     const arr = lineasPorOrden.get(l.produccion_id) ?? [];
     arr.push({ varianteId: l.variante_id, talla: v?.talla ?? null, color: v?.color ?? null, cantidad: l.cantidad });

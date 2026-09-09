@@ -11,11 +11,16 @@ export async function GET() {
   } = await supabase.auth.getUser();
   if (!user) return new Response("No autorizado", { status: 401 });
 
-  const { data: personaRow } = await supabase
+  const { data: personaRow, error: errPersona } = await supabase
     .from("personas")
     .select("id, nombre, rol, sede_id")
     .eq("auth_user_id", user.id)
     .single();
+  // Sin esto, un fallo de consulta se reportaba como "Sin persona vinculada" (403) —
+  // acusando al usuario de algo que es del servidor.
+  if (errPersona) {
+    return new Response("No se pudo verificar tu cuenta. Reintenta en un momento.", { status: 503 });
+  }
   if (!personaRow || !personaRow.id || !personaRow.nombre || !personaRow.sede_id) {
     return new Response("Sin persona vinculada", { status: 403 });
   }

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { marcarPorVencer, type ProformaFila } from "@/lib/proformas-reglas";
 
 export type { EstadoProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
@@ -10,12 +11,14 @@ export { marcarPorVencer } from "@/lib/proformas-reglas";
 // sigue siendo parte de la historia de facturación de ese mes, no desaparece.
 export async function getProformasMes(desde: string, hasta: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  // Misma lógica que los comprobantes: una proforma que no se ve se vuelve a cotizar,
+  // y la clienta recibe dos precios distintos por lo mismo.
+  const res = await supabase
     .from("proformas")
     .select("id, sede_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, created_at, vence_at")
     .gte("created_at", desde)
     .lt("created_at", hasta)
     .order("created_at", { ascending: false });
 
-  return marcarPorVencer((data as ProformaFila[] | null) ?? []);
+  return marcarPorVencer(exigir(res, "las proformas del mes") as ProformaFila[]);
 }

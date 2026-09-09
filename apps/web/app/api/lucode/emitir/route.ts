@@ -117,11 +117,16 @@ export async function POST(request: Request) {
     if (!fila.comprobante_original_id || !fila.motivo) {
       return Response.json({ error: "La nota no tiene comprobante original o motivo — no debería poder existir así (ADR-0007)." }, { status: 500 });
     }
-    const { data: original } = await supabase
+    const { data: original, error: errOriginal } = await supabase
       .from("comprobantes")
       .select("tipo, serie, numero, entorno_transmision")
       .eq("id", fila.comprobante_original_id)
       .maybeSingle();
+    // Distinguir el fallo de lectura del "no es boleta ni factura": lo primero se reintenta,
+    // lo segundo es un dato mal formado que nunca se va a arreglar solo.
+    if (errOriginal) {
+      return Response.json({ error: "No se pudo leer el comprobante original de la nota. Reintenta." }, { status: 503 });
+    }
     if (!original || (original.tipo !== "boleta" && original.tipo !== "factura")) {
       return Response.json({ error: "El comprobante original de esta nota no es una boleta ni una factura." }, { status: 500 });
     }

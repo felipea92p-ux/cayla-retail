@@ -39,12 +39,17 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
 
-  const { data: comprobante } = await supabase
+  const { data: comprobante, error: errComprobante } = await supabase
     .from("comprobantes")
     .select("id, tipo, serie, numero, estado, entorno_transmision")
     .eq("id", comprobanteId)
     .maybeSingle();
 
+  // Un fallo de consulta NO es "no encontrado": si se confunden, quien anula concluye que
+  // el comprobante no existe y lo vuelve a emitir. 503 dice "reintenta", 404 dice "no está".
+  if (errComprobante) {
+    return Response.json({ error: "No se pudo leer el comprobante. Reintenta en un momento." }, { status: 503 });
+  }
   if (!comprobante) {
     return Response.json({ error: "Comprobante no encontrado o sin permiso para verlo" }, { status: 404 });
   }

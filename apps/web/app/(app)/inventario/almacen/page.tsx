@@ -3,17 +3,22 @@ import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { AlmacenStockList } from "@/components/AlmacenStockList";
 import { InventarioNav } from "@/components/InventarioNav";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 
 export default async function AlmacenPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const { data: contenedorAlmacen } = await supabase
+  // Que la sede no tenga almacén es una respuesta válida (abajo se explica en pantalla);
+  // que la consulta FALLE no lo es. Antes ambos llegaban como null y se le decía a la
+  // Encargada "tu sede no tiene almacén configurado" cuando en realidad se cayó la red.
+  const resContenedor = await supabase
     .from("contenedores")
     .select("id, codigo")
     .eq("sede_id", persona.sedeId)
     .eq("tipo", "almacen")
     .maybeSingle();
+  const contenedorAlmacen = exigirOpcional(resContenedor, "el almacén de la sede");
 
   if (!contenedorAlmacen) {
     return (
@@ -30,13 +35,17 @@ export default async function AlmacenPage() {
     );
   }
 
-  const { data: stockRows } = await supabase
-    .from("stock_almacen")
+  // Stock: falla en duro. Un almacén que se dibuja vacío manda a comprar lo que ya está.
+  const stockRows = exigir(
+    await supabase
+      .from("stock_almacen")
     .select("variante_id, cantidad, variantes(sku, talla, color, productos(referencia))")
-    .eq("sede_id", persona.sedeId)
-    .gt("cantidad", 0);
+      .eq("sede_id", persona.sedeId)
+      .gt("cantidad", 0),
+    "el stock del almacén"
+  );
 
-  const items = (stockRows ?? [])
+  const items = stockRows
     .map((r) => {
       const variante = Array.isArray(r.variantes) ? r.variantes[0] : r.variantes;
       const producto = variante ? (Array.isArray(variante.productos) ? variante.productos[0] : variante.productos) : null;

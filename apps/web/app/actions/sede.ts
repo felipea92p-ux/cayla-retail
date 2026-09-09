@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { mapearRol } from "@/lib/persona";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 
 const COOKIE_SEDE = "cayla_sede_activa";
 
@@ -17,11 +18,16 @@ export async function cambiarSedeActiva(sedeId: string) {
   const authUserId = verificado?.claims?.sub;
   if (!authUserId) return;
 
-  const { data: persona } = await supabase
+  // Falla en duro a propósito. Antes, si esta consulta se caía, `persona` quedaba en null,
+  // `mapearRol(null)` devolvía "integrante" y la acción retornaba sin hacer nada: el Líder
+  // tocaba el selector y no pasaba NADA, sin error ni aviso. Indistinguible de "no tienes
+  // permiso". Mejor que reviente y se vea.
+  const resPersona = await supabase
     .from("personas")
     .select("rol")
     .eq("auth_user_id", authUserId)
     .single();
+  const persona = exigir(resPersona, "tu rol");
   // `personas.rol` trae DOS vocabularios según dónde corra: en producción es una vista
   // puente sobre Dynamic y dice 'admin'; en local es la tabla del propio repo, cuyo CHECK
   // solo admite 'lider'. `mapearRol` conoce ambos y es la única traducción del sistema.
@@ -32,11 +38,14 @@ export async function cambiarSedeActiva(sedeId: string) {
   // `mapearRol` ya había arreglado en lib/persona.ts; este archivo se quedó atrás.
   if (mapearRol(persona?.rol ?? null) !== "lider") return;
 
-  const { data: sede } = await supabase
+  // La sede sí puede no existir (un id inventado en la cookie) y eso se ignora abajo; lo
+  // que no puede pasar por "no existe" es un fallo de consulta.
+  const resSede = await supabase
     .from("sedes")
     .select("id, tipo")
     .eq("id", sedeId)
     .maybeSingle();
+  const sede = exigirOpcional(resSede, "la sede a la que quieres cambiar");
   if (!sede || !sede.id || sede.tipo === "almacen") return; // solo tiendas y taller, no almacenes
 
   const cookieStore = await cookies();

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes, mapaSedes } from "@/lib/sedes";
-import { exigir } from "@/lib/resultado";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
@@ -21,12 +21,17 @@ export type CajaAbierta = {
 /** La caja abierta de una sede ahora mismo, si existe (índice único garantiza que hay a lo sumo una). */
 export async function getCajaAbierta(sedeId: string): Promise<CajaAbierta | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  // `exigirOpcional` y no `exigir`: "no hay caja abierta" es una respuesta legítima, pero
+  // un fallo de consulta NO puede leerse como eso. Antes ambos llegaban como `data === null`
+  // y la pantalla decía "caja cerrada" — invitando a abrir una segunda caja sobre una que sí
+  // estaba abierta, que es justo el estado imposible que prohíbe el principio 2.
+  const res = await supabase
     .from("cajas")
     .select("id, monto_apertura, abierta_en")
     .eq("sede_id", sedeId)
     .eq("estado", "abierta")
     .maybeSingle();
+  const data = exigirOpcional(res, "la caja abierta de la sede");
 
   if (!data) return null;
   return { id: data.id, montoApertura: Number(data.monto_apertura), abiertaEn: data.abierta_en };

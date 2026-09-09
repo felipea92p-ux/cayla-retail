@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 import { diaLima } from "@/lib/panel-serie";
 
@@ -34,11 +35,15 @@ export async function getPanelTaller(persona: PersonaActual): Promise<PanelTalle
   if (persona.sedeTipo !== "fabrica") return null;
   const supabase = await createClient();
 
-  const { data } = await supabase
+  // Es la cola de trabajo del Taller. Si falla y la pantalla dibuja "nada pendiente",
+  // el equipo se va a casa con órdenes abiertas.
+  const res = await supabase
     .from("producciones")
     .select("id, detalle, cantidad, es_muestra, estado, fecha_entrega, inventariado_at")
     .eq("unidad_id", persona.sedeId)
     .order("fecha_entrega", { ascending: true, nullsFirst: false });
+
+  const data = exigir(res, "las órdenes del taller");
 
   const hoy = diaLima(Date.now());
   const aOrden = (p: {

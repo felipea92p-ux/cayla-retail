@@ -50,7 +50,15 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
 
-  const { data: persona } = await supabase.from("personas").select("id").eq("auth_user_id", user.id).single();
+  const { data: persona, error: errPersona } = await supabase
+    .from("personas")
+    .select("id")
+    .eq("auth_user_id", user.id)
+    .single();
+  // Mismo criterio que en el export: un fallo del servidor no se le achaca al usuario.
+  if (errPersona) {
+    return Response.json({ error: "No se pudo verificar tu cuenta. Reintenta." }, { status: 503 });
+  }
   if (!persona?.id) return Response.json({ error: "Sin persona vinculada" }, { status: 403 });
 
   // Se revalida en el servidor aunque el formulario ya lo haya hecho: la
@@ -68,6 +76,9 @@ export async function GET(request: Request) {
   // 1) Memoria propia primero: si a este documento ya se le emitió un
   //    comprobante, el nombre está en casa — gratis, instantáneo y disponible
   //    aunque el padrón esté caído. RLS decide qué comprobantes ve cada quien.
+  // Esta SÍ ignora su error a propósito, y es la única del archivo: es una memoria de
+  // conveniencia. Si falla, todavía queda preguntarle al padrón — degradarse a la ruta
+  // lenta es correcto; tumbar la consulta por un caché frío, no.
   const { data: previo } = await supabase
     .from("comprobantes")
     .select("cliente_nombre")

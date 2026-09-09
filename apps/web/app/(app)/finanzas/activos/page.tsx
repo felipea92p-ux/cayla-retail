@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
+import { exigir } from "@/lib/resultado";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 
 const CAT_NOMBRE: Record<string, string> = {
@@ -50,14 +51,18 @@ async function Contenido() {
   const persona = await requirePersonaActual(); // memorizado por request
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("activos_fijos")
-    .select("nombre, serie, cuenta_codigo, costo, depreciacion_apertura, fecha_adquisicion")
-    .eq("unidad_id", persona.sedeId)
-    .eq("estado", "activo")
-    .order("costo", { ascending: false });
+  // Patrimonio: un activo que no se ve es un activo que se compra dos veces.
+  const data = exigir(
+    await supabase
+      .from("activos_fijos")
+      .select("nombre, serie, cuenta_codigo, costo, depreciacion_apertura, fecha_adquisicion")
+      .eq("unidad_id", persona.sedeId)
+      .eq("estado", "activo")
+      .order("costo", { ascending: false }),
+    "los activos fijos"
+  );
 
-  const activos = data ?? [];
+  const activos = data;
   const totalCosto = activos.reduce((a, x) => a + Number(x.costo), 0);
   const totalDep = activos.reduce((a, x) => a + Number(x.depreciacion_apertura), 0);
   const totalNeto = totalCosto - totalDep;
