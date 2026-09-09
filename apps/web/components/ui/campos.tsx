@@ -251,38 +251,66 @@ export function Segmentado<T extends string>({
 }
 
 /* ------------------------------------------------------------------
-   CampoSelect — desplegable propio, no el <select> nativo.
-   El nativo no se puede animar ni estilar por dentro (el sistema
-   operativo dibuja la lista), así que en Windows rompía la identidad
-   justo en el momento de más atención de la pantalla.
+   Desplegable — el cuerpo del desplegable propio, sin la caja `Campo`.
 
-   Construido a mano y no con Radix porque el repo solo tiene
-   @radix-ui/react-dialog instalado, y sumar una dependencia por un
-   desplegable de tres sedes no se paga. A cambio, el teclado está
-   implementado completo (flechas, Inicio/Fin, Enter, Escape, tipeo
-   para saltar) y los roles ARIA son los del patrón combobox.
+   Es un <select> escrito a mano porque el nativo no se puede animar ni
+   estilar por dentro (la lista la dibuja el sistema operativo), y en
+   Windows eso rompía la identidad justo en el momento de más atención
+   de la pantalla. No se usó Radix porque el repo solo tiene
+   @radix-ui/react-dialog instalado y sumar una dependencia por un
+   desplegable de tres sedes no se paga; a cambio, el teclado está
+   completo (flechas, Inicio/Fin, Enter, Escape, tipeo para saltar) y
+   los roles ARIA son los del patrón combobox.
+
+   Vive separado de `CampoSelect` desde el 2026-09-09. El motivo: la
+   cabecera necesita este control SIN etiqueta ni pie — `Campo` reserva
+   alto fijo para el pie y dibuja un <label>, y meter eso arriba le sumaba
+   ~30px de alto a la barra superior de TODAS las pantallas. La
+   alternativa era un prop `compacto` adentro de `CampoSelect`, que obliga
+   a pensar cada cambio futuro dos veces ("¿con etiqueta o sin?").
+   Partirlo deja a cada pieza haciendo una cosa:
+     Desplegable  = el control
+     CampoSelect  = Campo + Desplegable
+   Ningún consumidor de `CampoSelect` cambió: su API es idéntica.
    ------------------------------------------------------------------ */
-export function CampoSelect<T extends string>({
-  etiqueta,
-  ayuda,
-  pie,
-  tono,
+
+// Dos formas, no dos modos: es dónde vive el control, no cómo se porta.
+// `campo` se para sobre el hilo vivo (dentro de un formulario); `pastilla`
+// se defiende sola con un borde (en la cabecera, sin campo alrededor).
+const FORMA_DESPLEGABLE = {
+  campo: "w-full justify-between rounded-t-md px-0.5 py-2 text-sm hover:bg-tinta/[0.03]",
+  pastilla:
+    "gap-2 rounded-md border bg-papel px-2.5 py-1.5 label-cayla text-[11px] hover:border-rojo",
+} as const;
+
+export function Desplegable<T extends string>({
   valor,
   onValor,
   opciones,
   marcador = "Elegir",
+  forma = "campo",
+  // Dónde se ancla la lista. `campo` la clava al ancho del control, que es
+  // lo que hace hoy dentro de un formulario. `derecha` la deja crecer con
+  // su contenido y la pega al borde derecho: en la cabecera el disparador
+  // dice "TRU" y mide 60px, y una lista de 60px no se puede leer.
+  alineacion = "campo",
+  trabajando = false,
+  idEtiqueta,
+  etiquetaAccesible,
 }: {
-  etiqueta: ReactNode;
-  ayuda?: ReactNode;
-  pie?: ReactNode;
-  tono?: CampoProps["tono"];
   valor: T;
   onValor: (v: T) => void;
   opciones: readonly Opcion<T>[];
   marcador?: string;
+  forma?: keyof typeof FORMA_DESPLEGABLE;
+  alineacion?: "campo" | "derecha";
+  trabajando?: boolean;
+  /** Id de un <label> existente (lo pasa `CampoSelect`). */
+  idEtiqueta?: string;
+  /** Nombre accesible cuando NO hay label visible (cabecera). */
+  etiquetaAccesible?: string;
 }) {
   const id = useId();
-  const idEtiqueta = `${id}-etq`;
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
   const contenedor = useRef<HTMLDivElement>(null);
@@ -372,72 +400,117 @@ export function CampoSelect<T extends string>({
     }
   }
 
+  const esPastilla = forma === "pastilla";
+
+  return (
+    <div className="relative" ref={contenedor}>
+      <button
+        ref={disparador}
+        id={id}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        aria-labelledby={idEtiqueta}
+        aria-label={idEtiqueta ? undefined : etiquetaAccesible}
+        aria-controls={`${id}-lista`}
+        onClick={() => (abierto ? cerrar(false) : abrir())}
+        onKeyDown={alTeclado}
+        className={`flex items-center bg-transparent text-left outline-none transition-colors ${
+          FORMA_DESPLEGABLE[forma]
+        } ${esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""}`}
+      >
+        <span className={elegida ? "text-tinta" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
+        <svg
+          aria-hidden
+          viewBox="0 0 10 6"
+          className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
+        >
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+        </svg>
+        {/* La pastilla no se para sobre el hilo, así que el "estoy trabajando"
+            se dibuja adentro, igual que en `Boton cargando`. Es lo que le dice
+            a quien está en el mostrador que el sistema no se colgó. */}
+        {esPastilla && trabajando && (
+          <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
+            <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+          </span>
+        )}
+      </button>
+      {!esPastilla && <Hilo activo={abierto} trabajando={trabajando} />}
+
+      {abierto && (
+        <ul
+          id={`${id}-lista`}
+          ref={lista}
+          role="listbox"
+          aria-labelledby={idEtiqueta}
+          aria-label={idEtiqueta ? undefined : etiquetaAccesible}
+          tabIndex={-1}
+          aria-activedescendant={`${id}-op-${activo}`}
+          onKeyDown={alTeclado}
+          className={`anim-revelar scroll-cayla absolute top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none ${
+            alineacion === "derecha" ? "right-0 w-max min-w-full" : "inset-x-0"
+          }`}
+        >
+          {opciones.map((o, i) => (
+            <li
+              key={o.valor}
+              id={`${id}-op-${i}`}
+              role="option"
+              aria-selected={o.valor === valor}
+              onMouseEnter={() => setActivo(i)}
+              onClick={() => elegir(i)}
+              // El escalonado corto (30ms por fila) hace que la lista se lea
+              // como que se despliega, no como que aparece entera de golpe.
+              style={{ animationDelay: `${i * 30}ms` }}
+              className={`anim-revelar relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
+                i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"
+              }`}
+            >
+              {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
+              <span
+                aria-hidden
+                className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
+                  o.valor === valor ? "scale-y-100" : "scale-y-0"
+                }`}
+              />
+              {o.texto}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
+   CampoSelect — el `Desplegable` dentro de la caja `Campo`, que es como
+   lo usa todo formulario. Su API no cambió al partirse en dos.
+   ------------------------------------------------------------------ */
+export function CampoSelect<T extends string>({
+  etiqueta,
+  ayuda,
+  pie,
+  tono,
+  valor,
+  onValor,
+  opciones,
+  marcador = "Elegir",
+}: {
+  etiqueta: ReactNode;
+  ayuda?: ReactNode;
+  pie?: ReactNode;
+  tono?: CampoProps["tono"];
+  valor: T;
+  onValor: (v: T) => void;
+  opciones: readonly Opcion<T>[];
+  marcador?: string;
+}) {
+  const idEtiqueta = useId();
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta}>
-      <div className="relative" ref={contenedor}>
-        <button
-          ref={disparador}
-          id={id}
-          type="button"
-          role="combobox"
-          aria-haspopup="listbox"
-          aria-expanded={abierto}
-          aria-labelledby={idEtiqueta}
-          aria-controls={`${id}-lista`}
-          onClick={() => (abierto ? cerrar(false) : abrir())}
-          onKeyDown={alTeclado}
-          className="flex w-full items-center justify-between gap-2 rounded-t-md bg-transparent px-0.5 py-2 text-left text-sm outline-none transition-colors hover:bg-tinta/[0.03]"
-        >
-          <span className={elegida ? "text-tinta" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
-          <svg
-            aria-hidden
-            viewBox="0 0 10 6"
-            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
-          >
-            <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
-          </svg>
-        </button>
-        <Hilo activo={abierto} />
-
-        {abierto && (
-          <ul
-            id={`${id}-lista`}
-            ref={lista}
-            role="listbox"
-            aria-labelledby={idEtiqueta}
-            tabIndex={-1}
-            aria-activedescendant={`${id}-op-${activo}`}
-            onKeyDown={alTeclado}
-            className="anim-revelar scroll-cayla absolute inset-x-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none"
-          >
-            {opciones.map((o, i) => (
-              <li
-                key={o.valor}
-                id={`${id}-op-${i}`}
-                role="option"
-                aria-selected={o.valor === valor}
-                onMouseEnter={() => setActivo(i)}
-                onClick={() => elegir(i)}
-                // El escalonado corto (30ms por fila) hace que la lista se lea
-                // como que se despliega, no como que aparece entera de golpe.
-                style={{ animationDelay: `${i * 30}ms` }}
-                className={`anim-revelar relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
-                  i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"
-                }`}
-              >
-                {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
-                <span
-                  aria-hidden
-                  className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
-                    o.valor === valor ? "scale-y-100" : "scale-y-0"
-                  }`}
-                />
-                {o.texto}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <Desplegable valor={valor} onValor={onValor} opciones={opciones} marcador={marcador} idEtiqueta={idEtiqueta} />
     </Campo>
   );
 }

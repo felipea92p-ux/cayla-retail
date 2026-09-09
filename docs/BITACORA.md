@@ -1085,3 +1085,33 @@ primer paso de la Fase 2 y necesita el visto bueno de Felipe, no ejecución dire
 "~700ms" es estimación, no medición. Construir el cambio de arquitectura más grande desde la
 unificación encima de una línea base sin medir es justo lo que el método prohíbe. El ADR
 queda escrito para que la decisión sea rápida cuando haya números — no para adelantarla.
+
+## 2026-09-09 (Desplegable: el selector de sede deja el <select> nativo)
+Segundo de los dos pasos. El `SedeSwitcher` era el último control de la cabecera con la
+lista gris que dibuja Windows, al lado del buscador y del lateral que ya hablan la
+gramática de CAYLA. El obstáculo real no era el estilo: `CampoSelect` es `Campo` +
+combobox, y `Campo` dibuja un <label> y reserva alto fijo para el pie — meterlo en la
+cabecera le sumaba ~30px de alto a la barra superior de TODAS las pantallas.
+
+Se partió en dos en vez de agregarle un prop `compacto`: `Desplegable` es el control y
+`CampoSelect` pasa a ser `Campo` + `Desplegable`. Un flag de modo adentro obliga a pensar
+cada cambio futuro dos veces ("¿con etiqueta o sin?"); partirlo deja a cada pieza haciendo
+una cosa. La API de `CampoSelect` quedó idéntica — su único consumidor, `ComprobantesPanel`,
+no se tocó, y se verificó que su lista sigue midiendo exactamente el ancho del campo
+(334px = 334px). El `Desplegable` toma dos formas: `campo` (se para sobre el hilo vivo) y
+`pastilla` (se defiende con borde, para la cabecera), y dos anclajes de lista, porque el
+disparador de la cabecera dice "TRU" y mide 65px — una lista de 65px no se puede leer.
+
+El arreglo de fondo no es visual: mientras la app se repuntaba a la otra sede, lo único
+que avisaba era un `disabled:opacity-50`, o sea nada. Ahora corre el barrido del hilo.
+Verificado en navegador (ruta de prueba temporal, borrada al cerrar): lista anclada a la
+derecha sin salirse de pantalla en 375px, Escape cierra y devuelve el foco, flechas+Enter
+eligen, barrido corriendo a 1.1s, y `CampoSelect` sin cambios.
+
+**Hallazgo del camino, anotado en BACKLOG:** `next build` falló dos veces con "Uncached
+data accessed outside of <Suspense>" y después pasó cinco veces seguidas con el mismo
+código. Supuse primero que no era mío, lo verifiqué con un A/B (stash → build → pop →
+build) y resultó que tampoco era del A/B: es intermitente, y coincide con haber tenido
+`next dev` abierto sobre el mismo `.next`. Next 16.2 trae Cache Components activado por
+defecto, así que es un build que puede fallar sin motivo aparente también en Vercel.
+tsc, eslint, 63 tests y 5 builds seguidos en verde.
