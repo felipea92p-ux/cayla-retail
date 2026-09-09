@@ -1108,13 +1108,20 @@ Verificado en navegador (ruta de prueba temporal, borrada al cerrar): lista ancl
 derecha sin salirse de pantalla en 375px, Escape cierra y devuelve el foco, flechas+Enter
 eligen, barrido corriendo a 1.1s, y `CampoSelect` sin cambios.
 
-**Hallazgo del camino, anotado en BACKLOG:** `next build` falló dos veces con "Uncached
-data accessed outside of <Suspense>" y después pasó cinco veces seguidas con el mismo
-código. Supuse primero que no era mío, lo verifiqué con un A/B (stash → build → pop →
-build) y resultó que tampoco era del A/B: es intermitente, y coincide con haber tenido
-`next dev` abierto sobre el mismo `.next`. Next 16.2 trae Cache Components activado por
-defecto, así que es un build que puede fallar sin motivo aparente también en Vercel.
-tsc, eslint, 63 tests y 5 builds seguidos en verde.
+**Hallazgo del camino, y su corrección al cerrar la sesión:** `next build` falló dos veces
+con "Uncached data accessed outside of <Suspense>" y después pasó cinco veces seguidas con
+el mismo código. Supuse que no era mío, lo verifiqué con un A/B (stash → build → pop →
+build) y tampoco era del A/B. Lo anoté como build intermitente, culpando a un supuesto
+"Cache Components activado por defecto en Next 16.2" que salía en el banner.
+
+**Eso era falso, y se descubrió al auditar el cierre.** El banner ya no lo dice: la sesión
+paralela tenía `cacheComponents` prendido en el árbol de trabajo justo en esa ventana,
+probándolo, y después lo sacó (ver la entrada "Fase 1 — lo que sí entró, y por qué
+`cacheComponents` no", más arriba). Nunca fue intermitente ni mío: era el árbol compartido
+cambiando debajo. Se borró el pendiente equivocado del BACKLOG — duplicaba, encima mal, el
+que esa sesión ya había dejado bien escrito. La lección para dos sesiones en paralelo sobre
+un mismo working tree: un build que falla puede no ser del código de nadie, sino del
+minuto. tsc, eslint, 63 tests y 5 builds seguidos en verde.
 
 ## 2026-09-09 (23 y 24 en producción: (a) y (c) cerrados salvo la prueba con Lucode)
 Antes de pasarle el SQL a Felipe se verificó contra producción que los tres supuestos de

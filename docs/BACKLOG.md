@@ -488,19 +488,6 @@ importante que ha entrado a este archivo desde que existe.
       El hallazgo de taupe que salió acá el 09-sep ya está cerrado (ADR-0017,
       `--color-taupe-profundo`); lo que queda es el barrido de las pantallas con
       sesión, que es más ancho que ese solo color.
-- [ ] Build intermitente: el 2026-09-09 `next build` falló **dos veces** con
-      `Uncached data was accessed outside of <Suspense>` (una en `/inventario/proveedores`,
-      otra en `/almacen/recibir`) y después pasó **cinco veces seguidas** con exactamente
-      el mismo código. Las dos fallas fueron justo después de tener `next dev` abierto
-      sobre el mismo `.next`. Next 16.2 trae **Cache Components activado por defecto** —
-      no está en `next.config.ts`, sale en el banner del build— y con eso cualquier
-      lectura sin cachear fuera de un `<Suspense>` es error de prerender. La app tiene
-      muchas de esas y aun así compila, o sea que el disparo depende de un timing. Es un
-      build que puede fallar sin motivo aparente **en Vercel**, no solo en local.
-      Diagnóstico: correr `next build --debug-prerender` cuando vuelva a fallar y decidir
-      si las páginas de `(app)` necesitan un `<Suspense>` de verdad o si conviene
-      desactivar Cache Components hasta la Fase 2 de ADR-0013.
-
 - [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
       siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
       `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
