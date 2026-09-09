@@ -6,7 +6,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "migraciones:verificar": "node scripts/migraciones/verificar.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

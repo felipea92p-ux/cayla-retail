@@ -2041,3 +2041,37 @@ puertos, así que se heredó la de Felipe):
 
 Con esto queda verificado en vivo TODO lo construido hoy salvo lo ya medido en producción.
 Entorno desmontado: servidor detenido, worktree eliminado, repo principal sin rastros.
+
+## 2026-09-09 (por fin sabemos qué corrió, y lo primero que dijo fue malo)
+Nace `scripts/migraciones/` — una consulta que se pega en el SQL Editor y devuelve el
+inventario de objetos vivos, y un verificador que lo compara contra lo que promete
+cada uno de los 75 archivos SQL del repo. Responde el ítem que el BACKLOG llamaba "la
+deuda que produce todas las anteriores". Sin dependencias nuevas y sin credenciales
+nuevas: usa el camino de pegar-en-el-editor que el repo ya usa para producción, y en
+local habla con el contenedor del `supabase start`.
+
+Lo que define su diseño no es lo que detecta sino lo que se le prohíbe afirmar: la
+AUSENCIA es certeza, la PRESENCIA solo dice que existe algo con ese nombre —
+`create or replace` se repite entre archivos, así que encontrar `fn_aplicar_movimiento`
+no dice cuál de sus cinco versiones está viva. Y lo que no supo leer lo declara: cuatro
+archivos salen como "sin promesas detectables", no como aprobados.
+
+**El hallazgo de la primera corrida, y es serio:** cuatro funciones tienen dos o tres
+firmas vivas al mismo tiempo. `registrar_movimiento` con 10 y 12 argumentos,
+`recibir_lote` con 6, 7 y 8, `registrar_produccion` con 11, 13 y 15,
+`crear_producto_con_variantes` con 7 y 8. Probado con `explain`, que no ejecuta nada:
+una llamada que solo nombra los parámetros comunes devuelve `function is not unique`.
+En la base local eso significa que **una devolución al almacén funciona y un ajuste,
+una merma o un traslado normal no** — `MovimientoModal` solo manda `p_contenedor_id`
+cuando es devolución, y `supabase-js` borra del JSON las claves `undefined`.
+
+**Lo que Felipe aprendió y no era obvio:** `create or replace function` con un
+argumento NUEVO no reemplaza nada — crea una segunda función y deja viva la vieja. Eso
+ya estaba documentado en ADR-0009, pero como anécdota de una migración; resultó ser un
+patrón repetido cuatro veces. Y explica dos cosas que este BACKLOG venía atribuyendo a
+otra causa: que `recibir_lote` no aparezca en los tipos generados, y que
+`RecibirLoteForm` "siempre falla cuando se usa". Desde hoy, toda migración que cambie
+la firma de una función lleva su `drop function` de la vieja con los tipos explícitos
+(ADR-0026). El arreglo en producción NO se hizo: es DDL en el proyecto compartido con
+Dynamic, o sea parar-y-confirmar.
+

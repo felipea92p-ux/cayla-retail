@@ -606,6 +606,21 @@ importante que ha entrado a este archivo desde que existe.
       de drift (con ADR-0004 y las categorías de `04_catalogo.sql`) — lo que
       falta no es arreglar el siguiente, es dejar de no saber qué corrió en
       producción (ver la deuda de `registro de migraciones aplicadas` abajo).
+- [ ] **CUATRO FUNCIONES TIENEN DOS O TRES FIRMAS VIVAS, y una llamada normal no resuelve.**
+      Encontrado 2026-09-09 por `pnpm migraciones:verificar` en su primera corrida, contra la
+      base LOCAL: `registrar_movimiento` (10 y 12 args), `recibir_lote` (6, 7 y 8),
+      `registrar_produccion` (11, 13 y 15), `crear_producto_con_variantes` (7 y 8). Probado con
+      `explain` (no ejecuta): una llamada que solo nombra los parámetros comunes devuelve
+      `function is not unique`. En la práctica, en local, **una devolución al almacén funciona y
+      un ajuste, una merma o un traslado normal no** — `MovimientoModal` solo manda
+      `p_contenedor_id` cuando es devolución, y `supabase-js` borra las claves `undefined`.
+      Explica además dos cosas que este BACKLOG atribuía a otra causa: que `recibir_lote` no
+      esté en los tipos generados, y que `RecibirLoteForm` "siempre falla cuando se usa".
+      **Falta saber si producción tiene lo mismo** — se responde corriendo
+      `scripts/migraciones/inventario.sql` allá. El arreglo es un `drop function` por firma
+      vieja, con los tipos explícitos; es DDL en el proyecto compartido con Dynamic, así que
+      **entra en parar-y-confirmar, no en ejecución directa**. Ver ADR-0026.
+
 - [ ] **`no hay registro de qué migración corrió en producción` — la deuda que
       produce todas las anteriores.** `supabase/unificacion/` tiene 20 archivos
       y el único registro de cuáles se pegaron vive en la memoria de Felipe y
