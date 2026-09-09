@@ -8,13 +8,19 @@ import { usePathname } from "next/navigation";
 // Orden = orden de uso real del flujo, no alfabético ni por fecha de construcción:
 // Proveedores (a quién le compro) → Compras (pido, opcional) → Recibir (llega) →
 // Almacén (bajo a piso) → Catálogo (resultado, lo que ya se puede vender) →
-// Etiquetas (utilidad de impresión, se usa en cualquier punto del camino).
+// Conteo (verifico que el catálogo diga la verdad) → Etiquetas (utilidad de
+// impresión, se usa en cualquier punto del camino).
+//
+// Conteo va DESPUÉS de Catálogo y no antes: se cuenta contra lo que el sistema
+// dice, y de un conteo salen prendas nuevas que después hay que etiquetar. El
+// orden de las pestañas es el orden real del trabajo.
 const SECCIONES = [
   { href: "/inventario/proveedores", etiqueta: "Proveedores" },
   { href: "/inventario/compras", etiqueta: "Compras" },
   { href: "/inventario/recibir", etiqueta: "Recibir" },
   { href: "/inventario/almacen", etiqueta: "Almacén" },
   { href: "/inventario", etiqueta: "Catálogo" },
+  { href: "/inventario/conteo", etiqueta: "Conteo" },
   { href: "/inventario/etiquetas", etiqueta: "Etiquetas" },
 ];
 

@@ -214,6 +214,30 @@ export async function getCatalogoParaConteo(
   };
 }
 
+/** Una categoría, para clasificar una prenda que nace durante el conteo. */
+export type CategoriaElegible = {
+  id: string;
+  familia: string;
+  nombre: string;
+  tallasSugeridas: string[] | null;
+};
+
+export async function getCategorias(): Promise<CategoriaElegible[]> {
+  const supabase = await createClient();
+  const res = await supabase
+    .from("categorias")
+    .select("id, familia, nombre, tallas_sugeridas")
+    .order("familia")
+    .order("nombre");
+  const filas = exigir(res, "las categorías del catálogo");
+  return filas.map((c) => ({
+    id: c.id,
+    familia: c.familia,
+    nombre: c.nombre,
+    tallasSugeridas: c.tallas_sugeridas,
+  }));
+}
+
 /** Los colores que la Encargada puede elegir al crear una prenda durante el conteo. */
 export type ColorElegible = { codigo: string; nombre: string; hex: string | null };
 
