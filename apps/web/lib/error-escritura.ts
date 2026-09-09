@@ -54,6 +54,23 @@ const HUELLAS: { marca: string; frase: string }[] = [
       "No hay suficiente stock para eso. Revisa la cantidad, o mira en Inventario si la prenda está en el almacén y todavía no bajó a piso.",
   },
   {
+    // 0045_ajuste_con_signo.sql:97 — la misma red, sobre el almacén interno de la sede.
+    // Los dos nombres no se solapan (`stock_almacen_…` no contiene a `stock_…` de forma
+    // contigua), así que el orden entre ambas no decide nada. Va primera igual, porque la
+    // regla de esta lista es que gana la PRIMERA que coincide y conviene que lo específico
+    // quede delante de lo general el día que alguien renombre una.
+    marca: "stock_almacen_cantidad_no_negativa",
+    frase:
+      "No hay tanto en el almacén de esta sede. Revisa la cantidad — puede que parte ya esté abajo, en el piso de venta.",
+  },
+  {
+    // 0045_ajuste_con_signo.sql:106 — solo el ajuste lleva signo; un movimiento de cero
+    // no significa nada.
+    marca: "movimientos_cantidad_coherente",
+    frase:
+      "Esa cantidad no sirve: tiene que ser mayor que cero. Solo un ajuste de inventario puede ir en negativo, y es para cuando cuentas MENOS de lo que dice el sistema.",
+  },
+  {
     // 0001_init.sql — dos productos no pueden compartir referencia.
     marca: "productos_sku_padre_key",
     frase:

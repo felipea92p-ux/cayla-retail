@@ -21,6 +21,29 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("No hay suficiente stock");
   });
 
+  it("el almacén tiene su propia red, y su frase distingue almacén de piso", () => {
+    const salida = traducirError(
+      {
+        message:
+          'new row for relation "stock_almacen" violates check constraint "stock_almacen_cantidad_no_negativa"',
+        code: "23514",
+      },
+      "bajar la prenda a tienda"
+    );
+    expect(salida).toContain("almacén de esta sede");
+    // La huella del piso NO debe ganarle a la del almacén: son dos avisos distintos.
+    expect(salida).not.toContain("todavía no bajó a piso");
+  });
+
+  it("un movimiento de cero explica que solo el ajuste lleva signo", () => {
+    const salida = traducirError(
+      { message: 'new row for relation "movimientos" violates check constraint "movimientos_cantidad_coherente"', code: "23514" },
+      "registrar el movimiento"
+    );
+    expect(salida).toContain("mayor que cero");
+    expect(salida).toContain("ajuste");
+  });
+
   it("la referencia duplicada dice A DÓNDE ir, no solo qué falló", () => {
     const salida = traducirError(
       { message: 'duplicate key value violates unique constraint "productos_sku_padre_key"', code: "23505" },
