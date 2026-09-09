@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapaSedes } from "@/lib/sedes";
+import { getSedes, mapaSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
@@ -64,20 +64,20 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
   const supabase = await createClient();
   const desde = new Date(Date.now() - ventanaDias * DIA_MS);
 
-  const { data: cajasData } = await supabase
-    .from("cajas")
-    .select(
-      "id, monto_apertura, abierta_en, monto_cierre_contado, monto_cierre_esperado, diferencia, cerrada_en, estado, sede_id"
-    )
-    .gte("abierta_en", desde.toISOString())
-    .order("abierta_en", { ascending: false });
-
-  const sedes = await mapaSedes();
-
-  const { data: ventasData } = await supabase
-    .from("ventas")
-    .select("metodo_pago, monto_total")
-    .gte("created_at", desde.toISOString());
+  // Las tres son independientes: las cajas no condicionan qué ventas se piden, y el mapa
+  // de sedes solo se usa para traducir sede_id → código al armar la respuesta. Antes
+  // esperaban una a la otra sin motivo. — ADR-0013.
+  const [{ data: cajasData }, sedes, { data: ventasData }] = await Promise.all([
+    supabase
+      .from("cajas")
+      .select(
+        "id, monto_apertura, abierta_en, monto_cierre_contado, monto_cierre_esperado, diferencia, cerrada_en, estado, sede_id"
+      )
+      .gte("abierta_en", desde.toISOString())
+      .order("abierta_en", { ascending: false }),
+    mapaSedes(),
+    supabase.from("ventas").select("metodo_pago, monto_total").gte("created_at", desde.toISOString()),
+  ]);
 
   const totalPorMetodo = totalesPorMetodoVacio();
   let total = 0;
@@ -147,28 +147,29 @@ export async function getEstadoResultados(persona: PersonaActual, ventanaDias = 
   const supabase = await createClient();
   const desde = new Date(Date.now() - ventanaDias * DIA_MS);
 
-  const { data: sedesData } = await supabase.from("sedes").select("id, codigo");
-  const sedeCodigoPorId = new Map((sedesData ?? []).map((s) => [s.id, s.codigo]));
+  // Las 4 consultas son independientes entre sí (se cruzan después en JS por sede_id /
+  // variante_id) — en paralelo en vez de la fila india de 5 viajes que había acá. A ~120ms
+  // por viaje eso eran ~600ms de espera pura para traer datos de juguete. — ADR-0013.
+  //
+  // `sedes` ya no es consulta: sale de getSedes(), memorizado por request, y el layout lo
+  // pidió antes que esta función — así que es la 5ª consulta que desaparece del todo, no
+  // una que se paraleliza. Mismo patrón que lib/panel.ts.
+  const [sedes, { data: movimientosData }, { data: variantesData }, { data: ventasData }, { data: gastosData }] =
+    await Promise.all([
+      getSedes(),
+      supabase
+        .from("movimientos")
+        .select("variante_id, sede_id, cantidad, motivo")
+        .eq("tipo", "salida")
+        .in("motivo", ["venta", "merma"])
+        .gte("created_at", desde.toISOString()),
+      supabase.from("variantes").select("id, costo"),
+      supabase.from("ventas").select("sede_id, monto_total").gte("created_at", desde.toISOString()),
+      supabase.from("gastos").select("sede_id, total").gte("created_at", desde.toISOString()),
+    ]);
 
-  const { data: movimientosData } = await supabase
-    .from("movimientos")
-    .select("variante_id, sede_id, cantidad, motivo")
-    .eq("tipo", "salida")
-    .in("motivo", ["venta", "merma"])
-    .gte("created_at", desde.toISOString());
-
-  const { data: variantesData } = await supabase.from("variantes").select("id, costo");
+  const sedeCodigoPorId = new Map(sedes.map((s) => [s.id, s.codigo]));
   const costoPorVariante = new Map((variantesData ?? []).map((v) => [v.id, Number(v.costo)]));
-
-  const { data: ventasData } = await supabase
-    .from("ventas")
-    .select("sede_id, monto_total")
-    .gte("created_at", desde.toISOString());
-
-  const { data: gastosData } = await supabase
-    .from("gastos")
-    .select("sede_id, total")
-    .gte("created_at", desde.toISOString());
 
   const porSedeMap = new Map<string, EstadoResultadosPorSede>();
   const sedeDe = (sedeId: string) => {

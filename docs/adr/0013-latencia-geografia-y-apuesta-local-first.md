@@ -1,7 +1,8 @@
 # ADR-0013 — La lentitud es geografía, no datos: Fase 0 y la apuesta local-first
 
 **Fecha:** 2026-09-09
-**Estado:** Decidido — sin aplicar todavía (Felipe pidió diagnóstico antes de tocar código)
+**Estado:** Fase 0 aplicada en el repo el mismo día — **pendiente de desplegar y de
+volver a medir**. Fases 1 y 2, decididas y sin empezar.
 **Afecta:** despliegue (región Vercel), `lib/finanzas.ts`, `middleware.ts`, `lib/persona.ts`,
 y la arquitectura de lectura de toda la app a partir de Fase 2
 
@@ -147,9 +148,23 @@ Felipe cuando la fase esté en la mesa.
   Vercel (403: el token no tiene el scope `cayla`). Se desconoce si `iad1` fue decisión
   o el default. Si Dynamic corre en la misma región, tiene el mismo problema y la misma
   cura — pero es otro proyecto Vercel, así que mover retail no lo afecta.
-- **La migración a claves asimétricas toca autenticación en producción.** Es el único
-  punto de Fase 0 con riesgo real (mal hecho, saca a todos de sesión). Va al final de
-  la fase, con los dos cambios inocuos ya verificados.
+- **El riesgo de autenticación que se anticipó no existía.** Se dio por hecho que
+  `getClaims()` exigiría migrar el proyecto a claves asimétricas — un cambio de auth en
+  producción, y encima compartido con Dynamic. Al verificar el JWKS antes de tocar nada
+  (`/auth/v1/.well-known/jwks.json`) resultó que **el proyecto ya firma con ES256
+  asimétrica**. Así que el paso quedó en puro código, sin tocar producción. Queda escrito
+  porque la suposición estuvo a punto de costar una consulta innecesaria a Felipe y una
+  fase partida en dos sin motivo.
+- **`getClaims()` degrada solo, no se rompe.** Si algún día el proyecto volviera a firmar
+  con secreto simétrico, `getClaims()` cae por su cuenta al viaje de red — se comporta
+  como el `getUser()` de antes. El cambio no puede empeorar nada, solo dejar de mejorar.
+- **Dónde vive `vercel.json` es una apuesta razonada, no un hecho verificado.** Se puso en
+  `apps/web/` porque el `package.json` de la raíz no declara `next`: si Vercel construyera
+  desde la raíz no detectaría el framework y no existiría el middleware que sí corre hoy.
+  No se pudo confirmar leyendo la config del proyecto (403 sobre el scope `cayla`).
+  **Se confirma con una sola orden después de desplegar**, mirando `X-Vercel-Id`; si
+  siguiera diciendo `iad1`, el archivo se mueve a la raíz o se fija la región desde el
+  panel de Vercel (Settings → Functions), que aplica igual sin depender del monorepo.
 - El advisor de performance de Supabase reporta `auth_rls_initplan` y
   `multiple_permissive_policies` sobre tablas de `retail` (`stock`, `movimientos`,
   `variantes` tienen dos políticas permisivas de SELECT cada una). **Se anota y no se

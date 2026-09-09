@@ -40,16 +40,20 @@ export function mapearRol(rol: string | null): "lider" | "integrante" {
 // vez por navegación y las demás reusan el resultado. — arreglo de performance.
 export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  // getClaims() verifica el JWT localmente (el proyecto firma con ES256 asimétrica), así
+  // que esto ya no es un viaje de red a Supabase Auth. Era el segundo de dos: el
+  // middleware validaba el mismo token unos milisegundos antes, y cache() de React no
+  // los une porque middleware y render son invocaciones distintas del runtime. — ADR-0013.
+  const { data: claims } = await supabase.auth.getClaims();
+  const authUserId = claims?.claims?.sub;
+
+  if (!authUserId) redirect("/login");
 
   // getSedes() no depende de la fila de `personas` (recién se cruzan abajo por id)
   // — van en paralelo en vez de uno esperando al otro.
   const [{ data, error }, sedes] = await Promise.all([
-    supabase.from("personas").select("id, nombre, rol, sede_id").eq("auth_user_id", user.id).single(),
+    supabase.from("personas").select("id, nombre, rol, sede_id").eq("auth_user_id", authUserId).single(),
     getSedes(),
   ]);
 
