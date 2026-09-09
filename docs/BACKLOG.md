@@ -320,6 +320,22 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Terminar de aplicar `exigir()`/`tolerar()`: quedan ~15 lecturas que fallan en
+      silencio — 2026-09-09.** La auditoría encontró 20 consultas que descartaban el error
+      de Supabase contra 1 que lo revisaba. Se arreglaron los tres cimientos donde un dato
+      falso es una decisión falsa (`finanzas.ts`, `catalogo.ts`, `sedes.ts`) y se creó
+      `lib/resultado.ts` con los dos comportamientos que decidió Felipe. **Faltan** los
+      demás: `comprobantes.ts`, `proformas.ts`, `produccion/page.tsx`,
+      `inventario/almacen/page.tsx`, `inventario/proveedores/page.tsx`,
+      `finanzas/activos/page.tsx`, `api/export/inventario`, `api/padron`, y las rutas de
+      `api/lucode/*`. Regla para elegir cuál va con cuál: si alguien puede tomar una
+      decisión de negocio mirando ese dato, `exigir()`; si es un listado de apoyo,
+      `tolerar()` con su franja de aviso.
+      **Sin verificar todavía:** que `(app)/error.tsx` efectivamente atrape en vivo. Está
+      en la ruta correcta y el build la registra, pero probarlo exige una sesión iniciada
+      —el layout redirige al login antes de renderizar— y no se pudo cerrar esa prueba.
+      Es lo primero que hay que confirmar al retomar.
+
 - [x] **RESUELTO — `recalcular_stock()` aplicada y verificada en producción
       2026-09-09 (ADR-0020). Encontró 2 filas desincronizadas el primer día;
       las 10 filas de stock siguen siendo 10 y todas tienen movimientos

@@ -1494,3 +1494,32 @@ pusheo" tiene una ventana abierta: hay que fijar el rango y pushear ese SHA
 (`git push origin <sha>:main`). El cuarto commit resultó inofensivo —revisado
 después, usa `getClaims()` y `mapearRol()`, patrones que ya corrían en
 producción— pero eso fue suerte, no proceso.
+
+## 2026-09-09 (robustez: las pantallas que mentían)
+Felipe pidió el sistema "lo más robusto posible" y sugirió local-first para agilizarlo. Se
+le marcó la tensión antes de tocar nada: **robusto y ágil no son lo mismo, y local-first
+los empuja en direcciones opuestas** — agrega una segunda copia de la verdad en cada
+navegador, que es exactamente una forma nueva de tener estados imposibles (principio 2).
+
+Como nadie usa el sistema todavía, se auditó la robustez en vez de la velocidad. El
+resultado: **20 consultas descartaban el error de Supabase, 1 lo revisaba, y no había una
+sola error boundary en toda la app.** El camino de escritura sí estaba bien —la venta
+revisa el error del RPC y lo muestra—, el problema era todo el de lectura.
+
+Lo grave no es que una pantalla se caiga: es que NO se caiga. `const { data } = await
+supabase...` deja `data` en null al fallar, el código hace `data ?? []`, y la pantalla
+dibuja vacío con cara de normalidad. Si fallaba la consulta de `ventas`, el Estado de
+Resultados mostraba **S/0 en ventas** y un Líder concluía que no vendió nada.
+`getCatalogoConStock` hacía `return []`: CAYLA sin una sola prenda. Una pantalla caída se
+nota; una que miente, no.
+
+Felipe eligió el comportamiento "depende de la pantalla", que es el que corresponde:
+`exigir()` lanza para plata, stock y catálogo; `tolerar()` deja seguir con aviso para
+listados de apoyo. Vive en `lib/resultado.ts` con la regla escrita para elegir entre los
+dos. Aplicado a los tres cimientos + dos barreras de error nuevas.
+
+Anotado con honestidad: el `Promise.all` de Finanzas lo había escrito yo esa misma mañana
+optimizando velocidad, y mantuve intacta su forma de fallar callada. Y **la barrera no se
+pudo probar en vivo**: llegar a ella exige sesión iniciada porque el layout redirige antes
+de renderizar. Está en la ruta correcta y el build la registra, pero eso no es lo mismo
+que verla atrapar — la misma distinción que hoy costó tres rondas con la región.
