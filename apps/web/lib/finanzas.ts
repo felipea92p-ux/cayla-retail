@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes, mapaSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
@@ -67,7 +68,7 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
   // Las tres son independientes: las cajas no condicionan qué ventas se piden, y el mapa
   // de sedes solo se usa para traducir sede_id → código al armar la respuesta. Antes
   // esperaban una a la otra sin motivo. — ADR-0013.
-  const [{ data: cajasData }, sedes, { data: ventasData }] = await Promise.all([
+  const [resCajas, sedes, resVentas] = await Promise.all([
     supabase
       .from("cajas")
       .select(
@@ -79,16 +80,21 @@ export async function getDiarioCaja(persona: PersonaActual, ventanaDias = 30): P
     supabase.from("ventas").select("metodo_pago, monto_total").gte("created_at", desde.toISOString()),
   ]);
 
+  // El cuadre de caja decide si a alguien le falta dinero al cerrar el día. Un cero falso
+  // acá manda a contar billetes que sí estaban. Falla en duro.
+  const cajasData = exigir(resCajas, "las cajas del período");
+  const ventasData = exigir(resVentas, "las ventas del período");
+
   const totalPorMetodo = totalesPorMetodoVacio();
   let total = 0;
-  (ventasData ?? []).forEach((v) => {
+  ventasData.forEach((v) => {
     const metodo = v.metodo_pago as MetodoPago;
     const monto = Number(v.monto_total);
     totalPorMetodo[metodo] = (totalPorMetodo[metodo] ?? 0) + monto;
     total += monto;
   });
 
-  const cajas: CajaConDetalle[] = (cajasData ?? []).map((c) => {
+  const cajas: CajaConDetalle[] = cajasData.map((c) => {
     return {
       id: c.id,
       sedeCodigo: sedes.get(c.sede_id)?.codigo ?? "",
@@ -154,7 +160,7 @@ export async function getEstadoResultados(persona: PersonaActual, ventanaDias = 
   // `sedes` ya no es consulta: sale de getSedes(), memorizado por request, y el layout lo
   // pidió antes que esta función — así que es la 5ª consulta que desaparece del todo, no
   // una que se paraleliza. Mismo patrón que lib/panel.ts.
-  const [sedes, { data: movimientosData }, { data: variantesData }, { data: ventasData }, { data: gastosData }] =
+  const [sedes, resMovimientos, resVariantes, resVentas, resGastos] =
     await Promise.all([
       getSedes(),
       supabase
@@ -168,8 +174,16 @@ export async function getEstadoResultados(persona: PersonaActual, ventanaDias = 
       supabase.from("gastos").select("sede_id, total").gte("created_at", desde.toISOString()),
     ]);
 
+  // Este es un ESTADO DE RESULTADOS: cada una de estas cuatro consultas es un renglón del
+  // que Felipe saca decisiones de plata. Si alguna falla, la pantalla no se dibuja — antes
+  // renderizaba S/0 con cara de normalidad y eso es peor que caerse. Ver lib/resultado.ts.
+  const movimientosData = exigir(resMovimientos, "las salidas de mercadería del período");
+  const variantesData = exigir(resVariantes, "los costos de las prendas");
+  const ventasData = exigir(resVentas, "las ventas del período");
+  const gastosData = exigir(resGastos, "los gastos del período");
+
   const sedeCodigoPorId = new Map(sedes.map((s) => [s.id, s.codigo]));
-  const costoPorVariante = new Map((variantesData ?? []).map((v) => [v.id, Number(v.costo)]));
+  const costoPorVariante = new Map(variantesData.map((v) => [v.id, Number(v.costo)]));
 
   const porSedeMap = new Map<string, EstadoResultadosPorSede>();
   const sedeDe = (sedeId: string) => {
@@ -191,13 +205,13 @@ export async function getEstadoResultados(persona: PersonaActual, ventanaDias = 
   let mermas = 0;
   let gastos = 0;
 
-  (ventasData ?? []).forEach((v) => {
+  ventasData.forEach((v) => {
     const monto = Number(v.monto_total);
     ventas += monto;
     sedeDe(v.sede_id).ventas += monto;
   });
 
-  (movimientosData ?? []).forEach((m) => {
+  movimientosData.forEach((m) => {
     const costoLinea = (costoPorVariante.get(m.variante_id) ?? 0) * Math.abs(m.cantidad);
     if (m.motivo === "venta") {
       cogs += costoLinea;
@@ -208,7 +222,7 @@ export async function getEstadoResultados(persona: PersonaActual, ventanaDias = 
     }
   });
 
-  (gastosData ?? []).forEach((g) => {
+  gastosData.forEach((g) => {
     const total = Number(g.total);
     gastos += total;
     sedeDe(g.sede_id).gastos += total;

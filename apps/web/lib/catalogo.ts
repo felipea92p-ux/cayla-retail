@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { mapaSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 
 export type VarianteConStock = {
@@ -32,7 +33,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   // Las 3 consultas son independientes entre sí (el cruce entre variantes/stock/sedes
   // ocurre después, en JS, por variante_id/sede_id) — en paralelo en vez de esperar a
   // `variantes` sola antes de arrancar las otras dos.
-  const [{ data: variantes, error: errVariantes }, { data: stockRows }, { data: stockAlmacenRows }, sedes] = await Promise.all([
+  const [resVariantes, resStock, resStockAlmacen, sedes] = await Promise.all([
     supabase
       .from("variantes")
       .select(
@@ -48,7 +49,13 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
     mapaSedes(),
   ]);
 
-  if (errVariantes || !variantes) return [];
+  // Antes esto era `if (errVariantes || !variantes) return []`: si la consulta fallaba, el
+  // catálogo se dibujaba VACÍO — CAYLA sin una sola prenda, sin ningún aviso. Una Encargada
+  // buscando una talla concluiría que no hay, y un Líder que no tiene inventario. El stock
+  // manda decisiones de compra y de venta, así que falla en duro. — auditoría 2026-09-09.
+  const variantes = exigir(resVariantes, "el catálogo de prendas");
+  const stockRows = exigir(resStock, "el stock en tienda");
+  const stockAlmacenRows = exigir(resStockAlmacen, "el stock en almacén");
 
   const stockPorVariante = new Map<string, Record<string, number>>();
   const minimoPorVariante = new Map<string, Record<string, number>>();
@@ -56,7 +63,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   // motivo='venta' en fn_aplicar_movimiento (migración 0011) — no se "rejuvenece"
   // con bajadas de almacén a tienda, que son salida pero no venta.
   const ultimaVentaPorVariante = new Map<string, string>();
-  (stockRows ?? []).forEach((r) => {
+  stockRows.forEach((r) => {
     const codigo = sedes.get(r.sede_id)?.codigo;
     if (!codigo) return;
     const actual = stockPorVariante.get(r.variante_id) ?? {};
@@ -74,7 +81,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
   });
 
   const stockAlmacenPorVariante = new Map<string, Record<string, number>>();
-  (stockAlmacenRows ?? []).forEach((r) => {
+  stockAlmacenRows.forEach((r) => {
     const codigo = sedes.get(r.sede_id)?.codigo;
     if (!codigo) return;
     const actual = stockAlmacenPorVariante.get(r.variante_id) ?? {};

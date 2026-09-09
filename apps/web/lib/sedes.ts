@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { cache } from "react";
+import { exigir } from "@/lib/resultado";
 
 export type Sede = {
   id: string;
@@ -26,11 +27,14 @@ export type Sede = {
  */
 export const getSedes = cache(async (): Promise<Sede[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("sedes")
-    .select("id, codigo, nombre, tipo, tienda_asociada_id, activo")
-    .order("codigo");
-  return (data ?? []).filter(
+  // Sin sedes ninguna pantalla sabe dónde está parada: el selector queda vacío, el código
+  // de sede sale en blanco y el stock por tienda no se puede cruzar. Devolver [] en
+  // silencio —lo que hacía antes— convertía un fallo de red en "CAYLA no tiene tiendas".
+  const datos = exigir(
+    await supabase.from("sedes").select("id, codigo, nombre, tipo, tienda_asociada_id, activo").order("codigo"),
+    "las sedes"
+  );
+  return datos.filter(
     (s): s is Sede => s.id != null && s.codigo != null && s.nombre != null && s.tipo != null && s.activo != null
   );
 });
