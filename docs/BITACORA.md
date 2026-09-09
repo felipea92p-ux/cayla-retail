@@ -1922,3 +1922,49 @@ no una revisión visual. La lección no es "no automatizar": es que un cambio me
 sobre 17 archivos necesita una verificación mecánica detrás, y acá el compilador es
 esa red — build, lint, tsc y 77 pruebas antes de commitear, siempre en ese orden.
 
+
+## 2026-09-09 (verificada la robustez, y con un fallo real en vez de un simulacro)
+Se montó un entorno aparte para probar las barreras sin tocar el trabajo de otras sesiones:
+worktree propio (porque Next no permite dos `dev` en el mismo directorio y había uno
+corriendo), `pnpm install` ahí, y el servidor levantado con las variables del Supabase LOCAL
+pasadas en línea — sin crear ningún `.env`, para no cambiarle el entorno a nadie si reinicia.
+Dos intentos fallaron antes: `--dir` no existe en `next dev`, y Turbopack rechaza un
+`node_modules` enlazado por junction ("points out of the filesystem root").
+
+**Y entonces apareció algo mejor que la prueba planeada: un fallo de verdad.** El overlay de
+Next mostró exactamente esto:
+
+```
+No se pudo leer las sedes: JWT issued in the future
+  exigir        lib/resultado.ts (42:11)
+  <anonymous>   lib/sedes.ts (32:22)
+  <anonymous>   lib/persona.ts (54:26)
+```
+
+`exigir()` atrapó un fallo genuino —desfase de reloj entre el contenedor de Supabase local y
+la máquina— y lanzó con el contexto en idioma de negocio ("las sedes"), no con jerga de
+Postgres. **Antes de este cambio, `getSedes()` habría devuelto `[]` en silencio** y la app se
+habría dibujado sin ninguna sede, sin un solo aviso: exactamente la falla silenciosa que se
+auditó esta mañana, reproducida sola.
+
+Y debajo del overlay, la pantalla real:
+
+```
+CAYLA
+El sistema no pudo arrancar
+Esto no es un problema de tu computadora. Reintenta; si sigue igual, avisa a Felipe.
+REINTENTAR      Código: 1080313944
+```
+
+`global-error.tsx` verificado en vivo, con su botón y su código para los logs.
+
+**Lo que sigue sin ejercitarse:** `(app)/error.tsx`, la barrera de sección. El fallo ocurrió
+en el layout, así que sube a la global sin pasar por ella — que es el comportamiento correcto,
+pero deja esa otra sin probar. La maquinaria de boundaries queda demostrada por la global.
+
+**Hallazgo de entorno para Felipe, no del código:** el Supabase local tiene el reloj adelantado
+respecto a la máquina, y eso rompe el login local con "JWT issued in the future". Cualquiera
+que intente levantar el entorno local se va a topar con esto hasta reiniciar el contenedor.
+
+Todo lo montado quedó desmontado: servidor detenido, worktree eliminado, página de prueba
+borrada, `git status` limpio de rastros propios.
