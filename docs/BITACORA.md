@@ -1637,3 +1637,27 @@ warnings, tsc, 68 pruebas y `next build` en verde.
 
 Sigue sin verificarse en vivo que el streaming se vea: hace falta sesión iniciada. Es lo
 primero al desplegar.
+
+## 2026-09-09 (streaming completo: las 10 pantallas)
+Se cerraron las cuatro que faltaban. Todas tenían cabeceras que dependían de valores
+calculados, por eso el corte mecánico que sirvió para efectivo/patrimonio/activos las
+rompía; se hicieron una por una. En `/finanzas` y `/finanzas/balances` el título y las
+flechas de mes esperaban a que se calcularan los CUATRO estados financieros completos solo
+para poder decir "Septiembre 2026".
+
+`/finanzas/comparativo` salió mejor que el resto y vale la pena por qué: se partió en TRES
+boundaries en vez de dos. El selector de sedes es **navegación**, no dato — hacerlo esperar
+significaría no poder cambiar de tienda hasta que cargue la tabla— y solo necesita
+`getSedes()`, memorizada, así que quedó instantáneo. El editor de históricos y la
+comparación van cada uno por su lado, y el editor usa `tolerar()`: si falla su consulta se
+oculta el botón en vez de tumbar la pantalla, porque sembrar históricos es una tarea
+ocasional del Líder que no debería impedir mirar el comparativo.
+
+Dos veces el script automático dejó las variables en el lado equivocado del corte (las
+constantes de estilo de `balances`, el `eerr` de `finanzas`). `tsc` lo cazó las dos veces;
+se revirtieron limpias y se rehicieron a mano en vez de parchear.
+
+`tsc` y `eslint` limpios sobre lo tocado, 68 pruebas en verde. El `next build` completo no
+pasa en este momento, pero por trabajo en curso de otra sesión en `app/(app)/page.tsx`
+(`getPanelLider` cambió de firma), no por esto — verificado revisando que ningún error
+apunte a los archivos de esta tanda.

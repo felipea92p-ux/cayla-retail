@@ -320,12 +320,9 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **Faltan 2 pantallas de streaming y verificarlo en vivo — 2026-09-09, ADR-0021.**
-      Ocho de diez pantallas ya dibujan la estructura sin esperar los datos. Faltan
-      `/finanzas/egresos` y `/finanzas/comparativo` (sus cabeceras dependen de valores
-      calculados —navegación de meses, selector de sede— así que el corte mecánico las
-      rompe; hay que tratarlas una por una), más `/finanzas` y `/finanzas/balances`.
-      **Y lo que de verdad falta: verlo funcionar.** Compila y pasa 68 pruebas, pero que
+- [ ] **Streaming COMPLETO en las 10 pantallas; falta verificarlo en vivo — 2026-09-09, ADR-0021.**
+      Las diez pantallas ya dibujan la estructura sin esperar los datos. **Lo único que
+      falta es verlo funcionar.** Compila y pasa 68 pruebas, pero que
       la estructura aparezca ANTES que los datos hay que verlo corriendo con sesión
       iniciada — igual que la barrera de error de `(app)/error.tsx`. Al desplegar, medir
       con el navegador de Felipe como se hizo con la región: hoy `/inventario` da TTFB
