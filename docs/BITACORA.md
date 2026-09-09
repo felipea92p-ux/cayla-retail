@@ -1052,3 +1052,36 @@ Correrla contra un Postgres de verdad y preguntarle a `pg_constraint` y `pg_proc
 quedó es la diferencia entre creer y saber.
 
 **SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
+
+## 2026-09-09 (Fase 2 — el motor de sincronización, decidido por un hallazgo de seguridad)
+Con el punto 2 (`cacheComponents`) bloqueado por el árbol en movimiento, se pasó a resolver
+lo que ADR-0013 había dejado abierto: qué motor de sincronización para local-first. Se
+evaluaron los tres reales — ElectricSQL (solo lecturas, sobre replicación lógica),
+PowerSync (bidireccional, el único con escrituras offline de primera) y Zero (bidireccional
+server-authoritative con `zero-cache`).
+
+ElectricSQL parecía la respuesta obvia: su modelo es solo-lectura, sin CRDT ni conflictos,
+que es exactamente la forma que ADR-0013 había decidido. **Hasta que apareció el dato que da
+vuelta todo: ElectricSQL no implementa RLS** — su equipo declaró que hasta la 1.0 dependen de
+autorización por API. Y lo mismo, en distinto grado, vale para los tres: todos esperan que la
+autorización viva en una capa propia delante de la base. Eso choca de frente con lo que este
+proyecto ya escribió en `CLAUDE.md`: "la seguridad la resuelve RLS directamente, no una capa
+de API separada". Adoptar cualquiera significaría reexpresar `stock_select_lider`,
+`stock_select_propia_sede`, `fn_es_lider()` y `fn_sede_actual_persona()` como reglas de un
+proxy — reescribir el modelo de seguridad para ganar velocidad de lectura.
+
+Decisión (ADR-0018): **local-first a mano sobre lo que ya hay** — instantánea en IndexedDB +
+Supabase Realtime para los cambios, que sí respeta RLS de fábrica. Sin servicio nuevo, sin
+tocar la replicación del proyecto compartido con Dynamic, y con la autorización viviendo en
+un solo lugar. Se acepta que es código propio: es código pequeño para datos pequeños (<1 MB
+hoy), y la alternativa no era menos código sino menos código acá y un modelo de seguridad
+nuevo allá.
+
+Verificado antes de escribirlo como supuesto: la publicación `supabase_realtime` en
+producción tiene **0 tablas**. Habilitarla es DDL sobre el proyecto compartido, así que es el
+primer paso de la Fase 2 y necesita el visto bueno de Felipe, no ejecución directa.
+
+**Y la precondición que importa más que todo lo anterior: la Fase 0 sigue sin desplegar.** El
+"~700ms" es estimación, no medición. Construir el cambio de arquitectura más grande desde la
+unificación encima de una línea base sin medir es justo lo que el método prohíbe. El ADR
+queda escrito para que la decisión sea rápida cuando haya números — no para adelantarla.
