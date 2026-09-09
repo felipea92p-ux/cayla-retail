@@ -1793,3 +1793,41 @@ los 37 componentes marcados `"use client"`, y cuánto el tamaño del árbol.
 `/producto/esto-no-es-un-uuid`, pero esa ruta maneja el caso y devuelve 404 correctamente
 —buen comportamiento, pero no ejercita el boundary—. Forzar un fallo real de consulta en
 producción exigiría romper algo a propósito; queda pendiente probarlo en local con sesión.
+
+## 2026-09-09 (CORRECCIÓN: no hay cuello en el cliente — era mi instrumento)
+**La entrada anterior está equivocada y se corrige acá.** Se afirmó que la navegación tardaba
+~1000 ms incluso sin red y que el cuello se había mudado al cliente. Falso, y el error fue de
+medición otra vez.
+
+El detector usaba `setInterval(…, 8)` para vigilar cuándo cambiaba la pantalla. **Chrome
+estrangula los temporizadores a uno por segundo en pestañas de segundo plano** —y la pestaña
+lo estaba, porque se conducía por automatización—, así que el detector solo podía comprobar
+una vez por segundo. De ahí el "~1000 ms" clavado en las cuatro mediciones: era el período de
+mi propio reloj, no la duración de la navegación. La pista que lo delató estaba en los datos y
+casi se pasa por alto: `latidos_registrados: 0` — un intervalo de 16 ms que no se ejecutó ni
+una vez en un segundo es imposible salvo que esté estrangulado.
+
+Repetido con `MutationObserver`, que corre en microtareas y es inmune a ese
+estrangulamiento:
+
+| Navegación | Peticiones | Tiempo real |
+|---|---|---|
+| 1ª a /vender | 1 | 1634 ms |
+| 1ª a /inventario | 0 | 441 ms |
+| 2ª ida y vuelta | 0 | **7 ms y 7 ms** |
+| 3ª ida y vuelta | 0 | **6 ms y 6 ms** |
+
+**Una pantalla ya visitada se abre en 6-7 ms.** `staleTimes: 30` no solo funciona: es, con
+diferencia, el cambio más efectivo de todo el día — y estuvo a punto de darse por inútil por
+un error de medición propio.
+
+Recalibra local-first una vez más, y ahora hacia abajo: para navegación repetida la caché del
+router ya entrega 6 ms, así que local-first no compraría velocidad ahí. Lo que sí añadiría es
+sobrevivir más allá de los 30 s y funcionar sin internet. Ese es todo su valor restante, y
+hay que decidirlo con eso en la mano.
+
+**Tercer error de medición del día, de la misma familia:** medir el instrumento en vez de la
+cosa (el proxy en vez de la región; el tiempo posterior al primer byte sin comprobar cuánto
+había; ahora el período del temporizador). La defensa que funcionó las tres veces fue la
+misma: desconfiar de un número sospechosamente redondo o idéntico y buscar con qué se vería
+distinto si la hipótesis fuera falsa.
