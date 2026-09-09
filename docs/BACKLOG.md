@@ -426,22 +426,15 @@ importante que ha entrado a este archivo desde que existe.
       hay ~100 ms, así que había poco que repartir. Se mantiene porque cambia QUÉ se ve
       durante la espera (estructura en vez de "Cargando…"), no por velocidad. **No volver
       a proponer streaming como solución de rendimiento en este repo.**
-- [ ] **Terminar de aplicar `exigir()`/`tolerar()`: quedan ~15 lecturas que fallan en
-      silencio — 2026-09-09.** La auditoría encontró 20 consultas que descartaban el error
-      de Supabase contra 1 que lo revisaba. Se arreglaron los tres cimientos donde un dato
-      falso es una decisión falsa (`finanzas.ts`, `catalogo.ts`, `sedes.ts`) y se creó
-      `lib/resultado.ts` con los dos comportamientos que decidió Felipe. **Faltan** los
-      demás: `comprobantes.ts`, `proformas.ts`, `produccion/page.tsx`,
-      `inventario/almacen/page.tsx`, `inventario/proveedores/page.tsx`,
-      `finanzas/activos/page.tsx`, `api/export/inventario`, `api/padron`, y las rutas de
-      `api/lucode/*`. Regla para elegir cuál va con cuál: si alguien puede tomar una
-      decisión de negocio mirando ese dato, `exigir()`; si es un listado de apoyo,
-      `tolerar()` con su franja de aviso.
-      **Sin verificar todavía:** que `(app)/error.tsx` efectivamente atrape en vivo. Está
-      en la ruta correcta y el build la registra, pero probarlo exige una sesión iniciada
-      —el layout redirige al login antes de renderizar— y no se pudo cerrar esa prueba.
-      Es lo primero que hay que confirmar al retomar.
-
+- [x] **Auditoria de lecturas silenciosas: CERRADA el 2026-09-09.** Se paso de **20
+      consultas que descartaban el error de Supabase a 1**, y esa es deliberada (la memoria
+      de conveniencia del padron: si falla, queda preguntarle al padron -- degradarse a la
+      ruta lenta es correcto, tumbar la consulta por un cache frio no). `lib/resultado.ts`
+      tiene los tres comportamientos con la regla escrita para elegir: `exigir()` cuando un
+      numero equivocado ES una decision equivocada, `exigirOpcional()` para los
+      `.maybeSingle()` donde "no hay fila" es respuesta legitima pero un error no, y
+      `tolerar()` para lo secundario. Las barreras `(app)/error.tsx` y `global-error.tsx`
+      quedaron verificadas en vivo el mismo dia.
 - [ ] **No hay ninguna pantalla para dar de alta un activo fijo.** `finanzas/activos/page.tsx:54`
       solo LEE `activos_fijos`; ningún componente del repo escribe esa tabla, así que los
       activos entran hoy a mano por SQL. Encontrado el 09-09 al hacer accionables los estados
