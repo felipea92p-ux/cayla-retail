@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PersonaActual } from "@/lib/persona";
 import { getCatalogoConStock, type VarianteConStock } from "@/lib/catalogo";
+import { exigir } from "@/lib/resultado";
 import { UMBRAL_ESTANCADO_DIAS, LEAD_TIME_DIAS } from "@cayla-retail/shared";
 
 const DIA_MS = 86400000;
@@ -58,7 +59,7 @@ export async function getCatalogoInteligente(
   // La última venta y la fecha de alta por variante ya vienen calculadas en
   // getCatalogoConStock (misma fila de `stock`/`variantes` que ya trae cantidad y
   // created_at), así que no se vuelven a pedir esas tablas acá.
-  const [variantes, { data: movimientos }] = await Promise.all([
+  const [variantes, resMovimientos] = await Promise.all([
     getCatalogoConStock(persona),
     supabase
       .from("movimientos")
@@ -66,8 +67,13 @@ export async function getCatalogoInteligente(
       .gte("created_at", desde.toISOString()),
   ]);
 
+  // De acá salen rotación, clase ABC y qué reponer: son decisiones de compra con
+  // plata detrás. Sin movimientos, TODO el catálogo parece estancado y la sugerencia
+  // sería dejar de reponer lo que más se vende.
+  const movimientos = exigir(resMovimientos, "los movimientos de la ventana");
+
   const ventasPorVariante = new Map<string, { unidades: number; monto: number }>();
-  (movimientos ?? []).forEach((m) => {
+  movimientos.forEach((m) => {
     if (m.tipo !== "salida" || m.motivo !== "venta") return;
     const acc = ventasPorVariante.get(m.variante_id) ?? { unidades: 0, monto: 0 };
     acc.unidades += Math.abs(m.cantidad);

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { mesLimaUTC } from "@/lib/finanzas-nucleo";
+import { exigir } from "@/lib/resultado";
 import type { GastoCategoria, MetodoPagoGasto } from "@cayla-retail/shared";
 
 export type GastoDelMes = {
@@ -43,7 +44,7 @@ export async function getEgresosMes(
   const mesPrevio = mes === 1 ? { anio: anio - 1, mes: 12 } : { anio, mes: mes - 1 };
   const { desde: desdePrevio, hasta: hastaPrevio } = mesLimaUTC(mesPrevio.anio, mesPrevio.mes);
 
-  const [{ data: actual }, { data: previo }] = await Promise.all([
+  const [resActual, resPrevio] = await Promise.all([
     supabase
       .from("gastos")
       .select("id, sede_id, categoria, total, metodo_pago, especificacion, created_at")
@@ -53,9 +54,15 @@ export async function getEgresosMes(
     supabase.from("gastos").select("sede_id, total").gte("created_at", desdePrevio).lt("created_at", hastaPrevio),
   ]);
 
+  // El mes previo no es adorno: alimenta el «+12% vs julio» de cada tarjeta. Si esa
+  // consulta falla callada, el previo queda en cero y la comparación dice que los
+  // gastos se dispararon.
+  const actual = exigir(resActual, "los gastos del mes");
+  const previo = exigir(resPrevio, "los gastos del mes anterior");
+
   const codigoPorSede = new Map(sedes.map((s) => [s.id, s.codigo]));
 
-  const gastos: GastoDelMes[] = (actual ?? []).map((g) => ({
+  const gastos: GastoDelMes[] = actual.map((g) => ({
     id: g.id,
     sedeId: g.sede_id,
     sedeCodigo: codigoPorSede.get(g.sede_id) ?? "",
@@ -70,7 +77,7 @@ export async function getEgresosMes(
   gastos.forEach((g) => totalPorSedeActual.set(g.sedeId, (totalPorSedeActual.get(g.sedeId) ?? 0) + g.total));
 
   const totalPorSedePrevio = new Map<string, number>();
-  (previo ?? []).forEach((g) => totalPorSedePrevio.set(g.sede_id, (totalPorSedePrevio.get(g.sede_id) ?? 0) + Number(g.total)));
+  previo.forEach((g) => totalPorSedePrevio.set(g.sede_id, (totalPorSedePrevio.get(g.sede_id) ?? 0) + Number(g.total)));
 
   const porSede: EgresosPorSede[] = sedes.map((s) => ({
     sedeId: s.id,

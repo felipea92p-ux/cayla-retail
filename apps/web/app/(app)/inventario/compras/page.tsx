@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { InventarioNav } from "@/components/InventarioNav";
 import { ComprasManager, type OrdenCompra } from "@/components/ComprasManager";
 
@@ -9,7 +10,7 @@ export default async function ComprasPage() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
 
-  const [{ data: ordenes }, todasSedes, { data: proveedores }] = await Promise.all([
+  const [resOrdenes, todasSedes, resProveedores] = await Promise.all([
     supabase
       .from("ordenes_compra")
       .select("id, proveedor, estado, fecha, fecha_estimada, monto_estimado, nota, sedes!ordenes_compra_sede_destino_id_fkey(codigo)")
@@ -18,9 +19,14 @@ export default async function ComprasPage() {
     getSedes(),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
   ]);
+  // Esta pantalla es «cuánta plata tengo comprometida en camino». Una lista recortada
+  // en silencio la baja, y con ella la decisión de si alcanza para pedir más.
+  const ordenes = exigir(resOrdenes, "las órdenes de compra");
+  const proveedores = exigir(resProveedores, "el directorio de proveedores");
+
   const sedes = todasSedes.filter((s) => s.tipo === "tienda");
 
-  const filas: OrdenCompra[] = (ordenes ?? []).map((o) => {
+  const filas: OrdenCompra[] = ordenes.map((o) => {
     const sede = Array.isArray(o.sedes) ? o.sedes[0] : o.sedes;
     return {
       id: o.id,

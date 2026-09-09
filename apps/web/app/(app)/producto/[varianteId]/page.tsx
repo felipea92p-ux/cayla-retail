@@ -4,6 +4,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 import { FotoProducto } from "@/components/FotoProducto";
 import { MinimosPorSede } from "@/components/MinimosPorSede";
 import { RecetaCosto } from "@/components/RecetaCosto";
@@ -72,7 +73,7 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
   // Las 4 son independientes entre sí: solo dependen de varianteId/persona (ya
   // disponibles), no del resultado de las otras — antes iban en cascada de hasta 5
   // rondas secuenciales.
-  const [{ variantes }, sedesData, { data: stockConContenedor }, { data: movimientos }] = await Promise.all([
+  const [{ variantes }, sedesData, resStock, resMovimientos] = await Promise.all([
     getCatalogoInteligente(persona),
     getSedes(),
     supabase.from("stock").select("sede_id, contenedores(codigo)").eq("variante_id", varianteId),
@@ -84,29 +85,45 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
       .limit(200),
   ]);
 
+  // La ficha de una prenda existe para responder «dónde está y qué le pasó». Un stock
+  // por sede a medias manda a buscar al almacén equivocado, y un historial recortado se
+  // lee como «esta prenda no se movió nunca».
+  const stockConContenedor = exigir(resStock, "el stock de esta prenda por sede");
+  const movimientos = exigir(resMovimientos, "el historial de esta prenda");
+
   const v = variantes.find((x) => x.varianteId === varianteId);
   if (!v) notFound();
 
   const sedePorId = new Map(sedesData.map((s) => [s.id, s.codigo]));
   const tiendas = sedesData.filter((s) => s.tipo === "tienda").map((s) => ({ id: s.id, codigo: s.codigo }));
-  const usuarioIds = [...new Set((movimientos ?? []).map((m) => m.usuario_id).filter(Boolean))] as string[];
+  const usuarioIds = [...new Set(movimientos.map((m) => m.usuario_id).filter(Boolean))] as string[];
 
   // Estas 3 sí dependen de lo anterior (v.productoId / usuarioIds), pero no entre
   // sí — van juntas en vez de una tras otra.
-  const [{ data: bomRows }, { data: productoRow }, { data: personasData }] = await Promise.all([
+  const [resBom, resProducto, resPersonas] = await Promise.all([
     esLider
       ? supabase.from("bom_items").select("id, insumo, cantidad_requerida, unidad, precio_unitario").eq("producto_id", v.productoId).order("created_at")
-      : Promise.resolve({ data: null as { id: string; insumo: string; cantidad_requerida: number; unidad: string; precio_unitario: number | null }[] | null }),
+      : Promise.resolve({
+          data: null as { id: string; insumo: string; cantidad_requerida: number; unidad: string; precio_unitario: number | null }[] | null,
+          error: null,
+        }),
     esLider
       ? supabase.from("productos").select("costo_mano_obra").eq("id", v.productoId).single()
-      : Promise.resolve({ data: null as { costo_mano_obra: number | null } | null }),
+      : Promise.resolve({ data: null as { costo_mano_obra: number | null } | null, error: null }),
     usuarioIds.length
       ? supabase.from("personas").select("id, nombre").in("id", usuarioIds)
-      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[], error: null }),
   ]);
 
+  // `exigirOpcional` y no `exigir`: cuando no eres Lider estas tres ni se consultan y el
+  // respaldo llega en null a proposito. Lo que no puede pasar callado es un ERROR, que es
+  // exactamente la distincion que ese ayudante existe para hacer.
+  const bomRows = exigirOpcional(resBom, "la receta de costo");
+  const productoRow = exigirOpcional(resProducto, "el costo de mano de obra");
+  const personasData = exigirOpcional(resPersonas, "los nombres del equipo");
+
   const contenedorPorSedeCodigo = new Map(
-    (stockConContenedor ?? []).map((s) => {
+    stockConContenedor.map((s) => {
       const contenedor = Array.isArray(s.contenedores) ? s.contenedores[0] : s.contenedores;
       return [sedePorId.get(s.sede_id) ?? "", contenedor?.codigo ?? null];
     })

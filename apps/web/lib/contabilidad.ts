@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PersonaActual } from "@/lib/persona";
 import { mesLimaUTC } from "@/lib/finanzas-nucleo";
+import { exigir } from "@/lib/resultado";
 
 // ==================================================================
 // Modelo contable de CAYLA (Fase C1 — ver docs/MANUAL-CONTABLE-CAYLA.md).
@@ -93,32 +94,31 @@ export async function getEstadosContables(
   const supabase = await createClient();
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
-  const [
-    { data: ventas },
-    { data: gastos },
-    { data: movs },
-    { data: variantes },
-    { data: ajustes },
-    { data: depositos },
-    { data: stockRows },
-    { data: patrimonio },
-  ] = await Promise.all([
-    supabase.from("ventas").select("monto_total, metodo_pago, created_at, sede_id"),
-    supabase.from("gastos").select("subtotal, igv, total, metodo_pago, created_at, categoria"),
-    supabase.from("movimientos").select("variante_id, cantidad, motivo, created_at").eq("tipo", "salida").in("motivo", ["venta", "merma"]),
-    supabase.from("variantes").select("id, costo"),
-    supabase.from("ajustes_efectivo").select("monto, created_at"),
-    supabase.from("depositos_bancarios").select("monto, created_at"),
-    supabase.from("stock").select("cantidad, variantes(costo)"),
-    supabase.from("patrimonio_items").select("tipo, monto"),
-  ]);
+  const [resVentas, resGastos, resMovs, resVariantes, resAjustes, resDepositos, resStock, resPatrimonio] =
+    await Promise.all([
+      supabase.from("ventas").select("monto_total, metodo_pago, created_at, sede_id"),
+      supabase.from("gastos").select("subtotal, igv, total, metodo_pago, created_at, categoria"),
+      supabase.from("movimientos").select("variante_id, cantidad, motivo, created_at").eq("tipo", "salida").in("motivo", ["venta", "merma"]),
+      supabase.from("variantes").select("id, costo"),
+      supabase.from("ajustes_efectivo").select("monto, created_at"),
+      supabase.from("depositos_bancarios").select("monto, created_at"),
+      supabase.from("stock").select("cantidad, variantes(costo)"),
+      supabase.from("patrimonio_items").select("tipo, monto"),
+    ]);
 
-  const ventasR = (ventas ?? []) as Ventas[];
-  const gastosR = (gastos ?? []) as Gastos[];
-  const movsR = (movs ?? []) as MovVentaMerma[];
-  const costoDe = new Map((variantes ?? []).map((v) => [v.id, Number(v.costo)]));
-  const ajustesR = (ajustes ?? []) as Flujo[];
-  const depositosR = (depositos ?? []) as Flujo[];
+  // Los cuatro estados financieros salen enteros de estas ocho consultas. Un `?? []`
+  // acá no era un valor por defecto: era un Balance que cuadra en cero y parece correcto.
+  // Con `exigir`, si una falla no se dibuja nada y la barrera de la sección lo dice.
+  const ventasR = exigir(resVentas, "las ventas") as Ventas[];
+  const gastosR = exigir(resGastos, "los gastos") as Gastos[];
+  const movsR = exigir(resMovs, "las salidas de stock") as MovVentaMerma[];
+  const variantes = exigir(resVariantes, "los costos del catálogo");
+  const ajustesR = exigir(resAjustes, "los ajustes de efectivo") as Flujo[];
+  const depositosR = exigir(resDepositos, "los depósitos al banco") as Flujo[];
+  const stockRows = exigir(resStock, "el stock valorizado");
+  const patrimonio = exigir(resPatrimonio, "las partidas de patrimonio");
+
+  const costoDe = new Map(variantes.map((v) => [v.id, Number(v.costo)]));
 
   // ---------- Primitivas: flujos acumulados y por período ----------
   const enPeriodo = (iso: string) => iso >= desde && iso < hasta;
@@ -193,12 +193,12 @@ export async function getEstadosContables(
 
   // ---------- Balance General a hoy ----------
   const { caja, banco } = cajaBancoHoy();
-  const inventario = Math.round((stockRows ?? []).reduce((a, r) => {
+  const inventario = Math.round(stockRows.reduce((a, r) => {
     const variante = Array.isArray(r.variantes) ? r.variantes[0] : r.variantes;
     return a + (Number(variante?.costo) || 0) * r.cantidad;
   }, 0) * 100) / 100;
-  const activosFijos = (patrimonio ?? []).filter((p) => p.tipo === "activo").reduce((a, p) => a + Number(p.monto), 0);
-  const pasivosManuales = (patrimonio ?? []).filter((p) => p.tipo === "pasivo").reduce((a, p) => a + Number(p.monto), 0);
+  const activosFijos = patrimonio.filter((p) => p.tipo === "activo").reduce((a, p) => a + Number(p.monto), 0);
+  const pasivosManuales = patrimonio.filter((p) => p.tipo === "pasivo").reduce((a, p) => a + Number(p.monto), 0);
 
   // IGV por pagar = IGV cobrado en ventas (todo) − IGV pagado en compras/gastos (crédito fiscal).
   const eerrTotal = eerrDe(() => true);

@@ -5,6 +5,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getEERRMensual, mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO, type GastoCategoria, type MetodoPagoGasto } from "@cayla-retail/shared";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
@@ -78,7 +79,7 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
   const persona = await requirePersonaActual(); // memorizado por request
   const supabase = await createClient();
   const { desde, hasta } = mesLimaUTC(anio, mes);
-  const [eerr, { data: gastosData }, todasSedes] = await Promise.all([
+  const [eerr, resGastos, todasSedes] = await Promise.all([
     getEERRMensual(persona, anio, mes),
     supabase
       .from("gastos")
@@ -88,6 +89,11 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
       .order("created_at", { ascending: false }),
     getSedes(),
   ]);
+
+  // El detalle de gastos tiene que cuadrar con la cifra de gastos del EERR de arriba,
+  // que sale de otra consulta. Si esta falla callada, la misma pantalla muestra dos
+  // números distintos del mismo mes y no hay forma de saber cuál creer.
+  const gastosData = exigir(resGastos, "el detalle de gastos del mes");
 
   const sedes = todasSedes.filter((s) => s.tipo !== "almacen");
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? { id: persona.sedeId, codigo: persona.sedeCodigo };

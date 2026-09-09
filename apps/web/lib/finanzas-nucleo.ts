@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 
 // Núcleo financiero F1 (jubilación de SINATRA — docs/ANALISIS-SINATRA.md).
@@ -45,7 +46,7 @@ export async function getEERRMensual(persona: PersonaActual, anio: number, mes: 
   const supabase = await createClient();
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
-  const [sedesData, { data: ventasData }, { data: movs }, { data: variantesData }, { data: gastosData }] =
+  const [sedesData, resVentas, resMovs, resVariantes, resGastos] =
     await Promise.all([
       getSedes(),
       supabase.from("ventas").select("sede_id, monto_total").gte("created_at", desde).lt("created_at", hasta),
@@ -60,8 +61,17 @@ export async function getEERRMensual(persona: PersonaActual, anio: number, mes: 
       supabase.from("gastos").select("sede_id, total").gte("created_at", desde).lt("created_at", hasta),
     ]);
 
+  // Todo lo de acá es plata con la que el Líder decide, así que ninguna de estas consultas
+  // puede fallar callada: sin `exigir`, un error dibujaría «S/0 en ventas» con cara de
+  // normalidad. Es, literalmente, el ejemplo que `lib/resultado.ts` usa en su cabecera para
+  // explicar por qué existe.
+  const ventasData = exigir(resVentas, "las ventas del mes");
+  const movs = exigir(resMovs, "las salidas de stock del mes");
+  const variantesData = exigir(resVariantes, "los costos del catálogo");
+  const gastosData = exigir(resGastos, "los gastos del mes");
+
   const codigoDe = new Map(sedesData.map((s) => [s.id, s.codigo]));
-  const costoDe = new Map((variantesData ?? []).map((v) => [v.id, Number(v.costo)]));
+  const costoDe = new Map(variantesData.map((v) => [v.id, Number(v.costo)]));
 
   type Fila = { ventas: number; cogs: number; mermas: number; gastos: number };
   const porSede = new Map<string, Fila>();
@@ -72,13 +82,13 @@ export async function getEERRMensual(persona: PersonaActual, anio: number, mes: 
   };
 
   let ventas = 0, cogs = 0, mermas = 0, gastos = 0;
-  (ventasData ?? []).forEach((v) => { const m = Number(v.monto_total); ventas += m; fila(v.sede_id).ventas += m; });
-  (movs ?? []).forEach((m) => {
+  ventasData.forEach((v) => { const m = Number(v.monto_total); ventas += m; fila(v.sede_id).ventas += m; });
+  movs.forEach((m) => {
     const costo = (costoDe.get(m.variante_id) ?? 0) * Math.abs(m.cantidad);
     if (m.motivo === "venta") { cogs += costo; fila(m.sede_id).cogs += costo; }
     else { mermas += costo; fila(m.sede_id).mermas += costo; }
   });
-  (gastosData ?? []).forEach((g) => { const t = Number(g.total); gastos += t; fila(g.sede_id).gastos += t; });
+  gastosData.forEach((g) => { const t = Number(g.total); gastos += t; fila(g.sede_id).gastos += t; });
 
   return {
     anio, mes, ventas, cogs, mermas, gastos,
@@ -111,7 +121,7 @@ export type CuadreSede = {
 export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
   const supabase = await createClient();
 
-  const [todasSedes, { data: ajustes }, { data: ventasEf }, { data: gastosEf }, { data: depositos }, { data: cierres }] =
+  const [todasSedes, resAjustes, resVentasEf, resGastosEf, resDepositos, resCierres] =
     await Promise.all([
       getSedes(),
       supabase.from("ajustes_efectivo").select("sede_id, monto"),
@@ -125,10 +135,19 @@ export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
         .order("cerrada_en", { ascending: false }),
     ]);
 
+  // El cuadre dice cuánto efectivo DEBERÍA haber en cada tienda. Si una de estas seis
+  // consultas fallara callada, el teórico saldría más bajo de lo real y una Encargada
+  // cuadraría contra un número inventado — o peor, se buscaría un faltante que no existe.
+  const ajustes = exigir(resAjustes, "los ajustes de efectivo");
+  const ventasEf = exigir(resVentasEf, "las ventas en efectivo");
+  const gastosEf = exigir(resGastosEf, "los gastos en efectivo");
+  const depositos = exigir(resDepositos, "los depósitos al banco");
+  const cierres = exigir(resCierres, "los cierres de caja");
+
   const sedesData = todasSedes.filter((s) => s.tipo === "tienda");
   return sedesData.map((s) => {
-    const suma = (rows: { sede_id: string; monto?: unknown; monto_total?: unknown; total?: unknown }[] | null) =>
-      (rows ?? [])
+    const suma = (rows: { sede_id: string; monto?: unknown; monto_total?: unknown; total?: unknown }[]) =>
+      rows
         .filter((r) => r.sede_id === s.id)
         .reduce((a, r) => a + Number(r.monto ?? r.monto_total ?? r.total ?? 0), 0);
 
@@ -136,7 +155,7 @@ export async function getCuadreEfectivo(): Promise<CuadreSede[]> {
     const ve = suma(ventasEf);
     const ge = suma(gastosEf);
     const de = suma(depositos);
-    const ultimoCierre = (cierres ?? []).find((c) => c.sede_id === s.id);
+    const ultimoCierre = cierres.find((c) => c.sede_id === s.id);
 
     return {
       sedeCodigo: s.codigo,
@@ -167,11 +186,17 @@ export async function getComparativoAnual(persona: PersonaActual, sedeCodigo?: s
   if (persona.rol !== "lider") return null;
   const supabase = await createClient();
 
-  const [sedesData, { data: historicos }, { data: ventasData }] = await Promise.all([
+  const [sedesData, resHistoricos, resVentas] = await Promise.all([
     getSedes(),
     supabase.from("ventas_historicas_mensuales").select("sede_id, anio, mes, monto"),
     supabase.from("ventas").select("sede_id, monto_total, created_at"),
   ]);
+  // Los históricos se sembraron UNA vez desde SINATRA y no se pueden volver a calcular:
+  // si esa consulta falla y nadie avisa, el año pasado aparece en cero y la comparación
+  // dice que el negocio creció cuando no se sabe.
+  const historicos = exigir(resHistoricos, "las ventas históricas sembradas");
+  const ventasData = exigir(resVentas, "las ventas del sistema");
+
   const codigoDe = new Map(sedesData.map((s) => [s.id, s.codigo]));
 
   const acumulado = new Map<string, number>(); // "anio-mes" -> monto
@@ -180,11 +205,11 @@ export async function getComparativoAnual(persona: PersonaActual, sedeCodigo?: s
     acumulado.set(k, (acumulado.get(k) ?? 0) + monto);
   };
 
-  (historicos ?? []).forEach((h) => {
+  historicos.forEach((h) => {
     if (sedeCodigo && codigoDe.get(h.sede_id) !== sedeCodigo) return;
     sumar(h.anio, h.mes, Number(h.monto));
   });
-  (ventasData ?? []).forEach((v) => {
+  ventasData.forEach((v) => {
     if (sedeCodigo && codigoDe.get(v.sede_id) !== sedeCodigo) return;
     const { anio, mes } = anioMesLima(v.created_at);
     sumar(anio, mes, Number(v.monto_total));
@@ -224,20 +249,25 @@ export async function getPatrimonio(persona: PersonaActual): Promise<Patrimonio 
   if (persona.rol !== "lider") return null;
   const supabase = await createClient();
 
-  const [cuadre, { data: stockRows }, { data: items }] = await Promise.all([
+  const [cuadre, resStock, resItems] = await Promise.all([
     getCuadreEfectivo(),
     supabase.from("stock").select("cantidad, variantes(costo)"),
     supabase.from("patrimonio_items").select("id, nombre, tipo, monto, nota, categoria").order("monto", { ascending: false }),
   ]);
 
+  // El patrimonio responde «cuánto vale CAYLA hoy». Un inventario que falla callado lo
+  // deja en cero y la respuesta pasa de incompleta a falsa.
+  const stockRows = exigir(resStock, "el stock valorizado");
+  const items = exigir(resItems, "las partidas de patrimonio");
+
   const efectivoTeorico = cuadre.reduce((a, c) => a + c.teorico, 0);
-  const inventarioCosto = (stockRows ?? []).reduce((a, r) => {
+  const inventarioCosto = stockRows.reduce((a, r) => {
     const variante = Array.isArray(r.variantes) ? r.variantes[0] : r.variantes;
     return a + (Number(variante?.costo) || 0) * r.cantidad;
   }, 0);
 
-  const itemsActivo = (items ?? []).filter((i) => i.tipo === "activo").map((i) => ({ ...i, monto: Number(i.monto) }));
-  const itemsPasivo = (items ?? []).filter((i) => i.tipo === "pasivo").map((i) => ({ ...i, monto: Number(i.monto) }));
+  const itemsActivo = items.filter((i) => i.tipo === "activo").map((i) => ({ ...i, monto: Number(i.monto) }));
+  const itemsPasivo = items.filter((i) => i.tipo === "pasivo").map((i) => ({ ...i, monto: Number(i.monto) }));
   const totalActivos = efectivoTeorico + inventarioCosto + itemsActivo.reduce((a, i) => a + i.monto, 0);
   const totalPasivos = itemsPasivo.reduce((a, i) => a + i.monto, 0);
 

@@ -5,6 +5,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 
@@ -57,7 +58,7 @@ async function Analisis() {
   // de esa función antes de poder calcular `desde` y lanzar las otras 2 consultas en
   // la misma ronda, en vez de esperar a que termine la más lenta primero.
   const desde = desdeISO(VENTANA_DIAS);
-  const [{ variantes }, todasSedes, { data: ventasMov }] = await Promise.all([
+  const [{ variantes }, todasSedes, resVentasMov] = await Promise.all([
     getCatalogoInteligente(persona, VENTANA_DIAS),
     getSedes(),
     supabase
@@ -67,6 +68,10 @@ async function Analisis() {
       .eq("motivo", "venta")
       .gte("created_at", desde),
   ]);
+  // Comercial responde qué reponer y qué rota. Sin estos movimientos, todo sale plano
+  // y la pantalla recomienda no comprar nada.
+  const ventasMov = exigir(resVentasMov, "las ventas de la ventana");
+
   const codigoPorId = new Map(todasSedes.map((s) => [s.id, s.codigo]));
 
   // ==================== Sugerencias de reposición ====================

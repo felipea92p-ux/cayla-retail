@@ -476,10 +476,11 @@ importante que ha entrado a este archivo desde que existe.
       `.maybeSingle()` donde "no hay fila" es respuesta legitima pero un error no, y
       `tolerar()` para lo secundario. Las barreras `(app)/error.tsx` y `global-error.tsx`
       quedaron verificadas en vivo el mismo dia.
-      **CORRECCIÓN 2026-09-09 (barrido posterior sobre TODO `apps/web`):** ese "de 20 a 1" es
+      **CORRECCIÓN Y CIERRE 2026-09-09 (barrido sobre TODO `apps/web`):** ese "de 20 a 1" era
       correcto **para la lista que auditó** —la que este BACKLOG nombraba—, pero el patrón
-      sigue vivo fuera de ella. Contando destructuraciones `{ data: x }` sin `error`, quedan
-      **52 lecturas en 16 archivos**. Las que importan, por lo que alimentan:
+      seguía vivo fuera de ella: 52 destructuraciones `{ data: x }` sin `error`, en 16 archivos.
+      **Cerradas las 52 el mismo día.** Queda 1, la del padrón, deliberada y explicada en su
+      propio código. Lo que alimentaban las que importaban:
       · `lib/finanzas-nucleo.ts` (13) — EERR, cuadre de efectivo, comparativo, patrimonio.
         `getEERRMensual` (`:48`) hace `(ventasData ?? []).forEach(...)`: si la consulta de
         `ventas` falla, el Estado de Resultados dibuja **S/0 en ventas** con cara de
@@ -494,6 +495,22 @@ importante que ha entrado a este archivo desde que existe.
       Verificadas y descartadas como falsos positivos: los tres `auth.getClaims()` (si falla,
       no hay sesión y la ruta redirige al login) y `FotoProducto:54` (`getPublicUrl` arma una
       URL en memoria, no devuelve error).
+      **Cómo se resolvió cada una.** `exigir()` en todo lo que alimenta una decisión de plata o
+      de stock — que resultó ser casi todo. Dos excepciones razonadas:
+      · `lib/pendientes.ts` — `exigir` habría tumbado el Inicio entero por una de cinco
+        consultas de un bloque secundario, pero `tolerar` a secas tampoco servía: esa bandeja
+        **se esconde** cuando no hay nada que hacer, así que una consulta caída se vería igual
+        que un día tranquilo. El silencio es su estado normal, y por eso ahí miente mejor que
+        en ninguna otra parte. Se resolvió metiendo el fallo A LA BANDEJA como un pendiente
+        más ("Esta bandeja está incompleta"): no poder leer tu cola de trabajo es, literalmente,
+        algo que atender — y no hizo falta tocar la pantalla.
+      · `producto/[varianteId]` — `exigirOpcional()` en las tres consultas que solo corren para
+        el Líder: el respaldo llega en `null` a propósito y lo que no puede pasar callado es un
+        error, que es la distinción exacta que ese ayudante existe para hacer.
+      **El hallazgo más feo, de paso:** `inventario/recibir` derivaba `contenedorAlmacen` de una
+      consulta sin revisar. Si fallaba, la pantalla decía «tu sede no tiene un almacén
+      configurado» — un mensaje FALSO que manda a configurar lo que ya estaba, con el fardo
+      abierto en el mostrador. Un error se entiende; ese mensaje engaña.
       Regla para elegir, la misma de siempre: ¿alguien puede tomar una decisión de negocio
       mirando ese dato? Si sí, `exigir()`.
 - [ ] **No hay ninguna pantalla para dar de alta un activo fijo.** `finanzas/activos/page.tsx:54`

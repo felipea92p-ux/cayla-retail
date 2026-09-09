@@ -43,7 +43,7 @@ export default async function ProduccionPage() {
 
 async function Ordenes({ unidadId }: { unidadId: string }) {
   const supabase = await createClient();
-  const [{ data: producciones }, { data: modelosData }] = await Promise.all([
+  const [resProducciones, resModelos] = await Promise.all([
     supabase
       .from("producciones")
       .select(
@@ -55,7 +55,12 @@ async function Ordenes({ unidadId }: { unidadId: string }) {
     supabase.from("productos").select("id, referencia, material").order("referencia").limit(500),
   ]);
 
-  const ids = (producciones ?? []).map((p) => p.id);
+  // El tablero del Taller es la lista de trabajo abierto. Si se recorta en silencio, el
+  // equipo se va a casa con corridas sin cerrar creyendo que no quedaba nada.
+  const producciones = exigir(resProducciones, "las órdenes del Taller");
+  const modelosData = exigir(resModelos, "los modelos del catálogo");
+
+  const ids = producciones.map((p) => p.id);
   // Las líneas son las CANTIDADES por talla y color de cada orden. Si fallan, el tablero
   // muestra órdenes sin desglose y parecen vacías.
   const lineasData = ids.length

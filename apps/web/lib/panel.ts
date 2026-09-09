@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 import type { VarianteConStock } from "@/lib/catalogo";
 import {
@@ -52,21 +53,26 @@ export async function getPanelInicio(
 
   // `getSedes` está cacheada por request y el catálogo ya la pidió, así que acá
   // no cuesta un viaje nuevo: las consultas reales son las dos de abajo.
-  const [sedes, { data: ventas }, { data: cajasAbiertas }] = await Promise.all([
+  const [sedes, resVentas, resCajas] = await Promise.all([
     getSedes(),
     supabase.from("ventas").select("sede_id, monto_total, created_at").gte("created_at", desde),
     supabase.from("cajas").select("sede_id").eq("estado", "abierta"),
   ]);
 
+  // Son las cuatro cifras con las que el Líder abre el día. «Vendiste S/0» por una
+  // consulta caída no es un dato incompleto: es un dato falso, y sobre él se decide.
+  const ventas = exigir(resVentas, "las ventas de la ventana");
+  const cajasAbiertas = exigir(resCajas, "las cajas abiertas");
+
   const codigoPorId = new Map(sedes.map((s) => [s.id, s.codigo]));
-  const sedesAbiertas = new Set((cajasAbiertas ?? []).map((c) => c.sede_id));
+  const sedesAbiertas = new Set(cajasAbiertas.map((c) => c.sede_id));
 
   // Una sola pasada por las ventas de la ventana: la serie de tendencia, el
   // desglose de hoy por sede y el comparativo salen del mismo recorrido.
   const ventasSerie: number[] = new Array(DIAS_TENDENCIA).fill(0);
   const ventasPorSede = new Map<string, number>();
   let ventasSemanaPasadaAEstaHora = 0;
-  (ventas ?? []).forEach((v) => {
+  ventas.forEach((v) => {
     const t = Date.parse(v.created_at);
     const indice = indiceEnSerie(t, ahora);
     if (indice === null) return;

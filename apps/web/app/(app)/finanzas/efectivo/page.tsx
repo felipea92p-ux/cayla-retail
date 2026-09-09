@@ -4,6 +4,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getCuadreEfectivo } from "@/lib/finanzas-nucleo";
 import { getSedes } from "@/lib/sedes";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { EfectivoPanel } from "@/components/EfectivoPanel";
@@ -41,7 +42,7 @@ export default async function EfectivoPage() {
 async function Contenido() {
 
   const supabase = await createClient();
-  const [cuadre, todasSedes, { data: depositos }] = await Promise.all([
+  const [cuadre, todasSedes, resDepositos] = await Promise.all([
     getCuadreEfectivo(),
     getSedes(),
     supabase
@@ -50,6 +51,10 @@ async function Contenido() {
       .order("fecha", { ascending: false })
       .limit(15),
   ]);
+  // El listado de depósitos es la contraparte del teórico que se muestra arriba: si se
+  // recorta en silencio, el cuadre y su detalle dejan de contar la misma historia.
+  const depositos = exigir(resDepositos, "los últimos depósitos al banco");
+
   const sedes = todasSedes.filter((s) => s.tipo === "tienda");
   return (
     <>

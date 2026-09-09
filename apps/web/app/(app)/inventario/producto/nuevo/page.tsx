@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { InventarioNav } from "@/components/InventarioNav";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 
@@ -12,12 +13,18 @@ export default async function NuevoProductoPage() {
   if (persona.rol !== "lider") redirect("/inventario");
 
   const supabase = await createClient();
-  const [{ data: categoriasRows }, { data: proveedoresRows }] = await Promise.all([
+  const [resCategorias, resProveedores] = await Promise.all([
     supabase.from("categorias").select("id, familia, nombre, tallas_sugeridas").order("familia").order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
   ]);
 
-  const categorias = (categoriasRows ?? []).map((c) => ({
+  // Sin categorías el formulario se dibuja igual, pero con el desplegable vacío: la
+  // prenda nueva nacería sin familia ni tallas sugeridas y habría que corregirla después,
+  // una por una. Mejor no dejar empezar.
+  const categoriasRows = exigir(resCategorias, "las categorías del catálogo");
+  const proveedoresRows = exigir(resProveedores, "el directorio de proveedores");
+
+  const categorias = categoriasRows.map((c) => ({
     id: c.id,
     familia: c.familia,
     nombre: c.nombre,

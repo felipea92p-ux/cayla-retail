@@ -2199,3 +2199,36 @@ no por accidente, y ahora además avisa cuando deje de hacerlo.
 
 Rutas públicas sanas también: `/login` 200, `/inventario` 307 al login, `/api/padron` 401 con
 su JSON. La región sigue en `gru1`.
+
+## 2026-09-09 (de 52 a 1: el barrido completo de las lecturas silenciosas)
+Cerradas las 52 lecturas que descartaban el error de Supabase, en 16 archivos. Queda
+una: la memoria de conveniencia del padrón, deliberada y explicada en su propio
+código. El criterio fue el que ya estaba escrito —¿alguien puede tomar una decisión de
+negocio mirando ese dato?— y resultó que casi todo el barrido caía del lado del sí:
+`finanzas-nucleo.ts` (13) mueve EERR, cuadre, comparativo y patrimonio;
+`contabilidad.ts` (8), los cuatro estados financieros.
+
+**Dos casos no se resolvieron con `exigir` y son los que enseñan.** La bandeja de
+pendientes del Inicio **se esconde** cuando no hay nada que hacer, así que una consulta
+caída se vería exactamente igual que un día tranquilo: el silencio es su estado normal
+y por eso ahí miente mejor que en ninguna otra parte del sistema. `exigir` habría
+tumbado el Inicio entero por un bloque secundario. La salida fue meter el fallo A LA
+BANDEJA como un pendiente más — no poder leer tu cola de trabajo es, literalmente, algo
+que atender— y no hubo que tocar la pantalla. El otro es la ficha de producto, donde
+tres consultas solo corren para el Líder: ahí va `exigirOpcional`, porque el null es a
+propósito y lo que no puede pasar callado es el error.
+
+**Lo que Felipe aprendió y no era obvio:** el peor de todos no mostraba un cero, mostraba
+una frase falsa. `inventario/recibir` derivaba «¿esta sede tiene almacén?» de una consulta
+sin revisar; si fallaba, la pantalla decía «tu sede no tiene un almacén configurado» y
+mandaba a configurar lo que ya estaba, con el fardo abierto en el mostrador. Un error se
+entiende y se reintenta; una respuesta falsa manda a alguien a hacer trabajo inventado. Esa
+es la diferencia entre una pantalla caída y una pantalla que miente, y por qué el principio
+9 llama a esto no degradarse con gracia.
+
+Nota de método: el barrido se hizo con un script que cuenta destructuraciones `{ data: x }`
+sin `error` y separa los falsos positivos verificados uno por uno —los `auth.getClaims()`,
+que degradan a "sin sesión", y el `getPublicUrl`, que arma una URL en memoria—. Medir
+antes y después con la misma regla es lo que permite decir "de 52 a 1" en vez de "quedó
+mejor".
+

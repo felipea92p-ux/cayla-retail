@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
 import type { VarianteConStock } from "@/lib/catalogo";
 import type { MotivoSalida, MotivoDevolucion } from "@cayla-retail/shared";
@@ -78,7 +79,7 @@ export async function getActividad(
 ): Promise<Actividad[]> {
   const supabase = await createClient();
 
-  const [{ data: movimientos }, sedes, { data: personas }] = await Promise.all([
+  const [resMovimientos, sedes, resPersonas] = await Promise.all([
     supabase
       .from("movimientos")
       .select("id, variante_id, sede_id, sede_destino_id, tipo, cantidad, motivo, monto, usuario_id, created_at")
@@ -91,14 +92,20 @@ export async function getActividad(
     supabase.from("personas").select("id, nombre"),
   ]);
 
+  // Este bloque ES el registro de movimientos, y su propia regla dice que un movimiento
+  // invisible es peor que uno feo. Una lista recortada en silencio se lee como «no pasó
+  // nada más hoy», que es justo lo contrario de lo que un registro promete.
+  const movimientos = exigir(resMovimientos, "los movimientos recientes");
+  const personas = exigir(resPersonas, "los nombres del equipo");
+
   const codigoPorSede = new Map(sedes.map((s) => [s.id, s.codigo]));
-  const nombrePorPersona = new Map((personas ?? []).map((p) => [p.id, p.nombre]));
+  const nombrePorPersona = new Map(personas.map((p) => [p.id, p.nombre]));
   const prendaPorVariante = new Map(
     variantes.map((v) => [v.varianteId, `${v.referencia} ${[v.talla, v.color].filter(Boolean).join("/")}`.trim()])
   );
   const hoy = diaLima(Date.now());
 
-  return (movimientos ?? []).map((m) => {
+  return movimientos.map((m) => {
     const destino = m.sede_destino_id ? codigoPorSede.get(m.sede_destino_id) : null;
     const origen = codigoPorSede.get(m.sede_id) ?? "?";
 

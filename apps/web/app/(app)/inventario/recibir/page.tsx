@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { RecibirLoteForm } from "@/components/RecibirLoteForm";
 import { Ayuda } from "@/components/Ayuda";
 import { InventarioNav } from "@/components/InventarioNav";
@@ -14,7 +15,7 @@ export default async function RecibirLotePage() {
   // (El almacén ya no es una sede aparte: es el contenedor tipo='almacen' de la
   // propia sede, por eso la consulta de `contenedores` va aquí directo con
   // persona.sedeId, sin necesitar resolver ninguna sede-almacén primero.)
-  const [{ data: contenedores }, { data: productos }, { data: categoriasRows }, { data: proveedoresRows }, variantes, { data: ordenesRows }] =
+  const [resContenedores, resProductos, resCategorias, resProveedores, variantes, resOrdenes] =
     await Promise.all([
       supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", persona.sedeId).order("codigo"),
       supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
@@ -29,7 +30,17 @@ export default async function RecibirLotePage() {
         .order("created_at", { ascending: false }),
     ]);
 
-  const contenedorAlmacen = (contenedores ?? []).find((c) => c.tipo === "almacen") ?? null;
+  // El caso feo de esta pantalla: si la consulta de contenedores falla y nadie lo revisa,
+  // `contenedorAlmacen` queda en null y la pantalla dice «tu sede no tiene un almacen
+  // configurado» — un mensaje FALSO que manda a configurar lo que ya estaba, con el fardo
+  // abierto en el mostrador. Un error se entiende; ese mensaje engana.
+  const contenedores = exigir(resContenedores, "los contenedores de la sede");
+  const productos = exigir(resProductos, "los productos del catalogo");
+  const categoriasRows = exigir(resCategorias, "las categorias");
+  const proveedoresRows = exigir(resProveedores, "el directorio de proveedores");
+  const ordenesRows = exigir(resOrdenes, "las ordenes de compra pendientes");
+
+  const contenedorAlmacen = contenedores.find((c) => c.tipo === "almacen") ?? null;
 
   if (!contenedorAlmacen) {
     return (
@@ -63,13 +74,13 @@ export default async function RecibirLotePage() {
     color: v.color,
   }));
 
-  const productosExistentes = (productos ?? []).map((p) => ({
+  const productosExistentes = productos.map((p) => ({
     id: p.id,
     referencia: p.referencia,
     categoriaId: p.categoria_id,
   }));
 
-  const categorias = (categoriasRows ?? []).map((c) => ({
+  const categorias = categoriasRows.map((c) => ({
     id: c.id,
     familia: c.familia,
     nombre: c.nombre,

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSedes } from "@/lib/sedes";
 import type { PersonaActual } from "@/lib/persona";
 import { diaLima } from "@/lib/panel-serie";
+import { tolerar } from "@/lib/resultado";
 
 // Bandeja de pendientes del Inicio: la cola de trabajo del día.
 //
@@ -44,7 +45,7 @@ export async function getPendientes(persona: PersonaActual): Promise<Pendiente[]
   const supabase = await createClient();
   const hoy = diaLima(Date.now());
 
-  const [sedes, { data: comprobantes }, { data: producciones }, { data: ordenes }, { data: cajasAbiertas }] =
+  const [sedes, resComprobantes, resProducciones, resOrdenes, resCajas] =
     await Promise.all([
       getSedes(),
       supabase
@@ -61,9 +62,41 @@ export async function getPendientes(persona: PersonaActual): Promise<Pendiente[]
       supabase.from("cajas").select("sede_id, abierta_en").eq("estado", "abierta"),
     ]);
 
+  // Acá `exigir` sería demasiado: tumbaría el Inicio entero —buscador, cifras y todo—
+  // porque falló UNA de cinco consultas de un bloque secundario. Pero `tolerar` a secas
+  // tampoco sirve, y es lo interesante de esta pantalla: esta bandeja se ESCONDE cuando no
+  // hay nada que hacer, así que una consulta caída se vería exactamente igual que un día
+  // sin pendientes. El silencio es su estado normal, y por eso acá miente mejor que en
+  // ninguna otra parte del sistema.
+  //
+  // La salida es que el fallo ENTRE a la bandeja como un pendiente más. Es honesto —no
+  // poder leer tu cola de trabajo es, literalmente, algo que atender— y no cuesta tocar
+  // la pantalla: ya sabe dibujar una línea crítica con su enlace.
+  const comprobantesT = tolerar(resComprobantes, "los comprobantes pendientes");
+  const produccionesT = tolerar(resProducciones, "las corridas del Taller");
+  const ordenesT = tolerar(resOrdenes, "las órdenes de compra");
+  const cajasT = tolerar(resCajas, "las cajas abiertas");
+  const comprobantes = comprobantesT.datos;
+  const producciones = produccionesT.datos;
+  const ordenes = ordenesT.datos;
+  const cajasAbiertas = cajasT.datos;
+
   const codigoPorId = new Map(sedes.map((s) => [s.id, s.codigo]));
   const codigo = (id: string | null) => (id ? codigoPorId.get(id) ?? "?" : "?");
   const lista: Pendiente[] = [];
+
+  const noCargaron = [comprobantesT, produccionesT, ordenesT, cajasT].filter((r) => r.fallo).length;
+  if (noCargaron > 0) {
+    lista.push({
+      clave: "bandeja-incompleta",
+      cantidad: noCargaron,
+      etiqueta: "Esta bandeja está incompleta",
+      detalle:
+        "No se pudieron leer todas las fuentes de pendientes, así que puede faltar algo en esta lista. Recarga; si sigue igual, avisa a Felipe.",
+      href: "/",
+      critico: true,
+    });
+  }
   const agregar = (p: Pendiente) => {
     if (p.cantidad > 0) lista.push(p);
   };
