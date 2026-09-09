@@ -314,6 +314,10 @@ importante que ha entrado a este archivo desde que existe.
       así, ninguna pantalla de Facturación se puede verificar en navegador
       local. Decidir cuál de los dos es "el local" de este repo y dejarlo
       escrito — hoy `supabase db reset` administra uno y la app lee el otro.
+      **CERRADO 2026-09-09 (final de la jornada):** ya no leen distinto —
+      `apps/web/.env.local` dice `:54421` y el bundle que sirve el `:3000` vivo
+      confirma `:54421`. "El local de este repo" es `cayla-retail`, escrito en el
+      README y comprobable con `pnpm local:donde`.
       **(a) Y (c) EN PRODUCCIÓN 2026-09-09.** `unificacion/23` y `24` pegadas y
       verificadas: una sola firma de `actualizar_transmision_comprobante` (5
       args), las 6 columnas nuevas, `comprobantes_anulado_tiene_motivo` en
@@ -572,7 +576,11 @@ importante que ha entrado a este archivo desde que existe.
       arreglo esté mal — es que `stock` y `movimientos` ya estaban
       desincronizados y la red hizo su trabajo por primera vez.
 
-- [ ] **`retail.stock_almacen` no existe en local — 2026-09-09.** Solo la crea
+- [x] **YA NO — verificado 2026-09-09.** `supabase/migrations/0044_almacen_interno.sql`
+      la crea en local; la base de este repo tiene `retail.stock_almacen`. La entrada
+      quedó vieja: describe el estado de antes de la 0044. (Lo que sigue siendo cierto
+      del párrafo es el patrón de migraciones duales, no este caso.) Texto original:**
+      **`retail.stock_almacen` no existe en local — 2026-09-09.** Solo la crea
       `supabase/unificacion/12_almacen_interno.sql`, que es de producción;
       ninguna migración de `supabase/migrations/` la tiene. `lib/catalogo.ts`
       la consulta sin revisar el error, así que en local devuelve `{}` en
@@ -582,7 +590,26 @@ importante que ha entrado a este archivo desde que existe.
       impide verificar la línea "Incluye S/X en almacén" del Inicio sin
       producción.
 
-- [ ] **Dos `.env.local` y uno de ellos con basura — 2026-09-09.** El de la raíz
+- [x] **RESUELTO 2026-09-09 — y el arreglo no fue apagar un stack, fue construir el
+      instrumento.** Los dos Supabase locales son legítimos y los dos se quedan: son
+      dos repos distintos (`cayla-retail` 54421 / `cayla-dynamic` 54321). Apagar el de
+      Dynamic rompería el otro proyecto. Lo que se hizo: (1) el `.env.local` de la raíz
+      salió del repo (archivado fuera; se regenera con `vercel env pull` si alguna vez
+      hiciera falta) — nada lo leía: no hay `dotenv`, ni `globalDotEnv` en `turbo.json`,
+      ni uso de OIDC, o sea que era solo una pista falsa a la mano; (2) `pnpm local:donde`
+      (`scripts/local/donde-estoy.mjs`) contesta en un segundo qué stacks corren, cuál
+      declara `config.toml`, cuál leerá la app —detectando el caso feo, la variable
+      exportada que le gana al archivo— y qué puerto trae de verdad el bundle del `:3000`
+      vivo, abriendo los chunks, que es donde Next inlinea `NEXT_PUBLIC_*` (en el HTML no
+      está: por eso la primera versión del check salía muda); (3) la tabla de puertos
+      abre la sección de Desarrollo del README. **El dato que faltaba en el diagnóstico
+      original:** la base de Dynamic también tiene schema `retail` —28 tablas contra las
+      36 de acá, le faltan `comprobantes`, `conteos`, `colores`, `stock_almacen`,
+      `proformas`, `series_comprobantes`, `codigos_barras`, `codigos_correlativos`—, así
+      que el puerto equivocado no falla, miente a medias. Eso es lo que convierte el
+      error en una hora. Probado en los dos caminos: en verde, y forzando el puerto malo.
+      Texto original abajo:**
+      **Dos `.env.local` y uno de ellos con basura — 2026-09-09.** El de la raíz
       tiene `NEXT_PUBLIC_SUPABASE_URL="[SENSITIVE]"` y la clave igual: restos de
       un `vercel env pull` del 08-09 (cuando una variable es *Sensitive* en
       Vercel, el CLI no la puede descifrar y escribe ese literal). Hoy no rompe

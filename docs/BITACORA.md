@@ -2262,3 +2262,34 @@ en pantalla repetida, y el armazón llega en 124 ms.
 
 Queda escrito el intento y no solo la conclusión, para que quien lea "PPR haría esto más
 rápido" encuentre dónde exactamente se detuvo y con qué números se decidió.
+
+## 2026-09-09 (los dos Supabase locales: el arreglo no era apagar uno)
+Felipe pidió arreglar que corrieran dos instancias locales a la vez (54321 y 54421). La
+verificación dio vuelta el pedido: los dos son legítimos y los dos se quedan — son dos
+repos distintos, `cayla-retail` (54421/54422) y `cayla-dynamic` (54321/54322, en
+`~/cayla-dynamic`). Apagar el de Dynamic habría roto el otro proyecto para arreglar un
+problema que no era ese. Hoy además ya no leen distinto: `apps/web/.env.local` dice
+`:54421` y el bundle servido por el `:3000` vivo lo confirma.
+
+**Lo que sí estaba mal, y es más chico y más feo.** Seguía en la raíz el `.env.local` del
+`vercel env pull` del 08-09, con `NEXT_PUBLIC_SUPABASE_URL="[SENSITIVE]"` literal. Nada
+lo lee —no hay `dotenv`, ni `globalDotEnv` en `turbo.json`, ni OIDC; Next lee el de
+`apps/web`—, o sea que su único efecto posible era ser una pista falsa al alcance de la
+mano, y ya había cobrado media hora. Archivado fuera del repo; se regenera con
+`vercel env pull` el día que haga falta.
+
+**El dato que faltaba en los cuatro diagnósticos anteriores:** la base local de Dynamic
+TAMBIÉN tiene schema `retail`. 28 tablas contra las 36 de acá; le faltan `comprobantes`,
+`conteos`, `colores`, `stock_almacen`, `proformas`, `series_comprobantes`,
+`codigos_barras` y `codigos_correlativos` — todo lo construido después de la unificación.
+Por eso el puerto equivocado no explota: catálogo, stock y ventas responden normal y
+fallan Facturación y Conteo. Un fallo parcial se lee como bug del repo, y ahí está la
+hora. Contra eso se construyó `pnpm local:donde` (`scripts/local/donde-estoy.mjs`): dice
+qué stacks corren, cuál declara `config.toml`, cuál leerá la app —incluida la variable
+exportada que le gana al archivo— y qué puerto trae de verdad el bundle del `:3000`.
+Probado en verde y forzando el puerto malo. Y la tabla de puertos abre el README.
+
+**Lo que Felipe aprende acá:** el mismo error costó una hora cuatro veces, y las cuatro se
+resolvió mirando, no razonando — pero nadie dejó el mirar hecho. Documentar el tropiezo en
+la bitácora conserva la lección; solo un comando la aplica sin acordarse de ella. Cuando un
+diagnóstico se repite, lo que falta no es más disciplina: es un instrumento.

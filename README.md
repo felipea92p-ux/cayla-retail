@@ -20,6 +20,36 @@ TRU (Trujillo, tienda) · AQP (Arequipa, tienda) · LIM (Lima, tienda) · Taller
 pnpm install
 ```
 
+### Antes que nada: en esta máquina hay DOS Supabase locales
+
+No es un error, y **no apagues ninguno**. Son dos repos distintos, cada uno con su
+stack:
+
+| Repo | API | DB | Studio |
+|---|---|---|---|
+| **`cayla-retail` — este** | **54421** | **54422** | **54423** |
+| `cayla-dynamic` (asistencia/planilla, `~/cayla-dynamic`) | 54321 | 54322 | 54323 |
+
+**54321 es el default de Supabase, y NO es el nuestro.** Apuntar ahí no explota: la
+base local de Dynamic es la foto de la producción unificada, así que también tiene un
+schema `retail` — con 28 tablas en vez de 36. Catálogo, stock y ventas responden
+normal; lo que falta son las tablas posteriores a la unificación (`comprobantes`,
+`conteos`, `colores`, `stock_almacen`…). O sea que Facturación y Conteo fallan
+mientras el resto anda, y eso se diagnostica como bug del repo. Costó una hora, cuatro
+veces distintas (BITACORA 2026-09-09).
+
+Antes de creerle a cualquier síntoma raro en local, pregunta con qué base estás
+hablando:
+
+```bash
+pnpm local:donde
+```
+
+Contesta en un segundo qué stacks corren, cuál declara este repo, cuál va a leer la
+app —incluyendo el caso feo: una `NEXT_PUBLIC_SUPABASE_URL` exportada en tu terminal
+le gana al archivo— y qué puerto trae de verdad el bundle que sirve el `:3000` que ya
+tengas corriendo, que es el único testigo que no opina.
+
 ### Levantar el entorno local completo
 
 Hasta el 2026-09-05 la app **no podía** correr contra el Supabase local (ver
@@ -29,10 +59,10 @@ ADR-0010). Ya sí. Desde cero:
 npx supabase start
 ```
 
-Eso levanta Postgres, la API, Auth y Studio; aplica las 34 migraciones; y corre
-`supabase/seed.sql`, que mueve las tablas al schema `retail` (igual que
-producción) y siembra lo mínimo para entrar: un usuario, su persona Líder y las
-series de comprobantes de AQP.
+Eso levanta Postgres, la API, Auth y Studio; aplica todas las migraciones de
+`supabase/migrations/`; y corre `supabase/seed.sql`, que mueve las tablas al
+schema `retail` (igual que producción) y siembra lo mínimo para entrar: un usuario, su
+persona Líder y las series de comprobantes de AQP.
 
 Copia las claves que imprime a `apps/web/.env.local` (plantilla en
 `apps/web/.env.example`):

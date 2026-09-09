@@ -7,7 +7,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "migraciones:verificar": "node scripts/migraciones/verificar.mjs"
+    "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
+    "local:donde": "node scripts/local/donde-estoy.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
