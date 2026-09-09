@@ -928,3 +928,33 @@ sesión: `ComprobantesPanel.tsx`, `lib/lucode.ts`, `lib/comprobantes.ts`,
 `app/api/lucode/{emitir,anular}/route.ts`, `app/(app)/vender/facturacion/page.tsx`,
 `packages/database/src/types.ts`, `supabase/migrations/0040_*` y `0041_*`,
 `supabase/unificacion/23_*` y `24_*`, `docs/adr/0015-*` y `0016-*`, BACKLOG y BITÁCORA.
+
+## 2026-09-09 (tarde — middleware → proxy, la convención de Next 16)
+Felipe pidió saldar el aviso de deprecación antes de seguir con la Fase 1. Next 16
+renombró `middleware` a `proxy`: cambia el nombre del archivo y el de la función, y nada
+más — `config.matcher` y los tipos `NextRequest`/`NextResponse` quedan idénticos. No se
+usó el codemod oficial (`npx @next/codemod@canary middleware-to-proxy .`) porque corre
+sobre todo el repo y había trabajo sin commitear de otras sesiones en el mismo árbol; a
+mano fueron dos renombres y `git mv`, así que el historial del archivo se conserva.
+
+El renombre no es cosmético y quedó explicado dentro del propio archivo: "middleware" se
+confundía con el de Express —algo que corre DENTRO de la app— cuando en realidad es una
+barrera de red por DELANTE, en otro proceso y potencialmente en otra región. Esa
+separación es exactamente la razón de que `cache()` de React no comparta nada entre este
+archivo y el render, que fue el hallazgo del ADR-0013. Se anotó además una trampa que
+trae la doc: las Server Actions no son rutas propias (viajan como POST a la ruta donde se
+usan), así que un matcher que excluya esa ruta deja la acción sin cubrir — se verificó
+que `app/actions/sede.ts` ya valida por su cuenta antes de afirmarlo en el comentario.
+
+Se verificó en vivo, no solo compilando, porque acá el riesgo no es que el build falle
+sino que compile y el guardia de sesión desaparezca en silencio: con el server local, una
+ruta protegida sin sesión da 307 a `/login`, una ruta de API da 401 JSON (el caso especial
+que evita que un `fetch` reciba el HTML del login) y `/login` da 200. El propio log de
+Next nombra `proxy.ts` en su desglose de tiempos. Build sin el aviso, `tsc`, `eslint` y 51
+tests en verde.
+
+Hallazgo de paso, **solo local**: hay un `package.json` + `package-lock.json` sueltos en
+`C:\Users\danyj\` (de una instalación del CLI de supabase) y Next infiere ESE directorio
+como raíz del workspace en vez del repo. En Vercel no pasa —el contenedor de build no
+tiene ese home—, así que no afecta producción. Se arregla con `turbopack.root` en
+`next.config.ts`; se deja para la Fase 1, que va a tocar ese archivo igual.
