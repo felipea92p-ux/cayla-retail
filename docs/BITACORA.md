@@ -1115,3 +1115,30 @@ build) y resultó que tampoco era del A/B: es intermitente, y coincide con haber
 `next dev` abierto sobre el mismo `.next`. Next 16.2 trae Cache Components activado por
 defecto, así que es un build que puede fallar sin motivo aparente también en Vercel.
 tsc, eslint, 63 tests y 5 builds seguidos en verde.
+
+## 2026-09-09 (23 y 24 en producción: (a) y (c) cerrados salvo la prueba con Lucode)
+Antes de pasarle el SQL a Felipe se verificó contra producción que los tres supuestos de
+los archivos fueran ciertos: que `retail.es_lider()` y `retail.puede_operar_sede(uuid)`
+existan con esos nombres, y que `actualizar_transmision_comprobante` tuviera hoy la
+firma de 4 argumentos que el `drop` apunta. Los tres, correctos — el round-trip que
+costó la primera migración post-unificación (03-09) esta vez no pasó.
+
+Felipe pegó las dos. Confirmado leyendo la base: una sola firma de 5 argumentos (sin la
+sobrecarga que rompió PostgREST el 08-09), las 6 columnas, y
+`comprobantes_anulado_tiene_motivo` en VALIDADO.
+
+**Lo que la verificación encontró de paso:** `retail.comprobantes` NO estaba vacía como
+decía el backlog — tiene **B004-000002** (boleta, S/10.00, aceptada, transmitida el 08-09
+17:35 Lima). Por eso `comprobantes_transmitido_tiene_entorno` quedó NOT VALID, que es
+justo lo que el bloque `do $$` estaba diseñado para hacer sin romper el script. Nadie
+sabe si esa boleta salió al SUNAT real o al sandbox: es el agujero que ADR-0015 cierra,
+llegado un día tarde. No se rellenó a mano — se resuelve mirando el panel de Lucode.
+Consecuencia para (b): la serie B004 de TRU va por el número **3**, no el 2 del backlog.
+
+**Lo que Felipe aprende acá:** una migración se verifica ANTES de pegarla, no solo
+después. Los tres `select` contra `pg_proc` que corrieron primero costaron un minuto y
+son la diferencia entre pegar sabiendo y pegar a ver qué pasa — sobre todo en un esquema
+que no es el propio, donde el nombre de una función (`fn_es_lider` en local,
+`es_lider` en producción) no es el mismo.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**

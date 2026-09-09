@@ -4,8 +4,10 @@
 **Estado:** Aplicado y probado en local (`supabase db reset`, 2026-09-09: las 41
 migraciones corren en orden y `0040` aplica limpia; restricción `VALIDADO` y una
 sola firma de `actualizar_transmision_comprobante`, sin sobrecarga). Código
-verificado (tsc, eslint, 51 tests). **Falta producción:**
-`supabase/unificacion/23_comprobante_entorno_transmision.sql` sin pegar.
+verificado (tsc, eslint, 51 tests). **Aplicado en producción el 2026-09-09** (`unificacion/23`): una sola firma de
+5 argumentos, sin sobrecarga. La restricción quedó **`NOT VALID`** porque
+producción tenía una boleta transmitida antes de la columna — ver "Deuda que
+esto deja a la vista".
 
 ## Contexto
 
@@ -93,3 +95,23 @@ del sistema (paso "c") — hoy `anularDocumentoLucode` existe en el adaptador
 en la base: la RPC lo rechaza a propósito. Sin anulación, cada "Transmitir" de
 producción es irreversible desde el sistema y hay que ir al panel de Lucode
 (resumen diario de bajas, 7 días).
+
+## Deuda que esto deja a la vista (2026-09-09)
+
+Al aplicar en producción apareció **B004-000002** (boleta, S/10.00, `aceptado`,
+transmitida el 08-09 17:35 Lima) — el backlog daba `retail.comprobantes` por
+vacía. Como esa fila está aceptada sin ambiente, la restricción quedó
+`NOT VALID`: aplica a todo lo nuevo, y esa fila queda marcada como lo que es,
+ambiente **desconocido**.
+
+No se rellenó con `'produccion'` ni con `'sandbox'`: sería inventar el dato que
+esta decisión existe para no inventar. Se resuelve mirando el panel de Lucode y
+recién ahí escribiéndolo:
+
+```sql
+update retail.comprobantes set entorno_transmision = 'produccion'  -- o 'sandbox'
+where serie = 'B004' and numero = 2;
+alter table retail.comprobantes validate constraint comprobantes_transmitido_tiene_entorno;
+```
+
+Mientras tanto la restricción protege lo nuevo, que es el 100% de lo que viene.

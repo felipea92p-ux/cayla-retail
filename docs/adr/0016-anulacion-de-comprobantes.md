@@ -6,9 +6,9 @@ contra Postgres real, suplantando a la líder sembrada: no se marca aceptado sin
 ambiente; no se anula un pendiente; no se anula sin motivo; no se anula con una
 nota viva colgada; una baja en trámite NO escribe 'anulado'; una confirmada sí,
 con motivo y `anulado_por`. Código verificado (tsc, eslint, 51 tests).
-**Falta producción** (`supabase/unificacion/24_anular_comprobante.sql`) **y la
-llamada real a Lucode**, que sigue sin probarse contra el sandbox — ver "Lo que
-falta confirmar".
+**Aplicado en producción el 2026-09-09** (`unificacion/24`; restricción
+`VALIDADO`). **Falta la llamada real a Lucode**, que sigue sin probarse contra
+el sandbox — ver "Lo que falta confirmar".
 
 ## Contexto
 

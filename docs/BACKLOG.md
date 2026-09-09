@@ -182,6 +182,19 @@ importante que ha entrado a este archivo desde que existe.
       así, ninguna pantalla de Facturación se puede verificar en navegador
       local. Decidir cuál de los dos es "el local" de este repo y dejarlo
       escrito — hoy `supabase db reset` administra uno y la app lee el otro.
+      **(a) Y (c) EN PRODUCCIÓN 2026-09-09.** `unificacion/23` y `24` pegadas y
+      verificadas: una sola firma de `actualizar_transmision_comprobante` (5
+      args), las 6 columnas nuevas, `comprobantes_anulado_tiene_motivo` en
+      VALIDADO. **Dos cosas quedan abiertas de esto:** (1)
+      `comprobantes_transmitido_tiene_entorno` quedó NOT VALID porque
+      producción tenía **B004-000002** (boleta S/10.00, aceptada 08-09, ambiente
+      DESCONOCIDO) — mirar el panel de Lucode, escribir el ambiente real y
+      recién ahí `validate constraint` (SQL exacto en ADR-0015); (2) la llamada
+      real a Lucode de anulación sigue **sin probarse en sandbox**: el nombre
+      del campo `motivo` en /voided y la forma de la respuesta del resumen
+      diario salen de la documentación, no de una respuesta real.
+      **Corrección al dato del backlog:** `retail.comprobantes` NO estaba vacía;
+      la serie **B004 de TRU va por el número 3**, no el 2 que decía arriba.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por
