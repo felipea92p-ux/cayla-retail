@@ -1692,3 +1692,37 @@ nada con ellas es la forma más rápida de que deje de mirar el bloque.
 El seed suma los otros dos usuarios (`encargada@` y `taller@`). Hasta hoy esos dos
 inicios no se podían ver funcionar porque no había con quién entrar — el mismo
 agujero que el seed vino a tapar para los datos, ahora para los roles.
+
+## 2026-09-09 (la caja aprende a que la escaneen, y los errores dejan de hablar Postgres)
+Se analizó el apartado D del documento *el estándar, los doce y el camino* — la
+comparativa no funcional de 16 sistemas— y se rescataron las celdas de 5/5, que son
+el estándar que alguien ya alcanzó. Nadie saca 5 en las cinco dimensiones: Square
+llega a tres y se cae en soporte y apertura; Loyverse llega a tres y se cae en
+belleza y apertura. Contrastado contra el repo, CAYLA ya tiene dos casi regaladas
+(belleza ≈5, español =5) y una medida y decente (velocidad, 131 ms TTFB). La más
+floja resultó ser **facilidad de aprendizaje** — y es justo donde INVY, marcado en
+el propio documento como "nuestro competidor", ya saca 5. Felipe eligió esa.
+
+**El hallazgo que justifica la sesión entera:** el buscador del modal de venta era
+un `<input>` dentro de un `<form>` con botón submit y **sin `onKeyDown`**. La pistola
+Zebra tipea el SKU y da Enter sola —es lo que ya hace funcionar `/buscar` sin
+configurar nada—, así que en la caja ese Enter caía en el envío implícito del
+formulario: con el carrito vacío mostraba "El carrito está vacío", y **con el
+carrito ya cargado registraba la venta a mitad del escaneo**. El equipo ya había
+aprendido el gesto de escanear; la única pantalla donde no servía era la de vender.
+
+**Lo que Felipe aprendió y no era obvio:** que `lib/resultado.ts`, del mismo día,
+solo cubría la mitad del problema. Arregló las **lecturas** que fallaban en silencio
+y dejó escrita la regla —"sin jerga de Postgres, que no le sirve de nada y la
+asusta"— pero del lado de la **escritura** no había equivalente: 29 llamadas en 17
+componentes mostraban el texto crudo, incluida la pantalla de más presión del
+sistema. Nace `lib/error-escritura.ts` (ADR-0022) como hermano suyo, y lo que lo
+define es lo que decide NO tocar: los `raise exception` de las RPC ya están en
+castellano de CAYLA y pasan palabra por palabra, porque re-escribirlos dejaría dos
+textos que se pueden desincronizar — la misma trampa que ADR-0018 evitó al no
+duplicar las reglas de RLS. Traduce solo lo que escribe Postgres por su cuenta, y lo
+que no reconoce no se lo traga: cae con el texto original detrás de "Código:".
+
+Verificado: build, lint, `tsc --noEmit` y 77 pruebas (9 nuevas, una por huella).
+**Sin verificar en vivo** —y anotado en BACKLOG— el escaneo con la pistola real: el
+layout redirige al login y no corresponde que Claude escriba la contraseña.

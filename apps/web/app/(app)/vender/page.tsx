@@ -4,6 +4,7 @@ import { getCatalogoConStock } from "@/lib/catalogo";
 import { getCajaAbierta } from "@/lib/finanzas";
 import { tolerar } from "@/lib/resultado";
 import { createClient } from "@/lib/supabase/server";
+import { Ayuda } from "@/components/Ayuda";
 import { CajaPanel } from "@/components/CajaPanel";
 import { VenderNav } from "@/components/VenderNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
@@ -42,7 +43,15 @@ export default async function VenderPage() {
     <div className="space-y-8">
       <div>
         <p className="label-cayla text-[11px] text-tinta/65">Vender · {persona.sedeCodigo}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Caja del día</h1>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          Caja del día
+          <Ayuda titulo="Caja del día">
+            Cada día de venta de una tienda se abre y se cierra. Al abrir declaras con cuánto
+            efectivo empiezas; durante el día registras cada venta acá; al cerrar cuentas la plata
+            y el sistema te dice si cuadra. Sin caja abierta no se puede vender: es lo que hace que
+            el dinero del mostrador sea comparable con el del sistema.
+          </Ayuda>
+        </h1>
       </div>
 
       <VenderNav />
@@ -127,12 +136,19 @@ async function VentasDeHoy() {
   return (
     <div>
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</h2>
+        <h2 className="label-cayla text-[11px] text-tinta/65">
+          Ventas de hoy
+          <Ayuda titulo="Ventas de hoy">
+            Lo que se vendió en {persona.sedeCodigo} desde las 00:00 de hoy, hora de Lima. Es para
+            mirar, no para cuadrar: el conteo de verdad lo hace el sistema cuando cierras la caja,
+            contra el registro completo. Si acá falta algo, la venta no entró.
+          </Ayuda>
+        </h2>
         <p className="font-display text-xl text-tinta">S/{totalHoy.toFixed(2)}</p>
       </div>
       {ventas.length === 0 ? (
         <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-          Aún no hay ventas hoy.
+          Aún no hay ventas hoy — toca «Vender» arriba para registrar la primera.
         </p>
       ) : (
         <div className="divide-y divide-tinta/10 card-cayla">
