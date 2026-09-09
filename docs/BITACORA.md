@@ -1726,3 +1726,34 @@ que no reconoce no se lo traga: cae con el texto original detrás de "Código:".
 Verificado: build, lint, `tsc --noEmit` y 77 pruebas (9 nuevas, una por huella).
 **Sin verificar en vivo** —y anotado en BACKLOG— el escaneo con la pistola real: el
 layout redirige al login y no corresponde que Claude escriba la contraseña.
+
+## 2026-09-09 (medición post-despliegue: el streaming NO mejoró los tiempos)
+Se empujaron los 4 commits del streaming (solo hasta `7fe820c`; el commit de la sesión del
+Inicio se dejó sin subir porque esa tanda seguía abierta) y se midió en el navegador de
+Felipe, con sesión iniciada.
+
+**Lo que sí se confirmó:** la función ejecuta en `gru1` (`x-vercel-id: iad1::gru1::…`), el
+streaming funciona de verdad —el HTML trae el marcado del esqueleto y la respuesta llega en
+**3 trozos**, no en uno—, y el despliegue nuevo estuvo vivo 40 s después del push.
+
+**Lo que NO se cumplió, y hay que decirlo:** los tiempos no se movieron.
+
+| | Antes | Después |
+|---|---|---|
+| TTFB `/inventario` | 131 ms | 124 ms |
+| Carga total | 750 ms | 730 ms |
+
+Eso está dentro del ruido. **El streaming no produjo una mejora medible de tiempo**, y la
+razón es la misma que ya había aparecido midiendo por rutas: entre el primer byte y el HTML
+completo solo hay ~100 ms. Casi todo el tiempo está ANTES del primer byte. El streaming solo
+puede repartir lo que viene DESPUÉS — y ahí había poco que repartir.
+
+Queda como resultado negativo medido, no como intuición: **el cuello no es cuándo llegan los
+datos, es el peaje fijo por petición** (Perú → borde en Washington → función en São Paulo →
+y de vuelta). Lo único que atacó eso de verdad fue el cambio de región.
+
+Lo que el cambio sí hace, y no es tiempo: antes la pantalla mostraba un "Cargando…"
+centrado mientras esperaba TODO; ahora muestra la cabecera, la navegación, los botones y un
+esqueleto con la forma del contenido. Es una mejora de qué se ve durante la espera, no de
+cuánto dura. Se mantiene por eso —y porque el `tolerar()` de `/vender` es robustez
+independiente de la velocidad—, pero **deja de contarse como ganancia de velocidad**.
