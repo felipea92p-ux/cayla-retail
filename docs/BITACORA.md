@@ -2232,3 +2232,33 @@ que degradan a "sin sesión", y el `getPublicUrl`, que arma una URL en memoria�
 antes y después con la misma regla es lo que permite decir "de 52 a 1" en vez de "quedó
 mejor".
 
+
+## 2026-09-09 (cacheComponents: archivado tras intentarlo, no aplazado otra vez)
+Felipe paró sus otras sesiones para dejar el árbol quieto y se intentó de verdad: flag
+activado, codemod oficial (`cache-components-instant-false`, 27 rutas, 0 errores) y build.
+
+Varias preocupaciones de la mañana se cayeron al medirlas: **0** configs de segmento que
+migrar, **0** `unstable_cache`, y **13 pantallas ya tenían `<Suspense>`** del trabajo del
+mismo día. Se llegó mucho más lejos que en el intento anterior.
+
+Y apareció un arreglo legítimo por el camino: `/almacen` y `/almacen/recibir` eran páginas
+de React que solo llamaban a `redirect()` — pantallas que no dibujan nada. Con Cache
+Components eso rompe el prerender, porque Next intenta prerenderizarlas, choca con la
+lectura de cookies del layout y no hay shell que producir. Un alias de ruta pertenece a la
+config. Se revirtió con el resto pero **queda anotado como arreglo válido por su cuenta**.
+
+**El impedimento real resultó ser de producto, no de código.** El build siguió fallando en
+pantallas que SÍ tenían `<Suspense>`, y la causa está en `AppShell.tsx:328`: `esLider` decide
+qué enlaces se dibujan. La navegación depende del rol — Comercial y Finanzas solo para el
+Líder, el Taller ve lo suyo. Un armazón prerenderizado no puede contener un menú que cambia
+según quién mira, así que el layout lee cookies y bloquea la ruta entera por más `<Suspense>`
+que se le agregue a cada página. El trabajo por página no compra nada mientras eso siga así.
+
+Se archiva, no se aplaza (ADR-0028). Las tres salidas cuestan más de lo que dan: mostrar
+todo a todos es regresión de UX para la Encargada; transmitir el menú deja el armazón en el
+logo; rediseñar el riel del lateral —hecho ese mismo día— por una ganancia sin medir. Y el
+contexto lo cierra: el streaming ya dio CERO en tiempo, la caché del router entrega 6-7 ms
+en pantalla repetida, y el armazón llega en 124 ms.
+
+Queda escrito el intento y no solo la conclusión, para que quien lea "PPR haría esto más
+rápido" encuentre dónde exactamente se detuvo y con qué números se decidió.

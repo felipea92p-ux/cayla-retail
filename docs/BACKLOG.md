@@ -810,34 +810,25 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✨ MEJORAR (lo que funciona y podría ser de talla mundial)
 
-- [ ] **`cacheComponents` (Fase 1b del ADR-0013) — NECESITA SU PROPIA SESIÓN, no es
-      un flag que se prende.** Es lo que haría que el armazón (nav, cabecera) aparezca
-      al instante mientras los datos entran por streaming — la mejora de percepción más
-      grande que queda. Pero medido contra este repo el 2026-09-09, la migración toca:
-      **16 puntos de IO síncrono** (`Date.now()` / `new Date()` en `finanzas.ts`,
-      `finanzas-nucleo.ts`, `inteligencia.ts`, `panel.ts`, `lucode.ts`, `comercial/page.tsx`,
-      `vender/page.tsx`, `producto/[varianteId]/page.tsx`, `api/export`, `api/padron`) que
-      con `cacheComponents` son **error de build durante el prerender**, y que el escape
-      `instant = false` explícitamente NO perdona — hay que envolver en `<Suspense>` y
-      llamar `connection()` antes, o mover a componente de cliente; y **24 archivos** que
-      llaman `requirePersonaActual()` → `cookies()`, cada uno necesitando su boundary de
-      Suspense. Además `revalidate`/`dynamic`/`fetchCache` pasan a `use cache` + `cacheLife`,
-      y `<Activity>` cambia el ciclo de vida: el estado de componentes **sobrevive** a la
-      navegación, así que desplegables y diálogos abiertos se quedan abiertos al volver
-      (hay que revisar los 8 modales). Vercel publica una skill oficial para conducirla:
-      `npx skills add vercel/next.js --skill next-cache-components-adoption`, con modo
-      incremental que abre un PR mecánico por ruta.
-      **Medido el 09-09 activando el flag de verdad, no estimando:** `instant = false` en
-      `(app)/layout.tsx` **NO cascadea** a las páginas hijas — el error solo saltó de
-      `/almacen/recibir` a `/inventario/proveedores`. Son ~28 opt-outs, uno por página. Y
-      el opt-out por sí solo **no da ningún beneficio**: solo difiere la validación. El
-      beneficio real exige que el layout deje de bloquear en `requirePersonaActual()`, y
-      ese layout alimenta `AppShell` (nav + selector de sede) — o sea que la parte que de
-      verdad paga es reestructurar el armazón, justo lo que el rediseño del riel (ADR-0014)
-      está tocando. **No se hizo el 09-09 porque otras
-      sesiones tenían abiertos `app/(app)/page.tsx`, `lib/panel.ts` y el rediseño del riel
-      del lateral (ADR-0014)** — y esta migración toca casi todas las páginas. Retomar
-      cuando el árbol esté quieto.
+- [x] **`cacheComponents`: ARCHIVADO el 2026-09-09 tras intentarlo de verdad -- ADR-0028.**
+      Con el arbol quieto se activo el flag, se corrio el codemod oficial (27 rutas, 0
+      errores) y se ejecuto el build. Varias preocupaciones se cayeron al medirlas: 0
+      configs de segmento que migrar, 0 `unstable_cache`, y 13 pantallas ya tenian
+      `<Suspense>` del mismo dia. **El impedimento real es de producto, no de codigo:**
+      `AppShell.tsx:328` decide con `esLider` que enlaces dibuja, asi que la navegacion
+      depende del rol -- y un armazon prerenderizado no puede contener un menu que cambia
+      segun quien mira. El layout lee cookies para saberlo y bloquea la ruta entera por mas
+      `<Suspense>` que se le ponga a cada pagina. No paga: el streaming ya dio CERO en
+      tiempo, la cache del router entrega 6-7 ms en pantalla repetida y el armazon llega en
+      124 ms. **Solo se revisa si la navegacion deja de depender del rol por una razon de
+      producto**, nunca por rendimiento.
+- [ ] **Mover `/almacen` y `/almacen/recibir` a `redirects()` de la config.** Hoy son
+      paginas de React que solo llaman a `redirect()` -- pantallas que no dibujan nada. Un
+      alias de ruta pertenece a la config, no al arbol de paginas. Se descubrio intentando
+      cacheComponents (ahi rompian el prerender) y se revirtio con el resto; el arreglo
+      sigue siendo correcto por su cuenta. Usar `permanent: false`: un 308 se queda cacheado
+      en el navegador de cada quien y recuperar esas rutas despues costaria explicar como
+      limpiar la cache.
 - [ ] `inteligencia`: umbral de estancado (45d) y lead time (14d) siguen siendo
       constantes globales, no por categoría/sede. Sigue sin justificarse afinarlo:
       no hay datos reales de venta todavía (depende de `catalogo real` arriba).
