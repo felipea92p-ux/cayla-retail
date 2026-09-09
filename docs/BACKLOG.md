@@ -111,6 +111,36 @@ importante que ha entrado a este archivo desde que existe.
       de `unificacion/27` y LEERLO antes de aplicar** — si hay filas negativas o
       movimientos en cero, se miran una por una y se corrigen con movimientos,
       nunca borrando.
+- [x] **`vocabulario cerrado de colores` — hecho y verificado en local 2026-09-09
+      (`0046_colores.sql`, ADR-0024); falta pegar `unificacion/28`.** 29 colores
+      aprobados por Felipe, con índice único sobre el nombre normalizado: la base
+      rechaza "azul marino" si ya existe "Azul marino". Es la pieza con mayor
+      costo de postergación del proyecto — unificar colores después del censo no
+      es un `update` de texto, es fusionar variantes con stock e historial. NO se
+      hizo tabla de tallas, a propósito: agregarla tarde es barato (no es FK de
+      nada), agregar colores tarde es caro.
+- [x] **`código corto + codigos_barras` — hecho y verificado en local 2026-09-09
+      (`0047_codigos.sql`, ADR-0025); falta pegar `unificacion/29` DESPUÉS de la
+      `28`.** `BLU-0042-AZM-M` al lado del SKU, que no se toca. El argumento no es
+      estético: `EtiquetasGenerator` estira el Code 128 al ancho de la etiqueta,
+      así que 40 caracteres dan 1.2 puntos por módulo a 300 dpi cuando la regla
+      térmica es ≥3 — **ésa es la razón real de que la pistola a veces no lea**.
+      Más `variantes_identidad_unica`, que impide que 4 personas creen la misma
+      prenda 4 veces. Y `codigos_barras` (varios códigos → una prenda), que como
+      casi todas las prendas ya traen código de fábrica convierte el censo en
+      "escanear lo que está en la percha" en vez de "pegar 900 etiquetas primero";
+      el backfill registra el `sku` viejo, así que las etiquetas ya impresas
+      siguen funcionando. **Pendiente de Felipe: los TRES pre-flight de
+      `unificacion/29`** (categorías que el archivo no conoce, variantes
+      duplicadas, SKUs repetidos). Si el de duplicados devuelve filas, se resuelve
+      una por una — nunca borrando.
+- [ ] **`censo`: los bloques que faltan.** Sesiones de conteo (`conteos` +
+      `conteo_lineas` + RPCs, con `cantidad_sistema` congelado al contar y cierre
+      solo por Líder = la aprobación que pidió Felipe), la pantalla de captura por
+      matriz (talla × color, una tarjeta por color en móvil), la pantalla de
+      conteo con la pistola, el resumen de varianza, y etiquetas en lote. **Ojo al
+      entrar al frontend: hay otra sesión trabajando ahí** (`AppShell.tsx`,
+      `vender/`, los modales) — coordinar antes.
 - [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
       movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
       función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con

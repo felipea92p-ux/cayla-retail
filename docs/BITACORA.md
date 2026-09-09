@@ -1968,3 +1968,40 @@ que intente levantar el entorno local se va a topar con esto hasta reiniciar el 
 
 Todo lo montado quedó desmontado: servidor detenido, worktree eliminado, página de prueba
 borrada, `git status` limpio de rastros propios.
+
+## 2026-09-09 (organización del inventario, bloques 2 y 3 — el color deja de ser texto libre y la prenda tiene varios códigos)
+
+**Bloque 2 (`0046_colores.sql` + `unificacion/28`, ADR-0024).** `variantes.color` era texto
+libre sin restricción. Con cuatro Encargadas capturando 900 prendas en paralelo iban a nacer
+"Azul marino", "azul marino", "AZUL MARINO" y "marino" — cuatro colores para la base, uno para
+la clienta. Lo que decide hacerlo AHORA es lo que cuesta después: unificar dos colores no es un
+`update` de texto, es **fusionar variantes** con stock e historial, o sea escribir movimientos
+para arreglar una falta de ortografía. 29 colores aprobados por Felipe, con un índice único
+sobre el nombre normalizado que hace imposible el duplicado ortográfico — lo rechaza la base,
+no un `if` en el cliente. **No se hizo tabla de tallas**, y la asimetría es el argumento:
+agregar tallas tarde es barato (no es FK de nada), agregar colores tarde es caro.
+
+**Bloque 3 (`0047_codigos.sql` + `unificacion/29`, ADR-0025).** El código corto `BLU-0042-AZM-M`
+al lado del SKU, que no se toca. El argumento que cierra la discusión no es estético: **la
+etiqueta no entra**. `EtiquetasGenerator` estira el Code 128 al ancho de la etiqueta sin
+importar cuántos módulos tenga, así que un SKU de 40 caracteres da 1.2 puntos por módulo a 300
+dpi cuando la regla térmica es ≥3. Ésa es la razón real de que la pistola a veces no lea. El
+código corto da 3.1. Más `variantes_identidad_unica`, que es lo que impide que cuatro personas
+creen la misma prenda cuatro veces el primer día del censo.
+
+**La pieza que más cambia el proyecto: `codigos_barras`.** Como casi todas las prendas ya traen
+código de fábrica, una tabla donde una prenda puede tener VARIOS códigos convierte el censo de
+"imprimir y pegar 900 etiquetas antes de escanear nada" a "escanear lo que ya está en la
+percha". Y de yapa el backfill registra el `sku` viejo, así que toda etiqueta ya impresa sigue
+funcionando el día que cambiemos de nomenclatura. Verificado: tres códigos distintos
+(`BLU-0001-AZM-M`, el sku viejo, y un EAN `7501234567890`) resuelven a la misma prenda.
+
+**Lo que aprendió Felipe:** que un backfill es la mitad fácil del problema. La primera versión
+registraba los códigos con un `insert … select` al final — cubría el pasado y nada mantenía el
+futuro: una variante creada al día siguiente quedaba con código pero sin ser escaneable. Lo
+encontró una prueba, no una revisión. Se movió el registro dentro de la única función que acuña
+códigos, y así el invariante se sostiene solo. Misma lección que ADR-0023, dos veces en el
+mismo día: escribir la regla no alcanza, hay que ponerla donde no se pueda saltear.
+
+**Nota de sesiones paralelas:** esta vez salió bien. La otra sesión construyó **sobre** el
+bloque 1 (`ce51374`: tradujo al castellano las dos redes que trajo `0045`) en vez de chocar.
