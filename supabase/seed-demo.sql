@@ -66,7 +66,7 @@ from (values
   ('DEMO-BLU', 'DEMO-BLU-L', 'L',  'Marfil', 22.00,  69.00),
   ('DEMO-BLA', 'DEMO-BLA-S', 'S',  'Arena',  45.00, 139.00),
   ('DEMO-BLA', 'DEMO-BLA-M', 'M',  'Arena',  45.00, 139.00),
-  ('DEMO-ARE', 'DEMO-ARE-U', null, 'Perla',   8.00,  29.00),
+  ('DEMO-ARE', 'DEMO-ARE-U', null, 'Nácar',   8.00,  29.00),
   ('DEMO-CHA', 'DEMO-CHA-U', null, 'Camel',  35.00,  99.00)
 ) as v(padre, sku, talla, color, costo, precio)
 join productos p on p.sku_padre = v.padre;
@@ -87,6 +87,19 @@ from (values
 ) as e(sku, sede, cant)
 join variantes vr on vr.sku = e.sku
 join sedes s on s.codigo = e.sede;
+
+-- Una entrada RECIENTE, aparte de las de arriba. Sin ella la actividad del
+-- Inicio muestra ocho "Venta" seguidas —las entradas quedan fuera del corte por
+-- viejas— y la etiqueta "Ingreso de mercadería" nunca se ve, aunque el código
+-- sepa escribirla. Va a LIM sobre los aretes: no toca ninguno de los dos casos
+-- de traslado que la demo monta sobre las blusas.
+insert into movimientos (variante_id, sede_id, tipo, cantidad, motivo, usuario_id, created_at)
+select vr.id, s.id, 'entrada', 6, 'compra',
+       (select id from personas order by created_at limit 1),
+       (date_trunc('day', timezone('America/Lima', now())) - interval '1 day' + interval '11 hours')
+         at time zone 'America/Lima'
+from variantes vr, sedes s
+where vr.sku = 'DEMO-ARE-U' and s.codigo = 'LIM';
 
 -- ==================== 3. Cajas ====================
 -- Las tres quedan ABIERTAS, pero la de LIM lleva 3 días así. Es el caso que

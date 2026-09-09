@@ -1558,3 +1558,56 @@ Pendiente y anotado: extenderlo a `/comercial`, `/finanzas/*`, `/produccion` y `
 —es mecánico—, y **verlo funcionar en vivo**. Compila y pasa 68 pruebas, pero que la
 estructura aparezca antes que los datos hay que verlo corriendo con sesión iniciada. Es la
 misma distinción entre "compila" y "funciona" que hoy mismo costó tres rondas con la región.
+
+## 2026-09-09 (Inicio, paso 4 — la actividad, y tres choques de sesiones en una hora)
+
+`movimientos` es la fuente de verdad del inventario desde el primer día y
+ninguna pantalla la había mostrado nunca en orden cronológico. Ahora el Inicio
+cierra con las últimas 8: hora, sede, qué pasó, prenda, cantidad, monto y quién.
+Las de hoy muestran solo la hora; las anteriores, el día — leer "18:30" sin
+saber de qué día es peor que un texto más largo. Es un bloque de naturaleza
+distinta a los otros dos: no pide nada (eso es la bandeja) y no resume nada (eso
+son las tarjetas); responde "¿qué está pasando?", que para un Líder en Lima que
+no ve el piso de Trujillo hoy solo se responde por teléfono.
+
+Las etiquetas del feed se escribieron aparte de las de `MovimientoModal` a
+propósito: las del modal son instructivas ("Otro (especificar en nota)") porque
+guían a quien registra, y leídas de corrido en una lista sobran. Son dos
+redacciones del mismo dominio para dos usos, no una duplicación — pero van
+tipadas contra el mismo enum de `@cayla-retail/shared`, así que un motivo nuevo
+no compila hasta traducirse en ambos lados.
+
+**Lo que Felipe aprendió, y no fue del código:** hoy se cruzaron tres sesiones en
+el mismo árbol y cada cruce enseñó algo distinto.
+
+(1) **El servidor de desarrollo cambió de base sin que nadie lo tocara.** Su
+`NEXT_PUBLIC_SUPABASE_URL` venía exportada en la terminal donde se levantó —y en
+Next eso le gana al archivo—; al reiniciarse, pasó a leer `apps/web/.env.local`,
+que apuntaba al stack de cayla-dynamic (`:54321`) en vez del de este repo
+(`:54421`). Síntoma: "tu cuenta no está vinculada a ningún integrante", con los
+datos intactos. Se resolvió mirando en qué puerto responde el bundle servido, no
+razonando. El archivo quedó corregido: local ya no depende de una variable
+invisible.
+
+(2) **Un error tragado convierte una falla en un dato falso.** Otra sesión hizo
+que `getCatalogoConStock` fallara en voz alta (`exigir`), y eso tumbó el Inicio
+en local con `Could not find the table 'retail.stock_almacen'`. No era un bug
+nuevo: era el agujero que este mismo backlog anotó por la mañana, invisible seis
+días porque el error se descartaba y el almacén se veía "vacío" — indistinguible
+de "no hay nada guardado". Su cambio es correcto; lo que hizo fue encender la luz.
+
+(3) **Dos sesiones resolvieron el mismo problema a la vez, con el mismo número.**
+Esa sesión escribió `0042_almacen_interno.sql` mientras yo escribía
+`0043_almacen_interno_local.sql`, y el 0042 ya estaba tomado por
+`0042_recalcular_stock_neto.sql`, pusheado horas antes. `npx supabase db reset`
+falló con `duplicate key ... schema_migrations_pkey` y local quedó bloqueado para
+todos. Se resolvió por asimetría, no por gusto: **lo pusheado no se renumera, lo
+no commiteado sí** — renumerar una migración que alguien ya aplicó rompe su
+historial. Se borró mi versión (la suya era superior: 385 líneas contra 89, y de
+paso arregla que `unificacion/12` partió de un cuerpo anterior a `0011` y perdió
+la línea que sella `stock.ultima_venta`) y se renumeraron los suyos a `0044` y
+`unificacion/26`, sin tocarles una línea de SQL.
+
+La regla que queda de las tres: en un repo con sesiones paralelas, el número de
+migración es un recurso compartido y hay que pedirlo mirando `origin`, no el
+directorio local.

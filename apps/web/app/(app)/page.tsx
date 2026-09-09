@@ -4,6 +4,7 @@ import { getCatalogoInteligente } from "@/lib/inteligencia";
 import { getCajaAbierta } from "@/lib/finanzas";
 import { getPanelLider } from "@/lib/panel";
 import { getPendientes } from "@/lib/pendientes";
+import { getActividad } from "@/lib/actividad";
 import { BuscadorHero } from "@/components/BuscadorHero";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador, normalizarSparkline } from "@/components/TarjetaIndicador";
@@ -26,7 +27,10 @@ export default async function InicioPage() {
     getCajaAbierta(persona.sedeId),
     getPendientes(persona),
   ]);
-  const panel = await getPanelLider(persona, variantes);
+  const [panel, actividad] = await Promise.all([
+    getPanelLider(persona, variantes),
+    getActividad(persona, variantes),
+  ]);
 
   const reponerYa = variantes.filter((v) => v.reponerYa).length;
   const estancados = variantes.filter((v) => v.estancado).length;
@@ -232,6 +236,31 @@ export default async function InicioPage() {
               );
             })}
           </ul>
+        </div>
+      )}
+
+      {/* Actividad reciente: `movimientos` es la fuente de verdad del inventario desde
+          el primer día y ninguna pantalla la mostraba nunca en orden cronológico. El
+          Líder está en Lima y no ve el piso de Trujillo. No pide nada ni resume nada —
+          responde "¿qué está pasando?", que no es "¿qué tengo que hacer?". */}
+      {actividad.length > 0 && (
+        <div>
+          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Actividad reciente</p>
+          <div className="card-cayla divide-y divide-tinta/10">
+            {actividad.map((a) => (
+              <div key={a.id} className="flex items-baseline gap-3 px-5 py-2.5">
+                <span className="w-20 shrink-0 text-xs tabular-nums text-tinta/65">{a.cuando}</span>
+                <span className="min-w-0 flex-1 text-sm text-tinta">
+                  <span className="label-cayla text-[11px] text-tinta/65">{a.donde}</span>{" "}
+                  {a.que} · {a.prenda} <span className="text-tinta/65">× {a.cantidad}</span>
+                </span>
+                {a.monto != null && (
+                  <span className="shrink-0 text-xs tabular-nums text-tinta/75">{money(a.monto)}</span>
+                )}
+                {a.quien && <span className="hidden shrink-0 text-xs text-tinta/65 sm:inline">{a.quien}</span>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
