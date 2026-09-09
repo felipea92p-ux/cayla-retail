@@ -25,6 +25,7 @@ export default async function EtiquetasPage() {
         variantes={variantes.map((v) => ({
           varianteId: v.varianteId,
           sku: v.sku,
+          codigo: v.codigo,
           referencia: v.referencia,
           talla: v.talla,
           color: v.color,

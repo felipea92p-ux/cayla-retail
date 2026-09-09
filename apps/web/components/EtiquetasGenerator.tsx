@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Codigo128 } from "@/components/Codigo128";
 
 // Generador de etiquetas de código de barras para la Brother QL-1110NWB (rollo
 // 62mm). Código de barras Code 128 B — el estándar retail que la pistola Zebra
@@ -10,6 +11,8 @@ import { useEffect, useMemo, useState } from "react";
 type VarianteEtiqueta = {
   varianteId: string;
   sku: string;
+  /** El corto (BLU-0042-AZM-M). Es lo que se imprime; `sku` es el respaldo. */
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -17,66 +20,6 @@ type VarianteEtiqueta = {
 };
 
 type Seleccion = { variante: VarianteEtiqueta; cantidad: number };
-
-// Tabla oficial de patrones Code 128 (anchos de barra/espacio por símbolo, 0-106).
-const PATRONES = [
-  "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
-  "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
-  "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
-  "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
-  "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
-  "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
-  "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
-  "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
-  "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
-  "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
-  "114131","311141","411131","211412","211214","211232",
-];
-const PATRON_STOP = "2331112";
-
-/** SVG Code 128 B del texto dado. Devuelve null si hay caracteres fuera de rango. */
-function Codigo128({ texto, alto = 44 }: { texto: string; alto?: number }) {
-  const barras = useMemo(() => {
-    const valores: number[] = [];
-    for (const ch of texto) {
-      const code = ch.charCodeAt(0);
-      if (code < 32 || code > 126) return null; // fuera de Code 128 B
-      valores.push(code - 32);
-    }
-    let checksum = 104; // start B
-    valores.forEach((v, i) => (checksum += v * (i + 1)));
-    checksum %= 103;
-
-    const secuencia = [104, ...valores, checksum];
-    const patron = secuencia.map((v) => PATRONES[v]).join("") + PATRON_STOP;
-
-    const rects: { x: number; w: number }[] = [];
-    let x = 0;
-    let esBarra = true;
-    for (const d of patron) {
-      const w = Number(d);
-      if (esBarra) rects.push({ x, w });
-      x += w;
-      esBarra = !esBarra;
-    }
-    return { rects, total: x };
-  }, [texto]);
-
-  if (!barras) return <p className="text-[8px] text-rojo">SKU con caracteres no imprimibles</p>;
-
-  return (
-    <svg
-      viewBox={`0 0 ${barras.total} ${alto}`}
-      preserveAspectRatio="none"
-      style={{ width: "100%", height: alto }}
-      shapeRendering="crispEdges"
-    >
-      {barras.rects.map((r, i) => (
-        <rect key={i} x={r.x} y={0} width={r.w} height={alto} fill="#000" />
-      ))}
-    </svg>
-  );
-}
 
 export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[] }) {
   const [q, setQ] = useState("");
@@ -87,7 +30,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
     const term = q.trim().toLowerCase();
     if (!term) return [];
     return variantes
-      .filter((v) => `${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""}`.toLowerCase().includes(term))
+      .filter((v) => `${v.codigo ?? ""} ${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""}`.toLowerCase().includes(term))
       .slice(0, 6);
   }, [variantes, q]);
 
@@ -141,7 +84,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
                 <span className="text-tinta">
                   {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                 </span>
-                <span className="font-mono text-[10px] text-tinta/65">{v.sku}</span>
+                <span className="font-mono text-[10px] text-tinta/65">{v.codigo ?? v.sku}</span>
               </button>
             ))}
           </div>
@@ -158,7 +101,7 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
                     {s.variante.referencia}{" "}
                     <span className="text-tinta/65">{[s.variante.talla, s.variante.color].filter(Boolean).join("/")}</span>
                   </p>
-                  <p className="font-mono text-[10px] text-tinta/65">{s.variante.sku}</p>
+                  <p className="font-mono text-[10px] text-tinta/65">{s.variante.codigo ?? s.variante.sku}</p>
                 </div>
                 <input
                   type="number"
@@ -221,8 +164,8 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
                 <p className="text-[8px] uppercase text-black">
                   {[e.talla, e.color].filter(Boolean).join(" · ")}
                 </p>
-                <Codigo128 texto={e.sku} alto={38} />
-                <p className="text-center font-mono text-[8px] tracking-wider text-black">{e.sku}</p>
+                <Codigo128 texto={e.codigo ?? e.sku} alto={38} />
+                <p className="text-center font-mono text-[8px] tracking-wider text-black">{e.codigo ?? e.sku}</p>
               </div>
             ))}
           </div>

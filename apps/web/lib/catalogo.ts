@@ -7,6 +7,9 @@ export type VarianteConStock = {
   varianteId: string;
   productoId: string;
   sku: string;
+  /** El código corto y estable (BLU-0042-AZM-M). Null mientras su color no esté
+   *  normalizado — ADR-0025: el código no se inventa. Es lo que va en la etiqueta. */
+  codigo: string | null;
   referencia: string;
   categoria: string | null;
   familia: string | null;
@@ -37,7 +40,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
     supabase
       .from("variantes")
       .select(
-        "id, sku, talla, color, costo, precio, stock_minimo, created_at, productos(id, referencia, marca, estado, foto_url, categorias(nombre, familia))"
+        "id, sku, codigo, talla, color, costo, precio, stock_minimo, created_at, productos(id, referencia, marca, estado, foto_url, categorias(nombre, familia))"
       )
       .order("sku"),
     supabase.from("stock").select("variante_id, cantidad, stock_minimo, sede_id, ultima_venta"),
@@ -107,6 +110,7 @@ export async function getCatalogoConStock(persona: PersonaActual): Promise<Varia
         varianteId: v.id,
         productoId: producto?.id ?? "",
         sku: v.sku,
+        codigo: v.codigo,
         referencia: producto?.referencia ?? "(sin referencia)",
         categoria: categoriaRow?.nombre ?? null,
         familia: categoriaRow?.familia ?? null,
