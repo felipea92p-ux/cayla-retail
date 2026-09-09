@@ -447,7 +447,15 @@ importante que ha entrado a este archivo desde que existe.
       navegación, así que desplegables y diálogos abiertos se quedan abiertos al volver
       (hay que revisar los 8 modales). Vercel publica una skill oficial para conducirla:
       `npx skills add vercel/next.js --skill next-cache-components-adoption`, con modo
-      incremental que abre un PR mecánico por ruta. **No se hizo el 09-09 porque otras
+      incremental que abre un PR mecánico por ruta.
+      **Medido el 09-09 activando el flag de verdad, no estimando:** `instant = false` en
+      `(app)/layout.tsx` **NO cascadea** a las páginas hijas — el error solo saltó de
+      `/almacen/recibir` a `/inventario/proveedores`. Son ~28 opt-outs, uno por página. Y
+      el opt-out por sí solo **no da ningún beneficio**: solo difiere la validación. El
+      beneficio real exige que el layout deje de bloquear en `requirePersonaActual()`, y
+      ese layout alimenta `AppShell` (nav + selector de sede) — o sea que la parte que de
+      verdad paga es reestructurar el armazón, justo lo que el rediseño del riel (ADR-0014)
+      está tocando. **No se hizo el 09-09 porque otras
       sesiones tenían abiertos `app/(app)/page.tsx`, `lib/panel.ts` y el rediseño del riel
       del lateral (ADR-0014)** — y esta migración toca casi todas las páginas. Retomar
       cuando el árbol esté quieto.
