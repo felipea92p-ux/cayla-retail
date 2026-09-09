@@ -1395,3 +1395,41 @@ tests y fallado en silencio. La única forma de saberlo era preguntarle al servi
 verdad, antes de escribir el lector y no después.
 
 **SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
+
+## 2026-09-09 (tarde — medir la cosa equivocada tres veces seguidas)
+Con la Fase 0 desplegada se fue a comprobar la región y salió `iad1` tres veces. Se
+descartó el plan (Hobby permite una región; y resultó que la cuenta es Pro, con cinco),
+se descartó el timing de build, y se llegó a acusar a la ubicación de `vercel.json` —
+"mi apuesta estuvo mal"— cuando Felipe confirmó que el Root Directory sí era `apps/web`,
+o sea que el archivo estaba bien puesto desde el principio.
+
+**El error era el método, no la configuración.** Las tres rutas medidas —`/login`,
+`/inventario`, `/api/padron`— las responde el **proxy** o el CDN antes de llegar a
+ninguna función de página: estático con `X-Vercel-Cache: PRERENDER`, 307 al login, y 401
+JSON respectivamente. Y Vercel despliega el proxy al borde justamente para resolver
+redirects rápido. O sea que `X-Vercel-Id: iad1` habría salido igual con la región
+perfectamente cambiada. Se verificó que **no existe ninguna ruta que ejecute función de
+página sin sesión**: `/auth/*` está exento del guardia pero no tiene handler, y todo lo
+demás lo intercepta el proxy.
+
+Lo zanjó una captura del panel: el badge **"Overridden"** en Function Regions es Vercel
+avisando que `vercel.json` sobreescribe el ajuste del panel — prueba de que el archivo SÍ
+se lee, en `apps/web/`, donde estaba. La región es `gru1`. Bonus del mismo panel: Fluid
+Compute está encendido, así que las instancias se reutilizan y el JWKS que `getClaims()`
+descarga queda cacheado entre peticiones en vez de re-pedirse por invocación.
+
+**La lección, que es la que vale:** una medición que no puede distinguir entre "funcionó"
+y "no funcionó" no es una medición. Las tres rutas daban el mismo número en ambos mundos,
+y aun así se sacaron conclusiones de ellas —y se acusó a un archivo inocente— durante tres
+rondas. Antes de medir hay que preguntarse qué se vería si el cambio SÍ hubiera funcionado.
+
+**Segunda corrección, más incómoda: el "~2 s" original nunca se midió.** Salió de la
+percepción de Felipe más la cuenta de 4 viajes de red, y el "~700 ms después de Fase 0"
+era una estimación encima de esa estimación. Lo que sí está medido: 0.86 ms de ejecución
+en base, ~95 ms de RTT Perú↔São Paulo, ~400-430 ms de respuesta del borde, y 2 de los 4
+viajes eliminados. De ahí sale la recalibración honesta: como `getClaims()` ya quitó dos
+viajes, la región puede ahorrar la mitad de lo estimado (~250-350 ms), no lo que se dijo.
+Y no mejora el `/login` de 430 ms, que es CDN y no depende de la región de funciones.
+
+**Sigue sin medirse lo único que importa:** el TTFB de una pantalla CON sesión iniciada.
+Es el número que todo este trabajo pretende bajar y nadie lo ha tomado nunca.
