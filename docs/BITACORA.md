@@ -1611,3 +1611,29 @@ la línea que sella `stock.ultima_venta`) y se renumeraron los suyos a `0044` y
 La regla que queda de las tres: en un repo con sesiones paralelas, el número de
 migración es un recurso compartido y hay que pedirlo mirando `origin`, no el
 directorio local.
+
+## 2026-09-09 (streaming extendido: 8 de 10 pantallas)
+Se aplicó el patrón de ADR-0021 al resto: `/buscar`, `/produccion`, `/comercial` y tres de
+Finanzas (`efectivo`, `patrimonio`, `activos`), sumadas a `/inventario` y `/vender` que ya
+estaban. Ocho pantallas donde la estructura ya no espera a los datos.
+
+`/buscar` fue el caso con más efecto: el título sale de lo que la Encargada acaba de
+escribir y esperaba a que cargara el catálogo ENTERO para dibujarse — con la pistola Zebra
+eso se siente como si el escaneo no hubiera entrado. Lleva además `key={term}` en el
+boundary, deliberado: sin él, cambiar de búsqueda reusa el boundary ya resuelto y se
+siguen viendo los resultados VIEJOS mientras llegan los nuevos, sin señal de carga. Y su
+consulta de stock pasó a `exigir()`: decir "sin coincidencias" porque falló una consulta
+mandaría a alguien al almacén a buscar algo que sí está.
+
+Las tres de Finanzas comparten forma (cabecera + `FinanzasNav` + secciones), así que
+salieron con una sola transformación mecánica. **`egresos` y `comparativo` no**: sus
+cabeceras sí dependen de datos calculados —navegación de meses, selector de sede— y el
+corte automático las rompió. Se intentaron, falló `tsc`, y se revirtieron limpias en vez de
+forzarlas. Quedan para tratarse una por una, junto con `/finanzas` y `/finanzas/balances`.
+
+Se limpiaron tres variables que quedaron sin uso tras mover código a los componentes hijos
+(`ventanaDias` en comercial, `persona` en efectivo, `supabase` en producción). eslint sin
+warnings, tsc, 68 pruebas y `next build` en verde.
+
+Sigue sin verificarse en vivo que el streaming se vea: hace falta sesión iniciada. Es lo
+primero al desplegar.

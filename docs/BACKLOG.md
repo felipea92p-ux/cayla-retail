@@ -320,6 +320,18 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Faltan 2 pantallas de streaming y verificarlo en vivo — 2026-09-09, ADR-0021.**
+      Ocho de diez pantallas ya dibujan la estructura sin esperar los datos. Faltan
+      `/finanzas/egresos` y `/finanzas/comparativo` (sus cabeceras dependen de valores
+      calculados —navegación de meses, selector de sede— así que el corte mecánico las
+      rompe; hay que tratarlas una por una), más `/finanzas` y `/finanzas/balances`.
+      **Y lo que de verdad falta: verlo funcionar.** Compila y pasa 68 pruebas, pero que
+      la estructura aparezca ANTES que los datos hay que verlo corriendo con sesión
+      iniciada — igual que la barrera de error de `(app)/error.tsx`. Al desplegar, medir
+      con el navegador de Felipe como se hizo con la región: hoy `/inventario` da TTFB
+      131 ms y carga completa 750 ms; lo que hay que confirmar es que a los 131 ms se vea
+      la pantalla armada y no un Cargando….
+
 - [ ] **Terminar de aplicar `exigir()`/`tolerar()`: quedan ~15 lecturas que fallan en
       silencio — 2026-09-09.** La auditoría encontró 20 consultas que descartaban el error
       de Supabase contra 1 que lo revisaba. Se arreglaron los tres cimientos donde un dato
