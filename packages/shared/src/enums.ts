@@ -2,6 +2,12 @@
 // TRU y AQP son tiendas; LIM es tienda; Taller es la fábrica (producción) — ubicación
 // física distinta de LIM aunque esté en la misma ciudad. "Online" NO es una sede: es un
 // canal de venta que despacha desde el stock real de alguna de estas 4 sedes.
+// OJO: esta lista NO refleja la realidad y no la usa nadie (solo alimenta a
+// `sedeSchema` en schemas.ts, que tampoco tiene consumidores). En produccion los
+// codigos son TRU / AQP / 003 / LIM / CCO, y el Taller es "LIM", no "TALLER".
+// Fijar codigos de sede en el codigo contradice el diseno: las sedes viven en una
+// tabla y su TIPO es lo que decide (ver PersonaActual.sedeTipo). No la uses para
+// validar nada; esta anotada en el BACKLOG para borrarse.
 export const SEDES = ["TRU", "AQP", "LIM", "TALLER"] as const;
 export type Sede = (typeof SEDES)[number];
 

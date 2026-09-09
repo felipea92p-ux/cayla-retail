@@ -19,7 +19,7 @@ import { Boton, Hilo } from "@/components/ui/campos";
 // la misma pieza del `Segmentado` (que ya se desliza en horizontal) puesta de
 // canto. Estructura, ancho y respiro cambiaron; ninguna ruta lo hizo.
 
-type Persona = { nombre: string; rol: "lider" | "integrante"; sedeCodigo: string; sedeId: string };
+type Persona = { nombre: string; rol: "lider" | "integrante"; sedeCodigo: string; sedeId: string; sedeTipo: string };
 
 type Props = {
   persona: Persona;
@@ -320,7 +320,8 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
-  const esTaller = persona.sedeCodigo === "TALLER";
+  // Por TIPO, nunca por codigo: el Taller es TALLER en local y LIM en produccion.
+  const esTaller = persona.sedeTipo === "fabrica";
 
   const abrirNuevo = (e: React.MouseEvent<HTMLButtonElement>) => {
     disparadorNuevo.current = e.currentTarget;

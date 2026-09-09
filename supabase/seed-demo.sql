@@ -308,6 +308,58 @@ select 'Textiles Gamarra SAC', 'confirmada', s.id,
        2400.00, 'Reposicion de blusas satinadas'
 from sedes s where s.codigo = 'TRU';
 
+-- ==================== 7. Los otros dos roles ====================
+-- `seed.sql` solo crea al Líder, así que hasta hoy el Inicio de la Encargada y
+-- el del Taller no se podían ver funcionando: no había con quién entrar. Estas
+-- dos cuentas existen para eso y solo para eso.
+--
+-- Mismas credenciales de desarrollo que el Líder, con la misma advertencia:
+-- obvias a propósito y sin valor fuera de esta máquina.
+--   encargada@cayla.local / cayla-local  → Encargada de TRU
+--   taller@cayla.local    / cayla-local  → integrante del Taller
+--
+-- Los *_token en '' (no NULL) son obligatorios: GoTrue los escanea como string
+-- de Go y una columna NULL revienta el login con "Database error querying schema".
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
+)
+select '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
+       extensions.crypt('cayla-local', extensions.gen_salt('bf')),
+       now(), now(), now(),
+       '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+       '', '', '', '', '', '', '', ''
+from (values
+  ('33333333-3333-4333-8333-000000000001'::uuid, 'encargada@cayla.local'),
+  ('44444444-4444-4444-8444-000000000001'::uuid, 'taller@cayla.local')
+) as u(id, email)
+on conflict (id) do nothing;
+
+-- GoTrue exige la identidad además del usuario: sin esta fila el login con
+-- correo y contraseña devuelve "credenciales inválidas" aunque el usuario exista.
+insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select u.id, u.id, u.id::text,
+       jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+       'email', now(), now(), now()
+from (values
+  ('33333333-3333-4333-8333-000000000001'::uuid, 'encargada@cayla.local'),
+  ('44444444-4444-4444-8444-000000000001'::uuid, 'taller@cayla.local')
+) as u(id, email)
+on conflict (id) do nothing;
+
+insert into personas (auth_user_id, nombre, sede_id, rol)
+select p.auth_id, p.nombre, s.id, 'integrante'
+from (values
+  ('33333333-3333-4333-8333-000000000001'::uuid, 'Rosa Encargada', 'TRU'),
+  -- El Taller se busca por TIPO, no por código: es 'TALLER' en local y 'LIM' en
+  -- producción. Es exactamente el bug que este paso arregla en la app.
+  ('44444444-4444-4444-8444-000000000001'::uuid, 'Marco del Taller', 'fabrica')
+) as p(auth_id, nombre, donde)
+join sedes s on (p.donde = 'fabrica' and s.tipo = 'fabrica') or (p.donde <> 'fabrica' and s.codigo = p.donde)
+on conflict (auth_user_id) do nothing;
+
 do $resumen$
 declare
   v_ventas int;

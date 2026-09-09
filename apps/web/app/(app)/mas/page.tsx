@@ -7,7 +7,8 @@ export default async function MasPage() {
   const persona = await requirePersonaActual();
   const esLider = persona.rol === "lider";
 
-  const esTaller = persona.sedeCodigo === "TALLER";
+  // Por TIPO, nunca por codigo (ver PersonaActual.sedeTipo).
+  const esTaller = persona.sedeTipo === "fabrica";
   const enlaces = [
     ...(esLider || esTaller
       ? [{ href: "/produccion", etiqueta: "Producción", detalle: "El tablero del Taller: corte, confección, acabado" }]

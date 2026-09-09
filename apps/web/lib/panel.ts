@@ -15,7 +15,7 @@ import {
 // Toda la aritmética de "qué día es esto" en hora de Lima vive en
 // `panel-serie.ts`, que es puro y está probado — acá solo se consulta y se suma.
 
-export type PanelLider = {
+export type PanelInicio = {
   ventasHoyTotal: number;
   ventasHoyPorSede: { codigo: string; monto: number }[];
   /** Ventas en soles por día, del más viejo (índice 0) a hoy. Largo = DIAS_TENDENCIA. */
@@ -42,11 +42,10 @@ export type PanelLider = {
  * pantalla — que es lo que hacía esta función antes. El Inicio es la pantalla
  * más visitada del sistema y era la que más leía.
  */
-export async function getPanelLider(
+export async function getPanelInicio(
   persona: PersonaActual,
   variantes: VarianteConStock[]
-): Promise<PanelLider | null> {
-  if (persona.rol !== "lider") return null;
+): Promise<PanelInicio> {
   const supabase = await createClient();
   const ahora = Date.now();
   const desde = inicioDeLaVentana(ahora).toISOString();
@@ -112,7 +111,7 @@ export async function getPanelLider(
     ventasSerie,
     ventasSemanaPasadaAEstaHora,
     cajasTiendas: sedes
-      .filter((s) => s.tipo === "tienda")
+      .filter((s) => (persona.rol === "lider" ? s.tipo === "tienda" : s.id === persona.sedeId))
       .map((s) => ({ codigo: s.codigo, abierta: sedesAbiertas.has(s.id) })),
     valorInventarioTotal: valorPiso + valorAlmacenTotal,
     valorAlmacenTotal,

@@ -33,13 +33,14 @@ export type Pendiente = {
 };
 
 /**
- * Solo Líder por ahora (igual que `getPanelLider`). La Encargada necesita otra
- * lista —la suya, de su sede— y eso llega con su propio Inicio; devolver acá
- * la lista del Líder recortada por RLS habría dado un bloque a medias, que es
- * peor que ninguno.
+ * Sirve a los dos roles, pero no con la misma lista. RLS ya acota las filas a la
+ * sede de quien mira; lo que cambia acá es QUÉ pendientes tienen sentido para
+ * cada uno. A una Encargada no le toca perseguir una orden de compra ni una
+ * corrida del Taller: mostrárselas sería llenarle la pantalla de trabajo ajeno,
+ * que es la forma más rápida de que deje de mirar el bloque.
  */
 export async function getPendientes(persona: PersonaActual): Promise<Pendiente[]> {
-  if (persona.rol !== "lider") return [];
+  const esLider = persona.rol === "lider";
   const supabase = await createClient();
   const hoy = diaLima(Date.now());
 
@@ -111,6 +112,11 @@ export async function getPendientes(persona: PersonaActual): Promise<Pendiente[]
     href: "/vender",
     critico: true,
   });
+
+  // ==================== Taller y compras: solo del Líder ====================
+  // Son suyas por responsabilidad, no por permiso: la Encargada podría verlas y
+  // no podría hacer nada con ellas.
+  if (!esLider) return lista;
 
   // ==================== Taller ====================
   // Terminado pero sin inventariar: las prendas existen físicamente y el

@@ -12,6 +12,15 @@ export type PersonaActual = {
    *  puede "pararse" en cualquier tienda o en el Taller con el selector del AppShell. */
   sedeId: string;
   sedeCodigo: string;
+  /**
+   * 'tienda' | 'fabrica' | 'almacen' | 'corporativo'. Se expone acá porque el
+   * CÓDIGO de la sede no sirve para decidir nada: el Taller se llama `TALLER`
+   * en local y `LIM` en producción (`unificacion/01_sedes.sql:35` lo mapea a
+   * `tipo='fabrica'` justamente porque su código no es TALLER). Comparar contra
+   * "TALLER" —como hacían AppShell y /mas— dejaba a la persona del Taller sin
+   * el enlace a Producción en producción, en silencio.
+   */
+  sedeTipo: string;
 };
 
 const COOKIE_SEDE = "cayla_sede_activa";
@@ -71,7 +80,9 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   // El código de la sede sale del mapa cacheado por request (getSedes()), no de una
   // consulta aparte: la vista retail.sedes no soporta el "embed" por relación (es una
   // vista sobre las sedes de dynamic).
-  let sedeCodigo = sedes.find((s) => s.id === data.sede_id)?.codigo ?? "";
+  const sedePropia = sedes.find((s) => s.id === data.sede_id);
+  let sedeCodigo = sedePropia?.codigo ?? "";
+  let sedeTipo = sedePropia?.tipo ?? "";
 
   // Selector de sede del Líder: la cookie solo cambia la PERSPECTIVA de la app; el
   // permiso real lo valida el servidor en cada operación (retail.puede_operar_sede).
@@ -83,6 +94,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
       if (sedeActiva && sedeActiva.tipo !== "almacen") {
         sedeId = sedeActiva.id;
         sedeCodigo = sedeActiva.codigo;
+        sedeTipo = sedeActiva.tipo;
       }
     }
   }
@@ -93,5 +105,6 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
     rol,
     sedeId,
     sedeCodigo,
+    sedeTipo,
   };
 });

@@ -1661,3 +1661,34 @@ se revirtieron limpias y se rehicieron a mano en vez de parchear.
 pasa en este momento, pero por trabajo en curso de otra sesión en `app/(app)/page.tsx`
 (`getPanelLider` cambió de firma), no por esto — verificado revisando que ningún error
 apunte a los archivos de esta tanda.
+
+## 2026-09-09 (Inicio, pasos 5 y 6 — un inicio por rol, y el código de sede como fuente de bugs)
+
+El Inicio tenía dos ramas y hacían falta tres. La persona del Taller caía en la
+de la Encargada, que le ofrece Vender, Bajar a tienda y el estado de la caja:
+tres cosas que en el Taller no existen. Y encima, por el bug de abajo, en
+producción ni siquiera veía el enlace a Producción.
+
+**Lo que Felipe aprendió y no era obvio:** el bug no estaba en el `if`. `AppShell`
+y `/mas` preguntaban `sedeCodigo === "TALLER"`, y tras la unificación el Taller se
+llama **LIM** en producción — `unificacion/01_sedes.sql:35` lo mapea a
+`tipo=fabrica` justamente porque su código no es TALLER. La causa raíz es que el
+CÓDIGO de una sede no sirve para decidir nada (cambia entre local y producción) y
+cada pantalla lo re-deducía por su cuenta. Tres copias de la misma pregunta, dos
+equivocadas. Se arregla exponiendo `sedeTipo` en `PersonaActual`: una sola
+respuesta, en el sitio que ya buscaba la sede. `/produccion` llevaba meses
+haciéndolo bien y sirvió de modelo — la pista estaba en el propio repo.
+
+La otra decisión de fondo fue no volver a filtrar por sede en TypeScript. RLS ya
+acota las filas a la sede de quien mira, así que las tres funciones del panel
+sirven a los dos roles sin cambio. Filtrar de nuevo en el código habría sido
+mantener dos copias de la misma regla, y esas copias siempre se desincronizan.
+Solo se filtra a mano donde RLS no puede saber la intención: la lista de cajas
+(`getSedes()` devuelve todas y la Encargada vería dos tiendas ajenas siempre
+cerradas) y QUÉ pendientes tienen sentido por rol — a una Encargada no le toca
+perseguir una orden de compra ni una corrida del Taller. Verlas sin poder hacer
+nada con ellas es la forma más rápida de que deje de mirar el bloque.
+
+El seed suma los otros dos usuarios (`encargada@` y `taller@`). Hasta hoy esos dos
+inicios no se podían ver funcionar porque no había con quién entrar — el mismo
+agujero que el seed vino a tapar para los datos, ahora para los roles.

@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
-      persona={{ nombre: persona.nombre, rol: persona.rol, sedeCodigo: persona.sedeCodigo, sedeId: persona.sedeId }}
+      persona={{ nombre: persona.nombre, rol: persona.rol, sedeCodigo: persona.sedeCodigo, sedeId: persona.sedeId, sedeTipo: persona.sedeTipo }}
       sedesOperativas={sedesOperativas}
     >
       {children}

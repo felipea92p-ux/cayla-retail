@@ -63,18 +63,19 @@ export type Actividad = {
 
 /**
  * `variantes` llega ya cargada por la pantalla — mismo criterio que
- * `getPanelLider`: el Inicio ya tiene el catálogo en memoria, así que resolver
+ * `getPanelInicio`: el Inicio ya tiene el catálogo en memoria, así que resolver
  * el nombre de la prenda no cuesta una consulta más.
  *
- * Solo Líder por ahora, igual que el resto del panel: la Encargada ve su propia
- * sede y esa vista llega con su Inicio (paso 5).
+ * Sirve a los dos roles sin filtro propio: RLS ya acota `movimientos` a la sede
+ * de quien mira, así que la Encargada ve el movimiento de SU tienda y el Líder el
+ * de las tres. Filtrar otra vez acá sería repetir en TypeScript una regla que ya
+ * vive en la base — y las dos copias se desincronizan.
  */
 export async function getActividad(
   persona: PersonaActual,
   variantes: VarianteConStock[],
   limite = 8
 ): Promise<Actividad[]> {
-  if (persona.rol !== "lider") return [];
   const supabase = await createClient();
 
   const [{ data: movimientos }, sedes, { data: personas }] = await Promise.all([
