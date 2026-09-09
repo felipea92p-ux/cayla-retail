@@ -831,3 +831,34 @@ riel del celular deslizándose, y contraste medido sobre el DOM. Ahí salió un 
 `tinta/65`, y los otros 9 usos de taupe de la app quedaron anotados en BACKLOG.
 `tsc`, `eslint`, 51 tests y `next build` en verde. **Commiteado sin pushear**, por
 pedido de Felipe: el push sale de otra sesión.
+
+## 2026-09-09 (paso "a": el comprobante ya sabe contra qué ambiente se transmitió)
+Buscando qué se ganaba con arreglar las variables de Lucode apareció algo peor que la
+variable: `lib/lucode.ts` habla con sandbox o con producción según `LUCODE_ENTORNO`, y
+las dos respuestas se guardaban idénticas — `estado='aceptado'`, con CDR y PDF. La base
+afirmaba "SUNAT lo aceptó" sin poder respaldarlo, y se propagaba: `emitir_nota` solo
+exige que el original esté aceptado, así que una nota de crédito real podía colgarse de
+una boleta que solo existe en el sandbox.
+
+Construido (ADR-0015): columna `comprobantes.entorno_transmision` con `check (estado =
+'pendiente' or entorno_transmision is not null)`; `p_entorno` obligatorio en la RPC, con
+la firma vieja de 4 parámetros dropeada a propósito para no dejar sobrecarga (el error
+de PostgREST del 08-09); el ambiente viaja pegado al `ResultadoLucode` en vez de releerse
+del entorno al guardar; la ruta rechaza notas que cruzan de ambiente; y el chip dice
+"Aceptado · prueba" con borde punteado, más el conteo en el resumen del mes. tsc, eslint
+y 51 tests en verde. **El SQL no se corrió en ningún lado todavía** — Docker estaba
+abajo, así que `supabase db reset` no pudo verificarlo; queda como el primer paso de la
+próxima vez que se abra el stack.
+
+**Lo que Felipe aprende acá:** "está aceptado" no es un estado del sistema si el sistema
+no sabe quién lo aceptó. El bug no era que se pudiera transmitir a un sandbox —eso hace
+falta para probar—, era que después nadie pudiera notar la diferencia. Cuando dos hechos
+con consecuencias legales opuestas se guardan iguales, el error no aparece el día que
+ocurre sino el día que alguien confía en el dato.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.** Archivos de esta
+sesión: `ComprobantesPanel.tsx`, `lib/lucode.ts`, `lib/comprobantes.ts`,
+`app/api/lucode/emitir/route.ts`, `packages/database/src/types.ts`,
+`supabase/migrations/0040_*.sql`, `supabase/unificacion/23_*.sql`, `docs/adr/0013-*`,
+BACKLOG y BITÁCORA. NO son de esta sesión y quedan sin tocar: `AppShell.tsx`,
+`globals.css`, `ui/campos.tsx`, `app/auth/`.

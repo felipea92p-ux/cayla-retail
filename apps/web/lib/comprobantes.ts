@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export type TipoComprobante = "boleta" | "factura" | "nota_credito";
 export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado";
+/** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
+ *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
+export type EntornoTransmision = "sandbox" | "produccion" | null;
 
 export type Comprobante = {
   id: string;
@@ -13,6 +16,7 @@ export type Comprobante = {
   cliente_nombre: string | null;
   total: number;
   estado: EstadoComprobante;
+  entorno_transmision: EntornoTransmision;
   motivo_rechazo: string | null;
   created_at: string;
   sede_id: string;
@@ -33,7 +37,7 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
   const { data } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, motivo_rechazo, created_at, sede_id"
+      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, created_at, sede_id"
     )
     .gte("created_at", desde)
     .lt("created_at", hasta)

@@ -138,6 +138,22 @@ importante que ha entrado a este archivo desde que existe.
       `actualizar_transmision_comprobante` — agregados. El bloqueo real no era
       ese texto sino las variables de Lucode que faltan en Vercel (ítem propio
       más abajo, 2026-09-08).
+      **PASO (a) HECHO 2026-09-09 — ADR-0015, el ambiente entra al comprobante.**
+      `comprobantes.entorno_transmision` + `p_entorno` obligatorio en la RPC:
+      un comprobante transmitido al sandbox ya no se guarda igual que uno real,
+      y la pantalla lo dice ("Aceptado · prueba"). Cierra dos agujeros: el chip
+      verde que no distinguía, y una nota de crédito real colgada de una boleta
+      de prueba (`emitir_nota` solo exige que el original esté aceptado).
+      **Falta correr el SQL:** `0040_comprobante_entorno_transmision.sql` en
+      local (necesita Docker arriba) y `unificacion/23_...` en el SQL Editor de
+      producción. Ojo al pegar: dropea la firma de 4 parámetros antes de crear
+      la de 5, si se salta ese paso quedan dos sobrecargas.
+      **Sigue (b):** variables de Lucode en Vercel — recomendado `LUCODE_TOKEN`
+      en los tres ambientes pero `LUCODE_ENTORNO=produccion` SOLO en Production
+      (sandbox en Preview y Development), para que ningún preview emita algo
+      legal por accidente. **Sigue (c):** anulación dentro del sistema
+      (`anularDocumentoLucode` ya existe en el adaptador, sin ruta ni botón, y
+      la RPC rechaza `anulado` a propósito).
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por

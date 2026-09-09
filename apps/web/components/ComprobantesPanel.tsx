@@ -33,6 +33,22 @@ const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
   anulado: "Anulado",
 };
 
+// Un comprobante transmitido contra el sandbox de Lucode queda "aceptado" con
+// su CDR y su PDF, exactamente igual que uno real — pero SUNAT nunca lo vio.
+// La pantalla lo dice con palabras y con borde punteado; el color no alcanza,
+// y el estado solo NO puede distinguirlos.
+const ESTILO_PRUEBA = "border-dashed border-tinta/30 bg-tinta/5 text-tinta/75";
+
+function esPrueba(c: Comprobante) {
+  return c.entorno_transmision === "sandbox";
+}
+function etiquetaEstado(c: Comprobante) {
+  return esPrueba(c) ? `${ESTADO_ETIQUETA[c.estado]} · prueba` : ESTADO_ETIQUETA[c.estado];
+}
+function estiloEstado(c: Comprobante) {
+  return esPrueba(c) ? ESTILO_PRUEBA : ESTADO_ESTILO[c.estado];
+}
+
 function money(n: number) {
   return "S/" + n.toFixed(2);
 }
@@ -116,6 +132,7 @@ export function ComprobantesPanel({
   const totalMes = comprobantes.reduce((acc, c) => acc + Number(c.total), 0);
   const pendientes = comprobantes.filter((c) => c.estado === "pendiente" || c.estado === "enviado").length;
   const rechazados = comprobantes.filter((c) => c.estado === "rechazado").length;
+  const pruebas = comprobantes.filter(esPrueba).length;
 
   // Serie que le toca a la combinación elegida en el modal de emisión. Es
   // derivado puro de props + estado que ya existían: no consulta nada nuevo.
@@ -206,6 +223,16 @@ export function ComprobantesPanel({
           </p>
           <p className={`font-display mt-1 text-2xl ${pendientes > 0 ? "text-ambar" : "text-tinta"}`}>{pendientes}</p>
           {rechazados > 0 && <p className="mt-0.5 text-xs text-rojo">{rechazados} rechazado{rechazados > 1 ? "s" : ""}</p>}
+          {pruebas > 0 && (
+            <p className="mt-0.5 text-xs text-tinta/75">
+              {pruebas} de prueba
+              <Ayuda titulo="Comprobante de prueba">
+                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
+                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
+                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
+              </Ayuda>
+            </p>
+          )}
         </div>
       </div>
 
@@ -286,8 +313,8 @@ export function ComprobantesPanel({
                       <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
                       <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
                       <td className="px-3 py-3">
-                        <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${ESTADO_ESTILO[c.estado]}`}>
-                          {ESTADO_ETIQUETA[c.estado]}
+                        <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
+                          {etiquetaEstado(c)}
                         </span>
                       </td>
                       <td className="px-3 py-3">

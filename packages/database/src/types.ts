@@ -351,6 +351,7 @@ export type Database = {
           comprobante_original_id: string | null
           created_at: string
           enviado_at: string | null
+          entorno_transmision: string | null
           estado: string
           id: string
           igv: number
@@ -375,6 +376,7 @@ export type Database = {
           comprobante_original_id?: string | null
           created_at?: string
           enviado_at?: string | null
+          entorno_transmision?: string | null
           estado?: string
           id?: string
           igv?: number
@@ -399,6 +401,7 @@ export type Database = {
           comprobante_original_id?: string | null
           created_at?: string
           enviado_at?: string | null
+          entorno_transmision?: string | null
           estado?: string
           id?: string
           igv?: number
@@ -1742,6 +1745,7 @@ export type Database = {
       actualizar_transmision_comprobante: {
         Args: {
           p_comprobante_id: string
+          p_entorno: string
           p_estado: string
           p_motivo_rechazo?: string | null
           p_respuesta_sunat?: Json

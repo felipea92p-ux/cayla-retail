@@ -76,6 +76,10 @@ export type ResultadoLucode =
   | {
       ok: true;
       estado: "ACEPTADO" | "PENDIENTE" | "RECHAZADO";
+      /** Ambiente contra el que se transmitió. Viaja pegado al resultado y no
+       *  se vuelve a leer del entorno más adelante: entre la llamada y el
+       *  guardado nadie puede cambiar de ambiente sin que el dato mienta. */
+      entorno: EntornoLucode;
       hash: string | null;
       xmlUrl: string | null;
       cdrUrl: string | null;
@@ -155,7 +159,9 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
   return base;
 }
 
-function entorno(): EntornoLucode {
+/** Ambiente activo. `sandbox` es el default deliberado: si falta la variable,
+ *  lo que se emite es una prueba, nunca un documento legal por accidente. */
+export function entornoLucode(): EntornoLucode {
   return process.env.LUCODE_ENTORNO === "produccion" ? "produccion" : "sandbox";
 }
 
@@ -172,7 +178,7 @@ async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
     // 15s: transmitir a SUNAT es más lento que consultar un padrón — no se
     // corta tan agresivo como padron.ts (5s), pero tampoco se deja colgado
     // indefinidamente a quien está cerrando una venta.
-    respuesta = await fetch(`${BASE_URL[entorno()]}${ruta}`, {
+    respuesta = await fetch(`${BASE_URL[entornoLucode()]}${ruta}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -213,6 +219,7 @@ function traducirEstado(json: Record<string, unknown>): ResultadoLucode {
   return {
     ok: true,
     estado,
+    entorno: entornoLucode(),
     hash: typeof payload.hash === "string" ? payload.hash : null,
     xmlUrl: typeof payload.xml === "string" ? payload.xml : null,
     cdrUrl: typeof payload.cdr === "string" ? payload.cdr : null,
