@@ -1831,3 +1831,68 @@ cosa (el proxy en vez de la región; el tiempo posterior al primer byte sin comp
 había; ahora el período del temporizador). La defensa que funcionó las tres veces fue la
 misma: desconfiar de un número sospechosamente redondo o idéntico y buscar con qué se vería
 distinto si la hipótesis fuera falsa.
+
+## 2026-09-09 (organización del inventario, bloques 0 y 1 — contar hacia abajo ya se puede)
+
+Arranca el proyecto de organizar el inventario y traer los 300-900 SKUs reales de una vez.
+Felipe decidió: censo big-bang, **solo el piso** de las 3 tiendas, **costo por modelo** (no
+por talla/color), **código corto nuevo** (`BLU-0042-AZM-M`), y las Encargadas cuentan mientras
+él aprueba antes de que entre nada. Dato que cambia el diseño: **casi todas las prendas ya
+traen código de barras de fábrica** — el censo puede escanear desde el minuto uno en vez de
+imprimir y pegar 900 etiquetas primero.
+
+**Bloque 0 (`0044_almacen_interno.sql` + `unificacion/26_…`):** `stock_almacen`, el contenedor
+`tipo='almacen'`, `bajar_a_piso` y `devolver_a_almacen` solo existían en producción desde el
+3-sep; ahora están en el riel numerado y `npx supabase db reset` deja una base local igual a
+la de producción. Y en el camino apareció la deriva inversa: al reescribir
+`fn_aplicar_movimiento` para el almacén, `unificacion/12` partió de un cuerpo anterior a
+`0011` y **perdió el `ultima_venta`**. En producción esa columna existe y nadie la escribe, así
+que "Días sin venta" viene midiendo la edad de la variante desde que se creó — todo el catálogo
+aparece estancado para siempre. `unificacion/26` la restaura y hace backfill desde `movimientos`.
+
+**Bloque 1 (`0045_ajuste_con_signo.sql` + `unificacion/27_…`, ADR-0023):** era **imposible
+registrar un conteo menor a lo que dice el sistema**. No por `min={1}` en la pantalla, que era
+el síntoma: la rama `ajuste` proponía la fila con el delta y el CHECK se evalúa sobre la fila
+propuesta. El mismo bug de ADR-0020, a cincuenta líneas de la función que ese ADR daba por
+segura. Peor: producción **nunca tuvo** `stock_cantidad_no_negativa`, así que allá no habría
+explotado — habría creado stock negativo en silencio. Se arregla con
+asegurar→bloquear→verificar→sumar y se ponen las tres redes que faltaban.
+
+**Lo que aprendió Felipe:** que escribir la regla en un ADR no basta — ADR-0020 dejó anotado el
+patrón peligroso y aun así la tercera ocurrencia estaba dentro de la misma función que ese ADR
+declaraba a salvo; hay que ir a buscar todas las apariciones el mismo día. Y que un error que
+avisa vale más que uno que no: el mismo defecto era ruidoso en local y silencioso en producción,
+y el silencioso es el caro.
+
+**Choque de sesiones paralelas, otra vez** (como el 5-sep). Mientras se escribía esto, otra
+sesión comiteaba `0042_recalcular_stock_neto.sql` y ADR-0019 a 0022 sobre los mismos archivos.
+Se resolvió de forma aditiva —mis migraciones se renumeraron a `0044`/`0045` y `recalcular_stock`
+quedó con la versión de ADR-0020 *extendida* para conocer el almacén, no reemplazada— pero
+conviene no tener dos sesiones en el mismo módulo a la vez.
+
+## 2026-09-09 (segunda mitad del aprendizaje: los callejones sin salida)
+Cerrada la dimensión que faltaba del apartado D. Ocho estados vacíos decían que no
+había nada y ahí terminaban; ahora cada uno nombra dónde se resuelve. La regla que
+se siguió al escribirlos vale más que los textos: **se verificó componente por
+componente dónde vive de verdad cada acción antes de nombrarla**. Ahí apareció que
+`/finanzas/activos` solo LEE `activos_fijos` — ninguna pantalla de la app los crea,
+entran a mano por SQL. El estado vacío lo dice tal cual en vez de sugerir un botón
+que no existe, y el hueco quedó en BACKLOG. Un estado vacío que apunta a un lugar
+equivocado es peor que uno que no apunta a ninguno.
+
+Uno no se tocó a propósito: `/finanzas/registrar` ya decía "Corre la migración 0020
+en Supabase". Suena a jerga, pero el lector real de esa pantalla es el Líder, o sea
+Felipe. Lo que ya está bien dicho para quien lo lee no se reescribe.
+
+Cinco botones (!) nuevos en Inventario, Recibir mercadería y Buscar. Los 38 que ya
+existían estaban TODOS en pantallas del Líder —Balances 13, Comercial 3, Producto
+5—: la ayuda del sistema estaba escrita para quien lo mandó a construir, no para
+quien lo usa ocho horas al día.
+
+**Lo que Felipe aprendió y no era obvio:** al intentar verificar en su Chrome, el
+sistema rebotó con `sin_persona` — la cuenta tiene usuario en Auth local pero no
+fila en `personas`. No es un bug del código: es que `supabase/seed.sql` solo siembra
+`felipe@cayla.local`, y cualquier otro correo entra a Auth sin quedar ligado a un
+integrante. El mensaje del login ya lo explicaba bien ("Pide a un Líder que te dé de
+alta"), que es exactamente el trabajo que esta sesión vino a hacer en el resto de la
+app: el error correcto se ve como una instrucción, no como una falla.

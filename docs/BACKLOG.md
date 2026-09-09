@@ -345,6 +345,14 @@ importante que ha entrado a este archivo desde que existe.
       —el layout redirige al login antes de renderizar— y no se pudo cerrar esa prueba.
       Es lo primero que hay que confirmar al retomar.
 
+- [ ] **No hay ninguna pantalla para dar de alta un activo fijo.** `finanzas/activos/page.tsx:54`
+      solo LEE `activos_fijos`; ningún componente del repo escribe esa tabla, así que los
+      activos entran hoy a mano por SQL. Encontrado el 09-09 al hacer accionables los estados
+      vacíos: el de esa pantalla no podía nombrar dónde se resuelve porque no se resuelve en
+      ningún lado. Por ahora el texto lo dice tal cual, que es preferible a inventar un botón.
+      Cuando toque, el patrón ya existe: `PatrimonioEditor` («+ Agregar partida») hace
+      exactamente esto para las partidas de patrimonio.
+
 - [ ] **Los otros 14 componentes siguen mostrando el error crudo de Postgres al escribir.**
       `lib/error-escritura.ts` (ADR-0022) ya traduce, y está aplicado al camino de venta
       (`RegistrarVentaModal`, `AbrirCajaModal`, `CerrarCajaModal`). Faltan:
