@@ -250,6 +250,54 @@ export async function emitirDocumentoLucode(c: DatosComprobante): Promise<Result
   return traducirEstado(r.json);
 }
 
+/** Estados de ANULACIÓN de Lucode. Son un vocabulario aparte del de emisión
+ *  (ACEPTADO/PENDIENTE/RECHAZADO) y por eso NO se leen con `traducirEstado`:
+ *  ese mapea a PENDIENTE todo lo que no reconoce, así que un "ANULADO" real
+ *  se leería como "sigue en trámite" para siempre. */
+export type EstadoAnulacion = "confirmada" | "en_tramite" | "no_anulado";
+
+/** Traduce el `payload.estado` crudo de /status al vocabulario de anulación.
+ *  Pura a propósito: es la única parte de esto que se puede probar sin red.
+ *
+ *  Solo `ANULADO` cuenta como confirmada — y de forma deliberada, cualquier
+ *  cosa que no reconozcamos NO se da por anulada. Equivocarse hacia
+ *  "todavía no" cuesta una consulta más; equivocarse hacia "ya está" deja un
+ *  documento vivo ante SUNAT marcado como dado de baja.
+ *
+ *  Verificado contra producción el 2026-09-09: `ANULANDO` es el estado real
+ *  que devuelve mientras SUNAT procesa el resumen diario. `ANULADO` es la
+ *  contraparte esperada y todavía no se vio con los ojos. */
+export function interpretarEstadoAnulacion(estadoCrudo: string | null | undefined): EstadoAnulacion {
+  const e = String(estadoCrudo ?? "").trim().toUpperCase();
+  if (e === "ANULADO") return "confirmada";
+  if (e === "ANULANDO") return "en_tramite";
+  return "no_anulado";
+}
+
+export type ResultadoAnulacionConsultada =
+  | { ok: true; anulacion: EstadoAnulacion; estadoCrudo: string; mensaje: string | null }
+  | { ok: false; motivo: MotivoErrorLucode; detalle: string };
+
+/** Consulta si una baja ya pedida terminó. Solo lee: no vuelve a pedir la
+ *  baja, porque reenviar un resumen diario ya enviado es otro documento
+ *  tributario, no un reintento. */
+export async function consultarAnulacionLucode(
+  tipo: TipoDocumentoLucode,
+  serie: string,
+  numero: number
+): Promise<ResultadoAnulacionConsultada> {
+  const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
+  if (!r.ok) return r;
+  const payload = (r.json.payload as Record<string, unknown>) ?? {};
+  const estadoCrudo = String(payload.estado ?? "");
+  return {
+    ok: true,
+    anulacion: interpretarEstadoAnulacion(estadoCrudo),
+    estadoCrudo,
+    mensaje: typeof r.json.message === "string" ? r.json.message : null,
+  };
+}
+
 export async function consultarEstadoLucode(tipo: TipoDocumentoLucode, serie: string, numero: number): Promise<ResultadoLucode> {
   const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
   if (!r.ok) return r;

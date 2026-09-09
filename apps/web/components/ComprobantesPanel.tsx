@@ -150,6 +150,42 @@ export function ComprobantesPanel({
     }
   }
 
+  // Consultar una baja en trámite. Va por fila, igual que transmitir.
+  const [consultandoId, setConsultandoId] = useState<string | null>(null);
+  const [avisoConsulta, setAvisoConsulta] = useState<{ id: string; texto: string } | null>(null);
+
+  async function onConsultarAnulacion(comprobanteId: string) {
+    setConsultandoId(comprobanteId);
+    setAvisoConsulta(null);
+    try {
+      const respuesta = await fetch("/api/lucode/consultar-anulacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comprobante_id: comprobanteId }),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        setAvisoConsulta({ id: comprobanteId, texto: datos.error ?? "No se pudo consultar" });
+        return;
+      }
+      if (datos.anulacion === "confirmada") {
+        router.refresh();
+        return;
+      }
+      setAvisoConsulta({
+        id: comprobanteId,
+        texto:
+          datos.anulacion === "en_tramite"
+            ? "SUNAT todavía la está procesando. Vuelve a consultar en unos minutos."
+            : `SUNAT no la reporta como anulada (dice "${datos.estadoCrudo}"). Revisa el panel de Lucode.`,
+      });
+    } catch {
+      setAvisoConsulta({ id: comprobanteId, texto: "No se pudo conectar con el servidor" });
+    } finally {
+      setConsultandoId(null);
+    }
+  }
+
   // Formulario de emisión
   const [sedeId, setSedeId] = useState(sedeActualId);
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
@@ -385,8 +421,23 @@ export function ComprobantesPanel({
                           >
                             Anular
                           </Boton>
+                        ) : anulacionEnTramite(c) ? (
+                          <Boton
+                            type="button"
+                            peso="discreto"
+                            onClick={() => onConsultarAnulacion(c.id)}
+                            cargando={consultandoId === c.id}
+                            className="px-2.5 py-1.5 text-[11px]"
+                          >
+                            {consultandoId === c.id ? "Consultando…" : "Consultar"}
+                          </Boton>
                         ) : (
                           <span className="text-tinta/65">—</span>
+                        )}
+                        {avisoConsulta?.id === c.id && (
+                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-ambar-profundo">
+                            {avisoConsulta.texto}
+                          </p>
                         )}
                         {c.motivo_anulacion && (
                           <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-tinta/65">

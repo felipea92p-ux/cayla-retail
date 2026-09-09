@@ -1366,3 +1366,32 @@ las dos salieron porque alguien fue a mirar. Escribir "ya lo configuré" cuesta 
 segundos y es lo único que evita que la próxima sesión trabaje sobre un mapa viejo.
 
 **SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**
+
+## 2026-09-09 (la primera anulación real, y el botón que faltaba para cerrarla)
+Felipe emitió B004-000003 como prueba a las 11:57:11 y la anuló a las 11:58:49 — ocho
+minutos después de que el deploy con el código nuevo entrara en producción. El botón
+funcionó a la primera y quedó en "Anulación en trámite", que es lo correcto: el panel de
+Lucode muestra ese mismo documento como **ANULANDO**. Nuestro estado resultó ser espejo
+del suyo sin que nadie lo hubiera coordinado.
+
+Pero ahí se vio el hueco: nada podía sacarla de "en trámite". El botón "Anular" se
+esconde cuando hay una baja pedida —para que nadie la pida dos veces— y la otra mitad no
+existía. Un documento real atascado por diseño. Se construyó
+`/api/lucode/consultar-anulacion` + botón "Consultar" en las filas en trámite.
+
+**Lo que salvó la consulta en vivo.** Antes de escribir el lector se consultó
+`/api/v3/status` contra producción: devuelve `estado: "ANULANDO"`. Lucode tiene un
+vocabulario de anulación distinto al de emisión, y `traducirEstado` manda a PENDIENTE
+todo lo que no reconoce — o sea que habría leído un `ANULADO` real como "sigue en
+trámite" para siempre. El botón nuevo no habría cerrado nada nunca, y el síntoma sería
+"consulto y no pasa nada". Por eso `interpretarEstadoAnulacion` es función propia, pura
+y con 5 tests. tsc, eslint y 68 tests en verde.
+
+**Lo que Felipe aprende acá:** dos sistemas pueden usar la misma palabra para cosas
+distintas y ninguno de los dos avisa. "Estado" en la emisión significa qué dijo SUNAT del
+documento; "estado" en la anulación significa qué dijo SUNAT de la baja. Reusar el lector
+por parecido de forma es el error clásico — el código habría compilado, pasado todos los
+tests y fallado en silencio. La única forma de saberlo era preguntarle al servidor de
+verdad, antes de escribir el lector y no después.
+
+**SESIÓN TERMINADA — es seguro commitear y pushear esta parte.**

@@ -115,9 +115,8 @@ estaría dando por dado de baja algo que SUNAT todavía no miró.
   `hash`, sin `mensaje`, sin ticket visible. `traducirEstado` lo lee como
   `PENDIENTE`, que es la lectura conservadora — pero no sabemos si adentro
   viene un identificador para consultar la baja después.
-- **Cómo se confirma una baja en trámite.** Hoy queda "en trámite" para siempre
-  hasta que alguien mire el panel de Lucode. Cerrar ese ciclo
-  (`consultarEstadoLucode` y promover a `anulado`) es el siguiente paso.
+- ~~**Cómo se confirma una baja en trámite.**~~ **RESUELTO el mismo día**, ver
+  abajo — dejó de ser hipotético en cuanto B004-000003 se quedó atascada.
 
 ## Consecuencias
 
@@ -129,3 +128,36 @@ reciben el botón de facturar cuando ya existe el de deshacer.
 Queda abierto: cerrar el ciclo de confirmación de una anulación en trámite
 (consultar el estado y pasar a `anulado` sin intervención), y decidir qué hacer
 con los correlativos reservados que nunca se transmitieron.
+
+## Cerrar el ciclo: "Consultar" (2026-09-09, mismo día)
+
+B004-000003 se anuló en producción a las 11:58:49 y se quedó en "Anulación en
+trámite". Nada podía sacarla de ahí: el botón "Anular" se esconde justo cuando
+hay una baja pedida —para que nadie pida dos veces la misma baja— y no existía
+lo otro. Un documento real atascado por diseño.
+
+Se agregó `POST /api/lucode/consultar-anulacion` y un botón **"Consultar"** que
+aparece exactamente en las filas en trámite. Solo lee; si SUNAT confirmó, recién
+ahí llama a `anular_comprobante` con `p_confirmada = true` y con el **motivo
+original**, no uno nuevo: esta ruta confirma una decisión ya tomada, no toma otra.
+
+**El bug que la consulta a producción evitó.** Lucode tiene un vocabulario de
+anulación aparte del de emisión. Consultado en vivo, `/api/v3/status` devolvió:
+
+```json
+{ "payload": { "estado": "ANULANDO" },
+  "message": "El documento está siendo anulado, por favor espere unos minutos…" }
+```
+
+`traducirEstado` —el lector de la emisión— manda a `PENDIENTE` todo lo que no
+sea `ACEPTADO`/`RECHAZADO`. Reusarlo habría leído un `ANULADO` real como "sigue
+en trámite" **para siempre**: el botón nuevo no habría cerrado nunca nada, y el
+síntoma sería "consulto y no pasa nada", de los más caros de diagnosticar. Por
+eso `interpretarEstadoAnulacion` es una función propia, pura y con tests
+(`lib/lucode.test.ts`).
+
+Solo `ANULADO` cuenta como confirmada, y todo lo desconocido se lee como "todavía
+no". La asimetría es deliberada: equivocarse hacia "todavía no" cuesta un clic;
+equivocarse hacia "ya está" deja un documento vivo ante SUNAT marcado como dado
+de baja. `ANULANDO` está verificado contra producción; `ANULADO` es la
+contraparte esperada y todavía no se vio con los ojos.

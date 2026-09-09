@@ -217,6 +217,16 @@ importante que ha entrado a este archivo desde que existe.
       **Falta también:** cerrar el ciclo de una anulación en trámite
       (`consultarEstadoLucode` → promover a `anulado`); hoy queda en trámite
       hasta que alguien mire el panel de Lucode.
+      **CICLO DE ANULACIÓN CERRADO 2026-09-09 — botón "Consultar".**
+      `/api/lucode/consultar-anulacion` + botón en las filas en trámite:
+      pregunta a Lucode y, solo si SUNAT confirmó, promueve a `anulado` con el
+      motivo original. `interpretarEstadoAnulacion` es un lector propio porque
+      Lucode usa un vocabulario aparte para la anulación (`ANULANDO`/`ANULADO`)
+      y reusar el de emisión habría dejado toda baja en trámite para siempre.
+      5 tests nuevos. **Falta desplegarlo** y apretar "Consultar" en
+      B004-000003, que sigue en trámite desde las 11:58 del 09-09.
+      **Sigue abierto:** `ANULADO` no se vio con los ojos todavía — solo
+      `ANULANDO`. Confirmarlo cuando SUNAT cierre esa baja.
       **Fase 0.5 (tokens de diseño) — cerrada:** `packages/shared/src/
       design-tokens.ts` (espejo tipado de `globals.css`) y `TarjetaIndicador.tsx`
       construidos (dos sesiones paralelas llegaron al mismo archivo, byte por
