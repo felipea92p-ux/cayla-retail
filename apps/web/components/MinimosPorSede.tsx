@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 // Mínimo de stock por sede para una variante (Fase B): TRU vende distinto que
 // AQP, y cada tienda merece su propia alerta. Vacío = usa el mínimo general.
@@ -39,7 +40,7 @@ export function MinimosPorSede({
         p_minimo: crudo === "" ? undefined : Math.max(0, Math.round(Number(crudo))),
       });
       if (error) {
-        setError(`${s.codigo}: ${error.message}`);
+        setError(`${s.codigo}: ${traducirError(error, "fijar el stock mínimo")}`);
         setLoading(false);
         return;
       }

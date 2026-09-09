@@ -9,6 +9,7 @@ import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { traducirError } from "@/lib/error-escritura";
 
 type Sede = { id: string; codigo: string };
 
@@ -108,7 +109,7 @@ export function ProformasPanel({
       p_vence_at: venceAt,
     });
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "crear la proforma"));
       setLoading(false);
       return;
     }
@@ -130,7 +131,7 @@ export function ProformasPanel({
       p_cliente_nombre: convertirNombre || proforma.cliente_nombre || undefined,
     });
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "convertir la proforma en comprobante"));
       setLoading(false);
       return;
     }

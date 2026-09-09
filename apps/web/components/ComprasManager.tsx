@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 // Órdenes de compra (F2): registrar el pedido al proveedor ANTES de que llegue.
 // El ciclo se cierra solo: al recibir el lote ligado, la orden pasa a "recibida".
@@ -116,15 +117,17 @@ export function ComprasManager({
       nota: nota || null,
     });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "guardar la orden de compra")); return; }
     setAbierto(false);
     setProveedorId(""); setProveedorTexto(""); setMonto(0); setFechaEstimada(""); setNota("");
     router.refresh();
   }
 
   async function cancelar(id: string) {
+    setError(null);
     const { error } = await createClient().from("ordenes_compra").update({ estado: "cancelada" }).eq("id", id);
-    if (!error) router.refresh();
+    if (error) { setError(traducirError(error, "cancelar la orden")); return; }
+    router.refresh();
   }
 
   const comprometido = ordenes

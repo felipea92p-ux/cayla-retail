@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 import {
   EVENTOS,
   eventoPorId,
@@ -160,7 +161,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "registrar el asiento"));
       return;
     }
     setOk(true);

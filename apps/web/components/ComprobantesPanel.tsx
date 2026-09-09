@@ -8,6 +8,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { traducirError } from "@/lib/error-escritura";
 
 type Sede = { id: string; codigo: string };
 
@@ -247,7 +248,7 @@ export function ComprobantesPanel({
       p_cliente_nombre: clienteNombre || undefined,
     });
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "emitir el comprobante"));
       setLoading(false);
       return;
     }
@@ -269,7 +270,7 @@ export function ComprobantesPanel({
       p_siguiente_numero: serieNumero ? Number(serieNumero) : undefined,
     });
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "registrar la serie"));
       setLoading(false);
       return;
     }

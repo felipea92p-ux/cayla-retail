@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 // Foto del producto (una por modelo — decisión de Felipe, Fase B). Se sube al
 // bucket público `fotos-productos` y la URL queda en productos.foto_url.
@@ -45,7 +46,7 @@ export function FotoProducto({
       upsert: true,
     });
     if (errSubida) {
-      setError(errSubida.message);
+      setError(traducirError(errSubida, "subir la foto"));
       setSubiendo(false);
       return;
     }
@@ -58,7 +59,7 @@ export function FotoProducto({
 
     setSubiendo(false);
     if (errUpdate) {
-      setError(errUpdate.message);
+      setError(traducirError(errUpdate, "guardar la foto en el producto"));
       return;
     }
     router.refresh();

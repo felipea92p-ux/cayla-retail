@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ORIGENES_LOTE, FAMILIAS, type OrigenLote, type Familia } from "@cayla-retail/shared";
+import { traducirError } from "@/lib/error-escritura";
 
 type Contenedor = { id: string; codigo: string; tipo: string };
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
@@ -457,11 +458,7 @@ export function RecibirLoteForm({
 
     setLoading(false);
     if (error) {
-      setError(
-        error.message.includes("productos_sku_padre_key")
-          ? "Ya existe un producto con esa referencia — búscalo en \"¿Reingreso de algo que ya existe?\" en vez de crear uno nuevo."
-          : error.message
-      );
+      setError(traducirError(error, "recibir el lote"));
       return;
     }
     setOk({ items: items.length, unidades: items.reduce((total, it) => total + it.cantidad, 0) });

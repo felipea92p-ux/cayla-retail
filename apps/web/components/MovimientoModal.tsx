@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TIPOS_MOVIMIENTO, MOTIVOS_SALIDA, MOTIVOS_DEVOLUCION } from "@cayla-retail/shared";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { traducirError } from "@/lib/error-escritura";
 
 type SedeDestino = { id: string; codigo: string; esAlmacen: boolean };
 
@@ -92,7 +93,7 @@ export function MovimientoModal({
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "registrar el movimiento"));
       return;
     }
     onClose();

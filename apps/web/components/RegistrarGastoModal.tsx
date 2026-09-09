@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 import {
   GASTO_CATEGORIAS,
   ETIQUETA_GASTO_CATEGORIA,
@@ -65,7 +66,7 @@ export function RegistrarGastoModal({ sedeId, sedeCodigo, otrasSedes, onClose }:
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "registrar el gasto"));
       return;
     }
     onClose();

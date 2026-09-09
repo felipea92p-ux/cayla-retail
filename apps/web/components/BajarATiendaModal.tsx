@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { traducirError } from "@/lib/error-escritura";
 
 type Props = {
   varianteId: string;
@@ -43,7 +44,7 @@ export function BajarATiendaModal({
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(traducirError(error, "bajar la prenda a tienda"));
       return;
     }
     onClose();

@@ -1896,3 +1896,29 @@ fila en `personas`. No es un bug del código: es que `supabase/seed.sql` solo si
 integrante. El mensaje del login ya lo explicaba bien ("Pide a un Líder que te dé de
 alta"), que es exactamente el trabajo que esta sesión vino a hacer en el resto de la
 app: el error correcto se ve como una instrucción, no como una falla.
+
+## 2026-09-09 (el traductor llega a los 17 componentes, y destapa dos mudos)
+`traducirError` quedó aplicado en los 31 sitios de escritura del repo. El grep de
+`error.message` fuera de `lib/error-escritura.ts` ya no devuelve nada. Cada sitio
+nombra su acción en idioma de negocio —"registrar el depósito", "cerrar la orden al
+inventario", "convertir la proforma en comprobante"— y eso obligó a leer qué hacía
+cada función antes de nombrarla, que es la parte que un reemplazo mecánico se salta.
+En `OrdenesProduccion` el envoltorio `llamar()` recibe ahora el nombre de la acción:
+un mensaje genérico en las tres RPC de la orden no habría orientado a nadie.
+
+**El hallazgo:** dos escrituras no mostraban el error, se lo tragaban enteras.
+`ComprasManager.cancelar` y `RecetaCosto.quitarItem`, las dos con el mismo
+`if (!error) router.refresh()`. Se tocaba "Cancelar" o "Quitar", no pasaba nada, y no
+había manera de saber por qué. Es exactamente la falla que `lib/resultado.ts` arregló
+en las lecturas el mismo día —la pantalla que miente en vez de caerse— viva del otro
+lado y sin que la auditoría de robustez la viera, porque esa auditoría buscaba
+`select` descartando su error, no `insert`.
+
+**Lo que Felipe aprendió y no era obvio:** el heurístico de "insertar el import
+después del último `import`" partió dos archivos por la mitad. `RegistrarGastoModal` y
+`RegistroContableForm` tienen imports multilínea, y la línea nueva cayó DENTRO de la
+llave abierta. Lo atrapó `tsc` en el acto con siete errores de sintaxis por archivo,
+no una revisión visual. La lección no es "no automatizar": es que un cambio mecánico
+sobre 17 archivos necesita una verificación mecánica detrás, y acá el compilador es
+esa red — build, lint, tsc y 77 pruebas antes de commitear, siempre en ese orden.
+

@@ -400,18 +400,22 @@ importante que ha entrado a este archivo desde que existe.
       Cuando toque, el patrón ya existe: `PatrimonioEditor` («+ Agregar partida») hace
       exactamente esto para las partidas de patrimonio.
 
-- [ ] **Los otros 14 componentes siguen mostrando el error crudo de Postgres al escribir.**
-      `lib/error-escritura.ts` (ADR-0022) ya traduce, y está aplicado al camino de venta
-      (`RegistrarVentaModal`, `AbrirCajaModal`, `CerrarCajaModal`). Faltan:
-      `MovimientoModal`, `BajarATiendaModal`, `RegistrarGastoModal`, `RecibirLoteForm`,
-      `NuevoProductoForm`, `ComprasManager`, `ProveedoresManager`, `OrdenesProduccion`,
-      `RecetaCosto`, `PatrimonioEditor`, `HistoricosEditor`, `MinimosPorSede`,
-      `EfectivoPanel`, `ProformasPanel`, `ComprobantesPanel`, `RegistroContableForm`,
-      `FotoProducto`. Se migra pantalla por pantalla, nunca de un saque: cada una necesita
-      que alguien provoque su error a propósito para saber si la frase sirve. Cuando
-      aparezca una huella que el traductor no reconozca, se agrega a `HUELLAS` **con su
-      prueba** en `lib/error-escritura.test.ts` — es lo que evita que un renombre de
-      restricción en una migración vuelva a soltar inglés en el mostrador.
+- [x] **RESUELTO 2026-09-09 — ningún componente del repo muestra ya el error crudo de
+      Postgres al escribir.** `traducirError` (ADR-0022) quedó en los 31 sitios de escritura
+      de los 17 componentes; el grep de `error.message` fuera de `lib/error-escritura.ts`
+      no devuelve nada. De paso aparecieron **dos escrituras que se tragaban el error
+      entero** —`ComprasManager.cancelar` y `RecetaCosto.quitarItem`, ambas
+      `if (!error) router.refresh()`—: se tocaba el botón, no pasaba nada y nadie se
+      enteraba. Es la misma falla que `lib/resultado.ts` arregló del lado de la lectura,
+      viva del lado de la escritura.
+      **Lo que queda de esto, y es la parte que ninguna prueba puede cerrar:** provocar el
+      error de cada pantalla a propósito para saber si la frase sirve de verdad. El
+      traductor garantiza que no salga inglés; no garantiza que la frase oriente.
+      **Sospecha concreta:** `FotoProducto` no habla con Postgres sino con Supabase
+      Storage, así que sus errores (archivo muy pesado, sobre todo) caen al fallback con
+      "Código:". No se inventó una huella para eso porque nadie ha visto el texto real —
+      cuando alguien suba una foto demasiado grande, se copia el mensaje y se agrega a
+      `HUELLAS` **con su prueba** en `lib/error-escritura.test.ts`.
 
 - [ ] **Verificar en vivo el camino de venta con la pistola Zebra.** Lo construido el 09-09
       (escaneo dentro del modal de venta, Enter que ya no registra la venta a medio

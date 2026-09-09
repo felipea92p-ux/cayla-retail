@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 // Receta de costo del Taller (descubrimiento 2026-07-19): tela y avíos con precio
 // de referencia + mano de obra = costo sugerido del modelo. NO es inventario de
@@ -53,19 +54,21 @@ export function RecetaCosto({
       precio_unitario: precio || null,
     });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "agregar el insumo")); return; }
     setInsumo(""); setCantidad(1); setPrecio(0);
     router.refresh();
   }
 
   async function quitarItem(id: string) {
+    setError(null);
     const { error } = await createClient().from("bom_items").delete().eq("id", id);
-    if (!error) router.refresh();
+    if (error) { setError(traducirError(error, "quitar el insumo")); return; }
+    router.refresh();
   }
 
   async function guardarManoObra() {
     const { error } = await createClient().from("productos").update({ costo_mano_obra: manoObra || null }).eq("id", productoId);
-    if (error) setError(error.message);
+    if (error) setError(traducirError(error, "guardar la mano de obra"));
     else router.refresh();
   }
 
@@ -73,7 +76,7 @@ export function RecetaCosto({
     setLoading(true);
     const { error } = await createClient().from("variantes").update({ costo: sugerido }).eq("producto_id", productoId);
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "aplicar el costo a las variantes")); return; }
     router.refresh();
   }
 

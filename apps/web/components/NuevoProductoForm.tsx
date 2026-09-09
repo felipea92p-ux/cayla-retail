@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
+import { traducirError } from "@/lib/error-escritura";
 
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
 type Proveedor = { id: string; nombre: string };
@@ -176,7 +177,7 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
     setLoading(false);
 
     if (errRpc) {
-      setError(errRpc.message);
+      setError(traducirError(errRpc, "crear el producto"));
       return;
     }
     setOk(`"${referencia}" creado con ${filas.length} variante${filas.length === 1 ? "" : "s"}.`);

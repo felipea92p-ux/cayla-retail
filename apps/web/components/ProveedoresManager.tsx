@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 // Directorio único de proveedores (fin de las 3 copias desincronizadas de SINATRA:
 // TRU tenía 295 filas, AQP/LIM 287). Edición solo Líder; todas pueden consultar.
@@ -121,7 +122,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
       ? await supabase.from("proveedores").update(payload).eq("id", editandoId)
       : await supabase.from("proveedores").insert(payload);
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "guardar el proveedor")); return; }
     cerrar();
     router.refresh();
   }
@@ -132,7 +133,7 @@ export function ProveedoresManager({ proveedores, esLider }: { proveedores: Prov
     setError(null);
     const { error } = await createClient().from("proveedores").update({ activo }).eq("id", editandoId);
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "cambiar el estado del proveedor")); return; }
     cerrar();
     router.refresh();
   }

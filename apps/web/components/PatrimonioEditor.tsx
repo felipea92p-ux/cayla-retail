@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Ayuda } from "@/components/Ayuda";
+import { traducirError } from "@/lib/error-escritura";
 
 // Partidas manuales del patrimonio, bien categorizadas según el plan de cuentas del
 // manual (docs/MANUAL-CONTABLE-CAYLA.md). Lo automático (efectivo teórico + inventario
@@ -48,7 +49,7 @@ export function PatrimonioEditor() {
       nota: nota || null,
     });
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "guardar la partida")); return; }
     setAbierto(false);
     setNombre(""); setMonto(0); setNota("");
     router.refresh();

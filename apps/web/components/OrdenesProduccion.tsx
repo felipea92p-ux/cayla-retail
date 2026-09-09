@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 type ModeloOpcion = { id: string; referencia: string };
 export type OrdenLinea = { varianteId: string; talla: string | null; color: string | null; cantidad: number };
@@ -93,28 +94,40 @@ export function OrdenesProduccion({
   const enProceso = ordenes.filter((o) => !o.inventariado && o.estado !== "terminado");
   const terminadas = ordenes.filter((o) => o.inventariado || o.estado === "terminado");
 
-  async function llamar(fn: () => PromiseLike<{ error: { message: string } | null }>, id: string) {
+  async function llamar(
+    fn: () => PromiseLike<{ error: { message: string } | null }>,
+    id: string,
+    que: string
+  ) {
     setOcupadoId(id);
     setError(null);
     const { error } = await fn();
     setOcupadoId(null);
-    if (error) { setError(error.message); return false; }
+    if (error) { setError(traducirError(error, que)); return false; }
     router.refresh();
     return true;
   }
 
   async function fijarEtapa(o: OrdenRow, etapa: string, estado: string) {
-    await llamar(() => createClient().rpc("set_etapa_produccion", { p_produccion_id: o.id, p_etapa: etapa, p_estado: estado }), o.id);
+    await llamar(
+      () => createClient().rpc("set_etapa_produccion", { p_produccion_id: o.id, p_etapa: etapa, p_estado: estado }),
+      o.id,
+      "mover la orden de etapa"
+    );
   }
 
   async function eliminar(id: string) {
     if (!window.confirm("¿Eliminar esta orden? No entró al inventario, así que no deja rastro.")) return;
-    await llamar(() => createClient().rpc("eliminar_produccion", { p_produccion_id: id }), id);
+    await llamar(() => createClient().rpc("eliminar_produccion", { p_produccion_id: id }), id, "eliminar la orden");
   }
 
   async function revertir(id: string) {
     if (!window.confirm("¿Sacar estas prendas del inventario? Vuelven a salir del stock y la orden regresa a 'en proceso'.")) return;
-    await llamar(() => createClient().rpc("revertir_produccion_inventario", { p_produccion_id: id }), id);
+    await llamar(
+      () => createClient().rpc("revertir_produccion_inventario", { p_produccion_id: id }),
+      id,
+      "revertir la orden del inventario"
+    );
   }
 
   return (
@@ -360,7 +373,7 @@ function CierreOrden({ orden, onCerrado, onError }: { orden: OrdenRow; onCerrado
       p_buenas,
     });
     setLoading(false);
-    if (error) { onError(error.message); return; }
+    if (error) { onError(traducirError(error, "cerrar la orden al inventario")); return; }
     onCerrado();
   }
 
@@ -500,7 +513,7 @@ function NuevaOrdenForm({
       p_nota: undefined,
     });
     setLoading(false);
-    if (error) { onError(error.message); return; }
+    if (error) { onError(traducirError(error, "crear la orden de producción")); return; }
     onDone();
   }
 

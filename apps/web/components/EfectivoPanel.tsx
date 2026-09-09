@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { CuadreSede } from "@/lib/finanzas-nucleo";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { traducirError } from "@/lib/error-escritura";
 
 type Sede = { id: string; codigo: string };
 
@@ -36,7 +37,7 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
         p_monto: monto,
         p_nota: nota || undefined,
       });
-      if (error) { setError(error.message); setLoading(false); return; }
+      if (error) { setError(traducirError(error, "registrar el depósito")); setLoading(false); return; }
     } else {
       // Ajuste: inserta directo — RLS solo permite Líder, y el motivo es obligatorio.
       const { error } = await supabase.from("ajustes_efectivo").insert({
@@ -44,7 +45,7 @@ export function EfectivoPanel({ cuadre, sedes }: { cuadre: CuadreSede[]; sedes: 
         monto,
         motivo: nota || "Ajuste sin motivo",
       });
-      if (error) { setError(error.message); setLoading(false); return; }
+      if (error) { setError(traducirError(error, "registrar el ajuste de efectivo")); setLoading(false); return; }
     }
 
     setLoading(false);

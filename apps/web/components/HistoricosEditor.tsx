@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
 
 type Sede = { id: string; codigo: string };
 
@@ -48,7 +49,7 @@ export function HistoricosEditor({
       .upsert(filas, { onConflict: "sede_id,anio,mes" });
 
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (error) { setError(traducirError(error, "guardar las ventas históricas")); return; }
     setAbierto(false);
     router.refresh();
   }
