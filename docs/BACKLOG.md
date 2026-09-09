@@ -345,6 +345,27 @@ importante que ha entrado a este archivo desde que existe.
       —el layout redirige al login antes de renderizar— y no se pudo cerrar esa prueba.
       Es lo primero que hay que confirmar al retomar.
 
+- [ ] **Los otros 14 componentes siguen mostrando el error crudo de Postgres al escribir.**
+      `lib/error-escritura.ts` (ADR-0022) ya traduce, y está aplicado al camino de venta
+      (`RegistrarVentaModal`, `AbrirCajaModal`, `CerrarCajaModal`). Faltan:
+      `MovimientoModal`, `BajarATiendaModal`, `RegistrarGastoModal`, `RecibirLoteForm`,
+      `NuevoProductoForm`, `ComprasManager`, `ProveedoresManager`, `OrdenesProduccion`,
+      `RecetaCosto`, `PatrimonioEditor`, `HistoricosEditor`, `MinimosPorSede`,
+      `EfectivoPanel`, `ProformasPanel`, `ComprobantesPanel`, `RegistroContableForm`,
+      `FotoProducto`. Se migra pantalla por pantalla, nunca de un saque: cada una necesita
+      que alguien provoque su error a propósito para saber si la frase sirve. Cuando
+      aparezca una huella que el traductor no reconozca, se agrega a `HUELLAS` **con su
+      prueba** en `lib/error-escritura.test.ts` — es lo que evita que un renombre de
+      restricción en una migración vuelva a soltar inglés en el mostrador.
+
+- [ ] **Verificar en vivo el camino de venta con la pistola Zebra.** Lo construido el 09-09
+      (escaneo dentro del modal de venta, Enter que ya no registra la venta a medio
+      escaneo, tope contra el stock de la sede, acuse con el monto) pasa build, lint,
+      tsc y 77 pruebas, **pero no se pudo probar en el navegador**: el layout redirige al
+      login y no corresponde que Claude escriba la contraseña. Hay que hacerlo con la
+      pistola real, no simulando el tecleo: confirmar que un escaneo agrega la prenda, que
+      dos escaneos seguidos NO cierran la venta, y que el foco vuelve al buscador solo.
+
 - [x] **RESUELTO — `recalcular_stock()` aplicada y verificada en producción
       2026-09-09 (ADR-0020). Encontró 2 filas desincronizadas el primer día;
       las 10 filas de stock siguen siendo 10 y todas tienen movimientos
@@ -389,7 +410,12 @@ importante que ha entrado a este archivo desde que existe.
       Mínimo viable: borrar el `.env.local` de la raíz y dejar en el README qué
       puerto es cuál.
 
-- [ ] **`esTaller === "TALLER"` esconde Producción en producción — 2026-09-09.**
+- [x] **RESUELTO 2026-09-09 (pasos 5 y 6 del Inicio). La causa no era el `if`:
+      era que el CÓDIGO de sede no sirve para decidir nada y cada pantalla lo
+      re-deducía. `PersonaActual` expone ahora `sedeTipo` y los tres sitios leen
+      de ahí. De paso el Taller dejó de ver "Vender" (no tiene caja ni piso) y
+      el pie del menú dejó de llamarlo "Encargada". Texto original abajo:**
+      **`esTaller === "TALLER"` esconde Producción en producción — 2026-09-09.**
       `AppShell.tsx:216` y `mas/page.tsx:10` detectan el Taller por código de
       sede, pero tras la unificación la sede del Taller se llama **`LIM`**
       (`unificacion/01_sedes.sql:35` la mapea a `tipo='fabrica'` justamente
