@@ -436,6 +436,19 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`pnpm typecheck` no verifica NADA — corre 0 tareas y sale en verde.** El
+      script existe en el `package.json` de la raíz (`turbo run typecheck`), pero
+      ningún paquete del workspace define esa tarea, así que turbo responde
+      *"No tasks were executed as part of this run · 0 successful, 0 total"* y
+      termina con éxito. Encontrado el 2026-09-09 usándolo como gate antes de
+      pushear: da exactamente la falsa confianza que ADR-0026 describe para el
+      verificador de migraciones (*"un verificador que aprueba lo que no entendió
+      es peor que no tenerlo: enseña a confiar en un verde vacío"*). El único
+      gate real hoy es `pnpm build`, que sí tipa (`next.config.ts` **no** tiene
+      `ignoreBuildErrors`) y tarda ~21 s. Arreglo: agregar `"typecheck": "tsc
+      --noEmit"` a `apps/web` y a los dos paquetes, y declarar la tarea en
+      `turbo.json`. Barato, y convierte un verde mentiroso en uno que significa
+      algo.
 - [x] **Streaming en las 10 pantallas: hecho y verificado, con resultado NEGATIVO en
       tiempo — 2026-09-09, ADR-0021.** Funciona mecánicamente (el HTML trae el esqueleto
       y llega en 3 trozos), pero **no movió los tiempos**: TTFB 131→124 ms y carga total
