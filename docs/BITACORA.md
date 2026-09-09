@@ -2075,3 +2075,28 @@ la firma de una función lleva su `drop function` de la vieja con los tipos expl
 (ADR-0026). El arreglo en producción NO se hizo: es DDL en el proyecto compartido con
 Dynamic, o sea parar-y-confirmar.
 
+## 2026-09-09 (el arreglo de las firmas duplicadas, con candado)
+Escrita `0049_una_sola_firma_por_funcion.sql` y su gemelo `unificacion/31`. Se queda
+siempre la firma más nueva, que se verificó una por una contra lo que la app manda de
+verdad: `registrar_movimiento` de 12 porque `MovimientoModal` manda `p_contenedor_id`,
+`recibir_lote` de 8 por `p_orden_produccion_id`, `registrar_produccion` de 15 por
+`p_costo_maquila` y `p_fecha_entrega`, `crear_producto_con_variantes` de 8 por
+`p_proveedor_id`. Aplicado en local: las cinco formas de llamada resuelven y el
+verificador ya no reporta sobrecargas.
+
+**Lo que Felipe aprendió y no era obvio:** un script que borra cosas necesita un
+candado que le impida borrar la ÚLTIMA. Antes de eliminar cada firma vieja se comprueba
+que la nueva existe; si no está —producción recibió las migraciones pegadas a mano, no
+con `db reset`, así que puede tener otra combinación— no borra nada y avisa. Sin ese
+candado, correrlo contra una base con solo la firma vieja habría dejado la función sin
+ninguna implementación: pasar de "dos y no se sabe cuál" a "ninguna" no es limpiar, es
+romper. Y sin `cascade`, a propósito: si algo depende de una firma vieja, que falle y se
+vea, no que se lleve el dependiente por delante.
+
+Segundo detalle de oficio: el gemelo termina con un `select` que muestra una tabla de
+estado, no con `raise notice`. El SQL Editor de Supabase no siempre enseña los notices,
+y un script destructivo que corre sin decir qué hizo es un script que nadie va a querer
+correr dos veces. Probado corriéndolo dos veces: la segunda no cambia nada.
+
+Producción no se tocó: es DDL en el proyecto compartido con Dynamic.
+

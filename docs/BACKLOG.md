@@ -617,9 +617,20 @@ importante que ha entrado a este archivo desde que existe.
       Explica además dos cosas que este BACKLOG atribuía a otra causa: que `recibir_lote` no
       esté en los tipos generados, y que `RecibirLoteForm` "siempre falla cuando se usa".
       **Falta saber si producción tiene lo mismo** — se responde corriendo
-      `scripts/migraciones/inventario.sql` allá. El arreglo es un `drop function` por firma
-      vieja, con los tipos explícitos; es DDL en el proyecto compartido con Dynamic, así que
-      **entra en parar-y-confirmar, no en ejecución directa**. Ver ADR-0026.
+      `scripts/migraciones/inventario.sql` allá.
+      **ARREGLO LISTO, falta pegarlo.** `supabase/migrations/0049_una_sola_firma_por_funcion.sql`
+      (aplicado y verificado en local: las cinco formas de llamada que usa la app resuelven, y
+      el verificador ya no reporta sobrecargas) y su gemelo
+      `supabase/unificacion/31_una_sola_firma_por_funcion.sql` para el SQL Editor de Dynamic.
+      El gemelo lleva candado —no borra la firma vieja si la nueva no existe, porque producción
+      recibió las migraciones a mano y puede tener otra combinación—, es idempotente (probado
+      corriéndolo dos veces) y termina con una tabla que muestra el estado, porque el SQL Editor
+      no siempre enseña los `raise notice`. **Pegarlo en producción es decisión de Felipe: es DDL
+      en el proyecto compartido con Dynamic.** Antes de eso, la comprobación de 10 segundos está
+      escrita en la cabecera del gemelo. Ver ADR-0026.
+      Nota al margen: con `recibir_lote` ya sin ambigüedad, podría por fin salir en los tipos
+      generados — pero `pnpm gen-types` sigue apuntando al proyecto viejo de retail y sin
+      `--schema retail`, así que eso espera a que se arregle ese otro ítem.
 
 - [ ] **`no hay registro de qué migración corrió en producción` — la deuda que
       produce todas las anteriores.** `supabase/unificacion/` tiene 20 archivos
