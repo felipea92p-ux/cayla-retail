@@ -1523,3 +1523,38 @@ optimizando velocidad, y mantuve intacta su forma de fallar callada. Y **la barr
 pudo probar en vivo**: llegar a ella exige sesión iniciada porque el layout redirige antes
 de renderizar. Está en la ruta correcta y el build la registra, pero eso no es lo mismo
 que verla atrapar — la misma distinción que hoy costó tres rondas con la región.
+
+## 2026-09-09 (el punto medio: rápido sin abrir la puerta a conflictos)
+Felipe pidió las tres cosas juntas — rápido, robusto, y sin que queden cosas en el aire ni
+haya conflictos — y preguntó si había un punto medio. Lo hay, y la distinción que lo define
+es la que resuelve su preocupación: **local-first guarda una COPIA de los datos (dos
+verdades que sincronizar, pueden divergir); el punto medio guarda una RESPUESTA RECIENTE
+del servidor (una sola verdad, solo puede ser vieja).** En cinco palabras: datos viejos,
+nunca datos distintos. Un dato viejo se corrige con el siguiente refresco y su antigüedad
+tiene techo; un dato distinto es un estado imposible, que es lo que prohíbe el principio 2.
+
+Parte ya estaba andando sin que se notara: el `staleTimes: 30` de la Fase 1 hace que volver
+a una pantalla vista hace menos de 30 s no vaya al servidor, y cualquier mutación lo
+invalida vía `router.refresh()`.
+
+Faltaba la otra mitad, y era un hueco claro: `/inventario` y `/vender` hacían `await` de
+TODO antes de devolver JSX. La cabecera, la navegación y los botones —que no dependen de
+ninguna consulta— esperaban detrás del catálogo entero. Ahora la página solo espera la
+persona (memorizada por el layout, sin viaje nuevo) y el resto baja en su `<Suspense>` con
+esqueleto. En `/vender` se partió en dos: el historial del día era una consulta chica que
+esperaba al catálogo entero solo por compartir `Promise.all`.
+
+Salió el primer caso real de `tolerar()`, y vale como ejemplo de cómo se aplica la regla:
+el historial de `/vender` muestra dinero pero no lo decide —el cuadre lo calcula
+`cerrar_caja` en el servidor contra `ventas`, no contra esa lista—, y fallar en duro ahí
+significaría dejar a una Encargada sin poder vender, con la clienta enfrente, porque no
+cargó un historial. Ese intercambio no se paga. → ADR-0021.
+
+Detalle técnico que casi se me pasa: los anchos del esqueleto son fijos y no aleatorios.
+`Math.random()` en un Server Component daría un valor distinto en servidor y cliente, y
+React lo marcaría como desajuste de hidratación.
+
+Pendiente y anotado: extenderlo a `/comercial`, `/finanzas/*`, `/produccion` y `/buscar`
+—es mecánico—, y **verlo funcionar en vivo**. Compila y pasa 68 pruebas, pero que la
+estructura aparezca antes que los datos hay que verlo corriendo con sesión iniciada. Es la
+misma distinción entre "compila" y "funciona" que hoy mismo costó tres rondas con la región.
