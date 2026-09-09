@@ -43,8 +43,8 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
 
   // getClaims() verifica el JWT localmente (el proyecto firma con ES256 asimétrica), así
   // que esto ya no es un viaje de red a Supabase Auth. Era el segundo de dos: el
-  // middleware validaba el mismo token unos milisegundos antes, y cache() de React no
-  // los une porque middleware y render son invocaciones distintas del runtime. — ADR-0013.
+  // proxy.ts validaba el mismo token unos milisegundos antes, y cache() de React no
+  // los une porque el proxy y el render son invocaciones distintas del runtime. — ADR-0013.
   const { data: claims } = await supabase.auth.getClaims();
   const authUserId = claims?.claims?.sub;
 
