@@ -2293,3 +2293,30 @@ Probado en verde y forzando el puerto malo. Y la tabla de puertos abre el README
 resolvió mirando, no razonando — pero nadie dejó el mirar hecho. Documentar el tropiezo en
 la bitácora conserva la lección; solo un comando la aplica sin acordarse de ella. Cuando un
 diagnóstico se repite, lo que falta no es más disciplina: es un instrumento.
+
+## 2026-09-09 (el segundo verde vacío del día: `pnpm typecheck`)
+Mismo patrón que los dos Supabase locales, y por eso valía cerrarlo el mismo día: un
+instrumento que contesta sin haber mirado. `turbo run typecheck` recorría los 3 paquetes,
+ninguno definía la tarea, y turbo respondía *"No tasks were executed · 0 successful, 0
+total"* con salida 0. Un gate que sale verde sin abrir un archivo es peor que no tenerlo:
+enseña a confiar en él justo antes de pushear.
+
+Encendido: `"typecheck": "tsc --noEmit"` en los tres. `apps/web` y `packages/shared`
+salieron limpios —`next build` ya los tipaba, así que no había deuda escondida ahí—, y
+`packages/database` tenía **un error real**: `client.ts:12` usa `process.env` sin
+`@types/node`. Llevaba invisible desde que existe el paquete porque nadie lo tipa solo:
+`apps/web` lo compila con su propio tsconfig, que sí trae los tipos de Node. Se agregó la
+dependencia, que es lo que el paquete necesita de verdad.
+
+Dos detalles del cableado, cada uno descubierto por una corrida y no por leer la
+documentación: **sin** `dependsOn: ["^typecheck"]` (apps/web tipa el código fuente de los
+paquetes, no un artefacto; encadenarlos hace que el primer roto cancele y esconda a los
+demás) y **con** `--continue` (turbo cancela lo pendiente en cuanto algo falla, y un gate
+tiene que dar la lista completa en un viaje). Con ambos, dos errores plantados a propósito
+salieron los dos, salida 2. Después, verde otra vez: 5 s en frío, **39 ms cacheado**.
+
+**Lo que Felipe aprende acá:** un verificador no está terminado cuando sale verde — está
+terminado cuando lo viste salir rojo por algo que sabías que estaba mal. El verde de antes
+y el de ahora se ven idénticos en la terminal; lo único que los distingue es haber
+comprobado que este sí sabe fallar. Es la misma regla de ADR-0026, aplicada al gate en vez
+de a las migraciones.

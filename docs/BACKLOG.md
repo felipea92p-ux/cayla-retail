@@ -451,7 +451,31 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`pnpm typecheck` no verifica NADA — corre 0 tareas y sale en verde.** El
+- [x] **RESUELTO 2026-09-09. Ahora corre 3 tareas y encontró 1 error real el primer día.**
+      `"typecheck": "tsc --noEmit"` en los tres paquetes y la tarea declarada en
+      `turbo.json`. Estado al encenderlo: `apps/web` **0 errores** y `packages/shared`
+      **0** —estaban limpios porque `next build` ya los tipaba—, y
+      `packages/database` **1**: `client.ts:12` usa `process.env` sin `@types/node`
+      (TS2580). Invisible desde que existe el paquete, porque `apps/web` lo compila con
+      SU tsconfig, que sí tiene los tipos de Node. Arreglado agregando la dependencia,
+      que es lo que el paquete de verdad necesita.
+      **Dos detalles sin los cuales el gate no sirve, y los dos costaron una corrida
+      cada uno:** (1) SIN `dependsOn: ["^typecheck"]` — `apps/web` tipa leyendo el
+      código FUENTE de los paquetes, no un artefacto construido, así que encadenarlos
+      solo hace que el primer paquete roto cancele los demás y esconda el resto; (2)
+      CON `--continue` en el script de la raíz — turbo, por defecto, cancela lo que
+      falta en cuanto algo falla, y un gate tiene que dar la lista completa en un solo
+      viaje. Con los dos puestos, dos errores plantados a propósito (uno en `web`, otro
+      en `shared`) salieron **los dos** en la misma corrida, con salida 2.
+      **Probado en rojo antes de creerle al verde** — un gate que nunca se vio fallar no
+      es un gate. Cuesta 5 s en frío y **39 ms cacheado** (`FULL TURBO`), o sea que es
+      barato de correr antes de cada push.
+      **Lo que sigue abierto y no es este item:** no hay CI (`.github/workflows/` no
+      existe), así que nada obliga a correrlo; y `apps/web/tsconfig.json` incluye
+      `.next/types/**`, que solo existe después de un `build`/`dev` — en un clon limpio
+      los tipos de ruta de Next no se verifican. Ninguna de las dos cosas convierte el
+      verde en mentira, pero conviene saber qué NO cubre. Texto original abajo:**
+      **`pnpm typecheck` no verifica NADA — corre 0 tareas y sale en verde.** El
       script existe en el `package.json` de la raíz (`turbo run typecheck`), pero
       ningún paquete del workspace define esa tarea, así que turbo responde
       *"No tasks were executed as part of this run · 0 successful, 0 total"* y

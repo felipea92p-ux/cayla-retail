@@ -5,12 +5,14 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "gen-types": "supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail > src/types.ts"
+    "gen-types": "supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail > src/types.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
+    "@types/node": "^20.19.43",
     "typescript": "^5.6.0"
   }
 }
