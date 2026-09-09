@@ -62,6 +62,17 @@ importante que ha entrado a este archivo desde que existe.
       Aparte: `packages/database/package.json` (`gen-types`) sigue apuntando al
       proyecto viejo de retail — corregirlo al de Dynamic + `--schema retail`
       para que esto no se repita.
+      **CERRADO 2026-09-09.** Se regeneraron los tipos contra el proyecto
+      correcto (`vovjyyiafkxteijimpuy`, `--schema retail`) al empezar
+      `lib/conteo.ts`, que no compilaba porque los tipos no conocían `conteos`,
+      `conteo_lineas`, `codigos_barras` ni `colores`. De los 30 errores quedaba
+      **uno solo**: las otras sesiones limpiaron 29 hoy con la auditoría de
+      lecturas. Era `api/lucode/emitir/route.ts:167`, mandando `null` a un
+      parámetro que supabase-js tipa opcional (`string | undefined`) porque la
+      función tiene default; se cambió a `undefined`, que deja a Postgres
+      aplicar ese default. Y se corrigió el `gen-types` para que apunte al
+      proyecto de Dynamic con `--schema retail`. `tsc --noEmit` limpio,
+      `pnpm build` compila, 79 tests pasan.
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
       que queda. **Cambió de estrategia el 2026-09-09: deja de ser captura gradual
       y pasa a ser un CENSO de una vez.** El plan de `PLAN-DE-TRABAJO.md` §5 ("es

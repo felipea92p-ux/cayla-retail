@@ -164,7 +164,13 @@ export async function POST(request: Request) {
     // producción" para algo que se transmitió al sandbox.
     p_entorno: resultado.entorno,
     p_respuesta_sunat: resultado,
-    p_motivo_rechazo: resultado.estado === "RECHAZADO" ? resultado.mensaje : null,
+    // `undefined` y no `null`: el parámetro de la RPC tiene default, así que
+    // supabase-js lo tipa opcional (`string | undefined`) y omitir la clave deja
+    // que Postgres aplique ese default —que es `null`—. Mandar `null` explícito
+    // no compila, y era el único error que quedaba escondido detrás de los tipos
+    // generados contra el proyecto viejo. Lucode además puede devolver un
+    // rechazo sin mensaje, así que el `?? undefined` cubre ese caso.
+    p_motivo_rechazo: resultado.estado === "RECHAZADO" ? (resultado.mensaje ?? undefined) : undefined,
   });
   if (errActualizar) {
     // Lucode SÍ transmitió — perder este registro sería peor que un error de

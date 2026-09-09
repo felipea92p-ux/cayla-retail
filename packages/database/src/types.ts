@@ -325,6 +325,7 @@ export type Database = {
           familia: string
           id: string
           nombre: string
+          prefijo: string
           tallas_sugeridas: string[] | null
         }
         Insert: {
@@ -332,6 +333,7 @@ export type Database = {
           familia: string
           id?: string
           nombre: string
+          prefijo: string
           tallas_sugeridas?: string[] | null
         }
         Update: {
@@ -339,22 +341,116 @@ export type Database = {
           familia?: string
           id?: string
           nombre?: string
+          prefijo?: string
           tallas_sugeridas?: string[] | null
+        }
+        Relationships: []
+      }
+      codigos_barras: {
+        Row: {
+          codigo: string
+          creado_por: string | null
+          created_at: string
+          id: string
+          nota: string | null
+          origen: string
+          variante_id: string
+        }
+        Insert: {
+          codigo: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          nota?: string | null
+          origen: string
+          variante_id: string
+        }
+        Update: {
+          codigo?: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          nota?: string | null
+          origen?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codigos_barras_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "codigos_barras_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      codigos_correlativos: {
+        Row: {
+          prefijo: string
+          ultimo: number
+          updated_at: string
+        }
+        Insert: {
+          prefijo: string
+          ultimo?: number
+          updated_at?: string
+        }
+        Update: {
+          prefijo?: string
+          ultimo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      colores: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          familia_color: string
+          hex: string | null
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          created_at?: string
+          familia_color: string
+          hex?: string | null
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          familia_color?: string
+          hex?: string | null
+          nombre?: string
+          orden?: number
         }
         Relationships: []
       }
       comprobantes: {
         Row: {
+          anulacion_solicitada_at: string | null
+          anulado_at: string | null
+          anulado_por: string | null
           cliente_nombre: string | null
           cliente_num_doc: string | null
           cliente_tipo_doc: string
           comprobante_original_id: string | null
-          anulacion_solicitada_at: string | null
-          anulado_at: string | null
-          anulado_por: string | null
           created_at: string
-          enviado_at: string | null
           entorno_transmision: string | null
+          enviado_at: string | null
           estado: string
           id: string
           igv: number
@@ -363,8 +459,8 @@ export type Database = {
           motivo: string | null
           motivo_anulacion: string | null
           motivo_rechazo: string | null
-          respuesta_anulacion: Json | null
           numero: number
+          respuesta_anulacion: Json | null
           respuesta_sunat: Json | null
           sede_id: string
           serie: string
@@ -375,16 +471,16 @@ export type Database = {
           venta_id: string | null
         }
         Insert: {
+          anulacion_solicitada_at?: string | null
+          anulado_at?: string | null
+          anulado_por?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
           comprobante_original_id?: string | null
-          anulacion_solicitada_at?: string | null
-          anulado_at?: string | null
-          anulado_por?: string | null
           created_at?: string
-          enviado_at?: string | null
           entorno_transmision?: string | null
+          enviado_at?: string | null
           estado?: string
           id?: string
           igv?: number
@@ -405,16 +501,16 @@ export type Database = {
           venta_id?: string | null
         }
         Update: {
+          anulacion_solicitada_at?: string | null
+          anulado_at?: string | null
+          anulado_por?: string | null
           cliente_nombre?: string | null
           cliente_num_doc?: string | null
           cliente_tipo_doc?: string
           comprobante_original_id?: string | null
-          anulacion_solicitada_at?: string | null
-          anulado_at?: string | null
-          anulado_por?: string | null
           created_at?: string
-          enviado_at?: string | null
           entorno_transmision?: string | null
+          enviado_at?: string | null
           estado?: string
           id?: string
           igv?: number
@@ -435,6 +531,13 @@ export type Database = {
           venta_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comprobantes_anulado_por_fkey"
+            columns: ["anulado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comprobantes_comprobante_original_id_fkey"
             columns: ["comprobante_original_id"]
@@ -465,75 +568,41 @@ export type Database = {
           },
         ]
       }
-      proformas: {
+      configuracion_empresa: {
         Row: {
-          cliente_nombre: string | null
-          cliente_num_doc: string | null
-          comprobante_id: string | null
-          created_at: string
-          estado: string
-          id: string
-          igv: number
-          items: Json
-          sede_id: string
-          subtotal: number
-          total: number
-          usuario_id: string | null
-          vence_at: string | null
+          email: string | null
+          id: boolean
+          nombre_comercial: string | null
+          razon_social: string
+          resolucion_autorizacion: string | null
+          ruc: string
+          telefono: string | null
+          updated_at: string
+          web: string | null
         }
         Insert: {
-          cliente_nombre?: string | null
-          cliente_num_doc?: string | null
-          comprobante_id?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          igv?: number
-          items: Json
-          sede_id: string
-          subtotal?: number
-          total: number
-          usuario_id?: string | null
-          vence_at?: string | null
+          email?: string | null
+          id?: boolean
+          nombre_comercial?: string | null
+          razon_social: string
+          resolucion_autorizacion?: string | null
+          ruc: string
+          telefono?: string | null
+          updated_at?: string
+          web?: string | null
         }
         Update: {
-          cliente_nombre?: string | null
-          cliente_num_doc?: string | null
-          comprobante_id?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          igv?: number
-          items?: Json
-          sede_id?: string
-          subtotal?: number
-          total?: number
-          usuario_id?: string | null
-          vence_at?: string | null
+          email?: string | null
+          id?: boolean
+          nombre_comercial?: string | null
+          razon_social?: string
+          resolucion_autorizacion?: string | null
+          ruc?: string
+          telefono?: string | null
+          updated_at?: string
+          web?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "proformas_comprobante_id_fkey"
-            columns: ["comprobante_id"]
-            isOneToOne: false
-            referencedRelation: "comprobantes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proformas_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proformas_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       contenedores: {
         Row: {
@@ -560,6 +629,183 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contenedores_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conteo_lineas: {
+        Row: {
+          actualizado_en: string
+          cantidad_contada: number
+          cantidad_sistema: number
+          contado_en: string
+          contado_por: string | null
+          contenedor_id: string | null
+          conteo_id: string
+          diferencia: number | null
+          id: string
+          movimiento_id: string | null
+          nota: string | null
+          variante_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          cantidad_contada: number
+          cantidad_sistema: number
+          contado_en?: string
+          contado_por?: string | null
+          contenedor_id?: string | null
+          conteo_id: string
+          diferencia?: number | null
+          id?: string
+          movimiento_id?: string | null
+          nota?: string | null
+          variante_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          cantidad_contada?: number
+          cantidad_sistema?: number
+          contado_en?: string
+          contado_por?: string | null
+          contenedor_id?: string | null
+          conteo_id?: string
+          diferencia?: number | null
+          id?: string
+          movimiento_id?: string | null
+          nota?: string | null
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteo_lineas_contado_por_fkey"
+            columns: ["contado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteo_lineas_contenedor_id_fkey"
+            columns: ["contenedor_id"]
+            isOneToOne: false
+            referencedRelation: "contenedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteo_lineas_conteo_id_fkey"
+            columns: ["conteo_id"]
+            isOneToOne: false
+            referencedRelation: "conteos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteo_lineas_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteo_lineas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conteos: {
+        Row: {
+          abierto_en: string
+          abierto_por: string | null
+          alcance: string
+          alcance_categoria_id: string | null
+          alcance_contenedor_id: string | null
+          alcance_familia: string | null
+          cerrado_en: string | null
+          cerrado_por: string | null
+          estado: string
+          id: string
+          lineas_ajustadas: number | null
+          nombre: string | null
+          nota: string | null
+          sede_id: string
+          tratar_no_contado: string
+          ubicacion: string
+          unidades_diferencia: number | null
+        }
+        Insert: {
+          abierto_en?: string
+          abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
+          alcance_contenedor_id?: string | null
+          alcance_familia?: string | null
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          estado?: string
+          id?: string
+          lineas_ajustadas?: number | null
+          nombre?: string | null
+          nota?: string | null
+          sede_id: string
+          tratar_no_contado?: string
+          ubicacion?: string
+          unidades_diferencia?: number | null
+        }
+        Update: {
+          abierto_en?: string
+          abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
+          alcance_contenedor_id?: string | null
+          alcance_familia?: string | null
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          estado?: string
+          id?: string
+          lineas_ajustadas?: number | null
+          nombre?: string | null
+          nota?: string | null
+          sede_id?: string
+          tratar_no_contado?: string
+          ubicacion?: string
+          unidades_diferencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteos_abierto_por_fkey"
+            columns: ["abierto_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteos_alcance_categoria_id_fkey"
+            columns: ["alcance_categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteos_alcance_contenedor_id_fkey"
+            columns: ["alcance_contenedor_id"]
+            isOneToOne: false
+            referencedRelation: "contenedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteos_cerrado_por_fkey"
+            columns: ["cerrado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteos_sede_id_fkey"
             columns: ["sede_id"]
             isOneToOne: false
             referencedRelation: "sedes"
@@ -1215,6 +1461,7 @@ export type Database = {
       productos: {
         Row: {
           categoria_id: string | null
+          codigo: string | null
           costo_mano_obra: number | null
           created_at: string
           descripcion: string | null
@@ -1224,6 +1471,7 @@ export type Database = {
           id: string
           marca: string | null
           material: string | null
+          proveedor_id: string | null
           referencia: string
           sku_padre: string
           temporada: string | null
@@ -1231,6 +1479,7 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
+          codigo?: string | null
           costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
@@ -1240,6 +1489,7 @@ export type Database = {
           id?: string
           marca?: string | null
           material?: string | null
+          proveedor_id?: string | null
           referencia: string
           sku_padre: string
           temporada?: string | null
@@ -1247,6 +1497,7 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
+          codigo?: string | null
           costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
@@ -1256,6 +1507,7 @@ export type Database = {
           id?: string
           marca?: string | null
           material?: string | null
+          proveedor_id?: string | null
           referencia?: string
           sku_padre?: string
           temporada?: string | null
@@ -1267,6 +1519,83 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proformas: {
+        Row: {
+          cliente_nombre: string | null
+          cliente_num_doc: string | null
+          comprobante_id: string | null
+          created_at: string
+          estado: string
+          id: string
+          igv: number
+          items: Json
+          sede_id: string
+          subtotal: number
+          total: number
+          usuario_id: string | null
+          vence_at: string | null
+        }
+        Insert: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          comprobante_id?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          igv?: number
+          items: Json
+          sede_id: string
+          subtotal?: number
+          total: number
+          usuario_id?: string | null
+          vence_at?: string | null
+        }
+        Update: {
+          cliente_nombre?: string | null
+          cliente_num_doc?: string | null
+          comprobante_id?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          igv?: number
+          items?: Json
+          sede_id?: string
+          subtotal?: number
+          total?: number
+          usuario_id?: string | null
+          vence_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proformas_comprobante_id_fkey"
+            columns: ["comprobante_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
             referencedColumns: ["id"]
           },
         ]
@@ -1321,6 +1650,39 @@ export type Database = {
           ruc?: string | null
           score?: number | null
           telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sede_datos_fiscales: {
+        Row: {
+          departamento: string | null
+          direccion: string | null
+          distrito: string | null
+          provincia: string | null
+          sede_id: string
+          telefono: string | null
+          ubigeo: string | null
+          updated_at: string
+        }
+        Insert: {
+          departamento?: string | null
+          direccion?: string | null
+          distrito?: string | null
+          provincia?: string | null
+          sede_id: string
+          telefono?: string | null
+          ubigeo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          departamento?: string | null
+          direccion?: string | null
+          distrito?: string | null
+          provincia?: string | null
+          sede_id?: string
+          telefono?: string | null
+          ubigeo?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1495,7 +1857,9 @@ export type Database = {
       }
       variantes: {
         Row: {
+          codigo: string | null
           color: string | null
+          color_id: string | null
           costo: number
           created_at: string
           foto_url: string | null
@@ -1510,7 +1874,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          codigo?: string | null
           color?: string | null
+          color_id?: string | null
           costo?: number
           created_at?: string
           foto_url?: string | null
@@ -1525,7 +1891,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          codigo?: string | null
           color?: string | null
+          color_id?: string | null
           costo?: number
           created_at?: string
           foto_url?: string | null
@@ -1540,6 +1908,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "variantes_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "colores"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "variantes_producto_id_fkey"
             columns: ["producto_id"]
@@ -1693,6 +2068,41 @@ export type Database = {
         Args: { p_monto_apertura: number; p_sede_id: string }
         Returns: string
       }
+      abrir_conteo: {
+        Args: {
+          p_alcance?: string
+          p_alcance_categoria_id?: string
+          p_alcance_contenedor_id?: string
+          p_alcance_familia?: string
+          p_nombre?: string
+          p_sede_id: string
+          p_ubicacion?: string
+        }
+        Returns: string
+      }
+      actualizar_transmision_comprobante: {
+        Args: {
+          p_comprobante_id: string
+          p_entorno: string
+          p_estado: string
+          p_motivo_rechazo?: string
+          p_respuesta_sunat?: Json
+        }
+        Returns: undefined
+      }
+      anular_comprobante: {
+        Args: {
+          p_comprobante_id: string
+          p_confirmada: boolean
+          p_motivo: string
+          p_respuesta?: Json
+        }
+        Returns: undefined
+      }
+      anular_conteo: {
+        Args: { p_conteo_id: string; p_motivo: string }
+        Returns: undefined
+      }
       bajar_a_piso: {
         Args: {
           p_cantidad: number
@@ -1702,12 +2112,44 @@ export type Database = {
         }
         Returns: string
       }
+      catalogo_con_stock: {
+        Args: never
+        Returns: {
+          categoria: string
+          color: string
+          costo: number
+          created_at: string
+          estado: string
+          familia: string
+          foto_url: string
+          marca: string
+          minimo_por_sede: Json
+          precio: number
+          producto_id: string
+          referencia: string
+          sku: string
+          stock_minimo: number
+          stock_por_sede: Json
+          talla: string
+          ultima_venta: string
+          variante_id: string
+        }[]
+      }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_contado: number }
         Returns: {
           diferencia: number
           monto_contado: number
           monto_esperado: number
+        }[]
+      }
+      cerrar_conteo: {
+        Args: { p_conteo_id: string }
+        Returns: {
+          lineas_ajustadas: number
+          lineas_totales: number
+          unidades_faltantes: number
+          unidades_sobrantes: number
         }[]
       }
       cerrar_produccion: {
@@ -1720,6 +2162,42 @@ export type Database = {
         }
         Returns: undefined
       }
+      conteo_contar: {
+        Args: {
+          p_cantidad: number
+          p_contenedor_id?: string
+          p_conteo_id: string
+          p_modo?: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
+      conteo_contar_por_codigo: {
+        Args: {
+          p_cantidad?: number
+          p_codigo: string
+          p_conteo_id: string
+          p_modo?: string
+        }
+        Returns: string
+      }
+      conteo_crear_variante: {
+        Args: {
+          p_cantidad: number
+          p_categoria_id?: string
+          p_codigo_barras?: string
+          p_color_codigo: string
+          p_contenedor_id?: string
+          p_conteo_id: string
+          p_costo?: number
+          p_precio?: number
+          p_producto_id?: string
+          p_referencia: string
+          p_sku?: string
+          p_talla: string
+        }
+        Returns: string
+      }
       convertir_proforma_a_comprobante: {
         Args: {
           p_cliente_nombre?: string
@@ -1728,6 +2206,19 @@ export type Database = {
           p_proforma_id: string
           p_tipo: string
           p_venta_id?: string
+        }
+        Returns: string
+      }
+      crear_producto_con_variantes: {
+        Args: {
+          p_categoria_id?: string
+          p_genero?: string
+          p_marca?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_sku_padre: string
+          p_temporada?: string
+          p_variantes: Json
         }
         Returns: string
       }
@@ -1755,25 +2246,6 @@ export type Database = {
       }
       eliminar_produccion: {
         Args: { p_produccion_id: string }
-        Returns: undefined
-      }
-      anular_comprobante: {
-        Args: {
-          p_comprobante_id: string
-          p_confirmada: boolean
-          p_motivo: string
-          p_respuesta?: Json
-        }
-        Returns: undefined
-      }
-      actualizar_transmision_comprobante: {
-        Args: {
-          p_comprobante_id: string
-          p_entorno: string
-          p_estado: string
-          p_motivo_rechazo?: string | null
-          p_respuesta_sunat?: Json
-        }
         Returns: undefined
       }
       emitir_comprobante: {
@@ -1813,6 +2285,28 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_asignar_codigo_producto: {
+        Args: { p_producto_id: string }
+        Returns: string
+      }
+      fn_asignar_codigo_variante: {
+        Args: { p_variante_id: string }
+        Returns: string
+      }
+      fn_clave_texto: { Args: { p: string }; Returns: string }
+      fn_componer_codigo_variante: {
+        Args: { p_base: string; p_color_id: string; p_talla: string }
+        Returns: string
+      }
+      fn_reservar_numero_serie: {
+        Args: { p_sede_id: string; p_tipo: string }
+        Returns: {
+          numero: number
+          serie: string
+        }[]
+      }
+      fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      fn_token_talla: { Args: { p_talla: string }; Returns: string }
       mi_sede: { Args: never; Returns: string }
       persona_actual: {
         Args: never
@@ -1825,45 +2319,34 @@ export type Database = {
           sede_id: string
         }[]
       }
+      previsualizar_cierre_conteo: {
+        Args: { p_conteo_id: string }
+        Returns: {
+          codigo: string
+          color: string
+          contada: number
+          diferencia: number
+          origen: string
+          referencia: string
+          sistema: number
+          talla: string
+          variante_id: string
+        }[]
+      }
       puede_operar_sede: { Args: { p_sede_id: string }; Returns: boolean }
-      crear_producto_con_variantes: {
+      recalcular_stock: { Args: never; Returns: undefined }
+      recibir_lote: {
         Args: {
-          p_categoria_id?: string
-          p_genero?: string
-          p_marca?: string
-          p_proveedor_id?: string
-          p_referencia: string
-          p_sku_padre: string
-          p_temporada?: string
-          p_variantes: Json
+          p_items: Json
+          p_nota?: string
+          p_numero_guia?: string
+          p_orden_compra_id?: string
+          p_origen: string
+          p_proveedor?: string
+          p_sede_id: string
         }
         Returns: string
       }
-      recalcular_stock: { Args: never; Returns: undefined }
-      recibir_lote:
-        | {
-            Args: {
-              p_items: Json
-              p_nota?: string
-              p_numero_guia?: string
-              p_origen: string
-              p_proveedor?: string
-              p_sede_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_items: Json
-              p_nota?: string
-              p_numero_guia?: string
-              p_orden_compra_id?: string
-              p_origen: string
-              p_proveedor?: string
-              p_sede_id: string
-            }
-            Returns: string
-          }
       registrar_asiento: {
         Args: {
           p_fecha?: string
@@ -1873,6 +2356,15 @@ export type Database = {
           p_referencia_id?: string
           p_referencia_tipo?: string
           p_unidad_id: string
+        }
+        Returns: string
+      }
+      registrar_codigo_barras: {
+        Args: {
+          p_codigo: string
+          p_nota?: string
+          p_origen?: string
+          p_variante_id: string
         }
         Returns: string
       }
