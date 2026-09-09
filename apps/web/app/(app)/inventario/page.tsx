@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
 import { getSedes } from "@/lib/sedes";
+import { Ayuda } from "@/components/Ayuda";
 import { InventarioNav } from "@/components/InventarioNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
@@ -29,7 +30,15 @@ export default async function InventarioPage() {
       <div className="flex items-end justify-between">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">
+            Catálogo
+            <Ayuda titulo="Catálogo">
+              Todas las prendas del negocio, agrupadas por modelo. Cada fila es un modelo y adentro
+              están sus tallas y colores — eso es una variante, y es lo que de verdad se cuenta y se
+              vende. Una prenda entra acá cuando alguien la recibe: no aparece sola por haberla
+              comprado.
+            </Ayuda>
+          </h1>
         </div>
         <div className="flex gap-2">
           {persona.rol === "lider" && (

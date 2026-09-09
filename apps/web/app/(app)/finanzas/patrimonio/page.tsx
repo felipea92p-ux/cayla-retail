@@ -94,7 +94,8 @@ async function Contenido() {
           <h2 className="label-cayla mb-3 text-[11px] text-tinta/65">Pasivos</h2>
           {p.itemsPasivo.length === 0 ? (
             <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-              Sin deudas registradas.
+              Sin deudas registradas. Si CAYLA debe algo —un préstamo, una cuota pendiente—
+              agrégalo con «+ Agregar partida», abajo: sin eso el patrimonio sale más alto que el real.
             </p>
           ) : (
             <div className="divide-y divide-tinta/5 card-cayla">

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { VarianteInteligente } from "@/lib/inteligencia";
+import { Ayuda } from "@/components/Ayuda";
 import { MovimientoModal } from "@/components/MovimientoModal";
 
 // Catálogo agrupado por producto (rediseño UX 2026-07-18, aprobado por Felipe):
@@ -112,7 +113,16 @@ export function InventarioAgrupado({
           {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <button className={toggleCls(soloReponer)} onClick={() => setSoloReponer((v) => !v)}>Reponer ya</button>
+        <Ayuda titulo="Reponer ya">
+          Prendas que se van a acabar antes de que llegue el próximo pedido, según qué tan rápido se
+          venden. No es «queda poco»: es «queda poco PARA LO RÁPIDO QUE SALE». Una prenda con dos
+          unidades que se vende todos los días es más urgente que una con diez que no sale hace un mes.
+        </Ayuda>
         <button className={toggleCls(soloEstancado)} onClick={() => setSoloEstancado((v) => !v)}>Estancado</button>
+        <Ayuda titulo="Estancado">
+          Prendas sin una sola venta en 45 días. No están perdidas: están ocupando espacio y plata que
+          podrían ser otra cosa. Es la lista para mover a otra sede, rebajar o dejar de reponer.
+        </Ayuda>
         <span className="label-cayla ml-auto text-[11px] text-tinta/65">
           {filtrados.length} modelo{filtrados.length === 1 ? "" : "s"}
         </span>
@@ -120,7 +130,9 @@ export function InventarioAgrupado({
 
       {filtrados.length === 0 && (
         <p className="font-display py-10 text-center text-base italic text-tinta/65">
-          {productos.length === 0 ? "Aún no hay prendas cargadas." : "Sin resultados con estos filtros."}
+          {productos.length === 0
+            ? "Aún no hay prendas cargadas — entran al recibir un fardo, en «+ Nuevo → Recibir mercadería»."
+            : "Sin resultados con estos filtros. Quita alguno de arriba para volver a ver todo el catálogo."}
         </p>
       )}
 

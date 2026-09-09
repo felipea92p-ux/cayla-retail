@@ -176,7 +176,7 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
         </div>
         {!gastosData || gastosData.length === 0 ? (
           <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-            Sin gastos registrados este mes.
+            Sin gastos registrados este mes — se anotan con «Registrar gasto», aquí arriba.
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">

@@ -276,7 +276,10 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
       <div>
         <h2 className="mb-2 text-sm font-semibold text-neutral-900">Historial de movimientos</h2>
         {!movimientos || movimientos.length === 0 ? (
-          <p className="py-6 text-center text-sm italic text-neutral-400">Sin movimientos registrados.</p>
+          <p className="py-6 text-center text-sm italic text-tinta/65">
+            Sin movimientos registrados. Cada entrada, salida o traslado de esta prenda va a aparecer
+            acá; se registran desde Inventario.
+          </p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
             <table className="w-full text-left text-xs">

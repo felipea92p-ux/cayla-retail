@@ -2,6 +2,7 @@ import { requirePersonaActual } from "@/lib/persona";
 import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
 import { RecibirLoteForm } from "@/components/RecibirLoteForm";
+import { Ayuda } from "@/components/Ayuda";
 import { InventarioNav } from "@/components/InventarioNav";
 
 export default async function RecibirLotePage() {
@@ -79,7 +80,16 @@ export default async function RecibirLotePage() {
     <div className="space-y-6">
       <div>
         <p className="label-cayla text-[11px] text-tinta/65">Inventario · {persona.sedeCodigo}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          Recibir mercadería
+          <Ayuda titulo="Recibir mercadería">
+            Es el momento en que un fardo se vuelve inventario. Con las prendas en la mano cuentas
+            cuántas llegaron de cada talla y color, y el sistema las suma al ALMACÉN de tu sede, no
+            al piso de venta: para venderlas hay que bajarlas después con «Bajar a tienda». Lo que
+            entra se registra el día que entra — si se deja para después, el stock deja de servir
+            para decidir nada.
+          </Ayuda>
+        </h1>
       </div>
 
       <InventarioNav />

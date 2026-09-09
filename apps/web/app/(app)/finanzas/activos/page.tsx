@@ -66,7 +66,8 @@ async function Contenido() {
 
       {activos.length === 0 ? (
         <p className="font-display card-cayla py-10 text-center text-base italic text-tinta/65">
-          No hay activos registrados en esta unidad.
+          No hay activos registrados en esta unidad. Máquinas, muebles y equipos se cargan hoy
+          directo en la base — esta pantalla todavía solo los muestra.
         </p>
       ) : (
         <>

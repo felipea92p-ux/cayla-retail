@@ -125,7 +125,7 @@ async function Egresos({ sedes, anio, mes }: { sedes: Sede[]; anio: number; mes:
         <p className="label-cayla mb-2 text-[11px] text-tinta/65">Detalle ({gastos.length})</p>
         {gastos.length === 0 ? (
           <div className="card-cayla p-6">
-            <p className="font-display text-base italic text-tinta/70">Sin gastos registrados este mes.</p>
+            <p className="font-display text-base italic text-tinta/70">Sin gastos registrados este mes — se anotan con «Registrar gasto», arriba.</p>
           </div>
         ) : (
           <div className="overflow-x-auto card-cayla">

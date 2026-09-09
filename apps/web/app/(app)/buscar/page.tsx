@@ -5,6 +5,7 @@ import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
 import { mapaSedes } from "@/lib/sedes";
 import { exigir } from "@/lib/resultado";
+import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 
 // Búsqueda global (el dolor #1 del negocio, nombrado por Felipe en el descubrimiento:
@@ -21,7 +22,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Búsqueda</p>
+        <p className="label-cayla text-[11px] text-tinta/65">
+          Búsqueda
+          <Ayuda titulo="Búsqueda">
+            Para responderle a una clienta sin ir al almacén a ciegas. Te dice cuánto hay de esa
+            prenda, en qué sede está y —si está guardada— en qué contenedor del almacén. Puedes
+            escribir la referencia, la talla o el color, o escanear la etiqueta con la pistola: es
+            lo mismo, la pistola solo escribe el código por ti.
+          </Ayuda>
+        </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
           {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
         </h1>

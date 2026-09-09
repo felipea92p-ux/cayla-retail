@@ -152,7 +152,8 @@ export function OrdenesProduccion({
         <p className="label-cayla text-[11px] text-tinta/65">Terminadas · en el inventario del taller</p>
         {terminadas.length === 0 ? (
           <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-            Aún no cierras ninguna orden al inventario.
+            Aún no cierras ninguna orden al inventario. Cuando una corrida termina, ciérrala desde
+            su tarjeta: recién ahí las prendas entran al inventario del taller.
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
