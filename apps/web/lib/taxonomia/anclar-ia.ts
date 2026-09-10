@@ -79,9 +79,32 @@ export async function anclarConIA(
     .join("\n");
 
   const respuesta = await client.messages.parse({
-    model: "claude-opus-5",
+    /**
+     * Haiku 4.5, decidido con Felipe (2026-09-10) después de medir: anclar los 30
+     * colores y 37 categorías cuesta ~$0.03 con Haiku contra ~$0.15 con Opus 5, y
+     * a 100 clientes al año la diferencia total del sistema son ~15 dólares. El
+     * ahorro no es lo que decide — es que la tarea está acotada: elegir entre 19
+     * colores y 567 hojas de un árbol, con el catálogo entero delante.
+     *
+     * Se descartó el tier gratuito de Gemini, que sale aún más barato, por una
+     * razón que no es de precio: ahí los prompts se usan para entrenar. Lo que
+     * viaja acá es el catálogo de un cliente —sus productos, precios y costos—, y
+     * eso no se manda a entrenar el modelo de nadie.
+     *
+     * Si el anclaje de CAYLA sale torcido, éste es el string que se sube: los 37
+     * términos que Felipe conoce de memoria son el examen de admisión del modelo.
+     */
+    model: "claude-haiku-4-5",
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    /**
+     * Haiku 4.5 no acepta `thinking: {type: "adaptive"}` ni `output_config.effort`
+     * —los dos dan 400—, así que acá va el presupuesto fijo, que es la forma que
+     * esta generación sí entiende. Debe ser menor que `max_tokens` y mínimo 1024.
+     * 4.000 no es un número al azar: elegir entre 567 rutas jerárquicas es la
+     * parte donde un modelo pequeño se equivoca, y es lo único que amerita que
+     * piense antes de responder.
+     */
+    thinking: { type: "enabled", budget_tokens: 4000 },
     system: [
       { type: "text", text: INSTRUCCIONES },
       {
@@ -90,6 +113,11 @@ export async function anclarConIA(
         // ANTES de los términos volátiles, porque el caché es un match de
         // prefijo y cualquier byte que cambie antes lo invalida entero. El ttl
         // largo cubre el onboarding completo de un cliente.
+        //
+        // OJO al leer `usage.cache_read_input_tokens`: en CATEGORÍAS cachea (el
+        // árbol son ~18.500 tokens), en COLORES no — 19 valores más las
+        // instrucciones no llegan al mínimo cacheable de Haiku. Un cero ahí no es
+        // un bug ni cuesta nada: esa llamada entera vale una fracción de centavo.
         type: "text",
         text: `Términos universales disponibles (${queSon}), como "id<TAB>nombre":\n\n${catalogo}`,
         cache_control: { type: "ephemeral", ttl: "1h" },

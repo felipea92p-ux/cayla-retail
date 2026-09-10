@@ -32,9 +32,17 @@ importante que ha entrado a este archivo desde que existe.
       `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
       Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
       carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
-      versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
-      taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
-      la regla es que **la IA compila el mapeo, no procesa las filas**.
+      versión nueva del estándar. **Modelo: `claude-haiku-4-5` fijo**, decidido con
+      Felipe el 2026-09-10 después de medir: ~$0.03 por cliente contra ~$0.15 con
+      Opus 5, y a 100 clientes al año la diferencia total del sistema son ~15
+      dólares — menos que una hora arreglando a mano un anclaje malo, que además
+      no avisa. Se descartó el tier gratuito de Gemini, más barato todavía, por una
+      razón que no es de precio: ahí los prompts se usan para entrenar, y lo que
+      viaja es el catálogo de un cliente (sus productos, precios y costos). Si el
+      anclaje sale torcido, los 37 términos que Felipe conoce de memoria son el
+      examen y se sube el modelo cambiando un string. Todo esto contra ~$5.85 por
+      cliente si se le mandaran las 3.000 filas al modelo: la regla es que **la IA
+      compila el mapeo, no procesa las filas**.
 
 - [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
       Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
