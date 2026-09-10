@@ -1,3 +1,25 @@
+-- ############################################################################
+-- ##  SUPERADO POR 23_facturacion_fase1.sql — NO SE PEGA                    ##
+-- ############################################################################
+-- Este archivo NO se aplica en producción. Su contenido vive ahora, íntegro,
+-- dentro de `23_facturacion_fase1.sql`, fusionado con el 20 en una sola
+-- transacción.
+--
+-- POR QUÉ: el 20 (columna `items`) y este (la función que guarda la respuesta de
+-- SUNAT) son dos mitades de una sola cosa. Aplicar el 20 sin este deja el
+-- sistema transmitiendo a SUNAT sin poder guardar el resultado, con el
+-- correlativo ya quemado. Fusionados dentro de un begin/commit, o entran los
+-- dos o no entra ninguno.
+--
+-- El 23 mantiene este cuerpo tal cual, con una sola diferencia: la guarda de
+-- permiso pasa a `coalesce(retail.puede_operar_sede(x), false) is not true`,
+-- que no se cae en silencio si el helper devolviera NULL.
+--
+-- Se conserva el archivo, sin borrarlo, porque es la historia de la decisión.
+-- Registro de aplicación: ver `retail.migraciones_aplicadas`, donde esta ruta
+-- NO tiene fila y la del 23 sí.
+-- ############################################################################
+
 -- ============================================================================
 -- actualizar_transmision_comprobante — Fase 1 (Lucode) del reemplazo de Alegra
 -- Correr en cayla-DYNAMIC. Solo toca `retail`. Ver

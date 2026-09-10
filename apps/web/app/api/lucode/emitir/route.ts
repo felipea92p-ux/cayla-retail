@@ -30,6 +30,7 @@ type FilaComprobante = {
   cliente_nombre: string | null;
   total: number;
   estado: string;
+  created_at: string;
   items: unknown;
   comprobante_original_id: string | null;
   motivo: string | null;
@@ -75,12 +76,33 @@ export async function POST(request: Request) {
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo"
+      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, created_at, items, comprobante_original_id, motivo"
     )
     .eq("id", comprobanteId)
     .maybeSingle();
 
-  if (errLectura || !comprobante) {
+  // "No lo encuentro" y "la base no tiene lo que este código pide" son dos
+  // problemas distintos y se arreglan en lugares distintos: el primero lo
+  // resuelve quien opera (comprobante de otra sede), el segundo lo resuelve
+  // Felipe pegando una migración. Devolver 404 para los dos —como se hacía
+  // antes— mandaba a buscar un permiso inexistente cuando lo que faltaba era
+  // la columna `items` o la función `actualizar_transmision_comprobante`.
+  //   42703 = Postgres: la columna no existe.
+  //   PGRST202 = PostgREST: la función/RPC no existe con esa firma.
+  if (errLectura) {
+    const codigo = errLectura.code ?? "";
+    if (codigo === "42703" || codigo === "PGRST202") {
+      return Response.json(
+        {
+          error: `La base de datos no tiene lo que Facturación necesita: ${errLectura.message}. Falta pegar la migración de facturación (archivo 23) en producción.`,
+          codigo,
+        },
+        { status: 500 }
+      );
+    }
+    return Response.json({ error: `No se pudo leer el comprobante: ${errLectura.message}`, codigo }, { status: 500 });
+  }
+  if (!comprobante) {
     return Response.json({ error: "Comprobante no encontrado o sin permiso para verlo" }, { status: 404 });
   }
   const fila = comprobante as FilaComprobante;
@@ -109,6 +131,10 @@ export async function POST(request: Request) {
     clienteNumDoc: fila.cliente_num_doc,
     clienteNombre: fila.cliente_nombre,
     total: fila.total,
+    // La fecha que se declara sale del comprobante, no del reloj de quien
+    // transmite: una boleta emitida anoche y transmitida hoy sigue siendo de
+    // ayer ante SUNAT.
+    emitidoEn: fila.created_at,
     items,
   };
 
@@ -149,8 +175,15 @@ export async function POST(request: Request) {
     // pantalla: el correlativo ya se usó ante SUNAT aunque la base no se
     // haya enterado todavía. Se avisa con el detalle exacto para reintentar
     // solo el guardado, no la transmisión (que reenviaría el mismo documento).
+    const faltaEnLaBase = errActualizar.code === "42703" || errActualizar.code === "PGRST202";
     return Response.json(
-      { error: `Lucode transmitió (${resultado.estado}) pero no se pudo guardar el resultado: ${errActualizar.message}`, resultado },
+      {
+        error: faltaEnLaBase
+          ? `Lucode transmitió (${resultado.estado}) pero la base no tiene "actualizar_transmision_comprobante": ${errActualizar.message}. Falta pegar la migración de facturación (archivo 23) en producción — el comprobante YA está ante SUNAT, no lo vuelvas a transmitir.`
+          : `Lucode transmitió (${resultado.estado}) pero no se pudo guardar el resultado: ${errActualizar.message}`,
+        codigo: errActualizar.code ?? null,
+        resultado,
+      },
       { status: 500 }
     );
   }

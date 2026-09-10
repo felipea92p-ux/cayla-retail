@@ -48,10 +48,14 @@ export function ProformasPanel({
   proformas,
   sedes,
   sedeActualId,
+  puedeElegirSede,
 }: {
   proformas: Proforma[];
   sedes: Sede[];
   sedeActualId: string;
+  /** Solo un Líder cotiza a nombre de otra sede; una colaboradora cotiza siempre
+   *  desde la suya (la base lo valida igual con `puede_operar_sede`). */
+  puedeElegirSede: boolean;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
@@ -242,11 +246,20 @@ export function ProformasPanel({
             <h3 className="font-display text-lg text-tinta">Nueva proforma</h3>
             <div>
               <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
-                ))}
-              </select>
+              {/* Igual que en Comprobantes: elegir sede es de Líder. `crear_proforma`
+                  ya valida `puede_operar_sede` en la base — el menú solo mostraría
+                  opciones que terminan en error. */}
+              {puedeElegirSede ? (
+                <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+                  {sedes.map((s) => (
+                    <option key={s.id} value={s.id}>{s.codigo}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="mt-1 border border-tinta/10 bg-sand/40 px-3 py-2 text-sm text-tinta/70">
+                  {sedes.find((s) => s.id === sedeId)?.codigo ?? "—"}
+                </p>
+              )}
             </div>
             <div>
               <label className="label-cayla block text-[9px] text-tinta/45">Cliente (opcional)</label>

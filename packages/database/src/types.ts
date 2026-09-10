@@ -1,3 +1,9 @@
+// ARCHIVO GENERADO — con dos líneas escritas a mano que todavía no existen en
+// producción (05-sep-2026): `comprobantes.items` y la RPC
+// `actualizar_transmision_comprobante`, que llegan con el archivo 23 de
+// facturación. Hasta que Felipe lo pegue, `pnpm --filter @cayla-retail/database
+// gen-types` las BORRA y rompe el build de Facturación. Regenerar después del
+// pegado, no antes — y verificar que las dos sobrevivan.
 export type Json =
   | string
   | number

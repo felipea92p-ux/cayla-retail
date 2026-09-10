@@ -1,3 +1,33 @@
+-- ############################################################################
+-- ##  SUPERADO POR 23_facturacion_fase1.sql — NO SE PEGA                    ##
+-- ############################################################################
+-- Este archivo NO se aplica en producción. Su contenido vive ahora, íntegro,
+-- dentro de `23_facturacion_fase1.sql`, fusionado con el 21 en una sola
+-- transacción.
+--
+-- POR QUÉ SE FUSIONÓ Y ESTE QUEDÓ INERTE: pegar este archivo SIN el 21 en la
+-- misma ejecución es peor que no pegar ninguno de los dos. La ruta
+-- `apps/web/app/api/lucode/emitir/route.ts` transmite a SUNAT en la línea 132 y
+-- recién guarda el resultado en la 141, con
+-- `actualizar_transmision_comprobante` — que es lo que crea el 21. Con este
+-- archivo solo, Lucode transmite, SUNAT acepta (correlativo quemado,
+-- irrecuperable) y el guardado revienta con un 500: el operador lee "falló",
+-- vuelve a apretar Transmitir, y sale un segundo documento por la misma venta.
+-- Fusionados en el 23 dentro de un begin/commit, ese estado es imposible.
+--
+-- El 23 además corrige dos cosas de este archivo:
+--   * el `precio_unitario` del ítem genérico va a 6 decimales (acá usa
+--     `p_subtotal`, ya redondeado a céntimo, y eso descuadra el comprobante en
+--     un céntimo en el 15,3% de los precios — incluidos S/19.90, S/109.90,
+--     S/129.90 y S/349.90, que son precios reales de CAYLA);
+--   * el bloque de VERIFICACIÓN de abajo pide `pronargs=9` y `6`, que son los
+--     números VIEJOS; los correctos, después del cambio, son 10 y 7.
+--
+-- Se conserva el archivo, sin borrarlo, porque es la historia de la decisión.
+-- Registro de aplicación: ver `retail.migraciones_aplicadas`, donde esta ruta
+-- NO tiene fila y la del 23 sí.
+-- ############################################################################
+
 -- ============================================================================
 -- COMPROBANTES: agrega `items` — requisito de Lucode para transmitir
 -- Correr en cayla-DYNAMIC. Solo toca `retail`. Requiere que

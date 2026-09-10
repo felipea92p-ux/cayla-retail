@@ -7,9 +7,10 @@
 //            vía Lucode, y traduce su respuesta al mismo vocabulario de
 //            estado que ya usa el esquema (pendiente/enviado/aceptado/
 //            rechazado — ver `comprobantes.estado`, ADR-0007).
-//   ASUME:   el comprobante ya existe con serie/número/ítems asignados — esto
-//            NO reserva número ni valida reglas de negocio, eso ya lo hizo la
-//            RPC. Solo transmite y traduce.
+//   ASUME:   el comprobante ya existe con serie/número/ítems asignados y con su
+//            `created_at` (que llega como `emitidoEn`) — esto NO reserva número
+//            ni valida reglas de negocio, eso ya lo hizo la RPC. Solo transmite
+//            y traduce.
 //   NO HACE: no decide CUÁNDO transmitir (eso es el route handler que llama a
 //            esto) ni reintenta solo — reintentar un documento tributario es
 //            una decisión de negocio, no de este adaptador. Si Lucode no
@@ -62,6 +63,9 @@ export type DatosComprobante = {
   clienteNumDoc: string | null;
   clienteNombre: string | null;
   total: number;
+  /** `comprobantes.created_at` tal como vino de la base (ISO en UTC). La fecha
+   *  que SUNAT declara se calcula acá, en hora de Lima — ver `fechaLima`. */
+  emitidoEn: string;
   items: ItemComprobante[];
   /** Solo NC/ND: el comprobante que corrige. */
   original?: { tipo: "boleta" | "factura"; serie: string; numero: number } | null;
@@ -119,6 +123,33 @@ function itemLucode(it: ItemComprobante) {
   };
 }
 
+// La fecha de emisión que se le declara a SUNAT es la del DÍA EN QUE SE VENDIÓ,
+// en hora de Lima, no la del instante en que alguien apretó "Transmitir" ni la
+// del reloj UTC del servidor.
+//
+// Por qué importa en CAYLA y no es un detalle: Perú es UTC-5, así que toda venta
+// hecha después de las 19:00 hora de Lima ya está en el día siguiente en UTC.
+// Las tiendas cierran después de las 19:00 — cada boleta de la última hora se
+// declaraba con fecha del día siguiente, y las del 30 o 31 caían en el mes
+// siguiente: el IGV de ese comprobante se paga en el período equivocado y el
+// registro de ventas no cuadra contra la caja del día.
+//
+// "en-CA" no es un idioma elegido por gusto: es el locale que Intl formatea como
+// AAAA-MM-DD, que es exactamente lo que pide Lucode/SUNAT.
+const FORMATO_FECHA_LIMA = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Lima",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function fechaLima(iso: string): string {
+  const d = new Date(iso);
+  // Si el timestamp viniera corrupto, declarar "Invalid Date" a SUNAT es peor
+  // que declarar hoy: se cae a la fecha de hoy en Lima, nunca a UTC.
+  return FORMATO_FECHA_LIMA.format(Number.isNaN(d.getTime()) ? new Date() : d);
+}
+
 function payloadDe(c: DatosComprobante): Record<string, unknown> {
   // Catálogo 06 de SUNAT: "1" = DNI, "6" = RUC. Sin documento reusa "1" con el
   // número placeholder que el propio Lucode documenta para boletas sin
@@ -128,7 +159,7 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
     documento: c.tipo,
     serie: c.serie,
     numero: c.numero,
-    fecha_de_emision: new Date().toISOString().slice(0, 10),
+    fecha_de_emision: fechaLima(c.emitidoEn),
     moneda: c.moneda,
     tipo_operacion: "0101",
     cliente_tipo_de_documento: sinDoc ? "1" : c.clienteTipoDoc === "ruc" ? "6" : "1",

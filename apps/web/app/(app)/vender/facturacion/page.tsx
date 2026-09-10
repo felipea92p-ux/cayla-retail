@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requirePersonaActual } from "@/lib/persona";
 import { getComprobantesMes, getSeriesComprobantes } from "@/lib/comprobantes";
 import { getProformasMes } from "@/lib/proformas";
@@ -11,15 +10,23 @@ import { ProformasPanel } from "@/components/ProformasPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// Facturación electrónica (F3, parte 1 de 2 — ver docs/BACKLOG.md). Reserva
-// comprobantes con correlativo oficial ya mismo; el envío a SUNAT queda
-// pendiente de una decisión estructural (SEE propio vs. OSE) que Claude le
-// planteó a Felipe antes de construir esta pantalla.
+// Facturación electrónica. Reserva el correlativo oficial con
+// `emitir_comprobante` y transmite a SUNAT vía Lucode (el PSE elegido,
+// ADR-0005) desde el botón "Transmitir" de cada fila.
 // Vive en Vender, no en Finanzas (movido 2026-09-03, pedido de Felipe): emitir
 // un comprobante cierra una venta, no es un reporte financiero.
+//
+// QUIÉN ENTRA: cualquier colaboradora con sesión, no solo un Líder. Quien
+// atiende el mostrador es quien emite la boleta — dejarlo en manos del Líder
+// significaba que 19 de los 24 logins activos no podían cerrar una venta. El
+// candado real vive en la base: `emitir_comprobante` valida `puede_operar_sede`
+// y rechaza emitir a nombre de una sede ajena, así que el redirect por rol que
+// había acá no protegía nada que la base no protegiera mejor. Lo que sí sigue
+// siendo de Líder es ADMINISTRAR (registrar la serie que autorizó SUNAT y
+// elegir la sede del comprobante): eso viaja como `puedeAdministrarSeries`.
 export default async function FacturacionPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const persona = await requirePersonaActual();
-  if (persona.rol !== "lider") redirect("/");
+  const esLider = persona.rol === "lider";
 
   const { m } = await searchParams;
   const actual = mesActualLima();
@@ -73,10 +80,21 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
 
       {/* Proforma primero: es el trabajo pendiente (¿quién va a volver a comprar?),
           antes que el historial ya cerrado de comprobantes (patrón Ramp, Ronda 2). */}
-      <ProformasPanel proformas={proformas} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+      <ProformasPanel
+        proformas={proformas}
+        sedes={sedes}
+        sedeActualId={sedeActual?.id ?? ""}
+        puedeElegirSede={esLider}
+      />
 
       <div className="border-t border-tinta/10 pt-8">
-        <ComprobantesPanel comprobantes={comprobantes} series={series} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+        <ComprobantesPanel
+          comprobantes={comprobantes}
+          series={series}
+          sedes={sedes}
+          sedeActualId={sedeActual?.id ?? ""}
+          puedeAdministrarSeries={esLider}
+        />
       </div>
     </div>
   );

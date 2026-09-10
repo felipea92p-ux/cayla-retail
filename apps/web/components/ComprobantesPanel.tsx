@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
+import type { Comprobante, RespuestaSunat, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 
@@ -41,20 +41,57 @@ function formatearFecha(iso: string) {
   );
 }
 
-// Panel de Facturación electrónica (F3, parte 1): reserva comprobantes con su
-// correlativo oficial ya mismo — el envío a SUNAT (firma XML, SOAP, CDR) es un
-// paso aparte, deliberadamente no construido todavía (ver nota en el modal de
-// emisión). Mismo patrón que EfectivoPanel: un componente, dos modales, una tabla.
+// El PDF es lo que se le entrega a la clienta; el CDR es la constancia de SUNAT
+// —el papel que prueba que el comprobante fue aceptado— y es lo que pide el
+// contador cuando algo se discute. Lucode los devuelve al transmitir y hasta
+// ahora la pantalla los tiraba: quedaban guardados en `respuesta_sunat` y no
+// había forma de llegar a ellos sin abrir la base.
+function EnlacesDocumento({ respuesta }: { respuesta: RespuestaSunat }) {
+  const enlaces = [
+    { url: respuesta?.pdfUrl, etiqueta: "PDF", titulo: "Comprobante en PDF, para la clienta" },
+    { url: respuesta?.cdrUrl, etiqueta: "CDR", titulo: "Constancia de recepción de SUNAT" },
+  ].filter((e): e is { url: string; etiqueta: string; titulo: string } => typeof e.url === "string" && e.url.length > 0);
+
+  if (enlaces.length === 0) return <span className="text-tinta/30">—</span>;
+
+  return (
+    <span className="flex items-center gap-3">
+      {enlaces.map((e) => (
+        <a
+          key={e.etiqueta}
+          href={e.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={e.titulo}
+          className="label-cayla text-[9px] text-tinta/60 underline decoration-tinta/25 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo"
+        >
+          {e.etiqueta}
+        </a>
+      ))}
+    </span>
+  );
+}
+
+// Panel de Facturación electrónica: reserva el correlativo oficial con
+// `emitir_comprobante` y transmite a SUNAT vía Lucode con el botón "Transmitir"
+// de cada fila (la firma del XML y el CDR los hace el PSE, ADR-0005). Mismo
+// patrón que EfectivoPanel: un componente, dos modales, una tabla.
 export function ComprobantesPanel({
   comprobantes,
   series,
   sedes,
   sedeActualId,
+  puedeAdministrarSeries,
 }: {
   comprobantes: Comprobante[];
   series: SerieComprobante[];
   sedes: Sede[];
   sedeActualId: string;
+  /** Solo un Líder registra la serie que autorizó SUNAT y elige la sede del
+   *  comprobante. Emitir y transmitir lo puede hacer cualquiera con sesión —
+   *  quien atiende el mostrador es quien cierra la venta, y la base ya rechaza
+   *  emitir a nombre de una sede ajena (`puede_operar_sede`). */
+  puedeAdministrarSeries: boolean;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"emitir" | "serie" | null>(null);
@@ -124,9 +161,26 @@ export function ComprobantesPanel({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    // IGV incluido en el total (19.83% del total = IGV, práctica estándar
-    // cuando el precio ya lo incluye) — la desagregación exacta por línea
-    // queda para cuando esto se conecte a `ventas` (ver nota al pie).
+    // El precio de CAYLA ya incluye IGV, así que se desagrega hacia atrás.
+    //
+    // DOS NÚMEROS, DOS PRECISIONES, A PROPÓSITO:
+    //  - `subtotal`/`igv` van redondeados a céntimo porque son plata: es lo que
+    //    entra a la contabilidad y a `comprobantes`, y un asiento contable no
+    //    lleva millonésimas.
+    //  - el `precio_unitario` del ítem va SIN redondear (6 decimales, lo que
+    //    Lucode acepta) porque no es plata: es el factor con el que SUNAT
+    //    recompone el total. Reproducido antes de tocarlo: con el valor
+    //    redondeado, el 15,3% de los precios entre S/1 y S/2.000 descuadra un
+    //    céntimo — entre ellos S/19.90, S/109.90, S/129.90 y S/349.90, que son
+    //    precios reales de CAYLA. Una boleta de S/129.90 le declaraba a SUNAT
+    //    110.08 × 1.18 = 129.89 mientras la caja decía 129.90, y ese céntimo
+    //    diario por boleta no lo iba a encontrar nadie. Con 6 decimales el
+    //    mismo barrido da 0 descuadres.
+    //
+    // Mandar `p_items` explícito además arregla el estado imposible de raíz: el
+    // payload ya no puede llevar dos importes que se contradigan. El ítem
+    // genérico que arma la RPC sola queda como red de seguridad, no como el
+    // camino normal.
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const { error } = await supabase.rpc("emitir_comprobante", {
@@ -138,6 +192,13 @@ export function ComprobantesPanel({
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
+      p_items: [
+        {
+          descripcion: "Venta de mercadería",
+          cantidad: 1,
+          precio_unitario: Number((total / 1.18).toFixed(6)),
+        },
+      ],
     });
     if (error) {
       setError(error.message);
@@ -206,16 +267,19 @@ export function ComprobantesPanel({
               sede y tipo — el sistema lleva el correlativo solo desde entonces.
             </Ayuda>
           </h2>
-          <button
-            onClick={() => setModal("serie")}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
-          >
-            Registrar serie
-          </button>
+          {puedeAdministrarSeries && (
+            <button
+              onClick={() => setModal("serie")}
+              className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+            >
+              Registrar serie
+            </button>
+          )}
         </div>
         {series.length === 0 ? (
           <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/40">
             Ninguna sede tiene serie registrada todavía. Sin esto, no se puede emitir nada.
+            {!puedeAdministrarSeries && " Pídeselo a un Líder: es de una sola vez por sede."}
           </p>
         ) : (
           <div className="grid gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-3">
@@ -260,6 +324,7 @@ export function ComprobantesPanel({
                   <th className="label-cayla px-3 py-2 text-[9px]">Cliente</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
+                  <th className="label-cayla px-3 py-2 text-[9px]">Documento</th>
                   <th className="label-cayla px-3 py-2 text-[9px]">SUNAT</th>
                 </tr>
               </thead>
@@ -278,6 +343,9 @@ export function ComprobantesPanel({
                         <span className={`label-cayla rounded-full border px-3 py-1 text-[9px] ${ESTADO_ESTILO[c.estado]}`}>
                           {ESTADO_ETIQUETA[c.estado]}
                         </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <EnlacesDocumento respuesta={c.respuesta_sunat} />
                       </td>
                       <td className="px-3 py-2.5">
                         {puedeTransmitir ? (
@@ -315,21 +383,28 @@ export function ComprobantesPanel({
             className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5 sm:rounded-xl"
           >
             <h3 className="font-display text-lg text-tinta">Emitir comprobante</h3>
-
-            <div className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2 text-xs text-tinta/70">
-              Esto reserva el número oficial y guarda el comprobante. El envío a SUNAT todavía no
-              está conectado — ver el punto pendiente que Claude le explicó a Felipe sobre SEE
-              propio vs. OSE. El comprobante queda &ldquo;Pendiente de enviar&rdquo; hasta que esa
-              decisión se tome.
-            </div>
+            <p className="text-xs text-tinta/50">
+              Reserva el número oficial y guarda el comprobante. Después, con
+              &ldquo;Transmitir&rdquo; en la fila, se envía a SUNAT y vuelve el PDF.
+            </p>
 
             <div>
               <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
-                ))}
-              </select>
+              {/* La sede es de Líder: una colaboradora emite siempre desde la
+                  suya. No es solo estética — la base rechaza emitir a nombre de
+                  otra sede, así que mostrarle un menú de sedes que no puede usar
+                  solo la haría equivocarse con la clienta en el mostrador. */}
+              {puedeAdministrarSeries ? (
+                <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
+                  {sedes.map((s) => (
+                    <option key={s.id} value={s.id}>{s.codigo}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="mt-1 border border-tinta/10 bg-sand/40 px-3 py-2 text-sm text-tinta/70">
+                  {sedes.find((s) => s.id === sedeId)?.codigo ?? "—"}
+                </p>
+              )}
             </div>
 
             <div>
@@ -391,7 +466,7 @@ export function ComprobantesPanel({
       )}
 
       {/* ==================== Modal: registrar serie ==================== */}
-      {modal === "serie" && (
+      {modal === "serie" && puedeAdministrarSeries && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
           <div className="absolute inset-0 bg-tinta/30" />
           <form
