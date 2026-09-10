@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MapearColumnas } from "./MapearColumnas";
 
 /**
  * Paso 1 de la importación: mirar el archivo del cliente antes de tocar nada.
@@ -160,6 +161,17 @@ export function SubirCatalogo() {
             Todavía no se guardó nada.
           </p>
         </section>
+      )}
+
+      {/* La `key` fuerza a rehacer el mapeo si cambia el archivo o la fila de
+          cabecera: sin ella, corregir la cabecera dejaría en pantalla un plan
+          calculado sobre las columnas viejas. */}
+      {tabla && (
+        <MapearColumnas
+          key={`${tabla.origen}:${filaCabecera}`}
+          filas={tabla.filas}
+          filaCabecera={filaCabecera}
+        />
       )}
     </div>
   );
