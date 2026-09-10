@@ -2848,3 +2848,27 @@ Quedan cuatro cuerpos que ningún archivo explica: `abrir_caja`, `cerrar_caja`,
 —producción tiene validaciones y arreglos que `unificacion/07` y `25` no traen, así que
 volver a pegarlos los desarma—; el cuarto no existe en el repo y la app no lo llama.
 
+## 2026-09-10 (el repo vuelve a describir producción: de 10 a 1)
+Cerrados los dos landmines que quedaban. `unificacion/07` recuperó el candado de
+`puede_operar_sede` en `abrir_caja` y `cerrar_caja`; `unificacion/25` recuperó el cuerpo
+completo de `recalcular_stock` —candado de Líder, ruteo al almacén, el arreglo de traslados
+y el de `stock_minimo`—. Los cuerpos se trajeron desde la base con `pg_get_functiondef`, no
+transcritos a mano: un arreglo que se copia a ojo es un arreglo nuevo.
+
+El verificador pasó de 10 funciones sin archivo a **1**. La que queda, `catalogo_con_stock`,
+no es un arreglo pendiente sino una decisión: existe en producción, no está en el repo, y la
+app no la llama.
+
+**Lo que Felipe aprende acá:** hubo que elegir entre duplicar cuerpos o poner punteros, y la
+respuesta la daba el propio problema. `07` define `registrar_venta` en una versión vieja que
+`35` reemplaza; copiar el cuerpo de `35` dentro de `07` habría dejado **dos fuentes de verdad
+de la misma función**, que es exactamente el mecanismo que produjo todo este lío. Así que
+lleva un aviso —«si pegas este archivo, pegá `35` después»— en vez de una copia. Igual `08` y
+`12` respecto de `25`. Un puntero envejece mal si el destino cambia de nombre; una copia
+envejece mal siempre.
+
+Y el `is not true` en vez de `not` no es estilo: si `puede_operar_sede` devolviera NULL,
+`not NULL` tampoco es true y el `raise` no dispararía — el candado se abriría solo. Es el
+mismo agujero que el `coalesce` de `03_candados.sql` cierra desde el otro lado, y por eso
+conviene que las dos defensas existan.
+

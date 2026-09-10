@@ -375,6 +375,24 @@ importante que ha entrado a este archivo desde que existe.
       con `p_nota text DEFAULT NULL::text`, y la idempotencia por token **intacta**
       (`conserva_idempotencia = true`). El verificador pasó de 5 cuerpos sin archivo a 4.
 
+      **CERRADO 2026-09-10 — el repo describe producción: 49 de 50.** Se pusieron al día
+      `unificacion/07` (el candado de `puede_operar_sede` en `abrir_caja` y `cerrar_caja`,
+      con `is not true` para que un NULL no lo abra) y `unificacion/25` (cuerpo completo de
+      `recalcular_stock`: candado de Líder, ruteo al almacén, traslado que cuenta como piso
+      en ambas patas, y el guard de `stock_minimo`). Los cuerpos se trajeron desde la base
+      con `pg_get_functiondef`, no transcritos a mano.
+      Y los archivos que definen versiones viejas —`07` para `registrar_venta`, `08` y `12`
+      para `recalcular_stock`— llevan ahora un aviso que dice cuál los redefine y que hay
+      que pegar después. No se duplicó ningún cuerpo: dos fuentes de verdad de la misma
+      función es exactamente cómo se llegó hasta acá.
+
+      **QUEDA UNA, y es una decisión, no un arreglo: `catalogo_con_stock()`.** Existe en
+      producción, no está en ningún archivo del repo, y **la app no la llama** — solo aparece
+      en `packages/database/src/types.ts` porque `gen-types` la recogió. Las opciones son
+      borrarla en producción (DDL en el proyecto compartido: lo decide Felipe) o escribirla
+      en `unificacion/` si resulta que alguien la usa. Antes de borrar conviene mirar si
+      Dynamic la llama desde su lado.
+
       **Faltan decidir, una por una, las restantes:** `abrir_caja`, `cerrar_caja`, `registrar_venta`,
       `recalcular_stock` y `catalogo_con_stock` — bajaron de 7 a 5 al dejar de contar como
       drift las diferencias de espaciado junto a la puntuación (`coalesce(x,0)` vs
