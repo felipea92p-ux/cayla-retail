@@ -25,10 +25,10 @@
 -- policy que solo el Líder pudiera leer y después acordarse de mantenerla.
 -- ============================================================================
 
-create table if not exists retail.migraciones_aplicadas (
+create table if not exists migraciones_aplicadas (
   archivo text primary key,
   aplicada_at timestamptz not null default now(),
   nota text
 );
 
-alter table retail.migraciones_aplicadas enable row level security;
+alter table migraciones_aplicadas enable row level security;
