@@ -2410,3 +2410,38 @@ servidor manda datos nuevos, igual que disparaba el `[conteo]` del efecto.
 la respuesta correcta fue opuesta en cada uno. Un linter señala una forma, no un problema;
 quien decide si esa forma está mal acá es quien entiende por qué el código la tomó. Apagar
 los dos habría sido pereza, arreglar los dos habría roto la hidratación.
+
+## 2026-09-10 (auditoría antes del push: el backlog decía cuatro y faltaba una)
+Antes de pushear se auditó producción **contra la base**, no contra los documentos: se leyó
+el inventario con `scripts/migraciones/inventario.sql` y se pasó por
+`migraciones:verificar`. El backlog decía que faltaban las migraciones `27`, `28`, `29` y
+`30`. Estaban las cuatro, más la `31` y la `32`. La única pendiente era la `33`, que ni
+siquiera figuraba en ese item porque se escribió después.
+
+**Cómo se supo, que es lo transferible.** Las tablas se comprueban con `to_regclass` y eso
+es certeza. Pero la `33` es un `create or replace` de una función que YA existía con la
+misma firma de 12 argumentos: la firma no distingue la versión vieja de la nueva. Hubo que
+buscar dentro del cuerpo (`v_color_id := nullif(trim(p_color_codigo)`, la línea que la `33`
+agrega). Es literalmente lo que advierte el encabezado del verificador — "una presencia solo
+dice que existe algo con ese nombre, no cuál versión" — y acá esa advertencia era la
+diferencia entre "todo aplicado" y una pantalla que revienta.
+
+**Lo que habría pasado sin la auditoría:** el push habilita el enlace a Conteo en
+`InventarioNav`, y crear una prenda al vuelo dejando el color vacío habría fallado en
+producción — el formulario manda `''` y la versión de la `30` solo contempla `null`. El bug
+ya estaba arreglado en local desde la mañana; lo que faltaba era que la base lo supiera.
+
+Aplicada a pedido de Felipe con `execute_sql` y **no** con `apply_migration`: esta última
+habría escrito una fila en `supabase_migrations.schema_migrations` del proyecto de Dynamic,
+que es el historial de ellos. Una versión fantasma ahí le rompe el `db push` a quien
+mantenga Dynamic. `unificacion/` se pega, no se registra.
+
+Verificado después de aplicar: marcador presente, **una sola firma viva**, idéntica a local.
+Y de paso quedaron descartadas dos falsas alarmas del verificador: `retail_sede_meta` figura
+ausente porque la unificación la movió a `retail.sede_meta`, y la sobrecarga de
+`fn_set_meta_cobertura` vive en `public`, o sea es de Dynamic.
+
+**Lo que Felipe aprende acá:** el backlog es memoria, no evidencia. Decía cuatro pendientes
+y la realidad eran una — pero en la dirección peligrosa: la que faltaba no estaba escrita en
+ningún lado. Antes de un despliegue, la pregunta no es "¿qué dice mi lista?" sino "¿qué dice
+la base?", y son dos preguntas distintas cada vez que alguien aplica algo sin anotarlo.

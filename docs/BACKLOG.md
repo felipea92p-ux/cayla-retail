@@ -166,8 +166,22 @@ importante que ha entrado a este archivo desde que existe.
       `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
       las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
       el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
-- [ ] **YA NO SON CUATRO: FALTA UNA SOLA, LA `33` — verificado contra producción
-      2026-09-10.** Inventario leído de la base y pasado por `migraciones:verificar`:
+- [x] **CERRADO 2026-09-10 — LA `33` YA ESTÁ EN PRODUCCIÓN. No queda ninguna migración
+      pendiente de pegar.** Aplicada desde la sesión a pedido de Felipe (autorización
+      explícita: "aplícala tú"), y verificada en la misma base, no por suposición:
+      `la_33_aplicada = true` buscando `v_color_id := nullif(trim(p_color_codigo)` en el
+      cuerpo, **una sola firma viva** de 12 argumentos (no se creó sobrecarga, que era el
+      riesgo del ADR-0009), e idéntica a la de local argumento por argumento.
+      **Se corrió con `execute_sql`, NO con `apply_migration`, y el motivo importa:**
+      `apply_migration` habría escrito una fila en `supabase_migrations.schema_migrations`
+      del proyecto de Dynamic — el historial de ELLOS, no el nuestro —, y una versión
+      fantasma ahí puede romperle el `db push` a quien mantenga Dynamic. `unificacion/`
+      se pega, no se registra; eso es justo lo que dice CLAUDE.md.
+      **Única divergencia, cosmética y anotada para que nadie la investigue después:** el
+      comentario del arreglo quedó en producción sin las flechas `↓↓↓` del archivo del
+      repo. El código es idéntico; el marcador que usan las auditorías es la línea de
+      código, no el comentario. Texto original abajo:**
+      **FALTA UNA SOLA, LA `33` — verificado contra producción 2026-09-10.** Inventario leído de la base y pasado por `migraciones:verificar`:
       la `27`, `28`, `29`, `30`, `31` y `32` **están aplicadas**. Comprobado objeto por
       objeto, no por documento: existen `colores` (30 filas, con `ARN` de la 32),
       `codigos_barras`, `codigos_correlativos`, `conteos`, `conteo_lineas`; hay **0
