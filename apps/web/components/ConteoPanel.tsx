@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { AltaEnConteo } from "@/components/AltaEnConteo";
+import { AltaEnConteo, type ModeloRecordado } from "@/components/AltaEnConteo";
 import type {
   CatalogoParaConteo,
   CategoriaElegible,
@@ -59,6 +59,9 @@ const clave = (t: string) =>
 export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  // Sobrevive a cada alta porque vive acá: `AltaEnConteo` se monta y se desmonta con
+  // cada prenda nueva, así que guardarlo adentro sería perderlo justo entre una y otra.
+  const [modelo, setModelo] = useState<ModeloRecordado | null>(null);
 
   const [lineas, setLineas] = useState<LineaContada[]>(conteo?.lineas ?? []);
   const [termino, setTermino] = useState("");
@@ -355,6 +358,8 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
           codigoEscaneado={desconocido}
           categorias={categorias}
           colores={colores}
+          modelo={modelo}
+          onModelo={setModelo}
           onCancelar={() => {
             setDesconocido(null);
             setTermino("");

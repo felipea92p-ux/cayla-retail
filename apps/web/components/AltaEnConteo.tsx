@@ -24,12 +24,32 @@ import type { CategoriaElegible, ColorElegible, LineaContada } from "@/lib/conte
  *   "escanear lo que ya está en la percha" (ADR-0025).
  */
 
+/**
+ * El último modelo declarado en este conteo, para no volver a tipearlo.
+ *
+ * `productoId` es lo que de verdad importa: sin él, `conteo_crear_variante` inserta un
+ * producto NUEVO cada vez. Declarar la talla M y después la L de la misma blusa creaba
+ * dos productos con la misma referencia y DOS códigos cortos distintos — y el código
+ * corto es lo que va impreso en la etiqueta y lo que agrupa el catálogo por modelo.
+ * Recordar el modelo no es solo ahorrar tecleo: es lo que impide partir una prenda en dos.
+ */
+export type ModeloRecordado = {
+  productoId: string;
+  referencia: string;
+  familia: string;
+  categoriaId: string;
+  precio: string;
+};
+
 type Props = {
   conteoId: string;
   /** Lo que se escaneó o escribió y no encontró nada. */
   codigoEscaneado: string;
   categorias: CategoriaElegible[];
   colores: ColorElegible[];
+  /** El último modelo creado en esta sesión de conteo, o null si es el primero. */
+  modelo: ModeloRecordado | null;
+  onModelo: (modelo: ModeloRecordado | null) => void;
   onCancelar: () => void;
   onCreada: (linea: LineaContada) => void;
 };
@@ -48,17 +68,25 @@ export function AltaEnConteo({
   codigoEscaneado,
   categorias,
   colores,
+  modelo,
+  onModelo,
   onCancelar,
   onCreada,
 }: Props) {
   const esCodigo = pareceCodigo(codigoEscaneado);
 
-  const [referencia, setReferencia] = useState(esCodigo ? "" : codigoEscaneado);
-  const [familia, setFamilia] = useState("indumentaria");
-  const [categoriaId, setCategoriaId] = useState("");
+  // Con un modelo recordado el formulario arranca en corto: talla, color y cuántas hay.
+  // Son los tres campos que cambian entre una prenda y la siguiente del mismo modelo;
+  // los otros cuatro son los mismos y volver a pedirlos, 500 veces, es el trabajo que
+  // hace que nadie quiera usar el sistema durante el censo.
+  const [usarModelo, setUsarModelo] = useState(modelo !== null);
+
+  const [referencia, setReferencia] = useState(modelo?.referencia ?? (esCodigo ? "" : codigoEscaneado));
+  const [familia, setFamilia] = useState(modelo?.familia ?? "indumentaria");
+  const [categoriaId, setCategoriaId] = useState(modelo?.categoriaId ?? "");
   const [talla, setTalla] = useState("");
   const [colorCodigo, setColorCodigo] = useState("");
-  const [precio, setPrecio] = useState("");
+  const [precio, setPrecio] = useState(modelo?.precio ?? "");
   const [cantidad, setCantidad] = useState("1");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -83,8 +111,12 @@ export function AltaEnConteo({
 
     const supabase = createClient();
     const cuantas = Number(cantidad);
+    const productoId = usarModelo ? modelo?.productoId : undefined;
     const { error: err } = await supabase.rpc("conteo_crear_variante", {
       p_conteo_id: conteoId,
+      // Con `p_producto_id` la RPC cuelga la variante del producto que ya existe y
+      // `p_referencia` queda de adorno; sin él, inserta un producto nuevo.
+      p_producto_id: productoId,
       p_referencia: referencia.trim(),
       // Cadena vacía y no `undefined`: los dos son parámetros SIN default en la RPC
       // (van antes de los que sí tienen), así que supabase-js los tipa obligatorios.
@@ -102,6 +134,29 @@ export function AltaEnConteo({
     if (err) {
       setError(traducirError(err, "crear la prenda"));
       return;
+    }
+
+    // Si acabamos de crear el producto, hay que averiguar cuál quedó: la RPC devuelve el
+    // id de la LÍNEA del conteo, no el del producto. Se busca el más reciente con esa
+    // referencia, que es el que acaba de nacer.
+    //
+    // Esta lectura SÍ ignora su error a propósito —la única del archivo—: si falla, lo
+    // único que se pierde es el atajo, y la siguiente alta pide los siete campos como
+    // antes. Tumbar una prenda ya contada por no poder guardar una comodidad sería el
+    // intercambio al revés.
+    if (productoId) {
+      onModelo({ productoId, referencia: referencia.trim(), familia, categoriaId, precio });
+    } else {
+      const { data: creado } = await supabase
+        .from("productos")
+        .select("id")
+        .eq("referencia", referencia.trim())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (creado?.id) {
+        onModelo({ productoId: creado.id, referencia: referencia.trim(), familia, categoriaId, precio });
+      }
     }
 
     onCreada({
@@ -133,19 +188,39 @@ export function AltaEnConteo({
       ancho="max-w-md"
     >
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label className={campoEtiqueta}>Qué prenda es</label>
-          <input
-            required
-            autoFocus
-            value={referencia}
-            onChange={(e) => setReferencia(e.target.value)}
-            placeholder="Blusa manga larga escote en V"
-            className={campoTexto}
-          />
-        </div>
+        {usarModelo && modelo ? (
+          <div className="card-cayla flex items-start justify-between gap-3 p-3">
+            <div>
+              <p className="label-cayla text-[11px] text-tinta/65">Misma prenda</p>
+              <p className="mt-0.5 text-sm text-tinta">{modelo.referencia}</p>
+              <p className="text-xs text-tinta/65">
+                {categorias.find((c) => c.id === modelo.categoriaId)?.nombre ?? "sin categoría"}
+                {modelo.precio ? ` · S/${modelo.precio}` : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUsarModelo(false)}
+              className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            >
+              Otra prenda
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <label className={campoEtiqueta}>Qué prenda es</label>
+            <input
+              required
+              autoFocus
+              value={referencia}
+              onChange={(e) => setReferencia(e.target.value)}
+              placeholder="Blusa manga larga escote en V"
+              className={campoTexto}
+            />
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid grid-cols-2 gap-3 ${usarModelo ? "hidden" : ""}`}>
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Familia</label>
             <select
@@ -180,7 +255,12 @@ export function AltaEnConteo({
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Talla</label>
             {tallasSugeridas.length > 0 ? (
-              <select value={talla} onChange={(e) => setTalla(e.target.value)} className={campoSelect}>
+              <select
+                autoFocus={usarModelo}
+                value={talla}
+                onChange={(e) => setTalla(e.target.value)}
+                className={campoSelect}
+              >
                 <option value="">Única</option>
                 {tallasSugeridas.map((t) => (
                   <option key={t} value={t}>
@@ -189,7 +269,13 @@ export function AltaEnConteo({
                 ))}
               </select>
             ) : (
-              <input value={talla} onChange={(e) => setTalla(e.target.value)} placeholder="Única" className={campoTexto} />
+              <input
+                autoFocus={usarModelo}
+                value={talla}
+                onChange={(e) => setTalla(e.target.value)}
+                placeholder="Única"
+                className={campoTexto}
+              />
             )}
           </div>
           <div className="space-y-1.5">
@@ -206,7 +292,7 @@ export function AltaEnConteo({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+          <div className={`space-y-1.5 ${usarModelo ? "hidden" : ""}`}>
             <label className={campoEtiqueta}>Precio de venta</label>
             <input
               type="text"

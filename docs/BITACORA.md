@@ -2627,3 +2627,28 @@ patrón que `panel-serie.ts` frente a `panel.ts`. 7 pruebas nuevas.
 De paso, el ítem del backlog estaba viejo por tercera vez esta semana: daba por pendientes
 la proyección delgada y la pantalla de conteo, que ya existían desde `ab479ba`.
 
+## 2026-09-10 (el alta deja de repetirse, y con eso deja de partir prendas en dos)
+El backlog pedía una MATRIZ talla × color para el alta durante el censo. Se descartó y se
+hizo otra cosa, con el desacuerdo puesto sobre la mesa antes de construir. Dos razones:
+`conteo_crear_variante` siempre termina llamando a `conteo_contar`, así que crear las 12
+celdas de golpe metería 11 líneas «contadas: 0» — que en el cierre significa «miré y no
+había», una afirmación y no un vacío, justo en el informe que se acababa de construir para
+que fuera confiable. Y porque el dolor real no era declarar 12 celdas: era que la segunda
+talla del mismo modelo volvía a pedir los siete campos.
+
+Ahora el alta recuerda el modelo: la siguiente pide talla, color y cantidad.
+
+**Lo que Felipe aprende acá, y vale más que la comodidad:** buscando el ahorro de tecleo
+apareció un defecto que el censo habría golpeado en la prenda número dos. `AltaEnConteo`
+nunca pasaba `p_producto_id`, y la RPC, sin ese dato, **inserta un producto nuevo cada
+vez**. Declarar la talla M y después la L de la misma blusa creaba dos productos con la
+misma referencia y DOS códigos cortos distintos. El código corto es lo que va impreso en la
+etiqueta y lo que agrupa el catálogo por modelo: la prenda quedaba partida en dos para el
+inventario, la rotación y la clase ABC, sin que nada fallara. Recordar el modelo no es un
+atajo de tecleo; es lo que impide esa partición.
+
+La lección de método: la funcionalidad que se pidió (la matriz) y el problema que la
+motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
+primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
+defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
+
