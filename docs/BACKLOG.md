@@ -321,6 +321,34 @@ importante que ha entrado a este archivo desde que existe.
       carpeta `unificacion/` NO reproduce lo que hay en producción. El repo dejó de ser la
       descripción del sistema para ser una descripción parcial, y no hay forma de saber
       cuántos parches más como éste hay vivos.
+      **MEDIDO 2026-09-10: son DIEZ, no una.** Corrido el verificador con cuerpos contra la
+      base de producción (lectura de catálogo vía el conector de Supabase), diez funciones de
+      `retail` tienen un cuerpo que **no coincide con ningún archivo del repo**:
+      `abrir_caja`, `cerrar_caja`, `registrar_venta`, `cerrar_produccion`,
+      `set_etapa_produccion`, `recalcular_stock`, `es_lider`, `es_supervisor`,
+      `puede_operar_sede`, y `catalogo_con_stock` —esta última ni siquiera existe como
+      nombre en el repositorio—.
+
+      **LA MÁS GRAVE, y es un candado de permisos.** Las tres funciones de
+      `unificacion/03_candados.sql` están endurecidas en producción y no en el repo:
+
+      | | repo | producción |
+      |---|---|---|
+      | `es_lider` | `select public.fn_rol_actual() = 'admin'` | `select coalesce(…, false)` |
+      | `es_supervisor` | ídem sin coalesce | `coalesce(…, false)` |
+      | `puede_operar_sede` | ídem sin coalesce | `coalesce(…, false)` en las dos ramas |
+
+      No es cosmético. Sin el `coalesce`, si `fn_rol_actual()` devuelve NULL —sesión sin rol,
+      usuario sin fila— la función devuelve NULL; y en un `if not es_lider() then raise`,
+      `not null` **no es true**, así que la excepción NO se dispara y el candado se abre
+      solo. Alguien lo encontró y lo parchó a mano en producción.
+      **El riesgo vivo:** volver a pegar `03_candados.sql` —que es lo que haría cualquiera
+      siguiendo el repo— **deshace ese endurecimiento en silencio**.
+
+      **Lo que hay que decidir, función por función:** cuáles de las diez se traen al repo
+      (el `coalesce` claramente sí) y cuáles son legítimamente propias de producción. No se
+      tocó ninguna: son diez cuerpos distintos y elegir mal es peor que no elegir.
+
       **La herramienta ya lo detecta, desde el 2026-09-10.** `pnpm migraciones:verificar`
       compara ahora el CUERPO de cada función de `retail` contra todas las definiciones que
       el repo tenga de ese nombre, no solo su existencia (ADR-0026, ampliación). Probadas las

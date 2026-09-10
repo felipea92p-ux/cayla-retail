@@ -2745,3 +2745,36 @@ llegar como JSON pelado (copiar y pegar) o envuelto en CSV con las comillas dupl
 (botón de descarga). El script acepta los dos, porque quien corre esto no tiene por qué
 saber cuál eligió — y `JSON.parse` fallando sobre un CSV da un mensaje que no ayuda a nadie.
 
+## 2026-09-10 (eran diez, y una es un candado de permisos)
+Corrido el verificador con comparación de cuerpos contra producción: **diez funciones de
+`retail` tienen un cuerpo que no coincide con ningún archivo del repo**. La pregunta de la
+mañana —«¿cuántos parches a mano hay vivos?»— tiene número.
+
+La lista: `abrir_caja`, `cerrar_caja`, `registrar_venta`, `cerrar_produccion`,
+`set_etapa_produccion`, `recalcular_stock`, `es_lider`, `es_supervisor`,
+`puede_operar_sede`, y `catalogo_con_stock` — esta última ni siquiera existe como nombre en
+el repositorio.
+
+**Lo que Felipe aprende acá, y es lo más serio del día.** Las tres funciones de permiso
+están endurecidas en producción y no en el repo. Donde `03_candados.sql` dice
+`select public.fn_rol_actual() = 'admin'`, producción dice
+`select coalesce(public.fn_rol_actual() = 'admin', false)`. Parece un detalle y es un
+candado: sin el `coalesce`, si `fn_rol_actual()` devuelve NULL —una sesión sin rol— la
+función devuelve NULL, y en un `if not es_lider() then raise`, **`not null` no es true**,
+así que la excepción no se dispara y el permiso pasa. Alguien encontró eso y lo parchó
+directo en producción.
+
+Y ahí está el riesgo que sigue vivo: **volver a pegar `03_candados.sql` deshace ese
+endurecimiento sin que nada avise**. Es lo que haría cualquiera siguiendo el repo, porque el
+repo no sabe que ese arreglo existe.
+
+No se tocó ninguna de las diez. Son diez cuerpos distintos y hay que decidir uno por uno
+cuál se trae al repo y cuál es legítimamente propio de producción; elegir mal es peor que no
+elegir. Queda en BACKLOG con la tabla del `coalesce` escrita.
+
+Nota de método: el inventario se leyó con el conector de Supabase en vez de pedirle a Felipe
+que pegara la consulta. Salió 173 KB —demasiado para el contexto— y el runtime lo guardó en
+un archivo; se extrajo de ahí con un script, así que el contenido nunca pasó por la
+conversación. Vale recordarlo: cuando el dato es grande, el archivo es mejor camino que el
+copiar y pegar, y encima no se puede equivocar de base.
+
