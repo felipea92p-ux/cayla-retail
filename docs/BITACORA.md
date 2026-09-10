@@ -3,6 +3,35 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-10 (la pieza más difícil ya estaba construida, y llevaba semanas sin usarse)
+
+Arrancó la dimensión «velocidad y sin internet» y el primer paso resultó ser el más
+barato de todos: `registrar_venta` **ya era idempotente en producción** —columna
+`token_cliente`, índice único, `p_token`, la guarda que rechaza un token reusado con
+otros datos y el `exception when unique_violation` de la carrera—, puesta a mano por
+alguien y sin usar por nadie. Le faltaban tres cosas: que el modal mandara el token,
+que local tuviera lo mismo (`0054`, una migración que va al revés que todas: el repo
+poniéndose al día con producción), y decidir quién genera el token y cuánto vive
+(ADR-0031).
+
+**Y el valor real no era el que decía el plan.** El plan lo justificaba como
+precondición de la cola de la venta sin internet. Mirando `lib/error-escritura.ts`
+apareció algo que sirve hoy: ante un `Failed to fetch` la pantalla le decía a la
+Encargada «No se guardó nada — vuelve a intentar», y eso **es mentira la mitad de las
+veces**. `Failed to fetch` no distingue entre "no salió" y "salió, entró, y se cortó la
+respuesta". Con la red de la tienda cortando llamadas a la mitad, el sistema venía
+invitando a cobrar dos veces con la frase que más tranquiliza.
+
+Lo que Felipe se lleva: **la decisión que importaba no era técnica, era cuánto vive el
+token.** Regenerarlo cuando cambia el carrito es lo que haría cualquiera —parece más
+limpio— y es justo lo que rompe el único caso que importa: intentó, pareció fallar,
+agregó una prenda, volvió a darle. Manteniéndolo, la RPC frena y avisa que la primera sí
+entró. Y una segunda: probar la prueba al revés antes de creerle. Con el token cambiado
+a propósito, el test falla con «el reintento devolvió otra venta» — recién ahí el verde
+significa algo. Verificado por HTTP contra PostgREST local y con `explain` contra
+producción, que es donde murió el arreglo de la mañana. **No** se probó vendiendo en el
+navegador: local tiene cero variantes.
+
 ## 2026-09-10 (el estándar universal va debajo, no en lugar de)
 
 Felipe preguntó si se podía usar IA para importar el inventario de cada cliente

@@ -1,3 +1,28 @@
+// ============================================================================
+// GENERADO por `pnpm --filter @cayla-retail/database gen-types`
+// (`supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail`)
+//
+// ⚠ TIENE PARCHES A MANO. Regenerar a ciegas los BORRA.
+//
+//   Ningún entorno tiene hoy el esquema completo, así que ninguna regeneración
+//   sale correcta sola:
+//     · producción NO tiene la taxonomía universal (`0052` no está aplicada allá)
+//     · local NO tiene `catalogo_con_stock`, `configuracion_empresa`,
+//       `sede_meta`, `sede_datos_fiscales`, `persona_actual`, `puede_operar_sede`
+//
+//   Lo puesto a mano, con fecha, para poder reponerlo después de regenerar:
+//     · 2026-09-10 — los 5 tipos de taxonomía y las 2 columnas de anclaje
+//       (solo existen en local)
+//     · 2026-09-10 — `ventas.token_cliente` y `registrar_venta.p_token`
+//       (solo existen en producción; local se puso al día con la migración
+//       `0054`, así que este parche sobra el día que se regenere DESPUÉS de
+//       aplicar `0052` en producción)
+//
+//   El arreglo de fondo —decidir cuál de los dos entornos es la fuente— está en
+//   el BACKLOG. Mientras tanto, después de cada `gen-types` hay que releer esta
+//   lista y reponer lo que falte.
+// ============================================================================
+
 export type Json =
   | string
   | number
@@ -2072,6 +2097,7 @@ export type Database = {
           monto_total: number
           nota: string | null
           sede_id: string
+          token_cliente: string | null
           usuario_id: string | null
         }
         Insert: {
@@ -2082,6 +2108,7 @@ export type Database = {
           monto_total: number
           nota?: string | null
           sede_id: string
+          token_cliente?: string | null
           usuario_id?: string | null
         }
         Update: {
@@ -2092,6 +2119,7 @@ export type Database = {
           monto_total?: number
           nota?: string | null
           sede_id?: string
+          token_cliente?: string | null
           usuario_id?: string | null
         }
         Relationships: [
@@ -2580,6 +2608,7 @@ export type Database = {
           p_items: Json
           p_metodo_pago: string
           p_nota?: string
+          p_token?: string
         }
         Returns: string
       }

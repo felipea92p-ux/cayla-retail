@@ -55,6 +55,26 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
   const [ok, setOk] = useState<{ total: number; prendas: number } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
 
+  /**
+   * El token que hace que reintentar NO cobre dos veces.
+   *
+   * `traducirError` le dice a la Encargada "no se guardó nada — vuelve a intentar" cuando la
+   * llamada falla sin llegar al servidor. Con la red de la tienda eso es mentira la mitad de
+   * las veces: `Failed to fetch` no distingue entre "no salió" y "salió, entró, y se cortó la
+   * respuesta". Si el corte fue de vuelta, la venta YA está registrada y el stock YA se
+   * descontó — y la pantalla la está invitando a repetirla.
+   *
+   * `registrar_venta` es idempotente por `p_token` (migración `0054`): con el mismo token y el
+   * mismo carrito devuelve la venta que ya existe en vez de crear otra.
+   *
+   * Va en un `ref` y NO en estado, a propósito: tiene que sobrevivir a los re-render del
+   * carrito SIN provocar ninguno. Y se crea en el primer envío, no al montar: es el
+   * identificador de ESTE intento de venta, y vive hasta que la venta entra. Si ella corrige
+   * el carrito y vuelve a intentar, el token sigue siendo el mismo — y ahí está lo importante:
+   * si el primer intento sí había entrado, la RPC lo rechaza en vez de cobrar de nuevo.
+   */
+  const token = useRef<string | null>(null);
+
   const term = q.trim().toLowerCase();
 
   const resultados = useMemo(() => {
@@ -176,16 +196,20 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
     setLoading(true);
     setError(null);
 
+    // Se crea una sola vez y se conserva entre reintentos: es lo que los vuelve seguros.
+    token.current ??= crypto.randomUUID();
+
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_venta", {
       p_caja_id: cajaId,
       p_metodo_pago: metodoPago,
       p_items: carrito.map((it) => ({ variante_id: it.varianteId, cantidad: it.cantidad, monto: it.monto })),
+      p_token: token.current,
     });
 
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "registrar la venta"));
+      setError(traducirError(error, "registrar la venta", { reintentoSeguro: true }));
       return;
     }
     // El acuse se muestra ANTES de cerrar: quien recién aprende necesita ver que la venta

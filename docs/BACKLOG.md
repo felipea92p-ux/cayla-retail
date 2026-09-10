@@ -51,15 +51,25 @@ importante que ha entrado a este archivo desde que existe.
       (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
       `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
 
-- [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
-      medido.** `packages/database/package.json` usa `--project-id
-      vovjyyiafkxteijimpuy` (producción). Generar desde local —lo natural cuando
-      las tablas nuevas solo existen ahí— **borra** `catalogo_con_stock`,
-      `configuracion_empresa`, `sede_meta`, `sede_datos_fiscales`,
-      `persona_actual` y `puede_operar_sede`, que existen en producción y no en
-      local. Hoy los 5 tipos de taxonomía y las 2 columnas de anclaje se
-      insertaron a mano por eso. Mientras el drift exista, regenerar a ciegas
-      rompe la app: hace falta decidir cuál de los dos entornos es la fuente.
+- [ ] **`gen-types`: ningún entorno tiene el esquema completo, así que ninguna
+      regeneración sale bien sola — y ya son 3 parches a mano.**
+      **CORRECCIÓN 2026-09-10:** este ítem decía que el script "apunta al proyecto
+      viejo de retail". Es falso, y se corrige acá porque mandó a alguien a
+      arreglar lo que no estaba roto. `--project-id vovjyyiafkxteijimpuy` **es**
+      cayla-dynamic, o sea producción (comprobado con `list_projects`: los dos
+      únicos proyectos vivos son `cayla-dynamic` y `Freewheel`). El script está
+      bien; lo que está mal es que ningún entorno sirva como fuente única.
+      Generar desde **local** borra `catalogo_con_stock`, `configuracion_empresa`,
+      `sede_meta`, `sede_datos_fiscales`, `persona_actual` y `puede_operar_sede`.
+      Generar desde **producción** borra los 5 tipos de taxonomía y las 2 columnas
+      de anclaje (`0052` no está aplicada allá).
+      Lo puesto a mano hasta hoy, ahora listado con fecha en la cabecera del
+      propio `types.ts` —que no tenía ninguna, y ése es justo el mecanismo por el
+      que un parche se pierde—: los 5 tipos de taxonomía + 2 columnas de anclaje
+      (10-sep) y `ventas.token_cliente` + `registrar_venta.p_token` (10-sep).
+      **La salida más corta es aplicar `0052` en producción**: con eso producción
+      pasa a ser superconjunto de local y `gen-types` vuelve a ser fiable de un
+      solo tiro. Es DDL en el proyecto compartido, o sea decisión de Felipe.
 
 
 - [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
@@ -699,10 +709,38 @@ importante que ha entrado a este archivo desde que existe.
       Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
       **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
       él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
-      **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
-      Washington igual. Tendrá su propio ADR con el motor de sincronización elegido.
+      **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario` en 131 ms de TTFB
+      y 750 ms de carga total; el "~2 s" que se repetía nunca fue una medición). El
+      motor ya está elegido: instantánea en IndexedDB + Supabase Realtime, sin motor
+      externo (ADR-0018).
+      **EL PRIMER PASO REAL ES UN `alter publication`, y no es mío:** hoy
+      `supabase_realtime` tiene **0 tablas** (reverificado contra producción el
+      10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es DDL en el
+      proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo también con
+      local: `config.toml` tiene el contenedor de `realtime` **apagado** desde ADR-0010,
+      así que probar esto en local exige encenderlo primero (y ADR-0010 avisa que dos
+      stacks compitiendo era justo lo que rompía los healthchecks).
+      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0031, `0054`). La
+      cola de la Fase 3 tiene su red puesta antes de existir.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
+
+- [ ] **Los candados de local pueden abrirse solos con NULL — barrido pendiente.**
+      `34_candados_no_null.sql` cerró `es_lider`, `es_supervisor` y `puede_operar_sede`
+      en **producción**. Local tiene otros nombres (`fn_es_lider`, `fn_puede_operar_sede`)
+      y **no recibió ese endurecimiento**. El mecanismo: si la función devuelve NULL
+      —una sesión sin rol—, `if not fn_puede_operar_sede(...)` no dispara el `raise`,
+      porque `not NULL` no es true, y **el permiso pasa**. `fn_puede_operar_sede` es un
+      `select` sin `coalesce` sobre `fn_es_lider()`, así que puede devolver NULL.
+      Cerrado hasta ahora en **una sola** función: `registrar_venta`, por `0054`, y solo
+      porque era la que esa migración reescribía igual (ADR-0031). Falta el barrido:
+      listar cada `if not <candado>` de las funciones de local y pasarlo a `is not true`,
+      o ponerle `coalesce(..., false)` a `fn_es_lider`/`fn_puede_operar_sede` en su
+      definición, que es el arreglo por el otro lado y probablemente el correcto.
+      `mi_sede()`/`fn_sede_actual_persona()` **NO** llevan `coalesce`: devuelven uuid, y
+      ahí NULL es la respuesta honesta.
+      Reversible: sí. Riesgo real hoy: bajo (local es entorno de desarrollo), pero
+      mantiene local y producción divergiendo justo en el modelo de seguridad.
 
 - [x] **RESUELTO 2026-09-09. Ahora corre 3 tareas y encontró 1 error real el primer día.**
       `"typecheck": "tsc --noEmit"` en los tres paquetes y la tarea declarada en

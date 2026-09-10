@@ -194,7 +194,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   separada del piso de venta pero dentro de la misma sede).
 - **Sedes/personas**: `sedes`, `personas` (`auth_user_id` único).
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
-  parcial), `ventas` (1 fila por checkout).
+  parcial), `ventas` (1 fila por checkout; `token_cliente` con índice único
+  es la idempotencia — el navegador manda un uuid por intento de venta y el
+  reintento devuelve la misma fila en vez de crear otra, ADR-0031).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
 - **Producción**: `producciones` (`costo_unitario` es **columna generada**,
   no se puede desincronizar; `etapas` jsonb con 6 estados: patronaje →
@@ -214,7 +216,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
-| `registrar_venta` | Venta + N movimientos de salida |
+| `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0031) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
