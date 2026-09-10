@@ -3,6 +3,34 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-10 (el estándar universal va debajo, no en lugar de)
+
+Felipe preguntó si se podía usar IA para importar el inventario de cada cliente
+nuevo. La primera respuesta apuntaba al vocabulario de CAYLA y él la frenó en
+seco: **ese vocabulario es de CAYLA**, no sirve para una zapatería ni para una
+marca deportiva, y pidió buscar un estándar universal si existía. Existe: la
+Shopify Standard Product Taxonomy — MIT, en español, release de hace un mes, 663
+categorías de ropa y 8.240 atributos con valores predefinidos. Google Product
+Taxonomy lleva congelada desde 2021 y no tiene atributos; los códigos de color y
+talla del NRF (hoy GS1 US) cuestan 250 dólares y están pensados para EDI.
+
+**El dato que ordenó todo el diseño: Shopify tiene 19 colores y CAYLA tiene 30.**
+El estándar universal es más pobre que el vocabulario propio, y eso no es un
+defecto — es lo que significa interoperar. Por eso va DEBAJO y no EN LUGAR DE:
+"Arena" sigue siendo Arena para la Líder y es "Beige" para el sistema. Con eso el
+trabajo de la IA cambia de naturaleza: deja de ser "adivina a qué categoría de
+CAYLA va esto" (imposible de generalizar a otra marca) y pasa a ser "mapea al
+universal", que es el mismo trabajo para todos los clientes, para siempre
+(ADR-0030). Quedaron cargadas 1.849 categorías y 10.216 valores en local.
+
+Lo que Felipe se lleva: **un estándar de interoperabilidad no es el vocabulario
+más rico, es el más compartido** — y por eso se pone debajo del propio en vez de
+reemplazarlo. Y la regla que va a gobernar el importador entero: lo que resuelve
+el código no se le pregunta a la IA (la mitad de los 30 colores se ancla por
+comparación exacta de cadenas, gratis, sin que el modelo los vea). Queda
+pendiente ejecutarlo: no hay ANTHROPIC_API_KEY en el entorno, así que la calidad
+real de las propuestas del modelo todavía no se ha visto.
+
 ## 2026-09-10 (el identificador no es la etiqueta, y el flag prestado no es tuyo)
 Felipe preguntó dónde cambiar a mano las letras del selector de sede: quería que
 `LIM` dijera Taller y `003` dijera Tienda Lima. No hacía falta escribirlas — la
@@ -2598,4 +2626,29 @@ patrón que `panel-serie.ts` frente a `panel.ts`. 7 pruebas nuevas.
 
 De paso, el ítem del backlog estaba viejo por tercera vez esta semana: daba por pendientes
 la proyección delgada y la pantalla de conteo, que ya existían desde `ab479ba`.
+
+## 2026-09-10 (el alta deja de repetirse, y con eso deja de partir prendas en dos)
+El backlog pedía una MATRIZ talla × color para el alta durante el censo. Se descartó y se
+hizo otra cosa, con el desacuerdo puesto sobre la mesa antes de construir. Dos razones:
+`conteo_crear_variante` siempre termina llamando a `conteo_contar`, así que crear las 12
+celdas de golpe metería 11 líneas «contadas: 0» — que en el cierre significa «miré y no
+había», una afirmación y no un vacío, justo en el informe que se acababa de construir para
+que fuera confiable. Y porque el dolor real no era declarar 12 celdas: era que la segunda
+talla del mismo modelo volvía a pedir los siete campos.
+
+Ahora el alta recuerda el modelo: la siguiente pide talla, color y cantidad.
+
+**Lo que Felipe aprende acá, y vale más que la comodidad:** buscando el ahorro de tecleo
+apareció un defecto que el censo habría golpeado en la prenda número dos. `AltaEnConteo`
+nunca pasaba `p_producto_id`, y la RPC, sin ese dato, **inserta un producto nuevo cada
+vez**. Declarar la talla M y después la L de la misma blusa creaba dos productos con la
+misma referencia y DOS códigos cortos distintos. El código corto es lo que va impreso en la
+etiqueta y lo que agrupa el catálogo por modelo: la prenda quedaba partida en dos para el
+inventario, la rotación y la clase ABC, sin que nada fallara. Recordar el modelo no es un
+atajo de tecleo; es lo que impide esa partición.
+
+La lección de método: la funcionalidad que se pidió (la matriz) y el problema que la
+motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
+primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
+defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
 

@@ -11,6 +11,49 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
+      puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
+      migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
+      valores de la Shopify Product Taxonomy v2026-08 en local, motor de anclaje
+      en dos pasadas (`lib/taxonomia/anclar.ts` puro y testeado +
+      `anclar-ia.ts`), endpoint `POST/PUT /api/taxonomia/anclar` (propone / guarda,
+      nunca en un solo paso) y pantalla `/inventario/taxonomia`.
+      **Bloqueado por lo mismo que todo lo demás de IA: no hay `ANTHROPIC_API_KEY`
+      en el entorno.** Sin ella el endpoint responde 503 con el mensaje que lo
+      explica, y el anclaje de los 30 colores y 32 categorías de CAYLA nunca se ha
+      ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
+      se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
+      **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
+      Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
+      archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
+      URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
+      ancla los valores distintos y siembra el vocabulario propio del cliente con
+      SUS nombres → RPC `importar_catalogo` transaccional (llamar
+      `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
+      Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
+      carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
+      versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
+      taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
+      la regla es que **la IA compila el mapeo, no procesa las filas**.
+
+- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
+      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
+      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
+      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
+      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
+      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+
+- [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
+      medido.** `packages/database/package.json` usa `--project-id
+      vovjyyiafkxteijimpuy` (producción). Generar desde local —lo natural cuando
+      las tablas nuevas solo existen ahí— **borra** `catalogo_con_stock`,
+      `configuracion_empresa`, `sede_meta`, `sede_datos_fiscales`,
+      `persona_actual` y `puede_operar_sede`, que existen en producción y no en
+      local. Hoy los 5 tipos de taxonomía y las 2 columnas de anclaje se
+      insertaron a mano por eso. Mientras el drift exista, regenerar a ciegas
+      rompe la app: hace falta decidir cuál de los dos entornos es la fuente.
+
+
 - [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
       backend completo, frontend adaptado, falta la prueba en vivo por Felipe.**
       "Recibir mercadería" era el único camino para crear un producto y no
@@ -157,7 +200,7 @@ importante que ha entrado a este archivo desde que existe.
       silencio. **Verificado con una Encargada real:** abre, crea la prenda
       adoptando su código de fábrica, cuenta 4 — y al cerrar recibe "Solo un líder
       puede cerrar un conteo". El stock quedó en 0 hasta que el Líder cerró.
-- [ ] **`censo`: las pantallas — queda UNA.** El ítem estaba viejo: al auditarlo el
+- [x] **CERRADO 2026-09-10 — `censo`: las pantallas.** El ítem estaba viejo: al auditarlo el
       2026-09-10 resultó que la proyección delgada (`getCatalogoParaConteo`, 6 columnas en
       vez de 1,1 MB) y la pantalla de conteo con pistola ya existían desde `ab479ba`.
       **Cerrado hoy: el cierre del conteo** — `/inventario/conteo/cerrar`, con la varianza
@@ -165,12 +208,20 @@ importante que ha entrado a este archivo desde que existe.
       (cerrar / anular). Era el agujero que dejaba el módulo entero sin servir: la pantalla
       de conteo prometía "lo contado no entra al inventario hasta que la Líder cierra" y
       `cerrar_conteo` no estaba cableada en ninguna parte.
-      **LO QUE FALTA, y es lo único:** el alta por MATRIZ talla × color dentro del conteo.
-      Hoy `AltaEnConteo` da de alta una variante por vez —una talla, un color—, así que un
-      modelo con 4 tallas × 3 colores son 12 altas a mano. La matriz ya existe en
-      `inventario/producto/nuevo`, pero es otra pantalla y solo de Líder: hay que traer ese
-      gesto adentro. (Etiquetas en lote quedó fuera del alcance del censo: la pantalla de
-      etiquetas está en manos de la sesión de QR.)
+      **CERRADO TAMBIÉN el alta repetida, y no como se había planeado.** El backlog pedía una
+      MATRIZ talla × color; al mirarlo de cerca se descartó y se hizo otra cosa, por dos
+      razones. (1) `conteo_crear_variante` siempre termina llamando a `conteo_contar`, así que
+      crear las 12 celdas de golpe metería 11 líneas «contadas: 0» al conteo — en el cierre eso
+      significa «miré y no había», que es una afirmación, no un vacío. (2) El dolor real no era
+      declarar 12 celdas: era que la segunda talla del mismo modelo pedía otra vez los siete
+      campos. Se implementó **recordar el modelo**: la siguiente alta pide talla, color y
+      cantidad, y nada más.
+      **Y de paso destapó un defecto que el censo habría golpeado en la prenda nº 2:**
+      `AltaEnConteo` nunca pasaba `p_producto_id`, así que declarar la talla M y después la L
+      de la misma blusa creaba DOS productos con la misma referencia y dos códigos cortos
+      distintos — y el código corto es lo que va impreso en la etiqueta y lo que agrupa el
+      catálogo por modelo. Recordar el modelo es lo que lo impide.
+      (Etiquetas en lote quedó fuera del alcance del censo: esa pantalla es de la sesión de QR.)
 - [x] **CERRADO 2026-09-10 — LA `33` YA ESTÁ EN PRODUCCIÓN. No queda ninguna migración
       pendiente de pegar.** Aplicada desde la sesión a pedido de Felipe (autorización
       explícita: "aplícala tú"), y verificada en la misma base, no por suposición:
