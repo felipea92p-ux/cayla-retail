@@ -3,6 +3,33 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-10 (el identificador no es la etiqueta, y el flag prestado no es tuyo)
+Felipe preguntó dónde cambiar a mano las letras del selector de sede: quería que
+`LIM` dijera Taller y `003` dijera Tienda Lima. No hacía falta escribirlas — la
+base ya lo sabía (`nombre` = "Taller LIM" / "Tienda LIM"); la pantalla estaba
+mostrando el **identificador** en vez de la **etiqueta**. Son cosas distintas:
+`codigo` sirve para cruzar, imprimir y comparar (y por eso Dynamic lo dejó en
+"003", porque "LIM" ya se lo había llevado el Taller); `nombre` existe para que
+una persona lo lea. Con Felipe pidiendo algo más angosto quedó `TND LIM` / `TLL
+LIM`, derivado del tipo + la ciudad en `lib/etiqueta-sede.ts` — derivado, no
+escrito a mano, así una tienda nueva de Dynamic sale legible sola.
+
+**El hallazgo que valía más que el pedido:** rastreando por qué `003` se veía
+raro apareció `activo = false`. La tienda estaba a medias — se podía vender ahí,
+pero `egresos` y `registrar` la escondían, o sea que no se le podía cargar el
+alquiler. Y el flag no era de retail: `retail.sedes` es una vista y ese campo es
+`public.sedes.activa`, **la columna de Dynamic**. Activarla habría cambiado los
+dos sistemas. Felipe decidió que retail no mire ese flag (ADR-0029), con el
+precio anotado junto al código: el día que se cierre una sede de verdad, la
+salida es una columna propia en `retail.sede_meta`, no volver a la de Dynamic.
+
+Lo que Felipe se lleva: **un identificador estable y una etiqueta legible son dos
+columnas, no una** — cuando la pantalla muestra la primera, la gente memoriza
+mapas en vez de leer. Y que un flag que viene de otro sistema trae el criterio de
+ese otro sistema; si no coincide con el tuyo, no se pelea con él, se deja de
+usar. Queda pendiente verlo en navegador: Docker estaba apagado, así que la
+prueba fue typecheck + 88 tests, no demo.
+
 ## 2026-09-08 (el deploy no es el sistema: producción estaba a medio configurar)
 Felipe reportó que la consulta de DNI/RUC "antes funcionaba y ya no". El código
 estaba bien: el token `sk_` responde 200 contra apis.net.pe y `lib/padron.ts`
@@ -2352,3 +2379,34 @@ de conteo, recién aterrizada por otra sesión.
 el YAML parsea. Éste nace señalando algo real que ya estaba en main y que nadie había
 visto, y por eso se le puede creer el día que diga verde. Mismo principio que el
 verificador de migraciones: primero verlo fallar, después creerle.
+
+## 2026-09-10 (los 2 errores de lint: uno era falso positivo y el otro un parpadeo real)
+El CI encendido esta mañana señaló dos `react-hooks/set-state-in-effect` en
+`ConteoPanel.tsx`, y la lección está en que NO eran el mismo problema aunque la regla los
+llame igual.
+
+**El `:95` es un falso positivo, y apagarlo es la respuesta correcta.** Hidrata la cola de
+reintento desde `localStorage` al montar. La regla propone leerlo durante el render, pero
+`localStorage` no existe en el servidor: devolvería `[]` en Node y la cola real en el
+navegador — dos árboles distintos para el mismo render, que es literalmente cómo se rompe
+la hidratación. Quedó un `eslint-disable-next-line` de una sola línea con el motivo
+escrito al lado. Un `disable` sin explicación es deuda; con el porqué es una decisión.
+
+**El `:106` sí era el antipatrón, y arreglarlo mejoró la pantalla.** Copiaba
+`conteo.lineas` del servidor al estado local desde un efecto. Reemplazado por el ajuste
+durante el render que documenta React (`conteoPrevio` + comparación). Lo que se gana no es
+callar al linter: un efecto corre DESPUÉS de pintar, así que la lista vieja alcanzaba a
+verse un instante antes de corregirse. En una pantalla donde se cuenta inventario, ese
+parpadeo es una fila que alguien puede leer como buena.
+
+**El detalle que hizo el cambio seguro** fue mirar el `useState` antes de tocar el efecto:
+`lineas` ya nacía de `conteo?.lineas ?? []` (`:62`), o sea que el efecto en el montaje solo
+repetía ese mismo valor. Por eso quitarlo no cambia nada — y si `lineas` hubiera nacido en
+`[]`, el mismo cambio habría dejado la lista vacía al abrir la pantalla. Y no hay riesgo de
+bucle porque `conteo` llega de un Server Component: su identidad solo cambia cuando el
+servidor manda datos nuevos, igual que disparaba el `[conteo]` del efecto.
+
+**Lo que Felipe aprende acá:** dos errores del mismo linter, misma regla, mismo archivo — y
+la respuesta correcta fue opuesta en cada uno. Un linter señala una forma, no un problema;
+quien decide si esa forma está mal acá es quien entiende por qué el código la tomó. Apagar
+los dos habría sido pereza, arreglar los dos habría roto la hidratación.

@@ -92,6 +92,14 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   useEffect(() => {
     try {
       const crudo = localStorage.getItem(LLAVE_PENDIENTES);
+      // La regla `set-state-in-effect` queda apagada SOLO en esta línea, y el motivo no es
+      // que moleste: `localStorage` no existe en el servidor. Leerlo durante el render
+      // devolvería `[]` en Node y la cola real en el navegador — dos árboles distintos para
+      // el mismo render, que es exactamente lo que rompe la hidratación. Un efecto de
+      // montaje ES el patrón correcto para traer un valor que solo existe en el cliente.
+      // Lo que la regla persigue de verdad es derivar estado de props, y ese caso está
+      // doce líneas más abajo, arreglado de la forma que corresponde.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (crudo) setPendientes(JSON.parse(crudo) as Pendiente[]);
     } catch {
       setPendientes([]);
@@ -102,9 +110,20 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   // prenda o al reintentar la cola — nunca por escaneo), su versión manda sobre la
   // optimista. Sin esto, una prenda creada al vuelo quedaría dos veces en la lista: la
   // fila local con id inventado y la real que llega del servidor.
-  useEffect(() => {
+  //
+  // Se ajusta DURANTE EL RENDER y no en un efecto, que es el reemplazo que documenta React
+  // para "sincronizar estado con una prop". No es solo para callar al linter: un efecto
+  // corre después de pintar, así que la lista vieja alcanzaba a verse un instante antes de
+  // corregirse. En una pantalla donde se cuenta inventario, ese parpadeo es una fila que
+  // alguien puede leer como buena. React vuelve a renderizar de inmediato con el valor
+  // nuevo, sin llegar a pintar el viejo ni a bajar a los hijos.
+  //
+  // El montaje no necesita nada: `lineas` ya nace de `conteo?.lineas` en su `useState`.
+  const [conteoPrevio, setConteoPrevio] = useState(conteo);
+  if (conteo !== conteoPrevio) {
+    setConteoPrevio(conteo);
     setLineas(conteo?.lineas ?? []);
-  }, [conteo]);
+  }
 
   const enfocarBuscador = useCallback(() => {
     // `requestAnimationFrame` y no un foco directo: el input de cantidad todavía puede

@@ -851,13 +851,23 @@ importante que ha entrado a este archivo desde que existe.
       modelo nuevo. Reversible: sí, nada de esto se ha tocado todavía.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
-- [ ] **`pnpm lint` está en ROJO en main — 2 errores, los dos en `ConteoPanel.tsx`,
+- [x] **ARREGLADOS 2026-09-10, cada uno como pedía su caso — `pnpm lint` en verde.**
+      El `:95` quedó con `eslint-disable-next-line` y el motivo escrito (leer
+      `localStorage` durante el render devuelve `[]` en el servidor y la cola real en el
+      navegador: eso ES una desincronización de hidratación, no una preferencia). El
+      `:106` se reemplazó por el ajuste durante el render que documenta React —
+      `conteoPrevio` + comparación—, y de paso quitó el parpadeo: el efecto corría
+      después de pintar, así que la lista vieja alcanzaba a verse un instante. **El
+      montaje no necesitó nada** porque `lineas` ya nacía de `conteo?.lineas` en su
+      `useState` (`:62`), o sea que el efecto solo repetía ese valor — por eso el cambio
+      conserva el comportamiento exacto. Sin riesgo de bucle: `conteo` llega de un Server
+      Component (`page.tsx` hace `await getConteoAbierto`), su identidad solo cambia
+      cuando el servidor manda datos nuevos, y la condición se apaga sola en el re-render
+      inmediato. Verificado: lint, tipos y las 79 pruebas en verde. Texto original abajo:**
+      **`pnpm lint` está en ROJO en main — 2 errores, los dos en `ConteoPanel.tsx`,
       los dos de `react-hooks/set-state-in-effect` — 2026-09-10.** Es lo primero que
       va a marcar el CI recién encendido, y está bien que lo marque: son de código ya
-      commiteado (`ab479ba`), no de trabajo suelto. **No los toqué**: son el corazón
-      del guardado optimista de la pantalla de conteo, recién aterrizada por otra
-      sesión, y reescribir eso de refilón mientras se enciende un CI es cómo se rompe
-      una pantalla que ya funciona. Los dos casos NO son el mismo problema:
+      commiteado (`ab479ba`), no de trabajo suelto. Los dos casos NO son el mismo problema:
       · **`:95` — hidratar `pendientes` desde `localStorage` al montar.** Probablemente
         un falso positivo: en Next no se puede leer `localStorage` durante el render
         (no existe en el servidor y desincroniza la hidratación), así que el efecto es
@@ -952,6 +962,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-10 — La cabecera dice DÓNDE estás parado, y la tienda de Lima quedó
+      entera. El selector mostraba `codigo` — que dejó de ser legible con la
+      unificación: el Taller es `LIM` y la tienda de Lima es `003`. Ahora muestra
+      una etiqueta derivada (`TND LIM`, `TLL LIM`, `TND AQP`, `TND TRU`, `CCO`) con
+      la regla en `lib/etiqueta-sede.ts`, pura y con 9 pruebas que la fijan contra
+      los datos reales de producción Y del seed local. Mismo trato para el lateral y
+      para la pastilla de la Encargada. Rastreando eso apareció que `003` tenía
+      `activo = false`: se podía vender ahí pero no cargarle un gasto ni un asiento
+      (`egresos`, `registrar` filtraban por ese flag). El flag resultó ser de
+      Dynamic (`retail.sedes` es una vista sobre `public.sedes.activa`) — Felipe
+      decidió no escribir en la tabla de Dynamic y que retail deje de mirarlo:
+      **ADR-0029**. Verificado antes de tocar nada que ni RLS ni `puede_operar_sede`
+      bloqueaban por su lado. **Falta comprobarlo en navegador** (Docker apagado en
+      la sesión): typecheck y 88 pruebas en verde, demo pendiente.
 - [x] 2026-09-04 — Modal compartido `components/ui/Modal.tsx` sobre Radix Dialog
       (ADR-0003): los 6 modales del núcleo que seguían con estilos genéricos
       pre-brandbook (abrir/cerrar caja, vender, bajar a tienda, registrar gasto,
