@@ -117,12 +117,21 @@ function normalizarCuerpo(sql) {
     .toLowerCase();
 }
 
-/** Cada `create [or replace] function … as $$ … $$` del archivo: nombre → cuerpo normalizado. */
+/**
+ * Cada `create [or replace] function … as $…$ … $…$` del archivo: nombre → cuerpo normalizado.
+ *
+ * La etiqueta del dollar-quote se captura y se exige igual al cerrar. Casi todo el repo usa
+ * `$$` pelado, pero `pg_get_functiondef` devuelve `$function$` — así que cualquier archivo
+ * copiado desde la base trae esa forma, y con un regex atado a `$$` el verificador no veía
+ * esas definiciones: reportaba como «sin archivo» una función que sí estaba escrita. Pasó
+ * con `unificacion/35` el 2026-09-10, y es la clase de falso positivo más cara, porque manda
+ * a investigar un drift que no existe.
+ */
 function cuerposDe(sql) {
   const fuera = [];
-  const re = /create\s+(?:or\s+replace\s+)?function\s+([\w".]+)\s*\([\s\S]*?\bas\s*\$\$([\s\S]*?)\$\$/gi;
+  const re = /create\s+(?:or\s+replace\s+)?function\s+([\w".]+)\s*\([\s\S]*?\bas\s*\$(\w*)\$([\s\S]*?)\$\2\$/gi;
   for (const m of sql.matchAll(re)) {
-    fuera.push({ nombre: pelar(m[1]), cuerpo: normalizarCuerpo(m[2]) });
+    fuera.push({ nombre: pelar(m[1]), cuerpo: normalizarCuerpo(m[3]) });
   }
   return fuera;
 }

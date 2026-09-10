@@ -2828,3 +2828,23 @@ El arreglo (`unificacion/35`) reusa el cuerpo exacto de producción y solo le de
 default a `p_nota`, así que la idempotencia se conserva entera. No se aplicó: es DDL en el
 proyecto compartido con Dynamic.
 
+## 2026-09-10 (aplicado en producción: vender vuelve a resolver)
+Pegado `unificacion/35` con autorización explícita de Felipe, con `execute_sql` y no
+`apply_migration` —ese habría escrito en el historial de migraciones de Dynamic, que no es
+el nuestro (CLAUDE.md)—. Comprobado antes y después contra la base: antes la llamada de la
+app devolvía «function … does not exist», ahora devuelve un plan. Una sola firma viva y la
+idempotencia por token intacta.
+
+**Lo que Felipe aprende acá:** el verificador reportó `registrar_venta` como «sin archivo»
+DESPUÉS de que el archivo existiera. No era drift: era que el regex solo reconocía `$$` como
+delimitador, y `35` se había escrito con `$function$` porque así lo devuelve
+`pg_get_functiondef`. O sea que la herramienta mandaba a investigar un problema inexistente
+—el falso positivo más caro que hay, porque cuesta tiempo y erosiona la confianza en el resto
+del informe—. Ahora captura la etiqueta y exige la misma al cerrar, y el archivo usa `$$`
+como los otros 146 del repo.
+
+Quedan cuatro cuerpos que ningún archivo explica: `abrir_caja`, `cerrar_caja`,
+`recalcular_stock` y `catalogo_con_stock`. Los tres primeros son el mismo patrón ya conocido
+—producción tiene validaciones y arreglos que `unificacion/07` y `25` no traen, así que
+volver a pegarlos los desarma—; el cuarto no existe en el repo y la app no lo llama.
+

@@ -58,7 +58,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path to 'retail', 'public'
-as $function$
+as $$
 declare
   v_caja retail.cajas%rowtype; v_persona_id uuid; v_venta_id uuid; v_movimiento_id uuid;
   v_monto_total numeric := 0; v_linea_total numeric; v_item jsonb;
@@ -117,7 +117,7 @@ begin
 
   return v_venta_id;
 end;
-$function$;
+$$;
 
 -- El resumen que SÍ se ve. Debe decir `ok`.
 select

@@ -354,7 +354,7 @@ importante que ha entrado a este archivo desde que existe.
       a 7, o sea que el repo ahora produce exactamente lo que producción tiene en esas tres.
       `mi_sede()` NO lleva `coalesce` a propósito: devuelve un uuid y ahí NULL es la
       respuesta correcta.
-- [ ] **🔴 VENDER ESTÁ ROTO EN PRODUCCIÓN — `registrar_venta` no resuelve.** Encontrado
+- [x] **RESUELTO Y VERIFICADO EN PRODUCCIÓN 2026-09-10 — vender volvió a funcionar.** Encontrado
       2026-09-10 comparando firmas entre entornos. Producción:
       `registrar_venta(p_caja_id, p_metodo_pago, p_items, p_nota text, p_token uuid default null)`
       — `p_nota` **sin default**. Local: `(…, p_nota text default null)`. Y
@@ -366,10 +366,14 @@ importante que ha entrado a este archivo desde que existe.
       **Causa:** quien agregó `p_token` a mano —un buen arreglo, la venta idempotente que el
       repo no tiene— reescribió la firma y perdió el `default null` de `p_nota`. El costo
       exacto de parchar sin archivo: nadie revisó la firma contra lo que la app manda.
-      **Arreglo listo, falta pegarlo:** `supabase/unificacion/35_registrar_venta_p_nota.sql`.
-      Vuelve a crear la función con EL MISMO cuerpo de producción —la idempotencia se
-      conserva entera— cambiando solo la firma. Mismos tipos, así que no crea sobrecarga, y
-      no toca ni una fila. **Es DDL en el proyecto compartido con Dynamic: lo pega Felipe.**
+      **Aplicado con autorización explícita de Felipe** («pégalo tú»), con `execute_sql` y NO
+      `apply_migration` —ese habría escrito una fila en el historial de migraciones de
+      Dynamic, que no es el nuestro—. Archivo: `unificacion/35_registrar_venta_p_nota.sql`.
+      **Verificado antes y después contra la base, no por suposición:** antes,
+      `explain select retail.registrar_venta(p_caja_id => …, p_metodo_pago => …, p_items => …)`
+      devolvía «function … does not exist»; después devuelve un plan. Una sola firma viva,
+      con `p_nota text DEFAULT NULL::text`, y la idempotencia por token **intacta**
+      (`conserva_idempotencia = true`). El verificador pasó de 5 cuerpos sin archivo a 4.
 
       **Faltan decidir, una por una, las restantes:** `abrir_caja`, `cerrar_caja`, `registrar_venta`,
       `recalcular_stock` y `catalogo_con_stock` — bajaron de 7 a 5 al dejar de contar como
