@@ -2770,3 +2770,40 @@ La lección de método: la funcionalidad que se pidió (la matriz) y el problema
 motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
+
+`pnpm build`, `pnpm lint` y los 79 tests siguen en verde. Sesión abierta sincronizando
+esta rama contra `origin/main` (95 commits de diferencia) antes de tocar nada — rebase
+limpio salvo un conflicto aditivo en `package.json` (dos scripts nuevos en la misma
+línea, no se pisaban).
+
+## 2026-09-10 (27→28→29→30: pegadas dos que ya estaban, evitadas dos más)
+
+Plan: pegar en producción, en orden, las cuatro migraciones que el BACKLOG marcaba
+como listas y pendientes (`unificacion/27` a `30` — ajuste con signo, colores,
+código corto, sesiones de conteo). Felipe pegó `27` a mano en el SQL Editor de
+`cayla-dynamic` (el MCP de Supabase bloqueó la ejecución directa: el clasificador de
+Auto Mode rechaza DDL contra producción por esa vía, que es exactamente el freno que
+pide el protocolo de este repo). Verificado: las tres redes de seguridad quedaron
+`convalidated = true` y `fn_aplicar_movimiento` tiene el patrón nuevo.
+
+Al pedirle que pegara `28` (colores) pasó lo mismo, y ahí apareció la sorpresa:
+**`retail.colores` ya tenía 30 filas, no las 29 del archivo**, con `created_at` del
+**2026-09-09 20:31** — antes de que esta sesión existiera. La fila extra era
+"Arena" (`ARN`), agregada a mano por Felipe a las 20:45 esa misma noche. Antes de
+pedirle la `29`, se verificó primero (en vez de pedir y recién comprobar): `codigos_barras`,
+`codigos_correlativos`, `conteos` y `conteo_lineas` **ya existían completas**. Las
+cuatro migraciones ya estaban en producción desde el 09-09 — nadie lo escribió en el
+BACKLOG, que seguía diciendo "falta pegar" un día después.
+
+**Es la misma deuda que el propio BACKLOG nombra ("no hay registro de qué migró en
+producción"), ocurriendo una tercera vez** (después de `recibir_lote` y
+`patrimonio_items.categoria`). Esta vez no costó nada porque las cuatro son
+idempotentes — pegar `27` y `28` dos veces no hizo daño — pero el método que evitó
+pegar `29` y `30` sin necesidad no fue suerte: fue verificar contra `pg_proc` e
+`information_schema` ANTES de pedirle a Felipe el siguiente paso, no asumir que el
+BACKLOG tenía razón porque decía la fecha de ayer.
+
+Estado final confirmado con números, no con el documento: 37 categorías con 37
+prefijos, 5 modelos y 17 variantes con código corto, 2 esperando color ("azul" a
+secas — "Arena" ya se resolvió), las 13 funciones de `29`+`30` sin sobrecargas.
+`censo: las pantallas` queda sin ningún bloqueador de esquema.
