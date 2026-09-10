@@ -19,3 +19,7 @@ supabase/.temp/
 
 # Salida del generador de la hoja de prueba de etiquetas (se regenera con el script)
 scripts/etiquetas/hoja-de-prueba.html
+
+# Seed de la taxonomia universal: dato derivado, ~2MB, se regenera con
+# `node scripts/taxonomia/cargar.mjs` desde un release inmutable.
+supabase/seed-taxonomia/

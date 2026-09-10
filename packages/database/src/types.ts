@@ -321,6 +321,7 @@ export type Database = {
       }
       categorias: {
         Row: {
+          taxonomia_categoria_id: string | null
           created_at: string
           familia: string
           id: string
@@ -329,6 +330,7 @@ export type Database = {
           tallas_sugeridas: string[] | null
         }
         Insert: {
+          taxonomia_categoria_id?: string | null
           created_at?: string
           familia: string
           id?: string
@@ -337,6 +339,7 @@ export type Database = {
           tallas_sugeridas?: string[] | null
         }
         Update: {
+          taxonomia_categoria_id?: string | null
           created_at?: string
           familia?: string
           id?: string
@@ -411,6 +414,7 @@ export type Database = {
       }
       colores: {
         Row: {
+          taxonomia_valor_id: string | null
           activo: boolean
           codigo: string
           created_at: string
@@ -420,6 +424,7 @@ export type Database = {
           orden: number
         }
         Insert: {
+          taxonomia_valor_id?: string | null
           activo?: boolean
           codigo: string
           created_at?: string
@@ -429,6 +434,7 @@ export type Database = {
           orden?: number
         }
         Update: {
+          taxonomia_valor_id?: string | null
           activo?: boolean
           codigo?: string
           created_at?: string
@@ -1854,6 +1860,139 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      taxonomia_atributos: {
+        Row: {
+          descripcion: string | null
+          handle: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          descripcion?: string | null
+          handle: string
+          id: string
+          nombre: string
+        }
+        Update: {
+          descripcion?: string | null
+          handle?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      taxonomia_categoria_atributos: {
+        Row: {
+          atributo_id: string
+          categoria_id: string
+        }
+        Insert: {
+          atributo_id: string
+          categoria_id: string
+        }
+        Update: {
+          atributo_id?: string
+          categoria_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomia_categoria_atributos_atributo_id_fkey"
+            columns: ["atributo_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_atributos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomia_categoria_atributos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomia_categorias: {
+        Row: {
+          id: string
+          nivel: number
+          nombre: string
+          padre_id: string | null
+          ruta: string
+          vertical: string
+        }
+        Insert: {
+          id: string
+          nivel: number
+          nombre: string
+          padre_id?: string | null
+          ruta: string
+          vertical: string
+        }
+        Update: {
+          id?: string
+          nivel?: number
+          nombre?: string
+          padre_id?: string | null
+          ruta?: string
+          vertical?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomia_categorias_padre_id_fkey"
+            columns: ["padre_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomia_valores: {
+        Row: {
+          atributo_id: string
+          handle: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          atributo_id: string
+          handle: string
+          id: string
+          nombre: string
+        }
+        Update: {
+          atributo_id?: string
+          handle?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomia_valores_atributo_id_fkey"
+            columns: ["atributo_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_atributos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomia_versiones: {
+        Row: {
+          cargada_en: string
+          es_activa: boolean
+          version: string
+        }
+        Insert: {
+          cargada_en?: string
+          es_activa?: boolean
+          version: string
+        }
+        Update: {
+          cargada_en?: string
+          es_activa?: boolean
+          version?: string
+        }
+        Relationships: []
       }
       variantes: {
         Row: {

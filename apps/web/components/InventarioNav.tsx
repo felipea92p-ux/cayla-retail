@@ -22,6 +22,9 @@ const SECCIONES = [
   { href: "/inventario", etiqueta: "Catálogo" },
   { href: "/inventario/conteo", etiqueta: "Conteo" },
   { href: "/inventario/etiquetas", etiqueta: "Etiquetas" },
+  // Vocabulario va último y a propósito: es configuración, no trabajo diario.
+  // Se toca una vez al arrancar la marca y casi nunca más.
+  { href: "/inventario/taxonomia", etiqueta: "Vocabulario" },
 ];
 
 export function InventarioNav() {
