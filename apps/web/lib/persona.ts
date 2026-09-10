@@ -49,7 +49,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   // getSedes() no depende de la fila de `personas` (recién se cruzan abajo por id)
   // — van en paralelo en vez de uno esperando al otro.
   const [{ data, error }, sedes] = await Promise.all([
-    supabase.from("personas").select("id, nombre, rol, sede_id").eq("auth_user_id", user.id).single(),
+    supabase.from("personas").select("id, nombre, rol, sede_id, estado").eq("auth_user_id", user.id).single(),
     getSedes(),
   ]);
 
@@ -59,6 +59,18 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   // se trata igual que "sin persona", con el mismo mensaje.
   if (error || !data || !data.id || !data.nombre || !data.sede_id) {
     redirect("/login?error=sin_persona");
+  }
+
+  // Dar de baja a alguien ocurre en Dynamic, no acá — pero hasta hoy esa baja no
+  // cerraba la puerta: la auditoría del 2026-09-05 encontró 4 personas con
+  // estado='inactivo' y login vivo, que seguían entrando y operando su sede de
+  // siempre porque esta consulta nunca leía el estado. Una colaboradora que ya
+  // no trabaja en CAYLA podía vender, mover stock y cerrar caja.
+  // Esto es la puerta de la app; el candado de verdad va en la base
+  // (retail.puede_operar_sede exige persona activa) — acá se gana el mensaje
+  // honesto en vez de una pantalla a medias.
+  if (data.estado !== "activo") {
+    redirect("/login?error=inactivo");
   }
 
   const rol = mapearRol(data.rol);

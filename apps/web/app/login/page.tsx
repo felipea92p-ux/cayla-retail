@@ -8,6 +8,10 @@ import { createClient } from "@/lib/supabase/client";
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
     "Tu cuenta existe pero todavía no está vinculada a ningún integrante. Pide a un Líder que te dé de alta en el sistema.",
+  // Dice qué pasó y a quién recurrir, sin insinuar que la persona hizo algo mal:
+  // una baja es administrativa y muchas veces es un error de registro.
+  inactivo:
+    "Tu acceso está desactivado. Si sigues trabajando en CAYLA, pide a un Líder que reactive tu registro.",
 };
 
 export default function LoginPage() {
