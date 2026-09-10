@@ -2692,3 +2692,34 @@ sesión, el `create or replace` crea la función en `public` y deja intacta la d
 parece que corrió y no cambió nada. Es la deuda de migraciones duales mostrando una tercera
 cara.
 
+## 2026-09-10 (la sospecha era falsa, y debajo había algo peor)
+Se midió contra producción la sospecha de la entrada anterior —que `recalcular_stock` allá
+habría perdido el bloque del almacén— y **es falsa**: la función de producción lo conoce. La
+evidencia de los archivos era buena (`unificacion/12` la define con almacén, el `25` sin él,
+y por fechas el `25` parecía último) y la conclusión equivocada, porque el orden real de
+aplicación no fue el que los archivos sugerían. Corregido en el BACKLOG.
+
+**Debajo apareció lo que sí importa.** Producción **ya traía** el guard
+`where s.stock_minimo is null` —el mismo arreglo que `0053` acababa de hacer en local— con
+un comentario propio que no es el mío. Ese comentario no existe en ningún archivo del repo:
+se buscó sobre todo el árbol, no solo sobre `supabase/`. O sea que alguien lo aplicó a mano
+en el SQL Editor y nunca quedó escrito.
+
+**Lo que Felipe aprende acá:** el drift que todos vigilan es «producción está atrás del
+repo». Éste es al revés — producción está ADELANTE, con un arreglo que ningún archivo
+produce. Y ese es peor, porque no falla nunca: todo funciona bien allá, así que nada lo
+delata. Lo que se pierde es que el repo deje de describir el sistema. `db reset` más la
+carpeta de unificación ya no reproduce lo que hay en producción, y no hay manera de saber
+cuántos parches más así están vivos.
+
+También le pone dientes a una limitación que ADR-0026 ya tenía escrita y que hasta hoy era
+teórica: `migraciones:verificar` compara EXISTENCIA de objetos, no CUERPOS. Una función que
+existe pasa el chequeo aunque su cuerpo no se parezca a ningún archivo. Este caso es
+exactamente ése.
+
+Y una nota sobre el método, porque hubo dos vueltas: la primera medición volvió con las dos
+respuestas en `true` y resultó ser la base LOCAL, no producción — la consulta que yo había
+dado no decía qué base contestaba. Una comprobación que no se identifica no comprueba nada.
+La segunda trajo `current_database()` y el conteo de variantes (0 en local, 19 en
+producción), y recién ahí la respuesta valía.
+

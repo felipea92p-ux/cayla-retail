@@ -292,28 +292,34 @@ importante que ha entrado a este archivo desde que existe.
       sigue borrando, que es la mitad que se olvida al poner un guard.
       `stock_almacen` no lleva `stock_minimo`, así que su `delete` no se tocó.
 
-- [ ] **SOSPECHA GRAVE, sin confirmar: `retail.recalcular_stock` en producción habría PERDIDO
-      la mitad del almacén.** Encontrado el 2026-09-10 al ir a escribir el gemelo de `0053`.
-      Tres archivos de `unificacion/` definen esa función: `08`, `12` y `25`. El `12` la trae
-      **con** el bloque de `stock_almacen` (6 menciones en su cuerpo); el `25` la redefine
-      **sin ninguna**, y su cabecera ni menciona el almacén. Por el orden en que se pegaron
-      —la cabecera de `26` dice que la versión «con las dos bolsas» se pegó el 03-09, y la
-      BITÁCORA registra el `25` corriendo en producción el 09-09— el último en pisar sería
-      el `25`.
-      **Si es así, hoy en producción la red de seguridad haría daño en vez de arreglar:** su
-      `insert` no filtra por contenedor, así que sumaría los movimientos del almacén al stock
-      del PISO, y nunca reconstruiría `stock_almacen`. O sea, movería el inventario de la
-      trastienda al piso, en números, con la función que existe para corregir el inventario.
-      **NO se escribió el gemelo de `0053` a propósito:** habría que elegir qué cuerpo
-      parchar, y parchar el equivocado es peor que no parchar. Se confirma con una consulta
-      de solo lectura en el SQL Editor de Dynamic:
-      ```sql
-      select position('stock_almacen' in pg_get_functiondef(p.oid)) > 0 as conoce_el_almacen,
-             position('stock_minimo is null' in pg_get_functiondef(p.oid)) > 0 as preserva_el_minimo
-      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'retail' and p.proname = 'recalcular_stock';
-      ```
-      Con esas dos respuestas se escribe el gemelo correcto en diez minutos.
+- [x] **DESCARTADA 2026-09-10 — la sospecha del almacén era falsa, y lo que apareció en su
+      lugar es más serio.** Se sospechó que `retail.recalcular_stock` en producción había
+      perdido el bloque de `stock_almacen`, porque `unificacion/12` la define CON él y
+      `unificacion/25` la redefine SIN ninguna mención, y por las fechas registradas el `25`
+      parecía haber pisado último. **Medido contra la base: falso.** La función de producción
+      conoce el almacén — `delete from retail.stock_almacen sa` está en su cuerpo. La
+      evidencia de los archivos era buena y la conclusión equivocada: el orden real de
+      aplicación no fue el que los archivos sugerían.
+
+- [ ] **EL REPO NO DESCRIBE PRODUCCIÓN: hay un arreglo vivo allá que no existe en ningún
+      archivo.** Encontrado el 2026-09-10 al medir lo de arriba. `retail.recalcular_stock` en
+      producción **ya trae** el guard `where s.stock_minimo is null` en el `delete` del piso
+      —el mismo arreglo que `0053` acaba de hacer en local— y con un comentario propio que
+      empieza `-- guardar un stock_minimo configurado (fijar_stock_minimo crea la fila con`.
+      Ese comentario **no está en ningún archivo de este repositorio** (verificado con `grep`
+      sobre todo el árbol, no solo sobre `supabase/`), y su redacción no es la de `0053`.
+      Alguien lo aplicó a mano en el SQL Editor y no quedó archivo.
+      **Lo que significa, y es lo que hay que arreglar:** `npx supabase db reset` más la
+      carpeta `unificacion/` NO reproduce lo que hay en producción. El repo dejó de ser la
+      descripción del sistema para ser una descripción parcial, y no hay forma de saber
+      cuántos parches más como éste hay vivos.
+      **Y le pone dientes a la limitación que ADR-0026 ya había escrito:**
+      `pnpm migraciones:verificar` compara EXISTENCIA de objetos, no CUERPOS. Una función que
+      existe pasa el chequeo aunque su cuerpo no se parezca a ningún archivo — que es
+      exactamente este caso. Extenderlo a comparar cuerpos, o al menos avisar cuándo no puede
+      afirmar nada sobre uno, es el siguiente paso natural de esa herramienta.
+      **Lo que NO es:** un problema de `0053`. Local sí tenía el bug —reproducido: la fila del
+      mínimo pasaba de 1 a 0— y ahora local y producción coinciden. No hace falta gemelo.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
       plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
       CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
