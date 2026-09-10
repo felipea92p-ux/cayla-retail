@@ -315,17 +315,40 @@ function main() {
   // cayla-dynamic. Verla ausente mirando la base local no es un hallazgo, es lo esperado —
   // y juntarlas convertiría el informe en 28 falsas alarmas, que es como se enseña a
   // ignorar un informe.
+  // Un inventario viejo —hecho con una versión anterior de `inventario.sql`— no trae
+  // `cuerpos` ni `tablas_en_public`. Antes el informe seguía igual: se saltaba la
+  // comparación de cuerpos sin decirlo y afirmaba «Entorno: local» sobre una foto de
+  // producción, porque `?? 0` convierte «no sé» en «cero». Eso es exactamente lo que este
+  // verificador existe para no hacer: degradarse en silencio y afirmar de más.
+  const inventarioViejo = inv.tablas_en_public === undefined || inv.cuerpos === undefined;
+  if (inventarioViejo) {
+    console.log(`
+  ⚠ ESTE INVENTARIO ES DE UNA VERSIÓN ANTERIOR de \`inventario.sql\`.`);
+    console.log(`    Le faltan los CUERPOS de las funciones y el marcador de entorno, así que`);
+    console.log(`    no se puede comparar código ni saber contra qué base se está midiendo.`);
+    console.log(`    Vuelve a pegar \`scripts/migraciones/inventario.sql\` —la de ahora— en el`);
+    console.log(`    SQL Editor y guarda el resultado otra vez. Lo de abajo sigue valiendo,`);
+    console.log(`    pero es solo la mitad del chequeo.`);
+  }
+
   // `public` con muchas tablas = estamos mirando el proyecto de Dynamic, o sea producción.
   // Hace falta saberlo porque las dos carpetas NO significan lo mismo en cada lado: contra
   // producción, `migrations/` no es lo que construyó esa base —`unificacion/` renombró
   // políticas e índices al pasarlas— así que sus ausencias son esperables, no hallazgos.
   const enProduccion = (inv.tablas_en_public ?? 0) > 10;
-  console.log(
-    `
-  Entorno: ${enProduccion ? "PRODUCCIÓN" : "local"} — ${inv.tablas_en_public ?? "?"} tablas en \`public\``
-  );
+  if (!inventarioViejo) {
+    console.log(`
+  Entorno: ${enProduccion ? "PRODUCCIÓN" : "local"} — ${inv.tablas_en_public} tablas en \`public\``);
+  }
 
-  const NOTA = enProduccion
+  // Sin marcador no se sabe el entorno, así que tampoco se puede decir qué carpeta
+  // construyó esta base. Se dice eso, en vez de elegir una y sonar seguro.
+  const NOTA = inventarioViejo
+    ? {
+        "supabase/migrations": "no se sabe si construyó esta base — falta el marcador de entorno",
+        "supabase/unificacion": "no se sabe si construyó esta base — falta el marcador de entorno",
+      }
+    : enProduccion
     ? {
         "supabase/migrations": "NO construyó esta base: producción se armó con `unificacion/`, que renombró políticas e índices. INFORMATIVO",
         "supabase/unificacion": "esto SÍ construyó esta base — acá una ausencia es un hallazgo",
@@ -350,7 +373,10 @@ function main() {
   }
   console.log(`\n  ${completos} archivo(s) sin nada que delate que falten.`);
 
-  if (inv.cuerpos) {
+  if (!inv.cuerpos) {
+    console.log(`
+  CUERPOS · no se compararon: este inventario no los trae.`);
+  } else {
     console.log(`\n  CUERPOS · ${coincidencias.size} de ${inv.cuerpos.length} funciones de \`retail\``);
     console.log(`  tienen un archivo del repo que las explica tal cual.`);
     if (sinArchivo.length > 0) {
