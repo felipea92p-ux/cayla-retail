@@ -157,15 +157,20 @@ importante que ha entrado a este archivo desde que existe.
       silencio. **Verificado con una Encargada real:** abre, crea la prenda
       adoptando su código de fábrica, cuenta 4 — y al cerrar recibe "Solo un líder
       puede cerrar un conteo". El stock quedó en 0 hasta que el Líder cerró.
-- [ ] **`censo`: las pantallas.** Es lo único que falta para que el equipo pueda
-      usarlo — las RPC están, las manos no. Captura por matriz (talla × color, una
-      tarjeta por color en móvil de 375px), pantalla de conteo con la pistola
-      (buscador siempre enfocado, conteo a ciegas, "crear esta prenda" cuando el
-      código no existe), resumen de varianza en soles, y etiquetas en lote (con
-      tope de ~120 por tanda). Más `lib/conteo.ts` con proyección delgada: hoy
-      `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
-      las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
-      el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
+- [ ] **`censo`: las pantallas — queda UNA.** El ítem estaba viejo: al auditarlo el
+      2026-09-10 resultó que la proyección delgada (`getCatalogoParaConteo`, 6 columnas en
+      vez de 1,1 MB) y la pantalla de conteo con pistola ya existían desde `ab479ba`.
+      **Cerrado hoy: el cierre del conteo** — `/inventario/conteo/cerrar`, con la varianza
+      valorizada en soles, el aviso de lo que nadie contó, y las dos decisiones de la Líder
+      (cerrar / anular). Era el agujero que dejaba el módulo entero sin servir: la pantalla
+      de conteo prometía "lo contado no entra al inventario hasta que la Líder cierra" y
+      `cerrar_conteo` no estaba cableada en ninguna parte.
+      **LO QUE FALTA, y es lo único:** el alta por MATRIZ talla × color dentro del conteo.
+      Hoy `AltaEnConteo` da de alta una variante por vez —una talla, un color—, así que un
+      modelo con 4 tallas × 3 colores son 12 altas a mano. La matriz ya existe en
+      `inventario/producto/nuevo`, pero es otra pantalla y solo de Líder: hay que traer ese
+      gesto adentro. (Etiquetas en lote quedó fuera del alcance del censo: la pantalla de
+      etiquetas está en manos de la sesión de QR.)
 - [x] **CERRADO 2026-09-10 — LA `33` YA ESTÁ EN PRODUCCIÓN. No queda ninguna migración
       pendiente de pegar.** Aplicada desde la sesión a pedido de Felipe (autorización
       explícita: "aplícala tú"), y verificada en la misma base, no por suposición:

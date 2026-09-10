@@ -2566,3 +2566,36 @@ Y se aplicó dos veces la misma disciplina: **la hoja de prueba dibuja con el mi
 app**, no con una copia. Para el QR eso significó renderizar el propio componente a HTML estático
 desde Node. Si generara el suyo, mediría otra cosa — que es exactamente el error que casi
 cometemos con el código de barras.
+
+## 2026-09-10 (el conteo por fin se puede cerrar)
+El censo tenía un callejón sin salida que ningún documento registraba: la pantalla de
+conteo funcionaba entera —escanear, contar a ciegas, crear al vuelo— y le decía a la
+Encargada, con esas palabras, «lo contado no entra al inventario hasta que la Líder
+cierra». Pero `cerrar_conteo` **no estaba cableada en ninguna parte de la app**. Ni
+`previsualizar_cierre_conteo`, ni `anular_conteo`. Las tres RPC existían en la base desde
+`0048` y ninguna tenía un botón: el equipo podía contar 900 prendas y esas 900 no entraban
+nunca. Una pantalla prometiendo algo que el sistema no podía cumplir.
+
+Nace `/inventario/conteo/cerrar`: la varianza valorizada al costo, el aviso aparte de lo
+que nadie contó (que al cerrar queda en cero), y las dos decisiones de la Líder. Va en
+pantalla propia y no como sección de la de contar, porque son dos trabajos distintos de
+dos personas distintas — contar es un gesto que se repite 500 veces con el foco clavado en
+el buscador; aprobar pasa una vez y necesita ver todo antes de tocar nada. Y navegar es lo
+que garantiza que la cifra esté fresca.
+
+**Lo que Felipe aprende acá:** «faltan 47 unidades» no se puede aprobar. 47 medias y 47
+abrigos son el mismo número y no el mismo problema. Por eso la varianza se muestra en
+soles al costo, y por eso la conversión vive en `lib/`, no en la RPC: el costo es un dato
+del catálogo, no del conteo, y meterlo adentro ataría lo contable a la mecánica de contar.
+
+Y la regla que se probó aparte, porque es la que se rompe callada: **una prenda sin costo
+no vale cero.** Durante el censo se crean prendas al vuelo y muchas nacen sin costo;
+sumarlas como 0 daría una varianza más chica que la real — la dirección en la que un
+número equivocado hace daño, porque un faltante que se ve pequeño no se investiga. La
+pantalla las declara aparte: «la cifra real es mayor que esta, no menor». La aritmética se
+extrajo a `lib/conteo-varianza.ts` para poder probarla sin montar Supabase, el mismo
+patrón que `panel-serie.ts` frente a `panel.ts`. 7 pruebas nuevas.
+
+De paso, el ítem del backlog estaba viejo por tercera vez esta semana: daba por pendientes
+la proyección delgada y la pantalla de conteo, que ya existían desde `ab479ba`.
+

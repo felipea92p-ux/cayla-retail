@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import type { PersonaActual } from "@/lib/persona";
+import { resumirVarianza, type Varianza } from "@/lib/conteo-varianza";
+
+// Se re-exportan para que las pantallas sigan importando todo lo del conteo de un solo
+// sitio: la separación es por poder probar, no una frontera de dominio.
+export { resumirVarianza } from "@/lib/conteo-varianza";
+export type { Varianza, LineaVarianza, FilaPrevisualizacion } from "@/lib/conteo-varianza";
 
 /**
  * Lecturas del conteo físico — la pantalla del censo.
@@ -252,4 +258,43 @@ export async function getColores(): Promise<ColorElegible[]> {
   // así que una lista vacía por un fallo de red se vería como "no hay colores" y dejaría a
   // la Encargada trabada sin entender por qué.
   return exigir(res, "los colores del catálogo");
+}
+
+// ==================== EL CIERRE: qué cambiaría, y cuánto es en soles ====================
+
+
+
+/**
+ * Lo que pasaría si se cerrara el conteo ahora, valorizado.
+ *
+ * POR QUÉ ESTA FUNCIÓN Y NO LA RPC A SECAS. `previsualizar_cierre_conteo` devuelve
+ * unidades, no plata — y con razón: el costo es un dato del catálogo, no del conteo, y
+ * meterlo en la RPC ataría el cálculo contable a la mecánica de contar. La conversión
+ * a soles vive acá, del lado que ya sabe leer el catálogo.
+ *
+ * Y ES LA CIFRA QUE DECIDE. Una lista de "faltan 47 unidades" no se puede aprobar: 47
+ * medias y 47 abrigos son el mismo número y no el mismo problema. En soles al costo sí
+ * se puede — y ese es el gesto que el cierre le pide a Felipe.
+ *
+ * LAS LÍNEAS SIN COSTO SE CUENTAN APARTE, no se tratan como cero. Durante el censo se
+ * crean prendas al vuelo y muchas nacen sin costo; sumarlas como 0 daría una varianza
+ * más chica que la real, que es la dirección en la que un número equivocado hace daño.
+ */
+export async function getVarianza(conteoId: string): Promise<Varianza> {
+  const supabase = await createClient();
+
+  const filas = exigir(
+    await supabase.rpc("previsualizar_cierre_conteo", { p_conteo_id: conteoId }),
+    "las diferencias del conteo"
+  );
+
+  const ids = [...new Set(filas.map((f) => f.variante_id).filter(Boolean))] as string[];
+  const costos = ids.length
+    ? exigir(
+        await supabase.from("variantes").select("id, costo").in("id", ids),
+        "los costos del catálogo"
+      )
+    : [];
+
+  return resumirVarianza(filas, new Map(costos.map((c) => [c.id, Number(c.costo)])));
 }

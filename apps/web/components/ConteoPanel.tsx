@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -302,6 +303,14 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         {faltan > 0 && (
           <span className="text-sm text-ambar">faltan {faltan} que el sistema cree que están acá</span>
         )}
+        {persona.esLider && (
+          <Link
+            href="/inventario/conteo/cerrar"
+            className="label-cayla ml-auto rounded-md border border-tinta/25 px-4 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          >
+            Revisar y cerrar
+          </Link>
+        )}
       </div>
 
       {pendientes.length > 0 && (
@@ -483,9 +492,17 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
 
       <p className="px-1 text-xs text-tinta/55">
         Lo contado no toca el inventario todavía.{" "}
-        {persona.esLider
-          ? "Cuando termines, ciérralo para que el stock se corrija."
-          : "La Líder lo revisa y lo cierra."}
+        {persona.esLider ? (
+          <>
+            Cuando termines,{" "}
+            <Link href="/inventario/conteo/cerrar" className="text-rojo hover:underline">
+              revísalo y ciérralo
+            </Link>{" "}
+            para que el stock se corrija.
+          </>
+        ) : (
+          "La Líder lo revisa y lo cierra."
+        )}
       </p>
     </div>
   );
