@@ -2320,3 +2320,35 @@ terminado cuando lo viste salir rojo por algo que sabías que estaba mal. El ver
 y el de ahora se ven idénticos en la terminal; lo único que los distingue es haber
 comprobado que este sí sabe fallar. Es la misma regla de ADR-0026, aplicada al gate en vez
 de a las migraciones.
+
+## 2026-09-10 (CI mínimo: el gate deja de depender de que alguien se acuerde)
+`.github/workflows/ci.yml` corre `typecheck` + `lint` + `test` en cada push a main y en
+cada PR. Los tres van con `if: always()` (condicionados a que la instalación haya
+funcionado, no a ciegas): un push malo devuelve el diagnóstico COMPLETO en una vuelta, en
+vez de enseñar el error del lint, esperar el arreglo, y recién entonces confesar que
+también fallaban las pruebas. Se agregó `test` a `turbo.json` y a la raíz, para que el CI
+corra exactamente el comando que corre Felipe, y `.nvmrc` con `24`, para que la versión de
+Node salga de un solo lugar.
+
+**No corre `build`, y es deliberado.** Vercel ya construye en cada push con el mismo Next
+y el mismo lockfile, y `next.config.ts` no tiene `ignoreBuildErrors`. Repetirlo costaría
+minutos por corrida sin agregar señal. Lo que Vercel no corre —lint y pruebas— es
+justamente lo que hace este CI.
+
+**Se tapó de paso el agujero que la sesión de `typecheck` había dejado anotado:**
+`apps/web/tsconfig.json` incluye `.next/types/**`, que en un clon limpio no existe, así
+que el CI habría tipado SIN los tipos de ruta de Next — verde cubriendo menos que la
+máquina de Felipe. `next typegen` los genera en 3,5 s sin construir nada. Sin ese paso, el
+CI habría sido otra vez un verde que promete más de lo que miró.
+
+**La primera corrida va a salir en ROJO, y no es un error de montaje.** Simulada localmente
+la secuencia exacta: typegen ✓, tipos ✓, lint ✗, pruebas ✓. Los 2 errores de lint son de
+código ya commiteado (`ConteoPanel.tsx`, `react-hooks/set-state-in-effect`) y quedaron
+anotados en el BACKLOG con el diagnóstico de cada uno — uno parece falso positivo de SSR,
+el otro es el antipatrón de verdad. No se tocaron: son el guardado optimista de la pantalla
+de conteo, recién aterrizada por otra sesión.
+
+**Lo que Felipe aprende acá:** un CI que nace en verde no probó nada — solo demuestra que
+el YAML parsea. Éste nace señalando algo real que ya estaba en main y que nadie había
+visto, y por eso se le puede creer el día que diga verde. Mismo principio que el
+verificador de migraciones: primero verlo fallar, después creerle.

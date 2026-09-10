@@ -15,6 +15,7 @@
       ]
     },
     "lint": {},
-    "typecheck": {}
+    "typecheck": {},
+    "test": {}
   }
 }

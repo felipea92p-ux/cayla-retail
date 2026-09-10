@@ -474,7 +474,12 @@ importante que ha entrado a este archivo desde que existe.
       existe), así que nada obliga a correrlo; y `apps/web/tsconfig.json` incluye
       `.next/types/**`, que solo existe después de un `build`/`dev` — en un clon limpio
       los tipos de ruta de Next no se verifican. Ninguna de las dos cosas convierte el
-      verde en mentira, pero conviene saber qué NO cubre. Texto original abajo:**
+      verde en mentira, pero conviene saber qué NO cubre.
+      **LAS DOS CERRADAS EL MISMO DÍA (2026-09-10), `.github/workflows/ci.yml`:** el CI
+      corre `typecheck` + `lint` + `test` en cada push a main y en cada PR, así que ya no
+      depende de que alguien se acuerde; y el agujero de los tipos de ruta se tapó con
+      `next typegen` (3,5 s, genera `.next/types/` sin construir), de modo que el clon
+      limpio del CI verifica lo mismo que la máquina de Felipe. Texto original abajo:**
       **`pnpm typecheck` no verifica NADA — corre 0 tareas y sale en verde.** El
       script existe en el `package.json` de la raíz (`turbo run typecheck`), pero
       ningún paquete del workspace define esa tarea, así que turbo responde
@@ -846,9 +851,34 @@ importante que ha entrado a este archivo desde que existe.
       modelo nuevo. Reversible: sí, nada de esto se ha tocado todavía.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
       `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
-- [ ] `pruebas`: un solo archivo de test (`registro-contable.test.ts`) para todo el
+- [ ] **`pnpm lint` está en ROJO en main — 2 errores, los dos en `ConteoPanel.tsx`,
+      los dos de `react-hooks/set-state-in-effect` — 2026-09-10.** Es lo primero que
+      va a marcar el CI recién encendido, y está bien que lo marque: son de código ya
+      commiteado (`ab479ba`), no de trabajo suelto. **No los toqué**: son el corazón
+      del guardado optimista de la pantalla de conteo, recién aterrizada por otra
+      sesión, y reescribir eso de refilón mientras se enciende un CI es cómo se rompe
+      una pantalla que ya funciona. Los dos casos NO son el mismo problema:
+      · **`:95` — hidratar `pendientes` desde `localStorage` al montar.** Probablemente
+        un falso positivo: en Next no se puede leer `localStorage` durante el render
+        (no existe en el servidor y desincroniza la hidratación), así que el efecto es
+        justamente el patrón correcto. Lo que corresponde acá es un
+        `eslint-disable-next-line` **con el motivo escrito**, no un rediseño.
+      · **`:106` — copiar `conteo.lineas` del servidor al estado local.** Éste sí es el
+        antipatrón que la regla persigue, y React documenta el reemplazo exacto
+        ("ajustar estado durante el render", comparando contra el valor previo). Además
+        de callar el lint, quita un render de más: la lista vieja deja de pintarse un
+        instante antes de corregirse — en una pantalla donde se cuenta inventario, eso
+        no es cosmético.
+      Decidir con quien tenga el contexto de la pantalla. Mientras tanto el CI queda
+      rojo, que es la verdad.
+
+- [ ] `pruebas`: **dato corregido 2026-09-10 — ya no es un solo archivo: son 7 y 79
+      pruebas** (`documento`, `error-escritura`, `lucode`, `padron`, `panel-serie`,
+      `proformas`, `registro-contable`), y desde hoy corren en CI en cada push. **Pero
+      lo que la entrada denunciaba sigue en pie, y es lo que importa:** las 7 prueban
+      lógica de TypeScript, ninguna toca Postgres. El
       núcleo de dinero e inventario — `registrar_venta`, `cerrar_caja`,
-      `fn_aplicar_movimiento`, las RPCs de producción, no tienen prueba
+      `fn_aplicar_movimiento`, las RPCs de producción — no tiene prueba
       automatizada, solo verificación manual en vivo por Felipe. Cayla Dynamic
       (proyecto hermano) corre 302 pruebas pgTAP sobre su propio dinero; acá el
       principio 7 ("pasos verificables") se cumple con el navegador pero no queda
