@@ -2489,3 +2489,50 @@ cualquier lectura casual, porque el código alrededor de cada uno es correcto;
 solo se ven intentando romperlos a propósito. La disciplina de pedirle a un
 revisor que refute en vez de aprobar es la que los sacó a la luz antes de
 que una clienta real los encontrara primero.
+
+## 2026-09-10 (recalcular_stock ciego al almacén, y dos filas de stock que ya estaban mal)
+
+Cerrado el fix de `registrar_venta`, se revisó el siguiente ítem real del
+backlog: `recalcular_stock` borraba el `stock_minimo` de una variante sin
+movimientos, un borde que `0044_almacen_interno.sql` había dejado anotado
+sin resolver. Al ir a corregir esa línea, verificar el cuerpo REAL de la
+función en producción (no el del repo) mostró algo más grave: la versión
+vigente es la de ADR-0020, escrita antes de que existiera el almacén
+interno — no sabe nada de `contenedores` ni de `stock_almacen`. Producción
+ya tiene 4 contenedores de almacén reales y 9 movimientos enrutados ahí; si
+alguien invocara esta función hoy (es la "red de seguridad" manual, no algo
+que corra solo), mezclaría el almacén de vuelta al piso de venta.
+
+Se portó el diseño de `0044` (ya en `origin/main`, nunca pegado a
+producción con ese alcance) sumando el guard de `stock_minimo`, el candado
+de Líder (perdido en algún punto desde ADR-0020) y el `EXECUTE` de más para
+`PUBLIC`. Una revisión adversarial encontró un bug antes de aplicar: sin
+una excepción para traslados, el mecanismo real de "devolver a almacén"
+—hoy una rama muerta en el frontend, pero viva en el RPC— habría dejado
+inventario fantasma (restado del origen, sumado en ningún lado). Se corrigió
+antes de tocar producción. La misma revisión levantó una alarma sobre
+`es_lider()` (parecía estar chequeando el rol equivocado, el de Dynamic en
+vez de uno propio de retail) que se verificó y resultó falsa: `admin` en
+Dynamic y `lider` en retail son la misma persona, por diseño
+(`lib/persona.ts:mapearRol`) — vale la pena que quede registrado que se
+investigó y se descartó, para que nadie la vuelva a levantar sin revisar.
+
+Antes de aplicar, se comparó (con `select` de solo lectura, sin invocar la
+función) lo que el nuevo cálculo produciría contra el `stock` real de las 4
+sedes. Coincidencia exacta en almacén; 8 de 10 filas de piso también. Las 2
+que no coincidían resultaron ser una misma prenda con el mismo patrón: un
+`ingreso de lote` al almacén contado también como piso, del 2026-09-05 —
+antes de que `fn_aplicar_movimiento` supiera separar ambos. Es decir: dos
+SKUs en Arequipa llevaban mostrando entre 40 y 50 unidades de más en
+Catálogo y Vender, hoy, con la tienda operando sobre ese número. Felipe
+confirmó explícitamente la corrección (99→49, 98→58) antes de aplicarla —
+un `update` de dos filas puntuales, sin tocar `movimientos`, en vez de
+invocar la función completa (que habría exigido impersonar la sesión de un
+Líder para pasar su propio candado).
+
+**Lo que Felipe aprende acá:** una "red de seguridad" que nadie corrió
+todavía no es una red de seguridad — es una promesa sin probar. Estaba rota
+desde que se construyó el almacén interno y nadie lo supo porque nadie la
+había invocado; el mismo ejercicio de verificarla para otra cosa (el borde
+de `stock_minimo`) fue lo que sacó a la luz que dos números reales, en
+pantalla, ya estaban mal.

@@ -225,14 +225,6 @@ importante que ha entrado a este archivo desde que existe.
       color resuelto, esas 5 variantes **no reciben código corto** — es
       deliberado (ADR-0025: el código no se inventa), y en cuanto se les asigne
       color, `retail.fn_asignar_codigo_variante` se los da.
-- [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
-      movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
-      función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con
-      cantidad 0 solo para guardar el mínimo, y el `delete` final la borra si esa
-      variante todavía no tiene ningún movimiento en esa sede. Se dejó anotado en
-      el comentario del bloque 7 de `0044` en vez de cambiarlo por cuenta propia,
-      porque es una decisión de quien escribió ADR-0020. Arreglo probable: sumar
-      `and s.stock_minimo is null` al `delete`.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
       plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
       CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
@@ -1016,6 +1008,27 @@ importante que ha entrado a este archivo desde que existe.
       producción: firma nueva de 5 argumentos activa, firma vieja ausente,
       `anon`/`PUBLIC` sin `EXECUTE`, cero filas de prueba dejadas atrás.
       `pnpm typecheck` limpio en los 3 paquetes.
+- [x] 2026-09-10 — **`recalcular_stock()` vuelve a saber que el almacén
+      existe, y de paso corrigió 2 filas de stock que ya estaban infladas
+      (ADR-0031).** La versión vigente en producción (ADR-0020, "el neto en
+      una pasada") se escribió antes de que existiera el almacén interno —
+      producción ya tiene 4 contenedores tipo `almacen` reales y 9
+      movimientos enrutados ahí que esa versión no conocía; invocarla
+      habría mezclado el almacén de vuelta al piso. Se portó el diseño de
+      `0044_almacen_interno.sql` (nunca pegado a producción con ese
+      alcance), sumando el candado de Líder que se había perdido en el
+      camino, el guard de `stock_minimo` (borde heredado de ADR-0020, ya
+      anotado hace días en este archivo) y `EXECUTE` revocado de `PUBLIC`.
+      Una revisión adversarial encontró y corrigió un bug antes de aplicar:
+      sin una excepción para `tipo='traslado'`, un traslado hacia un
+      contenedor de almacén (el mecanismo real de "devolver a almacén", hoy
+      inalcanzable desde el frontend) se habría restado del piso de origen
+      sin sumarse en ningún lado. Verificando la lógica contra los datos
+      reales (por `select`, sin invocar la función) aparecieron 2 filas de
+      `stock` con el doble conteo exacto de una entrada al almacén también
+      contada como piso, del 2026-09-05 — corregidas a mano con confirmación
+      explícita de Felipe (99→49 y 98→58 en Arequipa), sin tocar
+      `movimientos`.
 - [x] 2026-09-10 — La cabecera dice DÓNDE estás parado, y la tienda de Lima quedó
       entera. El selector mostraba `codigo` — que dejó de ser legible con la
       unificación: el Taller es `LIM` y la tienda de Lima es `003`. Ahora muestra
