@@ -13,6 +13,14 @@ import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import { anclarPorNombre, type Anclaje, type TerminoPropio, type TerminoUniversal } from "./anclar";
 
 /**
+ * Lo que costó la llamada. Viaja hasta la pantalla en vez de quedarse en un log:
+ * así el costo real se contrasta con el estimado en vez de creerlo.
+ */
+export type Uso = { entrada: number; salida: number; cacheLeido: number };
+
+const SIN_USO: Uso = { entrada: 0, salida: 0, cacheLeido: 0 };
+
+/**
  * Esquema de la respuesta, en JSON Schema y no en Zod a propósito:
  * `packages/shared` usa Zod v3 y el helper `zodOutputFormat` del SDK exige la
  * API de `zod/v4`. Tener dos dialectos de Zod conviviendo en el repo es justo
@@ -68,8 +76,8 @@ export async function anclarConIA(
   pendientes: TerminoPropio[],
   universales: TerminoUniversal[],
   queSon: string
-): Promise<Anclaje[]> {
-  if (pendientes.length === 0) return [];
+): Promise<{ anclajes: Anclaje[]; uso: Uso }> {
+  if (pendientes.length === 0) return { anclajes: [], uso: SIN_USO };
 
   const client = new Anthropic();
 
@@ -146,7 +154,7 @@ export async function anclarConIA(
   const idsValidos = new Set(universales.map((u) => u.id));
   const clavesPedidas = new Set(pendientes.map((p) => p.clave));
 
-  return salida.anclajes
+  const anclajes = salida.anclajes
     .filter((a) => clavesPedidas.has(a.clave))
     .map((a) => {
       const valido = idsValidos.has(a.universalId);
@@ -169,6 +177,15 @@ export async function anclarConIA(
         porque: `El modelo señaló "${a.universalId}", que no está en el catálogo que se le pasó. Revisar. (Dijo: ${a.porque})`,
       };
     });
+
+  return {
+    anclajes,
+    uso: {
+      entrada: respuesta.usage.input_tokens,
+      salida: respuesta.usage.output_tokens,
+      cacheLeido: respuesta.usage.cache_read_input_tokens ?? 0,
+    },
+  };
 }
 
 /** Las dos pasadas juntas: lo obvio por código, el resto por criterio. */
@@ -176,9 +193,9 @@ export async function anclar(
   propios: TerminoPropio[],
   universales: TerminoUniversal[],
   queSon: string
-): Promise<{ anclajes: Anclaje[]; conIA: number }> {
+): Promise<{ anclajes: Anclaje[]; conIA: number; uso: Uso }> {
   const { resueltos, pendientes } = anclarPorNombre(propios, universales);
-  const deIA = await anclarConIA(pendientes, universales, queSon);
+  const { anclajes: deIA, uso } = await anclarConIA(pendientes, universales, queSon);
 
   // Un pendiente que el modelo no devolvió queda explícitamente sin anclar en
   // vez de desaparecer del resultado: la pantalla tiene que poder mostrarlo.
@@ -192,5 +209,5 @@ export async function anclar(
       porque: "El modelo no lo clasificó.",
     }));
 
-  return { anclajes: [...resueltos, ...deIA, ...faltantes], conIA: pendientes.length };
+  return { anclajes: [...resueltos, ...deIA, ...faltantes], conIA: pendientes.length, uso };
 }

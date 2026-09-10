@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { MapearColumnas } from "./MapearColumnas";
+import { RevisarValores } from "./RevisarValores";
+import type { PlanDeMapeo } from "@/lib/importacion/mapeo";
 
 /**
  * Paso 1 de la importación: mirar el archivo del cliente antes de tocar nada.
@@ -25,6 +27,7 @@ export function SubirCatalogo() {
   // La cabecera detectada es una SUGERENCIA: acá se puede corregir, porque
   // ninguna heurística acierta con todos los Excel del mundo.
   const [filaCabecera, setFilaCabecera] = useState(0);
+  const [plan, setPlan] = useState<PlanDeMapeo | null>(null);
 
   async function enviar(cuerpo: FormData | string) {
     setCargando(true);
@@ -171,6 +174,19 @@ export function SubirCatalogo() {
           key={`${tabla.origen}:${filaCabecera}`}
           filas={tabla.filas}
           filaCabecera={filaCabecera}
+          onListo={setPlan}
+        />
+      )}
+
+      {/* Igual que arriba: si el plan cambia porque alguien corrigió una
+          columna, la revisión de valores se rehace desde cero. Los colores que
+          salían de la columna vieja ya no son los de este plan. */}
+      {tabla && plan && (
+        <RevisarValores
+          key={JSON.stringify(plan.columnas.map((c) => c.campo))}
+          filas={tabla.filas}
+          filaCabecera={filaCabecera}
+          plan={plan}
         />
       )}
     </div>
