@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-10 (ADR-0018 había diseñado la mitad: el dato local, no la pantalla que abre)
+
+Arrancando la Fase 2 apareció que el plan no podía funcionar. ADR-0018 eligió
+IndexedDB + Realtime para que el dato viva en el navegador, pero **las 41 rutas son
+Server Components**: con el wifi caído no llega ni el HTML, así que ningún JavaScript
+nuestro corre y da igual lo que haya guardado. Faltaba el escalón de abajo —un service
+worker— y las dos piezas solo sirven juntas. Felipe eligió el alcance acotado: solo la
+pantalla del censo (ADR-0032).
+
+**Y no hizo falta IndexedDB.** El documento del conteo ya trae el catálogo adentro,
+porque el Server Component lo resolvió antes de renderizar: guardar el documento guarda
+el dato. Agregar IndexedDB habría sido una segunda copia del mismo catálogo con su
+propia forma de desincronizarse.
+
+Lo que Felipe se lleva: **la prueba en navegador encontró lo que el diseño no podía.**
+Con el servidor apagado la pantalla abrió —el objetivo— pero `navigator.onLine` decía
+`true`, porque la máquina tenía red y solo el servidor estaba muerto. Ése es el caso MÁS
+común en tienda (wifi conectado a un router sin salida), y la pantalla mostraba el
+catálogo viejo sin decir una palabra. La única señal que no miente es el propio service
+worker, que sabe de dónde sacó la respuesta y ahora deja una marca. De ahí salió también
+la distinción que la Encargada lee: «sin internet» y «sin conexión con el sistema» no son
+lo mismo, y decirle la primera cuando su wifi funciona la manda a arreglar lo que no está
+roto.
+
 ## 2026-09-10 (la pieza más difícil ya estaba construida, y llevaba semanas sin usarse)
 
 Arrancó la dimensión «velocidad y sin internet» y el primer paso resultó ser el más

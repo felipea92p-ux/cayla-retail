@@ -725,6 +725,16 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Falta la prueba que cierra de verdad el conteo sin red: escanear.** ADR-0032 está
+      verificado en lo que se pudo —la pantalla abre con el servidor apagado, el aviso sale,
+      la marca de caché funciona— pero **no se probó escanear con un conteo abierto sin red y
+      ver la cola vaciarse al volver**. La base local tiene **cero variantes**, así que no hay
+      nada que escanear sin sembrar datos primero. Es el mismo hueco que dejó `0054` (la venta
+      idempotente no se probó vendiendo en el navegador, por lo mismo).
+      **Lo que lo destraba de una vez para las dos cosas: un seed de catálogo de prueba en
+      local** —10 productos con variantes, stock y códigos de barras—, o cargar el catálogo
+      real. Sin eso, cada verificación de esta clase se corta en el mismo punto.
+
 - [ ] **Los candados de local pueden abrirse solos con NULL — barrido pendiente.**
       `34_candados_no_null.sql` cerró `es_lider`, `es_supervisor` y `puede_operar_sede`
       en **producción**. Local tiene otros nombres (`fn_es_lider`, `fn_puede_operar_sede`)

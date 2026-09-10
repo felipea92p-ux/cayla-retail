@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisoDeRed } from "@/lib/sin-red";
 import { AltaEnConteo, type ModeloRecordado } from "@/components/AltaEnConteo";
 import type {
   CatalogoParaConteo,
@@ -43,6 +44,13 @@ type Props = {
   catalogo: CatalogoParaConteo;
   categorias: CategoriaElegible[];
   colores: ColorElegible[];
+  /**
+   * Cuándo armó el servidor esta pantalla. Sin red, el service worker sirve la ÚLTIMA
+   * versión que se cargó con internet — con su catálogo y con este timestamp — así que esto
+   * es la edad REAL de la foto contra la que se está contando, no la hora actual. Es el dato
+   * que convierte "datos viejos en silencio" en "datos viejos, y de cuándo". Ver ADR-0032.
+   */
+  generadoEn: string;
 };
 
 /** Cola de reintento. NO es local-first (eso es ADR-0018): es la red floja de la tienda. */
@@ -56,7 +64,7 @@ const clave = (t: string) =>
     .replace(/[̀-ͯ]/g, "")
     .trim();
 
-export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: Props) {
+export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, generadoEn }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   // Sobrevive a cada alta porque vive acá: `AltaEnConteo` se monta y se desmonta con
@@ -73,6 +81,17 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   const [guardando, setGuardando] = useState(false);
   const [abriendo, setAbriendo] = useState(false);
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
+  // Arranca en `true` a propósito: en el servidor no hay `navigator`, y empezar en `false`
+  // pintaría "sin internet" durante el primer render de CADA carga, incluidas las buenas.
+  // El efecto de montaje corrige enseguida si de verdad no hay red.
+  const [enLinea, setEnLinea] = useState(true);
+  // Lo pone el service worker cuando sirve esta pantalla desde la caché (ADR-0032). Es la
+  // única señal que no miente: con el servidor caído y el wifi vivo, `navigator.onLine`
+  // sigue diciendo `true` — comprobado apagando el servidor en la prueba.
+  const [desdeCache, setDesdeCache] = useState(false);
+  // Evita que el reintento automático se dispare encima de sí mismo: la cola cambia cuando
+  // termina, y sin este candado ese cambio volvería a disparar el efecto.
+  const reintentando = useRef(false);
   // Corregir una cantidad ya contada. Ver el comentario del botón, abajo.
   const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null);
   const [correccion, setCorreccion] = useState("");
@@ -233,8 +252,9 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
     enfocarBuscador();
   }
 
-  async function reintentar() {
-    if (!conteo || pendientes.length === 0) return;
+  const reintentar = useCallback(async () => {
+    if (!conteo || pendientes.length === 0 || reintentando.current) return;
+    reintentando.current = true;
     setGuardando(true);
     const quedan: Pendiente[] = [];
     for (const p of pendientes) {
@@ -247,12 +267,101 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
       if (err) quedan.push(p);
     }
     setGuardando(false);
+    reintentando.current = false;
     guardarPendientes(quedan);
     if (quedan.length === 0) {
       setError(null);
       router.refresh(); // Una sola vez, al final: acá sí conviene releer del servidor.
     }
-  }
+  }, [conteo, pendientes, supabase, guardarPendientes, router]);
+
+  // ---------- la red que va y viene ----------
+  // El censo dura días con la red de la tienda: la conexión se cae y vuelve sola muchas
+  // veces. Antes la cola solo se vaciaba si alguien se acordaba de apretar «Reintentar»;
+  // una persona escaneando 500 prendas no está mirando ese botón.
+  useEffect(() => {
+    const alCambiar = () => setEnLinea(navigator.onLine);
+    alCambiar();
+    window.addEventListener("online", alCambiar);
+    window.addEventListener("offline", alCambiar);
+    return () => {
+      window.removeEventListener("online", alCambiar);
+      window.removeEventListener("offline", alCambiar);
+    };
+  }, []);
+
+  // La marca que dejó el worker. Se lee una vez, al montar: describe CÓMO llegó este
+  // documento, y eso ya no cambia mientras la pestaña siga viva. `caches` no existe en
+  // contextos no seguros ni en navegadores viejos, así que el `catch` deja el aviso apagado
+  // en vez de romper la pantalla del censo.
+  useEffect(() => {
+    let vigente = true;
+    void (async () => {
+      try {
+        const marca = await caches.match("/__cayla/servido-desde-cache");
+        if (vigente && marca) setDesdeCache(true);
+      } catch {
+        /* sin Cache API: se cae al comportamiento de antes, que es `navigator.onLine` solo. */
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  // `navigator.onLine` dice "hay una interfaz de red", no "el servidor contesta" — un wifi
+  // de tienda conectado a un router sin salida da `true`. Por eso el reintento no confía en
+  // el evento: intenta, y si vuelve a fallar la cola se queda como estaba y se reintentará
+  // en el próximo `online`. El costo de un intento de más es una petición; el de uno de
+  // menos es una prenda contada que nunca sube.
+  useEffect(() => {
+    if (!enLinea || pendientes.length === 0) return;
+    // `set-state-in-effect` apagada acá, y por el mismo criterio que doce líneas más arriba:
+    // lo que la regla persigue es DERIVAR estado de props durante el render. Esto es lo
+    // contrario — sincronizar con un sistema externo (el servidor) cuando una condición del
+    // mundo cambia, que es para lo que existe `useEffect`. El `setGuardando(true)` que
+    // dispara la alarma es el prólogo de una llamada de red, no un valor calculado.
+    // La alternativa —reintentar solo desde el evento `online`— se ve más limpia y pierde el
+    // caso que más importa: abrir la pantalla con una cola que quedó de ayer en este equipo.
+    // Ahí no hay transición que escuchar, porque la red nunca se fue: llegó antes que nadie.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void reintentar();
+  }, [enLinea, pendientes.length, reintentar]);
+
+  // El texto que la Encargada lee sobre la red. La lógica vive en `lib/sin-red.ts` para
+  // poder fijarla por prueba: es lo único de todo el service worker que ella llega a ver.
+  const aviso = avisoDeRed({ enLinea, desdeCache, pendientes: pendientes.length, generadoEn });
+  const sinConexion = !enLinea || desdeCache;
+
+  // El aviso se arma una vez y se usa en las DOS ramas del render. La primera versión vivía
+  // solo en la del conteo abierto, y la prueba con el servidor apagado lo destapó: la pantalla
+  // volvía a abrir —que era el objetivo— pero callada. Y la rama SIN conteo abierto es donde
+  // más falta hace, porque el único botón que ofrece necesita servidor.
+  const nodoAviso = aviso ? (
+    <div
+      className={`card-cayla flex flex-wrap items-center justify-between gap-3 p-4 ${
+        aviso.tono === "sin-red" ? "border-rojo/40" : "border-ambar/50"
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="label-cayla text-[11px] text-tinta">{aviso.titulo}</p>
+        <p className="mt-1 text-sm text-tinta/80">{aviso.detalle}</p>
+      </div>
+      {/* El botón queda, aunque el reintento ahora sea automático: `navigator.onLine` puede
+          decir que hay red cuando el router no tiene salida, y en ese caso la única señal de
+          que volvió es que alguien lo pruebe. Sin conexión no se ofrece — apretarlo solo
+          produciría una espera y un fallo. */}
+      {!sinConexion && pendientes.length > 0 && (
+        <button
+          onClick={() => void reintentar()}
+          disabled={guardando}
+          className="label-cayla shrink-0 rounded-md border border-ambar px-4 py-2 text-[11px] text-ambar disabled:opacity-60"
+        >
+          Reintentar ahora
+        </button>
+      )}
+    </div>
+  ) : null;
 
   // ---------- buscar / escanear ----------
   function resolver(e: React.FormEvent) {
@@ -312,7 +421,9 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   // ---------- sin conteo abierto ----------
   if (!conteo) {
     return (
-      <div className="card-cayla space-y-4 p-6">
+      <div className="space-y-4">
+        {nodoAviso}
+        <div className="card-cayla space-y-4 p-6">
         <div>
           <h2 className="font-display text-xl text-tinta">No hay un conteo abierto en {persona.sedeCodigo}</h2>
           <p className="mt-2 max-w-prose text-sm text-tinta/70">
@@ -323,11 +434,22 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         {error && <p className="text-sm text-rojo">{error}</p>}
         <button
           onClick={abrirConteo}
-          disabled={abriendo}
+          disabled={abriendo || sinConexion}
           className="label-cayla rounded-md bg-rojo px-5 py-3 text-[11px] text-crema transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {abriendo ? "Abriendo…" : "Abrir conteo del piso"}
         </button>
+        {/* ABRIR un conteo sí necesita servidor: crea la fila contra la que se cuenta después.
+            Ofrecer el botón sin conexión sería prometer algo que va a fallar. Contar, en
+            cambio, sigue funcionando — pero solo sobre un conteo que ya estaba abierto. */}
+        {sinConexion && (
+          <p className="text-sm text-tinta/70">
+            Abrir un conteo necesita conexión — es lo único de esta pantalla que no se puede
+            hacer sin ella. Si ya había uno abierto, se puede seguir contando: recarga cuando
+            vuelva la señal.
+          </p>
+        )}
+        </div>
       </div>
     );
   }
@@ -356,21 +478,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         )}
       </div>
 
-      {pendientes.length > 0 && (
-        <div className="card-cayla flex flex-wrap items-center justify-between gap-3 border-ambar/50 p-4">
-          <p className="text-sm text-tinta/80">
-            {pendientes.length} {pendientes.length === 1 ? "prenda contada" : "prendas contadas"} sin guardar —
-            el internet falló. No se perdió nada.
-          </p>
-          <button
-            onClick={reintentar}
-            disabled={guardando}
-            className="label-cayla rounded-md border border-ambar px-4 py-2 text-[11px] text-ambar disabled:opacity-60"
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      {nodoAviso}
 
       {/* ---------- el buscador: la pistola teclea acá y manda Enter ---------- */}
       <form onSubmit={resolver} className="card-cayla p-4">
