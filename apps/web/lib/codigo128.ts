@@ -7,20 +7,29 @@
  * impresa, un test— mida EXACTAMENTE lo que la app imprime, y no una copia del
  * algoritmo que puede derivar sin que nadie lo note.
  *
- * POR QUÉ IMPORTA EL LARGO DEL TEXTO (y por qué existe el código corto, ADR-0025).
- * El SVG se dibuja con `preserveAspectRatio="none"`, así que se estira al ancho de
- * la etiqueta sin importar cuántas barras tenga: 14 caracteres y 40 caracteres
- * ocupan lo mismo, solo que con barras la mitad de finas. Y Code 128 se decodifica
- * por PROPORCIÓN de anchos, así que cuando cada módulo baja de ~3 puntos de
- * impresora, el redondeo del cabezal térmico deforma esa proporción y el lector
- * empieza a fallar.
+ * POR QUÉ IMPORTA EL LARGO DEL TEXTO. Un Code 128 mide `11·(n+2) + 2` módulos para
+ * n caracteres, y cada módulo tiene un tamaño físico FIJO (ver `MODULO_MM` abajo).
+ * O sea que el largo del texto es, literalmente, el ancho impreso:
  *
- *   BLU-0042-AZM-M        (14 ch) → 189 módulos → ~3.1 puntos/módulo a 300 dpi
- *   BLUSA-…-M-AZUL-MARINO (40 ch) → 475 módulos → ~1.2 puntos/módulo  ✗
+ *   BLU-0042-AZM-M        (14 ch) → 189 módulos →  48.0 mm  entra
+ *   BLU-0042-AZM-XXL      (16 ch) → 211 módulos →  53.6 mm  no entra
+ *   BLUSA-…-M-AZUL-MARINO (40 ch) → 475 módulos → 120.7 mm  no entra
  *
- * Esa aritmética es la razón declarada del código corto, y sigue sin verificarse
- * contra papel real. `scripts/etiquetas/hoja-de-prueba.mjs` genera la hoja para
- * medirlo.
+ * En los ~50 mm útiles de la etiqueta entran 15 caracteres. Ése es el techo que
+ * dejaba afuera a una talla XXL, y la razón de fondo por la que la etiqueta pasó a
+ * imprimir QR (ADR-0025, corregido el 2026-09-10).
+ *
+ * ⚠ NO CONFUNDIR ESTO CON EL DEFECTO QUE SE ARREGLÓ. Hasta el 2026-09-09 el dibujo
+ * se ESTIRABA al ancho de la etiqueta, y eso deformaba la proporción de anchos de la
+ * que depende Code 128 — rompía CUALQUIER código, corto o largo. El primer escaneo
+ * de `BLU-0001-AZM-M`, que tiene 14 caracteres, también falló. Acortar el código no
+ * habría arreglado nada: el arreglo fue dejar de estirar. Verificado después con la
+ * pistola Zebra. El detalle está en el comentario de `medir()`.
+ *
+ * DÓNDE SE USA HOY. La etiqueta imprime QR (`components/CodigoQR.tsx`), así que este
+ * camino no está en uso. Se conserva arreglado y verificado porque leer sigue
+ * funcionando con ambas simbologías, y porque `codigos_barras` no distingue: para
+ * el sistema, un código de barras y un QR son dos filas que apuntan a la misma prenda.
  */
 
 /** Tabla oficial de patrones Code 128 (anchos de barra/espacio por símbolo, 0-106). */

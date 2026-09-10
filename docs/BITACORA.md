@@ -2520,3 +2520,49 @@ afirmaciones que la base desmintió.
 `codigo128.ts` explica con precisión un bug que ya no existe — quien lo lea mañana va a
 diagnosticar hacia atrás. Cuando un arreglo desmiente la razón escrita, corregir el texto
 es parte del arreglo, no papeleo posterior.
+
+## 2026-09-10 (la etiqueta deja de ser una hipótesis — y un ADR enseñaba una causa falsa)
+
+**La etiqueta de CAYLA está verificada con hardware real.** Felipe imprimió la hoja de prueba
+y la escaneó con la pistola: cada QR devuelve exactamente el código impreso debajo, la Zebra
+los engancha rápido y de lejos, y el texto de la derecha se lee sin esfuerzo a la distancia a
+la que se mira una etiqueta colgada. La etiqueta pasó a ser **QR + el código legible al lado**
+(`397e666`), que es además lo que CAYLA ya venía usando en la operación.
+
+**Leer QR no requirió construir nada.** El lector manda el contenido como si lo tecleara, y
+`conteo_contar_por_codigo` resuelve cualquier texto contra `codigos_barras` → `variantes.codigo`
+→ `sku`. Como esa tabla ya modela "varios códigos, una prenda" sin importar la simbología, los
+QR que CAYLA ya tiene pegados se adoptan con un `insert`: la ropa ya etiquetada queda escaneable
+sin reimprimir nada.
+
+**El camino hasta acá tuvo dos errores míos, y el segundo enseña más que el primero.**
+
+El 09-09 escribí en ADR-0025 que el SKU largo no se leía porque se degradaba a 1.2 puntos por
+módulo. El 09-10 Felipe escaneó y salió basura — pero salió basura con `BLU-0001-AZM-M`, **el
+código CORTO de 14 caracteres**. Si la causa hubiera sido el largo, ése tenía que haber leído
+bien. El defecto real era que el SVG se **estiraba** al ancho de la etiqueta y deformaba la
+proporción de anchos de la que Code 128 depende: rompía cualquier código. Un round-trip probó
+que el encoder siempre estuvo bien. El arreglo fue dejar de estirar (`d80c57d`).
+
+**Lo que aprendió Felipe:** que un ADR puede observar bien el síntoma y sacar la conclusión
+equivocada. Ese ADR TENÍA descrito el estirado, en su propia línea 17 — y aun así le echó la
+culpa al largo del texto en vez de al renderizador. Actuar sobre ese diagnóstico habría dado un
+código más corto que igual no se leía. La aritmética estaba escrita como si fuera evidencia,
+y decía "verificar el dpi exacto" como si fuera un detalle pendiente y no la prueba entera.
+
+Corregido el 10-09: ADR-0025 lleva ahora la corrección ANTES del contexto —quien lee de arriba
+hacia abajo se topaba primero con la causa falsa— y el contexto viejo queda como estaba, con su
+error incluido. Un ADR es historia; borrar el razonamiento equivocado borraría la lección.
+La cabecera de `lib/codigo128.ts` también contaba la historia vieja y contradecía al código de
+abajo. Los dos cabos los detectó una sesión paralela leyendo mi propio commit.
+
+**Se sumó una librería, rompiendo la tradición del repo, y vale decir por qué.** Code 128 se
+escribió a mano con razón: una tabla de patrones y un checksum, 40 líneas auditables. QR no es
+comparable — Reed-Solomon sobre campos de Galois, ocho patrones de enmascarado con evaluación de
+penalidad, formato con códigos BCH. Son 600+ líneas donde un error produce un código que *a
+veces* escanea: pasa las pruebas y falla en el mostrador. `qrcode.react` 4.2.0.
+
+Y se aplicó dos veces la misma disciplina: **la hoja de prueba dibuja con el mismo código que la
+app**, no con una copia. Para el QR eso significó renderizar el propio componente a HTML estático
+desde Node. Si generara el suyo, mediría otra cosa — que es exactamente el error que casi
+cometemos con el código de barras.
