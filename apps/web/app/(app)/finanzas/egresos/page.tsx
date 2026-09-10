@@ -35,7 +35,14 @@ export default async function EgresosPage({ searchParams }: { searchParams: Prom
   const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
 
   const todasSedes = await getSedes();
-  const sedes = todasSedes.filter((s) => s.tipo !== "almacen" && s.activo);
+  // Sin `s.activo`: esa columna es de Dynamic (`retail.sedes` la expone como vista sobre
+  // `public.sedes.activa`), y su criterio no es el de retail — la tienda de Lima está
+  // abierta y operando, pero allá figura inactiva. Filtrar por ella dejaba una sede donde
+  // se puede vender pero no cargarle el alquiler, que es el estado inconsistente que el
+  // principio 2 prohíbe. Decisión de Felipe, 2026-09-10: retail no mira ese flag (ADR-0029).
+  // El día que se cierre una sede de verdad, esto se resuelve con una columna propia en
+  // `retail.sede_meta` — NO volviendo a colgarse del flag de Dynamic.
+  const sedes = todasSedes.filter((s) => s.tipo !== "almacen");
   const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? sedes[0];
   const otrasSedes = sedes.filter((s) => s.id !== sedeActual?.id);
 

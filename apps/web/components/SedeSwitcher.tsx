@@ -18,7 +18,7 @@ export function SedeSwitcher({
   sedes,
   sedeActualId,
 }: {
-  sedes: { id: string; codigo: string }[];
+  sedes: { id: string; etiqueta: string }[];
   sedeActualId: string;
 }) {
   const router = useRouter();
@@ -29,11 +29,14 @@ export function SedeSwitcher({
     <Desplegable
       forma="pastilla"
       // La lista crece con su contenido y se pega al borde derecho: el
-      // disparador dice "TRU" y mide 60px, y una lista de 60px no se lee.
+      // disparador es angosto y una lista de ese ancho no se lee.
       alineacion="derecha"
       etiquetaAccesible="Cambiar de sede"
       valor={valor}
-      opciones={sedes.map((s) => ({ valor: s.id, texto: s.codigo }))}
+      // Se muestra la ETIQUETA ("TND LIM", "TLL LIM"), no el código. El valor que viaja
+      // sigue siendo el id, así que el cambio de sede funciona igual que siempre: esto
+      // es solo qué letras lee la persona. La regla vive en `lib/etiqueta-sede.ts`.
+      opciones={sedes.map((s) => ({ valor: s.id, texto: s.etiqueta }))}
       trabajando={pendiente}
       onValor={(sedeId) => {
         setValor(sedeId);

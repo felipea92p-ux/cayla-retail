@@ -31,9 +31,10 @@ export async function GET() {
     nombre: personaRow.nombre,
     rol,
     sedeId: personaRow.sede_id,
-    // Ni el codigo ni el tipo de sede los usa getCatalogoConStock: se dejan vacios
-    // para evitar un round-trip a `sedes` que este export no necesita.
+    // Ni el codigo, ni la etiqueta, ni el tipo de sede los usa getCatalogoConStock: se
+    // dejan vacios para evitar un round-trip a `sedes` que este export no necesita.
     sedeCodigo: "",
+    sedeEtiqueta: "",
     sedeTipo: "",
   };
   const esLider = persona.rol === "lider";
