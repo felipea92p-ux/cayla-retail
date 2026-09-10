@@ -2474,3 +2474,33 @@ por aplicar, lo busqué en local, no estaba, y por un momento pensé que iba a r
 producción. La costumbre de comprobar antes de opinar convirtió un susto en un hallazgo — y
 el hallazgo vale más que el susto, porque esa diferencia de nombres sigue ahí esperando a
 quien escriba el próximo par de gemelos.
+
+## 2026-09-10 (cierre: qué falta de verdad, cruzado contra la base)
+Con todo pusheado y el CI en verde, se auditó qué queda. El resultado más útil no es la
+lista sino que **el backlog mentía en tres items más**, siempre en la misma dirección:
+daba por pendiente algo ya hecho, porque quien lo hizo no lo anotó.
+
+**El cruce que conviene repetir antes de cada despliegue:** se extrajeron los 25 `.rpc(` que
+llama `apps/web` y se preguntaron de golpe contra producción. **Los 25 existen, con
+exactamente una firma cada uno** — ni falta ninguno ni hay sobrecargas (la trampa del
+ADR-0009). Es una consulta, contesta en un segundo, y responde de verdad la pregunta "¿la
+app y la base están de acuerdo?", que hasta hoy se contestaba pantalla por pantalla cuando
+algo se rompía.
+
+Corregidos: `crear_producto_con_variantes` YA está en producción (con su pantalla
+`/inventario/producto/nuevo` desplegada), o sea que `unificacion/16` se pegó y nadie lo
+registró; y el padrón YA tiene proveedor contratado — hay un token real de `apisnetpe_v1` y
+la bitácora del 08-09 registra la consulta funcionando —, así que lo único abierto ahí es
+confirmar el valor exacto en Vercel.
+
+**Un susto que no lo era:** `recibir_lote_completo` no aparecía en producción y
+`/inventario/recibir` es de uso diario. Resultó que ese es el nombre del ARCHIVO de
+migración (`0031_recibir_lote_completo.sql`); la función se llama `recibir_lote` y está.
+Segunda vez en el día que un nombre de archivo o una diferencia de nombres entre entornos
+manda por el camino equivocado.
+
+**Lo que Felipe aprende acá:** tres items del backlog decían "falta pegar X" y X estaba
+pegado. El patrón no es descuido de una persona: es que aplicar algo en producción y
+anotarlo son dos gestos distintos, y el segundo se olvida cuando el primero salió bien. Por
+eso el cruce automático vale más que la lista escrita — la lista recuerda lo que alguien
+decidió anotar, la base sabe lo que pasó.

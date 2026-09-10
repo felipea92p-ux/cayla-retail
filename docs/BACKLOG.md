@@ -421,7 +421,12 @@ importante que ha entrado a este archivo desde que existe.
       **Pendiente, sin bloquear el proyecto:** preguntarle al contador si
       CAYLA ya cruzó el umbral SIRE (75 UIT, ~S/412,500/año) — obligación
       distinta del PLE (300 UIT) que probablemente ya aplica hoy.
-- [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
+- [x] **LA RPC YA ESTÁ EN PRODUCCIÓN — verificado 2026-09-10.** `retail.crear_producto_con_variantes`
+      existe con una sola firma, y la pantalla `/inventario/producto/nuevo` está
+      desplegada. O sea que `unificacion/16` se pegó en algún momento y nadie lo anotó.
+      **Lo único que queda de este item es manual y de Felipe:** crear un producto real
+      con varias tallas/colores y confirmar que aparece en Catálogo. Texto original abajo:**
+      **`crear_producto_con_variantes`: construido y verificado (build/lint,
       `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
       producción.** "Recibir mercadería" crea un `producto` nuevo por CADA
       ítem agregado con "+ Agregar prenda nueva": pedir la misma referencia
@@ -439,7 +444,16 @@ importante que ha entrado a este archivo desde que existe.
       (ej. varias tallas/colores) para confirmar que aparece en Catálogo** —
       cierra además la verificación que le faltaba a `almacen interno` de
       arriba ("que Felipe entre un producto real por la pantalla").
-- [ ] **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
+- [ ] **PROVEEDOR YA CONTRATADO — lo que queda es confirmar Vercel, 2026-09-10.**
+      `apps/web/.env.local` tiene un `PADRON_TOKEN` real de `apisnetpe_v1`, así que la
+      parte de "contratar" está hecha; y la BITÁCORA del 08-09 registra la consulta
+      funcionando en producción (el fallo de ese día fue `apisnetpe` vs `apisnetpe_v1`,
+      no falta de credencial). **Lo único abierto: confirmar que Vercel tenga
+      `PADRON_PROVEEDOR=apisnetpe_v1` — con el `_v1`.** No pude verificarlo desde la
+      sesión: el conector de Vercel devuelve 403 y hay que reautenticar el scope "cayla".
+      Se comprueba en un segundo emitiendo en producción y escribiendo un DNI. Texto
+      original abajo:**
+      **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
       Felipe contrate un proveedor y ponga dos variables de entorno.** El modal
       de emisión ya lee el DNI/RUC y muestra a quién pertenece antes de emitir
       (nombre o razón social, y para RUC además estado y condición, porque una
