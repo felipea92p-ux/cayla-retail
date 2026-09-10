@@ -2445,3 +2445,32 @@ ausente porque la unificación la movió a `retail.sede_meta`, y la sobrecarga d
 y la realidad eran una — pero en la dirección peligrosa: la que faltaba no estaba escrita en
 ningún lado. Antes de un despliegue, la pregunta no es "¿qué dice mi lista?" sino "¿qué dice
 la base?", y son dos preguntas distintas cada vez que alguien aplica algo sin anotarlo.
+
+## 2026-09-10 (auditoría del código ajeno, ya desplegado — y una trampa que casi muerde)
+Felipe pidió verificar si era seguro pushear los commits de las otras sesiones. Se habían
+pusheado ya: `origin/main` estaba en `f7bdfc4`, los 10 commits arriba. Así que la pregunta
+cambió de "¿conviene?" a "¿hay que revertir algo?". No hay que revertir nada.
+
+**Lo auditado, contra la base y contra el código, no contra la intención.** Los 3 RPC que
+llama la pantalla de conteo existen en producción con firma idéntica a local. Las 6 tablas
+también. `EtiquetasGenerator` trata el `codigo` nulo con `?? sku` en las cuatro partes donde
+lo usa — importa porque producción tiene 2 variantes sin código (las de color "azul " con
+espacio) y habrían impreso etiqueta en blanco. Y cero lecturas silenciosas en el código
+nuevo: la única coincidencia de `{ data }` en `lib/conteo.ts` está DENTRO de un comentario
+que explica por qué usaron `exigirOpcional` en su lugar. El CI —estrenado hoy— salió verde
+en su primera corrida real, 42 s.
+
+**La trampa, que es el hallazgo que sobrevive a esta sesión:** la función de permiso se
+llama distinto en cada lado. Local `retail.fn_puede_operar_sede`, producción
+`retail.puede_operar_sede`, sin el `fn_`. Los archivos están bien —20 de `migrations/` usan
+una y 17 de `unificacion/` la otra—, pero el cuerpo de una función plpgsql **no se resuelve
+al crearla, solo al ejecutarla**. Copiar un gemelo al otro, que es el gesto natural cuando
+escribes el par, deja un `create or replace` que corre en verde y falla la primera vez que
+alguien lo usa. `migraciones:verificar` tampoco lo vería: comprueba que la función exista,
+no a quién llama por dentro. Anotado en el BACKLOG con las dos salidas.
+
+**Lo que Felipe aprende acá:** hoy leí `retail.puede_operar_sede` en el archivo que estaba
+por aplicar, lo busqué en local, no estaba, y por un momento pensé que iba a romper
+producción. La costumbre de comprobar antes de opinar convirtió un susto en un hallazgo — y
+el hallazgo vale más que el susto, porque esa diferencia de nombres sigue ahí esperando a
+quien escriba el próximo par de gemelos.

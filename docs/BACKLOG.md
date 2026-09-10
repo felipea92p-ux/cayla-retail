@@ -457,6 +457,26 @@ importante que ha entrado a este archivo desde que existe.
       + `pnpm dev` levanta la app completa contra local (instrucciones en el
       README). Verificado emitiendo una boleta real. Precio: Storage apagado en
       local — subir fotos de producto no funciona ahí.
+- [ ] **La misma función de permiso se llama DISTINTO en local y en producción, y
+      plpgsql no lo delata — 2026-09-10.** Local: `retail.fn_puede_operar_sede`.
+      Producción: `retail.puede_operar_sede`, **sin el `fn_`**. Verificado en las dos
+      bases. Los archivos están bien escritos: 20 de `migrations/` usan la versión con
+      `fn_` y 17 de `unificacion/` la de sin — nadie se equivocó todavía.
+      **Por qué es una trampa y no una curiosidad:** el cuerpo de una función plpgsql
+      NO se resuelve al crearla, solo al ejecutarla. O sea que copiar un gemelo al otro
+      —el gesto más natural del mundo cuando escribes el par— produce un
+      `create or replace` que **corre en verde** y revienta la primera vez que alguien
+      la usa, con "function does not exist" y la clienta esperando. `migraciones:verificar`
+      tampoco lo ve: comprueba que la función exista por nombre, no a quién llama por
+      dentro. Hoy casi muerde al aplicar la `33`: el archivo dice
+      `retail.puede_operar_sede` y en local eso no existe, lo que parece un error y no
+      lo es.
+      Arreglo de fondo: renombrar en producción para que los dos lados digan lo mismo
+      (con un alias temporal que llame al nuevo, para no romper las 17 que ya la
+      nombran). Arreglo barato mientras tanto: que `migraciones:verificar` extraiga los
+      nombres que llama cada cuerpo y los cruce contra el inventario — es la misma idea
+      que ya tiene, un nivel más adentro.
+
 - [ ] `migraciones duales (local sin prefijo / producción con prefijo retail.)`:
       la causa raíz de ADR-0004 y ADR-0006 sigue viva — cada cambio de esquema
       se escribe dos veces y las dos copias se desincronizan. Ahora que el local
