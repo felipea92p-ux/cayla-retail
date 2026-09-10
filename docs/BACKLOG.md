@@ -996,6 +996,26 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
+      corta a mitad de un cobro (ADR-0030).** `registrar_venta` era atómica
+      dentro de Postgres pero no idempotente hacia afuera: si la respuesta se
+      perdía después del commit, un reintento de la Encargada entraba como
+      venta nueva, con doble descuento de stock. Se agregó `p_token uuid`
+      (uno por carrito, generado en `RegistrarVentaModal.tsx`) +
+      `ventas.token_cliente` con índice único. Tres rondas de revisión
+      adversarial encontraron y cerraron dos bugs reales antes de tocar
+      producción: la primera versión devolvía la venta existente ANTES de
+      validar el candado de sede (`retail.puede_operar_sede`) — un bypass de
+      autorización real; la segunda dejaba la rama de la carrera concurrente
+      (`exception when unique_violation`) sin la misma comparación de
+      contexto (caja/método/monto) que sí tenía la rama normal. La versión
+      final repite esa comparación en las dos ramas y valida sede/caja/estado
+      siempre primero, con o sin token. Verificado en producción con consulta
+      directa (no solo el `raise notice` del propio script) y con el
+      verificador de `scripts/migraciones/` contra una foto fresca de
+      producción: firma nueva de 5 argumentos activa, firma vieja ausente,
+      `anon`/`PUBLIC` sin `EXECUTE`, cero filas de prueba dejadas atrás.
+      `pnpm typecheck` limpio en los 3 paquetes.
 - [x] 2026-09-10 — La cabecera dice DÓNDE estás parado, y la tienda de Lima quedó
       entera. El selector mostraba `codigo` — que dejó de ser legible con la
       unificación: el Taller es `LIM` y la tienda de Lima es `003`. Ahora muestra

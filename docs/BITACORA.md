@@ -2445,3 +2445,47 @@ ausente porque la unificación la movió a `retail.sede_meta`, y la sobrecarga d
 y la realidad eran una — pero en la dirección peligrosa: la que faltaba no estaba escrita en
 ningún lado. Antes de un despliegue, la pregunta no es "¿qué dice mi lista?" sino "¿qué dice
 la base?", y son dos preguntas distintas cada vez que alguien aplica algo sin anotarlo.
+
+## 2026-09-10 (idempotencia de `registrar_venta` — dos bugs cerrados antes de llegar a producción)
+
+Felipe pidió avanzar el pendiente de dinero real que quedaba: `registrar_venta`
+no era idempotente, y un reintento por corte de red duplicaba la venta y el
+descuento de stock. Se diseñó el arreglo con un patrón de tres pasadas —
+redactar, verificar adversarialmente, corregir — en vez de escribir la
+migración una sola vez y confiar en ella.
+
+**Ronda 1** propuso devolver la venta existente apenas se encontraba el
+token, antes de validar sede/caja/estado. El revisor adversarial lo refutó:
+es un bypass de autorización real, no solo un detalle de estilo — cualquiera
+con el token recibía el resultado de una venta ajena sin que se revisara
+ningún permiso. **Ronda 2** corrigió eso pero dejó la rama de la carrera
+concurrente (`exception when unique_violation`, la que de verdad se dispara
+con dos requests casi simultáneos) sin la misma comparación de contexto
+(caja/método/monto) que sí tenía la rama normal — exactamente la rama que
+existe PARA ese escenario, dejada sin candado. La tercera pasada cerró
+ambos, con las dos ramas repitiendo la misma comparación vía
+`is distinct from` (no `<>`, para que un campo nulo nunca deje pasar la
+comparación sin resolver).
+
+Aplicado a producción con `execute_sql` (no `apply_migration`, mismo motivo
+de siempre: no ensuciar el historial de migraciones de Dynamic). Verificado
+tres veces: el bloque de autocomprobación del propio script (que incluye una
+prueba de COMPORTAMIENTO real — llamar la función con una caja inventada y
+confirmar que se rechaza, no solo revisar que el texto del candado esté en
+algún lado del código fuente), una consulta directa independiente después de
+aplicar, y el verificador de `scripts/migraciones/` corrido contra una foto
+fresca de producción — que confirmó el archivo sin nada pendiente.
+
+Se descubrió en el camino que `docs/adr/0029-*.md` ya estaba prometido en
+`BACKLOG.md` por otra sesión el mismo día (fix de etiqueta de sede) aunque el
+archivo todavía no existiera en este checkout — colisión de numeración de
+ADR, el mismo patrón que ya documentó la memoria de "sesiones paralelas".
+Se renumeró a ADR-0030 antes de commitear, sin esperar a que la otra rama se
+fusionara para descubrirlo tarde.
+
+**Lo que Felipe aprende acá:** un borrador que "se ve bien" y un borrador
+verificado no son lo mismo — los dos bugs de las rondas 1 y 2 habrían pasado
+cualquier lectura casual, porque el código alrededor de cada uno es correcto;
+solo se ven intentando romperlos a propósito. La disciplina de pedirle a un
+revisor que refute en vez de aprobar es la que los sacó a la luz antes de
+que una clienta real los encontrara primero.
