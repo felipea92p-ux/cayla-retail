@@ -3,11 +3,58 @@
 > Lo mantiene Claude. Se actualiza al cierre de cada sesión/paso. Máx. 3 ítems por
 > cubo — un décimo ítem no es señal de ambición, es señal de que no se está cerrando.
 
+**SUPER AUDITORÍA 2026-09-05 — este archivo quedó corregido en las dos direcciones.**
+26 agentes contra el código Y contra el catálogo del sistema de producción: 63 hallazgos
+confirmados (15 críticos), 1 refutado. Informe navegable completo, con los 63 hallazgos
+filtrables, el mapa de los 5 anillos, las 7 costuras y el plan:
+https://claude.ai/code/artifact/78b8cf64-e764-434c-b837-9e96bde17d6d
+
+**Lo que este archivo decía y era falso:** (1) "faltan 25 categorías en producción" — YA
+ESTABAN: 37 filas verificadas en vivo el 09-05; (2) "30 errores de TypeScript en 14
+archivos" — NO EXISTEN: `tsc` da 0 porque `types.ts` se editó a mano (commit `7a982d6`)
+para declarar `comprobantes.items` y `actualizar_transmision_comprobante`, que producción
+no tiene. La red de seguridad detectó la divergencia y alguien la desconectó.
+**Lo que este archivo no sabía y bloquea todo:** `/finanzas/egresos` no puede registrar
+ni un gasto (`registrar_gasto` tiene 6 args en producción, el frontend manda 7); el botón
+"Transmitir" a SUNAT no puede funcionar (dos objetos ausentes) y además hay **0 series
+registradas**; `abrir_caja`/`cerrar_caja`/`registrar_venta` perdieron el candado de sede;
+y `retail.personas` es una vista escribible que permite escalada a Líder sin dejar rastro.
+
 **Auditoría completa 2026-09-03.** BITACORA.md y este archivo llevaban congelados
 desde el 19-20 de julio, pero el repo tiene commits reales hasta el 23 de julio —
 incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en
 ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el más
 importante que ha entrado a este archivo desde que existe.
+
+## 🚨 ESTA SEMANA (orden fijado por la auditoría — 3 ítems, y se cierran)
+
+- [ ] **1. Pegar 4 archivos en el SQL Editor, en orden, la misma tarde.**
+      `22_candados_y_permisos.sql` (repone el candado de sede en abrir/cerrar
+      caja y venta, `coalesce` en los helpers, candado de persona inactiva,
+      `revoke` sobre la vista `personas`, check `cantidad >= 0`) →
+      `23_facturacion_fase1.sql` (**la fusión de 20+21**: pegar el 20 sin el 21
+      hace que SUNAT acepte y el guardado falle con el correlativo ya quemado)
+      → `24_registrar_gasto_y_semillas.sql` (arregla Egresos + las 35 cuentas
+      PCGE + los índices perdidos) → `25_migraciones_aplicadas.sql`.
+      **Solo Felipe puede hacerlo.** ADR-0011. Verificación: la consulta de 7
+      booleanos al final del README de `supabase/unificacion/`.
+- [ ] **2. Desplegar el código de facturación — NUNCA antes del paso 1.**
+      Ya está escrito y con `tsc` limpio: acceso a Facturación para las 44
+      personas (antes 5), fecha de emisión en hora de Lima, precio unitario a 6
+      decimales, enlaces al PDF/CDR, errores que dicen qué falta. **El orden
+      importa:** hasta que el 22 esté pegado, `puede_operar_sede` no lanza
+      cuando devuelve nulo — desplegar antes amplía el acceso con el candado
+      todavía roto.
+- [ ] **3. Registrar la serie de cada sede y emitir en sandbox.**
+      `series_comprobantes` tiene **0 filas**: sin eso `fn_reservar_numero_serie`
+      corta con "Esta sede no tiene serie asignada" y no se llega ni al botón
+      "Transmitir". Es el bloqueo más barato y no estaba anotado en ningún lado.
+      Después: `LUCODE_TOKEN` en el entorno (nunca en el chat), boleta en
+      sandbox, y recién ahí la primera boleta real. **Solo Felipe.**
+
+> **No hay cuarto ítem esta semana.** El plan completo de las dos semanas
+> siguientes y del bloque de después está en el informe de la auditoría (enlace
+> arriba) y en los ADR-0011 a 0018.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
@@ -40,7 +87,23 @@ importante que ha entrado a este archivo desde que existe.
       (¿botón propio, o dentro de `MovimientoModal`?). **Falta lo único que
       de verdad lo cierra: que Felipe entre un producto real por la pantalla
       y confirme que aparece.**
-- [ ] **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
+- [ ] **`tipos de TypeScript` — CORREGIDO POR LA AUDITORÍA 2026-09-05: los 30
+      errores NO existen. `npx tsc --noEmit -p apps/web/tsconfig.json` da 0.**
+      Lo que hay es peor y más chico: `types.ts` se editó **a mano** (commit
+      `7a982d6`, +14 líneas) para declarar `comprobantes.items` y
+      `actualizar_transmision_comprobante` — dos objetos que producción NO
+      tiene. Quitando esas líneas y corriendo `tsc` salen los 2 errores que
+      señalaban el problema real. Trabajo: 10 minutos, no una sesión. Aparte,
+      `packages/database/package.json` (`gen-types`) apunta a
+      `ntuucqlkyxqbedoakrvc`, un proyecto que **ya no existe en la cuenta** —
+      el `>` de la shell trunca `types.ts` antes de que el comando falle.
+      Corregir a `--project-id vovjyyiafkxteijimpuy --schema retail` y
+      regenerar SOLO después de pegar la migración de facturación.
+      El texto original de este ítem, ya desmentido, decía:
+
+  <details><summary>versión anterior (falsa, se conserva como registro)</summary>
+
+      **`tipos de TypeScript`: regenerar contra el proyecto correcto sacó a la
       luz 30 errores en 14 archivos que nadie tocó hoy — deuda real, no
       ruido de esta sesión.** `retail.sedes`/`retail.personas` son VISTAS
       (join contra `public` de Dynamic) — Postgres no le garantiza a Supabase
@@ -57,6 +120,9 @@ importante que ha entrado a este archivo desde que existe.
       Aparte: `packages/database/package.json` (`gen-types`) sigue apuntando al
       proyecto viejo de retail — corregirlo al de Dynamic + `--schema retail`
       para que esto no se repita.
+
+  </details>
+
 - [ ] `catalogo real`: cargar los 300-900 SKUs físicos — el desbloqueador más grande
       que queda. Arrancado 2026-09-03: taxonomía alineada a compras reales
       (5 categorías nuevas, `0030_categorias_captura_real.sql`, ADR-0003) escrita,
@@ -138,7 +204,18 @@ importante que ha entrado a este archivo desde que existe.
       **Pendiente, sin bloquear el proyecto:** preguntarle al contador si
       CAYLA ya cruzó el umbral SIRE (75 UIT, ~S/412,500/año) — obligación
       distinta del PLE (300 UIT) que probablemente ya aplica hoy.
-- [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
+- [x] **`crear_producto_con_variantes`: YA ESTÁ EN PRODUCCIÓN, verificado
+      2026-09-05 (`pg_proc` la devuelve entre las 34 funciones del schema
+      `retail`). ⚠️ NO PEGAR EL ARCHIVO `16` — la auditoría lo marcó como
+      peligroso:** volver a correrlo hoy recrearía exactamente la sobrecarga
+      fantasma del ADR-0004 (dos firmas conviviendo, "function is not
+      unique"). El `18_productos_proveedor.sql` ya lo reemplazó. Marcar el 16
+      como SUPERADO en su cabecera antes de que alguien lo pegue leyendo este
+      backlog. Texto original:
+
+  <details><summary>versión anterior (superada, se conserva como registro)</summary>
+
+      **`crear_producto_con_variantes`: construido y verificado (build/lint,
       `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
       producción.** "Recibir mercadería" crea un `producto` nuevo por CADA
       ítem agregado con "+ Agregar prenda nueva": pedir la misma referencia
@@ -156,6 +233,9 @@ importante que ha entrado a este archivo desde que existe.
       (ej. varias tallas/colores) para confirmar que aparece en Catálogo** —
       cierra además la verificación que le faltaba a `almacen interno` de
       arriba ("que Felipe entre un producto real por la pantalla").
+
+  </details>
+
 - [ ] **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
       Felipe contrate un proveedor y ponga dos variables de entorno.** El modal
       de emisión ya lee el DNI/RUC y muestra a quién pertenece antes de emitir
@@ -189,7 +269,40 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **`retail.categorias` le faltan 25 de 30 filas en producción (mismo
+- [x] **`personas inactivas con login vivo`: arreglado 2026-09-05 en el frente
+      de la app, falta el candado en la base (va en el archivo 22).**
+      Verificado en producción: 24 activas con login y **4 inactivas que
+      todavía podían entrar** y operar su sede de siempre — `lib/persona.ts`
+      nunca leía el estado. Al arreglarlo apareció otra divergencia del mismo
+      patrón dual: en local la columna es `activo boolean`
+      (`0001_init.sql:31`), en producción es `estado text`. Unificado al
+      vocabulario de producción en `0039_personas_estado.sql` (Dynamic es la
+      fuente de la identidad, ADR-0012); `activo` se conserva sincronizada por
+      trigger, no se borra.
+- [ ] **`emitir_comprobante` sin desglose real por SKU — el fallback genérico
+      descuadra el total en un céntimo en el 15% de los precios de CAYLA.**
+      Medido: barrido de S/1,00 a S/2.000,00 en pasos de S/0,10 → 3.059 de
+      19.991 precios descuadran, incluidos S/19.90, S/109.90, S/129.90 y
+      S/349.90. `ComprobantesPanel` ya manda `p_items` con `precio_unitario` a
+      6 decimales, así que hoy no se dispara — pero cualquier llamada futura
+      que omita ítems (la integración con `ventas`, un script, otra pantalla)
+      lo reintroduce en silencio y con el correlativo ya quemado ante SUNAT.
+      El fallback del archivo 23 debe calcular `p_total/1.18`, no usar
+      `p_subtotal` redondeado.
+
+- [x] **`retail.categorias`: RESUELTO Y VERIFICADO EN VIVO 2026-09-05.** La
+      auditoría consultó producción: **37 filas**, con la distribución exacta
+      que esperaba la migración (indumentaria 20, calzado 4, accesorios 6,
+      bisutería 4, belleza 1, papelería 2). Las 25 que faltaban ya se pegaron
+      — no quedó registro de cuándo ni en qué sesión, que es justamente el
+      problema de fondo (ver `registro de migraciones aplicadas` abajo). En
+      esta misma sesión se le llegó a pedir a Felipe que las pegara otra vez
+      antes de verificar: coste real de no tener registro, cobrado en vivo.
+      Texto original del hallazgo, ya cerrado:
+
+  <details><summary>versión anterior (resuelta, se conserva como registro)</summary>
+
+      **`retail.categorias` le faltan 25 de 30 filas en producción (mismo
       patrón que ADR-0004/ADR-0006, sin arreglar todavía) — encontrado por
       Felipe en vivo, 2026-09-05.** `04_catalogo.sql` (paso 4 de la
       unificación) recreó la tabla desde cero pero nunca insertó la semilla
@@ -201,6 +314,9 @@ importante que ha entrado a este archivo desde que existe.
       pegue en el SQL Editor**. Sin esto, "Recibir mercadería" y "Nuevo
       producto" no pueden clasificar la mayoría del catálogo real.
       Reversible: sí, son datos (insert aditivo).
+
+  </details>
+
 - [x] **`patrimonio_items.categoria`: arreglado y confirmado en producción
       2026-09-05 (ADR-0006) — cerrado.** La unificación de julio copió
       `patrimonio_items` desde la migración `0013`, antes de que `0019` le

@@ -3,6 +3,54 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-05 (Super auditoría: 26 agentes contra el código Y contra producción)
+Felipe pidió una auditoría integral y respondió 61 preguntas antes de empezar, fijando por
+primera vez por escrito los parámetros que faltaban: los 5 compromisos verificables del
+estándar (caja <100 ms, nunca perder una venta, 15 min para vender sola, stock cuadrando al
+cierre, avisar qué talla se está quedando), los números a 3 años (5-10 sedes, 10-50 ventas/día
+pico, 1000+ SKUs, ~21 usuarios) y las decisiones que llevaban meses abiertas. Se desplegaron 26
+agentes en 4 fases (6 mapeando dominios, 8 auditando dimensiones, 8 refutando adversarialmente
+cada hallazgo, 4 sintetizando): 63 hallazgos confirmados, 1 refutado y descartado, 984 llamadas
+a herramientas. Informe navegable publicado como Artifact, ver enlace en BACKLOG.md.
+
+Lo que cambia el criterio de la semana: **cuatro cosas que se daban por funcionando no
+funcionan en producción**, y las cuatro se probaron leyendo el catálogo del sistema, no el
+repo. (1) `/finanzas/egresos`, entregada ayer, no puede registrar ni un gasto: `registrar_gasto`
+tiene 6 parámetros en producción y el frontend manda 7 (PGRST202) — por eso `gastos` tiene 0
+filas. (2) El botón "Transmitir" a SUNAT no puede funcionar: `actualizar_transmision_comprobante`
+y `comprobantes.items` no existen en producción, y además hay **0 series registradas**, el
+bloqueo más barato y el que nadie tenía anotado. (3) `abrir_caja`, `cerrar_caja` y
+`registrar_venta` perdieron el candado de sede de la `0012`: una integrante de AQP puede cerrar
+la caja de TRU desde la consola. (4) `retail.personas` es una vista escribible por cualquier
+autenticado con `auth_user_id` actualizable — escalada a Líder sin dejar rastro.
+
+Dos correcciones al propio BACKLOG, en direcciones opuestas, que valen más que los hallazgos:
+las 25 categorías que este archivo daba por faltantes **ya estaban** (37 filas verificadas en
+vivo — se pidió pegarlas otra vez sin necesidad), y los "30 errores de TypeScript" **no
+existen**: `tsc` da 0 porque `types.ts` se editó a mano para declarar una columna y una RPC que
+producción no tiene. Es decir, la red de seguridad detectó la divergencia y alguien la
+desconectó. La lección real no es ninguno de los 63 hallazgos: es que `retail.migraciones_aplicadas`,
+ya aprobada, registra *lo que creemos haber corrido* — y lo que hace falta primero es lo
+contrario, un diff que le pregunte a producción *qué tiene*. Ninguno de los 10 desfases
+verificados lo habría atrapado la tabla; un script de 30 líneas los encuentra todos en 2 segundos.
+
+Se dejó escrito lo que Felipe tiene que pegar (`supabase/unificacion/22`-`25` + README con el
+orden y la consulta de verificación), 8 ADR (`0011`-`0018`), los 7 arreglos de código de
+facturación y el candado de personas inactivas. Tres cosas que aparecieron al escribir el SQL y
+no estaban en el informe: (1) `retail.es_lider() is null` devuelve **true** en producción hoy —
+el agujero del NULL no era teórico, y se cerró con `exists(...)` en vez de `coalesce(...,false)`,
+que es más fuerte porque el NULL deja de ser posible por estructura y no por parche; (2) el
+arreglo de índices que proponía el informe **no compilaba** (`create index concurrently` no corre
+dentro de una transacción y el nombre del índice no se califica con schema); (3) **el paso `02`
+que creó el schema `retail` no tiene su SQL en ninguna parte del repo** — se infiere solo de la
+cabecera del `03`. Quedó registrado como fila explícita `02_schema_retail.SIN-ARCHIVO-EN-EL-REPO`
+para que el agujero se vea en vez de esconderse detrás de un conteo que cuadra.
+
+Antes de pegar nada hay que correr la simulación que quedó en la cabecera del `22`: evalúa, login
+por login, quién pasa el candado con la lógica vieja y con la nueva. Corrida hoy: **activos 24 →
+24 pasan** (nadie legítimo pierde acceso), **inactivos 4 → 0**. Si el número de activos no cuadra,
+hay que parar.
+
 ## 2026-09-05 (Fase 2 — Egresos, primera pantalla nueva del reemplazo de Alegra)
 Con Fase 0/0.5/1 ya cerradas (por sesiones paralelas), primer trabajo propio de
 esta sesión sobre el plan: `/finanzas/egresos`, pantalla nueva que antes no
