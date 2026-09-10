@@ -2652,3 +2652,43 @@ motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
 
+## 2026-09-10 (el mínimo sobrevive, y una sospecha que vale más que el arreglo)
+`recalcular_stock` borraba el `stock_minimo` de cualquier prenda sin movimientos en esa
+sede. `fijar_stock_minimo` crea una fila de `stock` con cantidad 0 cuyo único motivo de
+existir es guardar el mínimo, y el `delete` final de la red de seguridad la barría por no
+tener movimientos detrás. Arreglado en `0053` con `and s.stock_minimo is null`.
+
+El borde estaba anotado desde `0044` y diferido «porque es una decisión de quien escribió
+ADR-0020». Se decidió ahora, con criterio en tres líneas: la función reconstruye
+CANTIDADES desde `movimientos`; `stock_minimo` no se deriva de movimientos —lo dice su
+propia cabecera—; entonces no es suyo para borrarlo.
+
+**Lo que Felipe aprende acá:** la forma en que ese bug dolía era la peor posible.
+`recalcular_stock` es la RED DE SEGURIDAD: se corre justo cuando alguien sospecha que el
+inventario está mal. O sea que la herramienta para arreglar destruía configuración
+exactamente cuando alguien la estaba usando para arreglar — y sin avisar: la alerta de
+reposición simplemente dejaba de saltar y nadie ata una cosa con la otra.
+
+Se verificaron **las dos mitades**, que es lo que se olvida al poner un guard: que el
+mínimo sobreviva, y que una fila huérfana de verdad —sin movimientos y sin mínimo— se siga
+borrando. Sin la segunda prueba, un guard puede apagar la limpieza entera y nadie se entera
+hasta que la tabla está llena de basura.
+
+**Y la sospecha que salió de ir a escribir el gemelo de producción, que pesa más que el
+arreglo.** Tres archivos de `unificacion/` definen `retail.recalcular_stock`: el `12` la
+trae con el bloque de `stock_almacen`, y el `25` la redefine SIN ninguna mención al
+almacén. Por el orden registrado, el último en pisar sería el `25`. Si es así, hoy en
+producción esa función sumaría los movimientos del almacén al stock del PISO y nunca
+reconstruiría `stock_almacen`: movería la trastienda al piso, en números, con la función
+que existe para corregir el inventario. **No se escribió el gemelo de `0053` a propósito** —
+habría que elegir qué cuerpo parchar, y parchar el equivocado es peor que no parchar. Queda
+en BACKLOG con la consulta de solo lectura que lo confirma.
+
+De paso, una lección de entorno: aplicar una migración del repo a mano contra la base local
+NO funciona tal cual. El archivo dice `set search_path = public` —correcto para
+`npx supabase db reset`— pero la local ya tiene todo en `retail`, así que hay que adaptarlo
+igual que producción necesita el prefijo `retail.`. Y sin un `set search_path to retail` de
+sesión, el `create or replace` crea la función en `public` y deja intacta la de `retail`:
+parece que corrió y no cambió nada. Es la deuda de migraciones duales mostrando una tercera
+cara.
+

@@ -281,14 +281,39 @@ importante que ha entrado a este archivo desde que existe.
       color resuelto, esas 5 variantes **no reciben código corto** — es
       deliberado (ADR-0025: el código no se inventa), y en cuanto se les asigne
       color, `retail.fn_asignar_codigo_variante` se los da.
-- [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
-      movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
-      función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con
-      cantidad 0 solo para guardar el mínimo, y el `delete` final la borra si esa
-      variante todavía no tiene ningún movimiento en esa sede. Se dejó anotado en
-      el comentario del bloque 7 de `0044` en vez de cambiarlo por cuenta propia,
-      porque es una decisión de quien escribió ADR-0020. Arreglo probable: sumar
-      `and s.stock_minimo is null` al `delete`.
+- [x] **RESUELTO EN LOCAL 2026-09-10 — `recalcular_stock` ya no borra el `stock_minimo`.**
+      `supabase/migrations/0053_stock_minimo_sobrevive.sql`: `and s.stock_minimo is null` en
+      el `delete` del piso. Se decidió en vez de volver a diferirlo, con este criterio: la
+      función reconstruye CANTIDADES desde `movimientos`, y `stock_minimo` no se deriva de
+      movimientos — lo dice su propia cabecera —, así que no es suyo para borrarlo.
+      **Reproducido y verificado en local, las dos mitades:** con el bug, una fila creada por
+      `fijar_stock_minimo` sin movimientos pasaba de 1 a 0 al correr la función; con el
+      arreglo sobrevive. Y una fila huérfana de verdad —sin movimientos Y sin mínimo— se
+      sigue borrando, que es la mitad que se olvida al poner un guard.
+      `stock_almacen` no lleva `stock_minimo`, así que su `delete` no se tocó.
+
+- [ ] **SOSPECHA GRAVE, sin confirmar: `retail.recalcular_stock` en producción habría PERDIDO
+      la mitad del almacén.** Encontrado el 2026-09-10 al ir a escribir el gemelo de `0053`.
+      Tres archivos de `unificacion/` definen esa función: `08`, `12` y `25`. El `12` la trae
+      **con** el bloque de `stock_almacen` (6 menciones en su cuerpo); el `25` la redefine
+      **sin ninguna**, y su cabecera ni menciona el almacén. Por el orden en que se pegaron
+      —la cabecera de `26` dice que la versión «con las dos bolsas» se pegó el 03-09, y la
+      BITÁCORA registra el `25` corriendo en producción el 09-09— el último en pisar sería
+      el `25`.
+      **Si es así, hoy en producción la red de seguridad haría daño en vez de arreglar:** su
+      `insert` no filtra por contenedor, así que sumaría los movimientos del almacén al stock
+      del PISO, y nunca reconstruiría `stock_almacen`. O sea, movería el inventario de la
+      trastienda al piso, en números, con la función que existe para corregir el inventario.
+      **NO se escribió el gemelo de `0053` a propósito:** habría que elegir qué cuerpo
+      parchar, y parchar el equivocado es peor que no parchar. Se confirma con una consulta
+      de solo lectura en el SQL Editor de Dynamic:
+      ```sql
+      select position('stock_almacen' in pg_get_functiondef(p.oid)) > 0 as conoce_el_almacen,
+             position('stock_minimo is null' in pg_get_functiondef(p.oid)) > 0 as preserva_el_minimo
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'retail' and p.proname = 'recalcular_stock';
+      ```
+      Con esas dos respuestas se escribe el gemelo correcto en diez minutos.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
       plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
       CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
