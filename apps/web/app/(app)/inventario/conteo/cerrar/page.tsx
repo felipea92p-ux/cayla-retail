@@ -33,8 +33,8 @@ export default async function CerrarConteoPage() {
           <Ayuda titulo="Cerrar un conteo">
             Cerrar es aprobar: el inventario deja de decir lo que creía y pasa a decir lo que se
             contó. Cada corrección queda como un movimiento con su motivo, así que el historial de
-            la prenda explica de dónde salió. Lo que nadie contó se pone en cero — por eso conviene
-            mirar la lista antes, no después.
+            la prenda explica de dónde salió. Solo se ajusta lo que se contó — lo que nadie tocó
+            queda como estaba, así que un conteo a medias no borra nada.
           </Ayuda>
         </h1>
       </div>
@@ -96,7 +96,12 @@ async function Contenido() {
         )}
       </div>
 
-      {/* ---------- lo que nadie contó: la parte que asusta, y con razón ---------- */}
+      {/* ---------- lo que nadie contó ----------
+          Solo aparece en conteos abiertos con `tratar_no_contado = 'poner_en_cero'`, y HOY
+          ninguna pantalla los abre así: `abrir_conteo` deja el default `'ignorar'`. O sea que
+          en la práctica este bloque no se ve. Se deja porque la RPC soporta el modo y el día
+          que se ofrezca —un censo de verdad, donde no aparecer SÍ significa que no hay— este
+          es el aviso que no puede faltar. */}
       {sinContar.length > 0 && (
         <div className="card-cayla border-ambar/50 p-5">
           <p className="label-cayla text-[11px] text-ambar-profundo">
