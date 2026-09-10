@@ -166,7 +166,27 @@ importante que ha entrado a este archivo desde que existe.
       `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
       las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
       el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
-- [ ] **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
+- [ ] **YA NO SON CUATRO: FALTA UNA SOLA, LA `33` — verificado contra producción
+      2026-09-10.** Inventario leído de la base y pasado por `migraciones:verificar`:
+      la `27`, `28`, `29`, `30`, `31` y `32` **están aplicadas**. Comprobado objeto por
+      objeto, no por documento: existen `colores` (30 filas, con `ARN` de la 32),
+      `codigos_barras`, `codigos_correlativos`, `conteos`, `conteo_lineas`; hay **0
+      funciones sobrecargadas** en `retail` (o sea la 31 corrió); y las 37 categorías
+      están. **La única pendiente es `unificacion/33_conteo_color_vacio.sql`:**
+      producción tiene todavía la `conteo_crear_variante` de la `30`, confirmado
+      buscando `v_color_id := nullif(trim(p_color_codigo)` en el cuerpo de la función
+      — no está. Es un `create or replace` de una sola función, con la MISMA firma de
+      12 argumentos (no crea sobrecarga) y **no toca ni una fila**.
+      **BLOQUEO DE ORDEN:** pegarla ANTES de desplegar la pantalla de conteo. Sin ella,
+      crear una prenda al vuelo dejando el color vacío revienta — el formulario manda
+      `''` y la versión vieja solo contempla `null`. Es exactamente el bug que `0051`
+      arregló en local hoy.
+      **Dos avisos que salieron del mismo barrido y NO bloquean:** (a) el verificador
+      marca `unificacion/01_sedes.sql` como incompleto por `retail_sede_meta` — falsa
+      alarma, la tabla vive en `retail.sede_meta`, se movió de schema en la
+      unificación; (b) la sobrecarga de `fn_set_meta_cobertura` que reporta es de
+      `public`, o sea de Dynamic, no nuestra. Texto original abajo:**
+      **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
       de producción **verificado contra la base el 2026-09-09** (no contra estos
       documentos, que decían otra cosa): la `25`, la `26` y la `31` **ya están
       aplicadas** — el encabezado de ADR-0020 decía que la 25 estaba pendiente
