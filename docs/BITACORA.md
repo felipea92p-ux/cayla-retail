@@ -2800,3 +2800,31 @@ Verificado con la propia herramienta, que es lo que lo vuelve una afirmación y 
 intención: el verificador pasó de 10 cuerpos sin archivo a 7. El repo ahora produce
 exactamente lo que producción tiene en esas tres.
 
+## 2026-09-10 (comparar cuerpos destapó que vender está roto en producción)
+Revisadas una por una las funciones que ningún archivo del repo explica. Primero bajaron de
+10 a 5: dos eran puro espaciado junto a la puntuación —`coalesce(x,0)` contra
+`coalesce(x, 0)`— y el normalizador ahora lo ignora, porque una alarma que salta por una
+coma enseña a ignorarlas todas.
+
+De las cinco reales salió el hallazgo del día, y no es un cuerpo sino una FIRMA.
+`registrar_venta` en producción pide `p_nota` **sin default**; en local lo tiene. Y
+`RegistrarVentaModal` llama con tres parámetros nombrados. PostgREST resuelve por nombres:
+con un obligatorio que nadie manda, no hay candidata. **Vender por la app está roto en
+producción** y no se nota porque nadie vende por ahí todavía. El día que el equipo entre,
+revienta en la primera venta.
+
+La causa cierra el círculo del día: quien agregó `p_token` a mano —la venta idempotente, un
+arreglo bueno que el repo no tiene— reescribió la firma y perdió el `default null`. Es el
+costo exacto de parchar sin archivo: el parche era correcto en su intención y nadie revisó
+la firma resultante contra lo que la app manda, porque no había diff que mirar.
+
+**Lo que Felipe aprende acá:** yo mismo le dije esta semana que `registrar_venta` no era
+idempotente y que la venta offline tendría que construirla. **Era falso para producción**:
+allá ya lo es, con token y todo, desde un parche que ningún archivo registra. Dos veces hoy
+afirmé algo sobre producción mirando el repo, y las dos veces la base dijo otra cosa. La
+regla que queda: sobre producción no se afirma leyendo archivos.
+
+El arreglo (`unificacion/35`) reusa el cuerpo exacto de producción y solo le devuelve el
+default a `p_nota`, así que la idempotencia se conserva entera. No se aplicó: es DDL en el
+proyecto compartido con Dynamic.
+

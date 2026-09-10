@@ -354,9 +354,36 @@ importante que ha entrado a este archivo desde que existe.
       a 7, o sea que el repo ahora produce exactamente lo que producción tiene en esas tres.
       `mi_sede()` NO lleva `coalesce` a propósito: devuelve un uuid y ahí NULL es la
       respuesta correcta.
-      **Faltan decidir, una por una, las 7 restantes:** `abrir_caja`, `cerrar_caja`,
-      `registrar_venta`, `cerrar_produccion`, `set_etapa_produccion`, `recalcular_stock` y
-      `catalogo_con_stock`. Cuál se trae al repo y cuál es legítimamente propia de
+- [ ] **🔴 VENDER ESTÁ ROTO EN PRODUCCIÓN — `registrar_venta` no resuelve.** Encontrado
+      2026-09-10 comparando firmas entre entornos. Producción:
+      `registrar_venta(p_caja_id, p_metodo_pago, p_items, p_nota text, p_token uuid default null)`
+      — `p_nota` **sin default**. Local: `(…, p_nota text default null)`. Y
+      `RegistrarVentaModal.tsx` llama con TRES parámetros nombrados. PostgREST resuelve por
+      nombres, y con un obligatorio que nadie manda no hay candidata: «Could not find the
+      function … in the schema cache». **La primera venta que alguien intente por la app en
+      producción falla**, con la clienta enfrente. No se nota hoy porque nadie vende por ahí
+      todavía — el catálogo real no está cargado.
+      **Causa:** quien agregó `p_token` a mano —un buen arreglo, la venta idempotente que el
+      repo no tiene— reescribió la firma y perdió el `default null` de `p_nota`. El costo
+      exacto de parchar sin archivo: nadie revisó la firma contra lo que la app manda.
+      **Arreglo listo, falta pegarlo:** `supabase/unificacion/35_registrar_venta_p_nota.sql`.
+      Vuelve a crear la función con EL MISMO cuerpo de producción —la idempotencia se
+      conserva entera— cambiando solo la firma. Mismos tipos, así que no crea sobrecarga, y
+      no toca ni una fila. **Es DDL en el proyecto compartido con Dynamic: lo pega Felipe.**
+
+      **Faltan decidir, una por una, las restantes:** `abrir_caja`, `cerrar_caja`, `registrar_venta`,
+      `recalcular_stock` y `catalogo_con_stock` — bajaron de 7 a 5 al dejar de contar como
+      drift las diferencias de espaciado junto a la puntuación (`coalesce(x,0)` vs
+      `coalesce(x, 0)`), que era estilo, no código.
+      **Lo que ya se sabe de cada una, medido:** las tres primeras tienen en producción una
+      validación de permiso —`if puede_operar_sede(...) is not true then raise`— que
+      `unificacion/07` NO tiene, o sea que **volver a pegar ese archivo las desarma**, igual
+      que pasaba con `03`. `registrar_venta` suma además la idempotencia por `p_token` y la
+      columna `ventas.token_cliente`, que no está en ningún archivo. `recalcular_stock` suma
+      candado de Líder, instrumentación con `get diagnostics`, y un arreglo real: cuenta los
+      traslados como piso aunque traigan contenedor de almacén, sin el cual esa cantidad se
+      duplicaba. `catalogo_con_stock` no existe en el repo y la app no la llama —solo aparece
+      en los tipos generados—, así que es candidata a borrar, no a traer. Cuál se trae al repo y cuál es legítimamente propia de
       producción; elegir mal es peor que no elegir.
 
       **La herramienta ya lo detecta, desde el 2026-09-10.** `pnpm migraciones:verificar`

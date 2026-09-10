@@ -108,6 +108,11 @@ function normalizarCuerpo(sql) {
     .replace(/--[^\n]*/g, " ")
     .replace(/\b(?:retail|public)\./gi, "")
     .replace(/\s+/g, " ")
+    // Y el espacio pegado a la puntuación, que es la diferencia entre `coalesce(x, 0)` y
+    // `coalesce(x,0)`: dos formas de escribir lo mismo. Sin esto el verificador reporta
+    // estilo como si fuera drift, y una alarma que salta por una coma enseña a ignorarlas
+    // todas.
+    .replace(/\s*([(),;=])\s*/g, "$1")
     .trim()
     .toLowerCase();
 }
