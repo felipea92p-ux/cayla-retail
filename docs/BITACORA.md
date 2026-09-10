@@ -2504,3 +2504,19 @@ pegado. El patrón no es descuido de una persona: es que aplicar algo en producc
 anotarlo son dos gestos distintos, y el segundo se olvida cuando el primero salió bien. Por
 eso el cruce automático vale más que la lista escrita — la lista recuerda lo que alguien
 decidió anotar, la base sabe lo que pasó.
+
+## 2026-09-10 (cierre de sesión)
+Se le pasó a la sesión "Daniel - Organizacion inventario INC" —la de las etiquetas, que
+sigue trabajando— los dos cabos que dejó su propio commit `d80c57d`: ADR-0025 quedó con la
+razón equivocada escrita (el código corto se justifica por el ancho físico, no por la
+degradación a 1.2 puntos/módulo), y la cabecera de `lib/codigo128.ts` todavía describe el
+estirado que ese commit eliminó, o sea que contradice al código que tiene debajo. Enviado
+como aviso, no como encargo: si ya lo tenían en el refactor, siguen.
+
+Y queda publicado un resumen visual de la jornada, con el libro de cuentas de las ocho
+afirmaciones que la base desmintió.
+
+**Lo que Felipe aprende acá:** un comentario que envejece mal es peor que no tenerlo. El de
+`codigo128.ts` explica con precisión un bug que ya no existe — quien lo lea mañana va a
+diagnosticar hacia atrás. Cuando un arreglo desmiente la razón escrita, corregir el texto
+es parte del arreglo, no papeleo posterior.
