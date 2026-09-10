@@ -148,12 +148,27 @@ export async function anclarConIA(
 
   return salida.anclajes
     .filter((a) => clavesPedidas.has(a.clave))
-    .map((a) => ({
-      clave: a.clave,
-      universalId: idsValidos.has(a.universalId) ? a.universalId : null,
-      confianza: a.confianza as Anclaje["confianza"],
-      porque: a.porque,
-    }));
+    .map((a) => {
+      const valido = idsValidos.has(a.universalId);
+      // Tres casos distintos que ANTES se veían iguales, y por eso el examen del
+      // 2026-09-10 mostraba "SIN ANCLAR" junto a un texto que decía "coincide
+      // exactamente con Bolsos": el modelo señalaba un id que el catálogo no
+      // traía y acá se volvía null en silencio. Un descarte mudo convierte un
+      // fallo del sistema en lo que parece una decisión del modelo — y manda a
+      // revisar el término equivocado.
+      if (valido) {
+        return { clave: a.clave, universalId: a.universalId, confianza: a.confianza as Anclaje["confianza"], porque: a.porque };
+      }
+      if (!a.universalId) {
+        return { clave: a.clave, universalId: null, confianza: "baja" as const, porque: a.porque || "Ninguno calzó." };
+      }
+      return {
+        clave: a.clave,
+        universalId: null,
+        confianza: "baja" as const,
+        porque: `El modelo señaló "${a.universalId}", que no está en el catálogo que se le pasó. Revisar. (Dijo: ${a.porque})`,
+      };
+    });
 }
 
 /** Las dos pasadas juntas: lo obvio por código, el resto por criterio. */
