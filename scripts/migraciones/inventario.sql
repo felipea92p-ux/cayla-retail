@@ -36,6 +36,15 @@ select jsonb_pretty(jsonb_build_object(
   'esquemas', (select jsonb_agg(esquema order by esquema) from objetivo),
   'leido_en', now(),
 
+  -- Con cuántas tablas cuenta `public`. Es el delator del entorno y hace falta: en
+  -- producción `public` es el schema ENTERO de Dynamic (decenas de tablas), y en local
+  -- está casi vacío. Sin esto el informe no puede saber contra qué está midiendo, y
+  -- `migrations/` y `unificacion/` no significan lo mismo en cada lado.
+  'tablas_en_public', (
+    select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p')
+  ),
+
   -- Nombre + cuántos argumentos. El conteo importa: `create or replace` con una
   -- firma distinta NO reemplaza, crea una SOBRECARGA (el bug que documentó
   -- ADR-0009). Dos filas con el mismo nombre es esa trampa, visible.

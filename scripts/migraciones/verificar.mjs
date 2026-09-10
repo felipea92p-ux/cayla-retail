@@ -71,7 +71,24 @@ function sinComentarios(sql) {
  * que el nombre es la única llave estable. El precio: dos objetos homónimos en schemas
  * distintos se confunden. A cambio de encontrar lo que falta, se paga.
  */
-const pelar = (nombre) => nombre.replace(/^"?[\w]+"?\./, "").replace(/"/g, "").toLowerCase();
+/**
+ * Objetos que el repo nombra de una forma y la base tiene con otra, por un cambio que ya se
+ * decidió y se documentó. Sin esta lista el verificador vuelve a levantar cada corrida una
+ * alarma que alguien ya descartó — y un informe que repite lo descartado enseña a ignorarlo
+ * entero, que es la única forma de que deje de servir.
+ */
+const RENOMBRES = {
+  // `unificacion/01_sedes.sql` la creó así en el `public` de Dynamic; después se movió al
+  // cajón `retail` y perdió el prefijo del nombre. Descartada a mano en BACKLOG el 09-09.
+  retail_sede_meta: "sede_meta",
+  // Su política perdió el mismo prefijo al mudarse de cajón.
+  retail_sede_meta_read: "sede_meta_read",
+};
+
+const pelar = (nombre) => {
+  const limpio = nombre.replace(/^"?[\w]+"?\./, "").replace(/"/g, "").toLowerCase();
+  return RENOMBRES[limpio] ?? limpio;
+};
 
 /**
  * Normaliza un cuerpo de función para poder compararlo entre entornos.
@@ -119,7 +136,9 @@ function promesasDe(sql) {
   );
   todas(/add\s+constraint\s+([\w".]+)/gi, (m) => p.restricciones.push(pelar(m[1])));
   todas(/create\s+policy\s+"?([^"\n]+?)"?\s+on\s+([\w".]+)/gi, (m) =>
-    p.politicas.push(`${pelar(m[2])}.${m[1].trim().toLowerCase()}`)
+    // El nombre de la política pasa por `pelar` igual que el de la tabla: no tiene
+    // calificador de schema que quitarle, pero sí puede estar en el mapa de renombres.
+    p.politicas.push(`${pelar(m[2])}.${pelar(m[1].trim())}`)
   );
 
   // Una sola sentencia `alter table` puede traer varios `add column`, así que se recorre
@@ -256,8 +275,12 @@ function main() {
 
   // Agrupadas por nombre con sus conteos de argumentos: saber que hay dos firmas no sirve
   // sin saber cuáles, porque la que se borra es siempre la vieja.
+  // Solo las de `retail`, y por un caso concreto: en producción `public` es el schema de
+  // Dynamic, y reportar SUS sobrecargas —`fn_set_meta_cobertura`, que alguien ya descartó a
+  // mano el 2026-09-09— es ruido sobre código que no es nuestro ni podemos tocar.
+  // `inv.cuerpos` ya viene acotado a `retail`, así que sirve de lista.
   const porNombre = {};
-  for (const f of inv.funciones) (porNombre[f.nombre] ??= []).push(f.args);
+  for (const f of inv.cuerpos ?? []) (porNombre[f.nombre] ??= []).push(f.args);
   // ---------- cuerpos: ¿algún archivo del repo produce lo que hay en la base? ----------
   const sinArchivo = [];
   const coincidencias = new Map(); // nombre → archivo que lo explica
@@ -292,10 +315,25 @@ function main() {
   // cayla-dynamic. Verla ausente mirando la base local no es un hallazgo, es lo esperado —
   // y juntarlas convertiría el informe en 28 falsas alarmas, que es como se enseña a
   // ignorar un informe.
-  const NOTA = {
-    "supabase/migrations": "corre en `retail`, local y producción",
-    "supabase/unificacion": "solo se pega en el proyecto de cayla-dynamic — ausente en local es lo normal",
-  };
+  // `public` con muchas tablas = estamos mirando el proyecto de Dynamic, o sea producción.
+  // Hace falta saberlo porque las dos carpetas NO significan lo mismo en cada lado: contra
+  // producción, `migrations/` no es lo que construyó esa base —`unificacion/` renombró
+  // políticas e índices al pasarlas— así que sus ausencias son esperables, no hallazgos.
+  const enProduccion = (inv.tablas_en_public ?? 0) > 10;
+  console.log(
+    `
+  Entorno: ${enProduccion ? "PRODUCCIÓN" : "local"} — ${inv.tablas_en_public ?? "?"} tablas en \`public\``
+  );
+
+  const NOTA = enProduccion
+    ? {
+        "supabase/migrations": "NO construyó esta base: producción se armó con `unificacion/`, que renombró políticas e índices. INFORMATIVO",
+        "supabase/unificacion": "esto SÍ construyó esta base — acá una ausencia es un hallazgo",
+      }
+    : {
+        "supabase/migrations": "esto SÍ construyó esta base — acá una ausencia es un hallazgo",
+        "supabase/unificacion": "solo se pega en el proyecto de cayla-dynamic — ausente en local es lo normal",
+      };
 
   for (const [carpeta, faltantes] of Object.entries(grupos)) {
     console.log(`\n  ${carpeta}/ — ${NOTA[carpeta]}`);
