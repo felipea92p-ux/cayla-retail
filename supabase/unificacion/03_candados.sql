@@ -38,18 +38,42 @@ as $$
 $$;
 
 -- Candados (reusan las funciones de dynamic, que ya son SECURITY DEFINER).
+--
+-- ⚠ CORREGIDO EN EL ARCHIVO EL 2026-09-10 — antes decia, por ejemplo,
+--   `select public.fn_rol_actual() = 'admin'` sin el `coalesce`.
+--
+--   Un candado tiene que devolver false cuando no sabe, no NULL. Si
+--   `fn_rol_actual()` devuelve NULL —una sesion sin rol, un usuario sin fila en
+--   `personas`— la comparacion da NULL, y en el patron que usan todas las RPC del
+--   repo (`if not es_lider() then raise exception …`) **`not null` NO es true**:
+--   la excepcion no se dispara y el permiso pasa solo. En una policy de RLS NULL
+--   deniega, pero en un `if` de plpgsql abre.
+--
+--   Produccion YA estaba endurecida —alguien lo parcho a mano y nunca quedo
+--   escrito— y este archivo seguia con la version sin `coalesce`. O sea que
+--   volver a pegarlo, que es lo que haria cualquiera siguiendo el repo, deshacia
+--   el arreglo en silencio. Se corrige el archivo para que un replay desde cero
+--   produzca el estado bueno; `34_candados_no_null.sql` es el paso suelto para
+--   una base que haya recibido la version vieja.
+--
+--   Es la misma disciplina que `migrations/0023_rls_helpers_security_definer.sql`
+--   ya practicaba en local desde el 03-09: alli `fn_es_lider()` siempre tuvo su
+--   `coalesce(..., false)`. Lo unico que faltaba era que este lado lo dijera.
 create or replace function retail.es_lider()
 returns boolean language sql stable set search_path = public
-as $$ select public.fn_rol_actual() = 'admin'; $$;
+as $$ select coalesce(public.fn_rol_actual() = 'admin', false); $$;
 
 create or replace function retail.es_supervisor()
 returns boolean language sql stable set search_path = public
-as $$ select public.fn_rol_actual() = 'supervisor_sede'; $$;
+as $$ select coalesce(public.fn_rol_actual() = 'supervisor_sede', false); $$;
 
+-- `mi_sede` devuelve un uuid, no un booleano: acá NULL es la respuesta correcta
+-- («no tengo sede»), y quien la llama ya compara contra algo. No lleva coalesce.
 create or replace function retail.mi_sede()
 returns uuid language sql stable set search_path = public
 as $$ select public.fn_sede_actual_persona(); $$;
 
 create or replace function retail.puede_operar_sede(p_sede_id uuid)
 returns boolean language sql stable set search_path = public
-as $$ select public.fn_rol_actual() = 'admin' or public.fn_sede_actual_persona() = p_sede_id; $$;
+as $$ select coalesce(public.fn_rol_actual() = 'admin', false)
+       or coalesce(public.fn_sede_actual_persona() = p_sede_id, false); $$;

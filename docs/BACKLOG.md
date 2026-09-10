@@ -345,9 +345,19 @@ importante que ha entrado a este archivo desde que existe.
       **El riesgo vivo:** volver a pegar `03_candados.sql` —que es lo que haría cualquiera
       siguiendo el repo— **deshace ese endurecimiento en silencio**.
 
-      **Lo que hay que decidir, función por función:** cuáles de las diez se traen al repo
-      (el `coalesce` claramente sí) y cuáles son legítimamente propias de producción. No se
-      tocó ninguna: son diez cuerpos distintos y elegir mal es peor que no elegir.
+      **CERRADAS LAS TRES DE PERMISOS el 2026-09-10 — quedan 7.** Se corrigió
+      `unificacion/03_candados.sql` en el archivo (para que un replay desde cero produzca el
+      estado bueno y volver a pegarlo deje de deshacer el endurecimiento) y se agregó
+      `unificacion/34_candados_no_null.sql` como paso suelto con fecha, para cualquier base
+      que haya recibido la versión vieja. Producción no necesita correr nada: ya lo tenía.
+      **Verificado con la propia herramienta:** el verificador pasó de 10 cuerpos sin archivo
+      a 7, o sea que el repo ahora produce exactamente lo que producción tiene en esas tres.
+      `mi_sede()` NO lleva `coalesce` a propósito: devuelve un uuid y ahí NULL es la
+      respuesta correcta.
+      **Faltan decidir, una por una, las 7 restantes:** `abrir_caja`, `cerrar_caja`,
+      `registrar_venta`, `cerrar_produccion`, `set_etapa_produccion`, `recalcular_stock` y
+      `catalogo_con_stock`. Cuál se trae al repo y cuál es legítimamente propia de
+      producción; elegir mal es peor que no elegir.
 
       **La herramienta ya lo detecta, desde el 2026-09-10.** `pnpm migraciones:verificar`
       compara ahora el CUERPO de cada función de `retail` contra todas las definiciones que

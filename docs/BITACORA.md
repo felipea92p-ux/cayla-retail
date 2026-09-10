@@ -2778,3 +2778,25 @@ un archivo; se extrajo de ahí con un script, así que el contenido nunca pasó 
 conversación. Vale recordarlo: cuando el dato es grande, el archivo es mejor camino que el
 copiar y pegar, y encima no se puede equivocar de base.
 
+## 2026-09-10 (el candado ya no se abre solo, y el archivo dejó de desarmarlo)
+Cerradas las tres funciones de permiso: `es_lider`, `es_supervisor` y `puede_operar_sede`
+llevan ahora su `coalesce(..., false)` **en el repo**, que es donde faltaba — producción ya
+lo tenía por un parche a mano sin archivo.
+
+Se hicieron dos cosas y las dos hacen falta. `unificacion/03_candados.sql` se corrigió EN EL
+ARCHIVO, porque el peligro real no era que faltara el arreglo sino que **volver a pegar ese
+archivo lo deshacía**: cualquiera siguiendo el repo habría reabierto el agujero sin saberlo.
+Y se agregó `34_candados_no_null.sql` como paso suelto con fecha, para cualquier base que
+haya recibido la versión vieja, y sobre todo para que exista un sitio donde esté escrito POR
+QUÉ — que es justo lo que se perdió cuando el parche se aplicó sin archivo.
+
+**Lo que Felipe aprende acá:** `mi_sede()` NO lleva `coalesce`, y la diferencia enseña la
+regla. Un CANDADO devuelve booleano y tiene que decir false cuando no sabe, porque
+`if not es_lider()` con NULL no dispara el `raise` y deja pasar. `mi_sede()` devuelve un
+uuid: ahí NULL es la respuesta honesta —«no tengo sede»— y quien la llama ya compara contra
+algo. Poner `coalesce` en todo por reflejo habría convertido «no sé» en un valor inventado.
+
+Verificado con la propia herramienta, que es lo que lo vuelve una afirmación y no una
+intención: el verificador pasó de 10 cuerpos sin archivo a 7. El repo ahora produce
+exactamente lo que producción tiene en esas tres.
+
