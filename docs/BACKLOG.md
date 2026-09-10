@@ -313,11 +313,14 @@ importante que ha entrado a este archivo desde que existe.
       carpeta `unificacion/` NO reproduce lo que hay en producción. El repo dejó de ser la
       descripción del sistema para ser una descripción parcial, y no hay forma de saber
       cuántos parches más como éste hay vivos.
-      **Y le pone dientes a la limitación que ADR-0026 ya había escrito:**
-      `pnpm migraciones:verificar` compara EXISTENCIA de objetos, no CUERPOS. Una función que
-      existe pasa el chequeo aunque su cuerpo no se parezca a ningún archivo — que es
-      exactamente este caso. Extenderlo a comparar cuerpos, o al menos avisar cuándo no puede
-      afirmar nada sobre uno, es el siguiente paso natural de esa herramienta.
+      **La herramienta ya lo detecta, desde el 2026-09-10.** `pnpm migraciones:verificar`
+      compara ahora el CUERPO de cada función de `retail` contra todas las definiciones que
+      el repo tenga de ese nombre, no solo su existencia (ADR-0026, ampliación). Probadas las
+      dos alarmas a propósito. **Lo que falta es correrlo contra producción:** pegar
+      `scripts/migraciones/inventario.sql` en el SQL Editor de Dynamic, guardar el resultado
+      —vale el JSON copiado o el CSV descargado, el script acepta los dos— y correr
+      `pnpm migraciones:verificar <archivo>`. Eso lista TODOS los parches a mano que haya
+      vivos, no solo el que se encontró de casualidad.
       **Lo que NO es:** un problema de `0053`. Local sí tenía el bug —reproducido: la fila del
       mínimo pasaba de 1 a 0— y ahora local y producción coinciden. No hace falta gemelo.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con

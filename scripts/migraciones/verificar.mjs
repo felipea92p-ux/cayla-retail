@@ -23,6 +23,14 @@
  *     0044 y 0045—, así que encontrarla no dice CUÁL versión está viva. Un archivo en
  *     verde significa "no hay nada que delate que falta", no "corrió".
  *
+ *   · CUERPOS, desde 2026-09-10 y por un caso real. Para las funciones sí se compara el
+ *     código, no solo el nombre: el cuerpo de cada función de `retail` se normaliza y se
+ *     busca entre TODAS las definiciones que el repo tiene de ese nombre. Si no coincide
+ *     con ninguna, ese cuerpo no lo produce ningún archivo — alguien lo escribió a mano
+ *     en el SQL Editor. Es el drift que nadie vigila, porque produccion queda ADELANTE
+ *     del repo y entonces nada falla: todo anda bien allá y el repo deja de describir el
+ *     sistema en silencio. Así apareció el guard de `stock_minimo` en `recalcular_stock`.
+ *
  *   · Lo que no supo leer lo dice. Un archivo sin promesas detectables sale como tal, no
  *     como aprobado. Un verificador que aprueba lo que no entendió es peor que no tenerlo:
  *     enseña a confiar en un verde que no significa nada. Misma regla que `traducirError`
@@ -64,6 +72,38 @@ function sinComentarios(sql) {
  * distintos se confunden. A cambio de encontrar lo que falta, se paga.
  */
 const pelar = (nombre) => nombre.replace(/^"?[\w]+"?\./, "").replace(/"/g, "").toLowerCase();
+
+/**
+ * Normaliza un cuerpo de función para poder compararlo entre entornos.
+ *
+ * Las diferencias que se borran son las que NO son de lógica: el prefijo de schema (local
+ * escribe `stock`, producción `retail.stock`), los comentarios, y el espaciado. Lo que
+ * queda es el código, y dos códigos iguales normalizan igual aunque estén escritos para
+ * cajones distintos.
+ *
+ * Límite conocido: un `--` dentro de una cadena de texto se comería el resto de la línea.
+ * No pasa en este repo y arreglarlo pediría un parser de verdad; queda dicho para que
+ * quien vea una falsa alarma rarísima sepa por dónde empezar.
+ */
+function normalizarCuerpo(sql) {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\n]*/g, " ")
+    .replace(/\b(?:retail|public)\./gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/** Cada `create [or replace] function … as $$ … $$` del archivo: nombre → cuerpo normalizado. */
+function cuerposDe(sql) {
+  const fuera = [];
+  const re = /create\s+(?:or\s+replace\s+)?function\s+([\w".]+)\s*\([\s\S]*?\bas\s*\$\$([\s\S]*?)\$\$/gi;
+  for (const m of sql.matchAll(re)) {
+    fuera.push({ nombre: pelar(m[1]), cuerpo: normalizarCuerpo(m[2]) });
+  }
+  return fuera;
+}
 
 function promesasDe(sql) {
   const t = sinComentarios(sql);
@@ -112,10 +152,24 @@ function inventarioLocal() {
 }
 
 function inventarioDeArchivo(ruta) {
-  const crudo = readFileSync(ruta, "utf8").trim();
-  // El SQL Editor devuelve el JSON dentro de una celda; a veces se copia con comillas.
+  let crudo = readFileSync(ruta, "utf8").trim();
+
+  // El resultado sale de una celda del SQL Editor, y ese viaje lo puede ensuciar de dos
+  // maneras. Si se copia a mano llega el JSON pelado. Si se usa «Download CSV» llega con
+  // una cabecera, envuelto en comillas y con cada `"` interna duplicada, que es la regla
+  // de CSV — y `JSON.parse` revienta con un mensaje que no ayuda. Se aceptan las dos
+  // formas: la persona que corre esto no tiene por qué saber cuál eligió.
+  if (crudo.startsWith("inventario")) crudo = crudo.slice(crudo.indexOf("\n") + 1).trim();
+  if (crudo.startsWith('"') && crudo.endsWith('"')) {
+    crudo = crudo.slice(1, -1).replace(/""/g, '"');
+  }
+
   const desde = crudo.indexOf("{");
-  return JSON.parse(crudo.slice(desde, crudo.lastIndexOf("}") + 1));
+  const hasta = crudo.lastIndexOf("}");
+  if (desde < 0 || hasta < desde) {
+    throw new Error("no parece el resultado de `inventario.sql`: no hay un objeto JSON adentro");
+  }
+  return JSON.parse(crudo.slice(desde, hasta + 1));
 }
 
 /* ------------------------------------------------------------------ *
@@ -173,10 +227,19 @@ function main() {
   const mudos = [];
   let completos = 0;
 
+  // nombre de función → todos los cuerpos que el repo tiene para ella, con su archivo.
+  const cuerposDelRepo = new Map();
+
   for (const ruta of archivos) {
-    const p = promesasDe(readFileSync(ruta, "utf8"));
+    const sql = readFileSync(ruta, "utf8");
+    const nombreRel = relative(RAIZ, ruta).replace(/\\/g, "/");
+    for (const { nombre, cuerpo } of cuerposDe(sql)) {
+      if (!cuerposDelRepo.has(nombre)) cuerposDelRepo.set(nombre, []);
+      cuerposDelRepo.get(nombre).push({ archivo: nombreRel, cuerpo });
+    }
+    const p = promesasDe(sql);
     const total = Object.values(p).reduce((a, v) => a + v.length, 0);
-    const nombre = relative(RAIZ, ruta).replace(/\\/g, "/");
+    const nombre = nombreRel;
 
     if (total === 0) {
       mudos.push(nombre);
@@ -195,6 +258,26 @@ function main() {
   // sin saber cuáles, porque la que se borra es siempre la vieja.
   const porNombre = {};
   for (const f of inv.funciones) (porNombre[f.nombre] ??= []).push(f.args);
+  // ---------- cuerpos: ¿algún archivo del repo produce lo que hay en la base? ----------
+  const sinArchivo = [];
+  const coincidencias = new Map(); // nombre → archivo que lo explica
+  for (const f of inv.cuerpos ?? []) {
+    const candidatos = cuerposDelRepo.get(f.nombre.toLowerCase());
+    if (!candidatos || candidatos.length === 0) {
+      sinArchivo.push({ nombre: f.nombre, motivo: "el repo no define ninguna función con ese nombre" });
+      continue;
+    }
+    const vivo = normalizarCuerpo(f.cuerpo ?? "");
+    const igual = candidatos.find((c) => c.cuerpo === vivo);
+    if (igual) coincidencias.set(f.nombre, igual.archivo);
+    else
+      sinArchivo.push({
+        nombre: f.nombre,
+        motivo: `su cuerpo no coincide con ninguna de las ${candidatos.length} definiciones del repo`,
+        candidatos: candidatos.map((c) => c.archivo),
+      });
+  }
+
   const sobrecargadas = Object.entries(porNombre)
     .filter(([, args]) => args.length > 1)
     .map(([n, args]) => [n, [...args].sort((a, b) => a - b)]);
@@ -228,6 +311,21 @@ function main() {
     }
   }
   console.log(`\n  ${completos} archivo(s) sin nada que delate que falten.`);
+
+  if (inv.cuerpos) {
+    console.log(`\n  CUERPOS · ${coincidencias.size} de ${inv.cuerpos.length} funciones de \`retail\``);
+    console.log(`  tienen un archivo del repo que las explica tal cual.`);
+    if (sinArchivo.length > 0) {
+      console.log(`\n  ${sinArchivo.length} NO:\n`);
+      for (const f of sinArchivo) {
+        console.log(`  ✗ ${f.nombre}() — ${f.motivo}`);
+        if (f.candidatos) console.log(`      el repo la define en: ${f.candidatos.join(", ")}`);
+      }
+      console.log(`\n    Un cuerpo que ningún archivo produce se escribió a mano contra la base.`);
+      console.log(`    No falla nada por eso —y ese es el problema—: el repo deja de describir`);
+      console.log(`    el sistema sin que nada lo delate.`);
+    }
+  }
 
   if (sobrecargadas.length > 0) {
     console.log(`\n  SOBRECARGAS VIVAS — la trampa que documentó ADR-0009: \`create or replace\``);

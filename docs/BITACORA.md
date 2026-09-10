@@ -2723,3 +2723,25 @@ dado no decía qué base contestaba. Una comprobación que no se identifica no c
 La segunda trajo `current_database()` y el conteo de variantes (0 en local, 19 en
 producción), y recién ahí la respuesta valía.
 
+## 2026-09-10 (el verificador aprende a leer el código, no solo el nombre)
+`migraciones:verificar` compara ahora el CUERPO de cada función de `retail`: lo normaliza
+—sin comentarios, sin prefijo de schema, sin espaciado— y lo busca entre TODAS las
+definiciones que el repo tenga de ese nombre. Si no coincide con ninguna, ese código no lo
+produce ningún archivo. Es la respuesta directa al hallazgo de la entrada anterior.
+
+Contra todas las definiciones y no contra «la última», a propósito: un gemelo de
+`unificacion/` puede ser legítimamente distinto del archivo de `migrations/` —pasó con
+`27_ajuste_con_signo`, que en producción es más grande— y basta con que alguna lo explique.
+
+**Lo que Felipe aprende acá:** una herramienta de verificación hay que probarla al revés.
+Que diga «48 de 48 está bien» no prueba nada — un verificador que siempre aprueba también
+diría eso. Así que se rompieron las dos cosas a propósito antes de darlo por bueno: se creó
+una función que el repo no define, y se alteró a mano el cuerpo de otra. Las dos se
+reportaron, y al restaurar volvió a 48 de 48 sin falsos positivos. Recién ahí el verde
+significa algo.
+
+Detalle de oficio que va a ahorrar una frustración: el resultado del SQL Editor puede
+llegar como JSON pelado (copiar y pegar) o envuelto en CSV con las comillas duplicadas
+(botón de descarga). El script acepta los dos, porque quien corre esto no tiene por qué
+saber cuál eligió — y `JSON.parse` fallando sobre un CSV da un mensaje que no ayuda a nadie.
+

@@ -46,6 +46,20 @@ select jsonb_pretty(jsonb_build_object(
     where n.nspname::text in (select esquema from objetivo)
   ),
 
+  -- El CUERPO de cada función de `retail`, para poder comparar contra los archivos.
+  -- Solo `retail`: `public` en producción es el schema entero de Dynamic y sus funciones
+  -- no son nuestras, así que traerlas sería peso muerto. `prosrc` es exactamente lo que va
+  -- entre los `$$`, sin la cabecera —que cambia entre entornos por el `search_path`— así
+  -- que es la parte comparable.
+  'cuerpos', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'nombre', p.proname, 'args', p.pronargs, 'cuerpo', p.prosrc
+           ) order by p.proname, p.pronargs), '[]'::jsonb)
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'retail' and p.prokind = 'f'
+  ),
+
   'tablas', (
     select coalesce(jsonb_agg(c.relname order by c.relname), '[]'::jsonb)
     from pg_class c
