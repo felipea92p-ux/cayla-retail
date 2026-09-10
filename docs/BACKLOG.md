@@ -276,6 +276,31 @@ importante que ha entrado a este archivo desde que existe.
       alarma, la tabla vive en `retail.sede_meta`, se movió de schema en la
       unificación; (b) la sobrecarga de `fn_set_meta_cobertura` que reporta es de
       `public`, o sea de Dynamic, no nuestra. Texto original abajo:**
+      **Addenda de otra sesión, en paralelo y sin saberlo (2026-09-10):**
+      esta misma pantalla se construyó dos veces a la vez sin que ninguna de
+      las dos partes lo supiera hasta el final del día — una sesión en esta
+      máquina armó `/inventario/censo` + `CensoPanel.tsx` el mismo día en que
+      Danytristee ya tenía `/inventario/conteo` cerrado desde el 09-09.
+      Se descartó la versión duplicada sin pushear (cero costo real más allá
+      de las horas) y quedan dos lecciones de método, verificadas al intentar
+      correr esa versión antes de descartarla:
+      1. La tecla Enter/Escape simulada por la herramienta de navegador de
+         Claude no siempre llega al `onKeyDown` de React en este entorno —
+         se confirmó disparando `new KeyboardEvent(...)` directo por
+         JavaScript, que sí activó el flujo completo (RPC incluida). No es un
+         bug de pantalla; ninguna prueba automatizada reemplaza probar con
+         teclado real o la pistola.
+      2. `npx supabase db reset` es la única prueba real de que una migración
+         local no tiene el prefijo `retail.` que solo va en el gemelo de
+         producción (ADR-0010) — se encontró exactamente ese bug al intentar
+         correrlo, no antes.
+      **La deuda estructural que esto expone, más grande que el censo:** con
+      un colaborador externo empujando en vivo a `origin/main` e invisible
+      para `list_sessions`/`ListAgents`, cualquier sesión puede duplicar
+      trabajo suyo sin ninguna alarma previa — pasó con el censo y, aparte,
+      con el arreglo de `pnpm typecheck` (Danytristee lo hizo un día antes,
+      por su cuenta, mismo síntoma). Sincronizar contra `origin/main` al abrir
+      sesión ya no alcanza cuando el remoto se mueve varias veces por día.
       **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
       de producción **verificado contra la base el 2026-09-09** (no contra estos
       documentos, que decían otra cosa): la `25`, la `26` y la `31` **ya están

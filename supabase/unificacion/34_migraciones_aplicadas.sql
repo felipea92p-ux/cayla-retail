@@ -1,7 +1,21 @@
 -- ============================================================================
--- 33 — Registro de qué migró en producción
+-- 34 — Registro de qué migró en producción
 -- Correr en cayla-DYNAMIC (SQL Editor). Todo en el cajón `retail`.
--- Gemelo de `supabase/migrations/0051_migraciones_aplicadas.sql`.
+-- Gemelo de `supabase/migrations/0053_migraciones_aplicadas.sql`.
+--
+-- RENUMERADO DOS VECES el mismo día (2026-09-10): un colaborador externo
+-- (Danytristee, fuera de esta máquina, invisible para cualquier coordinación
+-- entre sesiones de Claude) empujó directo a `origin/main` mientras esta
+-- sesión trabajaba. Primero tomó 33/0051 (`33_conteo_color_vacio.sql`, ya
+-- aplicado en producción — nada que ver con esta tabla); al renombrar a
+-- 34/0052 apareció que 0052 TAMBIÉN ya estaba tomado
+-- (`0052_taxonomia_universal.sql`), así que el local quedó en 0053. La
+-- unificación se quedó en 34 (sin choque ahí). Este archivo YA SE HABÍA
+-- PEGADO en producción bajo el nombre original antes de descubrir la primera
+-- colisión — por eso la fila que se autorregistra abajo dice
+-- `33_migraciones_aplicadas.sql`, no `34`: es el registro histórico real de
+-- lo que se pegó, y no se reescribe. El nombre del ARCHIVO cambió dos veces;
+-- lo que corrió en producción ese día, no.
 --
 -- POR QUÉ AHORA. Pasó una tercera vez: `27`, `28`, `29` y `30` ya estaban
 -- aplicadas en producción y el BACKLOG seguía diciendo "falta pegar" un día
