@@ -77,11 +77,66 @@ export function barrasCode128(texto: string): Barras | null {
 }
 
 /**
- * Puntos de impresora por módulo, que es lo que de verdad decide si se lee.
- * Regla de la industria para impresión térmica: **≥3**. Por debajo de 2 es
- * inleíble en la práctica.
+ * Puntos de impresora por módulo si el código se ESTIRA para llenar un ancho dado.
+ * Se conserva para explicar por qué eso está mal, no para dibujar así.
  */
 export function puntosPorModulo(modulos: number, anchoUtilMm = 50, dpi = 300): number {
   const mmPorPunto = 25.4 / dpi;
   return anchoUtilMm / modulos / mmPorPunto;
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * EL MÓDULO SE FIJA; EL ANCHO SE DEDUCE. NUNCA AL REVÉS.
+ *
+ * Descubierto el 2026-09-09 escaneando con el celular: los códigos se dibujaban
+ * con `preserveAspectRatio="none"` y `width: 100%`, o sea que 189 módulos y 475
+ * módulos ocupaban lo MISMO — el ancho de la etiqueta. Como Code 128 se decodifica
+ * por PROPORCIÓN de anchos, y `shapeRendering="crispEdges"` además redondea cada
+ * borde a la grilla del dispositivo, una barra de 2 módulos y otra de 3 terminaban
+ * midiendo igual. El lector devolvía basura: `755123:1<7V90` en vez de
+ * `7501234567890`, y ráfagas de dígitos donde tomaba un símbolo roto por el código
+ * de "cambiar a subconjunto C".
+ *
+ * El encoder estaba —y está— bien: los patrones decodifican exacto y el checksum
+ * cierra. Lo que estaba mal era estirar el dibujo.
+ *
+ * Ahora el módulo tiene un tamaño físico fijo y el código ocupa lo que ocupa. Eso
+ * convierte "este código es demasiado largo" de un problema invisible (se imprimía
+ * igual, ilegible) en uno imposible: no entra, y hay que decirlo antes de imprimir.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
+/** 0.254 mm = exactamente 3 puntos a 300 dpi, el mínimo de la impresión térmica. */
+export const MODULO_MM = 0.254;
+
+/** Ancho útil del código dentro de una etiqueta de 62 mm, descontados los márgenes. */
+export const ANCHO_UTIL_MM = 50;
+
+export type Medida = {
+  modulos: number;
+  anchoMm: number;
+  cabe: boolean;
+  /** Cuántos caracteres entran como máximo con este módulo y este ancho. */
+  maxCaracteres: number;
+};
+
+/**
+ * Cuánto mide de verdad el código, y si entra en la etiqueta.
+ *
+ * Un Code 128 B mide `11·(n+2) + 2` módulos para n caracteres (start, datos,
+ * checksum y stop), así que el límite de caracteres sale de despejar esa cuenta.
+ */
+export function medir(
+  modulos: number,
+  { moduloMm = MODULO_MM, anchoUtilMm = ANCHO_UTIL_MM } = {}
+): Medida {
+  const anchoMm = modulos * moduloMm;
+  const modulosDisponibles = Math.floor(anchoUtilMm / moduloMm);
+  return {
+    modulos,
+    anchoMm,
+    cabe: anchoMm <= anchoUtilMm,
+    maxCaracteres: Math.max(0, Math.floor((modulosDisponibles - 2) / 11) - 2),
+  };
 }
