@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Codigo128 } from "@/components/Codigo128";
+import { CodigoQR } from "@/components/CodigoQR";
+// `Codigo128` sigue en el repo, arreglado y verificado con la Zebra el 2026-09-09,
+// pero la etiqueta imprime QR: es lo que CAYLA ya usa, y no tiene el techo de 15
+// caracteres que dejaba afuera a una talla XXL. Leer sigue funcionando con ambos.
 
 // Generador de etiquetas de código de barras para la Brother QL-1110NWB (rollo
 // 62mm). Código de barras Code 128 B — el estándar retail que la pistola Zebra
@@ -150,22 +153,32 @@ export function EtiquetasGenerator({ variantes }: { variantes: VarianteEtiqueta[
             {etiquetas.map((e) => (
               <div
                 key={e.key}
-                className="etiqueta-impresa flex flex-col justify-between border border-tinta/15 bg-white p-2"
-                style={{ width: "62mm", height: "29mm" }}
+                className="etiqueta-impresa flex items-center gap-2 border border-tinta/15 bg-white"
+                style={{ width: "62mm", height: "29mm", padding: "2mm" }}
               >
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="truncate text-[9px] font-medium uppercase tracking-wide text-black">
+                {/* El QR para la máquina; los caracteres de al lado, para el ojo. Es lo
+                    que hace hoy casi todo el retail, y lo que ya usa CAYLA. */}
+                <div className="shrink-0">
+                  <CodigoQR texto={e.codigo ?? e.sku} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-[0.4mm]">
+                  <p className="truncate text-[9px] font-semibold uppercase leading-tight tracking-wide text-black">
                     {e.referencia}
                   </p>
+                  <p className="truncate text-[8px] uppercase leading-tight text-black">
+                    {[e.talla, e.color].filter(Boolean).join(" · ")}
+                  </p>
                   {conPrecio && e.precio != null && (
-                    <p className="shrink-0 text-[10px] font-semibold text-black">S/{e.precio.toFixed(2)}</p>
+                    <p className="text-[12px] font-semibold leading-tight text-black">
+                      S/{e.precio.toFixed(2)}
+                    </p>
                   )}
+                  {/* El código impreso importa tanto como el QR: es lo que alguien dicta
+                      por teléfono cuando la otra sede pregunta si hay una talla. */}
+                  <p className="truncate font-mono text-[7px] leading-tight tracking-wider text-black">
+                    {e.codigo ?? e.sku}
+                  </p>
                 </div>
-                <p className="text-[8px] uppercase text-black">
-                  {[e.talla, e.color].filter(Boolean).join(" · ")}
-                </p>
-                <Codigo128 texto={e.codigo ?? e.sku} alto={38} />
-                <p className="text-center font-mono text-[8px] tracking-wider text-black">{e.codigo ?? e.sku}</p>
               </div>
             ))}
           </div>
