@@ -11,6 +11,18 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Apartado C, columna «Caja de tienda» — análisis hecho el 2026-09-11; el menú
+      espera la elección de Felipe.** `docs/ESTANDAR-CAJA-DE-TIENDA.md` (artefacto «El
+      estándar de la caja»): los siete sistemas con caja real (Shopify, Lightspeed, Square,
+      Loyverse, Bsale, INVY, Odoo) verificados en su documentación oficial y contrastados
+      contra el repo archivo por archivo. Doce mecanismos en la tabla del estándar; los que
+      faltan del todo: pago dividido + vuelto, descuento con motivo y permiso, clienta y
+      comprobante EN la venta, cambio/devolución desde la venta original, recibo, apartado.
+      Cuatro son **decisiones de negocio antes que de código** (descuento: hasta cuánto la
+      Encargada; comprobante: ¿emite la Encargada?; devolución: ¿a qué sede reingresa, dinero
+      o vale?; apartado: ¿con seña, cuántos días?). Orden sugerido en §5 del doc, de menor a
+      mayor superficie. **Siguen las otras seis columnas** (talla y color, almacenes y
+      transferencias, fiscal, finanzas, IA, omnicanal), una por sesión, mismo método.
 - [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
@@ -713,6 +725,16 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **La caja no lee la etiqueta que ella misma imprime.** Encontrado el 2026-09-11 al
+      mapear la caja para el estándar (`docs/ESTANDAR-CAJA-DE-TIENDA.md`, mecanismo 1). La
+      etiqueta imprime el código corto (`codigo ?? sku`, `EtiquetasGenerator.tsx:24-25`) y el
+      conteo resuelve por `codigos_barras` (`lib/conteo.ts:194-206`), pero el buscador de
+      venta compara **solo `sku`** (`RegistrarVentaModal.tsx:83,160`) y `vender/page.tsx:78-86`
+      ni le pasa `codigo` aunque `VarianteConStock.codigo` existe. Cualquier prenda etiquetada
+      después del censo, o adoptada con su código de fábrica, **no entra al escanearla en
+      Vender** — la Zebra sirve en el conteo y no en la caja. Arreglo solo en `apps/web`, sin
+      SQL: pasar `codigo`, cargar `codigos_barras`, y resolver el Enter por código corto →
+      código de fábrica → SKU. Se verifica escaneando una etiqueta impresa.
 - [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
       sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
       se verificó lo principal: la cola sube sola al volver la red (la prenda encolada

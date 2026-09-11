@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (apartado C, columna 1: en la caja no hay nada que aprender de los ERP grandes)
+
+Se aplicó al apartado C —la comparativa funcional de 16 sistemas— el mismo método que al D,
+empezando por la columna «Caja de tienda»: puntajes transcritos del documento (que es de otra
+cuenta y hubo que leer por el navegador), la caja de los siete que la tienen de verdad
+verificada en su documentación oficial, y cada mecanismo contrastado contra el repo archivo
+por archivo. Resultado en `docs/ESTANDAR-CAJA-DE-TIENDA.md` y el artefacto «El estándar de
+la caja»: doce mecanismos, seis que no existen, cuatro que son decisiones de negocio antes
+que de código. Lo que la columna enseña: los tres 5 nacieron del mostrador y los 0–2 de la
+contabilidad, el ERP o el mayorista — todo lo que vale está en seis cajas chicas, y CAYLA
+ya tiene tres cosas que ninguno de los 5 tiene (el reintento que no cobra dos veces, la
+venta sin red que bloquea la última unidad, SUNAT sin peaje por documento).
+
+**El hallazgo salió del mapa, no de la comparación:** la etiqueta imprime el código corto y
+el conteo lo resuelve por `codigos_barras`, pero la caja busca solo por `sku`. Una prenda
+etiquetada después del censo no entra al escanearla en Vender. Va a ARREGLAR, primero del
+menú, sin SQL.
+
+Lo que Felipe se lleva: **un puntaje sin su porqué no se puede copiar** — la columna dice
+«5» y no dice qué hace Shopify para merecerlo; recién con la documentación en la mano
+aparecen los mecanismos concretos (el carrito que no se tapa, el vuelto automático, la
+lista de lo que no funciona sin red). Y que el estándar se mide en las dos direcciones:
+antes de copiar hacia arriba, anotar lo que los de arriba no tienen.
+
 ## 2026-09-11 (`main` verde en CI y roto en local: dos sesiones, el mismo problema, y nadie eligió)
 
 Dos sesiones resolvieron la idempotencia de `registrar_venta` el mismo día, cada una en
