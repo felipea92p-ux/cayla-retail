@@ -3567,3 +3567,20 @@ Y el `is not true` en vez de `not` no es estilo: si `puede_operar_sede` devolvie
 `not NULL` tampoco es true y el `raise` no dispararía — el candado se abriría solo. Es el
 mismo agujero que el `coalesce` de `03_candados.sql` cierra desde el otro lado, y por eso
 conviene que las dos defensas existan.
+
+## 2026-09-11 (el primer chart: comparativo año contra año, ADR-0038)
+
+Se instaló Bklit UI (charts sobre shadcn/registry, ADR-0037) y se armó el primer chart real
+en `/finanzas/comparativo` — línea mensual, un año por línea, sin tocar la tabla existente.
+Los años NO llevan colores por serie: son una rampa de un solo tono (tinta, oscuro→claro,
+más reciente = más oscuro) porque un año es tiempo ordenado, no una categoría — mismo
+lenguaje que ya usa `text-tinta/65` en toda la app. El crosshair es rojo a propósito: es el
+"hilo vivo" de la Capa de movimiento, no un color de serie. Se verificó en navegador con
+datos reales (se completó `.env.local` local, ausente hasta ahora, y se cargó
+`seed-demo.sql` a mano) — no solo compilación.
+
+Lo que Felipe se lleva: **una serie ordenada por tiempo no pide una paleta, pide una
+rampa** — el error fácil era dejar los 5 colores genéricos que trae la librería (gris
+categórico) o inventar un color por año; ninguno de los dos dice "2026 importa más que
+2023" con solo mirarlo. La opacidad sí lo dice, y CAYLA ya lo sabía (`tinta/65`) antes de
+que existiera un chart.
