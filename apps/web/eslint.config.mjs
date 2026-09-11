@@ -14,7 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
-    // components/charts/** llega vía `npx shadcn add @bklit/*` (ADR-0038):
+    // components/charts/** llega vía `npx shadcn add @bklit/*` (ADR-0039):
     // código de Bklit UI instalado como fuente propia, no un paquete.
     // `react-hooks/refs` y `react-hooks/set-state-in-effect` son las reglas
     // nuevas orientadas a React Compiler — muy estrictas sobre patrones de

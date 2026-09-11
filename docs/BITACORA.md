@@ -3568,7 +3568,7 @@ Y el `is not true` en vez de `not` no es estilo: si `puede_operar_sede` devolvie
 mismo agujero que el `coalesce` de `03_candados.sql` cierra desde el otro lado, y por eso
 conviene que las dos defensas existan.
 
-## 2026-09-11 (el primer chart: comparativo año contra año, ADR-0038)
+## 2026-09-11 (el primer chart: comparativo año contra año, ADR-0039)
 
 Se instaló Bklit UI (charts sobre shadcn/registry, ADR-0037) y se armó el primer chart real
 en `/finanzas/comparativo` — línea mensual, un año por línea, sin tocar la tabla existente.

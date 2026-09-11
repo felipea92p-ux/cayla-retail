@@ -1,4 +1,4 @@
-# ADR-0038 — Bklit UI entra a Finanzas: una rampa de tinta, no una paleta nueva
+# ADR-0039 — Bklit UI entra a Finanzas: una rampa de tinta, no una paleta nueva
 
 **Fecha:** 2026-09-11
 **Estado:** Instalado y verificado en navegador (primer chart real, con datos).
