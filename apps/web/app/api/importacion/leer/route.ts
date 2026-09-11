@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { ErrorDeLectura, leerArchivo, leerGoogleSheets, MAX_BYTES } from "@/lib/importacion/leer-archivo";
 import { leerDocumento } from "@/lib/importacion/leer-documento";
+import { permitirLlamada, traducirErrorIA } from "@/lib/ia/cliente";
 
 // POST /api/importacion/leer
 //   multipart con `archivo`  → .xlsx / .csv (carril determinista, sin IA)
@@ -60,20 +61,27 @@ export async function POST(request: Request) {
           { status: 503 }
         );
       }
+      const freno = permitirLlamada(persona.id);
+      if (!freno.ok) return Response.json({ error: freno.mensaje }, { status: 429 });
       const { tabla, notas, uso } = await leerDocumento(await archivo.arrayBuffer(), archivo.name);
       return Response.json({ ...tabla, transcrito: true, notas, uso });
     }
 
-    return Response.json(await leerArchivo(await archivo.arrayBuffer(), archivo.name));
+    // La hoja que eligió la persona, cuando el libro tiene varias y la de más
+    // filas no era la buena (SINATRA: 20 pestañas, y la grande era "Gastos").
+    const hoja = form.get("hoja");
+    return Response.json(
+      await leerArchivo(await archivo.arrayBuffer(), archivo.name, typeof hoja === "string" && hoja ? hoja : undefined)
+    );
   } catch (e) {
     // ErrorDeLectura ya trae un mensaje escrito para quien lo va a leer en
     // pantalla, con la salida incluida ("guárdalo como CSV y vuelve a subirlo").
     // Cualquier otra cosa es un fallo nuestro y no se disfraza de consejo.
     if (e instanceof ErrorDeLectura) return Response.json({ error: e.message }, { status: 422 });
-    const crudo = e instanceof Error ? e.message : "error desconocido";
-    if (crudo.includes("credit balance")) {
-      return Response.json({ error: "La cuenta de Anthropic se quedó sin saldo. Excel y CSV siguen funcionando." }, { status: 402 });
-    }
-    return Response.json({ error: `No se pudo leer el archivo: ${crudo}` }, { status: 500 });
+    // Lo demás viene del modelo (solo PDF y foto pasan por él) o es un fallo
+    // nuestro; el traductor distingue saldo, clave, límite de volumen y caída,
+    // y lo que no reconoce lo devuelve tal cual.
+    const { mensaje, status } = traducirErrorIA(e, "La lectura del documento", "Excel y CSV siguen funcionando.");
+    return Response.json({ error: mensaje }, { status });
   }
 }

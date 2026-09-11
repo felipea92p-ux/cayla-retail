@@ -102,13 +102,29 @@ export async function getColoresUniversales(): Promise<TerminoUniversal[]> {
  */
 export async function getCategoriasUniversales(): Promise<TerminoUniversal[]> {
   const supabase = await createClient();
-  const res = await supabase
-    .from("taxonomia_categorias")
-    .select("id, nombre, ruta, nivel")
-    .gt("nivel", 1)
-    .order("ruta");
 
-  return exigir(res, "las categorías del estándar universal").map((c) => ({
+  // PostgREST corta cada respuesta a `max_rows` (1.000 en config.toml y en
+  // producción) y NO avisa: devuelve 1.000 filas con status 200. El árbol tiene
+  // 1.804 categorías de nivel > 1, ordenadas por ruta — o sea que "Salud y
+  // belleza" (902 filas, la última alfabéticamente) quedaba casi entera fuera y
+  // el modelo no podía anclar nada de belleza. Lo encontró la revisión
+  // adversarial del 2026-09-11; el examen no lo vio porque lee por psql, que
+  // no tiene ese tope. Se pagina en bloques de 1.000 hasta que llegue corto.
+  const PAGINA = 1000;
+  const todas: { id: string; nombre: string; ruta: string }[] = [];
+  for (let desde = 0; ; desde += PAGINA) {
+    const res = await supabase
+      .from("taxonomia_categorias")
+      .select("id, nombre, ruta, nivel")
+      .gt("nivel", 1)
+      .order("ruta")
+      .range(desde, desde + PAGINA - 1);
+    const bloque = exigir(res, "las categorías del estándar universal");
+    todas.push(...bloque);
+    if (bloque.length < PAGINA) break;
+  }
+
+  return todas.map((c) => ({
     id: c.id,
     nombre: c.nombre,
     ruta: c.ruta,

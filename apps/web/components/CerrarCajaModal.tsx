@@ -9,6 +9,14 @@ import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "
 type Props = {
   cajaId: string;
   sedeCodigo: string;
+  /**
+   * Cuánto de lo guardado sin conexión es en efectivo (Paso 3.1, ADR-0036 addendum).
+   * `retail.cerrar_caja` solo suma `ventas.metodo_pago = 'efectivo'` que YA está en la
+   * base — una venta en efectivo atrapada en la cola no entra en ese cálculo todavía,
+   * así que el "esperado" que el sistema muestra va a salir más bajo que el efectivo
+   * real que hay en el cajón. Sin avisarlo, eso se lee como un sobrante — y no lo es.
+   */
+  efectivoEncoladoSinSubir: number;
   onClose: () => void;
 };
 
@@ -18,7 +26,7 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
-export function CerrarCajaModal({ cajaId, sedeCodigo, onClose }: Props) {
+export function CerrarCajaModal({ cajaId, sedeCodigo, efectivoEncoladoSinSubir, onClose }: Props) {
   const router = useRouter();
   const [montoContado, setMontoContado] = useState(0);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -56,6 +64,13 @@ export function CerrarCajaModal({ cajaId, sedeCodigo, onClose }: Props) {
     <Modal titulo="Cerrar caja" subtitulo={`Sede ${sedeCodigo}`} onClose={onClose}>
       {!resultado ? (
         <form onSubmit={onSubmit} className="space-y-4">
+          {efectivoEncoladoSinSubir > 0 && (
+            <div className="card-cayla border-ambar/50 bg-ambar/10 p-3 text-xs leading-relaxed text-ambar-profundo">
+              Hay {money(efectivoEncoladoSinSubir)} en efectivo de ventas guardadas sin conexión que todavía no
+              subieron — el sistema no las está contando en «esperado» todavía, aunque ese efectivo sí esté en el
+              cajón. Vas a ver un sobrante hasta que suban solas; no es un error de cuadre. Puedes cerrar igual.
+            </div>
+          )}
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Efectivo contado físicamente (S/)</label>
             <input

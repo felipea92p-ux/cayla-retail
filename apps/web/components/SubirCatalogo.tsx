@@ -28,7 +28,11 @@ type Tabla = {
   /** Solo en PDF/foto: lo transcribio el modelo, con lo que eso implica. */
   transcrito?: boolean;
   notas?: string;
-  uso?: { entrada: number; salida: number };
+  /** Lo que costó, ya en dólares y con el caché contado (lib/ia/cliente.ts). */
+  uso?: { entrada: number; salida: number; cacheLeido: number; costo: number };
+  /** Solo en Excel con varias hojas: para elegir otra. */
+  hojas?: { nombre: string; filas: number }[];
+  hojaElegida?: string;
 };
 
 const MAX_FILAS_VISIBLES = 30;
@@ -43,8 +47,11 @@ export function SubirCatalogo() {
   const [filaCabecera, setFilaCabecera] = useState(0);
   const [plan, setPlan] = useState<PlanDeMapeo | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
+  // El archivo se guarda para poder releerlo con OTRA hoja sin pedirlo de nuevo.
+  const archivoActual = useRef<File | null>(null);
 
-  async function enviar(cuerpo: FormData | string) {
+  /** `conservar`: si falla, la tabla que ya estaba se queda (cambio de hoja). */
+  async function enviar(cuerpo: FormData | string, conservar = false) {
     setCargando(true);
     setError(null);
     setPlan(null);
@@ -58,6 +65,23 @@ export function SubirCatalogo() {
       const datos = await res.json();
       if (!res.ok) {
         setError(datos.error ?? "No se pudo leer el archivo.");
+        // Al cambiar de hoja y fallar ("la hoja X no tiene datos"), la tabla
+        // anterior sigue en pantalla con su desplegable: sin esto desaparecía
+        // todo y no había forma de elegir otra hoja sin volver a subir.
+        if (!conservar) setTabla(null);
+        return;
+      }
+      // Las filas viajan enteras como JSON en cada paso siguiente (mapear,
+      // valores, importar), y Vercel corta cualquier request en 4,5 MB antes
+      // de que el servidor lo vea. Un xlsx de 2 MB comprimido puede ser 6 MB de
+      // JSON. Mejor decirlo acá, con el archivo recién leído, que en el paso 3
+      // con un 413 que no es nuestro.
+      const peso = JSON.stringify(datos.filas).length;
+      if (peso > 3.5 * 1024 * 1024) {
+        setError(
+          `El archivo tiene ${datos.filas.length.toLocaleString("es-PE")} filas y es demasiado grande para procesarse de una vez ` +
+            `(${(peso / 1024 / 1024).toFixed(1)} MB). Pártelo en dos hojas o dos archivos de menos de 8.000 filas cada uno.`
+        );
         setTabla(null);
         return;
       }
@@ -73,11 +97,22 @@ export function SubirCatalogo() {
   function subir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const fd = new FormData();
-    fd.append("archivo", f);
-    void enviar(fd);
+    archivoActual.current = f;
+    void enviarArchivo(f);
     // Se limpia para que volver a elegir el MISMO archivo dispare onChange.
     e.target.value = "";
+  }
+
+  function enviarArchivo(f: File, hoja?: string) {
+    const fd = new FormData();
+    fd.append("archivo", f);
+    if (hoja) fd.append("hoja", hoja);
+    return enviar(fd, hoja !== undefined);
+  }
+
+  /** Cambiar de hoja relee el mismo archivo — no hay que volver a elegirlo. */
+  function cambiarHoja(nombre: string) {
+    if (archivoActual.current) void enviarArchivo(archivoActual.current, nombre);
   }
 
   const cabeceras = tabla?.filas[filaCabecera] ?? [];
@@ -105,7 +140,7 @@ export function SubirCatalogo() {
           <Boton type="button" peso="primario" cargando={cargando} onClick={() => inputArchivo.current?.click()}>
             Elegir archivo
           </Boton>
-          <span className="text-xs text-tinta/65">Excel o CSV hasta 10 MB · PDF o foto hasta 5 MB</span>
+          <span className="text-xs text-tinta/65">Excel, CSV, PDF o foto — hasta 4 MB</span>
         </div>
 
         <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-sand pt-4">
@@ -151,14 +186,38 @@ export function SubirCatalogo() {
                 <span className="font-display text-base text-tinta">{cabeceras.length}</span> columnas
               </p>
             </div>
-            <div className="w-72">
-              <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">La cabecera está en</p>
-              <Desplegable
-                valor={String(filaCabecera)}
-                onValor={(v) => setFilaCabecera(Number(v))}
-                opciones={opcionesCabecera}
-                forma="pastilla"
-              />
+            <div className="flex flex-wrap gap-4">
+              {/* Solo cuando el libro tiene varias hojas: con una sola no hay
+                  nada que elegir, y un desplegable de una opción es ruido. */}
+              {tabla.hojas && tabla.hojas.length > 1 && (
+                <div className="w-64">
+                  <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">Hoja del libro</p>
+                  <Desplegable
+                    valor={tabla.hojaElegida ?? ""}
+                    onValor={cambiarHoja}
+                    opciones={tabla.hojas.map((h) => ({
+                      valor: h.nombre,
+                      texto: `${h.nombre} · ${h.filas} ${h.filas === 1 ? "fila" : "filas"}`,
+                    }))}
+                    forma="pastilla"
+                  />
+                </div>
+              )}
+              <div className="w-72">
+                <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">La cabecera está en</p>
+                <Desplegable
+                  valor={String(filaCabecera)}
+                  // Cambiar la cabecera cambia las columnas: el plan del paso 2 y la
+                  // revisión del paso 3 dejan de valer. Sin esto, el paso 3 seguía
+                  // montado con el plan viejo y su botón de importar activo.
+                  onValor={(v) => {
+                    setFilaCabecera(Number(v));
+                    setPlan(null);
+                  }}
+                  opciones={opcionesCabecera}
+                  forma="pastilla"
+                />
+              </div>
             </div>
           </div>
 
@@ -171,8 +230,8 @@ export function SubirCatalogo() {
               </p>
               {tabla.uso && (
                 <p className="mt-1 text-[11px] opacity-75">
-                  {tabla.uso.entrada} tokens de entrada · {tabla.uso.salida} de salida ≈ $
-                  {((tabla.uso.entrada * 1) / 1e6 + (tabla.uso.salida * 5) / 1e6).toFixed(4)}
+                  {tabla.uso.entrada + tabla.uso.cacheLeido} tokens de entrada · {tabla.uso.salida} de salida ≈ $
+                  {tabla.uso.costo.toFixed(4)}
                 </p>
               )}
             </div>

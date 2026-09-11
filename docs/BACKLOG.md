@@ -15,29 +15,58 @@ importante que ha entrado a este archivo desde que existe.
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
       infiere qué es cada columna y de qué universal cuelga cada color o
-      categoría nueva; `importar_catalogo` (0055) escribe todo en una
-      transacción con stock en cero; `deshacer_importacion` descontinúa, nunca
-      borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
-      foto de cuaderno. Verificado en el navegador con la sesión real y
-      confirmado en la base. 178 tests.
-      **Lo que falta para usarlo en producción:** pegar `0056` (y `0052` + su
-      seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
-      **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
-      CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
-      (corregir a mano `Tops → Tops cortos deportivos` y decidir `Fucsia →
-      Púrpura` o `Rosa`).
+      categoría nueva; `importar_catalogo` (0056, redefinido en **0057** tras la
+      revisión adversarial del 11-sep) escribe todo en una transacción con
+      stock en cero; `deshacer_importacion` descontinúa, nunca borra, y ahora
+      tiene botón. Costos medidos CON el caché contado (antes se omitía y salía
+      diez veces menos): $0.014 el mapeo, **$0.19 los valores la primera vez en
+      la hora** (escribe ~85.000 tokens del árbol al caché; las siguientes ~$0.01),
+      $0.0036 una foto. 209 tests.
+      **Lo que falta para usarlo en producción:** pegar
+      `supabase/seed-taxonomia/produccion/9-migracion-0057.sql` (se genera con
+      `node scripts/taxonomia/preparar-produccion.mjs`; ya lleva `retail.` y
+      `retail.es_lider()`). Sin eso, la 0056 que ya está allá llama a
+      `fn_es_lider()`, que no existe en producción, y el importador revienta al
+      primer uso — es por lo que la prueba de Felipe del 11-sep no dejó rastro.
+      Y darle a *guardar* en **Inventario → Vocabulario** para anclar los 30
+      colores y 37 categorías de CAYLA (corregir a mano `Tops → Tops cortos
+      deportivos` y decidir `Fucsia → Púrpura` o `Rosa`).
+      **Límite honesto que dejó la revisión:** el freno de 40 llamadas al modelo
+      por persona y hora (`permitirLlamada`) vive en memoria del proceso — en
+      Vercel es por instancia, así que es un freno, no una garantía. La
+      garantía sería una tabla; el día que haga falta, es esa función la que se
+      reemplaza.
       **Lo que queda fuera, dicho:** las prendas que CAYLA ya tiene no ganan
       atributos ricos (tejido, patrón) — `producto_atributos` existe pero el
       importador solo la llena para catálogos nuevos; llenarla para el catálogo
       actual es otro trabajo. Y el cron semanal para `revisar-version.mjs` no
       existe: se corre a mano cuando se quiera saber si hay versión nueva.
+      **Aparte, sin resolver (2026-09-11):** Felipe espera que los productos
+      disponibles de CAYLA se saquen probablemente de "Ingreso Mercadería" de
+      SINATRA. Verificado contra `SINATRA 2025.xlsm`: 2.219 filas de compra, 21
+      `CATEGORÍA` con duplicados de forma (`Pantalones`/`PANTALONES`,
+      `Body`/`body`, mapeables 1:1 contra `retail.categorias` con el motor de
+      anclaje de arriba), `DETALLE` texto libre sin estructura (1.439 valores
+      distintos, ej. "Sosten lino algodon", "Lino Prada"), `TALLA` vacía al
+      100%, 807 filas (36%) con error de fórmula — confirma en 2025 lo mismo que
+      `docs/ANALISIS-SINATRA.md` ya midió en 2026: **es un registro de compras,
+      no un catálogo**, sin SKU y sin talla/color por fila para
+      `crear_producto_con_variantes` sin inventar datos. El catálogo real de
+      CAYLA se sigue capturando por el censo físico (ítem `catalogo real` más
+      abajo), no por esta hoja. Queda sin resolver qué significa exactamente
+      "sacar los productos disponibles" de Ingreso Mercadería si no es un import
+      1:1 — ¿leer qué categorías/marcas circulan históricamente para pre-poblar
+      sugerencias del censo? ¿otra cosa? "El importador de clientes" y "leer
+      Ingreso Mercadería" comparten el motor de anclaje pero no son el mismo
+      problema: el primero recibe un archivo ya pensado como catálogo por el
+      cliente, el segundo es un registro de compras que nunca lo fue.
 
-- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
-      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
-      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
-      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
-      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
-      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+- [x] **`0052` + seed + `0056` ya están en producción** (Felipe los pegó el
+      11-sep desde `supabase/seed-taxonomia/produccion/`). Falta la **`0057`**
+      (ver el ítem del importador). `revisar-version.mjs` ahora lee los anclajes
+      de producción si se le pasan `REVISAR_SUPABASE_URL` y
+      `REVISAR_SUPABASE_KEY` (service role, solo en la terminal, nunca en un
+      archivo); sin ellas lee local y lo avisa.
 
 - [ ] **`gen-types`: ningún entorno tiene el esquema completo, así que ninguna
       regeneración sale bien sola — y ya son 3 parches a mano.**
@@ -694,22 +723,91 @@ importante que ha entrado a este archivo desde que existe.
       siguen pasando por los RPC, `movimientos` sigue siendo la única fuente de verdad
       (principio 4). Escrituras local-first sin arbitraje dejarían el stock en −1
       cuando dos sedes venden offline la misma última unidad — rompe el principio 2.
-      Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
-      **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
-      él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
-      **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario` en 131 ms de TTFB
-      y 750 ms de carga total; el "~2 s" que se repetía nunca fue una medición). El
-      motor ya está elegido: instantánea en IndexedDB + Supabase Realtime, sin motor
-      externo (ADR-0018).
-      **EL PRIMER PASO REAL ES UN `alter publication`, y no es mío:** hoy
-      `supabase_realtime` tiene **0 tablas** (reverificado contra producción el
-      10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es DDL en el
-      proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo también con
-      local: `config.toml` tiene el contenedor de `realtime` **apagado** desde ADR-0010,
-      así que probar esto en local exige encenderlo primero (y ADR-0010 avisa que dos
-      stacks compitiendo era justo lo que rompía los healthchecks).
-      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0033, `0054`). La
-      cola de la Fase 3 tiene su red puesta antes de existir.
+      **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
+      Washington igual. **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario`
+      en 131 ms de TTFB y 750 ms de carga total; el "~2 s" que se repetía nunca fue una
+      medición). El motor ya está elegido: instantánea en IndexedDB + Supabase Realtime,
+      sin motor externo (ADR-0018). **EL PRIMER PASO REAL ES UN `alter publication`, y
+      no es mío:** hoy `supabase_realtime` tiene **0 tablas** (reverificado contra
+      producción el 10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es
+      DDL en el proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo
+      también con local: `config.toml` tiene el contenedor de `realtime` **apagado**
+      desde ADR-0010, así que probar esto en local exige encenderlo primero (y ADR-0010
+      avisa que dos stacks compitiendo era justo lo que rompía los healthchecks). **Ya NO
+      depende de la idempotencia de la venta:** cerrada el 10-sep (ADR-0033,
+      "el reintento no cobra dos veces", `0054`). **Tampoco depende del umbral de "stock
+      de sobra" para VENDER offline** — se construyó aparte, ver el ítem de la cola de
+      ventas offline (ADR-0036) abajo.
+- [x] **CERRADO 2026-09-11 — la cola de ventas offline, construida y verificada en
+      local (ADR-0036).** No dependía de Fase 2/IndexedDB: es una cola propia en
+      `localStorage`, independiente de la réplica de lecturas. `registrar_venta`
+      (ADR-0032, y su token ADR-0033 "el reintento no cobra dos veces") ya sabía no
+      duplicar un reintento; faltaba que el navegador supiera CUÁNDO reintentar y qué
+      hacer mientras tanto. Construido: `esFalloDeRed()` (`lib/error-escritura.ts`,
+      reusa las mismas huellas de `fetch` que ya traducía errores — y resultó ser la
+      misma pregunta que ya se había hecho `ConteoPanel` el mismo día, ADR-0034;
+      quedó una sola función para las dos colas) distingue un corte de red de un
+      rechazo real del servidor; `lib/ventas-offline.ts` (puro, 11 pruebas) tiene la
+      cola por caja, el umbral de ADR-0013 §C (`stockAqui - cantidad >= 1`, evaluado
+      ANTES de encolar) y el overlay que descuenta en pantalla lo que la cola ya
+      vendió sin subir (sin esto, dos ventas offline de la última unidad pasarían las
+      dos); `CajaPanel.tsx` corre el sondeo de conexión y la subida en el mismo trío
+      mount/`online`/latido de 30 s. **Verificado a mano** apagando y prendiendo
+      `supabase_kong_cayla-retail`: con Kong abajo el panel abre con el aviso; vender
+      4 de 5 se encola y muestra el acuse "Guardada — sube sola"; un segundo intento
+      sobre la última unidad se bloquea con el texto del umbral y NO se encola; al
+      volver la red sube sola — Postgres queda con stock en 1, una sola fila en
+      `ventas` y en `movimientos`, el `token_cliente` coincide con el de la cola.
+      `pnpm test`/`typecheck`/`build` limpios (123 pruebas). Fuera de alcance a
+      propósito (dice el ADR): inventario offline, caja offline, facturación offline —
+      la pantalla avisa que emitir comprobante de una venta encolada necesita esperar
+      a que suba.
+      **ADENDA "Paso 3.1", misma tarde — se cerró un agujero real que auditar el código
+      dejó ver: si la caja cerraba antes de que la venta subiera, quedaba huérfana para
+      siempre** (nadie volvía a mirar su cola — plata cobrada que el sistema dejaba de
+      saber que existía, principio 9). Se decidió NO bloquear "Cerrar caja" con algo
+      pendiente (peor que el problema: dejaría a la Encargada sin poder cerrar si la red
+      no vuelve esa noche) y en cambio la cola pasó de ser por CAJA a ser por SEDE
+      (`obtenerColaSede()`), así que sigue subiendo/mostrándose aunque la caja que generó
+      la venta ya haya cerrado. `CerrarCajaModal` avisa ahora cuánto efectivo hay
+      encolado sin subir, porque `cerrar_caja` no lo cuenta en el "esperado" todavía y
+      sin el aviso se lee como un sobrante falso. **Verificado con Postgres real:**
+      caja cerrada directo en la base con una venta todavía en la cola del navegador →
+      la pantalla de "caja cerrada" (antes muda) mostró "Subiendo 1 venta…" y luego el
+      rechazo real ("Esta caja ya está cerrada") sin perder la venta de vista; una caja
+      NUEVA de la misma sede siguió viendo el stock descontado por esa venta atascada.
+      **Hallazgo aparte anotado en el ADR:** una recarga completa de la pantalla con el
+      servidor caído no funciona — el server component también depende de Kong, así que
+      cae a la pantalla de error genérica. La cola protege una venta a mitad de envío,
+      no un arranque en frío sin servidor (eso sigue siendo Fase 2 / ADR-0018).
+      **ADENDA 2, cerrada la misma tarde — botón "Descartar" para un rechazo que nunca
+      se va a resolver solo.** El Paso 3.1 dejó anotado que una venta rechazada para
+      siempre (su caja no vuelve a existir "abierta") se reintentaba cada 30 s sin
+      parar, sin más salida que borrar `localStorage` a mano desde la consola. Ahora
+      cada rechazo tiene un botón "Descartar" con confirmación de dos pasos que dice
+      explícito que NO registra la venta ni corrige el stock — solo saca la entrada de
+      la cola local, y le recuerda a quien confirma que si la prenda salió de la
+      tienda hay que anotarlo a mano. Se descartó guardar un registro de auditoría en
+      el servidor: no hay ninguna fila que recuperar ahí, el rechazo pasó ANTES del
+      insert. **Verificado con Postgres real:** venta rechazada por caja cerrada →
+      "Cancelar" deja la cola intacta, "Descartar" → "Sí, descartar" muestra el monto
+      (S/70.00) y al confirmar vacía la cola sin error. `pnpm test`/`typecheck`/`build`
+      limpios (126 pruebas).
+      **ADENDA 3, al reconciliar con `main` (2026-09-11) — colisión real con trabajo
+      paralelo, no solo de números.** Mientras esta rama construía la cola, `main`
+      reconcilió dos ramas que habían resuelto el mismo día el mismo problema de
+      idempotencia (ver PR de "reconciliar-duplicados") y de paso cambió las reglas
+      del token de `RegistrarVentaModal.tsx` que esta rama daba por sentadas: antes
+      regeneraba el token en cada edición del carrito, y main lo arregló (ADR-0033,
+      "el reintento no cobra dos veces") porque regenerar ahí puede cobrar una venta
+      dos veces si el corte de red fue de VUELTA (la venta sí entró, pero la
+      respuesta se perdió) y la Encargada edita el carrito antes de reintentar. Esta
+      rama todavía tenía ese patrón en la ruta bloqueada por el umbral. Se adoptó el
+      modelo de main (token fijo por sesión de venta, `token.current ??=
+      crypto.randomUUID()`) y la cola offline se reescribió sobre él — sin volver a
+      regenerar el token en ningún punto. El ADR de esta cola nació como 0033 y pasó
+      a **0036** por la misma colisión de números. Re-verificado después de
+      reconciliar: `pnpm test`/`typecheck`/`build` limpios.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 

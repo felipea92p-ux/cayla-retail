@@ -8,17 +8,24 @@
 // `anclarPorNombre` no tocan la API, se testean sin red y sirven igual en el
 // navegador para previsualizar. Mezclarlas obligaría a todo a ser server-only.
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
+import { pedirJSON, sumarUso, SIN_USO, type Uso } from "@/lib/ia/cliente";
 import { anclarPorNombre, type Anclaje, type TerminoPropio, type TerminoUniversal } from "./anclar";
 
 /**
- * Lo que costó la llamada. Viaja hasta la pantalla en vez de quedarse en un log:
- * así el costo real se contrasta con el estimado en vez de creerlo.
+ * Lo que costó la llamada viaja hasta la pantalla en vez de quedarse en un log:
+ * así el costo real se contrasta con el estimado en vez de creerlo. La forma
+ * (`Uso`) y la aritmética viven en lib/ia/cliente.ts.
  */
-export type Uso = { entrada: number; salida: number; cacheLeido: number };
+export type { Uso };
 
-const SIN_USO: Uso = { entrada: 0, salida: 0, cacheLeido: 0 };
+/**
+ * Cuántos términos van por llamada. Con 60, la respuesta son ~3.000 tokens de
+ * JSON — lejos del techo de 16.000. Sin tope, un cliente con 400 colores
+ * distintos (pasa: cada tono con nombre comercial) pedía 400 anclajes en una
+ * sola respuesta, se cortaba por max_tokens y perdía TODO, no solo el
+ * excedente. Revisión del 2026-09-11.
+ */
+const LOTE = 60;
 
 /**
  * Esquema de la respuesta, en JSON Schema y no en Zod a propósito:
@@ -27,8 +34,9 @@ const SIN_USO: Uso = { entrada: 0, salida: 0, cacheLeido: 0 };
  * el detalle que en seis meses hace que alguien importe el equivocado. JSON
  * Schema es además lo que la API consume de verdad — Zod se convertiría a esto.
  *
- * `as const` no es decorativo: sin él `json-schema-to-ts` no puede inferir el
- * tipo de `parsed_output` y todo vuelve a ser `any`.
+ * El tipo TypeScript de la salida (`SalidaAnclaje`, abajo) se escribe a mano y
+ * tiene que decir lo mismo que este esquema: la API valida contra el esquema,
+ * el código confía en el tipo. Si divergen, el bug es de tipos, no de datos.
  */
 const ESQUEMA_RESPUESTA = {
   type: "object",
@@ -79,14 +87,33 @@ export async function anclarConIA(
 ): Promise<{ anclajes: Anclaje[]; uso: Uso }> {
   if (pendientes.length === 0) return { anclajes: [], uso: SIN_USO };
 
-  const client = new Anthropic();
+  // Por lotes, en paralelo: el catálogo universal es el mismo bloque cacheado
+  // en todos, así que el segundo lote en adelante paga solo la lectura de caché.
+  const lotes: TerminoPropio[][] = [];
+  for (let i = 0; i < pendientes.length; i += LOTE) lotes.push(pendientes.slice(i, i + LOTE));
 
+  const resultados = await Promise.all(lotes.map((lote) => anclarLote(lote, universales, queSon)));
+  return {
+    anclajes: resultados.flatMap((r) => r.anclajes),
+    uso: sumarUso(...resultados.map((r) => r.uso)),
+  };
+}
+
+type SalidaAnclaje = {
+  anclajes: { clave: string; universalId: string; confianza: string; porque: string }[];
+};
+
+async function anclarLote(
+  pendientes: TerminoPropio[],
+  universales: TerminoUniversal[],
+  queSon: string
+): Promise<{ anclajes: Anclaje[]; uso: Uso }> {
   const catalogo = universales.map((u) => `${u.id}\t${u.ruta ?? u.nombre}`).join("\n");
   const lista = pendientes
     .map((p) => `${p.clave}\t${p.nombre}${p.contexto ? `\t(${p.contexto})` : ""}`)
     .join("\n");
 
-  const respuesta = await client.messages.parse({
+  const { salida, uso } = await pedirJSON<SalidaAnclaje>({
     /**
      * Haiku 4.5, decidido con Felipe (2026-09-10) después de medir: anclar los 30
      * colores y 37 categorías cuesta ~$0.03 con Haiku contra ~$0.15 con Opus 5, y
@@ -101,8 +128,8 @@ export async function anclarConIA(
      *
      * Si el anclaje de CAYLA sale torcido, éste es el string que se sube: los 37
      * términos que Felipe conoce de memoria son el examen de admisión del modelo.
+     * (El id del modelo vive en lib/ia/cliente.ts, MODELO.)
      */
-    model: "claude-haiku-4-5",
     max_tokens: 16000,
     /**
      * Haiku 4.5 no acepta `thinking: {type: "adaptive"}` ni `output_config.effort`
@@ -137,16 +164,12 @@ export async function anclarConIA(
         content: `Ancla estos ${pendientes.length} términos propios, como "clave<TAB>nombre<TAB>(contexto)":\n\n${lista}`,
       },
     ],
-    output_config: { format: jsonSchemaOutputFormat(ESQUEMA_RESPUESTA) },
+    esquema: ESQUEMA_RESPUESTA,
+    siNoCabe: `La respuesta para ${pendientes.length} términos no cupo. Es un límite del sistema, no del archivo: avisar.`,
   });
-
-  // `parsed_output` es null si el modelo no produjo algo que valide contra el
-  // esquema. Fallar acá es correcto: devolver una lista vacía haría creer que
-  // no había nada que anclar.
-  const salida = respuesta.parsed_output;
-  if (!salida) {
-    throw new Error("El modelo no devolvió un anclaje que calce con el esquema esperado.");
-  }
+  // Si el modelo no produjo algo que valide contra el esquema, pedirJSON lanza.
+  // Fallar acá es correcto: devolver una lista vacía haría creer que no había
+  // nada que anclar.
 
   // El modelo puede inventar un id que no existe, o devolver un término que no
   // se le pidió. Las dos cosas se filtran acá: a la base solo llegan ids reales
@@ -178,14 +201,7 @@ export async function anclarConIA(
       };
     });
 
-  return {
-    anclajes,
-    uso: {
-      entrada: respuesta.usage.input_tokens,
-      salida: respuesta.usage.output_tokens,
-      cacheLeido: respuesta.usage.cache_read_input_tokens ?? 0,
-    },
-  };
+  return { anclajes, uso };
 }
 
 /** Las dos pasadas juntas: lo obvio por código, el resto por criterio. */

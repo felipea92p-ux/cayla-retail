@@ -110,4 +110,50 @@ describe("detectarCabecera", () => {
     const filas = parsearCSV("A1;B1;C1\nA2;B2;C2");
     expect(detectarCabecera(filas)).toBe(0);
   });
+
+  // --- revisión adversarial del 2026-09-11 ---
+
+  it("encuentra la cabecera de un catálogo que no trae ningún número", () => {
+    // Nombres, tallas y colores; el precio va aparte. Ninguna fila tiene MENOS
+    // números que la siguiente (todas tienen 0), y antes eso caía a la fila 0.
+    const filas = parsearCSV(
+      "LISTA DE PRENDAS;;\n;;\nReferencia;Talla;Color\nBlusa V;M;Azul marino\nFalda A;S;Negro"
+    );
+    expect(detectarCabecera(filas)).toBe(1);
+    expect(filas[1]).toEqual(["Referencia", "Talla", "Color"]);
+  });
+
+  it("no confunde una fila de metadatos con la cabecera", () => {
+    // "Tienda: Trujillo | Fecha: enero" está llena, sin repetidos y sin
+    // números — cumplía todo lo que se le pedía a una cabecera.
+    const filas = parsearCSV(
+      "Tienda: Trujillo;Fecha: enero;;\nSKU;Referencia;Talla;Precio\nA1;Blusa;M;89.90\nA2;Falda;S;59.00\nA3;Jean;30;120"
+    );
+    expect(detectarCabecera(filas)).toBe(1);
+  });
+});
+
+describe("revisión adversarial del 2026-09-11 · CSV", () => {
+  it("detecta el separador aunque la primera línea sea un título sin separadores", () => {
+    // La primera línea daba 1 columna con los cuatro separadores, se
+    // descartaban todos y se caía a `;` — en un archivo de comas, una sola
+    // columna gigante.
+    const csv = "INVENTARIO 2026\nSKU,Referencia,Talla,Precio\nA1,Blusa,M,89.90\nA2,Falda,S,59.00";
+    expect(detectarSeparador(csv)).toBe(",");
+    expect(parsearCSV(csv)[1]).toEqual(["SKU", "Referencia", "Talla", "Precio"]);
+  });
+
+  it("una comilla en mitad de una celda es texto, no el inicio de una cita", () => {
+    // 32" de una medida. Antes abría el modo entrecomillado y, sin cierre, se
+    // tragaba el resto del archivo en una sola celda.
+    const filas = parsearCSV('SKU;Referencia;Precio\nA1;Pantalon 32" cintura;120\nA2;Falda;59');
+    expect(filas).toHaveLength(3);
+    expect(filas[1]).toEqual(["A1", 'Pantalon 32" cintura', "120"]);
+    expect(filas[2]).toEqual(["A2", "Falda", "59"]);
+  });
+
+  it("una celda entrecomillada al inicio sigue funcionando igual", () => {
+    const filas = parsearCSV('SKU;Referencia\nA1;"Blusa; manga larga"');
+    expect(filas[1]).toEqual(["A1", "Blusa; manga larga"]);
+  });
 });

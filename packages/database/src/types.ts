@@ -2,7 +2,10 @@
 // GENERADO por `pnpm --filter @cayla-retail/database gen-types`
 // (`supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail`)
 //
-// ⚠ TIENE PARCHES A MANO. Regenerar a ciegas los BORRA.
+// ⚠ TIENE PARCHES A MANO. Por eso `gen-types` ya NO escribe acá: deja la
+//   salida cruda en src/types.produccion.ts (gitignored) para compararla y
+//   trasladar solo lo que cambió. Antes escribía encima y borraba a la vez
+//   los parches y esta lista que dice qué reponer (revisión 2026-09-11).
 //
 //   Ningún entorno tiene hoy el esquema completo, así que ninguna regeneración
 //   sale correcta sola:
@@ -22,6 +25,7 @@
 //       `deshacer_importacion`, `fn_codigo_tres_letras`,
 //       `fn_familia_color_de_universal`, `fn_familia_de_universal`
 //       (migración `0056`; solo existen en local hasta que se aplique allá)
+//     · 2026-09-11 — `importaciones.token` (migración `0057`)
 //
 //   El arreglo de fondo —decidir cuál de los dos entornos es la fuente— está en
 //   el BACKLOG. Mientras tanto, después de cada `gen-types` hay que releer esta
@@ -1002,6 +1006,7 @@ export type Database = {
           persona_id: string | null
           plan: Json
           productos_creados: number
+          token: string | null
           variantes_creadas: number
         }
         Insert: {
@@ -1015,6 +1020,7 @@ export type Database = {
           persona_id?: string | null
           plan: Json
           productos_creados?: number
+          token?: string | null
           variantes_creadas?: number
         }
         Update: {
@@ -1028,6 +1034,7 @@ export type Database = {
           persona_id?: string | null
           plan?: Json
           productos_creados?: number
+          token?: string | null
           variantes_creadas?: number
         }
         Relationships: [

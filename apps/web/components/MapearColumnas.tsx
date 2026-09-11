@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Boton, Desplegable } from "@/components/ui/campos";
-import { CAMPOS, type Campo, type PlanDeMapeo, type FilaEstandar } from "@/lib/importacion/mapeo";
+import { CAMPOS, planPorCabeceras, type Campo, type PlanDeMapeo, type FilaEstandar } from "@/lib/importacion/mapeo";
 
 /**
  * Paso 2: qué es cada columna.
@@ -24,7 +24,9 @@ type Respuesta = {
   variantes: FilaEstandar[];
   total: number;
   faltan: Campo[];
-  uso?: { entrada: number; salida: number; cacheLeido: number };
+  aviso?: string;
+  /** Lo que costó, ya en dólares y con el caché contado (lib/ia/cliente.ts). */
+  uso?: { entrada: number; salida: number; cacheLeido: number; costo: number };
 };
 
 const ETIQUETA: Record<Campo, string> = {
@@ -58,8 +60,16 @@ export function MapearColumnas({
   const [r, setR] = useState<Respuesta | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El plan que la persona ve AHORA, incluidas las correcciones que todavía
+  // están en vuelo. Dos cambios seguidos rápidos partían de `r.plan` viejo y el
+  // segundo pisaba al primero; y si las respuestas llegaban desordenadas, la
+  // pantalla mostraba el estado anterior. Cada pedido lleva un número y solo el
+  // último que salió puede pintar. Revisión del 2026-09-11.
+  const planActual = useRef<PlanDeMapeo | null>(null);
+  const secuencia = useRef(0);
 
   async function pedir(plan?: PlanDeMapeo) {
+    const mio = ++secuencia.current;
     setCargando(true);
     setError(null);
     try {
@@ -69,31 +79,41 @@ export function MapearColumnas({
         body: JSON.stringify({ filas, filaCabecera, ...(plan ? { plan } : {}) }),
       });
       const datos = await res.json();
+      if (mio !== secuencia.current) return; // ya salió otro pedido: este no manda
       if (!res.ok) {
         setError(datos.error ?? "No se pudo leer las columnas.");
         return;
       }
+      planActual.current = datos.plan;
       setR(datos);
       onListo?.(datos.plan, datos.total);
     } catch {
-      setError("No se pudo hablar con el servidor. Reintenta en un momento.");
+      if (mio === secuencia.current) setError("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
-      setCargando(false);
+      if (mio === secuencia.current) setCargando(false);
     }
   }
 
   /** Cambiar una columna recalcula por código, sin volver a llamar al modelo. */
   function cambiar(indice: number, campo: Campo) {
-    if (!r) return;
-    void pedir({
-      ...r.plan,
-      columnas: r.plan.columnas.map((c) =>
+    const base = planActual.current ?? r?.plan;
+    if (!base) return;
+    const plan: PlanDeMapeo = {
+      ...base,
+      columnas: base.columnas.map((c) =>
         c.indice === indice ? { ...c, campo, confianza: "alta", porque: "Corregido a mano." } : c
       ),
-    });
+    };
+    planActual.current = plan;
+    void pedir(plan);
   }
 
   const cabeceras = filas[filaCabecera] ?? [];
+
+  /** Sin modelo: un plan por el nombre de cada columna, y la persona lo termina. */
+  function aMano() {
+    void pedir(planPorCabeceras(cabeceras));
+  }
 
   return (
     <section className="anim-entrada card-cayla p-5">
@@ -122,13 +142,25 @@ export function MapearColumnas({
       </div>
 
       {error && (
-        <p className="anim-revelar mt-4 rounded-md border border-rojo/30 bg-rojo/10 px-4 py-3 text-xs text-rojo-profundo">
-          {error}
-        </p>
+        <div className="anim-revelar mt-4 rounded-md border border-rojo/30 bg-rojo/10 px-4 py-3 text-xs text-rojo-profundo">
+          <p>{error}</p>
+          {/* Si el modelo no pudo, la salida es asignar a mano: el mismo plan
+              con los desplegables, pero partiendo del nombre de cada columna. */}
+          {!r && (
+            <div className="mt-3">
+              <Boton type="button" peso="fantasma" cargando={cargando} onClick={aMano}>
+                Asignar las columnas a mano
+              </Boton>
+            </div>
+          )}
+        </div>
       )}
 
       {r && (
         <div className="anim-velo mt-5 space-y-5">
+          {r.aviso && (
+            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-4 py-3 text-xs text-ambar-profundo">{r.aviso}</p>
+          )}
           {r.plan.notas && <p className="text-xs italic text-tinta/65">{r.plan.notas}</p>}
 
           {r.faltan.length > 0 && (
@@ -166,6 +198,7 @@ export function MapearColumnas({
                       onValor={(v) => cambiar(c.indice, v)}
                       opciones={OPCIONES_CAMPO}
                       forma="pastilla"
+                      trabajando={cargando}
                     />
                   )}
 
@@ -207,8 +240,7 @@ export function MapearColumnas({
 
           {r.uso && (
             <p className="text-[11px] text-tinta/50">
-              {r.uso.entrada} tokens de entrada · {r.uso.salida} de salida ≈ $
-              {((r.uso.entrada * 1) / 1e6 + (r.uso.salida * 5) / 1e6).toFixed(4)}
+              {r.uso.entrada + r.uso.cacheLeido} tokens de entrada · {r.uso.salida} de salida ≈ ${r.uso.costo.toFixed(4)}
             </p>
           )}
         </div>
