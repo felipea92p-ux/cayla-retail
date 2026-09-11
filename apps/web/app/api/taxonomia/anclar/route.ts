@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { anclar } from "@/lib/taxonomia/anclar-ia";
+import { permitirLlamada, traducirErrorIA } from "@/lib/ia/cliente";
 import {
   getCategoriasPropias,
   getCategoriasUniversales,
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
     return Response.json({ anclajes: [], conIA: 0, mensaje: "Ya está todo anclado." });
   }
 
+  const freno = permitirLlamada(persona.id);
+  if (!freno.ok) return Response.json({ error: freno.mensaje }, { status: 429 });
+
   try {
     const { anclajes, conIA } = await anclar(
       pendientes,
@@ -87,12 +91,17 @@ export async function POST(request: Request) {
       conIA,
     });
   } catch (e) {
-    return Response.json(
-      { error: `No se pudo consultar el anclaje: ${e instanceof Error ? e.message : "error desconocido"}` },
-      { status: 502 }
+    // El traductor a idioma CAYLA vive en lib/ia/cliente.ts, compartido con los
+    // tres endpoints del importador — antes cada uno tenía el suyo, o ninguno.
+    const { mensaje, status } = traducirErrorIA(
+      e,
+      "El anclaje automático",
+      "Mientras tanto el vocabulario se puede anclar a mano."
     );
+    return Response.json({ error: mensaje }, { status });
   }
 }
+
 
 export async function PUT(request: Request) {
   const persona = await requirePersonaActual();

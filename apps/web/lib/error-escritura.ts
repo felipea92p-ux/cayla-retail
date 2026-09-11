@@ -108,24 +108,80 @@ const HUELLAS: { marca: string; frase: string }[] = [
     marca: "JWT expired",
     frase: "Tu sesión venció. Vuelve a entrar y repite la operación — no se guardó nada.",
   },
+  {
+    // 0054_venta_idempotente.sql — LA EXCEPCIÓN A LA REGLA DE ARRIBA, y va explicada porque
+    // contradice el párrafo "no re-traduce lo que ya está bien dicho".
+    //
+    // Este `raise exception` llega con `code = 'P0001'`, o sea que por la regla general pasaría
+    // tal cual. Pero su texto NO está en idioma CAYLA: habla de "token" y de "reutilizar", que
+    // son palabras del sistema, no del mostrador. Y no se arregla en la RPC porque el mismo
+    // texto está vivo en producción desde un parche a mano anterior a este repo; cambiarlo allá
+    // es DDL en el proyecto compartido con Dynamic. Se traduce acá, que es el único sitio donde
+    // el arreglo cubre los dos entornos a la vez.
+    //
+    // La marca es nuestra propia frase y no el nombre de una restricción —lo contrario de lo que
+    // pide el comentario de arriba— porque la excepción se levanta desde el cuerpo de la función,
+    // no desde el índice: no hay nombre de restricción en el mensaje. Es texto que elegimos
+    // nosotros y vive en `0054`, así que es tan estable como un nombre de constraint.
+    //
+    // CUÁNDO LO VE: intentó registrar, pareció fallar, corrigió el carrito y volvió a darle. La
+    // primera SÍ había entrado. Lo que necesita saber no es que un token se reusó — es que a la
+    // clienta ya se le cobró y que esto de ahora es una venta aparte.
+    marca: "Este token ya se uso para una venta con otros datos",
+    frase:
+      "La venta anterior sí se registró, aunque la pantalla dijera que no. Revísala abajo en «Ventas de hoy» antes de volver a cobrar: si esto es una venta distinta, cierra y abre «Registrar venta» de nuevo.",
+  },
 ];
 
 /** Textos que delatan que ni siquiera se llegó al servidor. */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
+ * ¿Este error es de RED, y no una respuesta del servidor?
+ *
+ * La distinción decide qué hacer con el trabajo, no solo qué frase mostrar. Un fallo de red
+ * significa "el servidor no se enteró": la operación se puede encolar y repetir. Un rechazo
+ * del servidor —`P0001` de una RPC, un `check`, RLS— significa "se enteró y dijo no":
+ * repetirla dará el mismo no, y encolarla es prometer un guardado que nunca va a ocurrir.
+ * `ConteoPanel` encolaba en los dos casos, y solo se notó al probar sin red (ADR-0034); la
+ * cola de ventas offline (ADR-0036) usa la misma distinción para lo mismo, sobre `registrar_venta`.
+ * Una sola función para las dos, no una copia por pantalla: una huella nueva de `fetch` que se
+ * agregue a `SIN_RED` queda reconocida en ambas sin tener que acordarse de las dos.
+ */
+export function esFalloDeRed(error: ErrorEscritura): boolean {
+  if (!error) return false;
+  const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ").toLowerCase();
+  return SIN_RED.some((t) => crudo.includes(t));
+}
+
+/**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
  * caja"), no la RPC: termina dentro de la frase que ella lee con prisa.
+ *
+ * `reintentoSeguro` lo pasa la escritura que puede repetirse sin duplicar nada — hoy solo la
+ * venta, desde `0054`, que va con un token de idempotencia. Cambia SOLO el mensaje de "no
+ * llegué al servidor", y por una razón concreta: ese mensaje afirma "no se guardó nada" y
+ * `Failed to fetch` no puede saberlo. No distingue entre "no salió" y "salió, entró, y se
+ * cortó la respuesta". Donde la escritura es idempotente la duda deja de importar y se puede
+ * decir la verdad completa; donde no lo es, sigue diciendo lo de siempre, que al menos no
+ * promete una seguridad que no existe.
  */
-export function traducirError(error: ErrorEscritura, contexto: string): string {
+export function traducirError(
+  error: ErrorEscritura,
+  contexto: string,
+  opciones?: { reintentoSeguro?: boolean }
+): string {
   if (!error) return `No se pudo ${contexto}.`;
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();
 
-  if (SIN_RED.some((t) => enMinusculas.includes(t))) {
+  if (esFalloDeRed(error)) {
+    if (opciones?.reintentoSeguro) {
+      return `No se pudo ${contexto}: la conexión se cortó. Revisa el internet y vuelve a intentar con el mismo carrito — si alcanzó a entrar, el sistema la reconoce y no la cobra dos veces.`;
+    }
     return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
   }
 

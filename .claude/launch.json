@@ -4,8 +4,28 @@
     {
       "name": "cayla-retail-dev",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["pnpm", "--filter", "web", "dev"],
+      "runtimeArgs": [
+        "pnpm",
+        "--filter",
+        "web",
+        "dev"
+      ],
       "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "cayla-retail-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "web",
+        "exec",
+        "next",
+        "start",
+        "-p",
+        "3100"
+      ],
+      "port": 3100,
       "autoPort": true
     }
   ]

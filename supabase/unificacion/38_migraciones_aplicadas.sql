@@ -1,7 +1,7 @@
 -- ============================================================================
--- 34 — Registro de qué migró en producción
+-- 38 — Registro de qué migró en producción
 -- Correr en cayla-DYNAMIC (SQL Editor). Todo en el cajón `retail`.
--- Gemelo de `supabase/migrations/0053_migraciones_aplicadas.sql`.
+-- Gemelo de `supabase/migrations/0058_migraciones_aplicadas.sql`.
 --
 -- RENUMERADO DOS VECES el mismo día (2026-09-10): un colaborador externo
 -- (Danytristee, fuera de esta máquina, invisible para cualquier coordinación
@@ -16,6 +16,17 @@
 -- `33_migraciones_aplicadas.sql`, no `34`: es el registro histórico real de
 -- lo que se pegó, y no se reescribe. El nombre del ARCHIVO cambió dos veces;
 -- lo que corrió en producción ese día, no.
+--
+-- RENUMERADO UNA TERCERA VEZ al reconciliar con `main` (2026-09-11): esta rama
+-- se escribió en paralelo con más trabajo de Danytristee que ya había tomado
+-- `0053` (`0053_stock_minimo_sobrevive.sql`) y `unificacion/34`
+-- (`34_idempotencia_registrar_venta.sql`) — ninguno de los dos tiene relación
+-- con esta tabla. Local pasó a `0058`; unificación pasó a `38`. Este archivo
+-- TODAVÍA no se había pegado en producción bajo ningún nombre (a diferencia de
+-- la vez anterior), así que no hay una tercera fila histórica que preservar —
+-- la que se autorregistra abajo sigue diciendo `33_migraciones_aplicadas.sql`
+-- porque esa fue la PRIMERA vez que de verdad corrió en producción, y el
+-- nombre del archivo volvió a cambiar sin que el INSERT deba seguirlo.
 --
 -- POR QUÉ AHORA. Pasó una tercera vez: `27`, `28`, `29` y `30` ya estaban
 -- aplicadas en producción y el BACKLOG seguía diciendo "falta pegar" un día

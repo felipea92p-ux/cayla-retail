@@ -1,8 +1,10 @@
 -- ============================================================================
 -- Registro de qué migró en producción — la deuda que el BACKLOG llama "la que
--- produce todas las anteriores". Gemelo de `supabase/unificacion/33_migraciones_aplicadas.sql`,
--- que es donde de verdad importa (acá en local ya existe `supabase_migrations.schema_migrations`
--- nativo de Supabase; `supabase/unificacion/` no tiene ningún equivalente).
+-- produce todas las anteriores". Gemelo de `supabase/unificacion/38_migraciones_aplicadas.sql`
+-- (renombrado tres veces por colisiones de numeración con trabajo en paralelo — ver la
+-- cabecera de ese archivo), que es donde de verdad importa (acá en local ya existe
+-- `supabase_migrations.schema_migrations` nativo de Supabase; `supabase/unificacion/` no
+-- tiene ningún equivalente).
 --
 -- POR QUÉ AHORA: pasó una tercera vez. `27`, `28`, `29` y `30` ya estaban
 -- aplicadas en producción y el BACKLOG seguía diciendo "falta pegar" un día

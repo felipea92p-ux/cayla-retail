@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Boton } from "@/components/ui/campos";
+import { etiquetaCorta, hojasRepetidas } from "@/lib/taxonomia/anclar";
 
 /**
  * Pantalla de anclaje del vocabulario propio al estándar universal (0052).
@@ -10,6 +12,10 @@ import { useState } from "react";
  * es desconfianza teórica — anclar mal es invisible: nada falla, "Palo rosa"
  * queda colgando de Beige y no se nota hasta que un reporte agrupa mal meses
  * después. Un error que no avisa hay que atajarlo antes, no después.
+ *
+ * EL COLOR DICE CUÁNTO FIARSE, con los tonos del sistema y no con rojo: ámbar
+ * para lo dudoso, verde para lo hecho. Rojo es el acento sagrado y ya lo gasta
+ * el error.
  */
 
 type Termino = {
@@ -30,37 +36,41 @@ type Propuesta = {
   nombreUniversal: string | null;
 };
 
-const COLOR_CONFIANZA: Record<Propuesta["confianza"], string> = {
-  exacta: "text-tinta/50",
-  alta: "text-tinta/50",
-  media: "text-tinta/65",
-  // La baja se marca en rojo a propósito: es la que hay que mirar, y en una
-  // tabla de 30 filas lo que no resalta no se revisa.
-  baja: "text-rojo",
-};
-
 export function AnclarVocabulario({
   que,
   titulo,
   terminos,
   universales,
+  puedeEditar,
 }: {
   que: "colores" | "categorias";
   titulo: string;
   terminos: Termino[];
   universales: Universal[];
+  puedeEditar: boolean;
 }) {
   const [propuestas, setPropuestas] = useState<Propuesta[] | null>(null);
-  const [cargando, setCargando] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [proponiendo, setProponiendo] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [aviso, setAviso] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
   const [guardadas, setGuardadas] = useState(0);
+  // La cifra se re-asienta solo cuando CAMBIA por algo que hizo la persona
+  // (globals.css, capa de movimiento): al abrir la pantalla se ve quieta.
+  // Como `guardadas` arranca en 0 y solo sube al guardar, es la señal exacta.
+  const cambio = guardadas > 0;
 
-  const anclados = terminos.filter((t) => t.ancladoA !== null).length;
-  const pendientes = terminos.length - anclados - guardadas;
+  const anclados = terminos.filter((t) => t.ancladoA !== null).length + guardadas;
+  const pendientes = terminos.length - anclados;
   const etiquetaDe = (u: Universal) => u.ruta ?? u.nombre;
+  // Las hojas que se repiten en el catálogo (74 en el árbol de ropa): para
+  // ésas la etiqueta corta lleva el padre, y así "Pantalones · Ropa deportiva"
+  // y "Pantalones · Ropa de bebé" son dos opciones y no una repetida cuatro
+  // veces. Ver etiquetaCorta en lib/taxonomia/anclar.ts.
+  const repetidas = useMemo(() => hojasRepetidas(universales.map(etiquetaDe)), [universales]);
+  const corta = (ruta: string) => etiquetaCorta(ruta, repetidas);
 
   async function proponer() {
-    setCargando(true);
+    setProponiendo(true);
     setAviso(null);
     try {
       const res = await fetch("/api/taxonomia/anclar", {
@@ -70,24 +80,24 @@ export function AnclarVocabulario({
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso(datos.error ?? "No se pudo consultar el anclaje.");
+        setAviso({ tono: "error", texto: datos.error ?? "No se pudo consultar el anclaje." });
         return;
       }
       if ((datos.anclajes ?? []).length === 0) {
-        setAviso(datos.mensaje ?? "No quedó nada por anclar.");
+        setAviso({ tono: "ok", texto: datos.mensaje ?? "No quedó nada por anclar." });
         return;
       }
       setPropuestas(datos.anclajes);
     } catch {
-      setAviso("No se pudo hablar con el servidor. Reintenta en un momento.");
+      setAviso({ tono: "error", texto: "No se pudo hablar con el servidor. Reintenta en un momento." });
     } finally {
-      setCargando(false);
+      setProponiendo(false);
     }
   }
 
   async function guardar() {
     if (!propuestas) return;
-    setCargando(true);
+    setGuardando(true);
     setAviso(null);
     try {
       const res = await fetch("/api/taxonomia/anclar", {
@@ -100,16 +110,29 @@ export function AnclarVocabulario({
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso(datos.error ?? "No se pudieron guardar los anclajes.");
+        setAviso({ tono: "error", texto: datos.error ?? "No se pudieron guardar los anclajes." });
         return;
       }
+      // Un 207 es `res.ok` (2xx) pero significa "algunos no": antes se
+      // celebraba igual y las propuestas fallidas desaparecían de la pantalla,
+      // sin forma de reintentarlas. Quedan a la vista, y solo ellas.
+      const fallidos: string[] = Array.isArray(datos.fallidos) ? datos.fallidos : [];
       setGuardadas(datos.guardados ?? 0);
+      if (fallidos.length > 0) {
+        const quedan = new Set(fallidos);
+        setPropuestas((actual) => (actual ?? []).filter((p) => quedan.has(p.clave)));
+        setAviso({
+          tono: "error",
+          texto: `Se anclaron ${datos.guardados}, pero ${fallidos.length} no se pudieron guardar. Quedan en pantalla para reintentar.`,
+        });
+        return;
+      }
       setPropuestas(null);
-      setAviso(`Se anclaron ${datos.guardados} términos.`);
+      setAviso({ tono: "ok", texto: `Se anclaron ${datos.guardados} términos.` });
     } catch {
-      setAviso("No se pudo hablar con el servidor. Reintenta en un momento.");
+      setAviso({ tono: "error", texto: "No se pudo hablar con el servidor. Reintenta en un momento." });
     } finally {
-      setCargando(false);
+      setGuardando(false);
     }
   }
 
@@ -118,105 +141,142 @@ export function AnclarVocabulario({
     setPropuestas((actual) =>
       (actual ?? []).map((p) =>
         p.clave === clave
-          ? { ...p, universalId: u?.id ?? null, nombreUniversal: u ? etiquetaDe(u) : null, confianza: "alta", porque: "Corregido a mano." }
+          ? {
+              ...p,
+              universalId: u?.id ?? null,
+              nombreUniversal: u ? etiquetaDe(u) : null,
+              confianza: "alta",
+              porque: "Corregido a mano.",
+            }
           : p
       )
     );
   }
 
+  const listaId = `universales-${que}`;
+
   return (
-    <section className="card-cayla space-y-4 p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+    <section className="card-cayla p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg text-tinta">{titulo}</h2>
-          <p className="mt-0.5 text-xs text-tinta/65">
-            {anclados + guardadas} de {terminos.length} anclados
-            {pendientes > 0 ? ` · faltan ${pendientes}` : " · completo"}
+          <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+          <p key={anclados} className={`${cambio ? "anim-asentar " : ""}mt-1 text-xs text-tinta/75`}>
+            <span className="font-display text-base text-tinta">{anclados}</span> de {terminos.length} anclados
+            {pendientes > 0 ? (
+              <>
+                {" "}
+                · faltan <span className="font-display text-base text-tinta">{pendientes}</span>
+              </>
+            ) : (
+              <>
+                {" "}
+                ·{" "}
+                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[10px] text-verde-profundo">
+                  completo
+                </span>
+              </>
+            )}
           </p>
         </div>
-        {pendientes > 0 && !propuestas && (
-          <button
-            onClick={proponer}
-            disabled={cargando}
-            className="label-cayla rounded border border-tinta/20 px-3 py-1.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
-          >
-            {cargando ? "Consultando…" : `Proponer los ${pendientes} que faltan`}
-          </button>
+        {puedeEditar && pendientes > 0 && !propuestas && (
+          <Boton type="button" peso="primario" cargando={proponiendo} onClick={() => void proponer()}>
+            Proponer los {pendientes} que faltan
+          </Boton>
         )}
       </div>
 
-      {aviso && <p className="text-xs text-rojo">{aviso}</p>}
+      {aviso && (
+        <p
+          className={`anim-revelar mt-4 rounded-md border px-4 py-3 text-xs ${
+            aviso.tono === "error"
+              ? "border-rojo/30 bg-rojo/10 text-rojo-profundo"
+              : "border-verde/45 bg-verde/10 text-verde-profundo"
+          }`}
+        >
+          {aviso.texto}
+        </p>
+      )}
 
-      {propuestas && (
-        <>
-          <div className="overflow-x-auto">
+      {propuestas ? (
+        <div className="anim-entrada mt-5 space-y-5">
+          <div className="scroll-cayla overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="label-cayla text-[10px] text-tinta/50">
-                <tr>
-                  <th className="pb-2 pr-3 font-normal">De la marca</th>
-                  <th className="pb-2 pr-3 font-normal">Cuelga de</th>
-                  <th className="pb-2 font-normal">Por qué</th>
+              <thead>
+                <tr className="label-cayla text-[10px] text-tinta/65">
+                  <th className="pb-2 pr-4 font-semibold">De la marca</th>
+                  <th className="pb-2 pr-4 font-semibold">Cuelga de</th>
+                  <th className="pb-2 font-semibold">Por qué</th>
                 </tr>
               </thead>
-              <tbody>
-                {propuestas.map((p) => (
-                  <tr key={p.clave} className="border-t border-tinta/10 align-top">
-                    <td className="py-2 pr-3 text-tinta">{p.nombrePropio}</td>
-                    <td className="py-2 pr-3">
-                      <input
-                        list={`universales-${que}`}
-                        defaultValue={p.nombreUniversal ?? ""}
-                        onBlur={(e) => corregir(p.clave, e.target.value)}
-                        placeholder="sin anclar"
-                        className={`w-full min-w-48 rounded border bg-transparent px-2 py-1 text-tinta ${
-                          p.universalId ? "border-tinta/15" : "border-rojo/40"
-                        }`}
-                      />
-                    </td>
-                    <td className={`py-2 ${COLOR_CONFIANZA[p.confianza]}`}>
-                      {p.universalId ? p.porque : "Ninguno calzó — elígelo tú o déjalo sin anclar."}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-tinta/5">
+                {propuestas.map((p) => {
+                  const dudosa = p.confianza === "baja" || !p.universalId;
+                  return (
+                    <tr key={p.clave} className="align-top transition-colors duration-150 hover:bg-tinta/[0.025]">
+                      <td className="py-2.5 pr-4 text-sm text-tinta">{p.nombrePropio}</td>
+                      <td className="py-2.5 pr-4">
+                        {/* Un input con datalist y no el Desplegable propio: son
+                            1.804 categorías, y un menú de 1.804 filas no es un
+                            menú. Escribir para filtrar es lo correcto acá. */}
+                        <div className="relative min-w-52">
+                          <input
+                            list={listaId}
+                            defaultValue={p.nombreUniversal ? corta(p.nombreUniversal) : ""}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              const u = universales.find((x) => corta(etiquetaDe(x)) === v || etiquetaDe(x) === v);
+                              corregir(p.clave, u ? etiquetaDe(u) : "");
+                            }}
+                            placeholder="sin anclar"
+                            className="w-full bg-transparent px-0.5 py-1.5 text-sm text-tinta outline-none placeholder:text-tinta/55"
+                          />
+                          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />
+                          <span
+                            aria-hidden
+                            className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] rounded-full transition-transform duration-300 ease-cayla ${
+                              dudosa ? "scale-x-100 bg-ambar" : "scale-x-0 bg-rojo"
+                            }`}
+                          />
+                        </div>
+                      </td>
+                      <td className={`py-2.5 text-xs ${dudosa ? "text-ambar-profundo" : "text-tinta/65"}`}>
+                        {p.universalId ? p.porque : "Ninguno calzó — elígelo tú o déjalo sin anclar."}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          {/* Una sola lista para toda la tabla: repetirla por fila serían 1.849
-              opciones × N filas en el DOM. */}
-          <datalist id={`universales-${que}`}>
+          {/* Una sola lista para toda la tabla: repetirla por fila serían 1.804
+              opciones × N filas en el DOM. Se ofrece la etiqueta corta (la hoja,
+              con el padre si la hoja se repite), que es lo que la persona
+              reconoce; el onBlur la vuelve a resolver a la ruta. */}
+          <datalist id={listaId}>
             {universales.map((u) => (
-              <option key={u.id} value={etiquetaDe(u)} />
+              <option key={u.id} value={corta(etiquetaDe(u))} />
             ))}
           </datalist>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={guardar}
-              disabled={cargando}
-              className="label-cayla rounded bg-tinta px-4 py-2 text-[11px] text-hueso transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              {cargando ? "Guardando…" : `Guardar ${propuestas.filter((p) => p.universalId).length} anclajes`}
-            </button>
-            <button
-              onClick={() => setPropuestas(null)}
-              className="label-cayla text-[11px] text-tinta/65 hover:text-rojo"
-            >
+          <div className="flex flex-wrap items-center gap-3">
+            <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar()}>
+              Guardar {propuestas.filter((p) => p.universalId).length} anclajes
+            </Boton>
+            <Boton type="button" peso="discreto" disabled={guardando} onClick={() => setPropuestas(null)}>
               Descartar
-            </button>
+            </Boton>
           </div>
-        </>
-      )}
-
-      {!propuestas && (
-        <ul className="space-y-1 text-xs">
+        </div>
+      ) : (
+        <ul className="mt-4 divide-y divide-tinta/5">
           {terminos.map((t) => (
-            <li key={t.clave} className="flex flex-wrap items-baseline gap-x-2 border-t border-tinta/10 py-1.5">
+            <li key={t.clave} className="flex flex-wrap items-baseline gap-x-3 py-2 text-sm">
               <span className="text-tinta">{t.nombre}</span>
               {t.ancladoA ? (
-                <span className="text-tinta/50">→ {t.ancladoA.nombre}</span>
+                <span className="text-xs text-tinta/65">→ {corta(t.ancladoA.nombre)}</span>
               ) : (
-                <span className="text-tinta/35">sin anclar</span>
+                <span className="text-xs text-tinta/35">sin anclar</span>
               )}
             </li>
           ))}

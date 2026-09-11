@@ -77,6 +77,27 @@ describe("anclarPorNombre — lo que resuelve el código no va a la IA", () => {
     expect(pendientes.map((p) => p.clave)).toEqual(["PAL", "CAM", "ANI"]);
   });
 
+  it("un nombre que se repite en varias ramas NO es coincidencia exacta: va al modelo", () => {
+    // El árbol real tiene 4 "Pantalones" (deportiva, bebé, dormir, prendas).
+    // Antes ganaba la última rama cargada y salía como "exacta". Revisión del
+    // 2026-09-11.
+    const ramas: TerminoUniversal[] = [
+      { id: "aa-1-4-9", nombre: "Pantalones", ruta: "Ropa y accesorios > Prendas de vestir > Pantalones" },
+      { id: "aa-1-2-5", nombre: "Pantalones", ruta: "Ropa y accesorios > Prendas de vestir > Ropa deportiva > Pantalones" },
+      { id: "aa-1-9-3", nombre: "Pantalones", ruta: "Ropa y accesorios > Prendas de vestir > Ropa de bebé > Pantalones" },
+      { id: "aa-1-2-3", nombre: "Blusas", ruta: "Ropa y accesorios > Prendas de vestir > Camisas y tops > Blusas" },
+    ];
+    const { resueltos, pendientes } = anclarPorNombre(
+      [
+        { clave: "PAN", nombre: "Pantalones" },
+        { clave: "BLU", nombre: "Blusas" },
+      ],
+      ramas
+    );
+    expect(resueltos.map((r) => [r.clave, r.universalId])).toEqual([["BLU", "aa-1-2-3"]]);
+    expect(pendientes.map((p) => p.clave)).toEqual(["PAN"]);
+  });
+
   it("sobre los 30 colores reales de CAYLA, el código resuelve la mayoría solo", () => {
     // Tal como están hoy en `colores` (0046 + 0050).
     const cayla = [

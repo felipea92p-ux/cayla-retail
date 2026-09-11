@@ -3,6 +3,216 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (el CI levanta la base: el verde ahora dice lo que hoy faltó que dijera)
+
+Cierre del hallazgo de la mañana: se agregó el job `migraciones` a `.github/workflows/ci.yml`
+— Postgres 17 desde cero, `supabase db reset` de `0001` a la última con `seed.sql`, y el
+verificador como informe. Sin `pnpm install` (el script usa solo `node:`) y con el CLI
+fijado en `2.107.0`, la versión de la máquina de Felipe. Se descartó meter el CLI como
+devDependency: pnpm 11 bloquea su postinstall salvo lista blanca, y Vercel bajaría un
+binario de 40 MB en cada deploy para nada. La cabecera del workflow cambió de significado:
+verde ya incluye "las migraciones corren desde cero en local"; sigue sin incluir "están
+aplicadas en producción" ni "la pantalla se ve bien".
+
+Lo que Felipe se lleva: **un gate vale por lo que declara que NO revisa, y el de hoy
+declaraba en su cabecera exactamente el agujero por donde entró el `main` roto.** Leer
+esa cabecera ayer habría dicho dónde iba a fallar. Y la de método: el gate correcto es el
+comando que un humano habría corrido para descubrir el problema — no una versión "más
+liviana" que lo aproxima.
+
+## 2026-09-11 (141 agentes contra el importador: 42 hallazgos confirmados, y el peor estaba en producción)
+
+Felipe dio por probado el importador y se lanzó una revisión adversarial con `ultracode`:
+141 agentes en siete dimensiones (correctness, seguridad, integridad de datos, costo de API,
+UX del kit CAYLA, drift con producción, tests), cada hallazgo refutado por tres jueces
+independientes. Sobrevivieron **42**. Todos corregidos, con test donde el bug era de lógica
+pura (209 tests, 31 nuevos) y con `psql` donde era del RPC.
+
+El peor no era un bug de código: `importar_catalogo` y `deshacer_importacion` llaman a
+`fn_es_lider()`, que en producción se llama `retail.es_lider()`. La 0056 se pegó sin error
+y reventaba al primer uso — por eso la prueba de Felipe no dejó rastro (0 importaciones
+allá). El generador de producción ahora traduce ese nombre, y la **0057** redefine las dos
+funciones con lo demás que la revisión encontró: reintentar ya no importa dos veces
+(token de idempotencia, mismo mecanismo que ADR-0034), `sku_padre` se sufija probando y no
+con 4 chars de uuid iguales para toda la importación, un código de cliente que ya es
+código de barras de otra prenda no se usa, una correa sin color también recibe código, un
+color que no está en el vocabulario conserva su texto en vez de volverse null, y deshacer
+respeta un conteo abierto.
+
+En TypeScript, tres que dolían: `messages.parse()` del SDK LANZA cuando la respuesta se
+corta por `max_tokens`, así que el `if (stop_reason === "max_tokens")` de los tres archivos
+era código muerto — ahora `lib/ia/cliente.ts` mira el `stop_reason` antes de parsear, y es
+el único sitio con el modelo, el precio y el traductor de errores. El costo en pantalla
+ignoraba el caché: la primera llamada de la hora escribe ~85.000 tokens del árbol a $2/M y
+se mostraba a un décimo de su valor real ($0.19, no $0.02). Y el camino "sin clave"
+devolvía una forma que la pantalla no leía: pantalla en blanco justo donde debía degradarse
+con gracia; ahora hay un plan por nombre de columna y un botón "Asignar a mano".
+
+Lo que Felipe se lleva: **una revisión que no intenta romper el sistema no es una
+revisión**. "Ya está probado" con un archivo limpio dejó pasar 42 formas de fallar con
+archivos reales — y la más cara, la del nombre de una función, no la habría encontrado
+ningún test local porque local y producción no se llaman igual. Y que un número de costo
+mal medido es peor que ninguno: da confianza en algo falso.
+
+## 2026-09-11 (Ingreso Mercadería, confirmado también en el archivo 2025 — sigue siendo compras, no catálogo)
+Felipe adjuntó `SINATRA 2025.xlsm` preguntando si una IA en otra sesión podría leerlo
+y categorizar sus productos contra la taxonomía que está definiendo — espera que los
+productos disponibles de CAYLA salgan probablemente de "Ingreso Mercadería". Se
+inspeccionó el archivo real (no por memoria): 2.219 filas de compra, 21 `CATEGORÍA`
+con duplicados de forma, `DETALLE` en texto libre (1.439 valores, sin talla ni
+color), `TALLA` vacía al 100%, 807 filas (36%) con error de fórmula — confirma en
+2025 lo mismo que `docs/ANALISIS-SINATRA.md` ya había medido en los `.xlsm` 2026.
+
+Lo que Felipe se lleva: el motor de anclaje del importador universal (ADR-0030) sí
+sirve para mapear los 21 valores de `CATEGORÍA` contra las 30 categorías reales —
+eso es barato y viable hoy, bloqueado solo por falta de `ANTHROPIC_API_KEY`. Pero
+"sacar los productos disponibles de Ingreso Mercadería" y "el importador de
+catálogos de clientes" no son el mismo problema aunque compartan el motor: la hoja
+nunca tuvo talla/color por fila, así que no alcanza para crear productos reales sin
+inventar datos. Queda anotado en `docs/BACKLOG.md` (ítem "Importador de catálogos
+de clientes con IA") para que la sesión que construya esto lo tenga presente y
+decida qué significa concretamente "sacar los productos" — no se resolvió aquí, a
+pedido explícito de Felipe ("no avances nada").
+
+Felipe agregó el dato que le pone techo a las pruebas: la cuenta de la API tiene
+**US$8 de balance**. Anotado junto al bloqueo de `ANTHROPIC_API_KEY` en
+`docs/BACKLOG.md`: alcanza para ~47 corridas completas al costo estimado
+(~$0.17 c/u), y se agota rápido si alguien prueba mandando archivos crudos al
+modelo en vez de solo el mapeo de categorías. Regla dejada por escrito para la
+sesión que pruebe esto: llamar al modelo real solo cuando sea estrictamente
+necesario — probar primero la parte determinista sin IA (`anclar.ts`), y cuando
+haga falta el modelo, una corrida mínima y deliberada, no prueba y error.
+
+## 2026-09-11 (`main` verde en CI y roto en local: dos sesiones, el mismo problema, y nadie eligió)
+
+Dos sesiones resolvieron la idempotencia de `registrar_venta` el mismo día, cada una en
+su rama, y el merge que las juntó (`718a732`) se quedó con **las dos**: dos `0054`, dos
+`0055` (el importador trajo la suya), `34`/`35` repetidos en `unificacion/`, tres
+`ADR-0031` y dos `ADR-0032`. CI pasó porque no toca la base; `npx supabase db reset`
+sobre ese `main` muere en `0054` con `schema_migrations_pkey` — Supabase no acepta dos
+migraciones con la misma versión. Se desduplicó: un solo `0054`, `0055_importar` →
+`0056`, `34`/`35` de la rama → `36`/`37` (el `34` de main queda supersedido por el `37`,
+que reescribe la misma función), ADR de la rama → 0033/0034 y el del importador → 0035,
+cada referencia corregida por lo que significa y no por el número. **Y el modal de venta
+se resolvió a favor de la rama, no de main:** main regeneraba el token después de cada
+éxito y al tocar el carrito; la rama nunca lo regenera dentro de la misma sesión de
+venta. Es la única de las dos que evita el cobro doble cuando la red se corta después del
+commit y la Encargada "corrige" el carrito antes de reintentar — y es lo que producción
+ya tenía (`is not true`). Verificado: `db reset` limpio hasta `0056`, una sola firma de
+`registrar_venta`, 53 de 53 cuerpos de función explicados por el repo.
+
+Lo que Felipe se lleva: **cuando dos ramas resuelven lo mismo, no gana la que llegó
+primero a `main` sino la que aguanta el peor caso** — y el peor caso acá no era "la red
+falla", era "la red falla y alguien toca el carrito antes de reintentar". Y una de
+método: un CI que no levanta la base no puede decir "las migraciones corren"; la
+numeración libre (migraciones, ADR, gemelos de `unificacion/`) se verifica contra
+`origin/main` en el momento de fusionar, con `db reset` como juez, no con el ojo.
+
+## 2026-09-11 (el importador entero, y la IA que nunca ve la fila 2.847)
+
+Se cerró el importador de catálogos de punta a punta: Excel, CSV, Google Sheets,
+PDF y foto de cuaderno entran, el modelo dice qué es cada columna y de qué
+universal cuelga cada color nuevo, y el catálogo se escribe en una sola
+transacción con stock en cero. Se puede deshacer (descontinuar, nunca borrar).
+Verificado en el navegador con la sesión real, no solo en tests: un CSV sucio
+terminó en "3 prendas · 6 variantes" y la base lo confirmó con códigos cortos
+asignados (ADR-0035).
+
+Felipe pidió que las pantallas siguieran la estética integrada, y al estudiar
+`globals.css` y `components/ui/campos.tsx` apareció que mis cuatro componentes
+estaban hechos al margen del kit: botones a mano, `<select>` nativo, un token
+`hueso` inexistente, cero animaciones y rojo por todas partes cuando el rojo es
+"el acento sagrado, máximo 2 por pantalla". Se rehicieron con `<Boton>` y su
+hilo de carga, `anim-entrada` cuando la persona hace algo, `anim-asentar` en
+las cifras que cambian, ámbar para lo dudoso y verde para lo hecho.
+
+Lo que Felipe se lleva: **la IA compila el mapeo, no procesa las filas** — el
+modelo ve cabeceras y 40 filas, produce un plan, y código determinista lo aplica
+a las 3.000. Cuesta 40 veces menos que mandarle el archivo, y lo importante no
+es el ahorro: es que un precio alucinado no falla, importa una blusa a S/ 1.23 y
+nadie se entera hasta que se vende. Y que el sistema de diseño de una app es
+una gramática que hay que leer antes de escribir en ella, no un tema que se
+aplica al final.
+
+## 2026-09-11 (con prendas de verdad, el camino de fallo mostró lo que tenía adentro)
+
+Local tenía cero variantes, así que nada de lo construido sin red se podía probar
+escaneando ni vendiendo. Se sembró un catálogo de prueba **aparte de `seed.sql`** —que
+prohíbe a propósito un catálogo de juguete para que Inteligencia no mienta— por el
+mismo camino que una prenda real: códigos acuñados por `fn_asignar_codigo_variante`,
+stock derivado de `movimientos` con `recalcular_stock()`, nunca un insert en `stock`.
+Con eso se vio lo principal del paso 2: la prenda encolada sin red apareció en la base
+al volver la conexión, sin que nadie apretara nada.
+
+**Y la prueba destapó tres defectos que ya existían** en el camino de fallo de
+`ConteoPanel`, invisibles hasta que alguien lo ejercitó sin red: encolaba cualquier
+error —también un rechazo del servidor, que con el reintento automático se habría
+repetido cada 30 segundos para siempre—, dejaba la pantalla trabada en «¿Cuántas hay?»
+con un error rojo que decía «no se guardó nada» debajo del aviso que decía «está
+guardada en este equipo», y «Las 1 prendas». Los tres corregidos. Felipe decidió las
+dos preguntas de la venta sin internet (umbral 2 en la sede; bloquea y explica) y que
+el paso 3 arranque en sesión nueva — el brief quedó reescrito para eso.
+
+Lo que Felipe se lleva: **un fallo de red y un rechazo del servidor no son el mismo
+error, y tratarlos igual es lo que convierte una cola en una promesa falsa.** El
+primero significa «no se enteró» y se puede repetir; el segundo, «se enteró y dijo no»,
+y repetirlo solo da el mismo no. Y una de método: en la máquina de desarrollo Next
+caído no es Supabase caído —el navegador escribe directo a Supabase—, así que «apagar
+el servidor» no simula la tienda sin red hasta que se apagan los dos.
+
+## 2026-09-10 (ADR-0018 había diseñado la mitad: el dato local, no la pantalla que abre)
+
+Arrancando la Fase 2 apareció que el plan no podía funcionar. ADR-0018 eligió
+IndexedDB + Realtime para que el dato viva en el navegador, pero **las 41 rutas son
+Server Components**: con el wifi caído no llega ni el HTML, así que ningún JavaScript
+nuestro corre y da igual lo que haya guardado. Faltaba el escalón de abajo —un service
+worker— y las dos piezas solo sirven juntas. Felipe eligió el alcance acotado: solo la
+pantalla del censo (ADR-0034).
+
+**Y no hizo falta IndexedDB.** El documento del conteo ya trae el catálogo adentro,
+porque el Server Component lo resolvió antes de renderizar: guardar el documento guarda
+el dato. Agregar IndexedDB habría sido una segunda copia del mismo catálogo con su
+propia forma de desincronizarse.
+
+Lo que Felipe se lleva: **la prueba en navegador encontró lo que el diseño no podía.**
+Con el servidor apagado la pantalla abrió —el objetivo— pero `navigator.onLine` decía
+`true`, porque la máquina tenía red y solo el servidor estaba muerto. Ése es el caso MÁS
+común en tienda (wifi conectado a un router sin salida), y la pantalla mostraba el
+catálogo viejo sin decir una palabra. La única señal que no miente es el propio service
+worker, que sabe de dónde sacó la respuesta y ahora deja una marca. De ahí salió también
+la distinción que la Encargada lee: «sin internet» y «sin conexión con el sistema» no son
+lo mismo, y decirle la primera cuando su wifi funciona la manda a arreglar lo que no está
+roto.
+
+## 2026-09-10 (la pieza más difícil ya estaba construida, y llevaba semanas sin usarse)
+
+Arrancó la dimensión «velocidad y sin internet» y el primer paso resultó ser el más
+barato de todos: `registrar_venta` **ya era idempotente en producción** —columna
+`token_cliente`, índice único, `p_token`, la guarda que rechaza un token reusado con
+otros datos y el `exception when unique_violation` de la carrera—, puesta a mano por
+alguien y sin usar por nadie. Le faltaban tres cosas: que el modal mandara el token,
+que local tuviera lo mismo (`0054`, una migración que va al revés que todas: el repo
+poniéndose al día con producción), y decidir quién genera el token y cuánto vive
+(ADR-0033).
+
+**Y el valor real no era el que decía el plan.** El plan lo justificaba como
+precondición de la cola de la venta sin internet. Mirando `lib/error-escritura.ts`
+apareció algo que sirve hoy: ante un `Failed to fetch` la pantalla le decía a la
+Encargada «No se guardó nada — vuelve a intentar», y eso **es mentira la mitad de las
+veces**. `Failed to fetch` no distingue entre "no salió" y "salió, entró, y se cortó la
+respuesta". Con la red de la tienda cortando llamadas a la mitad, el sistema venía
+invitando a cobrar dos veces con la frase que más tranquiliza.
+
+Lo que Felipe se lleva: **la decisión que importaba no era técnica, era cuánto vive el
+token.** Regenerarlo cuando cambia el carrito es lo que haría cualquiera —parece más
+limpio— y es justo lo que rompe el único caso que importa: intentó, pareció fallar,
+agregó una prenda, volvió a darle. Manteniéndolo, la RPC frena y avisa que la primera sí
+entró. Y una segunda: probar la prueba al revés antes de creerle. Con el token cambiado
+a propósito, el test falla con «el reintento devolvió otra venta» — recién ahí el verde
+significa algo. Verificado por HTTP contra PostgREST local y con `explain` contra
+producción, que es donde murió el arreglo de la mañana. **No** se probó vendiendo en el
+navegador: local tiene cero variantes.
+
 ## 2026-09-10 (el estándar universal va debajo, no en lugar de)
 
 Felipe preguntó si se podía usar IA para importar el inventario de cada cliente
@@ -2939,3 +3149,405 @@ en vivo, sincronizar UNA VEZ al abrir sesión no alcanza — el remoto se mueve 
 veces por día. La otra sesión llegó a la misma conclusión por su cuenta y se lo
 planteó a Felipe. Pendiente decidir con él un mecanismo mejor que "sincronizar y
 cruzar los dedos" antes de construir algo nuevo.
+
+## 2026-09-11 (la venta sin red se guarda sola, y sube sola)
+ADR-0018 había dejado la Fase 3 (venta offline) explícitamente sin resolver: la regla
+de negocio de Felipe (vender solo con stock de sobra) estaba decidida desde el
+2026-09-09, pero nadie había construido ni el umbral ni qué ve la Encargada al
+bloquearse. Hoy se construyó esa pieza completa — y resultó no depender de Fase 2
+(local-first de lecturas, IndexedDB, Realtime): es una cola propia, chica, en
+`localStorage`, que no necesita nada de lo que Fase 2 iba a traer.
+
+La pieza que lo hizo posible ya existía: ADR-0032 (idempotencia de `registrar_venta`)
+dejó el backend sabiendo no duplicar un reintento, con el token por carrito ya viviendo
+en `RegistrarVentaModal.tsx`. Lo que faltaba era que el navegador supiera CUÁNDO
+reintentar, y qué hacer con la venta mientras tanto.
+
+**La distinción que hizo falta primero:** un `fetch` que no llega al servidor y un
+rechazo real del servidor (caja cerrada, sin permiso) llegan igual de "error" a
+`onSubmit`, y hay que tratarlos distinto — el primero se encola, el segundo se muestra
+y se descarta. `esFalloDeRed()` reusa la misma lista de huellas que `traducirError()`
+ya usaba (`SIN_RED`), para no mantener dos copias de la misma pregunta.
+
+**El umbral se evalúa ANTES de encolar, no después,** y sobre el stock que la
+Encargada está viendo en pantalla — no el que mandó el servidor. Eso obligó a un
+overlay (`conStockComprometidoDescontado`): lo que la cola local ya vendió se descuenta
+del `stockAqui` que llega por props, o una segunda venta offline de la misma prenda
+vería el stock de ANTES de la primera. Se verificó exactamente ese escenario a mano:
+vender 4 de 5 pasa y queda 1 en pantalla; vender esa última unidad, sin red, se
+bloquea con el texto del umbral y no toca la cola.
+
+**Verificación real, no solo de unidad:** se apagó `supabase_kong_cayla-retail` con
+Docker para simular el servidor caído de verdad (no un mock), se vendió offline, se
+prendió Kong de nuevo y se disparó el evento `online` a mano. Postgres quedó con el
+stock correcto (1, no −3 ni duplicado), una sola fila en `ventas` y en `movimientos`,
+y el `token_cliente` guardado coincidía con el de la cola local — la cadena completa
+ADR-0032 → ADR-0036 funcionando de punta a punta, no solo cada mitad por separado.
+
+**Lo que se decidió dejar fuera, a propósito:** inventario offline, caja offline
+(abrir/cerrar) y facturación offline son cada una su propia superficie de estado
+imposible (principio 2) y su propia decisión de negocio — no se resuelven por
+extensión de esta. La pantalla de venta ya avisa que una venta encolada no puede
+facturarse hasta que suba, porque no tiene `venta_id` real todavía.
+
+Detalle de entorno que costó tiempo: este worktree no traía `apps/web/.env.local` ni
+`node_modules` en la raíz — hubo que `pnpm install` y crear el `.env.local` contra el
+Supabase local (54421) a mano antes de poder verificar nada en navegador.
+
+**Adenda, misma tarde — la carrera real de dos dispositivos, no solo Kong apagado.**
+Lo de arriba probaba un navegador solo, vendiendo dos veces en fila. Faltaba la carrera
+que el umbral existe para evitar de verdad: dos Encargadas, cada una con SU PROPIA cola
+en `localStorage`, decidiendo offline sin saber una de la otra. Se simuló sin depender
+de dos navegadores: stock puesto en 3 unidades, y se inyectaron a mano en la misma cola
+dos ventas de 2 unidades cada una, con tokens distintos — exactamente lo que darían dos
+dispositivos que cada uno vio "quedan 3, vendo 2, sobra 1" (pasa el umbral) sin enterarse
+del otro. Al sincronizar: la primera subió (stock 3→1, una fila en `ventas`, una en
+`movimientos`); la segunda **reventó contra el `check` de Postgres** («Stock
+insuficiente en sede … (hay 1, se pidió 2)») y se quedó en la cola con el motivo — sin
+duplicar, sin dejar el stock en −1. Es la frase central de ADR-0036 puesta a prueba de
+verdad: el umbral en el navegador reduce cuándo puede pasar una carrera, pero quien
+arbitra de verdad sigue siendo Postgres.
+
+De paso esa verificación destapó un bug real de esta misma sesión: el aviso "Subiendo N
+ventas…" decía «1 venta **guardadas**» — plural mal puesto, porque el texto solo
+alternaba el sustantivo (`venta`/`ventas`) y dejaba `guardadas` fijo en plural.
+Corregido en `CajaPanel.tsx` a `"venta guardada"` / `"ventas guardadas"`. Ningún test
+lo hubiera atrapado —es puro texto—, lo encontró leer la pantalla real durante la
+prueba de la carrera.
+
+## 2026-09-11 (Paso 3.1 — la venta ya no queda huérfana si la caja cierra antes de subir)
+Felipe preguntó qué faltaba probar de la cola de ventas offline. Auditar el propio
+código para contestarle destapó un agujero real, no cosmético: `CajaPanel` solo
+sondeaba y subía la cola MIENTRAS la caja que la generó seguía abierta. Si la red no
+volvía antes de cerrar, esa venta quedaba en `localStorage` sin que ningún código
+volviera a mirarla — plata ya cobrada que el sistema dejaba de saber que existía,
+justo lo que el principio 9 prohíbe.
+
+Dos caminos, y se descartó el más obvio. Bloquear "Cerrar caja" con algo pendiente
+suena más seguro, pero es peor: si la red no vuelve esa noche, la Encargada no podría
+cerrar e irse a su casa — castiga el caso normal por el caso raro, exactamente el
+escenario para el que existe toda esta cola. Se eligió el otro camino: la cola dejó
+de estar indexada por caja y pasó a estarlo por SEDE. Cada venta sigue llevando su
+propio `cajaId` (el de cuando se vendió), así que subirla no exige que esa caja siga
+abierta — la RPC decide sola si la acepta, y si no, el rechazo se ve en el mismo lugar
+de siempre, ahora también en la pantalla de "caja cerrada" (antes esa vista no
+mostraba nada de la cola).
+
+De paso apareció una segunda consecuencia del mismo agujero: `cerrar_caja` solo suma
+`ventas.metodo_pago = 'efectivo'` que YA está en la base para calcular el "esperado" —
+una venta en efectivo atrapada en la cola no entra ahí todavía, así que el conteo
+físico (que SÍ tiene ese billete) se iba a leer como un sobrante que no es un error de
+nadie. `CerrarCajaModal` ahora avisa el monto antes de que la Encargada cuente.
+
+**Verificación con Postgres real, no solo pruebas de unidad — con un tropiezo en el
+camino.** A mitad de la primera pasada el stack local de Supabase se reinició solo y
+borró todos los datos (`cajas`/`ventas`/`movimientos`/`stock` en cero); causa no
+confirmada, no parece relacionada con este cambio. Se resolvió con `npx supabase db
+reset` y se repitió la prueba completa: con Kong apagado se vendió dejando 1 de sobra
+(pasa el umbral, queda en la cola); se cerró la caja directo en la base —simulando que
+se cerró por otra vía mientras la venta seguía sin subir, para no depender de
+cronometrar clicks contra un servidor real— sin tocar el navegador; al recargar, la
+pantalla de "caja cerrada" mostró "Subiendo 1 venta guardada sin conexión…" y el
+rechazo real ("Esta caja ya está cerrada"), sin perder la venta de la cola; y una caja
+NUEVA de la misma sede siguió viendo `stock 1` en vez de `2` — el overlay sobrevivió
+el cierre de la caja que generó la venta pendiente.
+
+**Lo que Felipe aprende acá:** revisar el propio código para responder "qué falta
+probar" no es un ejercicio retórico — encontró un bug real que ninguna de las pruebas
+anteriores (unitarias o manuales) había tocado, porque todas asumían que la caja
+seguía abierta durante la prueba. La pregunta correcta destapó el supuesto que nadie
+había puesto a prueba.
+
+**Hallazgo aparte, anotado en ADR-0036 y no de este cambio:** una recarga completa de
+la pantalla con el servidor caído no funciona — el server component habla con
+Supabase por el mismo Kong, así que cae a la pantalla de error genérica en vez de a la
+cola. La cola offline protege una venta cortada a mitad de envío con la pantalla ya
+cargada; no vuelve la app capaz de arrancar sin servidor (eso sigue siendo Fase 2,
+ADR-0018, explícitamente no construida).
+
+## 2026-09-11 (Descartar — la última pieza de la cola offline)
+Felipe preguntó qué faltaba, y lo más importante que quedó anotado del Paso 3.1 era
+esto: una venta rechazada para siempre (su caja cerró y nunca vuelve a abrir) se
+reintentaba cada 30 segundos sin parar, mostrando el mismo aviso rojo para siempre,
+sin ninguna salida más que borrar `localStorage` a mano desde la consola del
+navegador — algo que ninguna Encargada ni Líder puede hacer.
+
+Botón "Descartar" con confirmación de dos pasos, nunca un solo click porque es plata
+que de verdad se cobró. El texto de la confirmación dice explícito lo que NO hace:
+no registra la venta, no corrige el stock, no deja rastro en el servidor — porque la
+fila nunca llegó a existir en `ventas` (el rechazo pasa antes del insert, no hay nada
+que revertir del otro lado). Si la prenda salió de la tienda, alguien tiene que
+anotarlo a mano; el botón no lo esconde, lo dice en la misma pantalla.
+
+Se descartó guardar un registro de auditoría en el servidor para esto — habría sido
+un cambio de esquema para resolver un problema que es de visibilidad, no de datos.
+Si en la práctica hace falta rastrear qué se descartó y por qué, se decide con Felipe
+cuando aparezca el caso real, no se adivina hoy.
+
+Verificado con Postgres real: venta rechazada por caja cerrada, "Cancelar" deja la
+cola intacta, "Descartar" muestra el monto correcto y al confirmar la vacía sin dejar
+ningún error. Con esto se cierra la deuda que había quedado anotada en ADR-0036.
+
+## 2026-09-11 (abrir el PR destapó que dos ramas resolvieron lo mismo el mismo día)
+Al abrir el PR de la cola de ventas offline, GitHub avisó conflictos en cuatro
+archivos — y no eran de texto: `main` había reconciliado, ese mismo día, dos ramas
+que resolvieron por separado la idempotencia de `registrar_venta` (ver la entrada de
+arriba, "`main` verde en CI y roto en local"), y de paso corrigió exactamente el
+mecanismo de token del que esta rama dependía sin saberlo.
+
+El cambio de main: `RegistrarVentaModal.tsx` regeneraba `tokenVenta.current` en cada
+edición del carrito (agregar, quitar, cantidad, monto, método de pago). Main lo
+identificó como un bug real y lo documentó en un ADR propio ("El reintento no cobra
+dos veces"): si el corte de red fue de VUELTA —la venta sí entró al servidor, pero la
+respuesta se perdió— y la Encargada corrige el carrito antes de reintentar,
+regenerar el token hace que el reintento cobre de nuevo. El arreglo: el token se crea
+una sola vez en el primer envío (`token.current ??= crypto.randomUUID()`) y no se
+regenera dentro de la misma sesión de venta, pase lo que pase.
+
+Esta rama todavía tenía el patrón viejo en la ruta que main no tenía: cuando el
+umbral de stock de sobra bloqueaba la venta (sin encolar), el formulario se quedaba
+visible para editar y reintentar — y ahí el token se seguía regenerando en cada
+edición, el mismo bug que main acababa de cerrar. Se adoptó el modelo de main entero
+(token fijo por sesión, cola offline reescrita sobre `token.current` sin tocarlo
+nunca) en vez de intentar conservar el propio.
+
+Segunda colisión, esta de números: el ADR de esta cola había nacido como 0033, y
+main ya tenía ESE número ocupado por el ADR del token. Pasó a **0036** — mismo
+patrón que main ya había resuelto una vez esa tarde para la colisión de idempotencia
+entre sus dos ramas.
+
+Y una tercera, más chica: `ConteoPanel` (offline del censo, ADR-0034, construido en
+paralelo el mismo día) ya tenía su propia `esFalloDeRed()` — casi idéntica a la de
+esta rama en propósito, distinta en la firma. La de main es la mejor de las dos:
+revisa `message`, `details` Y `hint` (la de esta rama solo `message`), y ya estaba
+reusada dentro de `traducirError()`. Se adoptó esa, entera, y quedó una sola función
+para las dos colas offline del repo en vez de dos casi iguales.
+
+**Lo que Felipe aprende acá:** la segunda colisión de idempotencia en el mismo día
+—la primera fue entre dos ramas de `main`, ésta entre `main` y esta rama— no es mala
+suerte, es la consecuencia natural de que "vender sin red" y "contar sin red" tocan
+el mismo problema (retry seguro, distinguir fallo de red de rechazo real) desde dos
+pantallas distintas el mismo día. El código correcto era el de `main` en los tres
+casos, y esta rama se reescribió sobre él en vez de defender lo propio.
+
+Re-verificado después de reconciliar: `pnpm test`/`typecheck`/`build` limpios.
+
+## 2026-09-10 (el mínimo sobrevive, y una sospecha que vale más que el arreglo)
+`recalcular_stock` borraba el `stock_minimo` de cualquier prenda sin movimientos en esa
+sede. `fijar_stock_minimo` crea una fila de `stock` con cantidad 0 cuyo único motivo de
+existir es guardar el mínimo, y el `delete` final de la red de seguridad la barría por no
+tener movimientos detrás. Arreglado en `0053` con `and s.stock_minimo is null`.
+
+El borde estaba anotado desde `0044` y diferido «porque es una decisión de quien escribió
+ADR-0020». Se decidió ahora, con criterio en tres líneas: la función reconstruye
+CANTIDADES desde `movimientos`; `stock_minimo` no se deriva de movimientos —lo dice su
+propia cabecera—; entonces no es suyo para borrarlo.
+
+**Lo que Felipe aprende acá:** la forma en que ese bug dolía era la peor posible.
+`recalcular_stock` es la RED DE SEGURIDAD: se corre justo cuando alguien sospecha que el
+inventario está mal. O sea que la herramienta para arreglar destruía configuración
+exactamente cuando alguien la estaba usando para arreglar — y sin avisar: la alerta de
+reposición simplemente dejaba de saltar y nadie ata una cosa con la otra.
+
+Se verificaron **las dos mitades**, que es lo que se olvida al poner un guard: que el
+mínimo sobreviva, y que una fila huérfana de verdad —sin movimientos y sin mínimo— se siga
+borrando. Sin la segunda prueba, un guard puede apagar la limpieza entera y nadie se entera
+hasta que la tabla está llena de basura.
+
+**Y la sospecha que salió de ir a escribir el gemelo de producción, que pesa más que el
+arreglo.** Tres archivos de `unificacion/` definen `retail.recalcular_stock`: el `12` la
+trae con el bloque de `stock_almacen`, y el `25` la redefine SIN ninguna mención al
+almacén. Por el orden registrado, el último en pisar sería el `25`. Si es así, hoy en
+producción esa función sumaría los movimientos del almacén al stock del PISO y nunca
+reconstruiría `stock_almacen`: movería la trastienda al piso, en números, con la función
+que existe para corregir el inventario. **No se escribió el gemelo de `0053` a propósito** —
+habría que elegir qué cuerpo parchar, y parchar el equivocado es peor que no parchar. Queda
+en BACKLOG con la consulta de solo lectura que lo confirma.
+
+De paso, una lección de entorno: aplicar una migración del repo a mano contra la base local
+NO funciona tal cual. El archivo dice `set search_path = public` —correcto para
+`npx supabase db reset`— pero la local ya tiene todo en `retail`, así que hay que adaptarlo
+igual que producción necesita el prefijo `retail.`. Y sin un `set search_path to retail` de
+sesión, el `create or replace` crea la función en `public` y deja intacta la de `retail`:
+parece que corrió y no cambió nada. Es la deuda de migraciones duales mostrando una tercera
+cara.
+
+## 2026-09-10 (la sospecha era falsa, y debajo había algo peor)
+Se midió contra producción la sospecha de la entrada anterior —que `recalcular_stock` allá
+habría perdido el bloque del almacén— y **es falsa**: la función de producción lo conoce. La
+evidencia de los archivos era buena (`unificacion/12` la define con almacén, el `25` sin él,
+y por fechas el `25` parecía último) y la conclusión equivocada, porque el orden real de
+aplicación no fue el que los archivos sugerían. Corregido en el BACKLOG.
+
+**Debajo apareció lo que sí importa.** Producción **ya traía** el guard
+`where s.stock_minimo is null` —el mismo arreglo que `0053` acababa de hacer en local— con
+un comentario propio que no es el mío. Ese comentario no existe en ningún archivo del repo:
+se buscó sobre todo el árbol, no solo sobre `supabase/`. O sea que alguien lo aplicó a mano
+en el SQL Editor y nunca quedó escrito.
+
+**Lo que Felipe aprende acá:** el drift que todos vigilan es «producción está atrás del
+repo». Éste es al revés — producción está ADELANTE, con un arreglo que ningún archivo
+produce. Y ese es peor, porque no falla nunca: todo funciona bien allá, así que nada lo
+delata. Lo que se pierde es que el repo deje de describir el sistema. `db reset` más la
+carpeta de unificación ya no reproduce lo que hay en producción, y no hay manera de saber
+cuántos parches más así están vivos.
+
+También le pone dientes a una limitación que ADR-0026 ya tenía escrita y que hasta hoy era
+teórica: `migraciones:verificar` compara EXISTENCIA de objetos, no CUERPOS. Una función que
+existe pasa el chequeo aunque su cuerpo no se parezca a ningún archivo. Este caso es
+exactamente ése.
+
+Y una nota sobre el método, porque hubo dos vueltas: la primera medición volvió con las dos
+respuestas en `true` y resultó ser la base LOCAL, no producción — la consulta que yo había
+dado no decía qué base contestaba. Una comprobación que no se identifica no comprueba nada.
+La segunda trajo `current_database()` y el conteo de variantes (0 en local, 19 en
+producción), y recién ahí la respuesta valía.
+
+## 2026-09-10 (el verificador aprende a leer el código, no solo el nombre)
+`migraciones:verificar` compara ahora el CUERPO de cada función de `retail`: lo normaliza
+—sin comentarios, sin prefijo de schema, sin espaciado— y lo busca entre TODAS las
+definiciones que el repo tenga de ese nombre. Si no coincide con ninguna, ese código no lo
+produce ningún archivo. Es la respuesta directa al hallazgo de la entrada anterior.
+
+Contra todas las definiciones y no contra «la última», a propósito: un gemelo de
+`unificacion/` puede ser legítimamente distinto del archivo de `migrations/` —pasó con
+`27_ajuste_con_signo`, que en producción es más grande— y basta con que alguna lo explique.
+
+**Lo que Felipe aprende acá:** una herramienta de verificación hay que probarla al revés.
+Que diga «48 de 48 está bien» no prueba nada — un verificador que siempre aprueba también
+diría eso. Así que se rompieron las dos cosas a propósito antes de darlo por bueno: se creó
+una función que el repo no define, y se alteró a mano el cuerpo de otra. Las dos se
+reportaron, y al restaurar volvió a 48 de 48 sin falsos positivos. Recién ahí el verde
+significa algo.
+
+Detalle de oficio que va a ahorrar una frustración: el resultado del SQL Editor puede
+llegar como JSON pelado (copiar y pegar) o envuelto en CSV con las comillas duplicadas
+(botón de descarga). El script acepta los dos, porque quien corre esto no tiene por qué
+saber cuál eligió — y `JSON.parse` fallando sobre un CSV da un mensaje que no ayuda a nadie.
+
+## 2026-09-10 (eran diez, y una es un candado de permisos)
+Corrido el verificador con comparación de cuerpos contra producción: **diez funciones de
+`retail` tienen un cuerpo que no coincide con ningún archivo del repo**. La pregunta de la
+mañana —«¿cuántos parches a mano hay vivos?»— tiene número.
+
+La lista: `abrir_caja`, `cerrar_caja`, `registrar_venta`, `cerrar_produccion`,
+`set_etapa_produccion`, `recalcular_stock`, `es_lider`, `es_supervisor`,
+`puede_operar_sede`, y `catalogo_con_stock` — esta última ni siquiera existe como nombre en
+el repositorio.
+
+**Lo que Felipe aprende acá, y es lo más serio del día.** Las tres funciones de permiso
+están endurecidas en producción y no en el repo. Donde `03_candados.sql` dice
+`select public.fn_rol_actual() = 'admin'`, producción dice
+`select coalesce(public.fn_rol_actual() = 'admin', false)`. Parece un detalle y es un
+candado: sin el `coalesce`, si `fn_rol_actual()` devuelve NULL —una sesión sin rol— la
+función devuelve NULL, y en un `if not es_lider() then raise`, **`not null` no es true**,
+así que la excepción no se dispara y el permiso pasa. Alguien encontró eso y lo parchó
+directo en producción.
+
+Y ahí está el riesgo que sigue vivo: **volver a pegar `03_candados.sql` deshace ese
+endurecimiento sin que nada avise**. Es lo que haría cualquiera siguiendo el repo, porque el
+repo no sabe que ese arreglo existe.
+
+No se tocó ninguna de las diez. Son diez cuerpos distintos y hay que decidir uno por uno
+cuál se trae al repo y cuál es legítimamente propio de producción; elegir mal es peor que no
+elegir. Queda en BACKLOG con la tabla del `coalesce` escrita.
+
+Nota de método: el inventario se leyó con el conector de Supabase en vez de pedirle a Felipe
+que pegara la consulta. Salió 173 KB —demasiado para el contexto— y el runtime lo guardó en
+un archivo; se extrajo de ahí con un script, así que el contenido nunca pasó por la
+conversación. Vale recordarlo: cuando el dato es grande, el archivo es mejor camino que el
+copiar y pegar, y encima no se puede equivocar de base.
+
+## 2026-09-10 (el candado ya no se abre solo, y el archivo dejó de desarmarlo)
+Cerradas las tres funciones de permiso: `es_lider`, `es_supervisor` y `puede_operar_sede`
+llevan ahora su `coalesce(..., false)` **en el repo**, que es donde faltaba — producción ya
+lo tenía por un parche a mano sin archivo.
+
+Se hicieron dos cosas y las dos hacen falta. `unificacion/03_candados.sql` se corrigió EN EL
+ARCHIVO, porque el peligro real no era que faltara el arreglo sino que **volver a pegar ese
+archivo lo deshacía**: cualquiera siguiendo el repo habría reabierto el agujero sin saberlo.
+Y se agregó `34_candados_no_null.sql` como paso suelto con fecha, para cualquier base que
+haya recibido la versión vieja, y sobre todo para que exista un sitio donde esté escrito POR
+QUÉ — que es justo lo que se perdió cuando el parche se aplicó sin archivo.
+
+**Lo que Felipe aprende acá:** `mi_sede()` NO lleva `coalesce`, y la diferencia enseña la
+regla. Un CANDADO devuelve booleano y tiene que decir false cuando no sabe, porque
+`if not es_lider()` con NULL no dispara el `raise` y deja pasar. `mi_sede()` devuelve un
+uuid: ahí NULL es la respuesta honesta —«no tengo sede»— y quien la llama ya compara contra
+algo. Poner `coalesce` en todo por reflejo habría convertido «no sé» en un valor inventado.
+
+Verificado con la propia herramienta, que es lo que lo vuelve una afirmación y no una
+intención: el verificador pasó de 10 cuerpos sin archivo a 7. El repo ahora produce
+exactamente lo que producción tiene en esas tres.
+
+## 2026-09-10 (comparar cuerpos destapó que vender está roto en producción)
+Revisadas una por una las funciones que ningún archivo del repo explica. Primero bajaron de
+10 a 5: dos eran puro espaciado junto a la puntuación —`coalesce(x,0)` contra
+`coalesce(x, 0)`— y el normalizador ahora lo ignora, porque una alarma que salta por una
+coma enseña a ignorarlas todas.
+
+De las cinco reales salió el hallazgo del día, y no es un cuerpo sino una FIRMA.
+`registrar_venta` en producción pide `p_nota` **sin default**; en local lo tiene. Y
+`RegistrarVentaModal` llama con tres parámetros nombrados. PostgREST resuelve por nombres:
+con un obligatorio que nadie manda, no hay candidata. **Vender por la app está roto en
+producción** y no se nota porque nadie vende por ahí todavía. El día que el equipo entre,
+revienta en la primera venta.
+
+La causa cierra el círculo del día: quien agregó `p_token` a mano —la venta idempotente, un
+arreglo bueno que el repo no tiene— reescribió la firma y perdió el `default null`. Es el
+costo exacto de parchar sin archivo: el parche era correcto en su intención y nadie revisó
+la firma resultante contra lo que la app manda, porque no había diff que mirar.
+
+**Lo que Felipe aprende acá:** yo mismo le dije esta semana que `registrar_venta` no era
+idempotente y que la venta offline tendría que construirla. **Era falso para producción**:
+allá ya lo es, con token y todo, desde un parche que ningún archivo registra. Dos veces hoy
+afirmé algo sobre producción mirando el repo, y las dos veces la base dijo otra cosa. La
+regla que queda: sobre producción no se afirma leyendo archivos.
+
+El arreglo (`unificacion/35`) reusa el cuerpo exacto de producción y solo le devuelve el
+default a `p_nota`, así que la idempotencia se conserva entera. No se aplicó: es DDL en el
+proyecto compartido con Dynamic.
+
+## 2026-09-10 (aplicado en producción: vender vuelve a resolver)
+Pegado `unificacion/35` con autorización explícita de Felipe, con `execute_sql` y no
+`apply_migration` —ese habría escrito en el historial de migraciones de Dynamic, que no es
+el nuestro (CLAUDE.md)—. Comprobado antes y después contra la base: antes la llamada de la
+app devolvía «function … does not exist», ahora devuelve un plan. Una sola firma viva y la
+idempotencia por token intacta.
+
+**Lo que Felipe aprende acá:** el verificador reportó `registrar_venta` como «sin archivo»
+DESPUÉS de que el archivo existiera. No era drift: era que el regex solo reconocía `$$` como
+delimitador, y `35` se había escrito con `$function$` porque así lo devuelve
+`pg_get_functiondef`. O sea que la herramienta mandaba a investigar un problema inexistente
+—el falso positivo más caro que hay, porque cuesta tiempo y erosiona la confianza en el resto
+del informe—. Ahora captura la etiqueta y exige la misma al cerrar, y el archivo usa `$$`
+como los otros 146 del repo.
+
+Quedan cuatro cuerpos que ningún archivo explica: `abrir_caja`, `cerrar_caja`,
+`recalcular_stock` y `catalogo_con_stock`. Los tres primeros son el mismo patrón ya conocido
+—producción tiene validaciones y arreglos que `unificacion/07` y `25` no traen, así que
+volver a pegarlos los desarma—; el cuarto no existe en el repo y la app no lo llama.
+
+## 2026-09-10 (el repo vuelve a describir producción: de 10 a 1)
+Cerrados los dos landmines que quedaban. `unificacion/07` recuperó el candado de
+`puede_operar_sede` en `abrir_caja` y `cerrar_caja`; `unificacion/25` recuperó el cuerpo
+completo de `recalcular_stock` —candado de Líder, ruteo al almacén, el arreglo de traslados
+y el de `stock_minimo`—. Los cuerpos se trajeron desde la base con `pg_get_functiondef`, no
+transcritos a mano: un arreglo que se copia a ojo es un arreglo nuevo.
+
+El verificador pasó de 10 funciones sin archivo a **1**. La que queda, `catalogo_con_stock`,
+no es un arreglo pendiente sino una decisión: existe en producción, no está en el repo, y la
+app no la llama.
+
+**Lo que Felipe aprende acá:** hubo que elegir entre duplicar cuerpos o poner punteros, y la
+respuesta la daba el propio problema. `07` define `registrar_venta` en una versión vieja que
+`35` reemplaza; copiar el cuerpo de `35` dentro de `07` habría dejado **dos fuentes de verdad
+de la misma función**, que es exactamente el mecanismo que produjo todo este lío. Así que
+lleva un aviso —«si pegas este archivo, pegá `35` después»— en vez de una copia. Igual `08` y
+`12` respecto de `25`. Un puntero envejece mal si el destino cambia de nombre; una copia
+envejece mal siempre.
+
+Y el `is not true` en vez de `not` no es estilo: si `puede_operar_sede` devolviera NULL,
+`not NULL` tampoco es true y el `raise` no dispararía — el candado se abriría solo. Es el
+mismo agujero que el `coalesce` de `03_candados.sql` cierra desde el otro lado, y por eso
+conviene que las dos defensas existan.

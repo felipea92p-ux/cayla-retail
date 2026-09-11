@@ -90,6 +90,33 @@ ve lo que pide criterio: "Palo rosa", "Camel", "Animal print". Es el mismo
 principio que gobernará el importador entero: **lo que resuelve el código no se
 le pregunta a la IA.**
 
+**DECIDÍ: `claude-haiku-4-5` fijo, y NO el modelo más barato del mercado.**
+Medido sobre el trabajo real (el árbol de ropa son 567 hojas / ~18.500 tokens):
+anclar CAYLA cuesta ~$0.03 con Haiku contra ~$0.15 con Opus 5, y a 100 clientes
+al año la diferencia total del sistema son **15 dólares**. Eso saca la decisión
+del terreno económico: 15 dólares al año es menos que una hora corrigiendo a mano
+un anclaje malo — y un anclaje malo no avisa. Haiku gana no por barato sino
+porque la tarea está acotada: elegir entre 19 colores y 567 hojas, con el
+catálogo entero delante y sin nada que inventar.
+
+**DESCARTÉ el tier gratuito de Gemini**, que sale aún más barato (~$0.003), y no
+por calidad: **en el tier gratuito los prompts se usan para entrenar el modelo.**
+Lo que viaja acá es el catálogo de un cliente — sus productos, sus precios, sus
+costos. Para un sistema que se va a vender a otras marcas, eso no es un detalle
+de configuración: es la clase de cosa que un cliente pregunta y que no se arregla
+después. El equivalente de pago cuesta 26 centavos al año y no tiene el problema.
+
+**Haiku 4.5 no acepta `thinking: {type:"adaptive"}` ni `output_config.effort`** —
+los dos devuelven 400. Va con `{type:"enabled", budget_tokens: 4000}`, la forma
+que esta generación sí entiende. Y el caché solo entra en las categorías: las
+instrucciones más 19 colores no llegan al mínimo cacheable, así que un
+`cache_read_input_tokens` en cero en esa llamada no es un bug.
+
+**Cómo se decide subir de modelo:** los 30 colores y 37 categorías de CAYLA son
+el examen de admisión. Felipe los conoce de memoria, así que un error se ve sin
+herramientas. Si Haiku ancla mal "Palo rosa" o mete "Chompas" en la rama
+equivocada, se cambia un string.
+
 **SE ROMPE SI:** llega una marca de un rubro que no está en los verticales
 cargados (`aa`, `hb`, `os`, `lb`). Se carga el que falte con el mismo script y
 `--verticales`; no requiere migración.
