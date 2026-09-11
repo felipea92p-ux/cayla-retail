@@ -142,6 +142,20 @@ holgura, la carrera no existe en la práctica.
 cuando la venta queda bloqueada por esta regla. No se inventa acá — se decide con
 Felipe cuando la fase esté en la mesa.
 
+> **Decidido por Felipe el 2026-09-11**, con la Fase 3 en la mesa:
+>
+> - **Umbral: 2 o más unidades en esta sede.** Elegido sobre «más que el mínimo de la
+>   prenda» porque casi ninguna prenda tiene mínimo cargado, y sobre «3 o más» porque con
+>   tallas de 1-2 unidades «sin internet» pasaría a significar «casi no se puede vender».
+>   Lectura para implementar: la venta sin red se permite solo si **deja al menos una
+>   unidad** en la sede (`stockAqui - cantidad >= 1`); con cantidad 1 eso es exactamente
+>   «2 o más». Llevarse las dos de dos también es vender la última.
+> - **Bloquea y explica, sin salida.** Ni reservar ni vender con aviso: «Sin internet no se
+>   puede vender la última unidad de esta prenda: podría estar vendiéndose en otra sede.
+>   Espera a que vuelva la señal, o anota la venta y regístrala después.» Se pierde alguna
+>   venta real; es el precio que ya se había aceptado el 09-09, y cobrarle a la clienta sin
+>   saber si la venta salió sería peor que no venderle.
+
 ## Consecuencias
 
 - **`gru1` hay que confirmarlo, no asumirlo.** No se pudo leer la config del proyecto

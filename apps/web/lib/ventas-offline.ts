@@ -1,5 +1,5 @@
 /**
- * La cola de ventas offline (Paso 3, ADR-0033).
+ * La cola de ventas offline (Paso 3, ADR-0036).
  *
  * EL PROBLEMA. Si se corta la red a mitad de una venta, `registrar_venta` (ADR-0032) ya
  * sabe no duplicar un reintento — pero el navegador todavía necesita algo que reintentar.
@@ -19,7 +19,7 @@
  *   unidades que ya no existen.
  * - El sondeo de conexión al servidor.
  *
- * POR QUÉ POR SEDE Y NO POR CAJA (Paso 3.1, ADR-0033 addendum). La primera versión
+ * POR QUÉ POR SEDE Y NO POR CAJA (Paso 3.1, ADR-0036 addendum). La primera versión
  * indexaba la cola por `cajaId` y `CajaPanel` solo sincronizaba mientras ESA caja seguía
  * abierta. Eso dejaba una venta huérfana para siempre si la caja se cerraba antes de que
  * la red volviera: nadie volvía a mirar esa cola nunca más, y era plata ya cobrada que el

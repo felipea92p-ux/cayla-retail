@@ -32,7 +32,7 @@ type Props = {
   sedeCodigo: string;
   cajaId: string;
   variantes: VarianteBusqueda[];
-  /** Si el sondeo de conexión del panel ya sabe que no hay servidor (Paso 3A, ADR-0033). */
+  /** Si el sondeo de conexión del panel ya sabe que no hay servidor (Paso 3A, ADR-0036). */
   sinConexion: boolean;
   /** Avisa al panel que hay una venta nueva en la cola, para que refresque el overlay de stock. */
   onVentaEncolada: () => void;
@@ -59,13 +59,26 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ total: number; prendas: number; offline: boolean } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
-  // Un token por carrito (ADR-0032): si la red se corta después de que la venta ya
-  // se comiteó pero antes de que la respuesta llegue, un reintento con ESTE MISMO
-  // carrito reenvía este mismo token y registrar_venta devuelve la venta que ya
-  // existe en vez de duplicarla. Por eso solo cambia cuando el carrito realmente
-  // cambia (agregar/quitar/editar una cantidad o precio distintos, cambiar el
-  // método de pago) — nunca porque sí, y nunca en un reintento del mismo carrito.
-  const tokenVenta = useRef<string>(crypto.randomUUID());
+
+  /**
+   * El token que hace que reintentar NO cobre dos veces.
+   *
+   * `traducirError` le dice a la Encargada "no se guardó nada — vuelve a intentar" cuando la
+   * llamada falla sin llegar al servidor. Con la red de la tienda eso es mentira la mitad de
+   * las veces: `Failed to fetch` no distingue entre "no salió" y "salió, entró, y se cortó la
+   * respuesta". Si el corte fue de vuelta, la venta YA está registrada y el stock YA se
+   * descontó — y la pantalla la está invitando a repetirla.
+   *
+   * `registrar_venta` es idempotente por `p_token` (migración `0054`): con el mismo token y el
+   * mismo carrito devuelve la venta que ya existe en vez de crear otra.
+   *
+   * Va en un `ref` y NO en estado, a propósito: tiene que sobrevivir a los re-render del
+   * carrito SIN provocar ninguno. Y se crea en el primer envío, no al montar: es el
+   * identificador de ESTE intento de venta, y vive hasta que la venta entra. Si ella corrige
+   * el carrito y vuelve a intentar, el token sigue siendo el mismo — y ahí está lo importante:
+   * si el primer intento sí había entrado, la RPC lo rechaza en vez de cobrar de nuevo.
+   */
+  const token = useRef<string | null>(null);
 
   const term = q.trim().toLowerCase();
 
@@ -106,10 +119,6 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
       }
       return actual.map((it) => (it.varianteId === v.varianteId ? { ...it, cantidad: it.cantidad + 1 } : it));
     });
-    // Solo si el carrito de verdad cambió — si `tope` frenó el agregado, el carrito
-    // sigue siendo el mismo que ya se intentó vender, y el token tiene que seguir
-    // siendo el mismo para que un reintento no cree una venta nueva.
-    if (!tope) tokenVenta.current = crypto.randomUUID();
     setAviso(tope ? `En ${sedeCodigo} quedan ${v.stockAqui} de ${v.referencia}. No puedes vender más.` : null);
     setQ("");
     setActivo(0);
@@ -119,28 +128,18 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
   }
 
   function quitar(varianteId: string) {
-    // Solo regenera el token si la variante en verdad estaba en el carrito —
-    // llamar `quitar` sobre algo que ya no está no cambia nada que reintentar.
-    if (carrito.some((it) => it.varianteId === varianteId)) {
-      tokenVenta.current = crypto.randomUUID();
-    }
     setCarrito((actual) => actual.filter((it) => it.varianteId !== varianteId));
     setAviso(null);
   }
 
   function actualizar(varianteId: string, campo: "cantidad" | "monto", valor: number) {
     if (campo === "monto") {
-      const item = carrito.find((it) => it.varianteId === varianteId);
-      if (item && item.monto !== valor) tokenVenta.current = crypto.randomUUID();
       setCarrito((actual) => actual.map((it) => (it.varianteId === varianteId ? { ...it, monto: valor } : it)));
       return;
     }
     const item = carrito.find((it) => it.varianteId === varianteId);
     if (!item) return;
     const cantidad = Math.max(1, Math.min(valor || 1, item.stockAqui));
-    // Igual que en `agregar`: si el tope ya deja la cantidad como estaba, no es un
-    // cambio real del carrito — el token no debe invalidarse por eso.
-    if (cantidad !== item.cantidad) tokenVenta.current = crypto.randomUUID();
     setAviso(valor > item.stockAqui ? `En ${sedeCodigo} quedan ${item.stockAqui} de ${item.referencia}.` : null);
     setCarrito((actual) => actual.map((it) => (it.varianteId === varianteId ? { ...it, cantidad } : it)));
   }
@@ -202,24 +201,27 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
     setLoading(true);
     setError(null);
 
+    // Se crea una sola vez y se conserva entre reintentos: es lo que los vuelve seguros.
+    token.current ??= crypto.randomUUID();
+
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_venta", {
       p_caja_id: cajaId,
       p_metodo_pago: metodoPago,
       p_items: carrito.map((it) => ({ variante_id: it.varianteId, cantidad: it.cantidad, monto: it.monto })),
-      p_token: tokenVenta.current,
+      p_token: token.current,
     });
 
     setLoading(false);
     if (error) {
-      // Sin tocar tokenVenta.current en ninguna de las dos ramas de abajo: si esto fue un
-      // corte de red y la venta ya se había comiteado del otro lado, un reintento —a mano o
-      // desde la cola— con el mismo token la recupera en vez de duplicarla (ADR-0032).
+      // Sin tocar `token.current` en ninguna rama de abajo: si esto fue un corte de red y
+      // la venta ya se había comiteado del otro lado, un reintento —a mano o desde la
+      // cola— con el mismo token la recupera en vez de duplicarla (ADR-0032/0033).
       if (esFalloDeRed(error)) {
-        // La regla del umbral (Paso 3C, ADR-0013 §C), ANTES de encolar: sin red no hay forma
-        // de coordinarse con otra sede, así que vender hasta dejar el stock en cero acá es
-        // justo el escenario que puede sobrevender. Se juzga sobre `it.stockAqui`, que ya
-        // trae el overlay de la cola aplicado (es el número que la Encargada está viendo).
+        // La regla del umbral (ADR-0013 §C), ANTES de encolar (ADR-0036): sin red no hay
+        // forma de coordinarse con otra sede, así que vender hasta dejar el stock en cero
+        // acá es justo el escenario que puede sobrevender. Se juzga sobre `it.stockAqui`,
+        // que ya trae el overlay de la cola aplicado (es el número que la Encargada ve).
         const sinSobra = carrito.filter((it) => !pasaElUmbralDeSobra(it.stockAqui, it.cantidad));
         if (sinSobra.length > 0) {
           setError(
@@ -228,7 +230,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
           return;
         }
         encolarVenta({
-          token: tokenVenta.current,
+          token: token.current,
           cajaId,
           sedeCodigo,
           metodoPago,
@@ -236,21 +238,18 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
           creadoEn: new Date().toISOString(),
         });
         onVentaEncolada();
-        tokenVenta.current = crypto.randomUUID();
         setOk({ total, prendas, offline: true });
         return;
       }
-      // Un rechazo real del servidor (caja cerrada, sin permiso) no se encola: reintentar
-      // no lo arreglaría, y encolarlo dejaría una venta atascada para siempre.
+      // Un rechazo real del servidor (caja cerrada, sin permiso, token reusado) no se
+      // encola: reintentar no lo arreglaría, y encolarlo dejaría una venta atascada para
+      // siempre. `reintentoSeguro` no aplica acá — solo cambia el mensaje del corte de
+      // red puro, y `esFalloDeRed(error)` ya dio `false`: el servidor SÍ respondió.
       setError(traducirError(error, "registrar la venta"));
       return;
     }
     // El acuse se muestra ANTES de cerrar: quien recién aprende necesita ver que la venta
     // entró. El refresco va acá para que "Ventas de hoy" ya esté al día al volver.
-    // Esta venta ya quedó cerrada del lado del servidor — un envío futuro en este mismo
-    // montaje (hoy no lo hay, el resumen reemplaza el formulario) necesitaría un token
-    // nuevo, nunca el de una venta que ya existe.
-    tokenVenta.current = crypto.randomUUID();
     setOk({ total, prendas, offline: false });
     router.refresh();
   }
@@ -406,10 +405,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
             <select
               id="venta-metodo"
               value={metodoPago}
-              onChange={(e) => {
-                tokenVenta.current = crypto.randomUUID();
-                setMetodoPago(e.target.value as MetodoPago);
-              }}
+              onChange={(e) => setMetodoPago(e.target.value as MetodoPago)}
               className={campoSelect}
             >
               {METODOS_PAGO.map((m) => (

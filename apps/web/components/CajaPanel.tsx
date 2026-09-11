@@ -36,7 +36,7 @@ type Props = {
 };
 
 /**
- * La cola de ventas offline sube sola (Paso 3D, ADR-0033): al montar, al volver la red
+ * La cola de ventas offline sube sola (Paso 3D, ADR-0036): al montar, al volver la red
  * (evento `online`) y con un latido cada 30 s por si el navegador nunca dispara ese evento
  * (pasa en algunas redes corporativas y en el `next start` de pruebas). Las tres corren la
  * MISMA función — no hay una ruta especial para "recién volvió la red" — porque las tres

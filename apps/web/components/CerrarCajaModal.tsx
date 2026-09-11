@@ -10,7 +10,7 @@ type Props = {
   cajaId: string;
   sedeCodigo: string;
   /**
-   * Cuánto de lo guardado sin conexión es en efectivo (Paso 3.1, ADR-0033 addendum).
+   * Cuánto de lo guardado sin conexión es en efectivo (Paso 3.1, ADR-0036 addendum).
    * `retail.cerrar_caja` solo suma `ventas.metodo_pago = 'efectivo'` que YA está en la
    * base — una venta en efectivo atrapada en la cola no entra en ese cálculo todavía,
    * así que el "esperado" que el sistema muestra va a salir más bajo que el efectivo
