@@ -21,7 +21,15 @@ import type { PlanDeMapeo } from "@/lib/importacion/mapeo";
  * re-asienta. Nada rebota.
  */
 
-type Tabla = { filas: string[][]; filaCabecera: number; origen: string };
+type Tabla = {
+  filas: string[][];
+  filaCabecera: number;
+  origen: string;
+  /** Solo en PDF/foto: lo transcribio el modelo, con lo que eso implica. */
+  transcrito?: boolean;
+  notas?: string;
+  uso?: { entrada: number; salida: number };
+};
 
 const MAX_FILAS_VISIBLES = 30;
 
@@ -89,7 +97,7 @@ export function SubirCatalogo() {
           <input
             ref={inputArchivo}
             type="file"
-            accept=".xlsx,.xlsm,.csv,.txt"
+            accept=".xlsx,.xlsm,.csv,.txt,.pdf,.jpg,.jpeg,.png,.webp"
             onChange={subir}
             className="hidden"
             disabled={cargando}
@@ -97,7 +105,7 @@ export function SubirCatalogo() {
           <Boton type="button" peso="primario" cargando={cargando} onClick={() => inputArchivo.current?.click()}>
             Elegir archivo
           </Boton>
-          <span className="text-xs text-tinta/65">Excel (.xlsx) o CSV, hasta 10 MB</span>
+          <span className="text-xs text-tinta/65">Excel o CSV hasta 10 MB · PDF o foto hasta 5 MB</span>
         </div>
 
         <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-sand pt-4">
@@ -153,6 +161,22 @@ export function SubirCatalogo() {
               />
             </div>
           </div>
+
+          {tabla.transcrito && (
+            <div className="anim-revelar mt-4 rounded-md border border-ambar/30 bg-ambar/10 px-4 py-3 text-xs text-ambar-profundo">
+              <p>
+                Esto lo transcribió el modelo desde el documento: la IA hizo el tipeo, pero un 7 a mano puede
+                leerse como 1. Revisa los números antes de seguir.
+                {tabla.notas ? <> {tabla.notas}</> : null}
+              </p>
+              {tabla.uso && (
+                <p className="mt-1 text-[11px] opacity-75">
+                  {tabla.uso.entrada} tokens de entrada · {tabla.uso.salida} de salida ≈ $
+                  {((tabla.uso.entrada * 1) / 1e6 + (tabla.uso.salida * 5) / 1e6).toFixed(4)}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Scrollea dentro de su caja: un catálogo de 12 columnas no debe
               empujar la pantalla entera hacia los lados. */}
