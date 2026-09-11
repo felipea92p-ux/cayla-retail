@@ -112,13 +112,16 @@ jobs:
 
       # Solo Postgres. `supabase start` levantaría además Auth, la API, Studio, Mailpit…;
       # para aplicar migraciones sobra con el contenedor de la base — y `config.toml` ya
-      # apaga la mitad de esos servicios en local.
+      # apaga la mitad de esos servicios en local. OJO: este paso ya aplica las migraciones
+      # y el seed una vez (se ve en el log); el de abajo las vuelve a correr.
       - name: Postgres desde cero
         run: supabase db start
 
-      # El comando que atrapó el problema del 11-sep. Falla con cualquier migración rota Y
-      # con dos archivos de la misma versión (`schema_migrations_pkey`). Al final corre
-      # `supabase/seed.sql`, que mueve las tablas a `retail` como en producción.
+      # El comando que atrapó el problema del 11-sep, tal cual lo documenta el README: borra
+      # la base, la recrea, aplica 0001 → última y corre `supabase/seed.sql` (que mueve las
+      # tablas a `retail` como en producción). Falla con cualquier migración rota Y con dos
+      # archivos de la misma versión (`schema_migrations_pkey`). Repite lo que `db start`
+      # ya hizo — cuesta ~20 s — y se queda porque es el comando verificado, no uno parecido.
       - name: Aplicar 0001 → última, y el seed
         run: supabase db reset
 
