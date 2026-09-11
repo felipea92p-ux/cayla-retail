@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (shadcn entra sin gastar el rojo)
+
+Felipe pidió configurar shadcn/ui con los colores del sistema existente. Se dejó la base
+lista (`components.json`, `cn()`, y un puente de tokens semánticos en `globals.css` que
+apunta `primary`→tinta, `accent`→sand, `ring`→rojo, `destructive`→rojo-profundo — ADR-0037)
+sin instalar ningún componente todavía, a pedido explícito de Felipe. Se verificó
+compilando `globals.css` con PostCSS fuera de Next (el entorno no tiene `.env.local`, así
+que ninguna página real levanta) y confirmando que cada clase semántica encadena hasta el
+color CAYLA correcto.
+
+Lo que Felipe se lleva: **`primary` de shadcn no podía ser rojo aunque rojo sea "el color
+de marca"** — es justo el color que el brandbook restringe a 2 usos por pantalla, y
+`primary` es lo que pinta CUALQUIER componente nuevo por defecto. El mapeo correcto no es
+"el color más vistoso a la marca", es el que ya usa `<Boton primario>` sin que nadie lo
+hubiera nombrado así antes.
+
 ## 2026-09-11 (el CI levanta la base: el verde ahora dice lo que hoy faltó que dijera)
 
 Cierre del hallazgo de la mañana: se agregó el job `migraciones` a `.github/workflows/ci.yml`
