@@ -3,6 +3,32 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (el importador entero, y la IA que nunca ve la fila 2.847)
+
+Se cerró el importador de catálogos de punta a punta: Excel, CSV, Google Sheets,
+PDF y foto de cuaderno entran, el modelo dice qué es cada columna y de qué
+universal cuelga cada color nuevo, y el catálogo se escribe en una sola
+transacción con stock en cero. Se puede deshacer (descontinuar, nunca borrar).
+Verificado en el navegador con la sesión real, no solo en tests: un CSV sucio
+terminó en "3 prendas · 6 variantes" y la base lo confirmó con códigos cortos
+asignados (ADR-0031).
+
+Felipe pidió que las pantallas siguieran la estética integrada, y al estudiar
+`globals.css` y `components/ui/campos.tsx` apareció que mis cuatro componentes
+estaban hechos al margen del kit: botones a mano, `<select>` nativo, un token
+`hueso` inexistente, cero animaciones y rojo por todas partes cuando el rojo es
+"el acento sagrado, máximo 2 por pantalla". Se rehicieron con `<Boton>` y su
+hilo de carga, `anim-entrada` cuando la persona hace algo, `anim-asentar` en
+las cifras que cambian, ámbar para lo dudoso y verde para lo hecho.
+
+Lo que Felipe se lleva: **la IA compila el mapeo, no procesa las filas** — el
+modelo ve cabeceras y 40 filas, produce un plan, y código determinista lo aplica
+a las 3.000. Cuesta 40 veces menos que mandarle el archivo, y lo importante no
+es el ahorro: es que un precio alucinado no falla, importa una blusa a S/ 1.23 y
+nadie se entera hasta que se vende. Y que el sistema de diseño de una app es
+una gramática que hay que leer antes de escribir en ella, no un tema que se
+aplica al final.
+
 ## 2026-09-11 (con prendas de verdad, el camino de fallo mostró lo que tenía adentro)
 
 Local tenía cero variantes, así que nada de lo construido sin red se podía probar

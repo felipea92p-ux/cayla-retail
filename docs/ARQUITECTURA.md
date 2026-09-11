@@ -110,6 +110,13 @@ flowchart TB
   `proveedores`).
 - `/inventario/etiquetas` → `lib/catalogo.ts` → `EtiquetasGenerator.tsx`
   (solo lectura, genera Code128 e imprime).
+- `/inventario/importar` → `SubirCatalogo.tsx` → `MapearColumnas.tsx` →
+  `RevisarValores.tsx`, tres pasos que aparecen en secuencia. Toda la lógica
+  vive en `lib/importacion/` y la escritura es el RPC `importar_catalogo`
+  (ADR-0031). Nada se guarda hasta el último botón.
+- `/inventario/taxonomia` → `lib/taxonomia/consultas.ts` →
+  `AnclarVocabulario.tsx`: de qué término universal cuelga cada color y
+  categoría propios (ADR-0030). La IA propone, la persona guarda.
 - `/buscar` → `lib/catalogo.ts` + `lib/sedes.ts` → `BuscadorHero.tsx`.
 - `/producto/[varianteId]` → `lib/inteligencia.ts` → `FotoProducto.tsx`,
   `MinimosPorSede.tsx` (RPC `fijar_stock_minimo`), `RecetaCosto.tsx`
@@ -197,6 +204,25 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   normal, no un error. Antes de gastar una consulta pagada busca el documento
   en `comprobantes` (memoria durable propia) y cachea en memoria por instancia.
 
+- `/api/importacion/leer` → archivo o enlace de Sheets a tabla de texto. Excel y
+  CSV con código (`lib/importacion/tabla.ts`, `leer-archivo.ts`); PDF y foto
+  los transcribe el modelo (`leer-documento.ts`) y la respuesta lo dice.
+- `/api/importacion/mapear` → con `plan` aplica sin IA; sin él, el modelo
+  infiere qué es cada columna mirando cabeceras y 40 filas
+  (`inferir-mapeo.ts`). Corregir una columna recalcula gratis.
+- `/api/importacion/valores` → los colores y categorías DISTINTOS del archivo
+  cruzados con el vocabulario; solo lo nuevo va al modelo
+  (`resolver-valores.ts` → `lib/taxonomia/anclar-ia.ts`).
+- `/api/importacion/importar` → agrupa por producto, deduplica talla+color y
+  llama `importar_catalogo`. Único endpoint del importador que escribe.
+- `/api/taxonomia/anclar` → `POST` propone (IA), `PUT` guarda lo confirmado.
+  Dos verbos a propósito: anclar mal es invisible y necesita un par de ojos.
+
+Todo lo que llama al modelo lleva `server-only` y lee `ANTHROPIC_API_KEY` del
+servidor; sin ella responde 503 con el mensaje, no revienta. Modelo fijo
+`claude-haiku-4-5` (ADR-0030: a 100 clientes al año la diferencia con Opus
+son ~15 dólares).
+
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 
@@ -228,6 +254,15 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
   ver ADR-0005; `estado` nace en `pendiente`, el envío a SUNAT es aparte).
+- **Taxonomía universal** (0052, ADR-0030): `taxonomia_versiones` (una sola
+  activa, fijada), `taxonomia_categorias` (1.849, id parlante `aa-1-2-3`),
+  `taxonomia_atributos` / `taxonomia_valores` (993 / 10.216),
+  `taxonomia_categoria_atributos`. Solo lectura desde la app; se carga con
+  `scripts/taxonomia/cargar.mjs`. El vocabulario propio CUELGA de ella:
+  `categorias.taxonomia_categoria_id`, `colores.taxonomia_valor_id`.
+- **Importación** (0055, ADR-0031): `importaciones` (auditoría: origen, plan
+  aplicado, conteos, estado `aplicada`/`deshecha`), `productos.importacion_id`,
+  `producto_atributos` (tejido, patrón… por producto, contra la taxonomía).
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
   `asientos` / `asiento_lineas` (libro diario, **inmutable para clientes**:
   sin política INSERT/UPDATE/DELETE, solo entra vía RPC).
@@ -246,6 +281,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
+| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0031 |
+| `deshacer_importacion` | Descontinúa los productos de una importación; nunca borra; se niega si alguno ya tuvo movimientos |
+| `fn_codigo_tres_letras`, `fn_familia_color_de_universal`, `fn_familia_de_universal` | Auxiliares del importador: derivan lo que `colores` y `categorias` exigen NOT NULL |
 
 ### 4.3 RLS sin `tenant_id`
 

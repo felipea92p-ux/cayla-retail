@@ -11,38 +11,26 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
-      puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
-      migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
-      valores de la Shopify Product Taxonomy v2026-08 en local, motor de anclaje
-      en dos pasadas (`lib/taxonomia/anclar.ts` puro y testeado +
-      `anclar-ia.ts`), endpoint `POST/PUT /api/taxonomia/anclar` (propone / guarda,
-      nunca en un solo paso) y pantalla `/inventario/taxonomia`.
-      **Bloqueado por lo mismo que todo lo demás de IA: no hay `ANTHROPIC_API_KEY`
-      en el entorno.** Sin ella el endpoint responde 503 con el mensaje que lo
-      explica, y el anclaje de los 30 colores y 32 categorías de CAYLA nunca se ha
-      ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
-      se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
-      **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
-      Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
-      archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
-      URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
-      ancla los valores distintos y siembra el vocabulario propio del cliente con
-      SUS nombres → RPC `importar_catalogo` transaccional (llamar
-      `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
-      Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
-      carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
-      versión nueva del estándar. **Modelo: `claude-haiku-4-5` fijo**, decidido con
-      Felipe el 2026-09-10 después de medir: ~$0.03 por cliente contra ~$0.15 con
-      Opus 5, y a 100 clientes al año la diferencia total del sistema son ~15
-      dólares — menos que una hora arreglando a mano un anclaje malo, que además
-      no avisa. Se descartó el tier gratuito de Gemini, más barato todavía, por una
-      razón que no es de precio: ahí los prompts se usan para entrenar, y lo que
-      viaja es el catálogo de un cliente (sus productos, precios y costos). Si el
-      anclaje sale torcido, los 37 términos que Felipe conoce de memoria son el
-      examen y se sube el modelo cambiando un string. Todo esto contra ~$5.85 por
-      cliente si se le mandaran las 3.000 filas al modelo: la regla es que **la IA
-      compila el mapeo, no procesa las filas**.
+- [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
+      punta a punta (ADR-0030, ADR-0031).** Excel, CSV, Google Sheets, PDF y foto
+      entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
+      infiere qué es cada columna y de qué universal cuelga cada color o
+      categoría nueva; `importar_catalogo` (0055) escribe todo en una
+      transacción con stock en cero; `deshacer_importacion` descontinúa, nunca
+      borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
+      foto de cuaderno. Verificado en el navegador con la sesión real y
+      confirmado en la base. 178 tests.
+      **Lo que falta para usarlo en producción:** pegar `0055` (y `0052` + su
+      seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
+      **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
+      CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
+      (corregir a mano `Tops → Tops cortos deportivos` y decidir `Fucsia →
+      Púrpura` o `Rosa`).
+      **Lo que queda fuera, dicho:** las prendas que CAYLA ya tiene no ganan
+      atributos ricos (tejido, patrón) — `producto_atributos` existe pero el
+      importador solo la llena para catálogos nuevos; llenarla para el catálogo
+      actual es otro trabajo. Y el cron semanal para `revisar-version.mjs` no
+      existe: se corre a mano cuando se quiera saber si hay versión nueva.
 
 - [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
       Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
