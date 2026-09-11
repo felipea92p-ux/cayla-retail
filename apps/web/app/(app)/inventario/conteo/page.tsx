@@ -41,7 +41,7 @@ export default async function ConteoPage() {
 
       {/* Registra `public/sw.js` — es lo que hace que ESTA pantalla vuelva a abrir con el
           router muerto. Se monta acá y no en el layout: el worker existe para el censo, y
-          cuantos menos navegadores lo tengan instalado, menos superficie hay (ADR-0032). */}
+          cuantos menos navegadores lo tengan instalado, menos superficie hay (ADR-0034). */}
       <RegistroServiceWorker />
 
       <ConteoPanel

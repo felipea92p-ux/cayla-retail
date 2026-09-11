@@ -21,7 +21,7 @@
 //       `productos.importacion_id` y las funciones `importar_catalogo`,
 //       `deshacer_importacion`, `fn_codigo_tres_letras`,
 //       `fn_familia_color_de_universal`, `fn_familia_de_universal`
-//       (migración `0055`; solo existen en local hasta que se aplique allá)
+//       (migración `0056`; solo existen en local hasta que se aplique allá)
 //
 //   El arreglo de fondo —decidir cuál de los dos entornos es la fuente— está en
 //   el BACKLOG. Mientras tanto, después de cada `gen-types` hay que releer esta

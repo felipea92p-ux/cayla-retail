@@ -143,7 +143,7 @@ const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed
  * significa "el servidor no se enteró": la operación se puede encolar y repetir. Un rechazo
  * del servidor —`P0001` de una RPC, un `check`, RLS— significa "se enteró y dijo no":
  * repetirla dará el mismo no, y encolarla es prometer un guardado que nunca va a ocurrir.
- * `ConteoPanel` encolaba en los dos casos, y solo se notó al probar sin red (ADR-0032).
+ * `ConteoPanel` encolaba en los dos casos, y solo se notó al probar sin red (ADR-0034).
  */
 export function esFalloDeRed(error: ErrorEscritura): boolean {
   if (!error) return false;

@@ -62,7 +62,7 @@
 -- fn_puede_operar_sede(...)` a `if fn_puede_operar_sede(...) is not true`.
 --   Si la función devolviera NULL —una sesión sin rol—, `not NULL` tampoco es
 --   true, el `raise` no dispara y **el candado se abre solo**. Es el agujero que
---   `34_candados_no_null.sql` cerró en producción y que local todavía tenía en
+--   `36_candados_no_null.sql` cerró en producción y que local todavía tenía en
 --   esta función. Se cierra acá porque es la función que este archivo reescribe
 --   igual; el barrido del resto queda en el BACKLOG.
 --

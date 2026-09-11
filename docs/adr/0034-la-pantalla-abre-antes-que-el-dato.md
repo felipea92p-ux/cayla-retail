@@ -1,7 +1,10 @@
-# ADR-0032 — La pantalla abre antes que el dato: service worker para el censo
+# ADR-0034 — La pantalla abre antes que el dato: service worker para el censo
 
 **Fecha:** 2026-09-10
 **Estado:** Construido y verificado en navegador con el servidor apagado.
+**Numeración:** nació como ADR-0032 en la rama `feat/taxonomia-universal`; al reconciliar
+con `main` (2026-09-11) ese número ya lo tenía la idempotencia de `registrar_venta` y
+pasó a 0034. Los comentarios del código (`sw.js`, `ConteoPanel`, `sin-red.ts`) ya dicen 0034.
 **Corrige a:** ADR-0018, que diseñó la mitad del problema.
 **Alcance elegido por Felipe (2026-09-10):** solo la pantalla de conteo, no toda la app.
 

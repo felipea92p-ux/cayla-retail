@@ -1,5 +1,5 @@
 -- ============================================================================
--- 34 — Un candado que no sabe devuelve false, no NULL
+-- 36 — Un candado que no sabe devuelve false, no NULL
 -- Correr en cayla-DYNAMIC (SQL Editor). Todo en el cajón `retail`.
 --
 -- ⚠ PRODUCCIÓN YA LO TIENE. Verificado contra la base el 2026-09-10: las tres

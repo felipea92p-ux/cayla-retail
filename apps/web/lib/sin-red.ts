@@ -5,7 +5,7 @@
  * árbol de React se prueba sin montarlo. `ConteoPanel` pone los efectos y el `navigator`,
  * que son los que no se pueden probar así.
  *
- * Ver ADR-0032. El resumen: el service worker sirve la ÚLTIMA versión de la pantalla que se
+ * Ver ADR-0034. El resumen: el service worker sirve la ÚLTIMA versión de la pantalla que se
  * cargó con internet, así que sin red se sigue contando contra un catálogo con fecha. Eso no
  * es un defecto — un censo es justamente contra una foto fija — pero **la fecha hay que
  * decirla**. Un sistema que muestra datos viejos sin avisar es peor que uno que se cae.

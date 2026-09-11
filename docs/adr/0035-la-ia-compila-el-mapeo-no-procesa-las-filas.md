@@ -1,9 +1,13 @@
-# ADR-0031 — La IA compila el mapeo, no procesa las filas
+# ADR-0035 — La IA compila el mapeo, no procesa las filas
 
 **Fecha:** 2026-09-11
 **Estado:** Construido y verificado de punta a punta en el navegador — Excel,
 CSV, Google Sheets, PDF y foto entran; el catálogo se escribe en una transacción
-y se puede deshacer. 178 tests. Falta aplicar `0055` en producción.
+y se puede deshacer. 178 tests. Falta aplicar `0056` en producción.
+**Numeración:** nació como ADR-0031 con la migración `0055_importar_catalogo.sql`; al
+desduplicar `main` (2026-09-11) el ADR pasó a 0035 (0031 ya era `recalcular_stock`) y la
+migración a `0056` (0055 ya era `recalcular_stock_almacen`, y Supabase se niega a aplicar
+dos versiones iguales: `schema_migrations_pkey`).
 
 ## Contexto
 
@@ -98,6 +102,6 @@ el mismo que los aprueba.
 
 ## Cómo se revierte
 
-Las tablas y funciones de `0055` se pueden soltar sin tocar nada existente:
+Las tablas y funciones de `0056` se pueden soltar sin tocar nada existente:
 `importaciones`, `producto_atributos`, `productos.importacion_id` y las cinco
 funciones. Ninguna pantalla vieja las lee.
