@@ -110,6 +110,13 @@ flowchart TB
   `proveedores`).
 - `/inventario/etiquetas` → `lib/catalogo.ts` → `EtiquetasGenerator.tsx`
   (solo lectura, genera Code128 e imprime).
+- `/inventario/importar` → `SubirCatalogo.tsx` → `MapearColumnas.tsx` →
+  `RevisarValores.tsx`, tres pasos que aparecen en secuencia. Toda la lógica
+  vive en `lib/importacion/` y la escritura es el RPC `importar_catalogo`
+  (ADR-0035). Nada se guarda hasta el último botón.
+- `/inventario/taxonomia` → `lib/taxonomia/consultas.ts` →
+  `AnclarVocabulario.tsx`: de qué término universal cuelga cada color y
+  categoría propios (ADR-0030). La IA propone, la persona guarda.
 - `/buscar` → `lib/catalogo.ts` + `lib/sedes.ts` → `BuscadorHero.tsx`.
 - `/producto/[varianteId]` → `lib/inteligencia.ts` → `FotoProducto.tsx`,
   `MinimosPorSede.tsx` (RPC `fijar_stock_minimo`), `RecetaCosto.tsx`
@@ -157,6 +164,28 @@ flowchart TB
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
 
+### 3.y Sin internet: el service worker del censo (ADR-0034)
+
+Es la segunda excepción al patrón, y la más nueva. Todas las pantallas son Server
+Components: sin red no llega ni el HTML, así que ningún JavaScript nuestro llega a
+correr. `apps/web/public/sw.js` existe para UNA pantalla, `/inventario/conteo`, y
+hace tres cosas: cache-first de `/_next/static/*` (inmutables por hash), network-first
+del DOCUMENTO del conteo con respaldo en caché —el documento ya trae el catálogo
+adentro, por eso no hay IndexedDB—, y todo lo demás pasa de largo (ni APIs, ni
+Supabase, ni otras pantallas). Cuando sirve desde caché deja la marca
+`/__cayla/servido-desde-cache`, que `ConteoPanel` lee para avisar: `navigator.onLine`
+miente cuando el wifi está vivo y el servidor no contesta. Lo registra
+`components/RegistroServiceWorker.tsx` solo desde esa pantalla; `LogoutButton` le manda
+`cayla:limpiar` al salir (equipo compartido). El aviso que la Encargada lee sale de
+`lib/sin-red.ts`, puro y probado. La cola de escaneos (`localStorage`) sube sola: al
+volver la red, al montar y con un latido cada 30 s; **solo encola fallos de red**
+(`esFalloDeRed` en `lib/error-escritura.ts`), nunca un rechazo del servidor.
+
+Para probarlo en local: build de producción (`.claude/launch.json` →
+`cayla-retail-prod`), catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`,
+opt-in, nunca en `seed.sql`), y apagar Next **y** `supabase_kong_cayla-retail` — el
+navegador escribe directo a Supabase, así que apagar solo Next no simula la tienda.
+
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 
 Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
@@ -174,6 +203,25 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   (`padron` | `historial` | `ninguna`) — "no pude averiguarlo" es una respuesta
   normal, no un error. Antes de gastar una consulta pagada busca el documento
   en `comprobantes` (memoria durable propia) y cachea en memoria por instancia.
+
+- `/api/importacion/leer` → archivo o enlace de Sheets a tabla de texto. Excel y
+  CSV con código (`lib/importacion/tabla.ts`, `leer-archivo.ts`); PDF y foto
+  los transcribe el modelo (`leer-documento.ts`) y la respuesta lo dice.
+- `/api/importacion/mapear` → con `plan` aplica sin IA; sin él, el modelo
+  infiere qué es cada columna mirando cabeceras y 40 filas
+  (`inferir-mapeo.ts`). Corregir una columna recalcula gratis.
+- `/api/importacion/valores` → los colores y categorías DISTINTOS del archivo
+  cruzados con el vocabulario; solo lo nuevo va al modelo
+  (`resolver-valores.ts` → `lib/taxonomia/anclar-ia.ts`).
+- `/api/importacion/importar` → agrupa por producto, deduplica talla+color y
+  llama `importar_catalogo`. Único endpoint del importador que escribe.
+- `/api/taxonomia/anclar` → `POST` propone (IA), `PUT` guarda lo confirmado.
+  Dos verbos a propósito: anclar mal es invisible y necesita un par de ojos.
+
+Todo lo que llama al modelo lleva `server-only` y lee `ANTHROPIC_API_KEY` del
+servidor; sin ella responde 503 con el mensaje, no revienta. Modelo fijo
+`claude-haiku-4-5` (ADR-0030: a 100 clientes al año la diferencia con Opus
+son ~15 dólares).
 
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
@@ -194,7 +242,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   separada del piso de venta pero dentro de la misma sede).
 - **Sedes/personas**: `sedes`, `personas` (`auth_user_id` único).
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
-  parcial), `ventas` (1 fila por checkout).
+  parcial), `ventas` (1 fila por checkout; `token_cliente` con índice único
+  es la idempotencia — el navegador manda un uuid por intento de venta y el
+  reintento devuelve la misma fila en vez de crear otra, ADR-0033).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
 - **Producción**: `producciones` (`costo_unitario` es **columna generada**,
   no se puede desincronizar; `etapas` jsonb con 6 estados: patronaje →
@@ -204,6 +254,15 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
   ver ADR-0005; `estado` nace en `pendiente`, el envío a SUNAT es aparte).
+- **Taxonomía universal** (0052, ADR-0030): `taxonomia_versiones` (una sola
+  activa, fijada), `taxonomia_categorias` (1.849, id parlante `aa-1-2-3`),
+  `taxonomia_atributos` / `taxonomia_valores` (993 / 10.216),
+  `taxonomia_categoria_atributos`. Solo lectura desde la app; se carga con
+  `scripts/taxonomia/cargar.mjs`. El vocabulario propio CUELGA de ella:
+  `categorias.taxonomia_categoria_id`, `colores.taxonomia_valor_id`.
+- **Importación** (0056, ADR-0035): `importaciones` (auditoría: origen, plan
+  aplicado, conteos, estado `aplicada`/`deshecha`), `productos.importacion_id`,
+  `producto_atributos` (tejido, patrón… por producto, contra la taxonomía).
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
   `asientos` / `asiento_lineas` (libro diario, **inmutable para clientes**:
   sin política INSERT/UPDATE/DELETE, solo entra vía RPC).
@@ -214,7 +273,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
-| `registrar_venta` | Venta + N movimientos de salida |
+| `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0033) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
@@ -222,6 +281,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
+| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0035 |
+| `deshacer_importacion` | Descontinúa los productos de una importación; nunca borra; se niega si alguno ya tuvo movimientos |
+| `fn_codigo_tres_letras`, `fn_familia_color_de_universal`, `fn_familia_de_universal` | Auxiliares del importador: derivan lo que `colores` y `categorias` exigen NOT NULL |
 
 ### 4.3 RLS sin `tenant_id`
 
@@ -271,6 +333,15 @@ Integrante solo su sede (o su almacén asociado).
   producción divergió de la versión local durante la unificación con
   Dynamic (jul-2026): el script copió una versión vieja de la función.
   Ver §6.
+- **ADR-0013 / 0018 / 0031 / 0032** (sep-9 a sep-11) — la dimensión «velocidad y
+  sin internet». 0013: la lentitud era geografía (`iad1` → `gru1`), no datos, y
+  la venta sin red se permite solo con stock de sobra (umbral 2, bloquea y
+  explica — decidido el 11-sep). 0018: local-first sin motor externo, porque
+  todos los motores del mercado exigen sacar la autorización de RLS. 0031: el
+  reintento de venta no cobra dos veces — `ventas.token_cliente`, generado por
+  el navegador y conservado entre reintentos. 0032: 0018 diseñó el dato local
+  sin la pantalla que abre; service worker acotado al censo (§3.y). Estado
+  vivo en `docs/BRIEF-VELOCIDAD-Y-SIN-INTERNET.md`.
 
 ---
 

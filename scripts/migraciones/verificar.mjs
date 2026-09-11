@@ -23,6 +23,14 @@
  *     0044 y 0045—, así que encontrarla no dice CUÁL versión está viva. Un archivo en
  *     verde significa "no hay nada que delate que falta", no "corrió".
  *
+ *   · CUERPOS, desde 2026-09-10 y por un caso real. Para las funciones sí se compara el
+ *     código, no solo el nombre: el cuerpo de cada función de `retail` se normaliza y se
+ *     busca entre TODAS las definiciones que el repo tiene de ese nombre. Si no coincide
+ *     con ninguna, ese cuerpo no lo produce ningún archivo — alguien lo escribió a mano
+ *     en el SQL Editor. Es el drift que nadie vigila, porque produccion queda ADELANTE
+ *     del repo y entonces nada falla: todo anda bien allá y el repo deja de describir el
+ *     sistema en silencio. Así apareció el guard de `stock_minimo` en `recalcular_stock`.
+ *
  *   · Lo que no supo leer lo dice. Un archivo sin promesas detectables sale como tal, no
  *     como aprobado. Un verificador que aprueba lo que no entendió es peor que no tenerlo:
  *     enseña a confiar en un verde que no significa nada. Misma regla que `traducirError`
@@ -63,7 +71,70 @@ function sinComentarios(sql) {
  * que el nombre es la única llave estable. El precio: dos objetos homónimos en schemas
  * distintos se confunden. A cambio de encontrar lo que falta, se paga.
  */
-const pelar = (nombre) => nombre.replace(/^"?[\w]+"?\./, "").replace(/"/g, "").toLowerCase();
+/**
+ * Objetos que el repo nombra de una forma y la base tiene con otra, por un cambio que ya se
+ * decidió y se documentó. Sin esta lista el verificador vuelve a levantar cada corrida una
+ * alarma que alguien ya descartó — y un informe que repite lo descartado enseña a ignorarlo
+ * entero, que es la única forma de que deje de servir.
+ */
+const RENOMBRES = {
+  // `unificacion/01_sedes.sql` la creó así en el `public` de Dynamic; después se movió al
+  // cajón `retail` y perdió el prefijo del nombre. Descartada a mano en BACKLOG el 09-09.
+  retail_sede_meta: "sede_meta",
+  // Su política perdió el mismo prefijo al mudarse de cajón.
+  retail_sede_meta_read: "sede_meta_read",
+};
+
+const pelar = (nombre) => {
+  const limpio = nombre.replace(/^"?[\w]+"?\./, "").replace(/"/g, "").toLowerCase();
+  return RENOMBRES[limpio] ?? limpio;
+};
+
+/**
+ * Normaliza un cuerpo de función para poder compararlo entre entornos.
+ *
+ * Las diferencias que se borran son las que NO son de lógica: el prefijo de schema (local
+ * escribe `stock`, producción `retail.stock`), los comentarios, y el espaciado. Lo que
+ * queda es el código, y dos códigos iguales normalizan igual aunque estén escritos para
+ * cajones distintos.
+ *
+ * Límite conocido: un `--` dentro de una cadena de texto se comería el resto de la línea.
+ * No pasa en este repo y arreglarlo pediría un parser de verdad; queda dicho para que
+ * quien vea una falsa alarma rarísima sepa por dónde empezar.
+ */
+function normalizarCuerpo(sql) {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\n]*/g, " ")
+    .replace(/\b(?:retail|public)\./gi, "")
+    .replace(/\s+/g, " ")
+    // Y el espacio pegado a la puntuación, que es la diferencia entre `coalesce(x, 0)` y
+    // `coalesce(x,0)`: dos formas de escribir lo mismo. Sin esto el verificador reporta
+    // estilo como si fuera drift, y una alarma que salta por una coma enseña a ignorarlas
+    // todas.
+    .replace(/\s*([(),;=])\s*/g, "$1")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Cada `create [or replace] function … as $…$ … $…$` del archivo: nombre → cuerpo normalizado.
+ *
+ * La etiqueta del dollar-quote se captura y se exige igual al cerrar. Casi todo el repo usa
+ * `$$` pelado, pero `pg_get_functiondef` devuelve `$function$` — así que cualquier archivo
+ * copiado desde la base trae esa forma, y con un regex atado a `$$` el verificador no veía
+ * esas definiciones: reportaba como «sin archivo» una función que sí estaba escrita. Pasó
+ * con `unificacion/35` el 2026-09-10, y es la clase de falso positivo más cara, porque manda
+ * a investigar un drift que no existe.
+ */
+function cuerposDe(sql) {
+  const fuera = [];
+  const re = /create\s+(?:or\s+replace\s+)?function\s+([\w".]+)\s*\([\s\S]*?\bas\s*\$(\w*)\$([\s\S]*?)\$\2\$/gi;
+  for (const m of sql.matchAll(re)) {
+    fuera.push({ nombre: pelar(m[1]), cuerpo: normalizarCuerpo(m[3]) });
+  }
+  return fuera;
+}
 
 function promesasDe(sql) {
   const t = sinComentarios(sql);
@@ -79,7 +150,9 @@ function promesasDe(sql) {
   );
   todas(/add\s+constraint\s+([\w".]+)/gi, (m) => p.restricciones.push(pelar(m[1])));
   todas(/create\s+policy\s+"?([^"\n]+?)"?\s+on\s+([\w".]+)/gi, (m) =>
-    p.politicas.push(`${pelar(m[2])}.${m[1].trim().toLowerCase()}`)
+    // El nombre de la política pasa por `pelar` igual que el de la tabla: no tiene
+    // calificador de schema que quitarle, pero sí puede estar en el mapa de renombres.
+    p.politicas.push(`${pelar(m[2])}.${pelar(m[1].trim())}`)
   );
 
   // Una sola sentencia `alter table` puede traer varios `add column`, así que se recorre
@@ -112,10 +185,24 @@ function inventarioLocal() {
 }
 
 function inventarioDeArchivo(ruta) {
-  const crudo = readFileSync(ruta, "utf8").trim();
-  // El SQL Editor devuelve el JSON dentro de una celda; a veces se copia con comillas.
+  let crudo = readFileSync(ruta, "utf8").trim();
+
+  // El resultado sale de una celda del SQL Editor, y ese viaje lo puede ensuciar de dos
+  // maneras. Si se copia a mano llega el JSON pelado. Si se usa «Download CSV» llega con
+  // una cabecera, envuelto en comillas y con cada `"` interna duplicada, que es la regla
+  // de CSV — y `JSON.parse` revienta con un mensaje que no ayuda. Se aceptan las dos
+  // formas: la persona que corre esto no tiene por qué saber cuál eligió.
+  if (crudo.startsWith("inventario")) crudo = crudo.slice(crudo.indexOf("\n") + 1).trim();
+  if (crudo.startsWith('"') && crudo.endsWith('"')) {
+    crudo = crudo.slice(1, -1).replace(/""/g, '"');
+  }
+
   const desde = crudo.indexOf("{");
-  return JSON.parse(crudo.slice(desde, crudo.lastIndexOf("}") + 1));
+  const hasta = crudo.lastIndexOf("}");
+  if (desde < 0 || hasta < desde) {
+    throw new Error("no parece el resultado de `inventario.sql`: no hay un objeto JSON adentro");
+  }
+  return JSON.parse(crudo.slice(desde, hasta + 1));
 }
 
 /* ------------------------------------------------------------------ *
@@ -173,10 +260,19 @@ function main() {
   const mudos = [];
   let completos = 0;
 
+  // nombre de función → todos los cuerpos que el repo tiene para ella, con su archivo.
+  const cuerposDelRepo = new Map();
+
   for (const ruta of archivos) {
-    const p = promesasDe(readFileSync(ruta, "utf8"));
+    const sql = readFileSync(ruta, "utf8");
+    const nombreRel = relative(RAIZ, ruta).replace(/\\/g, "/");
+    for (const { nombre, cuerpo } of cuerposDe(sql)) {
+      if (!cuerposDelRepo.has(nombre)) cuerposDelRepo.set(nombre, []);
+      cuerposDelRepo.get(nombre).push({ archivo: nombreRel, cuerpo });
+    }
+    const p = promesasDe(sql);
     const total = Object.values(p).reduce((a, v) => a + v.length, 0);
-    const nombre = relative(RAIZ, ruta).replace(/\\/g, "/");
+    const nombre = nombreRel;
 
     if (total === 0) {
       mudos.push(nombre);
@@ -193,8 +289,32 @@ function main() {
 
   // Agrupadas por nombre con sus conteos de argumentos: saber que hay dos firmas no sirve
   // sin saber cuáles, porque la que se borra es siempre la vieja.
+  // Solo las de `retail`, y por un caso concreto: en producción `public` es el schema de
+  // Dynamic, y reportar SUS sobrecargas —`fn_set_meta_cobertura`, que alguien ya descartó a
+  // mano el 2026-09-09— es ruido sobre código que no es nuestro ni podemos tocar.
+  // `inv.cuerpos` ya viene acotado a `retail`, así que sirve de lista.
   const porNombre = {};
-  for (const f of inv.funciones) (porNombre[f.nombre] ??= []).push(f.args);
+  for (const f of inv.cuerpos ?? []) (porNombre[f.nombre] ??= []).push(f.args);
+  // ---------- cuerpos: ¿algún archivo del repo produce lo que hay en la base? ----------
+  const sinArchivo = [];
+  const coincidencias = new Map(); // nombre → archivo que lo explica
+  for (const f of inv.cuerpos ?? []) {
+    const candidatos = cuerposDelRepo.get(f.nombre.toLowerCase());
+    if (!candidatos || candidatos.length === 0) {
+      sinArchivo.push({ nombre: f.nombre, motivo: "el repo no define ninguna función con ese nombre" });
+      continue;
+    }
+    const vivo = normalizarCuerpo(f.cuerpo ?? "");
+    const igual = candidatos.find((c) => c.cuerpo === vivo);
+    if (igual) coincidencias.set(f.nombre, igual.archivo);
+    else
+      sinArchivo.push({
+        nombre: f.nombre,
+        motivo: `su cuerpo no coincide con ninguna de las ${candidatos.length} definiciones del repo`,
+        candidatos: candidatos.map((c) => c.archivo),
+      });
+  }
+
   const sobrecargadas = Object.entries(porNombre)
     .filter(([, args]) => args.length > 1)
     .map(([n, args]) => [n, [...args].sort((a, b) => a - b)]);
@@ -209,10 +329,48 @@ function main() {
   // cayla-dynamic. Verla ausente mirando la base local no es un hallazgo, es lo esperado —
   // y juntarlas convertiría el informe en 28 falsas alarmas, que es como se enseña a
   // ignorar un informe.
-  const NOTA = {
-    "supabase/migrations": "corre en `retail`, local y producción",
-    "supabase/unificacion": "solo se pega en el proyecto de cayla-dynamic — ausente en local es lo normal",
-  };
+  // Un inventario viejo —hecho con una versión anterior de `inventario.sql`— no trae
+  // `cuerpos` ni `tablas_en_public`. Antes el informe seguía igual: se saltaba la
+  // comparación de cuerpos sin decirlo y afirmaba «Entorno: local» sobre una foto de
+  // producción, porque `?? 0` convierte «no sé» en «cero». Eso es exactamente lo que este
+  // verificador existe para no hacer: degradarse en silencio y afirmar de más.
+  const inventarioViejo = inv.tablas_en_public === undefined || inv.cuerpos === undefined;
+  if (inventarioViejo) {
+    console.log(`
+  ⚠ ESTE INVENTARIO ES DE UNA VERSIÓN ANTERIOR de \`inventario.sql\`.`);
+    console.log(`    Le faltan los CUERPOS de las funciones y el marcador de entorno, así que`);
+    console.log(`    no se puede comparar código ni saber contra qué base se está midiendo.`);
+    console.log(`    Vuelve a pegar \`scripts/migraciones/inventario.sql\` —la de ahora— en el`);
+    console.log(`    SQL Editor y guarda el resultado otra vez. Lo de abajo sigue valiendo,`);
+    console.log(`    pero es solo la mitad del chequeo.`);
+  }
+
+  // `public` con muchas tablas = estamos mirando el proyecto de Dynamic, o sea producción.
+  // Hace falta saberlo porque las dos carpetas NO significan lo mismo en cada lado: contra
+  // producción, `migrations/` no es lo que construyó esa base —`unificacion/` renombró
+  // políticas e índices al pasarlas— así que sus ausencias son esperables, no hallazgos.
+  const enProduccion = (inv.tablas_en_public ?? 0) > 10;
+  if (!inventarioViejo) {
+    console.log(`
+  Entorno: ${enProduccion ? "PRODUCCIÓN" : "local"} — ${inv.tablas_en_public} tablas en \`public\``);
+  }
+
+  // Sin marcador no se sabe el entorno, así que tampoco se puede decir qué carpeta
+  // construyó esta base. Se dice eso, en vez de elegir una y sonar seguro.
+  const NOTA = inventarioViejo
+    ? {
+        "supabase/migrations": "no se sabe si construyó esta base — falta el marcador de entorno",
+        "supabase/unificacion": "no se sabe si construyó esta base — falta el marcador de entorno",
+      }
+    : enProduccion
+    ? {
+        "supabase/migrations": "NO construyó esta base: producción se armó con `unificacion/`, que renombró políticas e índices. INFORMATIVO",
+        "supabase/unificacion": "esto SÍ construyó esta base — acá una ausencia es un hallazgo",
+      }
+    : {
+        "supabase/migrations": "esto SÍ construyó esta base — acá una ausencia es un hallazgo",
+        "supabase/unificacion": "solo se pega en el proyecto de cayla-dynamic — ausente en local es lo normal",
+      };
 
   for (const [carpeta, faltantes] of Object.entries(grupos)) {
     console.log(`\n  ${carpeta}/ — ${NOTA[carpeta]}`);
@@ -228,6 +386,24 @@ function main() {
     }
   }
   console.log(`\n  ${completos} archivo(s) sin nada que delate que falten.`);
+
+  if (!inv.cuerpos) {
+    console.log(`
+  CUERPOS · no se compararon: este inventario no los trae.`);
+  } else {
+    console.log(`\n  CUERPOS · ${coincidencias.size} de ${inv.cuerpos.length} funciones de \`retail\``);
+    console.log(`  tienen un archivo del repo que las explica tal cual.`);
+    if (sinArchivo.length > 0) {
+      console.log(`\n  ${sinArchivo.length} NO:\n`);
+      for (const f of sinArchivo) {
+        console.log(`  ✗ ${f.nombre}() — ${f.motivo}`);
+        if (f.candidatos) console.log(`      el repo la define en: ${f.candidatos.join(", ")}`);
+      }
+      console.log(`\n    Un cuerpo que ningún archivo produce se escribió a mano contra la base.`);
+      console.log(`    No falla nada por eso —y ese es el problema—: el repo deja de describir`);
+      console.log(`    el sistema sin que nada lo delate.`);
+    }
+  }
 
   if (sobrecargadas.length > 0) {
     console.log(`\n  SOBRECARGAS VIVAS — la trampa que documentó ADR-0009: \`create or replace\``);

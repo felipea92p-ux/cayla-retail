@@ -2,6 +2,11 @@
 
 **Fecha:** 2026-09-10
 **Estado:** Backend aplicado y verificado en producción. Frontend (envío del token) pendiente — ver Consecuencias.
+**Continuación (2026-09-11):** el frontend ya manda el token, y la decisión de quién lo
+genera y cuánto vive está en ADR-0033 — otra sesión la tomó el mismo día, en paralelo
+con este ADR, y al reconciliar las dos ramas se conservó su mecánica (el token nace con
+el modal y NO se regenera dentro de la misma sesión de venta, ni al corregir el carrito).
+Este ADR sigue siendo la historia del backend; ADR-0033 es la del token.
 
 ## Contexto
 

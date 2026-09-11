@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { InventarioNav } from "@/components/InventarioNav";
 import { ConteoPanel } from "@/components/ConteoPanel";
+import { RegistroServiceWorker } from "@/components/RegistroServiceWorker";
 import { getConteoAbierto, getCatalogoParaConteo, getCategorias, getColores } from "@/lib/conteo";
 
 /**
@@ -38,12 +39,18 @@ export default async function ConteoPage() {
 
       <InventarioNav />
 
+      {/* Registra `public/sw.js` — es lo que hace que ESTA pantalla vuelva a abrir con el
+          router muerto. Se monta acá y no en el layout: el worker existe para el censo, y
+          cuantos menos navegadores lo tengan instalado, menos superficie hay (ADR-0034). */}
+      <RegistroServiceWorker />
+
       <ConteoPanel
         persona={{ sedeId: persona.sedeId, sedeCodigo: persona.sedeCodigo, esLider: persona.rol === "lider" }}
         conteo={conteo}
         catalogo={catalogo}
         categorias={categorias}
         colores={colores}
+        generadoEn={new Date().toISOString()}
       />
     </div>
   );
