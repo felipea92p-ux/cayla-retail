@@ -1,4 +1,4 @@
-# ADR-0037 — GSAP entra solo para ScrollTrigger; el resto del movimiento sigue en CSS
+# ADR-0038 — GSAP entra solo para ScrollTrigger; el resto del movimiento sigue en CSS
 
 **Fecha:** 2026-09-11
 **Estado:** Aplicado

@@ -61,7 +61,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
   const [ok, setOk] = useState<{ total: number; prendas: number; offline: boolean } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
 
-  // Reflujo suave del carrito al agregar/quitar una prenda (Flip, ADR-0037):
+  // Reflujo suave del carrito al agregar/quitar una prenda (Flip, ADR-0038):
   // se captura la posición ANTES de que cambie la lista y GSAP anima desde ahí
   // hacia la posición nueva, en vez de que las filas salten de golpe. Solo se
   // captura cuando la lista va a cambiar de largo — un cambio de cantidad o

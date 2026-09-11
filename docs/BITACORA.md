@@ -5,7 +5,7 @@
 
 ## 2026-09-11 (pidió "todo GSAP para más smooth"; se marcó la contradicción con lo recién decidido)
 
-Minutos después de cerrar ADR-0037 ("GSAP solo para scroll"), Felipe pidió aplicar
+Minutos después de cerrar ADR-0038 ("GSAP solo para scroll"), Felipe pidió aplicar
 "todos los cambios posibles con GSAP para que la app quede más estética y smooth" — el
 default exacto que esa ADR existe para bloquear. Se le marcó con AskUserQuestion en vez
 de ejecutar directo (toca más de un módulo a la vez). Eligió la opción acotada: 2-3
@@ -32,7 +32,7 @@ tensión de ADR-0011: ya existe una capa de movimiento propia, construida a prop
 librerías. Se le marcó con AskUserQuestion antes de tocar nada — ¿qué necesita hacer con
 GSAP que CSS no resuelve? Respuesta: ScrollTrigger. Ahí sí hay una razón real (soporte de
 navegador parejo para `animation-timeline: scroll()`, y GSAP es gratis desde que Webflow lo
-adquirió) → ADR-0037.
+adquirió) → ADR-0038.
 
 Se construyó `components/ui/RevelarAlScroll.tsx`: revela con el mismo gesto de
 `.anim-asentar`, pero disparado al cruzar el viewport en vez de al montar. La curva de

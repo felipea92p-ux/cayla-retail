@@ -1367,7 +1367,7 @@ importante que ha entrado a este archivo desde que existe.
 ## ✅ CERRADO (últimos, con fecha)
 
 - [x] 2026-09-11 — **GSAP integrado, pero solo para lo que CSS no cubre: scroll
-      (ADR-0037).** Felipe pidió integrar GSAP; antes de instalar se marcó la
+      (ADR-0038).** Felipe pidió integrar GSAP; antes de instalar se marcó la
       tensión con la capa de movimiento propia de `globals.css` (ADR-0011) —
       se resolvió que GSAP entra únicamente para `ScrollTrigger`. Se construyó
       `components/ui/RevelarAlScroll.tsx`, con el mismo gesto visual que
