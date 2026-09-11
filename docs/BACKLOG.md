@@ -15,17 +15,27 @@ importante que ha entrado a este archivo desde que existe.
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
       infiere qué es cada columna y de qué universal cuelga cada color o
-      categoría nueva; `importar_catalogo` (0055) escribe todo en una
-      transacción con stock en cero; `deshacer_importacion` descontinúa, nunca
-      borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
-      foto de cuaderno. Verificado en el navegador con la sesión real y
-      confirmado en la base. 178 tests.
-      **Lo que falta para usarlo en producción:** pegar `0056` (y `0052` + su
-      seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
-      **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
-      CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
-      (corregir a mano `Tops → Tops cortos deportivos` y decidir `Fucsia →
-      Púrpura` o `Rosa`).
+      categoría nueva; `importar_catalogo` (0056, redefinido en **0057** tras la
+      revisión adversarial del 11-sep) escribe todo en una transacción con
+      stock en cero; `deshacer_importacion` descontinúa, nunca borra, y ahora
+      tiene botón. Costos medidos CON el caché contado (antes se omitía y salía
+      diez veces menos): $0.014 el mapeo, **$0.19 los valores la primera vez en
+      la hora** (escribe ~85.000 tokens del árbol al caché; las siguientes ~$0.01),
+      $0.0036 una foto. 209 tests.
+      **Lo que falta para usarlo en producción:** pegar
+      `supabase/seed-taxonomia/produccion/9-migracion-0057.sql` (se genera con
+      `node scripts/taxonomia/preparar-produccion.mjs`; ya lleva `retail.` y
+      `retail.es_lider()`). Sin eso, la 0056 que ya está allá llama a
+      `fn_es_lider()`, que no existe en producción, y el importador revienta al
+      primer uso — es por lo que la prueba de Felipe del 11-sep no dejó rastro.
+      Y darle a *guardar* en **Inventario → Vocabulario** para anclar los 30
+      colores y 37 categorías de CAYLA (corregir a mano `Tops → Tops cortos
+      deportivos` y decidir `Fucsia → Púrpura` o `Rosa`).
+      **Límite honesto que dejó la revisión:** el freno de 40 llamadas al modelo
+      por persona y hora (`permitirLlamada`) vive en memoria del proceso — en
+      Vercel es por instancia, así que es un freno, no una garantía. La
+      garantía sería una tabla; el día que haga falta, es esa función la que se
+      reemplaza.
       **Lo que queda fuera, dicho:** las prendas que CAYLA ya tiene no ganan
       atributos ricos (tejido, patrón) — `producto_atributos` existe pero el
       importador solo la llena para catálogos nuevos; llenarla para el catálogo
@@ -51,12 +61,12 @@ importante que ha entrado a este archivo desde que existe.
       problema: el primero recibe un archivo ya pensado como catálogo por el
       cliente, el segundo es un registro de compras que nunca lo fue.
 
-- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
-      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
-      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
-      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
-      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
-      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+- [x] **`0052` + seed + `0056` ya están en producción** (Felipe los pegó el
+      11-sep desde `supabase/seed-taxonomia/produccion/`). Falta la **`0057`**
+      (ver el ítem del importador). `revisar-version.mjs` ahora lee los anclajes
+      de producción si se le pasan `REVISAR_SUPABASE_URL` y
+      `REVISAR_SUPABASE_KEY` (service role, solo en la terminal, nunca en un
+      archivo); sin ellas lee local y lo avisa.
 
 - [ ] **`gen-types`: ningún entorno tiene el esquema completo, así que ninguna
       regeneración sale bien sola — y ya son 3 parches a mano.**

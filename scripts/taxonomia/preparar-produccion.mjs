@@ -26,9 +26,42 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERSION_FIJADA } from "./version.mjs";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const SALIDA = join(RAIZ, "supabase", "seed-taxonomia", "produccion");
+
+/** `--version 2026-11` para empaquetar otra; sin él, la fijada. */
+function arg(nombre, porDefecto) {
+  const i = process.argv.indexOf(`--${nombre}`);
+  return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : porDefecto;
+}
+const version = arg("version", VERSION_FIJADA);
+
+/**
+ * Cuántas filas mete el seed en cada tabla, contadas del seed mismo. Los
+ * números de `verificar.sql` salían de una lista fija (1849/663/993/…) que
+ * seguía diciendo lo de la 2026-08 con cualquier otra versión — o sea, la
+ * verificación fallaba justo cuando más hacía falta. Se cuentan los `(…)` de
+ * cada bloque `insert into <tabla> … values`. Revisión del 2026-09-11.
+ */
+function contarFilas(seed) {
+  const cuentas = { aa: 0 };
+  let tabla = null;
+  for (const linea of seed.split("\n")) {
+    const m = /^insert into (\w+) \(/.exec(linea);
+    if (m) {
+      tabla = m[1];
+      continue;
+    }
+    if (tabla && linea.startsWith("  ('")) {
+      cuentas[tabla] = (cuentas[tabla] ?? 0) + 1;
+      // La raíz del vertical es `('aa', …` y sus hijas `('aa-1', …`: las dos cuentan.
+      if (tabla === "taxonomia_categorias" && (linea.startsWith("  ('aa-") || linea.startsWith("  ('aa',"))) cuentas.aa++;
+    }
+  }
+  return cuentas;
+}
 
 /** Tablas del repo que hay que calificar con `retail.` al pegar en producción. */
 const CABECERA = `-- ============================================================
@@ -88,6 +121,13 @@ function paraProduccion(sql) {
       // retail apuntan a la tabla real, `public.personas` — igual que todas las
       // migraciones de `supabase/unificacion/`. Le pasó a la 0056 (entonces numerada 0055) el 2026-09-11.
       .replace(/references personas \(/g, "references public.personas (")
+      // El candado de Líder se llama `fn_es_lider()` en el repo (0023) y
+      // `retail.es_lider()` en producción (unificacion/03_candados.sql). Sin
+      // esta línea, importar_catalogo y deshacer_importacion se crean sin error
+      // y revientan al primer uso con "function fn_es_lider() does not exist".
+      // Lo encontró la revisión adversarial del 2026-09-11, después de que ya
+      // estaba pegado en producción — verificado: allá solo existe es_lider.
+      .replace(/\bfn_es_lider\(\)/g, "retail.es_lider()")
   );
 }
 
@@ -100,14 +140,15 @@ function main() {
   console.log("  1-migracion-0052.sql");
 
   // ---------- 2. el seed, en trozos ----------
-  const rutaSeed = join(RAIZ, "supabase", "seed-taxonomia", "taxonomia-2026-08.sql");
+  const rutaSeed = join(RAIZ, "supabase", "seed-taxonomia", `taxonomia-${version}.sql`);
   if (!existsSync(rutaSeed)) {
-    console.error(`\nFalta el seed. Genéralo primero:\n  node scripts/taxonomia/cargar.mjs\n`);
+    console.error(`\nFalta el seed de la v${version}. Genéralo primero:\n  node scripts/taxonomia/cargar.mjs\n`);
     process.exitCode = 1;
     return;
   }
 
   const seed = readFileSync(rutaSeed, "utf8");
+  const n = contarFilas(seed);
 
   // El seed viene envuelto en su propio begin/commit y su propio search_path.
   // Se les quita: cada trozo es su propia transacción implícita, y un `begin`
@@ -136,15 +177,15 @@ function main() {
   writeFileSync(
     join(SALIDA, `${partes.length + 2}-verificar.sql`),
     CABECERA +
-      `-- Correr DESPUÉS de todas las partes. Los números esperados salen de la
--- misma carga verificada en local (ADR-0030).
-select 'categorias'      as que, count(*) as hay, 1849 as esperado from taxonomia_categorias
-union all select 'de ropa (aa)', count(*), 663   from taxonomia_categorias where vertical = 'aa'
-union all select 'atributos',    count(*), 993   from taxonomia_atributos
-union all select 'valores',      count(*), 10216 from taxonomia_valores
-union all select 'puente',       count(*), 16527 from taxonomia_categoria_atributos;
+      `-- Correr DESPUÉS de todas las partes. Los números esperados están contados
+-- del seed v${version} que se acaba de empaquetar (ADR-0030).
+select 'categorias'      as que, count(*) as hay, ${n.taxonomia_categorias ?? 0} as esperado from taxonomia_categorias
+union all select 'de ropa (aa)', count(*), ${n.aa}   from taxonomia_categorias where vertical = 'aa'
+union all select 'atributos',    count(*), ${n.taxonomia_atributos ?? 0}   from taxonomia_atributos
+union all select 'valores',      count(*), ${n.taxonomia_valores ?? 0} from taxonomia_valores
+union all select 'puente',       count(*), ${n.taxonomia_categoria_atributos ?? 0} from taxonomia_categoria_atributos;
 
--- Debe devolver una fila: 2026-08 activa.
+-- Debe devolver una fila: ${version} activa.
 select version, es_activa from taxonomia_versiones;
 
 -- Debe devolver la ruta completa de "Camisetas de capa base".
@@ -162,8 +203,19 @@ select ruta from taxonomia_categorias where id = 'aa-1-1-2-4';
   writeFileSync(join(SALIDA, nombre56), CABECERA + paraProduccion(m56), "utf8");
   console.log(`  ${nombre56}`);
 
+  // ---------- 5. la 0057: las funciones corregidas tras la revisión ----------
+  // Redefine importar_catalogo y deshacer_importacion y agrega una columna.
+  // En una base donde la 0056 YA está pegada, este archivo es el único que
+  // hace falta volver a pegar: sus `create or replace` pisan las funciones
+  // viejas y el `alter table` es lo único nuevo.
+  const m57 = readFileSync(join(RAIZ, "supabase", "migrations", "0057_importar_catalogo_revisado.sql"), "utf8");
+  const nombre57 = `${partes.length + 4}-migracion-0057.sql`;
+  writeFileSync(join(SALIDA, nombre57), CABECERA + paraProduccion(m57), "utf8");
+  console.log(`  ${nombre57}`);
+
   console.log(`\n  → ${SALIDA}`);
-  console.log(`\nPegar en orden: la 0052, las ${partes.length} partes del seed, la verificación, y la 0056.`);
+  console.log(`\nPegar en orden: la 0052, las ${partes.length} partes del seed, la verificación, la 0056 y la 0057.`);
+  console.log(`Si la 0056 ya estaba pegada, solo hace falta la 0057.`);
 }
 
 main();

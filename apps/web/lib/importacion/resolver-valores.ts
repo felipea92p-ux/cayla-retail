@@ -1,5 +1,6 @@
 import "server-only";
 import { anclarConIA } from "@/lib/taxonomia/anclar-ia";
+import { SIN_USO, sumarUso, type Uso } from "@/lib/ia/cliente";
 import type { TerminoPropio, TerminoUniversal } from "@/lib/taxonomia/anclar";
 import { cruzarConVocabulario, valoresDistintos, type ValorResuelto } from "./valores";
 import type { FilaEstandar } from "./mapeo";
@@ -34,7 +35,7 @@ export type ResolucionCampo = {
 export type ResolucionValores = {
   colores: ResolucionCampo;
   categorias: ResolucionCampo;
-  uso: { entrada: number; salida: number };
+  uso: Uso;
 };
 
 async function resolverCampo(
@@ -43,14 +44,14 @@ async function resolverCampo(
   vocabulario: { clave: string; nombre: string }[],
   universales: TerminoUniversal[],
   queSon: string
-): Promise<{ campo: ResolucionCampo; entrada: number; salida: number }> {
+): Promise<{ campo: ResolucionCampo; uso: Uso }> {
   const distintos = valoresDistintos(filas, campo);
   const { yaExisten, nuevos } = cruzarConVocabulario(distintos, vocabulario);
 
   // Si el vocabulario ya cubre todo lo del archivo, no hay nada que preguntar y
   // este paso sale gratis. Es el caso normal cuando una marca reimporta.
   if (nuevos.length === 0) {
-    return { campo: { yaExisten, aCrear: [] }, entrada: 0, salida: 0 };
+    return { campo: { yaExisten, aCrear: [] }, uso: SIN_USO };
   }
 
   // La clave que se le da al modelo es el propio texto: no hace falta inventar
@@ -79,7 +80,7 @@ async function resolverCampo(
     };
   });
 
-  return { campo: { yaExisten, aCrear }, entrada: uso.entrada, salida: uso.salida };
+  return { campo: { yaExisten, aCrear }, uso };
 }
 
 export async function resolverValores(
@@ -98,6 +99,6 @@ export async function resolverValores(
   return {
     colores: col.campo,
     categorias: cat.campo,
-    uso: { entrada: col.entrada + cat.entrada, salida: col.salida + cat.salida },
+    uso: sumarUso(col.uso, cat.uso),
   };
 }

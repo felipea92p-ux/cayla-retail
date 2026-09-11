@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Boton } from "@/components/ui/campos";
 import type { PlanDeMapeo } from "@/lib/importacion/mapeo";
+import { etiquetaCorta } from "@/lib/taxonomia/anclar";
 
 /**
  * Paso 3: qué colores y categorías trae el archivo, y el botón que importa.
@@ -33,15 +34,20 @@ type Respuesta = {
   colores: Campo;
   categorias: Campo;
   aviso?: string;
-  uso?: { entrada: number; salida: number };
+  /** Lo que costó, ya en dólares y con el caché contado (lib/ia/cliente.ts). */
+  uso?: { entrada: number; salida: number; cacheLeido: number; costo: number };
 };
 
-type Importado = { importacionId: string; productos: number; variantes: number; colores: number; categorias: number; duplicadas: number };
-
-/** La ruta universal entera es larga; en pantalla alcanza con la hoja. */
-function hoja(ruta: string) {
-  return ruta.split(" > ").pop() ?? ruta;
-}
+type Importado = {
+  importacionId: string;
+  productos: number;
+  variantes: number;
+  colores: number;
+  categorias: number;
+  duplicadas: number;
+  /** El reintento encontró la importación que ya había entrado. */
+  repetida?: boolean;
+};
 
 function Grupo({ titulo, campo }: { titulo: string; campo: Campo }) {
   const [verExistentes, setVerExistentes] = useState(false);
@@ -66,7 +72,7 @@ function Grupo({ titulo, campo }: { titulo: string; campo: Campo }) {
               </span>
               {v.propuesta?.universalNombre ? (
                 <span className="label-cayla inline-flex items-center rounded-full border border-sand bg-crema px-3 py-1 text-[11px] text-tinta/75">
-                  se agrupa bajo {hoja(v.propuesta.universalNombre)}
+                  se agrupa bajo {etiquetaCorta(v.propuesta.universalNombre)}
                 </span>
               ) : (
                 <span className="label-cayla inline-flex items-center rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar-profundo">
@@ -119,6 +125,13 @@ export function RevisarValores({
   const [importando, setImportando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importado, setImportado] = useState<Importado | null>(null);
+  const [deshaciendo, setDeshaciendo] = useState(false);
+  const [deshecha, setDeshecha] = useState<number | null>(null);
+  // UN token por revisión, no por clic: si la conexión se corta después de que
+  // la base confirmó, el reintento lleva el mismo token y el RPC devuelve la
+  // importación que ya entró en vez de meter el catálogo dos veces (0057; el
+  // mismo mecanismo que ADR-0034 en ventas).
+  const [token, setToken] = useState<string | null>(null);
 
   async function revisar() {
     setRevisando(true);
@@ -135,6 +148,7 @@ export function RevisarValores({
         return;
       }
       setR(datos);
+      setToken(crypto.randomUUID());
     } catch {
       setError("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -151,6 +165,7 @@ export function RevisarValores({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          token,
           filas,
           filaCabecera,
           plan,
@@ -168,10 +183,60 @@ export function RevisarValores({
       }
       setImportado(datos);
     } catch {
-      setError("No se pudo hablar con el servidor. Reintenta en un momento.");
+      setError(
+        "No se pudo hablar con el servidor. Vuelve a apretar Importar: si el catálogo alcanzó a entrar, el sistema lo reconoce y no lo repite."
+      );
     } finally {
       setImportando(false);
     }
+  }
+
+  async function deshacer() {
+    if (!importado) return;
+    if (
+      !window.confirm(
+        `¿Deshacer la importación? Las ${importado.productos} prendas quedan descontinuadas — no se borran — y los colores y categorías nuevos se conservan.`
+      )
+    ) {
+      return;
+    }
+    setDeshaciendo(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/importacion/deshacer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ importacionId: importado.importacionId }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        setError(datos.error ?? "No se pudo deshacer.");
+        return;
+      }
+      setDeshecha(Number(datos.descontinuados ?? 0));
+    } catch {
+      setError("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setDeshaciendo(false);
+    }
+  }
+
+  // ---------- ya se deshizo ----------
+  if (importado && deshecha !== null) {
+    return (
+      <section className="anim-entrada card-cayla p-5">
+        <span className="label-cayla inline-flex items-center rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar-profundo">
+          Importación deshecha
+        </span>
+        <p className="font-display mt-3 text-3xl text-tinta">
+          {deshecha} <span className="text-lg text-tinta/65">{deshecha === 1 ? "prenda descontinuada" : "prendas descontinuadas"}</span>
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-tinta/75">
+          Nada se borró: las prendas siguen en el catálogo como descontinuadas, y los colores y categorías que
+          se crearon se conservan en tu vocabulario. Para volver a intentarlo, sube el archivo de nuevo.
+        </p>
+      </section>
+    );
   }
 
   // ---------- ya se importó: la pantalla termina acá ----------
@@ -179,8 +244,13 @@ export function RevisarValores({
     return (
       <section className="anim-entrada card-cayla p-5">
         <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-3 py-1 text-[11px] text-verde-profundo">
-          Catálogo importado
+          {importado.repetida ? "Ya estaba importado" : "Catálogo importado"}
         </span>
+        {importado.repetida && (
+          <p className="mt-2 text-xs text-tinta/75">
+            El intento anterior sí había entrado: esto es lo que ya está en el catálogo. No se importó dos veces.
+          </p>
+        )}
         <p className="font-display mt-3 text-3xl text-tinta">
           {importado.productos} <span className="text-lg text-tinta/65">prendas</span>{" "}
           <span className="text-tinta/35">·</span> {importado.variantes}{" "}
@@ -200,7 +270,12 @@ export function RevisarValores({
           Todo entró con stock en cero: las cantidades se levantan contando. Si algo salió mal se puede
           deshacer — las prendas quedan descontinuadas, nunca borradas.
         </p>
-        <div className="mt-5 flex flex-wrap gap-3">
+        {error && (
+          <p className="anim-revelar mt-4 rounded-md border border-rojo/30 bg-rojo/10 px-4 py-3 text-xs text-rojo-profundo">
+            {error}
+          </p>
+        )}
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <Link href="/inventario" className="contents">
             <Boton type="button" peso="primario">
               Ver el catálogo
@@ -211,6 +286,9 @@ export function RevisarValores({
               Ir a contar
             </Boton>
           </Link>
+          <Boton type="button" peso="discreto" cargando={deshaciendo} onClick={() => void deshacer()}>
+            Deshacer esta importación
+          </Boton>
         </div>
       </section>
     );
@@ -275,10 +353,9 @@ export function RevisarValores({
             <span className="text-xs text-tinta/65">Con stock en cero. Se puede deshacer.</span>
           </div>
 
-          {r.uso && r.uso.entrada > 0 && (
+          {r.uso && r.uso.costo > 0 && (
             <p className="text-[11px] text-tinta/50">
-              {r.uso.entrada} tokens de entrada · {r.uso.salida} de salida ≈ $
-              {((r.uso.entrada * 1) / 1e6 + (r.uso.salida * 5) / 1e6).toFixed(4)}
+              {r.uso.entrada + r.uso.cacheLeido} tokens de entrada · {r.uso.salida} de salida ≈ ${r.uso.costo.toFixed(4)}
             </p>
           )}
         </div>

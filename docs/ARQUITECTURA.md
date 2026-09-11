@@ -113,7 +113,8 @@ flowchart TB
 - `/inventario/importar` → `SubirCatalogo.tsx` → `MapearColumnas.tsx` →
   `RevisarValores.tsx`, tres pasos que aparecen en secuencia. Toda la lógica
   vive en `lib/importacion/` y la escritura es el RPC `importar_catalogo`
-  (ADR-0035). Nada se guarda hasta el último botón.
+  (ADR-0035). Nada se guarda hasta el último botón; después de él hay uno para
+  deshacer.
 - `/inventario/taxonomia` → `lib/taxonomia/consultas.ts` →
   `AnclarVocabulario.tsx`: de qué término universal cuelga cada color y
   categoría propios (ADR-0030). La IA propone, la persona guarda.
@@ -207,16 +208,29 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 - `/api/importacion/leer` → archivo o enlace de Sheets a tabla de texto. Excel y
   CSV con código (`lib/importacion/tabla.ts`, `leer-archivo.ts`); PDF y foto
   los transcribe el modelo (`leer-documento.ts`) y la respuesta lo dice.
-- `/api/importacion/mapear` → con `plan` aplica sin IA; sin él, el modelo
-  infiere qué es cada columna mirando cabeceras y 40 filas
-  (`inferir-mapeo.ts`). Corregir una columna recalcula gratis.
+- `/api/importacion/mapear` → con `plan` aplica sin IA; sin él, primero busca
+  en `importaciones.plan` uno guardado con las MISMAS cabeceras (reimportar no
+  paga), y si no hay, el modelo infiere qué es cada columna mirando cabeceras
+  y 40 filas (`inferir-mapeo.ts`). Sin clave de Anthropic devuelve
+  `planPorCabeceras` (por nombre de columna) para terminar a mano. Corregir una
+  columna recalcula gratis.
 - `/api/importacion/valores` → los colores y categorías DISTINTOS del archivo
   cruzados con el vocabulario; solo lo nuevo va al modelo
-  (`resolver-valores.ts` → `lib/taxonomia/anclar-ia.ts`).
-- `/api/importacion/importar` → agrupa por producto, deduplica talla+color y
-  llama `importar_catalogo`. Único endpoint del importador que escribe.
+  (`resolver-valores.ts` → `lib/taxonomia/anclar-ia.ts`, en lotes de 60).
+- `/api/importacion/importar` → agrupa por producto, deduplica con la misma
+  clave que los índices de la base (`tokenTalla` + `claveTexto`) y llama
+  `importar_catalogo` con un `token` por intento (reintentar no duplica).
+  Único endpoint del importador que escribe.
+- `/api/importacion/deshacer` → `deshacer_importacion`: descontinúa, nunca
+  borra; se niega si hay movimientos o un conteo abierto sobre esas prendas.
 - `/api/taxonomia/anclar` → `POST` propone (IA), `PUT` guarda lo confirmado.
   Dos verbos a propósito: anclar mal es invisible y necesita un par de ojos.
+
+  Los cuatro endpoints que llaman al modelo pasan por `lib/ia/cliente.ts`: ahí
+  viven el modelo (`claude-haiku-4-5`), `pedirJSON` (mira `stop_reason` ANTES
+  de parsear — `messages.parse()` del SDK lanza si la respuesta se cortó), el
+  costo con caché contado, el traductor de errores a idioma CAYLA y el freno
+  de 40 llamadas por persona y hora (en memoria: por instancia en Vercel).
 
 Todo lo que llama al modelo lleva `server-only` y lee `ANTHROPIC_API_KEY` del
 servidor; sin ella responde 503 con el mensaje, no revienta. Modelo fijo
@@ -260,9 +274,10 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `taxonomia_categoria_atributos`. Solo lectura desde la app; se carga con
   `scripts/taxonomia/cargar.mjs`. El vocabulario propio CUELGA de ella:
   `categorias.taxonomia_categoria_id`, `colores.taxonomia_valor_id`.
-- **Importación** (0056, ADR-0035): `importaciones` (auditoría: origen, plan
-  aplicado, conteos, estado `aplicada`/`deshecha`), `productos.importacion_id`,
-  `producto_atributos` (tejido, patrón… por producto, contra la taxonomía).
+- **Importación** (0056 + 0057, ADR-0035): `importaciones` (auditoría: origen,
+  plan aplicado con sus cabeceras, conteos, estado `aplicada`/`deshecha`,
+  `token` único por intento), `productos.importacion_id`, `producto_atributos`
+  (tejido, patrón… por producto, contra la taxonomía).
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
   `asientos` / `asiento_lineas` (libro diario, **inmutable para clientes**:
   sin política INSERT/UPDATE/DELETE, solo entra vía RPC).
@@ -281,8 +296,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
-| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0035 |
-| `deshacer_importacion` | Descontinúa los productos de una importación; nunca borra; se niega si alguno ya tuvo movimientos |
+| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0035. Idempotente por `token` (0057): reintentar devuelve la importación que ya entró |
+| `deshacer_importacion` | Descontinúa los productos de una importación; nunca borra; se niega si alguno ya tuvo movimientos o está en un conteo abierto (0057) |
 | `fn_codigo_tres_letras`, `fn_familia_color_de_universal`, `fn_familia_de_universal` | Auxiliares del importador: derivan lo que `colores` y `categorias` exigen NOT NULL |
 
 ### 4.3 RLS sin `tenant_id`

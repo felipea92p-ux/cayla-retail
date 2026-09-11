@@ -3,7 +3,8 @@ import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 import { aplicarMapeo, type FilaEstandar, type PlanDeMapeo } from "@/lib/importacion/mapeo";
-import { normalizarTalla } from "@/lib/importacion/valores";
+import { normalizarTalla, tokenTalla } from "@/lib/importacion/valores";
+import { claveTexto } from "@/lib/taxonomia/anclar";
 
 // POST /api/importacion/importar
 //   { filas, filaCabecera, plan, origen, colores, categorias } → escribe
@@ -29,6 +30,18 @@ type ValorAprobado = { texto: string; universalId: string | null };
 function agruparProductos(variantes: FilaEstandar[]) {
   const porRef = new Map<string, { referencia: string; categoria: string; marca: string; genero: string; temporada: string; descripcion: string; variantes: Array<{ [k: string]: Json }> }>();
 
+  // El "código" del cliente es de VARIANTE solo si es distinto en cada fila.
+  // Muchos sistemas viejos llevan un código por MODELO (el mismo en la S, la M
+  // y la L); usarlo como sku dejaba que la primera variante se lo quedara y
+  // las demás cayeran al derivado — un catálogo donde el 1 de cada 3 tenía el
+  // código "de verdad" y el resto uno inventado, sin que nadie lo viera. Si un
+  // código se repite, no es de variante y no se usa. Revisión del 2026-09-11.
+  const vecesCodigo = new Map<string, number>();
+  for (const v of variantes) {
+    const c = v.codigoCliente.trim();
+    if (c) vecesCodigo.set(c, (vecesCodigo.get(c) ?? 0) + 1);
+  }
+
   for (const v of variantes) {
     const clave = v.referencia.trim().toLowerCase().replace(/\s+/g, " ");
     let p = porRef.get(clave);
@@ -44,8 +57,9 @@ function agruparProductos(variantes: FilaEstandar[]) {
       };
       porRef.set(clave, p);
     }
+    const codigoCliente = v.codigoCliente.trim();
     p.variantes.push({
-      codigoCliente: v.codigoCliente,
+      codigoCliente: (vecesCodigo.get(codigoCliente) ?? 0) > 1 ? "" : codigoCliente,
       talla: normalizarTalla(v.talla),
       color: v.color,
       costo: v.costo,
@@ -57,11 +71,21 @@ function agruparProductos(variantes: FilaEstandar[]) {
   // archivo con la misma talla y color del mismo modelo son un duplicado del
   // cliente, no dos variantes. Se deja una y se cuenta cuántas se quitaron, para
   // decirlo en pantalla en vez de que Postgres lo rechace a mitad de camino.
+  //
+  // La clave del dedup tiene que ser LA MISMA que usa la base, o el filtro deja
+  // pasar lo que el índice rechaza. Y la base tiene DOS índices: la identidad
+  // (talla, color canónico) y el código corto (`variantes_codigo_unico`), que
+  // es más estricto porque `fn_token_talla` colapsa "S/M" y "SM". Se dedupe
+  // con la clave más estricta de las dos: el token de talla (tokenTalla replica
+  // fn_token_talla, valores.test.ts lo fija contra Postgres) y el color por
+  // fn_clave_texto (claveTexto lo replica, anclar.test.ts). Con toLowerCase() a
+  // secas, "Azul  marino" y "Azul marino" pasaban la pantalla y la importación
+  // entera moría con un 23505 crudo.
   let duplicadas = 0;
   for (const p of porRef.values()) {
     const vistas = new Set<string>();
     p.variantes = p.variantes.filter((v) => {
-      const k = `${String(v.talla).toLowerCase()}|${String(v.color).toLowerCase()}`;
+      const k = `${tokenTalla(String(v.talla))}|${claveTexto(String(v.color))}`;
       if (vistas.has(k)) {
         duplicadas++;
         return false;
@@ -87,6 +111,8 @@ export async function POST(request: Request) {
     origen?: string;
     colores?: ValorAprobado[];
     categorias?: ValorAprobado[];
+    /** Uno por intento. Reintentar con el mismo devuelve la importación que ya entró. */
+    token?: string;
   } | null;
 
   if (!Array.isArray(cuerpo?.filas) || !cuerpo?.plan) {
@@ -100,11 +126,22 @@ export async function POST(request: Request) {
 
   const { productos, duplicadas } = agruparProductos(variantes);
 
+  // El token viaja al RPC como uuid: si no tiene esa forma, mejor rechazarlo
+  // acá que dejar que el cast de Postgres reviente con un 22P02 crudo.
+  const token = cuerpo.token?.trim() ?? "";
+  if (token && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+    return Response.json({ error: "El token del intento no es válido." }, { status: 400 });
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("importar_catalogo", {
     p_catalogo: {
+      token: token || null,
       origen: cuerpo.origen ?? "(sin origen)",
-      plan: cuerpo.plan,
+      // El plan se guarda CON las cabeceras del archivo: es lo que permite que
+      // /api/importacion/mapear lo reutilice la próxima vez que llegue un
+      // archivo con las mismas columnas, sin pagar otra llamada al modelo.
+      plan: { ...cuerpo.plan, cabeceras: cuerpo.filas[cuerpo.filaCabecera ?? 0] ?? [] },
       colores: (cuerpo.colores ?? []).map((c) => ({ nombre: c.texto, taxonomiaValorId: c.universalId })),
       categorias: (cuerpo.categorias ?? []).map((c) => ({ nombre: c.texto, taxonomiaCategoriaId: c.universalId })),
       productos,

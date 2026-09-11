@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { aplicarMapeo, type PlanDeMapeo } from "@/lib/importacion/mapeo";
 import { resolverValores } from "@/lib/importacion/resolver-valores";
+import { permitirLlamada, traducirErrorIA } from "@/lib/ia/cliente";
 import {
   getCategoriasPropias,
   getCategoriasUniversales,
@@ -61,13 +62,27 @@ export async function POST(request: Request) {
     // vocabulario sí se resuelve — es puro código. Devolver eso en vez de un
     // error deja seguir trabajando con la parte que no depende del modelo.
     const { cruzarConVocabulario, valoresDistintos } = await import("@/lib/importacion/valores");
+    // MISMA forma que el camino con clave: { yaExisten, aCrear }. La primera
+    // versión devolvía { yaExisten, nuevos } tal cual salía de
+    // cruzarConVocabulario, y RevisarValores leía aCrear.length → TypeError y
+    // pantalla en blanco justo en el caso que debía degradarse con gracia.
+    // Revisión del 2026-09-11.
+    const sinClasificar = (campo: ReturnType<typeof cruzarConVocabulario>) => ({
+      yaExisten: campo.yaExisten,
+      aCrear: campo.nuevos.map((n) => ({ ...n, existente: null, propuesta: null })),
+    });
     return Response.json({
       total: variantes.length,
-      colores: cruzarConVocabulario(valoresDistintos(variantes, "color"), vocabulario.colores),
-      categorias: cruzarConVocabulario(valoresDistintos(variantes, "categoria"), vocabulario.categorias),
-      aviso: "Falta ANTHROPIC_API_KEY: los valores nuevos hay que clasificarlos a mano.",
+      colores: sinClasificar(cruzarConVocabulario(valoresDistintos(variantes, "color"), vocabulario.colores)),
+      categorias: sinClasificar(
+        cruzarConVocabulario(valoresDistintos(variantes, "categoria"), vocabulario.categorias)
+      ),
+      aviso: "Falta ANTHROPIC_API_KEY: los valores nuevos se crearán sin agrupar bajo el estándar.",
     });
   }
+
+  const freno = permitirLlamada(persona.id);
+  if (!freno.ok) return Response.json({ error: freno.mensaje }, { status: 429 });
 
   try {
     const r = await resolverValores(variantes, vocabulario, {
@@ -76,13 +91,7 @@ export async function POST(request: Request) {
     });
     return Response.json({ total: variantes.length, ...r });
   } catch (e) {
-    const crudo = e instanceof Error ? e.message : String(e);
-    if (crudo.includes("credit balance")) {
-      return Response.json(
-        { error: "La cuenta de Anthropic se quedó sin saldo. Los valores nuevos se pueden clasificar a mano." },
-        { status: 402 }
-      );
-    }
-    return Response.json({ error: `No se pudieron clasificar los valores: ${crudo}` }, { status: 502 });
+    const { mensaje, status } = traducirErrorIA(e, "La clasificación de los valores nuevos");
+    return Response.json({ error: mensaje }, { status });
   }
 }

@@ -3,6 +3,40 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (141 agentes contra el importador: 42 hallazgos confirmados, y el peor estaba en producción)
+
+Felipe dio por probado el importador y se lanzó una revisión adversarial con `ultracode`:
+141 agentes en siete dimensiones (correctness, seguridad, integridad de datos, costo de API,
+UX del kit CAYLA, drift con producción, tests), cada hallazgo refutado por tres jueces
+independientes. Sobrevivieron **42**. Todos corregidos, con test donde el bug era de lógica
+pura (209 tests, 31 nuevos) y con `psql` donde era del RPC.
+
+El peor no era un bug de código: `importar_catalogo` y `deshacer_importacion` llaman a
+`fn_es_lider()`, que en producción se llama `retail.es_lider()`. La 0056 se pegó sin error
+y reventaba al primer uso — por eso la prueba de Felipe no dejó rastro (0 importaciones
+allá). El generador de producción ahora traduce ese nombre, y la **0057** redefine las dos
+funciones con lo demás que la revisión encontró: reintentar ya no importa dos veces
+(token de idempotencia, mismo mecanismo que ADR-0034), `sku_padre` se sufija probando y no
+con 4 chars de uuid iguales para toda la importación, un código de cliente que ya es
+código de barras de otra prenda no se usa, una correa sin color también recibe código, un
+color que no está en el vocabulario conserva su texto en vez de volverse null, y deshacer
+respeta un conteo abierto.
+
+En TypeScript, tres que dolían: `messages.parse()` del SDK LANZA cuando la respuesta se
+corta por `max_tokens`, así que el `if (stop_reason === "max_tokens")` de los tres archivos
+era código muerto — ahora `lib/ia/cliente.ts` mira el `stop_reason` antes de parsear, y es
+el único sitio con el modelo, el precio y el traductor de errores. El costo en pantalla
+ignoraba el caché: la primera llamada de la hora escribe ~85.000 tokens del árbol a $2/M y
+se mostraba a un décimo de su valor real ($0.19, no $0.02). Y el camino "sin clave"
+devolvía una forma que la pantalla no leía: pantalla en blanco justo donde debía degradarse
+con gracia; ahora hay un plan por nombre de columna y un botón "Asignar a mano".
+
+Lo que Felipe se lleva: **una revisión que no intenta romper el sistema no es una
+revisión**. "Ya está probado" con un archivo limpio dejó pasar 42 formas de fallar con
+archivos reales — y la más cara, la del nombre de una función, no la habría encontrado
+ningún test local porque local y producción no se llaman igual. Y que un número de costo
+mal medido es peor que ninguno: da confianza en algo falso.
+
 ## 2026-09-11 (Ingreso Mercadería, confirmado también en el archivo 2025 — sigue siendo compras, no catálogo)
 Felipe adjuntó `SINATRA 2025.xlsm` preguntando si una IA en otra sesión podría leerlo
 y categorizar sus productos contra la taxonomía que está definiendo — espera que los
