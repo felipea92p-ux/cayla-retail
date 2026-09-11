@@ -1378,6 +1378,15 @@ importante que ha entrado a este archivo desde que existe.
       de login en `proxy.ts`, ambos revertidos). `tsc`/`eslint`/`next build`
       en verde. Precedente para el resto del repo: antes de usar GSAP en una
       pantalla nueva, primero preguntar si CSS puro ya lo resuelve.
+      **Adenda (mismo día):** Felipe pidió aplicar "todo GSAP" para más
+      estética — se marcó la contradicción con lo recién decidido y eligió la
+      opción acotada. Se agregaron 3 cosas: `lib/motion-gsap.ts` (registro
+      centralizado de plugins + `caylaEase`, ya con dos consumidores), `Flip`
+      en el carrito de `RegistrarVentaModal.tsx` (reflujo suave al
+      agregar/quitar una prenda en el POS) y `RevelarAlScroll` extendido a
+      `/finanzas`. Deliberadamente sin tocar `Segmentado` — su indicador ya es
+      CSS puro y no lo necesitaba. Verificado en navegador, 227 tests + build
+      en verde.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

@@ -61,3 +61,46 @@ cuando algo cruza el viewport durante el scroll.** No reemplaza `anim-entrada`,
 - Queda como precedente para el resto del repo: antes de usar GSAP en una
   pantalla nueva, primero preguntar si CSS puro ya lo resuelve (probablemente
   sí) — GSAP es la excepción para scroll, no el nuevo default de animación.
+
+## Adenda — "aplicar todos los cambios posibles con GSAP" (2026-09-11, mismo día)
+
+Minutos después de cerrado lo de arriba, Felipe pidió "aplicar todos los cambios
+posibles con GSAP para que la app quede más estética y smooth" — exactamente el
+default que esta ADR existe para evitar. Se le marcó la contradicción con
+AskUserQuestion en vez de ejecutar directo (la petición toca más de un módulo a
+la vez, gatillo explícito de "detente y confirma" en `CLAUDE.md`). Eligió la
+opción acotada: 2-3 mejoras puntuales donde GSAP resuelve algo real, no una
+pasada masiva.
+
+Se hicieron 3 cambios, ninguno decorativo:
+
+1. **`lib/motion-gsap.ts`** — se centralizó el registro de plugins y la
+   `CustomEase("caylaEase")` que antes vivía solo dentro de `RevelarAlScroll.tsx`.
+   Necesario en cuanto apareció un segundo consumidor (`Flip`, abajo): sin esto,
+   cada componente habría podido registrar su propia aproximación de la curva y
+   desalinearse con el tiempo — el mismo riesgo que el comentario original de
+   `RevelarAlScroll.tsx` ya advertía.
+2. **Reflujo con `Flip` en el carrito de `RegistrarVentaModal.tsx`.** Al agregar
+   o quitar una prenda del carrito de venta, las filas ahora se acomodan con una
+   transición (misma curva `caylaEase`) en vez de saltar de golpe — es el
+   momento de mayor fricción visual del POS, con la Encargada mirando la
+   pantalla mientras cobra. Se captura `Flip.getState()` ANTES de que cambie el
+   carrito (en `agregar`/`quitar`, antes del `setCarrito`) y se anima después con
+   `useGSAP`, atado a `carrito.length` — subir la cantidad de una prenda que ya
+   estaba no reordena nada y no dispara esto.
+3. **`RevelarAlScroll` extendido a `/finanzas`.** Mismo patrón ya verificado en
+   `/comercial`, misma forma de pantalla (dashboard con secciones apiladas que el
+   Líder recorre con scroll) — no es una técnica nueva, es más superficie del
+   mismo precedente.
+
+Verificado en navegador (dos rutas de prueba temporales — `/prueba-carrito` con
+`RegistrarVentaModal` montado con props falsas, sin Supabase real — y el mismo
+bypass temporal de login que la vez anterior; ambos revertidos antes de cerrar):
+se agregaron y quitaron prendas del carrito de prueba y las filas restantes
+quedaron reordenadas correctamente, sin errores de GSAP/Flip en consola. `tsc`,
+`eslint`, `vitest` (227 tests) y `next build` en verde.
+
+Deliberadamente NO se tocó: `Segmentado` (`components/ui/campos.tsx`) — su
+indicador deslizante ya usa `transition-transform` de CSS puro y funciona bien;
+meterle GSAP habría sido decoración, no una mejora real. Ese es el límite que
+esta ADR pide vigilar.

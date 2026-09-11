@@ -1,20 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CustomEase } from "gsap/CustomEase";
-import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(useGSAP, ScrollTrigger, CustomEase);
-
-// Misma curva que --ease-cayla en app/globals.css (arranca suave, frena largo).
-// Se registra una sola vez con nombre para que esta capa nunca invente una
-// segunda curva que pueda desalinearse de globals.css con el tiempo — GSAP no
-// entiende cubic-bezier crudo como CSS, así que CustomEase es el puente.
-if (!CustomEase.get("caylaEase")) {
-  CustomEase.create("caylaEase", "0.32, 0.72, 0.24, 1");
-}
+import { gsap, useGSAP } from "@/lib/motion-gsap";
 
 /**
  * Revela `children` con el mismo gesto que `.anim-asentar` (opacidad 0.35→1,

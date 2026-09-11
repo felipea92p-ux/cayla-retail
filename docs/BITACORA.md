@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (pidió "todo GSAP para más smooth"; se marcó la contradicción con lo recién decidido)
+
+Minutos después de cerrar ADR-0037 ("GSAP solo para scroll"), Felipe pidió aplicar
+"todos los cambios posibles con GSAP para que la app quede más estética y smooth" — el
+default exacto que esa ADR existe para bloquear. Se le marcó con AskUserQuestion en vez
+de ejecutar directo (toca más de un módulo a la vez). Eligió la opción acotada: 2-3
+mejoras puntuales, no una pasada masiva.
+
+Se hicieron 3: `lib/motion-gsap.ts` centraliza el registro de plugins y la curva
+`caylaEase` (antes solo vivía en `RevelarAlScroll.tsx`, y ya no alcanzaba con un segundo
+consumidor); `Flip` en el carrito de `RegistrarVentaModal.tsx` para que las filas se
+reacomoden con transición al agregar/quitar una prenda, en vez de saltar — capturado
+antes del `setCarrito`, atado a `carrito.length` para no dispararse con solo subir una
+cantidad; y `RevelarAlScroll` extendido a `/finanzas` (misma forma de dashboard apilado
+que `/comercial`). Deliberadamente NO se tocó `Segmentado` — su indicador ya es CSS puro
+y meterle GSAP ahí habría sido decoración, no mejora.
+
+Verificado en navegador con `/prueba-carrito` (RegistrarVentaModal con props falsas,
+sin Supabase) + bypass temporal de login, ambos revertidos: agregar y quitar prendas
+reordena el carrito sin errores de consola. `tsc`, `eslint`, 227 tests y `next build`
+en verde.
+
 ## 2026-09-11 (GSAP entra solo por la puerta que CSS no cubre: el scroll)
 
 Felipe pidió integrar GSAP. Antes de instalar se auditó `globals.css` y apareció la misma
