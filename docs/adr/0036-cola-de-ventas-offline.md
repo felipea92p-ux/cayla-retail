@@ -1,11 +1,18 @@
-# ADR-0033 — La venta sin red se guarda en el navegador y sube sola
+# ADR-0036 — La venta sin red se guarda en el navegador y sube sola
 
 **Fecha:** 2026-09-11
 **Estado:** Construido y verificado en local (kong apagado/reencendido a mano).
 Addendum "Paso 3.1" del mismo día, más abajo: cierra el agujero de la venta
 huérfana cuando la caja cierra antes de que la venta suba.
+**Numeración:** nació como ADR-0033 en esta rama; al reconciliar con `main`
+(2026-09-11) ese número ya lo tenía "El reintento no cobra dos veces" (el token de
+`registrar_venta`, construido en paralelo el mismo día) y pasó a 0036. Mismo patrón
+que main ya había resuelto una vez para esa otra colisión — ver la nota de
+numeración en `0033-el-reintento-no-cobra-dos-veces.md`.
 **Deriva de:** ADR-0013 §C (decisión de negocio de Felipe: vender offline solo con
-stock de sobra) y ADR-0032 (el token que hace segura la subida).
+stock de sobra) y ADR-0032/ADR-0033 (el token que hace segura la subida, y por qué
+no se regenera dentro de la misma sesión de venta — esta cola depende de ese
+comportamiento: encola con `token.current` tal cual lo deja el envío que falló).
 
 ## Contexto
 
