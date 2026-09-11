@@ -53,7 +53,7 @@ $$;
 --   escrito— y este archivo seguia con la version sin `coalesce`. O sea que
 --   volver a pegarlo, que es lo que haria cualquiera siguiendo el repo, deshacia
 --   el arreglo en silencio. Se corrige el archivo para que un replay desde cero
---   produzca el estado bueno; `34_candados_no_null.sql` es el paso suelto para
+--   produzca el estado bueno; `36_candados_no_null.sql` es el paso suelto para
 --   una base que haya recibido la version vieja.
 --
 --   Es la misma disciplina que `migrations/0023_rls_helpers_security_definer.sql`

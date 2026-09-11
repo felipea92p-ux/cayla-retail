@@ -1,9 +1,13 @@
-# ADR-0031 — La IA compila el mapeo, no procesa las filas
+# ADR-0035 — La IA compila el mapeo, no procesa las filas
 
 **Fecha:** 2026-09-11
 **Estado:** Construido y verificado de punta a punta en el navegador — Excel,
 CSV, Google Sheets, PDF y foto entran; el catálogo se escribe en una transacción
 y se puede deshacer. 178 tests. Falta aplicar `0056` en producción.
+**Numeración:** nació como ADR-0031 con la migración `0055_importar_catalogo.sql`; al
+desduplicar `main` (2026-09-11) el ADR pasó a 0035 (0031 ya era `recalcular_stock`) y la
+migración a `0056` (0055 ya era `recalcular_stock_almacen`, y Supabase se niega a aplicar
+dos versiones iguales: `schema_migrations_pkey`).
 
 ## Contexto
 
@@ -46,7 +50,7 @@ avisa en ámbar cuando fue transcrito, en vez de esconder la diferencia.
 **DECIDÍ: un solo RPC transaccional para escribir.** `crear_producto_con_variantes`
 (0033) es de a uno: 900 productos son 900 round-trips a São Paulo (~322 ms,
 ADR-0013), cinco minutos, y si el 600 falla quedan 599 a medias.
-`importar_catalogo` (0056) escribe todo o nada.
+`importar_catalogo` (0055) escribe todo o nada.
 
 **DECIDÍ: stock en cero, y por eso deshacer es descontinuar.** Decisión de Felipe
 (2026-09-10): el catálogo entra, las cantidades las levanta el censo (ADR-0027).

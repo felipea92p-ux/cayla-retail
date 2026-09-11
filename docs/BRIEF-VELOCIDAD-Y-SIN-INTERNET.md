@@ -20,8 +20,8 @@ floja y el censo pone a cuatro personas escaneando durante días.
 
 | Paso | Estado | Dónde leerlo |
 |---|---|---|
-| 1. Reintentar una venta no cobra dos veces | ✅ hecho, verificado, `c22896e` | ADR-0031, `0054` |
-| 2. El censo abre y cuenta con el servidor caído | ✅ hecho, verificado, `4f72fd0` + cierre del 11-sep | ADR-0032 |
+| 1. Reintentar una venta no cobra dos veces | ✅ hecho, verificado, `c22896e` | ADR-0033, `0054` |
+| 2. El censo abre y cuenta con el servidor caído | ✅ hecho, verificado, `4f72fd0` + cierre del 11-sep | ADR-0034 |
 | **3. Venta sin internet** | **← acá arranca la sesión nueva** | ADR-0013 §C (decidido), este brief |
 | Desplegar | ⏸ nada está en `main`; Vercel despliega `main` | — |
 
@@ -93,13 +93,13 @@ se vendieron sin subir. Sin esto, dos ventas sin red de una prenda con 2 pasan l
 
 **D. La cola sube sola.** Mismo trío que el conteo: al volver la red, al montar, latido cada
 30 s. Cada venta va con su token: si la primera vez había llegado y se cortó la respuesta,
-`registrar_venta` devuelve la misma venta y no duplica (ADR-0031). Un rechazo del servidor
+`registrar_venta` devuelve la misma venta y no duplica (ADR-0033). Un rechazo del servidor
 durante la subida (la caja se cerró mientras tanto) se muestra con la referencia y se queda
 en la cola — borrarla sería perder una venta cobrada. Al vaciarse: `router.refresh()`.
 *Verificación:* con la cola de B y C, levantar kong y Next → `ventas` y `movimientos` tienen
 las filas, el stock bajó una sola vez, el aviso se apagó.
 
-**E. ADR-0033 y cierre.** Decisión estructural: hay una segunda cola de escrituras y una
+**E. ADR-0036 y cierre.** Decisión estructural: hay una segunda cola de escrituras y una
 regla de negocio en el cliente. Documentar por qué el umbral vive en el navegador (es la
 única parte que sabe que está sin red) y por qué igual no es fuente de verdad.
 

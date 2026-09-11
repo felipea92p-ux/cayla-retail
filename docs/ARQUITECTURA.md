@@ -113,7 +113,7 @@ flowchart TB
 - `/inventario/importar` → `SubirCatalogo.tsx` → `MapearColumnas.tsx` →
   `RevisarValores.tsx`, tres pasos que aparecen en secuencia. Toda la lógica
   vive en `lib/importacion/` y la escritura es el RPC `importar_catalogo`
-  (ADR-0031). Nada se guarda hasta el último botón.
+  (ADR-0035). Nada se guarda hasta el último botón.
 - `/inventario/taxonomia` → `lib/taxonomia/consultas.ts` →
   `AnclarVocabulario.tsx`: de qué término universal cuelga cada color y
   categoría propios (ADR-0030). La IA propone, la persona guarda.
@@ -164,7 +164,7 @@ flowchart TB
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
 
-### 3.y Sin internet: el service worker del censo (ADR-0032)
+### 3.y Sin internet: el service worker del censo (ADR-0034)
 
 Es la segunda excepción al patrón, y la más nueva. Todas las pantallas son Server
 Components: sin red no llega ni el HTML, así que ningún JavaScript nuestro llega a
@@ -244,7 +244,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
   parcial), `ventas` (1 fila por checkout; `token_cliente` con índice único
   es la idempotencia — el navegador manda un uuid por intento de venta y el
-  reintento devuelve la misma fila en vez de crear otra, ADR-0031).
+  reintento devuelve la misma fila en vez de crear otra, ADR-0033).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
 - **Producción**: `producciones` (`costo_unitario` es **columna generada**,
   no se puede desincronizar; `etapas` jsonb con 6 estados: patronaje →
@@ -260,7 +260,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `taxonomia_categoria_atributos`. Solo lectura desde la app; se carga con
   `scripts/taxonomia/cargar.mjs`. El vocabulario propio CUELGA de ella:
   `categorias.taxonomia_categoria_id`, `colores.taxonomia_valor_id`.
-- **Importación** (0056, ADR-0031): `importaciones` (auditoría: origen, plan
+- **Importación** (0056, ADR-0035): `importaciones` (auditoría: origen, plan
   aplicado, conteos, estado `aplicada`/`deshecha`), `productos.importacion_id`,
   `producto_atributos` (tejido, patrón… por producto, contra la taxonomía).
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
@@ -273,7 +273,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
-| `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0031) |
+| `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0033) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
@@ -281,7 +281,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
-| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0031 |
+| `importar_catalogo` | Catálogo entero en UNA transacción: crea colores y categorías nuevos (código de 3 letras y familia derivados), productos y variantes con código corto, stock en cero. Todo o nada — ADR-0035 |
 | `deshacer_importacion` | Descontinúa los productos de una importación; nunca borra; se niega si alguno ya tuvo movimientos |
 | `fn_codigo_tres_letras`, `fn_familia_color_de_universal`, `fn_familia_de_universal` | Auxiliares del importador: derivan lo que `colores` y `categorias` exigen NOT NULL |
 

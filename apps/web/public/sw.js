@@ -6,7 +6,7 @@
  *   cada carga. Con el wifi caído no llega ni el HTML, así que **ningún JavaScript nuestro
  *   llega a correr** — y da exactamente igual lo que haya guardado en el navegador. Ése es
  *   el agujero que ADR-0018 no vio: diseñó "el dato está local" y el problema era "la
- *   pantalla no abre". Ver ADR-0032.
+ *   pantalla no abre". Ver ADR-0034.
  *
  *   Y abre justo cuando más duele: el censo pone a cuatro personas escaneando durante días
  *   con la red de la tienda. `ConteoPanel` ya aguanta la red floja mientras la pestaña siga

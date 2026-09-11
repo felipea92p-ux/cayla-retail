@@ -86,7 +86,7 @@ function paraProduccion(sql) {
       // una FK no puede apuntar a una vista: `references personas (id)` da
       // "42809: referenced relation personas is not a table". Las tablas de
       // retail apuntan a la tabla real, `public.personas` — igual que todas las
-      // migraciones de `supabase/unificacion/`. Le pasó a la 0056 el 2026-09-11.
+      // migraciones de `supabase/unificacion/`. Le pasó a la 0056 (entonces numerada 0055) el 2026-09-11.
       .replace(/references personas \(/g, "references public.personas (")
   );
 }
@@ -157,10 +157,10 @@ select ruta from taxonomia_categorias where id = 'aa-1-1-2-4';
   // ---------- 4. la 0056, que va DESPUÉS del seed ----------
   // Referencia `taxonomia_valores` en una función `language sql`, y Postgres
   // valida ese cuerpo al crearla: la taxonomía tiene que estar cargada antes.
-  const m55 = readFileSync(join(RAIZ, "supabase", "migrations", "0056_importar_catalogo.sql"), "utf8");
-  const nombre55 = `${partes.length + 3}-migracion-0056.sql`;
-  writeFileSync(join(SALIDA, nombre55), CABECERA + paraProduccion(m55), "utf8");
-  console.log(`  ${nombre55}`);
+  const m56 = readFileSync(join(RAIZ, "supabase", "migrations", "0056_importar_catalogo.sql"), "utf8");
+  const nombre56 = `${partes.length + 3}-migracion-0056.sql`;
+  writeFileSync(join(SALIDA, nombre56), CABECERA + paraProduccion(m56), "utf8");
+  console.log(`  ${nombre56}`);
 
   console.log(`\n  → ${SALIDA}`);
   console.log(`\nPegar en orden: la 0052, las ${partes.length} partes del seed, la verificación, y la 0056.`);

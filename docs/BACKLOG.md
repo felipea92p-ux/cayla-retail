@@ -12,7 +12,7 @@ importante que ha entrado a este archivo desde que existe.
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
 - [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
-      punta a punta (ADR-0030, ADR-0031).** Excel, CSV, Google Sheets, PDF y foto
+      punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
       infiere qué es cada columna y de qué universal cuelga cada color o
       categoría nueva; `importar_catalogo` (0055) escribe todo en una
@@ -20,7 +20,7 @@ importante que ha entrado a este archivo desde que existe.
       borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
       foto de cuaderno. Verificado en el navegador con la sesión real y
       confirmado en la base. 178 tests.
-      **Lo que falta para usarlo en producción:** pegar `0055` (y `0052` + su
+      **Lo que falta para usarlo en producción:** pegar `0056` (y `0052` + su
       seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
       **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
       CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
@@ -708,7 +708,7 @@ importante que ha entrado a este archivo desde que existe.
       local: `config.toml` tiene el contenedor de `realtime` **apagado** desde ADR-0010,
       así que probar esto en local exige encenderlo primero (y ADR-0010 avisa que dos
       stacks compitiendo era justo lo que rompía los healthchecks).
-      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0031, `0054`). La
+      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0033, `0054`). La
       cola de la Fase 3 tiene su red puesta antes de existir.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
@@ -718,7 +718,7 @@ importante que ha entrado a este archivo desde que existe.
       se verificó lo principal: la cola sube sola al volver la red (la prenda encolada
       apareció en `conteo_lineas`), y la prueba destapó tres defectos del camino de fallo
       que ya existían — encolaba rechazos del servidor, trababa la pantalla con un error
-      contradictorio, «Las 1 prendas» — todos corregidos (ADR-0032, addendum).
+      contradictorio, «Las 1 prendas» — todos corregidos (ADR-0034, addendum).
       **Lo que falta ver en navegador es el flujo corregido:** escanear sin red y que la
       línea aparezca SIN error rojo, con el buscador tomando foco. Se trabó por el arnés
       (pestaña oculta → React no revela el streaming), no por la app. Receta: build de
@@ -736,7 +736,7 @@ importante que ha entrado a este archivo desde que existe.
       porque `not NULL` no es true, y **el permiso pasa**. `fn_puede_operar_sede` es un
       `select` sin `coalesce` sobre `fn_es_lider()`, así que puede devolver NULL.
       Cerrado hasta ahora en **una sola** función: `registrar_venta`, por `0054`, y solo
-      porque era la que esa migración reescribía igual (ADR-0031). Falta el barrido:
+      porque era la que esa migración reescribía igual (ADR-0033). Falta el barrido:
       listar cada `if not <candado>` de las funciones de local y pasarlo a `is not true`,
       o ponerle `coalesce(..., false)` a `fn_es_lider`/`fn_puede_operar_sede` en su
       definición, que es el arreglo por el otro lado y probablemente el correcto.

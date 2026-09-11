@@ -129,7 +129,7 @@ end;
 $$;
 
 -- ---------- registrar venta ----------
--- ⚠ ESTA VERSIÓN ESTÁ DESACTUALIZADA A PROPÓSITO: `35_registrar_venta_p_nota.sql`
+-- ⚠ ESTA VERSIÓN ESTÁ DESACTUALIZADA A PROPÓSITO: `37_registrar_venta_p_nota.sql`
 --   la redefine con la validación de permiso y con la idempotencia por `p_token`
 --   (más la columna `ventas.token_cliente`). No se duplica el cuerpo acá para no
 --   tener dos fuentes de verdad de la misma función.

@@ -1,8 +1,13 @@
-# ADR-0031 — El reintento no cobra dos veces: el token lo pone el cliente y sobrevive al fallo
+# ADR-0033 — El reintento no cobra dos veces: el token lo pone el cliente y sobrevive al fallo
 
 **Fecha:** 2026-09-10
 **Estado:** Construido y verificado contra el Postgres local; producción ya tenía la mitad
 de base desde antes (columna, índice y guarda), así que no necesita DDL.
+**Numeración:** nació como ADR-0031 en la rama `feat/taxonomia-universal`; al reconciliar
+con `main` (2026-09-11) ese número ya lo tenía `recalcular_stock` y pasó a 0033.
+**Ver también:** ADR-0032 — la "mitad de base" que producción ya tenía no cayó del cielo:
+otra sesión la puso a mano el mismo día y la documentó ahí. Ese ADR es la historia del
+backend; éste es la del token.
 **Deriva de:** ADR-0013 (Fase 3), ADR-0018 (lo que su diseño NO resuelve), ADR-0022
 (los errores hablan idioma CAYLA), ADR-0026 (una firma nueva borra la vieja).
 **Afecta:** `supabase/migrations/0054_venta_idempotente.sql`,
@@ -97,7 +102,7 @@ menos — pero no promete de más.
 - **El candado de permiso de esta función se endureció de paso**: `if not
   fn_puede_operar_sede(...)` pasó a `if ... is not true`. Con NULL, `not NULL` tampoco es
   true y el `raise` no dispara — el candado se abre solo. Producción ya estaba endurecida
-  (`34_candados_no_null.sql`); local no. Se cerró acá porque es la misma función que este
+  (`36_candados_no_null.sql`); local no. Se cerró acá porque es la misma función que este
   cambio reescribe. **El resto de las funciones locales no se revisó**: queda en el BACKLOG.
 - **Lo que esto NO es:** no es la venta sin internet. Sin cola no cambia nada visible cuando
   el wifi está caído — la llamada sigue fallando. Es la red que hace segura a la cola, no la

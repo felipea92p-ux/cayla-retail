@@ -9,7 +9,7 @@
 --   cubre: **verificar en el navegador las pantallas que no se pueden probar
 --   sin prendas** — escanear en el conteo, vender por el modal, mover stock.
 --   El 10-sep dos verificaciones se cortaron en el mismo punto por esto
---   (ADR-0031 y ADR-0032: «local tiene cero variantes»).
+--   (ADR-0033 y ADR-0034: «local tiene cero variantes»).
 --
 -- QUÉ SIEMBRA — 8 modelos, 38 variantes, en el vocabulario de CAYLA
 --   Cada prenda pasa por el MISMO camino que una real: el código corto y los
