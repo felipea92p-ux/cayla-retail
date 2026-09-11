@@ -29,6 +29,9 @@ type Tabla = {
   transcrito?: boolean;
   notas?: string;
   uso?: { entrada: number; salida: number };
+  /** Solo en Excel con varias hojas: para elegir otra. */
+  hojas?: { nombre: string; filas: number }[];
+  hojaElegida?: string;
 };
 
 const MAX_FILAS_VISIBLES = 30;
@@ -43,6 +46,8 @@ export function SubirCatalogo() {
   const [filaCabecera, setFilaCabecera] = useState(0);
   const [plan, setPlan] = useState<PlanDeMapeo | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
+  // El archivo se guarda para poder releerlo con OTRA hoja sin pedirlo de nuevo.
+  const archivoActual = useRef<File | null>(null);
 
   async function enviar(cuerpo: FormData | string) {
     setCargando(true);
@@ -73,11 +78,22 @@ export function SubirCatalogo() {
   function subir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const fd = new FormData();
-    fd.append("archivo", f);
-    void enviar(fd);
+    archivoActual.current = f;
+    void enviarArchivo(f);
     // Se limpia para que volver a elegir el MISMO archivo dispare onChange.
     e.target.value = "";
+  }
+
+  function enviarArchivo(f: File, hoja?: string) {
+    const fd = new FormData();
+    fd.append("archivo", f);
+    if (hoja) fd.append("hoja", hoja);
+    return enviar(fd);
+  }
+
+  /** Cambiar de hoja relee el mismo archivo — no hay que volver a elegirlo. */
+  function cambiarHoja(nombre: string) {
+    if (archivoActual.current) void enviarArchivo(archivoActual.current, nombre);
   }
 
   const cabeceras = tabla?.filas[filaCabecera] ?? [];
@@ -151,14 +167,32 @@ export function SubirCatalogo() {
                 <span className="font-display text-base text-tinta">{cabeceras.length}</span> columnas
               </p>
             </div>
-            <div className="w-72">
-              <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">La cabecera está en</p>
-              <Desplegable
-                valor={String(filaCabecera)}
-                onValor={(v) => setFilaCabecera(Number(v))}
-                opciones={opcionesCabecera}
-                forma="pastilla"
-              />
+            <div className="flex flex-wrap gap-4">
+              {/* Solo cuando el libro tiene varias hojas: con una sola no hay
+                  nada que elegir, y un desplegable de una opción es ruido. */}
+              {tabla.hojas && tabla.hojas.length > 1 && (
+                <div className="w-64">
+                  <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">Hoja del libro</p>
+                  <Desplegable
+                    valor={tabla.hojaElegida ?? ""}
+                    onValor={cambiarHoja}
+                    opciones={tabla.hojas.map((h) => ({
+                      valor: h.nombre,
+                      texto: `${h.nombre} · ${h.filas} ${h.filas === 1 ? "fila" : "filas"}`,
+                    }))}
+                    forma="pastilla"
+                  />
+                </div>
+              )}
+              <div className="w-72">
+                <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">La cabecera está en</p>
+                <Desplegable
+                  valor={String(filaCabecera)}
+                  onValor={(v) => setFilaCabecera(Number(v))}
+                  opciones={opcionesCabecera}
+                  forma="pastilla"
+                />
+              </div>
             </div>
           </div>
 

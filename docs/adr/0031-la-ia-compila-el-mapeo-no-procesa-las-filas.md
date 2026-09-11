@@ -3,7 +3,7 @@
 **Fecha:** 2026-09-11
 **Estado:** Construido y verificado de punta a punta en el navegador — Excel,
 CSV, Google Sheets, PDF y foto entran; el catálogo se escribe en una transacción
-y se puede deshacer. 178 tests. Falta aplicar `0055` en producción.
+y se puede deshacer. 178 tests. Falta aplicar `0056` en producción.
 
 ## Contexto
 
@@ -46,7 +46,7 @@ avisa en ámbar cuando fue transcrito, en vez de esconder la diferencia.
 **DECIDÍ: un solo RPC transaccional para escribir.** `crear_producto_con_variantes`
 (0033) es de a uno: 900 productos son 900 round-trips a São Paulo (~322 ms,
 ADR-0013), cinco minutos, y si el 600 falla quedan 599 a medias.
-`importar_catalogo` (0055) escribe todo o nada.
+`importar_catalogo` (0056) escribe todo o nada.
 
 **DECIDÍ: stock en cero, y por eso deshacer es descontinuar.** Decisión de Felipe
 (2026-09-10): el catálogo entra, las cantidades las levanta el censo (ADR-0027).
@@ -98,6 +98,6 @@ el mismo que los aprueba.
 
 ## Cómo se revierte
 
-Las tablas y funciones de `0055` se pueden soltar sin tocar nada existente:
+Las tablas y funciones de `0056` se pueden soltar sin tocar nada existente:
 `importaciones`, `producto_atributos`, `productos.importacion_id` y las cinco
 funciones. Ninguna pantalla vieja las lee.

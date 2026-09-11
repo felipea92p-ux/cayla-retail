@@ -64,7 +64,12 @@ export async function POST(request: Request) {
       return Response.json({ ...tabla, transcrito: true, notas, uso });
     }
 
-    return Response.json(await leerArchivo(await archivo.arrayBuffer(), archivo.name));
+    // La hoja que eligió la persona, cuando el libro tiene varias y la de más
+    // filas no era la buena (SINATRA: 20 pestañas, y la grande era "Gastos").
+    const hoja = form.get("hoja");
+    return Response.json(
+      await leerArchivo(await archivo.arrayBuffer(), archivo.name, typeof hoja === "string" && hoja ? hoja : undefined)
+    );
   } catch (e) {
     // ErrorDeLectura ya trae un mensaje escrito para quien lo va a leer en
     // pantalla, con la salida incluida ("guárdalo como CSV y vuelve a subirlo").

@@ -9,7 +9,7 @@ import { normalizarTalla } from "@/lib/importacion/valores";
 //   { filas, filaCabecera, plan, origen, colores, categorias } → escribe
 //
 // CONTRATO
-//   PROMETE: todo o nada. El RPC `importar_catalogo` (0055) corre en una sola
+//   PROMETE: todo o nada. El RPC `importar_catalogo` (0056) corre en una sola
 //            transacción: o entra el catálogo entero, o no entra nada. No hay
 //            estado donde la mitad de las prendas existe.
 //   PROMETE: stock en cero. Solo crea catálogo; las cantidades las levanta el

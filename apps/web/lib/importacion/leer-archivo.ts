@@ -22,7 +22,8 @@ export class ErrorDeLectura extends Error {}
 
 /** Lee un archivo subido. `nombre` decide el formato: el mime de un .xlsx varía
  *  demasiado entre navegadores y sistemas para confiar en él. */
-export async function leerArchivo(datos: ArrayBuffer, nombre: string): Promise<Tabla> {
+/** `hoja`: nombre de la hoja a leer. Sin ella, la que tiene más filas. */
+export async function leerArchivo(datos: ArrayBuffer, nombre: string, hoja?: string): Promise<Tabla> {
   if (datos.byteLength > MAX_BYTES) {
     throw new ErrorDeLectura(
       `El archivo pesa ${(datos.byteLength / 1024 / 1024).toFixed(1)} MB y el máximo son ${MAX_BYTES / 1024 / 1024} MB. ` +
@@ -33,7 +34,7 @@ export async function leerArchivo(datos: ArrayBuffer, nombre: string): Promise<T
 
   const ext = nombre.toLowerCase().split(".").pop() ?? "";
 
-  if (ext === "xlsx" || ext === "xlsm") return leerExcel(datos, nombre);
+  if (ext === "xlsx" || ext === "xlsm") return leerExcel(datos, nombre, hoja);
   if (ext === "csv" || ext === "txt") return leerCSV(new TextDecoder("utf-8").decode(datos), nombre);
   if (ext === "xls") {
     // El .xls viejo (BIFF, anterior a 2007) es otro formato entero, y soportarlo
@@ -51,7 +52,7 @@ function leerCSV(texto: string, origen: string): Tabla {
   return { filas, filaCabecera: detectarCabecera(filas), origen };
 }
 
-async function leerExcel(datos: ArrayBuffer, origen: string): Promise<Tabla> {
+async function leerExcel(datos: ArrayBuffer, origen: string, nombreHoja?: string): Promise<Tabla> {
   const libro = new ExcelJS.Workbook();
   try {
     await libro.xlsx.load(datos);
@@ -61,11 +62,19 @@ async function leerExcel(datos: ArrayBuffer, origen: string): Promise<Tabla> {
     );
   }
 
-  // La hoja con más filas, no la primera: un catálogo real suele traer "Portada"
-  // o "Instrucciones" delante, y leer la primera devolvería tres celdas de texto.
   const hojas = libro.worksheets.filter((h) => h.rowCount > 0);
   if (hojas.length === 0) throw new ErrorDeLectura("El Excel no tiene ninguna hoja con datos.");
-  const hoja = hojas.reduce((a, b) => (b.rowCount > a.rowCount ? b : a));
+
+  // Por defecto la hoja con más filas, no la primera: un catálogo real suele
+  // traer "Portada" o "Instrucciones" delante. Pero es solo un DEFAULT, y la
+  // persona puede elegir otra — SINATRA 2025.xlsm lo dejó claro: la hoja con
+  // más filas era "Gastos" (12.239) y el inventario estaba en "Ingreso
+  // Mercadería" (3.941). Ninguna heurística sabe cuál es la hoja correcta de
+  // un archivo financiero de 20 pestañas; quien lo mandó, sí.
+  const hoja = nombreHoja
+    ? hojas.find((h) => h.name === nombreHoja)
+    : hojas.reduce((a, b) => (b.rowCount > a.rowCount ? b : a));
+  if (!hoja) throw new ErrorDeLectura(`El Excel no tiene una hoja llamada «${nombreHoja}».`);
 
   const filas: string[][] = [];
   hoja.eachRow({ includeEmpty: false }, (fila) => {
@@ -86,6 +95,8 @@ async function leerExcel(datos: ArrayBuffer, origen: string): Promise<Tabla> {
     filas: conDatos,
     filaCabecera: detectarCabecera(conDatos),
     origen: `${origen} · hoja "${hoja.name}"`,
+    hojas: hojas.map((h) => ({ nombre: h.name, filas: h.rowCount })),
+    hojaElegida: hoja.name,
   };
 }
 
@@ -99,6 +110,13 @@ async function leerExcel(datos: ArrayBuffer, origen: string): Promise<Tabla> {
  * — y hace que las dos rutas de entrada se comporten igual.
  */
 function textoDeCelda(celda: ExcelJS.Cell): string {
+  // Una celda que forma parte de un rango COMBINADO y no es la principal tiene
+  // `value` null y un `.text` que revienta con "Cannot read properties of null"
+  // — bug de exceljs. Lo destapó SINATRA 2025.xlsm, que combina celdas en los
+  // títulos de casi todas sus hojas. Para el importador vale como vacía: el
+  // dato vive en la celda principal del rango, que sí se lee.
+  if (celda.isMerged && celda.value == null) return "";
+
   const v = celda.value;
   if (v == null) return "";
 
@@ -118,7 +136,13 @@ function textoDeCelda(celda: ExcelJS.Cell): string {
   if (typeof v === "object" && "hyperlink" in v) {
     return String((v as { text?: string }).text ?? "");
   }
-  return celda.text ?? String(v);
+  // El mismo bug de exceljs puede asomar por otros caminos (fórmulas sobre
+  // rangos combinados): si .text revienta, el valor crudo sirve igual.
+  try {
+    return celda.text ?? String(v);
+  } catch {
+    return String(v);
+  }
 }
 
 /**

@@ -23,6 +23,9 @@ export type Tabla = {
   filaCabecera: number;
   /** De dónde salió, para mensajes de error y para la auditoría de la importación. */
   origen: string;
+  /** Solo en Excel: las hojas del libro, para poder elegir otra. */
+  hojas?: { nombre: string; filas: number }[];
+  hojaElegida?: string;
 };
 
 /** Lo que separa las celdas. Excel en español escribe `;` por defecto. */

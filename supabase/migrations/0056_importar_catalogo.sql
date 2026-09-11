@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0055 — Importar un catálogo completo en una sola transacción
+-- 0056 — Importar un catálogo completo en una sola transacción
 --
 -- QUÉ ARREGLA
 --   Hasta acá el importador lee, mapea y resuelve valores sin tocar la base. Este

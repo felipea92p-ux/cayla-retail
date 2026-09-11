@@ -260,7 +260,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `taxonomia_categoria_atributos`. Solo lectura desde la app; se carga con
   `scripts/taxonomia/cargar.mjs`. El vocabulario propio CUELGA de ella:
   `categorias.taxonomia_categoria_id`, `colores.taxonomia_valor_id`.
-- **Importación** (0055, ADR-0031): `importaciones` (auditoría: origen, plan
+- **Importación** (0056, ADR-0031): `importaciones` (auditoría: origen, plan
   aplicado, conteos, estado `aplicada`/`deshecha`), `productos.importacion_id`,
   `producto_atributos` (tejido, patrón… por producto, contra la taxonomía).
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
