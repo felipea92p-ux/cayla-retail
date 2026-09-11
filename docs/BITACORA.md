@@ -3,6 +3,35 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (Ingreso Mercadería, confirmado también en el archivo 2025 — sigue siendo compras, no catálogo)
+Felipe adjuntó `SINATRA 2025.xlsm` preguntando si una IA en otra sesión podría leerlo
+y categorizar sus productos contra la taxonomía que está definiendo — espera que los
+productos disponibles de CAYLA salgan probablemente de "Ingreso Mercadería". Se
+inspeccionó el archivo real (no por memoria): 2.219 filas de compra, 21 `CATEGORÍA`
+con duplicados de forma, `DETALLE` en texto libre (1.439 valores, sin talla ni
+color), `TALLA` vacía al 100%, 807 filas (36%) con error de fórmula — confirma en
+2025 lo mismo que `docs/ANALISIS-SINATRA.md` ya había medido en los `.xlsm` 2026.
+
+Lo que Felipe se lleva: el motor de anclaje del importador universal (ADR-0030) sí
+sirve para mapear los 21 valores de `CATEGORÍA` contra las 30 categorías reales —
+eso es barato y viable hoy, bloqueado solo por falta de `ANTHROPIC_API_KEY`. Pero
+"sacar los productos disponibles de Ingreso Mercadería" y "el importador de
+catálogos de clientes" no son el mismo problema aunque compartan el motor: la hoja
+nunca tuvo talla/color por fila, así que no alcanza para crear productos reales sin
+inventar datos. Queda anotado en `docs/BACKLOG.md` (ítem "Importador de catálogos
+de clientes con IA") para que la sesión que construya esto lo tenga presente y
+decida qué significa concretamente "sacar los productos" — no se resolvió aquí, a
+pedido explícito de Felipe ("no avances nada").
+
+Felipe agregó el dato que le pone techo a las pruebas: la cuenta de la API tiene
+**US$8 de balance**. Anotado junto al bloqueo de `ANTHROPIC_API_KEY` en
+`docs/BACKLOG.md`: alcanza para ~47 corridas completas al costo estimado
+(~$0.17 c/u), y se agota rápido si alguien prueba mandando archivos crudos al
+modelo en vez de solo el mapeo de categorías. Regla dejada por escrito para la
+sesión que pruebe esto: llamar al modelo real solo cuando sea estrictamente
+necesario — probar primero la parte determinista sin IA (`anclar.ts`), y cuando
+haga falta el modelo, una corrida mínima y deliberada, no prueba y error.
+
 ## 2026-09-10 (el estándar universal va debajo, no en lugar de)
 
 Felipe preguntó si se podía usar IA para importar el inventario de cada cliente

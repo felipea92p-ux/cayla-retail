@@ -24,6 +24,16 @@ importante que ha entrado a este archivo desde que existe.
       ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
       se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
       **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
+      **Presupuesto real de esa cuenta: US$8 de balance (2026-09-11, dato de
+      Felipe).** No es un límite teórico — a ~$0.17 por corrida completa de
+      importador (estimado arriba) alcanza para ~47 corridas, y una prueba de
+      lectura mal diseñada que mande archivos crudos al modelo en vez de solo el
+      mapeo lo agota en pocos intentos. **Regla para cualquier sesión que pruebe
+      esto: llamar al modelo solo cuando sea estrictamente necesario para
+      verificar el diseño** — preferir probar `lib/taxonomia/anclar.ts` (la parte
+      determinista, sin IA, ya testeada) y revisar el plan de mapeo a ojo antes de
+      gastar una sola llamada real; cuando haga falta probar contra el modelo de
+      verdad, una corrida mínima y deliberada, no un loop de prueba y error.
       Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
       archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
       URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
@@ -35,6 +45,32 @@ importante que ha entrado a este archivo desde que existe.
       versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
       taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
       la regla es que **la IA compila el mapeo, no procesa las filas**.
+      **Nota para la sesión que construya esto (2026-09-11):** Felipe espera que los
+      productos disponibles de CAYLA se saquen probablemente de la hoja
+      "Ingreso Mercadería" de SINATRA (`.xlsm`, una fila por compra). Verificado hoy
+      contra `SINATRA 2025.xlsm` (no los `.xlsm` 2026 que ya analizó
+      `docs/ANALISIS-SINATRA.md`): 2.219 filas de compra reales, 21 valores de
+      `CATEGORÍA` (con duplicados de forma — `Pantalones`/`PANTALONES`,
+      `Body`/`body` —, mapeables 1:1 contra las 30 categorías de
+      `retail.categorias` con el motor de anclaje de arriba), `DETALLE` es texto
+      libre de compra sin estructura ("Sosten lino algodon", "Lino Prada", "Pelo de
+      Angel rumbera") con 1.439 valores distintos, `TALLA` vacía en el 100% de lo
+      revisado, y 807 filas (36%) con al menos un error de fórmula. Esto confirma en
+      el archivo 2025 la misma conclusión a la que ya se había llegado el
+      2026-07-19 mirando los archivos 2026 (`docs/BITACORA.md`, entrada de esa
+      fecha): **es un registro de compras, no un catálogo** — no trae SKU, y sin
+      talla/color por fila no alcanza para `crear_producto_con_variantes` sin
+      inventar datos que la hoja nunca tuvo. Por eso el catálogo real de CAYLA se
+      está capturando por el censo físico (ítem `catalogo real` de este mismo
+      documento), no por esta hoja. **Queda sin resolver, a propósito, para que lo
+      decida la sesión que construya el importador (o Felipe):** qué significa
+      exactamente "sacar los productos disponibles" de Ingreso Mercadería si no es
+      un import de catálogo 1:1 — ¿lectura de qué categorías/marcas circulan
+      históricamente para pre-poblar sugerencias del censo? ¿otra cosa? No asumir
+      que "el importador de clientes" y "leer Ingreso Mercadería" son el mismo
+      problema solo porque comparten el motor de anclaje: el primero recibe un
+      archivo ya pensado como catálogo por el cliente, el segundo es un registro de
+      compras que nunca lo fue.
 
 - [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
       Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
