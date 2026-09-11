@@ -684,14 +684,14 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
                     <button
                       type="submit"
                       disabled={guardando}
-                      className="label-cayla rounded bg-rojo px-2.5 py-1.5 text-[10px] text-crema disabled:opacity-60"
+                      className="label-cayla rounded bg-rojo px-2.5 py-1.5 text-[11px] text-crema disabled:opacity-60"
                     >
                       Fijar
                     </button>
                     <button
                       type="button"
                       onClick={() => setCorrigiendoId(null)}
-                      className="label-cayla px-1 text-[10px] text-tinta/60"
+                      className="label-cayla px-1 text-[11px] text-tinta/60"
                     >
                       No
                     </button>

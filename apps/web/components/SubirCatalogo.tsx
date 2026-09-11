@@ -242,7 +242,7 @@ export function SubirCatalogo() {
           <div className="scroll-cayla mt-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="label-cayla text-[10px] text-tinta/65">
+                <tr className="label-cayla text-[11px] text-tinta/65">
                   <th className="pb-2 pr-2 font-semibold">#</th>
                   {cabeceras.map((c, i) => (
                     <th key={i} className="whitespace-nowrap pb-2 pr-4 font-semibold">
