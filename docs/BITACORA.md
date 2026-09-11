@@ -466,6 +466,28 @@ combinan sin perder nada). Backlog actualizado para reflejar el estado real:
 Lucode reemplaza a Nubefact en toda referencia, con el trámite pendiente que
 le toca a Felipe (alta como PSE tercero en SUNAT SOL, no antes de mañana).
 
+## 2026-09-05 (hook de pre-commit: el linter deja de ser opcional)
+`pnpm lint` llevaba días en rojo y nadie lo veía — así se coló a producción el
+`Date.now()` en el render de Proformas y un renombrado a medias que rompía el
+build. Se puso `.githooks/pre-commit`, activado solo con `pnpm install` (script
+`prepare` que apunta `core.hooksPath`, cero dependencias nuevas: es todo lo que
+hace husky).
+
+Lo que manda de la decisión fueron los NÚMEROS, no la opinión: `eslint` sobre el
+proyecto entero tarda **4 min 15 s**; sobre los archivos de un commit, ~15 s.
+Un hook de cuatro minutos no protege nada porque se saltea con `--no-verify` a la
+tercera vez. Por eso revisa solo lo que estás commiteando: tipos (7,5 s), tests
+(10 s) y lint (14 s) — ~19 s en total, y 0,5 s si el commit es solo de
+documentación o SQL. Se añadió `tsc` además de lo pedido porque era lo único que
+habría cazado el error que rompió el build hoy; los errores de tipos de archivos
+AJENOS avisan pero no bloquean, para que el trabajo a medias de otra sesión no
+te secuestre un commit terminado.
+
+Probado en los cinco escenarios antes de darlo por bueno: commit de solo docs
+(pasa en 0,5 s), error de lint (bloquea y señala la línea), error de tipos propio
+(bloquea), error de tipos ajeno (avisa y deja pasar), y todo limpio (pasa en
+18,7 s). Un hook sin probar es un hook que no existe.
+
 ## 2026-09-05 (el entorno local por fin existe)
 Felipe pidió arreglar lo del Supabase local. Eran tres causas encadenadas, no
 una: (1) `supabase start` aborta y borra TODOS los contenedores si uno solo
@@ -2958,6 +2980,175 @@ La lección de método: la funcionalidad que se pidió (la matriz) y el problema
 motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
+
+`pnpm build`, `pnpm lint` y los 79 tests siguen en verde. Sesión abierta sincronizando
+esta rama contra `origin/main` (95 commits de diferencia) antes de tocar nada — rebase
+limpio salvo un conflicto aditivo en `package.json` (dos scripts nuevos en la misma
+línea, no se pisaban).
+
+## 2026-09-10 (27→28→29→30: pegadas dos que ya estaban, evitadas dos más)
+
+Plan: pegar en producción, en orden, las cuatro migraciones que el BACKLOG marcaba
+como listas y pendientes (`unificacion/27` a `30` — ajuste con signo, colores,
+código corto, sesiones de conteo). Felipe pegó `27` a mano en el SQL Editor de
+`cayla-dynamic` (el MCP de Supabase bloqueó la ejecución directa: el clasificador de
+Auto Mode rechaza DDL contra producción por esa vía, que es exactamente el freno que
+pide el protocolo de este repo). Verificado: las tres redes de seguridad quedaron
+`convalidated = true` y `fn_aplicar_movimiento` tiene el patrón nuevo.
+
+Al pedirle que pegara `28` (colores) pasó lo mismo, y ahí apareció la sorpresa:
+**`retail.colores` ya tenía 30 filas, no las 29 del archivo**, con `created_at` del
+**2026-09-09 20:31** — antes de que esta sesión existiera. La fila extra era
+"Arena" (`ARN`), agregada a mano por Felipe a las 20:45 esa misma noche. Antes de
+pedirle la `29`, se verificó primero (en vez de pedir y recién comprobar): `codigos_barras`,
+`codigos_correlativos`, `conteos` y `conteo_lineas` **ya existían completas**. Las
+cuatro migraciones ya estaban en producción desde el 09-09 — nadie lo escribió en el
+BACKLOG, que seguía diciendo "falta pegar" un día después.
+
+**Es la misma deuda que el propio BACKLOG nombra ("no hay registro de qué migró en
+producción"), ocurriendo una tercera vez** (después de `recibir_lote` y
+`patrimonio_items.categoria`). Esta vez no costó nada porque las cuatro son
+idempotentes — pegar `27` y `28` dos veces no hizo daño — pero el método que evitó
+pegar `29` y `30` sin necesidad no fue suerte: fue verificar contra `pg_proc` e
+`information_schema` ANTES de pedirle a Felipe el siguiente paso, no asumir que el
+BACKLOG tenía razón porque decía la fecha de ayer.
+
+Estado final confirmado con números, no con el documento: 37 categorías con 37
+prefijos, 5 modelos y 17 variantes con código corto, 2 esperando color ("azul" a
+secas — "Arena" ya se resolvió), las 13 funciones de `29`+`30` sin sobrecargas.
+`censo: las pantallas` queda sin ningún bloqueador de esquema.
+
+## 2026-09-10 (censo: el camino de la pistola, coordinado antes de tocar nada)
+
+Antes de escribir código, coordinación: `list_sessions` mostró una sola sesión
+corriendo en cayla-retail ahora mismo ("Inventario inteligente y toma de
+decisiones", worktree `mac-mini-aricaylo-copies-cfc7dc`). Se le mandó un
+mensaje (`send_message`) preguntando si su trabajo tocaba `AppShell.tsx`,
+`vender/` o los modales — el aviso que dejó el BACKLOG el 09-09. Mientras
+llegaba la respuesta (`list_events` mostró que seguía en una serie de
+`AskUserQuestion`, cero archivos tocados, misma base vieja de hace días), se
+empezó por lo que no puede chocar con nadie: archivos nuevos, ninguno
+compartido.
+
+Sorpresa al entrar: `lib/conteo.ts` ya estaba completo — otra sesión lo dejó
+terminado el 09-09 (`getConteoAbierto`, `getCatalogoParaConteo`, `getColores`).
+Lo que de verdad faltaba, y era lo que el BACKLOG llamaba "las manos", eran las
+pantallas: nadie importaba esas tres funciones desde ningún lado. Construido
+`/inventario/censo` + `CensoPanel.tsx`, calcado del patrón de
+`RegistrarVentaModal.tsx` (mismo manejo de teclado para la pistola: el Enter
+NO envía el formulario, el foco vuelve solo al buscador). Resolución de
+escaneo 100% client-side contra `catalogo.porCodigo` (viene de
+`codigos_barras`, que ya trae código corto + sku + código de fábrica para
+toda variante) — solo se llama al servidor para escribir, nunca para resolver
+un código.
+
+Una decisión de UX que vale anotar: en el formulario de "crear esta prenda",
+el color quedó OBLIGATORIO, no opcional como en la RPC. `conteo_crear_variante`
+acepta `p_color_codigo = null` y crea la variante igual, pero sin color
+normalizado no recibe código corto (ADR-0025) — exactamente el agujero del
+"azul" a secas que esta sesión ya pasó horas rastreando hoy más temprano.
+Pedirlo en el formulario cierra el problema en el origen en vez de heredarlo.
+
+Encontrado en el camino: el tipo generado de `conteo_crear_variante` marca
+`p_color_codigo`/`p_talla` como `string` (no `string | null`) aunque la
+función SQL sí acepta null — el generador de tipos no distingue "sin default"
+de "no puede ser null". Al volver color obligatorio en el formulario, el caso
+que hubiera necesitado pasar `null` dejó de existir; no hizo falta un cast.
+
+**Sin verificar en navegador — Docker no estaba corriendo**, así que no hubo
+forma de levantar el stack local. Build, lint y typecheck en verde (el lint
+atrapó un patrón real: `setState` dentro de un `useEffect` para resincronizar
+`lineas` con la prop del servidor — se corrigió al patrón que React recomienda,
+ajustar el estado durante el render comparando contra la prop anterior, no en
+un efecto). Falta la prueba con una persona real — y mejor, con la pistola —
+antes de darlo por bueno.
+
+Deliberadamente fuera de este corte: captura por matriz (talla × color) y
+etiquetas en lote. Un flujo completo y probable de verificar, no cuatro a
+medias.
+
+## 2026-09-10 (censo verificado en navegador, y un bug real que solo la prueba encontró)
+
+Felipe pidió abrir Docker y probarlo de verdad. `npx supabase db reset` reventó
+al toque: `schema "retail" does not exist`. `0051_migraciones_aplicadas.sql`
+tenía el prefijo `retail.` — el error EXACTO que `CLAUDE.md` dedica un párrafo
+entero a advertir, cometido en la propia sesión que lo escribió unas horas
+antes. Corregido (local sin prefijo, corre contra `public` hasta que
+`seed.sql` lo renombra) y las 51 migraciones corrieron limpias. Lección
+concreta: escribir la advertencia no protege de cometer el error; solo correr
+`db reset` lo prueba.
+
+Con el stack arriba y sesión iniciada (`felipe@cayla.local`), el seed local no
+trae ningún producto — se insertó una variante de prueba a mano para tener
+algo que buscar por texto. Probado en el navegador real, contra Postgres real:
+
+- Buscar por texto y contar por sugerencia — sube el contador, la línea
+  aparece.
+- Escanear el SKU exacto de lo ya contado — suma sobre la misma línea, no
+  duplica (`p_modo: 'sumar'`, confirmado).
+- Escanear un código de fábrica desconocido — abre "crear esta prenda";
+  rechaza sin nombre, rechaza sin color con el mensaje explicando por qué
+  (código corto).
+- Crear con color "Rojo" y sin talla — nace `GEN-0001-ROJ-U` (prefijo `GEN`
+  por no tener categoría, `U` de "único" por no tener talla, ambos como se
+  diseñó). El código de fábrica escaneado queda adoptado: reescanearlo ya no
+  pide crear, suma directo sobre la misma línea.
+- "Ver resumen y cerrar" — tabla con contada/sistema/diferencia, +4/−0.
+- Cerrar (con sesión de Líder) — pantalla de confirmación, y contra la base:
+  `retail.stock` de AQP quedó en 2/2 (lo contado), dos `movimientos`
+  `tipo='ajuste' motivo='conteo'` con la nota que referencia el conteo, y
+  `conteos.estado='cerrado'`.
+
+**Hallazgo de método, para la próxima vez que se pruebe una pantalla con estas
+herramientas:** la tecla Enter/Escape que simula el navegador de Claude no
+siempre llega al `onKeyDown` de React en este entorno — se detectó porque
+Escape no limpiaba el campo pese a que el valor SÍ estaba en el DOM. Se
+confirmó disparando `new KeyboardEvent('keydown', {key:'Enter', bubbles:true})`
+directo por JavaScript, que sí lo activó de punta a punta (RPC incluida, vista
+en `read_network_requests`). No era un bug del componente — pero significa que
+esta clase de prueba automatizada no reemplaza probarlo con un teclado real o,
+mejor, con la pistola.
+
+## 2026-09-10 (el censo se construyó dos veces — y la otra vez fue mejor)
+
+Un mensaje de otra sesión ("Inventario inteligente y toma de decisiones", coordinando
+por `send_message`) obligó a re-sincronizar contra `origin/main` una vez más: 19
+commits nuevos, ninguno de otra sesión de Claude en esta máquina — todos de
+**Danytristee** (`danyjoshua@hotmail.com`), un colaborador humano real con su propio
+Claude Code, empujando directo a `main` durante toda la sesión. Ni `list_sessions` ni
+`ListAgents` lo iban a mostrar nunca: no corre en este Mac.
+
+Entre esos 19 commits: `ConteoPanel.tsx`, `AltaEnConteo.tsx`, `CerrarConteoPanel.tsx`
+en `/inventario/conteo` — la MISMA pantalla que esta sesión acababa de construir y
+verificar en el navegador, hecha por Danytristee un día antes (09-09) y ya cerrada
+con tests de varianza. La suya documenta una regla que la de esta sesión no tenía:
+"prohibido `router.refresh()` por escaneo" — 500 recargas contra São Paulo volverían
+el censo inusable. Se descartó `CensoPanel.tsx` sin pushear, con autorización de
+Felipe. Costo real: las horas, no el código — nunca llegó a compartirse.
+
+También chocaban los NÚMEROS: `unificacion/33` y `migrations/0051` ya estaban
+tomados en `origin/main` para `conteo_color_vacio.sql` (arregla que
+`conteo_crear_variante` acepte "sin color" desde un `<select>` que manda cadena
+vacía — ya aplicado en producción). Renombrado primero a `34`/`0052` — y `0052` TAMBIÉN estaba tomado ya
+(`0052_taxonomia_universal.sql`, otro archivo de Danytristee, sin relación).
+El local terminó en `0053`; la unificación se quedó en `34` (ahí no hubo
+segunda colisión). Dos colisiones de número el mismo día, sobre el mismo
+archivo. La fila que el archivo se autorregistra en
+`retail.migraciones_aplicadas` sigue diciendo `33_migraciones_aplicadas.sql`, a
+propósito: es el registro histórico real de lo que se pegó en producción ese día,
+y renombrar el archivo después no reescribe lo que pasó.
+
+Verificado también, antes de descartar nada: la tabla `retail.migraciones_aplicadas`
+en sí NO estaba duplicada — en `origin/main` sigue siendo solo un párrafo de
+propuesta en el BACKLOG, nunca se construyó. Y otro hallazgo de refilón: el arreglo
+de `pnpm typecheck` de esta sesión también lo hizo Danytristee un día antes
+(`afab818`), por su cuenta — mismo síntoma, mismo diagnóstico, dos veces.
+
+**La lección que importa más que el censo:** con un colaborador externo empujando
+en vivo, sincronizar UNA VEZ al abrir sesión no alcanza — el remoto se mueve varias
+veces por día. La otra sesión llegó a la misma conclusión por su cuenta y se lo
+planteó a Felipe. Pendiente decidir con él un mecanismo mejor que "sincronizar y
+cruzar los dedos" antes de construir algo nuevo.
 
 ## 2026-09-11 (la venta sin red se guarda sola, y sube sola)
 ADR-0018 había dejado la Fase 3 (venta offline) explícitamente sin resolver: la regla

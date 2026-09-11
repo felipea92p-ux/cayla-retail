@@ -1,0 +1,106 @@
+#!/bin/sh
+# Pre-commit de CAYLA Retail. Corre SOLO sobre lo que estás por commitear.
+#
+# POR QUÉ ASÍ Y NO "lintar todo": medido el 2026-09-05 en la máquina de Felipe,
+# `eslint .` sobre el proyecto entero tarda 4 min 15 s. Un hook que tarda cuatro
+# minutos no se usa: se saltea con --no-verify a la tercera vez, y entonces
+# tampoco corren los tests. Sobre los archivos del commit tarda ~15 s.
+#
+# Se activa solo con `pnpm install` (script `prepare` de la raíz apunta
+# core.hooksPath aquí). Para saltarlo en una emergencia real:
+#     git commit --no-verify
+#
+# LO QUE NO HACE, a propósito: no hace `git stash` de lo que no está staged. Es
+# la práctica "purista" (revisar exactamente el árbol que se commitea) pero puede
+# perder trabajo, y en este repo suele haber varias sesiones editando a la vez.
+# Se revisa lo que hay en disco: más seguro, y en la práctica es lo mismo.
+
+RAIZ=$(git rev-parse --show-toplevel) || exit 1
+cd "$RAIZ" || exit 1
+
+# A=añadido C=copiado M=modificado R=renombrado. Los borrados no se revisan.
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '^(apps/web|packages/[^/]+/src)/.*\.(ts|tsx|js|jsx|mjs)$')
+
+# Un commit de solo documentación, SQL o configuración no paga el peaje.
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+# Los clientes gráficos de git (GitHub Desktop, el panel de VS Code, etc.) no
+# heredan el PATH del shell, así que `pnpm` puede no existir aquí. Si pasa, se
+# AVISA y se deja pasar: un hook que bloquea todos los commits porque no encuentra
+# una herramienta es un estorbo, y el remedio sería desactivarlo para siempre.
+if ! command -v pnpm >/dev/null 2>&1; then
+  printf '\n  ! No encuentro `pnpm` en el PATH: me salto la revisión previa.\n'
+  printf '    Suele pasar al commitear desde una app gráfica de git.\n'
+  printf '    Revisa a mano con: pnpm lint && pnpm --filter web test\n\n'
+  exit 0
+fi
+
+TMP=$(mktemp -d) || exit 1
+trap 'rm -rf "$TMP"' EXIT
+FALLO=0
+AVISO=0
+
+# Rutas relativas a apps/web (eslint y tsc corren con ese cwd para tomar su
+# propia configuración).
+echo "$STAGED" | sed -n 's|^apps/web/||p' > "$TMP/web.txt"
+
+printf '\n  Revisando %s archivo(s) antes de commitear…\n\n' "$(echo "$STAGED" | wc -l | tr -d ' ')"
+
+# ---------- 1. Tipos (lo más rápido primero: falla antes) ----------
+# tsc es global — ve TODO el proyecto, no solo tu commit. Con varias sesiones
+# trabajando a la vez eso bloquearía tu commit por un archivo a medias que no es
+# tuyo. Por eso solo detiene el commit si el error está en un archivo TUYO; los
+# demás se avisan y se dejan pasar.
+if [ -s "$TMP/web.txt" ]; then
+  (cd apps/web && pnpm exec tsc --noEmit) > "$TMP/tsc.txt" 2>&1
+  if [ -s "$TMP/tsc.txt" ]; then
+    grep -F -f "$TMP/web.txt" "$TMP/tsc.txt" > "$TMP/tsc-mios.txt" 2>/dev/null
+    if [ -s "$TMP/tsc-mios.txt" ]; then
+      printf '  ✗ Errores de tipos en archivos de este commit:\n\n'
+      sed 's/^/    /' "$TMP/tsc-mios.txt"
+      printf '\n'
+      FALLO=1
+    else
+      printf '  ! Hay errores de tipos en OTROS archivos (no de este commit).\n'
+      printf '    No te frenan, pero el build de producción sí va a fallar:\n\n'
+      sed 's/^/    /' "$TMP/tsc.txt" | head -5
+      printf '\n'
+      AVISO=1
+    fi
+  fi
+fi
+
+# ---------- 2. Tests ----------
+if ! (cd apps/web && pnpm vitest run) > "$TMP/test.txt" 2>&1; then
+  printf '  ✗ Tests en rojo:\n\n'
+  sed 's/^/    /' "$TMP/test.txt" | tail -25
+  printf '\n'
+  FALLO=1
+fi
+
+# ---------- 3. Lint, solo de los archivos del commit ----------
+if [ -s "$TMP/web.txt" ]; then
+  # xargs con -r no existe en macOS; el `if -s` de arriba ya garantiza que hay algo.
+  if ! (cd apps/web && xargs pnpm exec eslint < "$TMP/web.txt") > "$TMP/lint.txt" 2>&1; then
+    printf '  ✗ Lint:\n\n'
+    sed 's/^/    /' "$TMP/lint.txt" | head -40
+    printf '\n'
+    FALLO=1
+  fi
+fi
+
+if [ "$FALLO" -ne 0 ]; then
+  printf '  Commit detenido. Arregla lo de arriba y vuelve a intentar.\n'
+  printf '  Si de verdad tienes que subirlo así: git commit --no-verify\n\n'
+  exit 1
+fi
+
+if [ "$AVISO" -ne 0 ]; then
+  printf '  ✓ Lo de este commit está en verde (queda el aviso de arriba).\n\n'
+else
+  printf '  ✓ Tipos, tests y lint en verde.\n\n'
+fi
+exit 0
