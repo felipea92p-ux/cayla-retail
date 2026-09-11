@@ -28,8 +28,14 @@
 --       y no en el piso, que es lo que descubre un conteo.
 --
 -- CÓMO SE APLICA (con el stack de retail levantado; ver `pnpm local:donde`):
---   cat supabase/seed-pruebas/catalogo-de-prueba.sql \
+--   (echo "set request.jwt.claims = '{\"sub\":\"22222222-2222-4222-8222-000000000001\",\"role\":\"authenticated\"}';"; \
+--    cat supabase/seed-pruebas/catalogo-de-prueba.sql) \
 --     | docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -v ON_ERROR_STOP=1
+--
+--   El `set request.jwt.claims` es obligatorio desde ADR-0031: `recalcular_stock()` tiene
+--   candado de Líder y lo resuelve por `auth.uid()`, que por `psql` es NULL. Sin esa línea
+--   el bloque entero muere en «Solo un Líder puede recalcular el stock» (visto 2026-09-11)
+--   y, como es una transacción, no deja nada a medias — pero tampoco siembra nada.
 --
 --   Se puede correr más de una vez: cada modelo se identifica por `sku_padre`
 --   y no se duplica. El stock tampoco: los movimientos llevan una nota fija y
