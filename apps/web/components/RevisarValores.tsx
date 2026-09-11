@@ -88,18 +88,55 @@ function Grupo({ titulo, campo }: { titulo: string; campo: Campo }) {
   );
 }
 
+type Importado = { importacionId: string; productos: number; variantes: number; colores: number; categorias: number; duplicadas: number };
+
 export function RevisarValores({
   filas,
   filaCabecera,
   plan,
+  origen,
 }: {
   filas: string[][];
   filaCabecera: number;
   plan: PlanDeMapeo;
+  origen: string;
 }) {
   const [r, setR] = useState<Respuesta | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importado, setImportado] = useState<Importado | null>(null);
+
+  async function importar() {
+    if (!r) return;
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/importacion/importar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filas,
+          filaCabecera,
+          plan,
+          origen,
+          // Solo lo NUEVO viaja para crearse. Lo que ya existía se resuelve por
+          // nombre dentro del RPC, igual que se cruzó acá.
+          colores: r.colores.aCrear.map((v) => ({ texto: v.texto, universalId: v.propuesta?.universalId ?? null })),
+          categorias: r.categorias.aCrear.map((v) => ({ texto: v.texto, universalId: v.propuesta?.universalId ?? null })),
+        }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        setError(datos.error ?? "No se pudo importar.");
+        return;
+      }
+      setImportado(datos);
+    } catch {
+      setError("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setCargando(false);
+    }
+  }
 
   async function revisar() {
     setCargando(true);
@@ -152,6 +189,37 @@ export function RevisarValores({
     r.colores.aCrear.filter((v) => !v.propuesta?.universalId).length +
     r.categorias.aCrear.filter((v) => !v.propuesta?.universalId).length;
 
+  // Ya se importó: esta pantalla termina acá. Lo que sigue es ir al Catálogo.
+  if (importado) {
+    return (
+      <section className="card-cayla space-y-3 p-4">
+        <h2 className="font-display text-lg text-tinta">Catálogo importado</h2>
+        <p className="text-xs text-tinta/65">
+          <strong className="text-tinta">{importado.productos}</strong> prendas ·{" "}
+          <strong className="text-tinta">{importado.variantes}</strong> variantes
+          {importado.colores > 0 && <> · {importado.colores} colores nuevos en tu vocabulario</>}
+          {importado.categorias > 0 && <> · {importado.categorias} categorías nuevas</>}
+        </p>
+        {importado.duplicadas > 0 && (
+          <p className="text-xs text-tinta/65">
+            El archivo traía {importado.duplicadas} {importado.duplicadas === 1 ? "fila repetida" : "filas repetidas"}{" "}
+            (misma prenda, misma talla, mismo color): se dejó una de cada.
+          </p>
+        )}
+        <p className="text-xs text-tinta/65">
+          Todo entró con stock en cero. Las cantidades se levantan contando —{" "}
+          <a href="/inventario/conteo" className="text-rojo hover:underline">
+            Inventario → Conteo
+          </a>
+          . Si algo salió mal, se puede deshacer: las prendas quedan descontinuadas, nunca borradas.
+        </p>
+        <a href="/inventario" className="label-cayla inline-block rounded bg-tinta px-4 py-2 text-[11px] text-hueso hover:opacity-90">
+          Ver el catálogo
+        </a>
+      </section>
+    );
+  }
+
   return (
     <section className="card-cayla space-y-4 p-4">
       <div>
@@ -183,6 +251,19 @@ export function RevisarValores({
           Ninguno de estos nombres se pierde: se guardan tal como los escribes tú. Lo que se decide acá es
           bajo qué término del estándar se agrupan.
         </p>
+      </div>
+
+      {/* El botón que importa es el mismo que aprueba los valores de arriba. Un
+          clic si todo está bien; nada entra en silencio. */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-3">
+        <button
+          onClick={() => void importar()}
+          disabled={cargando}
+          className="label-cayla rounded bg-tinta px-4 py-2 text-[11px] text-hueso transition-opacity hover:opacity-90 disabled:opacity-40"
+        >
+          {cargando ? "Importando…" : `Importar ${r.total} prendas`}
+        </button>
+        <span className="text-[11px] text-tinta/50">Con stock en cero. Se puede deshacer.</span>
       </div>
 
       {r.uso && r.uso.entrada > 0 && (

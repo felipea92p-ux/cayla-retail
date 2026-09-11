@@ -187,6 +187,7 @@ export function SubirCatalogo() {
           filas={tabla.filas}
           filaCabecera={filaCabecera}
           plan={plan}
+          origen={tabla.origen}
         />
       )}
     </div>
