@@ -186,7 +186,15 @@ importante que ha entrado a este archivo desde que existe.
       siempre. `unificacion/26_ultima_venta_en_aplicar_movimiento.sql` la restaura
       y hace backfill desde `movimientos`. **Pendiente de Felipe: pegar `26` en el
       SQL Editor de producción, ANTES que `27`.**
-- [x] **`el ajuste lleva signo` — hecho y verificado en local 2026-09-09
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión.** `pg_constraint` confirma las tres redes (`stock`,
+      `stock_almacen`, `movimientos_cantidad_coherente`) con `convalidated =
+      true`, y `fn_aplicar_movimiento` ya tenía el patrón nuevo (conserva
+      `ultima_venta` y la guarda del ajuste). Se volvió a pegar `unificacion/27`
+      por no saber que ya estaba — sin daño, el script es idempotente
+      (`if not exists` + `validate` es no-op sobre una red ya validada). Texto
+      original, como quedó registrado el 2026-09-09:
+      **`el ajuste lleva signo` — hecho y verificado en local 2026-09-09
       (`0045_ajuste_con_signo.sql`, ADR-0023); falta pegar `unificacion/27`.**
       Era imposible registrar un conteo MENOR a lo que dice el sistema: la rama
       `ajuste` proponía la fila con el delta y Postgres evalúa el CHECK sobre la
@@ -196,19 +204,30 @@ importante que ha entrado a este archivo desde que existe.
       creado stock negativo en silencio. Se arregla con
       asegurar→bloquear→verificar→sumar bajo `for update`, y se ponen las tres
       redes que faltaban (`stock`, `stock_almacen`, y `movimientos.cantidad <> 0`
-      con signo solo para el ajuste). **Pendiente de Felipe: correr el pre-flight
-      de `unificacion/27` y LEERLO antes de aplicar** — si hay filas negativas o
-      movimientos en cero, se miran una por una y se corrigen con movimientos,
-      nunca borrando.
-- [x] **`vocabulario cerrado de colores` — hecho y verificado en local 2026-09-09
+      con signo solo para el ajuste).
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión (`retail.colores` tenía `created_at` del 2026-09-09
+      20:31).** 30 colores, no 29: Felipe agregó **"Arena"** (`ARN`, familia
+      tierra) a mano esa misma noche (20:45), resolviendo la ambigüedad que
+      dejaba pendiente el ítem de abajo. "azul" a secas sigue sin resolver (ver
+      ese ítem). Se volvió a pegar `unificacion/28` por no saber que ya estaba —
+      sin daño (`create table if not exists`, `on conflict do nothing`). Texto
+      original, como quedó registrado el 2026-09-09:
+      **`vocabulario cerrado de colores` — hecho y verificado en local 2026-09-09
       (`0046_colores.sql`, ADR-0024); falta pegar `unificacion/28`.** 29 colores
       aprobados por Felipe, con índice único sobre el nombre normalizado: la base
       rechaza "azul marino" si ya existe "Azul marino". Es la pieza con mayor
       costo de postergación del proyecto — unificar colores después del censo no
-      es un `update` de texto, es fusionar variantes con stock e historial. NO se
-      hizo tabla de tallas, a propósito: agregarla tarde es barato (no es FK de
-      nada), agregar colores tarde es caro.
-- [x] **`código corto + codigos_barras` — hecho y verificado en local 2026-09-09
+      es un `update` de texto, es fusionar variantes con stock e historial.
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión.** 37 categorías con 37 prefijos distintos, 5 modelos y 17
+      variantes con código corto, 2 variantes esperando color (el "azul" a secas
+      de abajo) — exactamente el estado que predice el archivo. Las 13 funciones
+      de `29`+`30` existen en `pg_proc` con `count = 1` cada una, sin sobrecargas
+      fantasma. No se volvió a pegar (se verificó ANTES de pedirle a Felipe que
+      la pegara, al notar que `codigos_barras` ya existía). Texto original, como
+      quedó registrado el 2026-09-09:
+      **`código corto + codigos_barras` — hecho y verificado en local 2026-09-09
       (`0047_codigos.sql`, ADR-0025); falta pegar `unificacion/29` DESPUÉS de la
       `28`.** `BLU-0042-AZM-M` al lado del SKU, que no se toca. El argumento no es
       estético: `EtiquetasGenerator` estira el Code 128 al ancho de la etiqueta,
@@ -219,11 +238,12 @@ importante que ha entrado a este archivo desde que existe.
       casi todas las prendas ya traen código de fábrica convierte el censo en
       "escanear lo que está en la percha" en vez de "pegar 900 etiquetas primero";
       el backfill registra el `sku` viejo, así que las etiquetas ya impresas
-      siguen funcionando. **Pendiente de Felipe: los TRES pre-flight de
-      `unificacion/29`** (categorías que el archivo no conoce, variantes
-      duplicadas, SKUs repetidos). Si el de duplicados devuelve filas, se resuelve
-      una por una — nunca borrando.
-- [x] **`sesiones de conteo` — hecho y verificado en local 2026-09-09
+      siguen funcionando.
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión** (mismo hallazgo que el ítem de arriba: las 7 funciones de
+      conteo ya existían en `pg_proc`, count = 1 cada una). No se volvió a pegar.
+      Texto original, como quedó registrado el 2026-09-09:
+      **`sesiones de conteo` — hecho y verificado en local 2026-09-09
       (`0048_conteos.sql`, ADR-0027); falta pegar `unificacion/30` al final de la
       cola.** Dos tablas y siete RPC. Un conteo que puede crear prendas al vuelo
       es un censo; un censo sobre un catálogo cargado es un conteo — la misma
@@ -291,6 +311,31 @@ importante que ha entrado a este archivo desde que existe.
       alarma, la tabla vive en `retail.sede_meta`, se movió de schema en la
       unificación; (b) la sobrecarga de `fn_set_meta_cobertura` que reporta es de
       `public`, o sea de Dynamic, no nuestra. Texto original abajo:**
+      **Addenda de otra sesión, en paralelo y sin saberlo (2026-09-10):**
+      esta misma pantalla se construyó dos veces a la vez sin que ninguna de
+      las dos partes lo supiera hasta el final del día — una sesión en esta
+      máquina armó `/inventario/censo` + `CensoPanel.tsx` el mismo día en que
+      Danytristee ya tenía `/inventario/conteo` cerrado desde el 09-09.
+      Se descartó la versión duplicada sin pushear (cero costo real más allá
+      de las horas) y quedan dos lecciones de método, verificadas al intentar
+      correr esa versión antes de descartarla:
+      1. La tecla Enter/Escape simulada por la herramienta de navegador de
+         Claude no siempre llega al `onKeyDown` de React en este entorno —
+         se confirmó disparando `new KeyboardEvent(...)` directo por
+         JavaScript, que sí activó el flujo completo (RPC incluida). No es un
+         bug de pantalla; ninguna prueba automatizada reemplaza probar con
+         teclado real o la pistola.
+      2. `npx supabase db reset` es la única prueba real de que una migración
+         local no tiene el prefijo `retail.` que solo va en el gemelo de
+         producción (ADR-0010) — se encontró exactamente ese bug al intentar
+         correrlo, no antes.
+      **La deuda estructural que esto expone, más grande que el censo:** con
+      un colaborador externo empujando en vivo a `origin/main` e invisible
+      para `list_sessions`/`ListAgents`, cualquier sesión puede duplicar
+      trabajo suyo sin ninguna alarma previa — pasó con el censo y, aparte,
+      con el arreglo de `pnpm typecheck` (Danytristee lo hizo un día antes,
+      por su cuenta, mismo síntoma). Sincronizar contra `origin/main` al abrir
+      sesión ya no alcanza cuando el remoto se mueve varias veces por día.
       **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
       de producción **verificado contra la base el 2026-09-09** (no contra estos
       documentos, que decían otra cosa): la `25`, la `26` y la `31` **ya están
@@ -300,6 +345,21 @@ importante que ha entrado a este archivo desde que existe.
       Cada una depende de la anterior: la 29 arma el código de cada prenda con el
       código de color que crea la 28, y la 30 no puede registrar un conteo hacia
       abajo sin el ajuste con signo de la 27.
+- [ ] **Un colores escrito a mano que no calza con los 29 — "azul" a secas.**
+      **CORREGIDO 2026-09-10: "Arena" ya se agregó** (`ARN`, familia tierra, por
+      Felipe el 2026-09-09 20:45) — queda solo "azul", 2 variantes de producción
+      (confirmado: `esperan_color = 2`), que hay que decidir si es marino o
+      claro. Mientras no tenga color resuelto, esas 2 variantes **no reciben
+      código corto** — es deliberado (ADR-0025: el código no se inventa), y en
+      cuanto se le asigne color, `retail.fn_asignar_codigo_variante` se lo da.
+- [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
+      movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
+      función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con
+      cantidad 0 solo para guardar el mínimo, y el `delete` final la borra si esa
+      variante todavía no tiene ningún movimiento en esa sede. Se dejó anotado en
+      el comentario del bloque 7 de `0044` en vez de cambiarlo por cuenta propia,
+      porque es una decisión de quien escribió ADR-0020. Arreglo probable: sumar
+      `and s.stock_minimo is null` al `delete`.
       **Los siete pre-flight se corrieron contra producción y dieron todos 0**
       (stock negativo, stock_almacen negativo, movimientos en cero, movimientos
       negativos que no son ajuste, categorías desconocidas, variantes duplicadas,
@@ -308,6 +368,10 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
+      **Nota al reconciliar (2026-09-11): este párrafo quedó desactualizado por el de
+      arriba — "Arena" ya se agregó (`0050_color_arena.sql`), solo "azul" seguía sin
+      resolver. Se deja tal cual, sin reescribir, porque describe el estado real del
+      2026-09-09; la corrección ya está en el bullet anterior.**
 - [ ] **Dos colores escritos a mano que no calzan con los 29.** Los va a destapar
       la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
       (2 variantes) — 5 de las 19 variantes de producción. Arena es un color real

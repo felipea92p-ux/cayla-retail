@@ -91,3 +91,32 @@ ventas, finanzas, facturación, producción) funciona igual que en producción.
 **El catálogo no se siembra**: son SKUs reales que se cargan por la pantalla de
 Recibir mercadería (`docs/GUIA-CARGA-CATALOGO.md`). Un catálogo de juguete haría
 que el módulo de Inteligencia mienta.
+
+### Revisión antes de cada commit
+
+`pnpm install` deja activado un hook de git (`.githooks/pre-commit`) que, antes de
+cada commit, revisa **solo los archivos que estás commiteando**: tipos, tests y
+lint. Tarda ~19 s cuando hay código en el commit y ~0,5 s cuando no lo hay
+(documentación, SQL, configuración).
+
+Se eligió revisar solo lo del commit por una razón medida: `eslint` sobre el
+proyecto entero tarda **4 min 15 s** en la máquina de Felipe. Un hook de cuatro
+minutos se saltea con `--no-verify` a la tercera vez, y entonces tampoco corren
+los tests.
+
+Los errores de tipos en archivos que **no** son de tu commit avisan pero no te
+frenan — en este repo suele haber más de una sesión trabajando a la vez, y no
+tiene sentido que el trabajo a medias de otra persona bloquee tu commit
+terminado. El build de producción sí los va a rechazar, así que el aviso importa.
+
+Para saltarlo en una emergencia real:
+
+```bash
+git commit --no-verify
+```
+
+Si el hook no corre, es que falta apuntar git a la carpeta (lo hace `pnpm install`):
+
+```bash
+git config core.hooksPath .githooks
+```

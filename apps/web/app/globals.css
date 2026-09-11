@@ -97,6 +97,57 @@
   --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
 }
 
+/* ==================================================================
+   Puente shadcn/ui · v1.0 (2026-09-11)
+   shadcn no trae paleta propia — lee estos nombres semánticos y los
+   componentes que se instalen con `npx shadcn add <lo-que-sea>` se
+   pintan solos con la identidad CAYLA de arriba. Ningún color nuevo:
+   todo apunta a un --color-* que ya existía.
+
+   `primary` es tinta, no rojo — calca a `<Boton peso="primario">`
+   (bg-tinta, hover:bg-rojo). Si `primary` fuera rojo, cada componente
+   nuevo pintaría rojo por defecto y se rompería "acento sagrado, máx.
+   2 por pantalla" apenas se junten dos en una pantalla.
+   `accent` (hover neutral de menús/listas) es sand, igual que el
+   hover de `Desplegable` (`hover:bg-tinta/[0.03]`) — el rojo no se
+   gasta en un simple pasar el mouse.
+   `ring` (foco de teclado) sí es rojo: es exactamente lo que ya hace
+   `focus-visible:outline-rojo/60` en `<Boton>` y `<Hilo>`.
+   `destructive` es rojo-profundo, no rojo: son dos rojos por diseño
+   desde ADR-0012 (`rojo` se mueve/reacciona, `rojo-profundo` es
+   cuerpo fijo de texto/estado) y "borrar" pide el que no se confunde
+   con el hilo de foco.
+   No se define `--radius`: `rounded-sm/md/lg/xl` de Tailwind ya
+   resuelven solos contra `--radius-sm/md/lg/xl` de arriba.
+   Sin modo oscuro: el brandbook es una sola paleta, no dos.
+   ================================================================== */
+@theme {
+  --color-background: var(--color-crema);
+  --color-foreground: var(--color-tinta);
+
+  --color-card: var(--color-papel);
+  --color-card-foreground: var(--color-tinta);
+  --color-popover: var(--color-papel);
+  --color-popover-foreground: var(--color-tinta);
+
+  --color-primary: var(--color-tinta);
+  --color-primary-foreground: var(--color-crema);
+  --color-secondary: var(--color-sand);
+  --color-secondary-foreground: var(--color-tinta);
+
+  --color-muted: var(--color-sand);
+  --color-muted-foreground: var(--color-tinta-60);
+  --color-accent: var(--color-sand);
+  --color-accent-foreground: var(--color-tinta);
+
+  --color-destructive: var(--color-rojo-profundo);
+  --color-destructive-foreground: var(--color-crema);
+
+  --color-border: var(--color-sand);
+  --color-input: var(--color-sand);
+  --color-ring: var(--color-rojo);
+}
+
 body {
   background: var(--color-crema);
   color: var(--color-tinta);
