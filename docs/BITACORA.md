@@ -3,6 +3,32 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (con prendas de verdad, el camino de fallo mostró lo que tenía adentro)
+
+Local tenía cero variantes, así que nada de lo construido sin red se podía probar
+escaneando ni vendiendo. Se sembró un catálogo de prueba **aparte de `seed.sql`** —que
+prohíbe a propósito un catálogo de juguete para que Inteligencia no mienta— por el
+mismo camino que una prenda real: códigos acuñados por `fn_asignar_codigo_variante`,
+stock derivado de `movimientos` con `recalcular_stock()`, nunca un insert en `stock`.
+Con eso se vio lo principal del paso 2: la prenda encolada sin red apareció en la base
+al volver la conexión, sin que nadie apretara nada.
+
+**Y la prueba destapó tres defectos que ya existían** en el camino de fallo de
+`ConteoPanel`, invisibles hasta que alguien lo ejercitó sin red: encolaba cualquier
+error —también un rechazo del servidor, que con el reintento automático se habría
+repetido cada 30 segundos para siempre—, dejaba la pantalla trabada en «¿Cuántas hay?»
+con un error rojo que decía «no se guardó nada» debajo del aviso que decía «está
+guardada en este equipo», y «Las 1 prendas». Los tres corregidos. Felipe decidió las
+dos preguntas de la venta sin internet (umbral 2 en la sede; bloquea y explica) y que
+el paso 3 arranque en sesión nueva — el brief quedó reescrito para eso.
+
+Lo que Felipe se lleva: **un fallo de red y un rechazo del servidor no son el mismo
+error, y tratarlos igual es lo que convierte una cola en una promesa falsa.** El
+primero significa «no se enteró» y se puede repetir; el segundo, «se enteró y dijo no»,
+y repetirlo solo da el mismo no. Y una de método: en la máquina de desarrollo Next
+caído no es Supabase caído —el navegador escribe directo a Supabase—, así que «apagar
+el servidor» no simula la tienda sin red hasta que se apagan los dos.
+
 ## 2026-09-10 (ADR-0018 había diseñado la mitad: el dato local, no la pantalla que abre)
 
 Arrancando la Fase 2 apareció que el plan no podía funcionar. ADR-0018 eligió

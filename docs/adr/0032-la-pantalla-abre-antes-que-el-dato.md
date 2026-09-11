@@ -102,3 +102,38 @@ Contra un build de producción (`next start`), en navegador, con sesión real:
 **Lo que NO se verificó:** escanear con un conteo abierto sin red y ver la cola vaciarse al
 volver. La base local tiene cero variantes, así que no hay nada que escanear sin sembrar
 datos primero. Queda anotado en el BACKLOG como el paso que cierra esto de verdad.
+
+## Addendum 2026-09-11 — la prueba con prendas, y lo que destapó
+
+Con `supabase/seed-pruebas/catalogo-de-prueba.sql` (8 modelos, 38 variantes, códigos
+acuñados por el camino real) se pudo escanear de verdad:
+
+- **La cola sube sola.** Una prenda encolada sin red (3 unidades de `BLU-0001-NEG-M`)
+  apareció en `conteo_lineas` al montar la pantalla con el servidor de vuelta, sin que
+  nadie tocara nada. Verificado en la base, no en la pantalla.
+- **Next caído no es Supabase caído.** Con `next start` apagado y la API local viva, el
+  conteo siguió guardando: escribe directo a Supabase desde el navegador. Para simular la
+  tienda sin red hay que apagar los dos (`docker stop supabase_kong_cayla-retail`). En la
+  tienda real caen juntos; en la máquina de desarrollo, no.
+- **Tres defectos del camino de fallo que ya existían** y que nadie había ejercitado:
+  1. `contar` encolaba CUALQUIER error, también un rechazo del servidor (conteo cerrado,
+     sin permiso). Con el reintento automático de este ADR, eso habría sido un rechazo
+     repitiéndose cada 30 s para siempre. Ahora solo se encola el fallo de red
+     (`esFalloDeRed`, exportada desde `lib/error-escritura.ts`); un rechazo se muestra y
+     no se encola.
+  2. Al encolar dejaba la pantalla trabada en «¿Cuántas hay?» y ponía un error rojo —«No
+     se guardó nada»— justo debajo del aviso que dice «está guardada en este equipo». Dos
+     frases contradictorias sobre la misma prenda. Ahora el fallo de red se comporta, para
+     quien cuenta, igual que un guardado: la línea aparece, el buscador vuelve a tomar foco,
+     la pistola sigue. El aviso de arriba ya dice cuántas están pendientes.
+  3. «Las 1 prendas que contaste» — gramática.
+- **Un latido cada 30 s mientras haya cola.** Cubre el caso que ningún evento cubre: el
+  equipo tuvo wifi todo el tiempo (así que `online` nunca se dispara) y el servidor estuvo
+  caído un rato. Y el botón «Reintentar ahora» ya no se esconde por la marca de caché —que
+  describe cómo LLEGÓ la pantalla y se queda pegada mientras viva la pestaña— sino solo
+  sin red de verdad.
+
+**Lo que sigue sin verse en navegador:** el flujo corregido del punto 2 (escanear sin red y
+ver la línea aparecer sin error rojo). La lógica está cubierta por typecheck y las pruebas
+de `sin-red.ts`, y el flujo anterior sí se vio; el corregido se trabó por el arnés de
+prueba —pestaña oculta, React no revela el streaming sin un frame— no por la app.

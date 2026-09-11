@@ -15,9 +15,8 @@
     },
     {
       "name": "cayla-retail-prod",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": [
-        "pnpm",
         "--filter",
         "web",
         "exec",

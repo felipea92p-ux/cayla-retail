@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { traducirError, esFalloDeRed } from "@/lib/error-escritura";
 import { avisoDeRed } from "@/lib/sin-red";
 import { AltaEnConteo, type ModeloRecordado } from "@/components/AltaEnConteo";
 import type {
@@ -173,14 +173,26 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
 
       setGuardando(false);
 
+      if (err && !esFalloDeRed(err)) {
+        // El servidor SE ENTERÓ y dijo no (conteo cerrado, sin permiso, cantidad inválida).
+        // Repetirlo daría el mismo no: se muestra y no se encola. La versión anterior encolaba
+        // cualquier error, y con el reintento automático eso habría sido un rechazo
+        // repitiéndose cada 30 segundos para siempre.
+        setError(traducirError(err, "guardar lo contado"));
+        return;
+      }
+
       if (err) {
-        // No se pierde el trabajo: va a la cola y la persona sigue contando.
+        // Fallo de RED: el servidor no se enteró. El trabajo va a la cola y, para quien
+        // cuenta, esto se comporta igual que un guardado normal — la línea aparece, el
+        // buscador vuelve a tomar foco, la pistola sigue. El aviso de arriba ya dice cuántas
+        // están pendientes; poner además un error rojo que diga «no se guardó nada» debajo
+        // de un aviso que dice «está guardada en este equipo» era exactamente lo que pasaba,
+        // y son dos frases que se contradicen sobre la misma prenda. — ADR-0032
         guardarPendientes([
           ...pendientes,
           { varianteId: variante.varianteId, cantidad: cuantas, referencia: variante.referencia },
         ]);
-        setError(traducirError(err, "guardar lo contado"));
-        return;
       }
 
       setLineas((previas) => {
@@ -257,6 +269,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
     reintentando.current = true;
     setGuardando(true);
     const quedan: Pendiente[] = [];
+    let rechazo: string | null = null;
     for (const p of pendientes) {
       const { error: err } = await supabase.rpc("conteo_contar", {
         p_conteo_id: conteo.id,
@@ -264,13 +277,24 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
         p_cantidad: p.cantidad,
         p_modo: "sumar",
       });
-      if (err) quedan.push(p);
+      if (err) {
+        quedan.push(p);
+        // Si el servidor contestó y dijo no, la persona tiene que enterarse de POR QUÉ: un
+        // reintento silencioso cada 30 s no lo va a arreglar. Se queda en la cola igual —
+        // borrarla sería perder el conteo— pero con el motivo a la vista.
+        if (!esFalloDeRed(err)) rechazo = `${p.referencia}: ${traducirError(err, "guardar lo contado")}`;
+      }
     }
     setGuardando(false);
     reintentando.current = false;
     guardarPendientes(quedan);
+    if (rechazo) setError(rechazo);
     if (quedan.length === 0) {
       setError(null);
+      // El servidor acaba de contestar: si esta pantalla había salido de la caché, ese dato
+      // describe cómo LLEGÓ, no cómo está ahora. Sin esto el aviso rojo seguiría en pantalla
+      // con la cola ya vacía y la conexión de vuelta.
+      setDesdeCache(false);
       router.refresh(); // Una sola vez, al final: acá sí conviene releer del servidor.
     }
   }, [conteo, pendientes, supabase, guardarPendientes, router]);
@@ -316,17 +340,24 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
   // menos es una prenda contada que nunca sube.
   useEffect(() => {
     if (!enLinea || pendientes.length === 0) return;
-    // `set-state-in-effect` apagada acá, y por el mismo criterio que doce líneas más arriba:
-    // lo que la regla persigue es DERIVAR estado de props durante el render. Esto es lo
-    // contrario — sincronizar con un sistema externo (el servidor) cuando una condición del
-    // mundo cambia, que es para lo que existe `useEffect`. El `setGuardando(true)` que
-    // dispara la alarma es el prólogo de una llamada de red, no un valor calculado.
-    // La alternativa —reintentar solo desde el evento `online`— se ve más limpia y pierde el
-    // caso que más importa: abrir la pantalla con una cola que quedó de ayer en este equipo.
-    // Ahí no hay transición que escuchar, porque la red nunca se fue: llegó antes que nadie.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Sincronizar con un sistema externo (el servidor) cuando una condición del mundo cambia
+    // es para lo que existe `useEffect`. La alternativa —reintentar solo desde el evento
+    // `online`— se ve más limpia y pierde el caso que más importa: abrir la pantalla con una
+    // cola que quedó de ayer en este equipo. Ahí no hay transición que escuchar, porque la
+    // red nunca se fue: llegó antes que nadie.
     void reintentar();
   }, [enLinea, pendientes.length, reintentar]);
+
+  // El latido. Cubre el caso que ningún evento cubre: el equipo tiene wifi todo el tiempo
+  // (así que `online` nunca se dispara) y el servidor estuvo caído un rato. Sin esto, la
+  // cola quedaría quieta hasta que alguien escaneara otra prenda o recargara — y la
+  // pantalla le dice que NO cierre la pestaña. Cuesta una llamada cada 30 s, y solo
+  // mientras haya algo pendiente.
+  useEffect(() => {
+    if (pendientes.length === 0) return;
+    const id = window.setInterval(() => void reintentar(), 30_000);
+    return () => window.clearInterval(id);
+  }, [pendientes.length, reintentar]);
 
   // El texto que la Encargada lee sobre la red. La lógica vive en `lib/sin-red.ts` para
   // poder fijarla por prueba: es lo único de todo el service worker que ella llega a ver.
@@ -349,9 +380,10 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
       </div>
       {/* El botón queda, aunque el reintento ahora sea automático: `navigator.onLine` puede
           decir que hay red cuando el router no tiene salida, y en ese caso la única señal de
-          que volvió es que alguien lo pruebe. Sin conexión no se ofrece — apretarlo solo
-          produciría una espera y un fallo. */}
-      {!sinConexion && pendientes.length > 0 && (
+          que volvió es que alguien lo pruebe. Se esconde solo sin red de verdad (`enLinea`
+          en false) — NO por la marca de caché, que describe cómo llegó la pantalla y se
+          queda pegada mientras viva la pestaña: ahí el botón es justo lo que hace falta. */}
+      {enLinea && pendientes.length > 0 && (
         <button
           onClick={() => void reintentar()}
           disabled={guardando}

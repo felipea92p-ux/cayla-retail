@@ -137,6 +137,21 @@ const HUELLAS: { marca: string; frase: string }[] = [
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
+ * ¿Este error es de RED, y no una respuesta del servidor?
+ *
+ * La distinción decide qué hacer con el trabajo, no solo qué frase mostrar. Un fallo de red
+ * significa "el servidor no se enteró": la operación se puede encolar y repetir. Un rechazo
+ * del servidor —`P0001` de una RPC, un `check`, RLS— significa "se enteró y dijo no":
+ * repetirla dará el mismo no, y encolarla es prometer un guardado que nunca va a ocurrir.
+ * `ConteoPanel` encolaba en los dos casos, y solo se notó al probar sin red (ADR-0032).
+ */
+export function esFalloDeRed(error: ErrorEscritura): boolean {
+  if (!error) return false;
+  const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ").toLowerCase();
+  return SIN_RED.some((t) => crudo.includes(t));
+}
+
+/**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
@@ -160,7 +175,7 @@ export function traducirError(
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();
 
-  if (SIN_RED.some((t) => enMinusculas.includes(t))) {
+  if (esFalloDeRed(error)) {
     if (opciones?.reintentoSeguro) {
       return `No se pudo ${contexto}: la conexión se cortó. Revisa el internet y vuelve a intentar con el mismo carrito — si alcanzó a entrar, el sistema la reconoce y no la cobra dos veces.`;
     }

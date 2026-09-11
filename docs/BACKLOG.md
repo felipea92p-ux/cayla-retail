@@ -725,15 +725,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **Falta la prueba que cierra de verdad el conteo sin red: escanear.** ADR-0032 está
-      verificado en lo que se pudo —la pantalla abre con el servidor apagado, el aviso sale,
-      la marca de caché funciona— pero **no se probó escanear con un conteo abierto sin red y
-      ver la cola vaciarse al volver**. La base local tiene **cero variantes**, así que no hay
-      nada que escanear sin sembrar datos primero. Es el mismo hueco que dejó `0054` (la venta
-      idempotente no se probó vendiendo en el navegador, por lo mismo).
-      **Lo que lo destraba de una vez para las dos cosas: un seed de catálogo de prueba en
-      local** —10 productos con variantes, stock y códigos de barras—, o cargar el catálogo
-      real. Sin eso, cada verificación de esta clase se corta en el mismo punto.
+- [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
+      sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
+      se verificó lo principal: la cola sube sola al volver la red (la prenda encolada
+      apareció en `conteo_lineas`), y la prueba destapó tres defectos del camino de fallo
+      que ya existían — encolaba rechazos del servidor, trababa la pantalla con un error
+      contradictorio, «Las 1 prendas» — todos corregidos (ADR-0032, addendum).
+      **Lo que falta ver en navegador es el flujo corregido:** escanear sin red y que la
+      línea aparezca SIN error rojo, con el buscador tomando foco. Se trabó por el arnés
+      (pestaña oculta → React no revela el streaming), no por la app. Receta: build de
+      producción, `cayla-retail-prod`, conteo abierto, dos recargas con red, apagar Next **y**
+      `docker stop supabase_kong_cayla-retail`, recargar, escanear `BLU-0001-BLA-S`, levantar
+      los dos, esperar el latido de 30 s.
+      Y sigue pendiente **vender por la app en navegador** (la idempotencia de `0054` se probó
+      por SQL y HTTP, no con el modal): entra natural en el paso 3 del brief.
 
 - [ ] **Los candados de local pueden abrirse solos con NULL — barrido pendiente.**
       `34_candados_no_null.sql` cerró `es_lider`, `es_supervisor` y `puede_operar_sede`

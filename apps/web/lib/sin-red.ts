@@ -84,9 +84,11 @@ export function avisoDeRed(opciones: {
       // Encargada puede comprobar: la pantalla no se está actualizando.
       titulo: enLinea ? "Sin conexión con el sistema — seguí contando" : "Sin internet — seguí contando",
       detalle:
-        pendientes > 0
-          ? `${foto} Las ${pendientes} prendas que contaste están guardadas en este equipo y suben solas cuando vuelva la red. No cierres esta pestaña.`
-          : `${foto} Lo que escanees se guarda en este equipo y sube solo cuando vuelva la red. No cierres esta pestaña.`,
+        pendientes === 1
+          ? `${foto} La prenda que contaste está guardada en este equipo y sube sola cuando vuelva la red. No cierres esta pestaña.`
+          : pendientes > 1
+            ? `${foto} Las ${pendientes} prendas que contaste están guardadas en este equipo y suben solas cuando vuelva la red. No cierres esta pestaña.`
+            : `${foto} Lo que escanees se guarda en este equipo y sube solo cuando vuelva la red. No cierres esta pestaña.`,
     };
   }
 
