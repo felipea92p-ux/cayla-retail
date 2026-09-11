@@ -1451,6 +1451,14 @@ importante que ha entrado a este archivo desde que existe.
       `/finanzas`. Deliberadamente sin tocar `Segmentado` — su indicador ya es
       CSS puro y no lo necesitaba. Verificado en navegador, 227 tests + build
       en verde.
+- [x] 2026-09-11 — **34 usos de `text-[10px]`/`text-[9px]` quedaban debajo del piso
+      de 11px fijado el 08-sep para `.label-cayla`.** El barrido de ese día subió el
+      token (`--text-xs`, `--text-sm`) y la clase compartida, pero estos usaban valores
+      sueltos entre corchetes — invisibles para un cambio de token. Subidos a
+      `text-[11px]` en 11 archivos (Conteo, Etiquetas, Inventario Agrupado,
+      RegistroContableForm, entre otros). Se dejó intacta la etiqueta física impresa
+      (`Codigo128.tsx`, `CodigoQR.tsx`, `EtiquetasGenerator.tsx:396/399`, 8 casos): ese
+      tamaño lo manda el papel de 62×29mm, no la pantalla.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

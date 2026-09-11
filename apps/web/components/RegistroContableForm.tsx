@@ -343,9 +343,9 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
             <table className="w-full text-left text-xs">
               <thead className="text-tinta/65">
                 <tr>
-                  <th className="label-cayla px-4 py-1.5 text-[10px] font-normal">Cuenta</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Debe</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Haber</th>
+                  <th className="label-cayla px-4 py-1.5 text-[11px] font-normal">Cuenta</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[11px] font-normal">Debe</th>
+                  <th className="label-cayla px-4 py-1.5 text-right text-[11px] font-normal">Haber</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-tinta/5">
@@ -363,7 +363,7 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
               </tbody>
               <tfoot className="border-t border-tinta/10 text-tinta">
                 <tr>
-                  <td className="label-cayla px-4 py-2 text-right text-[10px] text-tinta/65">Total</td>
+                  <td className="label-cayla px-4 py-2 text-right text-[11px] text-tinta/65">Total</td>
                   <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalDebe)}</td>
                   <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalHaber)}</td>
                 </tr>
