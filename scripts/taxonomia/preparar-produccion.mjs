@@ -79,7 +79,16 @@ function trozos(sql) {
  * función; esto hace lo mismo sin que nadie tenga que acordarse.
  */
 function paraProduccion(sql) {
-  return sql.replace(/set search_path = public\b/g, "set search_path = retail, public");
+  return (
+    sql
+      .replace(/set search_path = public\b/g, "set search_path = retail, public")
+      // En producción `retail.personas` es una VISTA sobre Dynamic (ADR-0010), y
+      // una FK no puede apuntar a una vista: `references personas (id)` da
+      // "42809: referenced relation personas is not a table". Las tablas de
+      // retail apuntan a la tabla real, `public.personas` — igual que todas las
+      // migraciones de `supabase/unificacion/`. Le pasó a la 0055 el 2026-09-11.
+      .replace(/references personas \(/g, "references public.personas (")
+  );
 }
 
 function main() {
