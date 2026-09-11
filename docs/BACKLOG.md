@@ -1366,6 +1366,18 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-11 — **GSAP integrado, pero solo para lo que CSS no cubre: scroll
+      (ADR-0037).** Felipe pidió integrar GSAP; antes de instalar se marcó la
+      tensión con la capa de movimiento propia de `globals.css` (ADR-0011) —
+      se resolvió que GSAP entra únicamente para `ScrollTrigger`. Se construyó
+      `components/ui/RevelarAlScroll.tsx`, con el mismo gesto visual que
+      `.anim-asentar` (misma curva `--ease-cayla`, registrada exacta vía
+      `CustomEase`) pero disparado al cruzar el viewport en el scroll, y
+      `prefers-reduced-motion` resuelto igual que en CSS. Primera aplicación:
+      `/comercial`. Verificado en navegador (ruta de prueba + bypass temporal
+      de login en `proxy.ts`, ambos revertidos). `tsc`/`eslint`/`next build`
+      en verde. Precedente para el resto del repo: antes de usar GSAP en una
+      pantalla nueva, primero preguntar si CSS puro ya lo resuelve.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

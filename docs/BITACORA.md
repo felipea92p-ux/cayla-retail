@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (GSAP entra solo por la puerta que CSS no cubre: el scroll)
+
+Felipe pidió integrar GSAP. Antes de instalar se auditó `globals.css` y apareció la misma
+tensión de ADR-0011: ya existe una capa de movimiento propia, construida a propósito sin
+librerías. Se le marcó con AskUserQuestion antes de tocar nada — ¿qué necesita hacer con
+GSAP que CSS no resuelve? Respuesta: ScrollTrigger. Ahí sí hay una razón real (soporte de
+navegador parejo para `animation-timeline: scroll()`, y GSAP es gratis desde que Webflow lo
+adquirió) → ADR-0037.
+
+Se construyó `components/ui/RevelarAlScroll.tsx`: revela con el mismo gesto de
+`.anim-asentar`, pero disparado al cruzar el viewport en vez de al montar. La curva de
+easing no se aproximó a ojo — se registró la MISMA `cubic-bezier` de `--ease-cayla` vía
+`CustomEase`, así que la capa de scroll se ve idéntica a la capa CSS. `prefers-reduced-motion`
+colapsa la duración igual que en `globals.css`, nunca elimina la animación de golpe. Primera
+aplicación: `/comercial` (dashboard con secciones apiladas que el Líder recorre con scroll).
+
+Verificado en navegador con ruta de prueba temporal y bypass temporal de login en
+`proxy.ts` (sin credenciales de sesión a mano) — ambos revertidos antes de cerrar. Confirmado
+por DOM: bloques ya cruzados quedan en `opacity: 1`, los que siguen fuera de vista en
+`opacity: 0.35, translateY(4px)` (el estado previo de `.anim-asentar`). `tsc`, `eslint` y
+`next build` en verde.
+
 ## 2026-09-11 (el CI levanta la base: el verde ahora dice lo que hoy faltó que dijera)
 
 Cierre del hallazgo de la mañana: se agregó el job `migraciones` a `.github/workflows/ci.yml`
