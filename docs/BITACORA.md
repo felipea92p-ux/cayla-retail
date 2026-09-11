@@ -3567,3 +3567,14 @@ Y el `is not true` en vez de `not` no es estilo: si `puede_operar_sede` devolvie
 `not NULL` tampoco es true y el `raise` no dispararía — el candado se abriría solo. Es el
 mismo agujero que el `coalesce` de `03_candados.sql` cierra desde el otro lado, y por eso
 conviene que las dos defensas existan.
+
+## 2026-09-11 (el piso de 11px tenía 34 huecos sin tapar)
+Felipe reportó texto chico que obliga a hacer zoom. El 08-sep ya se había subido el piso
+tipográfico desde el token (`--text-xs` 12→13px, `.label-cayla` 9→11px, ADR de ese día) —
+pero ese barrido solo alcanzó lo que lee el token. 34 usos de `text-[10px]`/`text-[9px]`
+en 11 archivos (etiquetas, encabezados de tabla, botones secundarios en Conteo,
+Etiquetas, Inventario Agrupado, RegistroContableForm, entre otros) quedaron abajo del
+piso porque son valores sueltos entre corchetes, invisibles para ese cambio de token.
+Subidos a 11px uno por uno. Se dejaron intactos los 8 usos de 8-9px de la etiqueta física
+impresa (`Codigo128.tsx`, `CodigoQR.tsx`, `EtiquetasGenerator.tsx:396/399`): ahí el tamaño
+lo manda el papel de 62×29mm, no la pantalla.

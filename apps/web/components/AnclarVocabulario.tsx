@@ -171,7 +171,7 @@ export function AnclarVocabulario({
               <>
                 {" "}
                 ·{" "}
-                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[10px] text-verde-profundo">
+                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[11px] text-verde-profundo">
                   completo
                 </span>
               </>
@@ -202,7 +202,7 @@ export function AnclarVocabulario({
           <div className="scroll-cayla overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="label-cayla text-[10px] text-tinta/65">
+                <tr className="label-cayla text-[11px] text-tinta/65">
                   <th className="pb-2 pr-4 font-semibold">De la marca</th>
                   <th className="pb-2 pr-4 font-semibold">Cuelga de</th>
                   <th className="pb-2 font-semibold">Por qué</th>
