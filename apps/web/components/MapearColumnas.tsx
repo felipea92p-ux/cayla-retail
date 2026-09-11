@@ -1,16 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { CAMPOS, type Campo, type PlanDeMapeo, type FilaEstandar } from "@/lib/importacion/mapeo";
 
 /**
  * Paso 2: qué es cada columna.
  *
- * LA IA PROPONE, LA PERSONA CONFIRMA. Cada columna se puede cambiar con un
- * desplegable, y corregir una NO gasta otra llamada al modelo: el recálculo va
+ * LA IA PROPONE, LA PERSONA CONFIRMA. Cada columna se cambia con el desplegable
+ * del sistema, y corregir una NO gasta otra llamada al modelo: el recálculo va
  * por el camino determinista del mismo endpoint. Eso importa porque es lo que
  * hace barato equivocarse — si corregir costara dinero, la gente dejaría pasar
  * un mapeo dudoso.
+ *
+ * EL COLOR DICE CUÁNTO FIARSE, con los tonos del sistema y no con rojo: rojo es
+ * el acento sagrado y ya lo gasta el error. Ámbar = "al filo, míralo"; sin tono
+ * = la IA está segura. Una columna dudosa que grita en rojo compite con un
+ * error real, y entonces ninguno de los dos se lee.
  */
 
 type Respuesta = {
@@ -35,8 +41,10 @@ const ETIQUETA: Record<Campo, string> = {
   descripcion: "Descripción",
   tejido: "Tejido",
   patron: "Patrón",
-  ignorar: "— no importar —",
+  ignorar: "No importar",
 };
+
+const OPCIONES_CAMPO = CAMPOS.map((c) => ({ valor: c, texto: ETIQUETA[c] }));
 
 export function MapearColumnas({
   filas,
@@ -87,128 +95,123 @@ export function MapearColumnas({
 
   const cabeceras = filas[filaCabecera] ?? [];
 
-  if (!r) {
-    return (
-      <section className="card-cayla space-y-3 p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h2 className="font-display text-lg text-tinta">Qué es cada columna</h2>
-            <p className="mt-0.5 text-xs text-tinta/65">
+  return (
+    <section className="anim-entrada card-cayla p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="label-cayla text-[11px] text-tinta/65">Paso 2</p>
+          <h2 className="font-display mt-1 text-xl text-tinta">Qué es cada columna</h2>
+          {r ? (
+            <p key={r.total} className="anim-asentar mt-1 text-xs text-tinta/75">
+              {r.plan.disposicion === "matriz_de_tallas"
+                ? "Una columna por talla: cada fila se abre en varias prendas. "
+                : "Cada fila es una prenda. "}
+              Salen <span className="font-display text-base text-tinta">{r.total}</span> prendas.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-tinta/75">
               El sistema mira las cabeceras y las primeras filas, y propone. Después lo corriges tú.
             </p>
-          </div>
-          <button
-            onClick={() => void pedir()}
-            disabled={cargando}
-            className="label-cayla rounded border border-tinta/20 px-3 py-1.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
-          >
-            {cargando ? "Leyendo columnas…" : "Leer las columnas"}
-          </button>
+          )}
         </div>
-        {error && <p className="text-xs text-rojo">{error}</p>}
-      </section>
-    );
-  }
-
-  const esMatriz = r.plan.disposicion === "matriz_de_tallas";
-
-
-  return (
-    <section className="card-cayla space-y-4 p-4">
-      <div>
-        <h2 className="font-display text-lg text-tinta">Qué es cada columna</h2>
-        <p className="mt-0.5 text-xs text-tinta/65">
-          {esMatriz
-            ? `Este archivo tiene una columna por talla — cada fila se abrirá en varias prendas.`
-            : `Cada fila del archivo es una prenda.`}{" "}
-          Salen <strong className="text-tinta">{r.total}</strong> prendas.
-        </p>
-        {r.plan.notas && <p className="mt-1 text-[11px] italic text-tinta/50">{r.plan.notas}</p>}
+        {!r && (
+          <Boton type="button" peso="primario" cargando={cargando} onClick={() => void pedir()}>
+            Leer las columnas
+          </Boton>
+        )}
       </div>
 
-      {error && <p className="text-xs text-rojo">{error}</p>}
-
-      {r.faltan.length > 0 && (
-        <p className="rounded border border-rojo/30 p-2 text-xs text-rojo">
-          Falta indicar: {r.faltan.map((f) => ETIQUETA[f]).join(", ")}. Sin eso la importación quedaría incompleta.
+      {error && (
+        <p className="anim-revelar mt-4 rounded-md border border-rojo/30 bg-rojo/10 px-4 py-3 text-xs text-rojo-profundo">
+          {error}
         </p>
       )}
 
-      <div className="space-y-1">
-        {r.plan.columnas.map((c) => {
-          // Una columna de talla NO va a un campo: sus cantidades abren la fila
-          // en una variante por talla. Mostrarla con el desplegable en "no
-          // importar" diría exactamente lo contrario de lo que hace.
-          const talla = r.plan.columnasTalla.find((t) => t.indice === c.indice);
-          return (
-            <div key={c.indice} className="flex flex-wrap items-center gap-2 border-t border-tinta/10 py-1.5 text-xs">
-              <span className="w-40 shrink-0 truncate text-tinta" title={cabeceras[c.indice]}>
-                {cabeceras[c.indice]?.trim() || <span className="italic text-tinta/30">sin título</span>}
-              </span>
-              {talla ? (
-                <>
-                  <span className="rounded border border-tinta/15 px-2 py-1 text-tinta/65">
-                    Talla «{talla.talla}»
+      {r && (
+        <div className="anim-velo mt-5 space-y-5">
+          {r.plan.notas && <p className="text-xs italic text-tinta/65">{r.plan.notas}</p>}
+
+          {r.faltan.length > 0 && (
+            <p className="anim-revelar rounded-md border border-ambar/30 bg-ambar/10 px-4 py-3 text-xs text-ambar-profundo">
+              Falta indicar {r.faltan.map((f) => ETIQUETA[f].toLowerCase()).join(", ")}. Sin eso la importación
+              quedaría incompleta.
+            </p>
+          )}
+
+          <div className="divide-y divide-tinta/5">
+            {r.plan.columnas.map((c) => {
+              // Una columna de talla NO va a un campo: sus cantidades abren la
+              // fila en una variante por talla. Mostrarla con el desplegable en
+              // "no importar" diría lo contrario de lo que hace.
+              const talla = r.plan.columnasTalla.find((t) => t.indice === c.indice);
+              const dudosa = c.confianza === "baja" && !talla;
+              return (
+                <div
+                  key={c.indice}
+                  className={`grid items-center gap-x-4 gap-y-1 py-2.5 transition-colors duration-150 sm:grid-cols-[11rem_13rem_1fr] ${
+                    cargando ? "opacity-60" : ""
+                  }`}
+                >
+                  <span className="truncate text-sm text-tinta" title={cabeceras[c.indice]}>
+                    {cabeceras[c.indice]?.trim() || <span className="italic text-tinta/35">sin título</span>}
                   </span>
-                  <span className="text-tinta/50">Cada cantidad de esta columna crea una prenda en esa talla.</span>
-                </>
-              ) : (
-                <>
-                  <select
-                    value={c.campo}
-                    onChange={(e) => cambiar(c.indice, e.target.value as Campo)}
-                    disabled={cargando}
-                    className={`rounded border bg-transparent px-2 py-1 text-tinta ${
-                      c.confianza === "baja" ? "border-rojo/40" : "border-tinta/15"
-                    }`}
-                  >
-                    {CAMPOS.map((campo) => (
-                      <option key={campo} value={campo}>
-                        {ETIQUETA[campo]}
-                      </option>
+
+                  {talla ? (
+                    <span className="label-cayla inline-flex w-fit items-center rounded-full border border-verde/45 bg-verde/10 px-3 py-1 text-[11px] text-verde-profundo">
+                      Talla {talla.talla}
+                    </span>
+                  ) : (
+                    <Desplegable
+                      valor={c.campo}
+                      onValor={(v) => cambiar(c.indice, v)}
+                      opciones={OPCIONES_CAMPO}
+                      forma="pastilla"
+                    />
+                  )}
+
+                  <span className={`text-xs ${dudosa ? "text-ambar-profundo" : "text-tinta/65"}`}>
+                    {talla ? "Cada cantidad crea una prenda en esta talla." : c.porque}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-sand pt-4">
+            <p className="label-cayla mb-2 text-[11px] text-tinta/65">Así quedan las primeras</p>
+            <div className="scroll-cayla overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="label-cayla text-[10px] text-tinta/65">
+                    {["Prenda", "Talla", "Color", "Costo", "Precio"].map((h) => (
+                      <th key={h} className="pb-2 pr-4 font-semibold">
+                        {h}
+                      </th>
                     ))}
-                  </select>
-                  <span className={c.confianza === "baja" ? "text-rojo" : "text-tinta/50"}>{c.porque}</span>
-                </>
-              )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tinta/5">
+                  {r.variantes.slice(0, 8).map((v, i) => (
+                    <tr key={i} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
+                      <td className="py-2 pr-4 text-tinta">{v.referencia}</td>
+                      <td className="py-2 pr-4 text-tinta">{v.talla || "—"}</td>
+                      <td className="py-2 pr-4 text-tinta">{v.color || "—"}</td>
+                      <td className="py-2 pr-4 tabular-nums text-tinta/65">{v.costo ? v.costo.toFixed(2) : "—"}</td>
+                      <td className="py-2 pr-4 tabular-nums text-tinta">{v.precio ? v.precio.toFixed(2) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      <div className="border-t border-tinta/10 pt-3">
-        <p className="label-cayla mb-2 text-[10px] text-tinta/50">Así quedarían las primeras prendas</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="label-cayla text-[10px] text-tinta/50">
-              <tr>
-                {["Prenda", "Talla", "Color", "Costo", "Precio"].map((h) => (
-                  <th key={h} className="pb-1.5 pr-3 font-normal">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {r.variantes.slice(0, 12).map((v, i) => (
-                <tr key={i} className="border-t border-tinta/10">
-                  <td className="py-1.5 pr-3 text-tinta">{v.referencia}</td>
-                  <td className="py-1.5 pr-3 text-tinta">{v.talla || "—"}</td>
-                  <td className="py-1.5 pr-3 text-tinta">{v.color || "—"}</td>
-                  <td className="py-1.5 pr-3 text-tinta/65">{v.costo || "—"}</td>
-                  <td className="py-1.5 pr-3 text-tinta">{v.precio || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {r.uso && (
+            <p className="text-[11px] text-tinta/50">
+              {r.uso.entrada} tokens de entrada · {r.uso.salida} de salida ≈ $
+              {((r.uso.entrada * 1) / 1e6 + (r.uso.salida * 5) / 1e6).toFixed(4)}
+            </p>
+          )}
         </div>
-      </div>
-
-      {r.uso && (
-        <p className="text-[10px] text-tinta/35">
-          {r.uso.entrada} tokens de entrada · {r.uso.salida} de salida ≈ $
-          {((r.uso.entrada * 1) / 1e6 + (r.uso.salida * 5) / 1e6).toFixed(4)}
-        </p>
       )}
     </section>
   );
