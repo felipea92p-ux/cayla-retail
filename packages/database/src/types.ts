@@ -2580,6 +2580,7 @@ export type Database = {
           p_items: Json
           p_metodo_pago: string
           p_nota?: string
+          p_token?: string
         }
         Returns: string
       }

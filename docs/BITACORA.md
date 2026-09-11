@@ -2474,6 +2474,103 @@ y la realidad eran una — pero en la dirección peligrosa: la que faltaba no es
 ningún lado. Antes de un despliegue, la pregunta no es "¿qué dice mi lista?" sino "¿qué dice
 la base?", y son dos preguntas distintas cada vez que alguien aplica algo sin anotarlo.
 
+## 2026-09-10 (idempotencia de `registrar_venta` — dos bugs cerrados antes de llegar a producción)
+
+Felipe pidió avanzar el pendiente de dinero real que quedaba: `registrar_venta`
+no era idempotente, y un reintento por corte de red duplicaba la venta y el
+descuento de stock. Se diseñó el arreglo con un patrón de tres pasadas —
+redactar, verificar adversarialmente, corregir — en vez de escribir la
+migración una sola vez y confiar en ella.
+
+**Ronda 1** propuso devolver la venta existente apenas se encontraba el
+token, antes de validar sede/caja/estado. El revisor adversarial lo refutó:
+es un bypass de autorización real, no solo un detalle de estilo — cualquiera
+con el token recibía el resultado de una venta ajena sin que se revisara
+ningún permiso. **Ronda 2** corrigió eso pero dejó la rama de la carrera
+concurrente (`exception when unique_violation`, la que de verdad se dispara
+con dos requests casi simultáneos) sin la misma comparación de contexto
+(caja/método/monto) que sí tenía la rama normal — exactamente la rama que
+existe PARA ese escenario, dejada sin candado. La tercera pasada cerró
+ambos, con las dos ramas repitiendo la misma comparación vía
+`is distinct from` (no `<>`, para que un campo nulo nunca deje pasar la
+comparación sin resolver).
+
+Aplicado a producción con `execute_sql` (no `apply_migration`, mismo motivo
+de siempre: no ensuciar el historial de migraciones de Dynamic). Verificado
+tres veces: el bloque de autocomprobación del propio script (que incluye una
+prueba de COMPORTAMIENTO real — llamar la función con una caja inventada y
+confirmar que se rechaza, no solo revisar que el texto del candado esté en
+algún lado del código fuente), una consulta directa independiente después de
+aplicar, y el verificador de `scripts/migraciones/` corrido contra una foto
+fresca de producción — que confirmó el archivo sin nada pendiente.
+
+Se descubrió en el camino que `docs/adr/0029-*.md` ya estaba prometido en
+`BACKLOG.md` por otra sesión el mismo día (fix de etiqueta de sede) aunque el
+archivo todavía no existiera en este checkout — colisión de numeración de
+ADR, el mismo patrón que ya documentó la memoria de "sesiones paralelas".
+Se renumeró a ADR-0030 antes de commitear, sin esperar a que la otra rama se
+fusionara para descubrirlo tarde. **Al fusionar contra `origin/main` (que ya
+llevaba 8 commits más) la misma colisión volvió a pasar una segunda vez**:
+otra sesión también usó `0030` (taxonomía universal) y `0052` para su
+migración local — se renumeró de nuevo a ADR-0032 y `0054`/`0055` recién al
+resolver el merge, no antes, porque `origin/main` siguió avanzando mientras
+esta rama esperaba. La lección se repite: verificar la numeración libre justo
+antes de fusionar, no solo antes de escribir.
+
+**Lo que Felipe aprende acá:** un borrador que "se ve bien" y un borrador
+verificado no son lo mismo — los dos bugs de las rondas 1 y 2 habrían pasado
+cualquier lectura casual, porque el código alrededor de cada uno es correcto;
+solo se ven intentando romperlos a propósito. La disciplina de pedirle a un
+revisor que refute en vez de aprobar es la que los sacó a la luz antes de
+que una clienta real los encontrara primero.
+
+## 2026-09-10 (recalcular_stock ciego al almacén, y dos filas de stock que ya estaban mal)
+
+Cerrado el fix de `registrar_venta`, se revisó el siguiente ítem real del
+backlog: `recalcular_stock` borraba el `stock_minimo` de una variante sin
+movimientos, un borde que `0044_almacen_interno.sql` había dejado anotado
+sin resolver. Al ir a corregir esa línea, verificar el cuerpo REAL de la
+función en producción (no el del repo) mostró algo más grave: la versión
+vigente es la de ADR-0020, escrita antes de que existiera el almacén
+interno — no sabe nada de `contenedores` ni de `stock_almacen`. Producción
+ya tiene 4 contenedores de almacén reales y 9 movimientos enrutados ahí; si
+alguien invocara esta función hoy (es la "red de seguridad" manual, no algo
+que corra solo), mezclaría el almacén de vuelta al piso de venta.
+
+Se portó el diseño de `0044` (ya en `origin/main`, nunca pegado a
+producción con ese alcance) sumando el guard de `stock_minimo`, el candado
+de Líder (perdido en algún punto desde ADR-0020) y el `EXECUTE` de más para
+`PUBLIC`. Una revisión adversarial encontró un bug antes de aplicar: sin
+una excepción para traslados, el mecanismo real de "devolver a almacén"
+—hoy una rama muerta en el frontend, pero viva en el RPC— habría dejado
+inventario fantasma (restado del origen, sumado en ningún lado). Se corrigió
+antes de tocar producción. La misma revisión levantó una alarma sobre
+`es_lider()` (parecía estar chequeando el rol equivocado, el de Dynamic en
+vez de uno propio de retail) que se verificó y resultó falsa: `admin` en
+Dynamic y `lider` en retail son la misma persona, por diseño
+(`lib/persona.ts:mapearRol`) — vale la pena que quede registrado que se
+investigó y se descartó, para que nadie la vuelva a levantar sin revisar.
+
+Antes de aplicar, se comparó (con `select` de solo lectura, sin invocar la
+función) lo que el nuevo cálculo produciría contra el `stock` real de las 4
+sedes. Coincidencia exacta en almacén; 8 de 10 filas de piso también. Las 2
+que no coincidían resultaron ser una misma prenda con el mismo patrón: un
+`ingreso de lote` al almacén contado también como piso, del 2026-09-05 —
+antes de que `fn_aplicar_movimiento` supiera separar ambos. Es decir: dos
+SKUs en Arequipa llevaban mostrando entre 40 y 50 unidades de más en
+Catálogo y Vender, hoy, con la tienda operando sobre ese número. Felipe
+confirmó explícitamente la corrección (99→49, 98→58) antes de aplicarla —
+un `update` de dos filas puntuales, sin tocar `movimientos`, en vez de
+invocar la función completa (que habría exigido impersonar la sesión de un
+Líder para pasar su propio candado).
+
+**Lo que Felipe aprende acá:** una "red de seguridad" que nadie corrió
+todavía no es una red de seguridad — es una promesa sin probar. Estaba rota
+desde que se construyó el almacén interno y nadie lo supo porque nadie la
+había invocado; el mismo ejercicio de verificarla para otra cosa (el borde
+de `stock_minimo`) fue lo que sacó a la luz que dos números reales, en
+pantalla, ya estaban mal.
+
 ## 2026-09-10 (auditoría del código ajeno, ya desplegado — y una trampa que casi muerde)
 Felipe pidió verificar si era seguro pushear los commits de las otras sesiones. Se habían
 pusheado ya: `origin/main` estaba en `f7bdfc4`, los 10 commits arriba. Así que la pregunta
@@ -2651,4 +2748,3 @@ La lección de método: la funcionalidad que se pidió (la matriz) y el problema
 motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
-
