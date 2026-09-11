@@ -3622,3 +3622,20 @@ piso porque son valores sueltos entre corchetes, invisibles para ese cambio de t
 Subidos a 11px uno por uno. Se dejaron intactos los 8 usos de 8-9px de la etiqueta física
 impresa (`Codigo128.tsx`, `CodigoQR.tsx`, `EtiquetasGenerator.tsx:396/399`): ahí el tamaño
 lo manda el papel de 62×29mm, no la pantalla.
+
+## 2026-09-11 (el primer chart: comparativo año contra año, ADR-0039)
+
+Se instaló Bklit UI (charts sobre shadcn/registry, ADR-0037) y se armó el primer chart real
+en `/finanzas/comparativo` — línea mensual, un año por línea, sin tocar la tabla existente.
+Los años NO llevan colores por serie: son una rampa de un solo tono (tinta, oscuro→claro,
+más reciente = más oscuro) porque un año es tiempo ordenado, no una categoría — mismo
+lenguaje que ya usa `text-tinta/65` en toda la app. El crosshair es rojo a propósito: es el
+"hilo vivo" de la Capa de movimiento, no un color de serie. Se verificó en navegador con
+datos reales (se completó `.env.local` local, ausente hasta ahora, y se cargó
+`seed-demo.sql` a mano) — no solo compilación.
+
+Lo que Felipe se lleva: **una serie ordenada por tiempo no pide una paleta, pide una
+rampa** — el error fácil era dejar los 5 colores genéricos que trae la librería (gris
+categórico) o inventar un color por año; ninguno de los dos dice "2026 importa más que
+2023" con solo mirarlo. La opacidad sí lo dice, y CAYLA ya lo sabía (`tinta/65`) antes de
+que existiera un chart.

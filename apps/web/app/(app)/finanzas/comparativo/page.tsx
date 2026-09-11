@@ -9,6 +9,7 @@ import { tolerar } from "@/lib/resultado";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { HistoricosEditor } from "@/components/HistoricosEditor";
+import { ComparativoChart } from "@/components/ComparativoChart";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -98,55 +99,58 @@ async function Comparacion({ sede }: { sede?: string }) {
           Aún no hay datos — siembra los históricos o registra ventas.
         </p>
       ) : (
-        <div className="overflow-x-auto card-cayla">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-tinta/10 text-tinta/65">
-              <tr>
-                <th className="label-cayla px-3 py-2 text-[11px]">Mes</th>
-                {comparativo.anios.map((a) => (
-                  <th key={a} className="label-cayla px-3 py-2 text-right text-[11px]">{a}</th>
-                ))}
-                {comparativo.anios.length >= 2 && (
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Δ último año</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-tinta/5">
-              {comparativo.filas.map((f) => {
-                const ultimo = comparativo.anios[comparativo.anios.length - 1];
-                const previo = comparativo.anios[comparativo.anios.length - 2];
-                const delta = previo != null && f.porAnio[previo] > 0
-                  ? Math.round(((f.porAnio[ultimo] - f.porAnio[previo]) / f.porAnio[previo]) * 100)
-                  : null;
-                return (
-                  <tr key={f.mes}>
-                    <td className="px-3 py-2.5 font-medium text-tinta">{MESES[f.mes - 1]}</td>
-                    {comparativo.anios.map((a) => (
-                      <td key={a} className="px-3 py-2.5 text-right text-tinta/75">
-                        {f.porAnio[a] > 0 ? money(f.porAnio[a]) : "—"}
-                      </td>
-                    ))}
-                    {comparativo.anios.length >= 2 && (
-                      <td className={`px-3 py-2.5 text-right font-medium ${delta == null ? "text-tinta/65" : delta >= 0 ? "text-tinta" : "text-rojo"}`}>
-                        {delta == null ? "—" : `${delta > 0 ? "+" : ""}${delta}%`}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot className="border-t border-tinta/15">
-              <tr>
-                <td className="label-cayla px-3 py-2.5 text-[11px] text-tinta/70">Total</td>
-                {comparativo.anios.map((a) => (
-                  <td key={a} className="font-display px-3 py-2.5 text-right text-sm text-tinta">
-                    {money(comparativo.totalPorAnio[a] ?? 0)}
-                  </td>
-                ))}
-                {comparativo.anios.length >= 2 && <td />}
-              </tr>
-            </tfoot>
-          </table>
+        <div className="space-y-6">
+          <ComparativoChart comparativo={comparativo} />
+          <div className="overflow-x-auto card-cayla">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-tinta/10 text-tinta/65">
+                <tr>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Mes</th>
+                  {comparativo.anios.map((a) => (
+                    <th key={a} className="label-cayla px-3 py-2 text-right text-[11px]">{a}</th>
+                  ))}
+                  {comparativo.anios.length >= 2 && (
+                    <th className="label-cayla px-3 py-2 text-right text-[11px]">Δ último año</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-tinta/5">
+                {comparativo.filas.map((f) => {
+                  const ultimo = comparativo.anios[comparativo.anios.length - 1];
+                  const previo = comparativo.anios[comparativo.anios.length - 2];
+                  const delta = previo != null && f.porAnio[previo] > 0
+                    ? Math.round(((f.porAnio[ultimo] - f.porAnio[previo]) / f.porAnio[previo]) * 100)
+                    : null;
+                  return (
+                    <tr key={f.mes}>
+                      <td className="px-3 py-2.5 font-medium text-tinta">{MESES[f.mes - 1]}</td>
+                      {comparativo.anios.map((a) => (
+                        <td key={a} className="px-3 py-2.5 text-right text-tinta/75">
+                          {f.porAnio[a] > 0 ? money(f.porAnio[a]) : "—"}
+                        </td>
+                      ))}
+                      {comparativo.anios.length >= 2 && (
+                        <td className={`px-3 py-2.5 text-right font-medium ${delta == null ? "text-tinta/65" : delta >= 0 ? "text-tinta" : "text-rojo"}`}>
+                          {delta == null ? "—" : `${delta > 0 ? "+" : ""}${delta}%`}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="border-t border-tinta/15">
+                <tr>
+                  <td className="label-cayla px-3 py-2.5 text-[11px] text-tinta/70">Total</td>
+                  {comparativo.anios.map((a) => (
+                    <td key={a} className="font-display px-3 py-2.5 text-right text-sm text-tinta">
+                      {money(comparativo.totalPorAnio[a] ?? 0)}
+                    </td>
+                  ))}
+                  {comparativo.anios.length >= 2 && <td />}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
     </>
