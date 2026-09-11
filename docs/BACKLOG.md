@@ -31,6 +31,25 @@ importante que ha entrado a este archivo desde que existe.
       importador solo la llena para catálogos nuevos; llenarla para el catálogo
       actual es otro trabajo. Y el cron semanal para `revisar-version.mjs` no
       existe: se corre a mano cuando se quiera saber si hay versión nueva.
+      **Aparte, sin resolver (2026-09-11):** Felipe espera que los productos
+      disponibles de CAYLA se saquen probablemente de "Ingreso Mercadería" de
+      SINATRA. Verificado contra `SINATRA 2025.xlsm`: 2.219 filas de compra, 21
+      `CATEGORÍA` con duplicados de forma (`Pantalones`/`PANTALONES`,
+      `Body`/`body`, mapeables 1:1 contra `retail.categorias` con el motor de
+      anclaje de arriba), `DETALLE` texto libre sin estructura (1.439 valores
+      distintos, ej. "Sosten lino algodon", "Lino Prada"), `TALLA` vacía al
+      100%, 807 filas (36%) con error de fórmula — confirma en 2025 lo mismo que
+      `docs/ANALISIS-SINATRA.md` ya midió en 2026: **es un registro de compras,
+      no un catálogo**, sin SKU y sin talla/color por fila para
+      `crear_producto_con_variantes` sin inventar datos. El catálogo real de
+      CAYLA se sigue capturando por el censo físico (ítem `catalogo real` más
+      abajo), no por esta hoja. Queda sin resolver qué significa exactamente
+      "sacar los productos disponibles" de Ingreso Mercadería si no es un import
+      1:1 — ¿leer qué categorías/marcas circulan históricamente para pre-poblar
+      sugerencias del censo? ¿otra cosa? "El importador de clientes" y "leer
+      Ingreso Mercadería" comparten el motor de anclaje pero no son el mismo
+      problema: el primero recibe un archivo ya pensado como catálogo por el
+      cliente, el segundo es un registro de compras que nunca lo fue.
 
 - [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
       Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
