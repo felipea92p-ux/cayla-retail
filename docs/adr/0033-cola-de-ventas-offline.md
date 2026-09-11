@@ -2,6 +2,8 @@
 
 **Fecha:** 2026-09-11
 **Estado:** Construido y verificado en local (kong apagado/reencendido a mano).
+Addendum "Paso 3.1" del mismo día, más abajo: cierra el agujero de la venta
+huérfana cuando la caja cierra antes de que la venta suba.
 **Deriva de:** ADR-0013 §C (decisión de negocio de Felipe: vender offline solo con
 stock de sobra) y ADR-0032 (el token que hace segura la subida).
 
@@ -113,3 +115,105 @@ reemplaza la red de seguridad que ya existe en el esquema.
   cerrada mientras tanto) no hay botón para descartarla a mano ni para reintentarla
   fuera del latido de 30 s — hoy solo se ve el motivo. Vuelve a la mesa si en la
   práctica aparece un caso real.
+
+## Addendum — Paso 3.1: la venta ya no queda huérfana si la caja cierra antes de subir (2026-09-11, misma tarde)
+
+**El agujero.** La primera versión de este ADR indexaba la cola por `cajaId`, y
+`CajaPanel` solo sondeaba/subía mientras ESA caja seguía abierta — apenas cerraba, el
+componente dejaba de mirar su cola para siempre. Si la red no volvía antes del cierre
+(la Encargada se va a su casa, o alguien cierra la caja sin saber que hay algo
+pendiente), la venta quedaba atrapada en `localStorage` sin que ningún código volviera
+a intentarlo. Es plata ya cobrada que el sistema deja de saber que existe — el
+principio 9 ("nunca pierde datos") roto en silencio.
+
+**DECIDÍ, entre dos caminos con costos distintos:**
+
+1. ~~Bloquear "Cerrar caja" si hay algo pendiente.~~ **DESCARTÉ.** Es peor que el
+   problema que resuelve: si la red no vuelve esa noche, la Encargada no podría cerrar
+   e irse a su casa — castiga el caso normal (cerrar) por el caso raro (algo sin
+   subir), justo el escenario para el que se construyó toda esta cola.
+2. **La cola deja de estar atada a "mientras esta caja siga abierta" — pasa a ser por
+   SEDE, no por caja.** `obtenerColaSede()` reemplaza a `obtenerCola(cajaId)`; el trío
+   mount/`online`/latido corre siempre que la pantalla de venta esté montada, tenga o
+   no la sede una caja abierta ahora mismo. Cada `VentaEncolada` sigue llevando su
+   propio `cajaId` (el de cuando se vendió) — subirla no exige que esa caja siga
+   abierta, la RPC decide sola si la acepta.
+
+No relajé `registrar_venta`: sigue rechazando de plano una caja que no está `abierta`
+(ADR-0032, a propósito). El problema de fondo no era permiso, era visibilidad — una
+venta rechazada ahora se ve y se explica en el mismo lugar (la cola de rechazos),
+tanto en la pantalla de "caja abierta" como en la de "caja cerrada": los avisos se
+movieron arriba de esa bifurcación en `CajaPanel.tsx` a propósito.
+
+**Se sumó, además, el aviso en `CerrarCajaModal`.** `retail.cerrar_caja` solo suma
+`ventas.metodo_pago = 'efectivo'` que YA está en la base para calcular el "esperado" —
+una venta en efectivo atrapada en la cola no entra en ese cálculo todavía, así que el
+conteo físico (que SÍ tiene ese billete, la clienta ya pagó) se iba a leer como un
+sobrante que no es un error de nadie. `totalEfectivoEncolado()` calcula el monto y el
+modal lo muestra ANTES de que la Encargada cuente, con la aclaración de que puede
+cerrar igual.
+
+**Verificado en local, con Postgres real (no mocks), en dos pasadas** porque a mitad
+de la primera el stack local de Supabase se reinició solo y perdió todos los datos
+(`cajas`/`ventas`/`movimientos`/`stock` en cero — causa no confirmada, probablemente
+ajena a este cambio; se resolvió con `npx supabase db reset`):
+
+1. Con Kong apagado, se vendió 1 unidad dejando 1 de sobra (pasa el umbral) →
+   quedó en la cola.
+2. Se cerró la caja **directamente en la base** (simulando que se cerró por otra vía
+   mientras la venta seguía sin subir — el caso real que este addendum cubre) sin
+   tocar el navegador, para que la carrera no dependiera de cronometrar clicks.
+3. Al recargar la pantalla de venta (ahora "caja cerrada"): apareció "Subiendo 1 venta
+   guardada sin conexión…" y luego "Una venta guardada sin conexión no pudo subir:
+   Esta caja ya está cerrada — no se pueden registrar más ventas ahí" — en la vista
+   de caja CERRADA, que antes de este addendum no mostraba nada. La venta siguió en
+   `localStorage`, no se perdió.
+4. Se abrió una caja NUEVA de la misma sede: el buscador de la venta mostró `stock 1`
+   (no 2) — el overlay de stock comprometido sobrevivió el cierre de la caja que
+   generó la venta pendiente, protegiendo la unidad también bajo la caja nueva.
+5. Antes del reinicio de datos también se vio el aviso de `CerrarCajaModal` render
+   correctamente: "Hay S/89.90 en efectivo de ventas guardadas sin conexión que
+   todavía no subieron…".
+
+**Hallazgo aparte, no de este cambio pero vale dejarlo escrito:** una recarga completa
+de la pantalla MIENTRAS el servidor está caído no funciona — el server component
+también habla con Supabase a través de Kong, así que sin servidor la navegación entera
+falla con la pantalla de error genérica ("El sistema no pudo arrancar"), no con la
+cola. La cola offline protege una venta que se corta A MITAD de un envío con la
+pantalla ya cargada; no convierte la app en algo que arranca sin servidor — eso sigue
+siendo la Fase 2 de local-first (ADR-0018), explícitamente no construida.
+
+**Se rompe si:** se agrega alguna vez una segunda pantalla que también lea/escriba
+`cayla:cola-ventas` sin pasar por `lib/ventas-offline.ts` — hoy `CajaPanel` es el único
+lugar que sincroniza, y cualquier otro punto de escritura directa a `localStorage`
+podría pisar una venta a mitad de subir.
+
+## Addendum 2 — "Descartar": la salida para un rechazo que nunca se va a resolver solo (2026-09-11, misma tarde)
+
+El Paso 3.1 dejó una deuda anotada: una venta rechazada para siempre (la caja que la
+generó nunca vuelve a existir "abierta") se reintentaba cada 30 s sin parar, mostrando
+el mismo aviso rojo indefinidamente, sin ninguna salida más que borrar `localStorage`
+a mano desde la consola del navegador.
+
+**DECIDÍ:** un botón "Descartar" por venta rechazada, con confirmación de dos pasos
+(nunca un solo click) que dice EXPLÍCITAMENTE lo que la acción no hace: no registra la
+venta, no corrige el stock, no deja ningún rastro en el servidor — porque la fila
+nunca llegó a existir en `ventas` (el rechazo pasó antes de eso, no hay nada que
+revertir ahí). Solo saca la entrada de la cola local. El texto de confirmación incluye
+el monto y le recuerda a quien lo lee que, si la prenda de verdad salió de la tienda,
+tiene que anotarlo a mano — la responsabilidad de reconciliar pasa explícitamente a
+una persona, no desaparece silenciosa.
+
+**DESCARTÉ** un registro de auditoría en el servidor ("venta descartada", con su
+propia tabla o columna) — habría sido un cambio de esquema para resolver lo que hoy es
+un problema de visibilidad, no de datos: no hay ninguna fila del lado del servidor que
+recuperar o marcar, porque el rechazo pasó ANTES del insert. Si en la práctica esto se
+usa seguido y hace falta rastrear qué se descartó y por qué, ahí sí se vuelve a la
+mesa con Felipe — no se adivina hoy.
+
+**Verificado en local, con Postgres real:** venta encolada, caja cerrada directo en la
+base (mismo método del Addendum 1, para no depender de cronometrar contra un servidor
+real), reload → apareció el rechazo con "Descartar". Clic en "Cancelar" dejó la cola
+intacta (seguía con 1 venta). Clic en "Descartar" → "Sí, descartar" mostró el monto
+correcto (S/70.00) en la confirmación y, al confirmar, vació la cola y el aviso
+desapareció sin dejar ningún error.

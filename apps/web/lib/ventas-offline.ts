@@ -12,11 +12,21 @@
  * defensa real es no dejar que el stock local llegue a cero sin que el servidor lo confirme.
  *
  * QUÉ VIVE ACÁ (puro, sin React ni Supabase, para poder probarlo sin montar nada):
- * - La cola misma: leer/escribir `localStorage`, por caja.
+ * - La cola misma: leer/escribir `localStorage`, por SEDE — no por caja (Paso 3.1, ver
+ *   más abajo por qué).
  * - El overlay de stock comprometido: lo que ya se vendió offline pero no subió todavía
  *   tiene que descontarse EN PANTALLA de `stockAqui`, o una segunda venta sin red vería
  *   unidades que ya no existen.
  * - El sondeo de conexión al servidor.
+ *
+ * POR QUÉ POR SEDE Y NO POR CAJA (Paso 3.1, ADR-0033 addendum). La primera versión
+ * indexaba la cola por `cajaId` y `CajaPanel` solo sincronizaba mientras ESA caja seguía
+ * abierta. Eso dejaba una venta huérfana para siempre si la caja se cerraba antes de que
+ * la red volviera: nadie volvía a mirar esa cola nunca más, y era plata ya cobrada que el
+ * sistema dejaba de saber que existía — justo lo que el principio 9 prohíbe ("nunca pierde
+ * datos"). El stock, además, es un recurso de SEDE, no de una caja puntual: el overlay
+ * tiene que sobrevivir el cierre de la caja que la generó, o una caja nueva de la misma
+ * sede podría volver a ofrecer unidades que ya se vendieron sin subir.
  *
  * QUÉ NO VIVE ACÁ. El cliente de Supabase y el ciclo de subida (mount / `online` / latido
  * de 30 s) están en `CajaPanel.tsx`: necesitan `useEffect` y el router, y mezclarlos acá
@@ -73,9 +83,15 @@ function escribirCola(cola: VentaEncolada[]): void {
   }
 }
 
-/** La cola completa de una caja, la única unidad con la que trabajan las pantallas. */
-export function obtenerCola(cajaId: string): VentaEncolada[] {
-  return leerCola().filter((v) => v.cajaId === cajaId);
+/**
+ * La cola de una sede — la unidad con la que trabajan las pantallas (Paso 3.1). Cruza
+ * cajas cerradas a propósito: una venta que quedó pendiente cuando la caja que la generó
+ * ya cerró TIENE que seguir sincronizándose, o se pierde de vista para siempre. Cada
+ * `VentaEncolada` ya lleva su propio `cajaId` (el de cuando se vendió), así que subirla no
+ * necesita que esa caja siga abierta — la RPC decide sola si todavía puede aceptarla.
+ */
+export function obtenerColaSede(sedeCodigo: string): VentaEncolada[] {
+  return leerCola().filter((v) => v.sedeCodigo === sedeCodigo);
 }
 
 /**
@@ -133,6 +149,20 @@ export function conStockComprometidoDescontado<T extends { varianteId: string; s
  */
 export function pasaElUmbralDeSobra(stockAqui: number, cantidad: number): boolean {
   return stockAqui - cantidad >= 1;
+}
+
+/**
+ * Cuánto de lo encolado sin subir es en EFECTIVO (Paso 3.1). Importa porque
+ * `retail.cerrar_caja` solo suma `ventas.metodo_pago = 'efectivo'` para calcular el monto
+ * esperado del cajón — una venta en efectivo atrapada en la cola hace que el conteo físico
+ * (que SÍ incluye ese billete, la clienta ya pagó) se vea como un sobrante que en realidad
+ * no es un error de nadie, es plata real que el sistema todavía no registró.
+ */
+export function totalEfectivoEncolado(cola: VentaEncolada[]): number {
+  return cola
+    .filter((v) => v.metodoPago === "efectivo")
+    .flatMap((v) => v.items)
+    .reduce((acc, it) => acc + it.cantidad * it.monto, 0);
 }
 
 /** Nombre real del proyecto Supabase, o `null` si el sondeo no tiene a dónde ir. */

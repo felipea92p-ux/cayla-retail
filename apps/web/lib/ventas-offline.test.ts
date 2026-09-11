@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  obtenerCola,
+  obtenerColaSede,
   encolarVenta,
   quitarDeCola,
   stockComprometido,
   conStockComprometidoDescontado,
   pasaElUmbralDeSobra,
+  totalEfectivoEncolado,
   type VentaEncolada,
 } from "./ventas-offline";
 
@@ -47,24 +48,32 @@ function venta(p: Partial<VentaEncolada> = {}): VentaEncolada {
   };
 }
 
-describe("la cola, por caja", () => {
+describe("la cola, por sede (Paso 3.1 — sobrevive el cierre de la caja que la generó)", () => {
   it("encolar y leer devuelve la misma venta", () => {
     encolarVenta(venta());
-    expect(obtenerCola("caja-1")).toHaveLength(1);
-    expect(obtenerCola("caja-1")[0].token).toBe("t1");
+    expect(obtenerColaSede("TRU")).toHaveLength(1);
+    expect(obtenerColaSede("TRU")[0].token).toBe("t1");
   });
 
-  it("una caja no ve la cola de otra", () => {
-    encolarVenta(venta({ token: "t1", cajaId: "caja-1" }));
-    encolarVenta(venta({ token: "t2", cajaId: "caja-2" }));
-    expect(obtenerCola("caja-1")).toHaveLength(1);
-    expect(obtenerCola("caja-2")).toHaveLength(1);
+  it("una sede no ve la cola de otra", () => {
+    encolarVenta(venta({ token: "t1", sedeCodigo: "TRU" }));
+    encolarVenta(venta({ token: "t2", sedeCodigo: "AQP" }));
+    expect(obtenerColaSede("TRU")).toHaveLength(1);
+    expect(obtenerColaSede("AQP")).toHaveLength(1);
+  });
+
+  it("dos cajas distintas de la MISMA sede comparten la cola — es lo que impide la venta huérfana", () => {
+    encolarVenta(venta({ token: "t1", cajaId: "caja-de-ayer-ya-cerrada", sedeCodigo: "TRU" }));
+    encolarVenta(venta({ token: "t2", cajaId: "caja-de-hoy-abierta", sedeCodigo: "TRU" }));
+    const cola = obtenerColaSede("TRU");
+    expect(cola).toHaveLength(2);
+    expect(cola.map((v) => v.cajaId).sort()).toEqual(["caja-de-ayer-ya-cerrada", "caja-de-hoy-abierta"]);
   });
 
   it("encolar dos veces el mismo token reemplaza, no duplica", () => {
     encolarVenta(venta({ token: "t1", metodoPago: "efectivo" }));
     encolarVenta(venta({ token: "t1", metodoPago: "yape" }));
-    const cola = obtenerCola("caja-1");
+    const cola = obtenerColaSede("TRU");
     expect(cola).toHaveLength(1);
     expect(cola[0].metodoPago).toBe("yape");
   });
@@ -73,7 +82,7 @@ describe("la cola, por caja", () => {
     encolarVenta(venta({ token: "t1" }));
     encolarVenta(venta({ token: "t2" }));
     quitarDeCola("t1");
-    const cola = obtenerCola("caja-1");
+    const cola = obtenerColaSede("TRU");
     expect(cola).toHaveLength(1);
     expect(cola[0].token).toBe("t2");
   });
@@ -110,6 +119,21 @@ describe("el overlay de stock comprometido", () => {
   it("con la cola vacía, devuelve el mismo arreglo sin copiar cada fila", () => {
     const variantes = [{ varianteId: "v1", stockAqui: 5 }];
     expect(conStockComprometidoDescontado(variantes, [])).toBe(variantes);
+  });
+});
+
+describe("totalEfectivoEncolado — lo que cerrar_caja no puede ver todavía (Paso 3.1)", () => {
+  it("suma solo lo encolado en efectivo, ignora otros métodos de pago", () => {
+    const cola = [
+      venta({ token: "t1", metodoPago: "efectivo", items: [{ varianteId: "v1", cantidad: 2, monto: 50 }] }),
+      venta({ token: "t2", metodoPago: "yape", items: [{ varianteId: "v2", cantidad: 1, monto: 999 }] }),
+    ];
+    expect(totalEfectivoEncolado(cola)).toBe(100);
+  });
+
+  it("con la cola vacía, o sin nada en efectivo, da cero", () => {
+    expect(totalEfectivoEncolado([])).toBe(0);
+    expect(totalEfectivoEncolado([venta({ metodoPago: "pos" })])).toBe(0);
   });
 });
 

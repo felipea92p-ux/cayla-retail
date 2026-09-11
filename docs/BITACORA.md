@@ -2813,3 +2813,76 @@ alternaba el sustantivo (`venta`/`ventas`) y dejaba `guardadas` fijo en plural.
 Corregido en `CajaPanel.tsx` a `"venta guardada"` / `"ventas guardadas"`. Ningún test
 lo hubiera atrapado —es puro texto—, lo encontró leer la pantalla real durante la
 prueba de la carrera.
+
+## 2026-09-11 (Paso 3.1 — la venta ya no queda huérfana si la caja cierra antes de subir)
+Felipe preguntó qué faltaba probar de la cola de ventas offline. Auditar el propio
+código para contestarle destapó un agujero real, no cosmético: `CajaPanel` solo
+sondeaba y subía la cola MIENTRAS la caja que la generó seguía abierta. Si la red no
+volvía antes de cerrar, esa venta quedaba en `localStorage` sin que ningún código
+volviera a mirarla — plata ya cobrada que el sistema dejaba de saber que existía,
+justo lo que el principio 9 prohíbe.
+
+Dos caminos, y se descartó el más obvio. Bloquear "Cerrar caja" con algo pendiente
+suena más seguro, pero es peor: si la red no vuelve esa noche, la Encargada no podría
+cerrar e irse a su casa — castiga el caso normal por el caso raro, exactamente el
+escenario para el que existe toda esta cola. Se eligió el otro camino: la cola dejó
+de estar indexada por caja y pasó a estarlo por SEDE. Cada venta sigue llevando su
+propio `cajaId` (el de cuando se vendió), así que subirla no exige que esa caja siga
+abierta — la RPC decide sola si la acepta, y si no, el rechazo se ve en el mismo lugar
+de siempre, ahora también en la pantalla de "caja cerrada" (antes esa vista no
+mostraba nada de la cola).
+
+De paso apareció una segunda consecuencia del mismo agujero: `cerrar_caja` solo suma
+`ventas.metodo_pago = 'efectivo'` que YA está en la base para calcular el "esperado" —
+una venta en efectivo atrapada en la cola no entra ahí todavía, así que el conteo
+físico (que SÍ tiene ese billete) se iba a leer como un sobrante que no es un error de
+nadie. `CerrarCajaModal` ahora avisa el monto antes de que la Encargada cuente.
+
+**Verificación con Postgres real, no solo pruebas de unidad — con un tropiezo en el
+camino.** A mitad de la primera pasada el stack local de Supabase se reinició solo y
+borró todos los datos (`cajas`/`ventas`/`movimientos`/`stock` en cero); causa no
+confirmada, no parece relacionada con este cambio. Se resolvió con `npx supabase db
+reset` y se repitió la prueba completa: con Kong apagado se vendió dejando 1 de sobra
+(pasa el umbral, queda en la cola); se cerró la caja directo en la base —simulando que
+se cerró por otra vía mientras la venta seguía sin subir, para no depender de
+cronometrar clicks contra un servidor real— sin tocar el navegador; al recargar, la
+pantalla de "caja cerrada" mostró "Subiendo 1 venta guardada sin conexión…" y el
+rechazo real ("Esta caja ya está cerrada"), sin perder la venta de la cola; y una caja
+NUEVA de la misma sede siguió viendo `stock 1` en vez de `2` — el overlay sobrevivió
+el cierre de la caja que generó la venta pendiente.
+
+**Lo que Felipe aprende acá:** revisar el propio código para responder "qué falta
+probar" no es un ejercicio retórico — encontró un bug real que ninguna de las pruebas
+anteriores (unitarias o manuales) había tocado, porque todas asumían que la caja
+seguía abierta durante la prueba. La pregunta correcta destapó el supuesto que nadie
+había puesto a prueba.
+
+**Hallazgo aparte, anotado en ADR-0033 y no de este cambio:** una recarga completa de
+la pantalla con el servidor caído no funciona — el server component habla con
+Supabase por el mismo Kong, así que cae a la pantalla de error genérica en vez de a la
+cola. La cola offline protege una venta cortada a mitad de envío con la pantalla ya
+cargada; no vuelve la app capaz de arrancar sin servidor (eso sigue siendo Fase 2,
+ADR-0018, explícitamente no construida).
+
+## 2026-09-11 (Descartar — la última pieza de la cola offline)
+Felipe preguntó qué faltaba, y lo más importante que quedó anotado del Paso 3.1 era
+esto: una venta rechazada para siempre (su caja cerró y nunca vuelve a abrir) se
+reintentaba cada 30 segundos sin parar, mostrando el mismo aviso rojo para siempre,
+sin ninguna salida más que borrar `localStorage` a mano desde la consola del
+navegador — algo que ninguna Encargada ni Líder puede hacer.
+
+Botón "Descartar" con confirmación de dos pasos, nunca un solo click porque es plata
+que de verdad se cobró. El texto de la confirmación dice explícito lo que NO hace:
+no registra la venta, no corrige el stock, no deja rastro en el servidor — porque la
+fila nunca llegó a existir en `ventas` (el rechazo pasa antes del insert, no hay nada
+que revertir del otro lado). Si la prenda salió de la tienda, alguien tiene que
+anotarlo a mano; el botón no lo esconde, lo dice en la misma pantalla.
+
+Se descartó guardar un registro de auditoría en el servidor para esto — habría sido
+un cambio de esquema para resolver un problema que es de visibilidad, no de datos.
+Si en la práctica hace falta rastrear qué se descartó y por qué, se decide con Felipe
+cuando aparezca el caso real, no se adivina hoy.
+
+Verificado con Postgres real: venta rechazada por caja cerrada, "Cancelar" deja la
+cola intacta, "Descartar" muestra el monto correcto y al confirmar la vacía sin dejar
+ningún error. Con esto se cierra la deuda que había quedado anotada en ADR-0033.

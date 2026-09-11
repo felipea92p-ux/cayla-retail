@@ -584,6 +584,37 @@ importante que ha entrado a este archivo desde que existe.
       limpios (123 pruebas). Fuera de alcance a propósito (dice el ADR): inventario
       offline, caja offline, facturación offline — la pantalla avisa que emitir
       comprobante de una venta encolada necesita esperar a que suba.
+      **ADENDA "Paso 3.1", misma tarde — se cerró un agujero real que auditar el código
+      dejó ver: si la caja cerraba antes de que la venta subiera, quedaba huérfana para
+      siempre** (nadie volvía a mirar su cola — plata cobrada que el sistema dejaba de
+      saber que existía, principio 9). Se decidió NO bloquear "Cerrar caja" con algo
+      pendiente (peor que el problema: dejaría a la Encargada sin poder cerrar si la red
+      no vuelve esa noche) y en cambio la cola pasó de ser por CAJA a ser por SEDE
+      (`obtenerColaSede()`), así que sigue subiendo/mostrándose aunque la caja que generó
+      la venta ya haya cerrado. `CerrarCajaModal` avisa ahora cuánto efectivo hay
+      encolado sin subir, porque `cerrar_caja` no lo cuenta en el "esperado" todavía y
+      sin el aviso se lee como un sobrante falso. **Verificado con Postgres real:**
+      caja cerrada directo en la base con una venta todavía en la cola del navegador →
+      la pantalla de "caja cerrada" (antes muda) mostró "Subiendo 1 venta…" y luego el
+      rechazo real ("Esta caja ya está cerrada") sin perder la venta de vista; una caja
+      NUEVA de la misma sede siguió viendo el stock descontado por esa venta atascada.
+      **Hallazgo aparte anotado en el ADR:** una recarga completa de la pantalla con el
+      servidor caído no funciona — el server component también depende de Kong, así que
+      cae a la pantalla de error genérica. La cola protege una venta a mitad de envío,
+      no un arranque en frío sin servidor (eso sigue siendo Fase 2 / ADR-0018).
+      **ADENDA 2, cerrada la misma tarde — botón "Descartar" para un rechazo que nunca
+      se va a resolver solo.** El Paso 3.1 dejó anotado que una venta rechazada para
+      siempre (su caja no vuelve a existir "abierta") se reintentaba cada 30 s sin
+      parar, sin más salida que borrar `localStorage` a mano desde la consola. Ahora
+      cada rechazo tiene un botón "Descartar" con confirmación de dos pasos que dice
+      explícito que NO registra la venta ni corrige el stock — solo saca la entrada de
+      la cola local, y le recuerda a quien confirma que si la prenda salió de la
+      tienda hay que anotarlo a mano. Se descartó guardar un registro de auditoría en
+      el servidor: no hay ninguna fila que recuperar ahí, el rechazo pasó ANTES del
+      insert. **Verificado con Postgres real:** venta rechazada por caja cerrada →
+      "Cancelar" deja la cola intacta, "Descartar" → "Sí, descartar" muestra el monto
+      (S/70.00) y al confirmar vacía la cola sin error. `pnpm test`/`typecheck`/`build`
+      limpios (126 pruebas).
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
