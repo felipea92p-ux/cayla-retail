@@ -81,7 +81,7 @@ async function Contenido() {
               <div key={i.id} className="flex items-baseline justify-between gap-3 px-4 py-3 text-sm">
                 <span className="text-tinta/75">
                   {i.nombre}
-                  {i.categoria && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">{ETIQUETA_CATEGORIA[i.categoria] ?? i.categoria}</span>}
+                  {i.categoria && <span className="label-cayla ml-2 text-[11px] text-taupe-profundo">{ETIQUETA_CATEGORIA[i.categoria] ?? i.categoria}</span>}
                   {i.nota && <span className="text-tinta/65"> · {i.nota}</span>}
                 </span>
                 <span className="font-medium text-tinta">{money(i.monto)}</span>

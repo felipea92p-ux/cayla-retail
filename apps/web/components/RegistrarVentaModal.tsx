@@ -8,6 +8,7 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { encolarVenta, pasaElUmbralDeSobra } from "@/lib/ventas-offline";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 
 type VarianteBusqueda = {
   varianteId: string;
@@ -60,6 +61,28 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
   const [ok, setOk] = useState<{ total: number; prendas: number; offline: boolean } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
 
+  // Reflujo suave del carrito al agregar/quitar una prenda (Flip, ADR-0038):
+  // se captura la posición ANTES de que cambie la lista y GSAP anima desde ahí
+  // hacia la posición nueva, en vez de que las filas salten de golpe. Solo se
+  // captura cuando la lista va a cambiar de largo — un cambio de cantidad o
+  // precio no reordena nada y no necesita esto.
+  const listaCarrito = useRef<HTMLDivElement>(null);
+  const flipState = useRef<Flip.FlipState | null>(null);
+  function capturarFlip() {
+    if (listaCarrito.current) flipState.current = Flip.getState(listaCarrito.current.children);
+  }
+  useGSAP(() => {
+    if (!flipState.current) return;
+    Flip.from(flipState.current, {
+      duration: 0.32,
+      ease: "caylaEase",
+      absolute: true,
+      onEnter: (elementos) => gsap.fromTo(elementos, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "caylaEase" }),
+      onLeave: (elementos) => gsap.to(elementos, { opacity: 0, duration: 0.18 }),
+    });
+    flipState.current = null;
+  }, [carrito.length]);
+
   /**
    * El token que hace que reintentar NO cobre dos veces.
    *
@@ -97,6 +120,9 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
       setAviso(`${v.referencia} no tiene stock en ${sedeCodigo}. Búscala en Inventario para ver dónde está.`);
       return;
     }
+    // Solo agrega una fila nueva si la prenda no estaba ya en el carrito — si ya
+    // estaba, esto sube su cantidad en el lugar, no reordena nada.
+    if (!carrito.some((it) => it.varianteId === v.varianteId)) capturarFlip();
     let tope = false;
     setCarrito((actual) => {
       const existente = actual.find((it) => it.varianteId === v.varianteId);
@@ -128,6 +154,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
   }
 
   function quitar(varianteId: string) {
+    capturarFlip();
     setCarrito((actual) => actual.filter((it) => it.varianteId !== varianteId));
     setAviso(null);
   }
@@ -355,7 +382,8 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
 
           {carrito.length > 0 && (
             <div className="space-y-2">
-              {carrito.map((it) => (
+              <div ref={listaCarrito} className="space-y-2">
+                {carrito.map((it) => (
                 <div key={it.varianteId} className="card-cayla flex items-center gap-2 p-2 text-sm">
                   <div className="flex-1">
                     <p className="font-medium text-tinta">{it.referencia}</p>
@@ -383,7 +411,8 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
                     Quitar
                   </button>
                 </div>
-              ))}
+                ))}
+              </div>
               <div className="flex justify-between border-t border-sand pt-2 text-sm font-semibold text-tinta">
                 <span>Total</span>
                 <span>S/{total.toFixed(2)}</span>

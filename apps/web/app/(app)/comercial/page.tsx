@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
+import { RevelarAlScroll } from "@/components/ui/RevelarAlScroll";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -127,7 +128,7 @@ async function Analisis() {
     <div className="space-y-10">
 
       {/* Sugerencias de reposición */}
-      <div>
+      <RevelarAlScroll>
         <h2 className="label-cayla mb-3 text-[11px] text-rojo">Qué reponer ya
           <Ayuda titulo="Qué reponer ya">
             Las prendas que se están por agotar según qué tan rápido se venden. El sistema calcula
@@ -170,10 +171,10 @@ async function Analisis() {
         <p className="mt-2 text-xs text-tinta/65">
           Sugerencia = cubrir el punto de reorden con 50% de colchón. Se vuelve más precisa sola, a medida que se acumulan ventas reales.
         </p>
-      </div>
+      </RevelarAlScroll>
 
       {/* Rotación por familia */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <RevelarAlScroll className="grid gap-6 lg:grid-cols-2">
         <div>
           <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Rotación por familia
             <Ayuda titulo="Rotación">
@@ -229,10 +230,10 @@ async function Analisis() {
             </table>
           </div>
         </div>
-      </div>
+      </RevelarAlScroll>
 
       {/* Comparativo sedes + valor */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <RevelarAlScroll className="grid gap-6 lg:grid-cols-2">
         <div>
           <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Ventas por sede</h2>
           <div className="overflow-x-auto card-cayla">
@@ -283,7 +284,7 @@ async function Analisis() {
             </div>
           </div>
         </div>
-      </div>
+      </RevelarAlScroll>
     </div>
   );
 }

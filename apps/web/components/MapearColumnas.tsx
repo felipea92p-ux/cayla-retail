@@ -215,7 +215,7 @@ export function MapearColumnas({
             <div className="scroll-cayla overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="label-cayla text-[10px] text-tinta/65">
+                  <tr className="label-cayla text-[11px] text-tinta/65">
                     {["Prenda", "Talla", "Color", "Costo", "Precio"].map((h) => (
                       <th key={h} className="pb-2 pr-4 font-semibold">
                         {h}

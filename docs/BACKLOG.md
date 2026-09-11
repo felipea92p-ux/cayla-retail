@@ -1430,6 +1430,35 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-11 — **GSAP integrado, pero solo para lo que CSS no cubre: scroll
+      (ADR-0038).** Felipe pidió integrar GSAP; antes de instalar se marcó la
+      tensión con la capa de movimiento propia de `globals.css` (ADR-0011) —
+      se resolvió que GSAP entra únicamente para `ScrollTrigger`. Se construyó
+      `components/ui/RevelarAlScroll.tsx`, con el mismo gesto visual que
+      `.anim-asentar` (misma curva `--ease-cayla`, registrada exacta vía
+      `CustomEase`) pero disparado al cruzar el viewport en el scroll, y
+      `prefers-reduced-motion` resuelto igual que en CSS. Primera aplicación:
+      `/comercial`. Verificado en navegador (ruta de prueba + bypass temporal
+      de login en `proxy.ts`, ambos revertidos). `tsc`/`eslint`/`next build`
+      en verde. Precedente para el resto del repo: antes de usar GSAP en una
+      pantalla nueva, primero preguntar si CSS puro ya lo resuelve.
+      **Adenda (mismo día):** Felipe pidió aplicar "todo GSAP" para más
+      estética — se marcó la contradicción con lo recién decidido y eligió la
+      opción acotada. Se agregaron 3 cosas: `lib/motion-gsap.ts` (registro
+      centralizado de plugins + `caylaEase`, ya con dos consumidores), `Flip`
+      en el carrito de `RegistrarVentaModal.tsx` (reflujo suave al
+      agregar/quitar una prenda en el POS) y `RevelarAlScroll` extendido a
+      `/finanzas`. Deliberadamente sin tocar `Segmentado` — su indicador ya es
+      CSS puro y no lo necesitaba. Verificado en navegador, 227 tests + build
+      en verde.
+- [x] 2026-09-11 — **34 usos de `text-[10px]`/`text-[9px]` quedaban debajo del piso
+      de 11px fijado el 08-sep para `.label-cayla`.** El barrido de ese día subió el
+      token (`--text-xs`, `--text-sm`) y la clase compartida, pero estos usaban valores
+      sueltos entre corchetes — invisibles para un cambio de token. Subidos a
+      `text-[11px]` en 11 archivos (Conteo, Etiquetas, Inventario Agrupado,
+      RegistroContableForm, entre otros). Se dejó intacta la etiqueta física impresa
+      (`Codigo128.tsx`, `CodigoQR.tsx`, `EtiquetasGenerator.tsx:396/399`, 8 casos): ese
+      tamaño lo manda el papel de 62×29mm, no la pantalla.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

@@ -191,7 +191,7 @@ export function OrdenesProduccion({
                         {o.modelo}
                         {o.material && <span className="ml-2 text-xs font-normal text-tinta/65">· {o.material}</span>}
                         {o.detalle && <span className="ml-2 text-xs font-normal text-tinta/65">{o.detalle}</span>}
-                        {o.esMuestra && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">muestra</span>}
+                        {o.esMuestra && <span className="label-cayla ml-2 text-[11px] text-taupe-profundo">muestra</span>}
                       </td>
                       <td className="px-3 py-2.5 text-tinta/70">{o.esMuestra ? "—" : o.cantidad}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{money(o.costoUnitario)}</td>

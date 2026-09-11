@@ -170,8 +170,8 @@ export function InventarioAgrupado({
                   <div>
                     <p className="text-sm font-medium text-tinta">
                       {p.referencia}
-                      {tieneReponer && <span className="label-cayla ml-2 text-[10px] text-rojo">Reponer</span>}
-                      {tieneEstancado && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">Estancado</span>}
+                      {tieneReponer && <span className="label-cayla ml-2 text-[11px] text-rojo">Reponer</span>}
+                      {tieneEstancado && <span className="label-cayla ml-2 text-[11px] text-taupe-profundo">Estancado</span>}
                     </p>
                     <p className="mt-0.5 text-xs text-tinta/65">
                       {[p.familia, p.categoria, p.marca].filter(Boolean).join(" · ")}
@@ -220,17 +220,17 @@ export function InventarioAgrupado({
                           </span>
                         )}
                         {v.precio != null && <span className="text-xs text-tinta/70">S/{v.precio.toFixed(2)}</span>}
-                        {v.reponerYa && <span className="label-cayla text-[10px] text-rojo">Reponer</span>}
+                        {v.reponerYa && <span className="label-cayla text-[11px] text-rojo">Reponer</span>}
                         <span className="ml-auto flex gap-2">
                           <button
                             onClick={() => setModal({ variante: v, tipo: "traslado" })}
-                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[10px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
+                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Enviar
                           </button>
                           <button
                             onClick={() => setModal({ variante: v, tipo: "ajuste" })}
-                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[10px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
+                            className="label-cayla rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Ajustar
                           </button>
