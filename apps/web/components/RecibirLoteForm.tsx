@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ORIGENES_LOTE, FAMILIAS, type OrigenLote, type Familia } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import type { ColorElegible } from "@/lib/conteo";
 
 type Contenedor = { id: string; codigo: string; tipo: string };
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
@@ -36,7 +37,10 @@ type ItemLote = {
   marca?: string;
   temporada?: string;
   talla: string;
+  /** Nombre canónico del color (solo para leerlo). */
   color: string;
+  /** Código del vocabulario (0046): lo que la RPC guarda como `color_id` y usa para el código corto. */
+  colorId: string;
   costo: number;
   precio: number;
   stockMinimo: number;
@@ -85,6 +89,7 @@ export function RecibirLoteForm({
   productosExistentes,
   variantesExistentes,
   categorias,
+  colores: vocabulario,
   proveedoresDirectorio = [],
   ordenesPendientes = [],
   produccionesPendientes = [],
@@ -97,6 +102,8 @@ export function RecibirLoteForm({
   productosExistentes: ProductoExistente[];
   variantesExistentes: VarianteExistente[];
   categorias: Categoria[];
+  /** El vocabulario cerrado de colores (0046, ADR-0024): una prenda nueva elige de acá, no teclea. */
+  colores: ColorElegible[];
   proveedoresDirectorio?: { id: string; nombre: string }[];
   /** Órdenes de compra pendientes de la sede: ligarlas cierra el ciclo pedido→recibido (F2). */
   ordenesPendientes?: { id: string; proveedor: string; montoEstimado: number | null }[];
@@ -163,6 +170,7 @@ export function RecibirLoteForm({
         sku: v.sku,
         talla: v.talla ?? "",
         color: v.color ?? "",
+        colorId: "",
         costo: 0,
         precio: 0,
         stockMinimo: 0,
@@ -187,6 +195,7 @@ export function RecibirLoteForm({
         sku: "",
         talla: "",
         color: "",
+        colorId: "",
         costo: 0,
         precio: 0,
         stockMinimo: 0,
@@ -241,6 +250,7 @@ export function RecibirLoteForm({
         sku: "",
         talla: "",
         color: "",
+        colorId: "",
         costo: 0,
         precio: 0,
         stockMinimo: 0,
@@ -262,10 +272,15 @@ export function RecibirLoteForm({
       return actual.map((it) => {
         if (it.clientId !== clientId && !(propagarAlGrupo && it.grupoId === objetivo.grupoId)) return it;
         const next = { ...it, [campo]: valor };
+        // El color se elige por código; el nombre se deriva del vocabulario para leerlo.
+        if (campo === "colorId") {
+          next.color = vocabulario.find((c) => c.codigo === valor)?.nombre ?? "";
+        }
         // Auto-sugerir sku cuando ya hay suficiente info, sin pisar si el usuario ya lo editó a mano.
-        if ((campo === "talla" || campo === "color" || campo === "referencia") && !it.sku) {
+        // Lleva el código del color (AZM), no el nombre: más corto y estable si se renombra.
+        if ((campo === "talla" || campo === "colorId" || campo === "referencia") && !it.sku) {
           const base = next.skuPadre || slug(next.referencia || "");
-          next.sku = [base, next.talla, next.color].filter(Boolean).join("-");
+          next.sku = [base, next.talla, next.colorId].filter(Boolean).join("-");
         }
         if (campo === "referencia" && next.modo === "nuevo_producto") {
           next.skuPadre = slug(String(valor));
@@ -300,7 +315,7 @@ export function RecibirLoteForm({
       const idxUltimo = actual.reduce((acc, it, i) => (it.grupoId === grupoId ? i : acc), -1);
       if (idxUltimo === -1) return actual;
       const base = actual[idxUltimo];
-      const nuevo: ItemLote = { ...base, clientId: crypto.randomUUID(), sku: "", talla: "", color: "" };
+      const nuevo: ItemLote = { ...base, clientId: crypto.randomUUID(), sku: "", talla: "", color: "", colorId: "" };
       return [...actual.slice(0, idxUltimo + 1), nuevo, ...actual.slice(idxUltimo + 1)];
     });
   }
@@ -341,11 +356,20 @@ export function RecibirLoteForm({
           })()}
         </Campo>
         <Campo etiqueta="Color">
-          <input
-            value={it.color}
-            onChange={(e) => actualizar(it.clientId, "color", e.target.value)}
+          {/* Del vocabulario, nunca tecleado: es lo que hace que la variante nazca con
+              código corto (0057). Un color nuevo se agrega en Inventario → Vocabulario. */}
+          <select
+            value={it.colorId}
+            onChange={(e) => actualizar(it.clientId, "colorId", e.target.value)}
             className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-          />
+          >
+            <option value="">Sin color</option>
+            {vocabulario.map((c) => (
+              <option key={c.codigo} value={c.codigo}>
+                {c.nombre} ({c.codigo})
+              </option>
+            ))}
+          </select>
         </Campo>
         <Campo etiqueta="SKU">
           <input
@@ -447,7 +471,7 @@ export function RecibirLoteForm({
         marca: it.modo === "nuevo_producto" ? it.marca : undefined,
         temporada: it.modo === "nuevo_producto" ? it.temporada : undefined,
         talla: it.modo !== "existente" ? it.talla || undefined : undefined,
-        color: it.modo !== "existente" ? it.color || undefined : undefined,
+        color_id: it.modo !== "existente" ? it.colorId || undefined : undefined,
         costo: it.modo !== "existente" ? it.costo : undefined,
         precio: it.modo !== "existente" ? it.precio : undefined,
         stock_minimo: it.modo !== "existente" ? it.stockMinimo : undefined,

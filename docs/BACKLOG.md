@@ -299,9 +299,10 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
-- [ ] **Dos colores escritos a mano que no calzan con los 29.** **Medido el 2026-09-11 en
-      producción: queda uno solo, `"azul "` (con espacio al final), en 2 variantes sin código;
-      «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
+- [ ] **Dos colores escritos a mano que no calzan con los 29.** **Decidido el 2026-09-11:
+      «azul» es Azul marino (AZM); el backfill va dentro de `unificacion/38` (ver el ítem de
+      ARREGLAR). Medido en producción ese día: queda ese solo, `"azul "` (con espacio al final),
+      en 2 variantes sin código; «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
       la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
       (2 variantes) — 5 de las 19 variantes de producción. Arena es un color real
       del catálogo de CAYLA y probablemente convenga agregarlo (`ARN`, familia
@@ -735,7 +736,25 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **Dos de los cuatro caminos que crean una prenda esquivan el vocabulario de colores y el
+- [ ] **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/38` en producción.** Felipe
+      decidió: «azul» es Azul marino. `0057_alta_con_vocabulario.sql`: `fn_normalizar_color`
+      (código del vocabulario → nombre exacto → texto libre sin código, la misma regla para
+      los cuatro caminos), `crear_producto_con_variantes` y `recibir_lote` con la MISMA firma
+      guardan `color_id` y llaman `fn_asignar_codigo_variante` por variante nueva, y el
+      backfill normaliza lo escrito a mano que calza sin pisar hermanas. `NuevoProductoForm` y
+      `RecibirLoteForm` eligen del vocabulario (el `<select>` de `AltaEnConteo`); el SKU sugerido
+      lleva el código del color, no el nombre. **Verificado en navegador:** 14 variantes desde
+      «Nuevo producto» (`BLU-0002-AZM-S…NEG-XXL`) y una desde «Recibir» (`FAL-0002-VIN-M`),
+      todas con `color_id`, código y dos entradas en `codigos_barras`; por SQL, las cuatro ramas
+      del color más el error en idioma CAYLA. **De paso:** local arrastraba una segunda
+      `recibir_lote` de 8 parámetros (0018, cuerpo viejo) que producción no tiene desde la 31;
+      la 0057 la tira. Es compatible con el deploy viejo (texto libre entra sin código, como
+      hasta hoy), así que el orden es SQL primero, deploy después.
+      **Pendiente de Felipe:** pegar `supabase/unificacion/38_alta_con_vocabulario.sql` en el
+      SQL Editor de producción — trae pre-flight (debe listar solo las 2 de `"azul "`) y
+      post-check (una firma por función, `JEA-0001-AZM-26` y `CMS-0001-AZM-S` con código).
+      Texto original abajo:
+      **Dos de los cuatro caminos que crean una prenda esquivan el vocabulario de colores y el
       código corto.** Encontrado el 2026-09-11 al mapear talla y color para el estándar
       (`docs/ESTANDAR-TALLA-Y-COLOR.md`, mecanismo 1). `crear_producto_con_variantes`
       (`0035:65`, la pantalla «Nuevo producto» con su matriz) y `recibir_lote` (`0031:98`,

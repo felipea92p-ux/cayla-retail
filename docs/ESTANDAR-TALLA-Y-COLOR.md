@@ -207,7 +207,7 @@ especificación graduada son de la columna de Producción (el Taller), no de est
 
 | # | Mecanismo | De quién | Por qué importa | Dónde aterriza | Hoy |
 |:-:|---|---|---|---|:-:|
-| 1 | **Toda variante nace con color del vocabulario y código corto, por cualquier camino** | Lightspeed (variante = SKU siempre), ApparelMagic (UPC automático), Zoho (patrón de SKU) | Sin código no hay etiqueta legible (ADR-0025: el SKU de 40 caracteres es lo que la Zebra no lee), no hay `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás: «azul» y «Azul marino» vuelven a convivir | `crear_producto_con_variantes` (`0035:65`) y `recibir_lote` (`0031:98`) insertan `color` texto **sin `color_id`** y **nunca llaman** `fn_asignar_codigo_variante`; `NuevoProductoForm.tsx:344-362` toma colores como texto libre; `RecibirLoteForm.tsx:39` ídem. Solo `conteo_crear_variante` (`0048`) e `importar_catalogo` (`0056:324-340`) lo hacen bien. **Medido en producción (11-sep): 19 variantes, 2 sin código, color `"azul "` con espacio al final.** Local: 7 de 45 | ❌ **defecto** · SQL (cuerpos de función) |
+| 1 | **Toda variante nace con color del vocabulario y código corto, por cualquier camino** | Lightspeed (variante = SKU siempre), ApparelMagic (UPC automático), Zoho (patrón de SKU) | Sin código no hay etiqueta legible (ADR-0025: el SKU de 40 caracteres es lo que la Zebra no lee), no hay `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás: «azul» y «Azul marino» vuelven a convivir | **Arreglado en local el 2026-09-11, el mismo día** (`0057_alta_con_vocabulario.sql`): `fn_normalizar_color` (una regla para los cuatro caminos: código del vocabulario → nombre exacto → texto libre sin código), `crear_producto_con_variantes` y `recibir_lote` con la misma firma guardan `color_id` y asignan código; los dos formularios eligen del vocabulario. Verificado en navegador: 14 variantes desde «Nuevo producto» (`BLU-0002-AZM-S…`) y una desde «Recibir» (`FAL-0002-VIN-M`), todas con código y en `codigos_barras`. **Falta pegar `unificacion/38` en producción** (2 variantes con `"azul "` → Azul marino, decisión de Felipe). Era: `0035:65` y `0031:98` insertaban texto sin `color_id` y sin código; solo el conteo y el importador lo hacían bien | 🟡 local ✅ · producción pendiente |
 | 2 | **La matriz talla × color como vista de stock** | Lightspeed (*matrix*), ApparelMagic («used throughout»), Odoo (grid) | «Veinticinco posiciones» se leen de un vistazo en una cuadrícula; en una lista de 25 filas se leen una por una | `InventarioAgrupado.tsx:193-215` expande el modelo en **filas** «talla · color» con stock por sede; la ficha `/producto/[varianteId]` muestra **una** variante sin sus hermanas (`page.tsx:150-200`) y sigue con `text-neutral-*` pre-brandbook | 🟡 |
 | 3 | **Entrada por cuadrícula** (Recibir, producción, traslado) | Odoo (*Variant Grid Entry*), Uphance (*size-run entry*), Lightspeed (import de matriz) | Recibir 12 unidades de una blusa es una cuadrícula con 12 celdas, no 12 filas agregadas a mano | La matriz existe **solo al crear** (`NuevoProductoForm.tsx:96-103`, «Generar variantes»); `RecibirLoteForm` agrega ítem por ítem; `OrdenesProduccion.tsx:9` ya tiene líneas por talla/color (`OrdenLinea`) pero se llenan una a una | 🟡 |
 | 4 | **La talla que se está quedando** (señal por talla dentro del modelo) | ApparelMagic (*sell-out date* por SKU), Uphance (*forecast at size*) | §L: «Esa frase es el producto entero». §G: «el mayor motivo de rebajas es el desbalance de tallas» | `inteligencia.ts` calcula `diasInventario`, `reponerYa` y `estancado` **por variante** (`:117-121`) y nunca compara una talla con sus hermanas; grep `curva|rezagad` → 0. El dato (`movimientos` por variante) ya existe | 🟡 · se desarrolla en la columna 6 |
@@ -250,22 +250,26 @@ propio (ADR-0035).
 
 ## 4. Orden sugerido para recolectar
 
-De menor a mayor superficie, y el defecto primero. Nada se construye en esta sesión.
+De menor a mayor superficie, y el defecto primero. El 1 se hizo el mismo día (en local; falta
+producción); del 2 en adelante es el menú para que Felipe elija.
 
-1. **Toda variante nace con color del vocabulario y código corto** (mecanismo 1).
-   `NuevoProductoForm` y `RecibirLoteForm` eligen el color de `getColores()` con el mismo
-   `Desplegable` que ya usa `AltaEnConteo` (`ConteoPanel.tsx:46,540`); `crear_producto_con_variantes`
-   y `recibir_lote` reciben `color_id`, lo guardan, y llaman `fn_asignar_codigo_variante` por
-   cada variante (exactamente lo que hace `importar_catalogo`, `0056:324-340`). Más un backfill
-   de las 2 variantes de producción con `"azul "`: decidir si es marino o claro (el BACKLOG ya lo
-   pide desde el 09-sep) y correr `fn_asignar_codigo_variante` sobre ellas.
-   *Ganas:* ningún modelo nuevo vuelve a nacer sin etiqueta legible ni fuera del vocabulario;
-   el censo y la tienda hablan el mismo idioma. *Pagas:* dos cuerpos de función (migración local
-   + `unificacion/`, sin cambio de esquema) — **es producción, así que lo decide Felipe**; y
-   dos formularios.
-   *Cómo verificas tú:* creas «Blusa prueba» con Azul marino / M desde Nuevo producto → aparece
-   como `BLU-00NN-AZM-M` en Catálogo, con su código en `codigos_barras`, y la etiqueta impresa
-   trae el corto. Recibes una prenda nueva desde Recibir → ídem.
+1. **Toda variante nace con color del vocabulario y código corto** (mecanismo 1). **Hecho en
+   local el 2026-09-11**, con la decisión de Felipe de que «azul» es Azul marino:
+   `0057_alta_con_vocabulario.sql` — `fn_normalizar_color` (una regla para los cuatro caminos),
+   las dos RPC con la misma firma guardan `color_id` y llaman `fn_asignar_codigo_variante`, y el
+   backfill resuelve los colores escritos a mano que calzan con el vocabulario sin pisar
+   hermanas ya normalizadas. Los dos formularios eligen del vocabulario con el mismo `<select>`
+   que `AltaEnConteo`. De paso: local arrastraba una segunda `recibir_lote` de 8 parámetros
+   (0018) que producción ya no tiene; la 0057 la tira (ADR-0026).
+   *Verificado en navegador:* «Blusa prueba vocabulario» con 7 tallas × Azul marino/Negro →
+   14 variantes con `BLU-0002-AZM-S … BLU-0002-NEG-XXL` y dos entradas en `codigos_barras`
+   cada una; «Falda prueba vocabulario» desde Recibir → `FAL-0002-VIN-M` con sus 2 unidades en
+   almacén. Por SQL: texto «negro» calza (`NEG`), «Fucsia chillón» se conserva sin código, sin
+   color → `-U`, y un código inventado falla con «El color XXX no está en el vocabulario de
+   CAYLA».
+   **Lo que falta es de Felipe:** pegar `supabase/unificacion/38_alta_con_vocabulario.sql` en
+   el SQL Editor de producción (pre-flight y post-check adentro) — deja `JEA-0001-AZM-26` y
+   `CMS-0001-AZM-S`, y desde ahí ningún modelo nuevo nace sin código.
 
 2. **La ficha del modelo muestra la matriz** (mecanismo 2). `/producto/[varianteId]` pasa a ser
    la ficha del **modelo**: cuadrícula talla × color con stock por sede en cada celda (piso y

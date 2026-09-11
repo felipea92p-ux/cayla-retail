@@ -16,10 +16,15 @@ Lo que separa a los 5 del resto es lo que se construye encima: la matriz como vi
 entrada, la señal por talla, la curva. Resultado en `docs/ESTANDAR-TALLA-Y-COLOR.md`.
 
 **El hallazgo, otra vez del mapa y no de la comparación:** de los cuatro caminos que crean una
-prenda, dos —«Nuevo producto» y «Recibir mercadería»— insertan el color como texto libre y
-nunca llaman a `fn_asignar_codigo_variante`; solo el conteo y el importador lo hacen bien.
-Medido en producción: 19 variantes, 2 sin código, color `"azul "` con espacio. Toca cuerpos de
-función en producción, así que no se arregló solo: queda en ARREGLAR esperando a Felipe.
+prenda, dos —«Nuevo producto» y «Recibir mercadería»— insertaban el color como texto libre y
+nunca llamaban a `fn_asignar_codigo_variante`; solo el conteo y el importador lo hacían bien.
+Medido en producción: 19 variantes, 2 sin código, color `"azul "` con espacio. Felipe pidió
+arreglarlo y decidió que «azul» es Azul marino. Quedó en local (`0057`): una función chica con
+la regla del color para los cuatro caminos, las dos RPC con la misma firma, los dos formularios
+eligiendo del vocabulario, y el backfill. Verificado en navegador por los dos caminos (14
+variantes `BLU-0002-…` y una `FAL-0002-VIN-M`). Producción espera que Felipe pegue la `38`.
+De paso salió que local arrastraba una segunda `recibir_lote` de 8 parámetros que producción
+ya no tiene — la 0057 la tira.
 
 Lo que Felipe se lleva: **un modelo de datos correcto no protege nada si un camino lo esquiva**
 — el vocabulario cerrado y el código corto se decidieron el 09-sep y las dos pantallas más

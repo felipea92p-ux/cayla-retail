@@ -3,6 +3,7 @@ import { getCatalogoConStock } from "@/lib/catalogo";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { RecibirLoteForm } from "@/components/RecibirLoteForm";
+import { getColores } from "@/lib/conteo";
 import { Ayuda } from "@/components/Ayuda";
 import { InventarioNav } from "@/components/InventarioNav";
 
@@ -15,7 +16,7 @@ export default async function RecibirLotePage() {
   // (El almacén ya no es una sede aparte: es el contenedor tipo='almacen' de la
   // propia sede, por eso la consulta de `contenedores` va aquí directo con
   // persona.sedeId, sin necesitar resolver ninguna sede-almacén primero.)
-  const [resContenedores, resProductos, resCategorias, resProveedores, variantes, resOrdenes] =
+  const [resContenedores, resProductos, resCategorias, resProveedores, variantes, resOrdenes, colores] =
     await Promise.all([
       supabase.from("contenedores").select("id, codigo, tipo").eq("sede_id", persona.sedeId).order("codigo"),
       supabase.from("productos").select("id, referencia, categoria_id").eq("estado", "activa"),
@@ -28,6 +29,8 @@ export default async function RecibirLotePage() {
         .eq("sede_destino_id", persona.sedeId)
         .in("estado", ["pendiente", "confirmada"])
         .order("created_at", { ascending: false }),
+      // El vocabulario cerrado de colores (0046): una prenda nueva elige de acá (0057).
+      getColores(),
     ]);
 
   // El caso feo de esta pantalla: si la consulta de contenedores falla y nadie lo revisa,
@@ -113,6 +116,7 @@ export default async function RecibirLotePage() {
         productosExistentes={productosExistentes}
         variantesExistentes={variantesExistentes}
         categorias={categorias}
+        colores={colores}
         proveedoresDirectorio={proveedoresRows ?? []}
         ordenesPendientes={(ordenesRows ?? []).map((o) => ({
           id: o.id,
