@@ -559,11 +559,31 @@ importante que ha entrado a este archivo desde que existe.
       siguen pasando por los RPC, `movimientos` sigue siendo la única fuente de verdad
       (principio 4). Escrituras local-first sin arbitraje dejarían el stock en −1
       cuando dos sedes venden offline la misma última unidad — rompe el principio 2.
-      Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
-      **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
-      él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
       **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
       Washington igual. Tendrá su propio ADR con el motor de sincronización elegido.
+      (El umbral de "stock de sobra" para VENDER offline ya no depende de esta fase —
+      se construyó aparte, ver el ítem de la cola de ventas offline, ADR-0033.)
+- [x] **CERRADO 2026-09-11 — la cola de ventas offline, construida y verificada en
+      local (ADR-0033).** No dependía de Fase 2/IndexedDB: es una cola propia en
+      `localStorage`, independiente de la réplica de lecturas. `registrar_venta`
+      (ADR-0032) ya sabía no duplicar un reintento; faltaba que el navegador supiera
+      CUÁNDO reintentar y qué hacer mientras tanto. Construido: `esFalloDeRed()`
+      (`lib/error-escritura.ts`, reusa las mismas huellas de `fetch` que ya traducía
+      errores) distingue un corte de red de un rechazo real del servidor;
+      `lib/ventas-offline.ts` (puro, 11 pruebas) tiene la cola por caja, el umbral de
+      ADR-0013 §C (`stockAqui - cantidad >= 1`, evaluado ANTES de encolar) y el overlay
+      que descuenta en pantalla lo que la cola ya vendió sin subir (sin esto, dos
+      ventas offline de la última unidad pasarían las dos); `CajaPanel.tsx` corre el
+      sondeo de conexión y la subida en el mismo trío mount/`online`/latido de 30 s.
+      **Verificado a mano** apagando y prendiendo `supabase_kong_cayla-retail`: con
+      Kong abajo el panel abre con el aviso; vender 4 de 5 se encola y muestra el
+      acuse "Guardada — sube sola"; un segundo intento sobre la última unidad se
+      bloquea con el texto del umbral y NO se encola; al volver la red sube sola —
+      Postgres queda con stock en 1, una sola fila en `ventas` y en `movimientos`, el
+      `token_cliente` coincide con el de la cola. `pnpm test`/`typecheck`/`build`
+      limpios (123 pruebas). Fuera de alcance a propósito (dice el ADR): inventario
+      offline, caja offline, facturación offline — la pantalla avisa que emitir
+      comprobante de una venta encolada necesita esperar a que suba.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 

@@ -2748,3 +2748,68 @@ La lección de método: la funcionalidad que se pidió (la matriz) y el problema
 motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
+
+## 2026-09-11 (la venta sin red se guarda sola, y sube sola)
+ADR-0018 había dejado la Fase 3 (venta offline) explícitamente sin resolver: la regla
+de negocio de Felipe (vender solo con stock de sobra) estaba decidida desde el
+2026-09-09, pero nadie había construido ni el umbral ni qué ve la Encargada al
+bloquearse. Hoy se construyó esa pieza completa — y resultó no depender de Fase 2
+(local-first de lecturas, IndexedDB, Realtime): es una cola propia, chica, en
+`localStorage`, que no necesita nada de lo que Fase 2 iba a traer.
+
+La pieza que lo hizo posible ya existía: ADR-0032 (idempotencia de `registrar_venta`)
+dejó el backend sabiendo no duplicar un reintento, con el token por carrito ya viviendo
+en `RegistrarVentaModal.tsx`. Lo que faltaba era que el navegador supiera CUÁNDO
+reintentar, y qué hacer con la venta mientras tanto.
+
+**La distinción que hizo falta primero:** un `fetch` que no llega al servidor y un
+rechazo real del servidor (caja cerrada, sin permiso) llegan igual de "error" a
+`onSubmit`, y hay que tratarlos distinto — el primero se encola, el segundo se muestra
+y se descarta. `esFalloDeRed()` reusa la misma lista de huellas que `traducirError()`
+ya usaba (`SIN_RED`), para no mantener dos copias de la misma pregunta.
+
+**El umbral se evalúa ANTES de encolar, no después,** y sobre el stock que la
+Encargada está viendo en pantalla — no el que mandó el servidor. Eso obligó a un
+overlay (`conStockComprometidoDescontado`): lo que la cola local ya vendió se descuenta
+del `stockAqui` que llega por props, o una segunda venta offline de la misma prenda
+vería el stock de ANTES de la primera. Se verificó exactamente ese escenario a mano:
+vender 4 de 5 pasa y queda 1 en pantalla; vender esa última unidad, sin red, se
+bloquea con el texto del umbral y no toca la cola.
+
+**Verificación real, no solo de unidad:** se apagó `supabase_kong_cayla-retail` con
+Docker para simular el servidor caído de verdad (no un mock), se vendió offline, se
+prendió Kong de nuevo y se disparó el evento `online` a mano. Postgres quedó con el
+stock correcto (1, no −3 ni duplicado), una sola fila en `ventas` y en `movimientos`,
+y el `token_cliente` guardado coincidía con el de la cola local — la cadena completa
+ADR-0032 → ADR-0033 funcionando de punta a punta, no solo cada mitad por separado.
+
+**Lo que se decidió dejar fuera, a propósito:** inventario offline, caja offline
+(abrir/cerrar) y facturación offline son cada una su propia superficie de estado
+imposible (principio 2) y su propia decisión de negocio — no se resuelven por
+extensión de esta. La pantalla de venta ya avisa que una venta encolada no puede
+facturarse hasta que suba, porque no tiene `venta_id` real todavía.
+
+Detalle de entorno que costó tiempo: este worktree no traía `apps/web/.env.local` ni
+`node_modules` en la raíz — hubo que `pnpm install` y crear el `.env.local` contra el
+Supabase local (54421) a mano antes de poder verificar nada en navegador.
+
+**Adenda, misma tarde — la carrera real de dos dispositivos, no solo Kong apagado.**
+Lo de arriba probaba un navegador solo, vendiendo dos veces en fila. Faltaba la carrera
+que el umbral existe para evitar de verdad: dos Encargadas, cada una con SU PROPIA cola
+en `localStorage`, decidiendo offline sin saber una de la otra. Se simuló sin depender
+de dos navegadores: stock puesto en 3 unidades, y se inyectaron a mano en la misma cola
+dos ventas de 2 unidades cada una, con tokens distintos — exactamente lo que darían dos
+dispositivos que cada uno vio "quedan 3, vendo 2, sobra 1" (pasa el umbral) sin enterarse
+del otro. Al sincronizar: la primera subió (stock 3→1, una fila en `ventas`, una en
+`movimientos`); la segunda **reventó contra el `check` de Postgres** («Stock
+insuficiente en sede … (hay 1, se pidió 2)») y se quedó en la cola con el motivo — sin
+duplicar, sin dejar el stock en −1. Es la frase central de ADR-0033 puesta a prueba de
+verdad: el umbral en el navegador reduce cuándo puede pasar una carrera, pero quien
+arbitra de verdad sigue siendo Postgres.
+
+De paso esa verificación destapó un bug real de esta misma sesión: el aviso "Subiendo N
+ventas…" decía «1 venta **guardadas**» — plural mal puesto, porque el texto solo
+alternaba el sustantivo (`venta`/`ventas`) y dejaba `guardadas` fijo en plural.
+Corregido en `CajaPanel.tsx` a `"venta guardada"` / `"ventas guardadas"`. Ningún test
+lo hubiera atrapado —es puro texto—, lo encontró leer la pantalla real durante la
+prueba de la carrera.

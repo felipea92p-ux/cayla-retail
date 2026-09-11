@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { traducirError } from "./error-escritura";
+import { traducirError, esFalloDeRed } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -97,5 +97,25 @@ describe("los bordes de red y el fallback", () => {
 
   it("sin error, la frase sigue nombrando la acción del negocio", () => {
     expect(traducirError(null, "cerrar la caja")).toBe("No se pudo cerrar la caja.");
+  });
+});
+
+describe("esFalloDeRed — la distinción que usa la cola de ventas offline (ADR-0033)", () => {
+  it("un corte de red (error de supabase-js) es fallo de red", () => {
+    expect(esFalloDeRed({ message: "TypeError: Failed to fetch" })).toBe(true);
+  });
+
+  it("un Error crudo del fetch del sondeo de conexión también cuenta", () => {
+    expect(esFalloDeRed(new Error("NetworkError when attempting to fetch resource."))).toBe(true);
+  });
+
+  it("un rechazo real del servidor (la RPC respondió) NO es fallo de red", () => {
+    expect(esFalloDeRed({ message: "Esta caja ya está cerrada — no se pueden registrar más ventas ahí", code: "P0001" })).toBe(
+      false
+    );
+  });
+
+  it("sin error no hay nada que encolar", () => {
+    expect(esFalloDeRed(null)).toBe(false);
   });
 });

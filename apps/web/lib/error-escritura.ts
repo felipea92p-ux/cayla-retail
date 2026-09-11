@@ -114,6 +114,29 @@ const HUELLAS: { marca: string; frase: string }[] = [
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
+ * ¿Este error es un corte de red, o un rechazo real del servidor?
+ *
+ * La cola de ventas offline (Paso 3, ADR-0033) necesita esta distinción para decidir si
+ * encola la venta (red cortada — se reintenta sola) o la muestra y la descarta (caja
+ * cerrada, sin permiso — el servidor SÍ respondió, y reintentar no cambiaría nada). Usa
+ * la misma lista `SIN_RED` que `traducirError()`, no una copia: una huella nueva de fetch
+ * que se agregue ahí queda reconocida acá también, sin tener que acordarse de las dos.
+ *
+ * Acepta tanto el error de supabase-js (`{ message }`) como un `Error` crudo del `fetch`
+ * del sondeo de conexión — son dos formas distintas de la misma señal.
+ */
+export function esFalloDeRed(error: ErrorEscritura | Error | unknown): boolean {
+  const mensaje =
+    error instanceof Error
+      ? error.message
+      : error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "";
+  const enMinusculas = mensaje.toLowerCase();
+  return SIN_RED.some((t) => enMinusculas.includes(t));
+}
+
+/**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la

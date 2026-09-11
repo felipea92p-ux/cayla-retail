@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { encolarVenta, pasaElUmbralDeSobra } from "@/lib/ventas-offline";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
@@ -31,6 +32,10 @@ type Props = {
   sedeCodigo: string;
   cajaId: string;
   variantes: VarianteBusqueda[];
+  /** Si el sondeo de conexión del panel ya sabe que no hay servidor (Paso 3A, ADR-0033). */
+  sinConexion: boolean;
+  /** Avisa al panel que hay una venta nueva en la cola, para que refresque el overlay de stock. */
+  onVentaEncolada: () => void;
   onClose: () => void;
 };
 
@@ -43,7 +48,7 @@ const ETIQUETA_METODO: Record<MetodoPago, string> = {
 
 const MAX_RESULTADOS = 6;
 
-export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: Props) {
+export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion, onVentaEncolada, onClose }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [activo, setActivo] = useState(0);
@@ -52,7 +57,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ total: number; prendas: number } | null>(null);
+  const [ok, setOk] = useState<{ total: number; prendas: number; offline: boolean } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
   // Un token por carrito (ADR-0032): si la red se corta después de que la venta ya
   // se comiteó pero antes de que la respuesta llegue, un reintento con ESTE MISMO
@@ -207,10 +212,36 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
 
     setLoading(false);
     if (error) {
-      // Sin tocar tokenVenta.current: si esto fue un corte de red y la venta ya se
-      // había comiteado del otro lado, un reintento con el mismo token la recupera
-      // en vez de duplicarla (ADR-0032). No hay forma de distinguir ese caso de un
-      // error real desde el navegador, así que se deja el mismo token siempre.
+      // Sin tocar tokenVenta.current en ninguna de las dos ramas de abajo: si esto fue un
+      // corte de red y la venta ya se había comiteado del otro lado, un reintento —a mano o
+      // desde la cola— con el mismo token la recupera en vez de duplicarla (ADR-0032).
+      if (esFalloDeRed(error)) {
+        // La regla del umbral (Paso 3C, ADR-0013 §C), ANTES de encolar: sin red no hay forma
+        // de coordinarse con otra sede, así que vender hasta dejar el stock en cero acá es
+        // justo el escenario que puede sobrevender. Se juzga sobre `it.stockAqui`, que ya
+        // trae el overlay de la cola aplicado (es el número que la Encargada está viendo).
+        const sinSobra = carrito.filter((it) => !pasaElUmbralDeSobra(it.stockAqui, it.cantidad));
+        if (sinSobra.length > 0) {
+          setError(
+            `Sin conexión no se puede vender ${sinSobra.map((it) => it.referencia).join(", ")}: hay que dejar al menos 1 unidad en ${sedeCodigo} hasta que vuelva la red, para que dos ventas sin conexión no vendan la misma última prenda. Espera la señal o quita esa prenda del carrito.`
+          );
+          return;
+        }
+        encolarVenta({
+          token: tokenVenta.current,
+          cajaId,
+          sedeCodigo,
+          metodoPago,
+          items: carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad, monto: it.monto })),
+          creadoEn: new Date().toISOString(),
+        });
+        onVentaEncolada();
+        tokenVenta.current = crypto.randomUUID();
+        setOk({ total, prendas, offline: true });
+        return;
+      }
+      // Un rechazo real del servidor (caja cerrada, sin permiso) no se encola: reintentar
+      // no lo arreglaría, y encolarlo dejaría una venta atascada para siempre.
       setError(traducirError(error, "registrar la venta"));
       return;
     }
@@ -220,7 +251,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
     // montaje (hoy no lo hay, el resumen reemplaza el formulario) necesitaría un token
     // nuevo, nunca el de una venta que ya existe.
     tokenVenta.current = crypto.randomUUID();
-    setOk({ total, prendas });
+    setOk({ total, prendas, offline: false });
     router.refresh();
   }
 
@@ -233,21 +264,35 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
       {ok ? (
         <div className="space-y-5">
           <div className="card-cayla p-5 text-center">
-            <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
+            <p className={`label-cayla text-[11px] ${ok.offline ? "text-ambar-profundo" : "text-verde-profundo"}`}>
+              {ok.offline ? "Guardada — sube sola" : "Listo"}
+            </p>
             <p className="font-display mt-2 text-3xl text-tinta">S/{ok.total.toFixed(2)}</p>
             <p className="mt-1 text-sm text-tinta/70">
               {ok.prendas} {ok.prendas === 1 ? "prenda" : "prendas"} · {ETIQUETA_METODO[metodoPago]}
             </p>
           </div>
-          <p className="text-center text-xs text-tinta/65">
-            Ya está descontada del stock de {sedeCodigo} y aparece abajo, en «Ventas de hoy».
-          </p>
+          {ok.offline ? (
+            <p className="text-center text-xs leading-relaxed text-ambar-profundo">
+              Sin conexión: se guardó en este equipo y ya descuenta el stock que ves acá. Sube sola cuando vuelva la
+              señal — no hace falta que hagas nada. No se puede emitir comprobante para esta venta hasta que suba.
+            </p>
+          ) : (
+            <p className="text-center text-xs text-tinta/65">
+              Ya está descontada del stock de {sedeCodigo} y aparece abajo, en «Ventas de hoy».
+            </p>
+          )}
           <button type="button" autoFocus onClick={onClose} className={`${botonPrimario} w-full`}>
             Listo
           </button>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-4">
+          {sinConexion && (
+            <div className="card-cayla border-ambar/50 bg-ambar/10 p-3 text-xs leading-relaxed text-ambar-profundo">
+              Sin conexión con el servidor. Puedes vender igual — se guarda acá y sube sola al volver la señal.
+            </div>
+          )}
           <div className="space-y-1.5">
             <label className={campoEtiqueta} htmlFor="venta-buscar">
               Escanea la etiqueta o busca la prenda
