@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (apartado C, columna 2: el modelo ya está; lo que falta es lo de encima)
+
+Segunda columna del apartado C, «Talla y color», con el mismo método y en la misma sesión.
+Tres sacan 5: Lightspeed (el estándar del sector: variante = SKU con inventario propio,
+reposición por variante y por local) y los dos especialistas de moda, ApparelMagic (fecha de
+agotamiento pronosticada por SKU, UPC automático) y Uphance («forecast at style, color, and
+size», traslados conscientes de la curva, carryover de temporada). La lectura es la inversa de
+la caja: aquí el modelo correcto viene de los grandes (NetSuite *Matrix Items*) y CAYLA ya lo
+tiene en el núcleo — identidad única, vocabulario de colores, código corto, universal debajo.
+Lo que separa a los 5 del resto es lo que se construye encima: la matriz como vista y como
+entrada, la señal por talla, la curva. Resultado en `docs/ESTANDAR-TALLA-Y-COLOR.md`.
+
+**El hallazgo, otra vez del mapa y no de la comparación:** de los cuatro caminos que crean una
+prenda, dos —«Nuevo producto» y «Recibir mercadería»— insertan el color como texto libre y
+nunca llaman a `fn_asignar_codigo_variante`; solo el conteo y el importador lo hacen bien.
+Medido en producción: 19 variantes, 2 sin código, color `"azul "` con espacio. Toca cuerpos de
+función en producción, así que no se arregló solo: queda en ARREGLAR esperando a Felipe.
+
+Lo que Felipe se lleva: **un modelo de datos correcto no protege nada si un camino lo esquiva**
+— el vocabulario cerrado y el código corto se decidieron el 09-sep y las dos pantallas más
+viejas siguieron escribiendo como antes. La regla que sale de acá: cuando se agrega una
+restricción al núcleo (colores, códigos), se listan TODOS los caminos que escriben esa tabla y
+se pasan uno por uno, no solo el que motivó el cambio.
+
 ## 2026-09-11 (apartado C, columna 1: en la caja no hay nada que aprender de los ERP grandes)
 
 Se aplicó al apartado C —la comparativa funcional de 16 sistemas— el mismo método que al D,

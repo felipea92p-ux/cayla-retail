@@ -21,8 +21,16 @@ importante que ha entrado a este archivo desde que existe.
       Cuatro son **decisiones de negocio antes que de código** (descuento: hasta cuánto la
       Encargada; comprobante: ¿emite la Encargada?; devolución: ¿a qué sede reingresa, dinero
       o vale?; apartado: ¿con seña, cuántos días?). Orden sugerido en §5 del doc, de menor a
-      mayor superficie. **Siguen las otras seis columnas** (talla y color, almacenes y
-      transferencias, fiscal, finanzas, IA, omnicanal), una por sesión, mismo método.
+      mayor superficie.
+      **Columna 2, «Talla y color» — análisis hecho el mismo día:** `docs/ESTANDAR-TALLA-Y-COLOR.md`
+      (artefacto «El estándar de talla y color»). Se lee al revés que la caja: el modelo correcto
+      viene de los grandes (NetSuite *Matrix Items*) y CAYLA ya lo tiene en el núcleo; lo que
+      separa a los tres 5 (Lightspeed, ApparelMagic, Uphance) es lo de encima — la matriz como
+      vista y como forma de entrada, la señal por talla, la curva y la temporada. Doce
+      mecanismos; el 1 es un defecto (ver ARREGLAR); el 4 y el 5 se desarrollan en las columnas
+      6 y 3; el 10 (curva de tallas y paquetes) es decisión de negocio.
+      **Siguen las otras cinco columnas** (almacenes y transferencias, fiscal, finanzas, IA,
+      omnicanal), una por sesión, mismo método.
 - [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
@@ -291,7 +299,9 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
-- [ ] **Dos colores escritos a mano que no calzan con los 29.** Los va a destapar
+- [ ] **Dos colores escritos a mano que no calzan con los 29.** **Medido el 2026-09-11 en
+      producción: queda uno solo, `"azul "` (con espacio al final), en 2 variantes sin código;
+      «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
       la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
       (2 variantes) — 5 de las 19 variantes de producción. Arena es un color real
       del catálogo de CAYLA y probablemente convenga agregarlo (`ARN`, familia
@@ -725,6 +735,22 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Dos de los cuatro caminos que crean una prenda esquivan el vocabulario de colores y el
+      código corto.** Encontrado el 2026-09-11 al mapear talla y color para el estándar
+      (`docs/ESTANDAR-TALLA-Y-COLOR.md`, mecanismo 1). `crear_producto_con_variantes`
+      (`0035:65`, la pantalla «Nuevo producto» con su matriz) y `recibir_lote` (`0031:98`,
+      «Recibir mercadería») insertan `color` como texto libre **sin `color_id`** y **nunca llaman**
+      `fn_asignar_codigo_variante`; `NuevoProductoForm.tsx:344-362` y `RecibirLoteForm.tsx:39`
+      toman el color escrito a mano. Solo `conteo_crear_variante` (0048) e `importar_catalogo`
+      (0056) lo hacen bien. Consecuencia: esas variantes no tienen código corto (la etiqueta
+      imprime el SKU de 40 caracteres que la Zebra no lee — ADR-0025), no están en
+      `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás. **Medido en
+      producción el 11-sep: 19 variantes, 2 sin código, color `"azul "` con espacio al final.**
+      Arreglo: los dos formularios eligen el color de `getColores()` con el `Desplegable` de
+      `AltaEnConteo`; las dos RPC reciben `color_id`, lo guardan y llaman
+      `fn_asignar_codigo_variante` por variante (como `importar_catalogo`, `0056:324-340`);
+      backfill de las 2 de producción (decidir si «azul» es marino o claro — ítem de más abajo).
+      Sin cambio de esquema, pero son cuerpos de función en producción: **decisión de Felipe.**
 - [x] **CERRADO 2026-09-11, el mismo día — la caja ya lee la etiqueta que ella misma imprime.**
       `lib/buscar-prenda.ts` (pieza pura, 10 pruebas) resuelve un escaneo por `codigos_barras`
       → código corto → SKU, como hace el conteo; `vender/page.tsx` carga `codigos_barras`
