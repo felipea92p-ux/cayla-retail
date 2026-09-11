@@ -157,6 +157,28 @@ flowchart TB
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
 
+### 3.y Sin internet: el service worker del censo (ADR-0032)
+
+Es la segunda excepción al patrón, y la más nueva. Todas las pantallas son Server
+Components: sin red no llega ni el HTML, así que ningún JavaScript nuestro llega a
+correr. `apps/web/public/sw.js` existe para UNA pantalla, `/inventario/conteo`, y
+hace tres cosas: cache-first de `/_next/static/*` (inmutables por hash), network-first
+del DOCUMENTO del conteo con respaldo en caché —el documento ya trae el catálogo
+adentro, por eso no hay IndexedDB—, y todo lo demás pasa de largo (ni APIs, ni
+Supabase, ni otras pantallas). Cuando sirve desde caché deja la marca
+`/__cayla/servido-desde-cache`, que `ConteoPanel` lee para avisar: `navigator.onLine`
+miente cuando el wifi está vivo y el servidor no contesta. Lo registra
+`components/RegistroServiceWorker.tsx` solo desde esa pantalla; `LogoutButton` le manda
+`cayla:limpiar` al salir (equipo compartido). El aviso que la Encargada lee sale de
+`lib/sin-red.ts`, puro y probado. La cola de escaneos (`localStorage`) sube sola: al
+volver la red, al montar y con un latido cada 30 s; **solo encola fallos de red**
+(`esFalloDeRed` en `lib/error-escritura.ts`), nunca un rechazo del servidor.
+
+Para probarlo en local: build de producción (`.claude/launch.json` →
+`cayla-retail-prod`), catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`,
+opt-in, nunca en `seed.sql`), y apagar Next **y** `supabase_kong_cayla-retail` — el
+navegador escribe directo a Supabase, así que apagar solo Next no simula la tienda.
+
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 
 Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
@@ -273,6 +295,15 @@ Integrante solo su sede (o su almacén asociado).
   producción divergió de la versión local durante la unificación con
   Dynamic (jul-2026): el script copió una versión vieja de la función.
   Ver §6.
+- **ADR-0013 / 0018 / 0031 / 0032** (sep-9 a sep-11) — la dimensión «velocidad y
+  sin internet». 0013: la lentitud era geografía (`iad1` → `gru1`), no datos, y
+  la venta sin red se permite solo con stock de sobra (umbral 2, bloquea y
+  explica — decidido el 11-sep). 0018: local-first sin motor externo, porque
+  todos los motores del mercado exigen sacar la autorización de RLS. 0031: el
+  reintento de venta no cobra dos veces — `ventas.token_cliente`, generado por
+  el navegador y conservado entre reintentos. 0032: 0018 diseñó el dato local
+  sin la pantalla que abre; service worker acotado al censo (§3.y). Estado
+  vivo en `docs/BRIEF-VELOCIDAD-Y-SIN-INTERNET.md`.
 
 ---
 
