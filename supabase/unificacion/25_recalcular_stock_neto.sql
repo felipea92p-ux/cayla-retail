@@ -29,27 +29,52 @@
 -- además `stock_minimo` (el mínimo por sede de la RPC `fijar_stock_minimo`) y
 -- `contenedor_id`, que no se derivan de `movimientos`.
 
+-- ⚠ CUERPO PUESTO AL DÍA EL 2026-09-10. El que había acá era muy anterior al de
+--   producción: no conocía `stock_almacen`, no tenía candado de Líder, no tenía el
+--   arreglo de traslados ni el de `stock_minimo`. Producción los fue recibiendo a
+--   mano y ninguno quedó escrito, así que **volver a pegar este archivo desarmaba
+--   los cuatro de golpe**. Lo de abajo es el cuerpo vivo en producción, traído
+--   desde la base con `pg_get_functiondef` (no transcrito a mano). Ver ADR-0026.
+--
+--   Los cuatro arreglos que este archivo perdía:
+--     1. `es_lider() is not true` — recalcular el stock entero no es de cualquiera.
+--     2. El traslado cuenta como PISO en ambas patas aunque traiga contenedor de
+--        almacén; sin eso se restaba de piso y no de almacén: cantidad fantasma.
+--     3. `stock_minimo is null` en el delete — una fila que existe solo para
+--        guardar un mínimo configurado no es huérfana (mismo arreglo que `0053`).
+--     4. `get diagnostics` + `raise notice` — decir cuántas filas tocó.
+
 create or replace function retail.recalcular_stock()
 returns void
 language plpgsql
 security definer
-set search_path = retail, public, extensions
+set search_path to 'retail', 'public', 'extensions'
 as $$
+declare
+  v_piso integer; v_almacen integer;
 begin
-  -- 1. El neto de cada par (variante, sede), en una sola pasada.
+  if retail.es_lider() is not true then
+    raise exception 'Solo un Líder puede recalcular el stock';
+  end if;
+
+  -- ===== PISO: todo lo que NO está enrutado a un contenedor 'almacen' =====
+  -- Excepción: un traslado SIEMPRE cuenta como piso en ambos lados, aunque
+  -- traiga un contenedor_id de almacén -- fn_aplicar_movimiento fuerza
+  -- v_es_almacen=false para tipo='traslado' incondicionalmente. Sin esta
+  -- excepción, ese traslado se restaría de piso pero no de almacén: cantidad
+  -- fantasma duplicada.
   insert into retail.stock (variante_id, sede_id, cantidad, ultima_entrada, ultima_salida)
   select variante_id, sede_id, sum(delta), max(entrada_en), max(salida_en)
   from (
-    -- La sede donde ocurre el movimiento: entrada y ajuste suman (el ajuste
-    -- trae su propio signo), salida y traslado restan.
-    select variante_id,
-           sede_id,
-           case when tipo in ('entrada', 'ajuste') then cantidad else -cantidad end as delta,
-           case when tipo = 'entrada' then created_at end as entrada_en,
-           case when tipo in ('salida', 'traslado') then created_at end as salida_en
-    from retail.movimientos
+    select m.variante_id,
+           m.sede_id,
+           case when m.tipo in ('entrada', 'ajuste') then m.cantidad else -m.cantidad end as delta,
+           case when m.tipo = 'entrada' then m.created_at end as entrada_en,
+           case when m.tipo in ('salida', 'traslado') then m.created_at end as salida_en
+    from retail.movimientos m
+    left join retail.contenedores c on c.id = m.contenedor_id
+    where m.tipo = 'traslado' or coalesce(c.tipo, '') <> 'almacen'
     union all
-    -- La otra pata del traslado: la sede que RECIBE.
     select variante_id, sede_destino_id, cantidad, created_at, null
     from retail.movimientos
     where tipo = 'traslado' and sede_destino_id is not null
@@ -59,19 +84,65 @@ begin
     set cantidad = excluded.cantidad,
         ultima_entrada = excluded.ultima_entrada,
         ultima_salida = excluded.ultima_salida;
+  get diagnostics v_piso = row_count;
 
-  -- 2. Filas derivadas que ya no corresponden a ningún movimiento.
+  update retail.stock s set ultima_venta = sub.max_fecha
+  from (
+    select variante_id, sede_id, max(created_at) as max_fecha
+    from retail.movimientos where tipo = 'salida' and motivo = 'venta'
+    group by variante_id, sede_id
+  ) sub
+  where s.variante_id = sub.variante_id and s.sede_id = sub.sede_id;
+
+  -- Borde heredado de ADR-0020: no borrar una fila que solo existe para
+  -- guardar un stock_minimo configurado (fijar_stock_minimo crea la fila con
+  -- cantidad 0 antes de que exista ningún movimiento real en esa sede).
   delete from retail.stock s
+  where s.stock_minimo is null
+    and not exists (
+      select 1 from retail.movimientos m
+      left join retail.contenedores c on c.id = m.contenedor_id
+      where m.variante_id = s.variante_id
+        and (
+          (m.sede_id = s.sede_id and (m.tipo = 'traslado' or coalesce(c.tipo, '') <> 'almacen'))
+          or (m.tipo = 'traslado' and m.sede_destino_id = s.sede_id)
+        )
+    );
+
+  -- ===== ALMACÉN: espejo, solo lo enrutado a un contenedor 'almacen' =====
+  -- (un traslado nunca llega aquí -- ver la excepción de arriba)
+  insert into retail.stock_almacen (variante_id, sede_id, cantidad, ultima_entrada, ultima_salida)
+  select variante_id, sede_id, sum(delta), max(entrada_en), max(salida_en)
+  from (
+    select m.variante_id,
+           m.sede_id,
+           case when m.tipo in ('entrada', 'ajuste') then m.cantidad else -m.cantidad end as delta,
+           case when m.tipo = 'entrada' then m.created_at end as entrada_en,
+           case when m.tipo = 'salida' then m.created_at end as salida_en
+    from retail.movimientos m
+    join retail.contenedores c on c.id = m.contenedor_id and c.tipo = 'almacen'
+    where m.tipo in ('entrada', 'salida', 'ajuste')
+  ) neto
+  group by variante_id, sede_id
+  on conflict (variante_id, sede_id) do update
+    set cantidad = excluded.cantidad,
+        ultima_entrada = excluded.ultima_entrada,
+        ultima_salida = excluded.ultima_salida;
+  get diagnostics v_almacen = row_count;
+
+  delete from retail.stock_almacen sa
   where not exists (
     select 1 from retail.movimientos m
-    where m.variante_id = s.variante_id
-      and (m.sede_id = s.sede_id or m.sede_destino_id = s.sede_id)
+    join retail.contenedores c on c.id = m.contenedor_id and c.tipo = 'almacen'
+    where m.variante_id = sa.variante_id and m.sede_id = sa.sede_id
   );
+
+  raise notice 'recalcular_stock: % filas de piso, % filas de almacén recalculadas.', v_piso, v_almacen;
 end;
 $$;
 
 comment on function retail.recalcular_stock() is
-  'Reconstruye `stock` desde `movimientos` (la fuente de verdad). Calcula el neto por (variante, sede) antes de escribir: proponer filas negativas chocaba con el CHECK antes del ON CONFLICT. Conserva stock_minimo y contenedor_id, que no se derivan de movimientos.';
+  'Reconstruye `stock` y `stock_almacen` desde `movimientos` (la fuente de verdad). Neto por (variante, sede) antes de escribir (ADR-0020), ruteo por contenedor tipo almacen, y el traslado cuenta como piso en ambas patas. Solo Líder. Conserva stock_minimo y contenedor_id, que no se derivan de movimientos.';
 
 -- ============================================================================
 -- VERIFICACIÓN — correr DESPUÉS, en el mismo SQL Editor.

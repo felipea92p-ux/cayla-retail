@@ -78,20 +78,39 @@ export async function getColoresUniversales(): Promise<TerminoUniversal[]> {
 }
 
 /**
- * Las categorías del estándar universal, como hojas con su ruta completa.
+ * Las categorías del estándar universal con su ruta completa, TODAS menos la
+ * raíz de cada vertical.
  *
- * Solo las HOJAS (las que no son padre de nadie): anclar una categoría propia a
- * una rama intermedia como "Prendas de vestir" sería anclarla a "ropa", que no
- * dice nada. Además recorta el catálogo que viaja en el prompt casi a la mitad.
+ * ESTO ESTUVO MAL Y SE ARREGLÓ CON DATOS. La primera versión mandaba solo las
+ * HOJAS, razonando que anclar a una rama intermedia como "Prendas de vestir"
+ * sería anclar a "ropa", que no dice nada. El examen de las 37 categorías de
+ * CAYLA (2026-09-10) mostró el agujero: "Carteras/Bolsos", "Lencería",
+ * "Trajes de baño", "Maquillaje" y "Anillos" existen en el estándar y tienen
+ * hijos — 23, 15, 17, 8 y 2 respectivamente—, así que el filtro las escondía y
+ * el modelo devolvía "no encontré nada" para categorías que sí estaban.
+ *
+ * El error de razonamiento fue confundir dos cosas distintas: una rama DEMASIADO
+ * GENERAL ("Prendas de vestir", nivel 2) y una rama ESPECÍFICA QUE TIENE HIJOS
+ * ("Bolsos"). Una categoría propia amplia tiene que poder anclar a una rama
+ * amplia; forzarla hasta una hoja ("Bolsos de mano") es peor que no anclarla,
+ * porque afirma algo que la marca nunca dijo.
+ *
+ * Se excluye solo el nivel 1 —"Ropa y accesorios", "Salud y belleza"—, que son
+ * el nombre del vertical y nunca son una respuesta útil. Que el modelo no elija
+ * ramas demasiado altas se resuelve donde corresponde: en la instrucción de
+ * elegir siempre lo más específico que sea correcto, no escondiéndole el árbol.
  */
 export async function getCategoriasUniversales(): Promise<TerminoUniversal[]> {
   const supabase = await createClient();
-  const res = await supabase.from("taxonomia_categorias").select("id, nombre, ruta, padre_id").order("ruta");
+  const res = await supabase
+    .from("taxonomia_categorias")
+    .select("id, nombre, ruta, nivel")
+    .gt("nivel", 1)
+    .order("ruta");
 
-  const filas = exigir(res, "las categorías del estándar universal");
-  const conHijos = new Set(filas.map((c) => c.padre_id).filter(Boolean));
-
-  return filas
-    .filter((c) => !conHijos.has(c.id))
-    .map((c) => ({ id: c.id, nombre: c.nombre, ruta: c.ruta }));
+  return exigir(res, "las categorías del estándar universal").map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    ruta: c.ruta,
+  }));
 }

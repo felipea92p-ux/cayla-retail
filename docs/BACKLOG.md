@@ -11,30 +11,26 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
-      puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
-      migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
-      valores de la Shopify Product Taxonomy v2026-08 en local, motor de anclaje
-      en dos pasadas (`lib/taxonomia/anclar.ts` puro y testeado +
-      `anclar-ia.ts`), endpoint `POST/PUT /api/taxonomia/anclar` (propone / guarda,
-      nunca en un solo paso) y pantalla `/inventario/taxonomia`.
-      **Bloqueado por lo mismo que todo lo demás de IA: no hay `ANTHROPIC_API_KEY`
-      en el entorno.** Sin ella el endpoint responde 503 con el mensaje que lo
-      explica, y el anclaje de los 30 colores y 32 categorías de CAYLA nunca se ha
-      ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
-      se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
-      **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
-      Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
-      archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
-      URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
-      ancla los valores distintos y siembra el vocabulario propio del cliente con
-      SUS nombres → RPC `importar_catalogo` transaccional (llamar
-      `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
-      Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
-      carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
-      versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
-      taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
-      la regla es que **la IA compila el mapeo, no procesa las filas**.
+- [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
+      punta a punta (ADR-0030, ADR-0031).** Excel, CSV, Google Sheets, PDF y foto
+      entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
+      infiere qué es cada columna y de qué universal cuelga cada color o
+      categoría nueva; `importar_catalogo` (0055) escribe todo en una
+      transacción con stock en cero; `deshacer_importacion` descontinúa, nunca
+      borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
+      foto de cuaderno. Verificado en el navegador con la sesión real y
+      confirmado en la base. 178 tests.
+      **Lo que falta para usarlo en producción:** pegar `0055` (y `0052` + su
+      seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
+      **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
+      CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
+      (corregir a mano `Tops → Tops cortos deportivos` y decidir `Fucsia →
+      Púrpura` o `Rosa`).
+      **Lo que queda fuera, dicho:** las prendas que CAYLA ya tiene no ganan
+      atributos ricos (tejido, patrón) — `producto_atributos` existe pero el
+      importador solo la llena para catálogos nuevos; llenarla para el catálogo
+      actual es otro trabajo. Y el cron semanal para `revisar-version.mjs` no
+      existe: se corre a mano cuando se quiera saber si hay versión nueva.
 
 - [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
       Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
@@ -43,15 +39,25 @@ importante que ha entrado a este archivo desde que existe.
       (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
       `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
 
-- [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
-      medido.** `packages/database/package.json` usa `--project-id
-      vovjyyiafkxteijimpuy` (producción). Generar desde local —lo natural cuando
-      las tablas nuevas solo existen ahí— **borra** `catalogo_con_stock`,
-      `configuracion_empresa`, `sede_meta`, `sede_datos_fiscales`,
-      `persona_actual` y `puede_operar_sede`, que existen en producción y no en
-      local. Hoy los 5 tipos de taxonomía y las 2 columnas de anclaje se
-      insertaron a mano por eso. Mientras el drift exista, regenerar a ciegas
-      rompe la app: hace falta decidir cuál de los dos entornos es la fuente.
+- [ ] **`gen-types`: ningún entorno tiene el esquema completo, así que ninguna
+      regeneración sale bien sola — y ya son 3 parches a mano.**
+      **CORRECCIÓN 2026-09-10:** este ítem decía que el script "apunta al proyecto
+      viejo de retail". Es falso, y se corrige acá porque mandó a alguien a
+      arreglar lo que no estaba roto. `--project-id vovjyyiafkxteijimpuy` **es**
+      cayla-dynamic, o sea producción (comprobado con `list_projects`: los dos
+      únicos proyectos vivos son `cayla-dynamic` y `Freewheel`). El script está
+      bien; lo que está mal es que ningún entorno sirva como fuente única.
+      Generar desde **local** borra `catalogo_con_stock`, `configuracion_empresa`,
+      `sede_meta`, `sede_datos_fiscales`, `persona_actual` y `puede_operar_sede`.
+      Generar desde **producción** borra los 5 tipos de taxonomía y las 2 columnas
+      de anclaje (`0052` no está aplicada allá).
+      Lo puesto a mano hasta hoy, ahora listado con fecha en la cabecera del
+      propio `types.ts` —que no tenía ninguna, y ése es justo el mecanismo por el
+      que un parche se pierde—: los 5 tipos de taxonomía + 2 columnas de anclaje
+      (10-sep) y `ventas.token_cliente` + `registrar_venta.p_token` (10-sep).
+      **La salida más corta es aplicar `0052` en producción**: con eso producción
+      pasa a ser superconjunto de local y `gen-types` vuelve a ser fiable de un
+      solo tiro. Es DDL en el proyecto compartido, o sea decisión de Felipe.
 
 
 - [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
@@ -281,6 +287,135 @@ importante que ha entrado a este archivo desde que existe.
       color resuelto, esas 5 variantes **no reciben código corto** — es
       deliberado (ADR-0025: el código no se inventa), y en cuanto se les asigne
       color, `retail.fn_asignar_codigo_variante` se los da.
+- [x] **RESUELTO EN LOCAL 2026-09-10 — `recalcular_stock` ya no borra el `stock_minimo`.**
+      `supabase/migrations/0053_stock_minimo_sobrevive.sql`: `and s.stock_minimo is null` en
+      el `delete` del piso. Se decidió en vez de volver a diferirlo, con este criterio: la
+      función reconstruye CANTIDADES desde `movimientos`, y `stock_minimo` no se deriva de
+      movimientos — lo dice su propia cabecera —, así que no es suyo para borrarlo.
+      **Reproducido y verificado en local, las dos mitades:** con el bug, una fila creada por
+      `fijar_stock_minimo` sin movimientos pasaba de 1 a 0 al correr la función; con el
+      arreglo sobrevive. Y una fila huérfana de verdad —sin movimientos Y sin mínimo— se
+      sigue borrando, que es la mitad que se olvida al poner un guard.
+      `stock_almacen` no lleva `stock_minimo`, así que su `delete` no se tocó.
+
+- [x] **DESCARTADA 2026-09-10 — la sospecha del almacén era falsa, y lo que apareció en su
+      lugar es más serio.** Se sospechó que `retail.recalcular_stock` en producción había
+      perdido el bloque de `stock_almacen`, porque `unificacion/12` la define CON él y
+      `unificacion/25` la redefine SIN ninguna mención, y por las fechas registradas el `25`
+      parecía haber pisado último. **Medido contra la base: falso.** La función de producción
+      conoce el almacén — `delete from retail.stock_almacen sa` está en su cuerpo. La
+      evidencia de los archivos era buena y la conclusión equivocada: el orden real de
+      aplicación no fue el que los archivos sugerían.
+
+- [ ] **EL REPO NO DESCRIBE PRODUCCIÓN: hay un arreglo vivo allá que no existe en ningún
+      archivo.** Encontrado el 2026-09-10 al medir lo de arriba. `retail.recalcular_stock` en
+      producción **ya trae** el guard `where s.stock_minimo is null` en el `delete` del piso
+      —el mismo arreglo que `0053` acaba de hacer en local— y con un comentario propio que
+      empieza `-- guardar un stock_minimo configurado (fijar_stock_minimo crea la fila con`.
+      Ese comentario **no está en ningún archivo de este repositorio** (verificado con `grep`
+      sobre todo el árbol, no solo sobre `supabase/`), y su redacción no es la de `0053`.
+      Alguien lo aplicó a mano en el SQL Editor y no quedó archivo.
+      **Lo que significa, y es lo que hay que arreglar:** `npx supabase db reset` más la
+      carpeta `unificacion/` NO reproduce lo que hay en producción. El repo dejó de ser la
+      descripción del sistema para ser una descripción parcial, y no hay forma de saber
+      cuántos parches más como éste hay vivos.
+      **MEDIDO 2026-09-10: son DIEZ, no una.** Corrido el verificador con cuerpos contra la
+      base de producción (lectura de catálogo vía el conector de Supabase), diez funciones de
+      `retail` tienen un cuerpo que **no coincide con ningún archivo del repo**:
+      `abrir_caja`, `cerrar_caja`, `registrar_venta`, `cerrar_produccion`,
+      `set_etapa_produccion`, `recalcular_stock`, `es_lider`, `es_supervisor`,
+      `puede_operar_sede`, y `catalogo_con_stock` —esta última ni siquiera existe como
+      nombre en el repositorio—.
+
+      **LA MÁS GRAVE, y es un candado de permisos.** Las tres funciones de
+      `unificacion/03_candados.sql` están endurecidas en producción y no en el repo:
+
+      | | repo | producción |
+      |---|---|---|
+      | `es_lider` | `select public.fn_rol_actual() = 'admin'` | `select coalesce(…, false)` |
+      | `es_supervisor` | ídem sin coalesce | `coalesce(…, false)` |
+      | `puede_operar_sede` | ídem sin coalesce | `coalesce(…, false)` en las dos ramas |
+
+      No es cosmético. Sin el `coalesce`, si `fn_rol_actual()` devuelve NULL —sesión sin rol,
+      usuario sin fila— la función devuelve NULL; y en un `if not es_lider() then raise`,
+      `not null` **no es true**, así que la excepción NO se dispara y el candado se abre
+      solo. Alguien lo encontró y lo parchó a mano en producción.
+      **El riesgo vivo:** volver a pegar `03_candados.sql` —que es lo que haría cualquiera
+      siguiendo el repo— **deshace ese endurecimiento en silencio**.
+
+      **CERRADAS LAS TRES DE PERMISOS el 2026-09-10 — quedan 7.** Se corrigió
+      `unificacion/03_candados.sql` en el archivo (para que un replay desde cero produzca el
+      estado bueno y volver a pegarlo deje de deshacer el endurecimiento) y se agregó
+      `unificacion/34_candados_no_null.sql` como paso suelto con fecha, para cualquier base
+      que haya recibido la versión vieja. Producción no necesita correr nada: ya lo tenía.
+      **Verificado con la propia herramienta:** el verificador pasó de 10 cuerpos sin archivo
+      a 7, o sea que el repo ahora produce exactamente lo que producción tiene en esas tres.
+      `mi_sede()` NO lleva `coalesce` a propósito: devuelve un uuid y ahí NULL es la
+      respuesta correcta.
+- [x] **RESUELTO Y VERIFICADO EN PRODUCCIÓN 2026-09-10 — vender volvió a funcionar.** Encontrado
+      2026-09-10 comparando firmas entre entornos. Producción:
+      `registrar_venta(p_caja_id, p_metodo_pago, p_items, p_nota text, p_token uuid default null)`
+      — `p_nota` **sin default**. Local: `(…, p_nota text default null)`. Y
+      `RegistrarVentaModal.tsx` llama con TRES parámetros nombrados. PostgREST resuelve por
+      nombres, y con un obligatorio que nadie manda no hay candidata: «Could not find the
+      function … in the schema cache». **La primera venta que alguien intente por la app en
+      producción falla**, con la clienta enfrente. No se nota hoy porque nadie vende por ahí
+      todavía — el catálogo real no está cargado.
+      **Causa:** quien agregó `p_token` a mano —un buen arreglo, la venta idempotente que el
+      repo no tiene— reescribió la firma y perdió el `default null` de `p_nota`. El costo
+      exacto de parchar sin archivo: nadie revisó la firma contra lo que la app manda.
+      **Aplicado con autorización explícita de Felipe** («pégalo tú»), con `execute_sql` y NO
+      `apply_migration` —ese habría escrito una fila en el historial de migraciones de
+      Dynamic, que no es el nuestro—. Archivo: `unificacion/35_registrar_venta_p_nota.sql`.
+      **Verificado antes y después contra la base, no por suposición:** antes,
+      `explain select retail.registrar_venta(p_caja_id => …, p_metodo_pago => …, p_items => …)`
+      devolvía «function … does not exist»; después devuelve un plan. Una sola firma viva,
+      con `p_nota text DEFAULT NULL::text`, y la idempotencia por token **intacta**
+      (`conserva_idempotencia = true`). El verificador pasó de 5 cuerpos sin archivo a 4.
+
+      **CERRADO 2026-09-10 — el repo describe producción: 49 de 50.** Se pusieron al día
+      `unificacion/07` (el candado de `puede_operar_sede` en `abrir_caja` y `cerrar_caja`,
+      con `is not true` para que un NULL no lo abra) y `unificacion/25` (cuerpo completo de
+      `recalcular_stock`: candado de Líder, ruteo al almacén, traslado que cuenta como piso
+      en ambas patas, y el guard de `stock_minimo`). Los cuerpos se trajeron desde la base
+      con `pg_get_functiondef`, no transcritos a mano.
+      Y los archivos que definen versiones viejas —`07` para `registrar_venta`, `08` y `12`
+      para `recalcular_stock`— llevan ahora un aviso que dice cuál los redefine y que hay
+      que pegar después. No se duplicó ningún cuerpo: dos fuentes de verdad de la misma
+      función es exactamente cómo se llegó hasta acá.
+
+      **QUEDA UNA, y es una decisión, no un arreglo: `catalogo_con_stock()`.** Existe en
+      producción, no está en ningún archivo del repo, y **la app no la llama** — solo aparece
+      en `packages/database/src/types.ts` porque `gen-types` la recogió. Las opciones son
+      borrarla en producción (DDL en el proyecto compartido: lo decide Felipe) o escribirla
+      en `unificacion/` si resulta que alguien la usa. Antes de borrar conviene mirar si
+      Dynamic la llama desde su lado.
+
+      **Faltan decidir, una por una, las restantes:** `abrir_caja`, `cerrar_caja`, `registrar_venta`,
+      `recalcular_stock` y `catalogo_con_stock` — bajaron de 7 a 5 al dejar de contar como
+      drift las diferencias de espaciado junto a la puntuación (`coalesce(x,0)` vs
+      `coalesce(x, 0)`), que era estilo, no código.
+      **Lo que ya se sabe de cada una, medido:** las tres primeras tienen en producción una
+      validación de permiso —`if puede_operar_sede(...) is not true then raise`— que
+      `unificacion/07` NO tiene, o sea que **volver a pegar ese archivo las desarma**, igual
+      que pasaba con `03`. `registrar_venta` suma además la idempotencia por `p_token` y la
+      columna `ventas.token_cliente`, que no está en ningún archivo. `recalcular_stock` suma
+      candado de Líder, instrumentación con `get diagnostics`, y un arreglo real: cuenta los
+      traslados como piso aunque traigan contenedor de almacén, sin el cual esa cantidad se
+      duplicaba. `catalogo_con_stock` no existe en el repo y la app no la llama —solo aparece
+      en los tipos generados—, así que es candidata a borrar, no a traer. Cuál se trae al repo y cuál es legítimamente propia de
+      producción; elegir mal es peor que no elegir.
+
+      **La herramienta ya lo detecta, desde el 2026-09-10.** `pnpm migraciones:verificar`
+      compara ahora el CUERPO de cada función de `retail` contra todas las definiciones que
+      el repo tenga de ese nombre, no solo su existencia (ADR-0026, ampliación). Probadas las
+      dos alarmas a propósito. **Lo que falta es correrlo contra producción:** pegar
+      `scripts/migraciones/inventario.sql` en el SQL Editor de Dynamic, guardar el resultado
+      —vale el JSON copiado o el CSV descargado, el script acepta los dos— y correr
+      `pnpm migraciones:verificar <archivo>`. Eso lista TODOS los parches a mano que haya
+      vivos, no solo el que se encontró de casualidad.
+      **Lo que NO es:** un problema de `0053`. Local sí tenía el bug —reproducido: la fila del
+      mínimo pasaba de 1 a 0— y ahora local y producción coinciden. No hace falta gemelo.
 - [ ] **`reemplazo total de Alegra` (antes "finanzas F3") — proyecto propio con
       plan de 8 fases aprobado (Fase 0.5 sumada después). Fase 0 CERRADA Y
       CONFIRMADA EN PRODUCCIÓN 2026-09-05; Fase 0.5 en construcción.** Felipe
@@ -562,10 +697,53 @@ importante que ha entrado a este archivo desde que existe.
       Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
       **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
       él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
-      **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
-      Washington igual. Tendrá su propio ADR con el motor de sincronización elegido.
+      **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario` en 131 ms de TTFB
+      y 750 ms de carga total; el "~2 s" que se repetía nunca fue una medición). El
+      motor ya está elegido: instantánea en IndexedDB + Supabase Realtime, sin motor
+      externo (ADR-0018).
+      **EL PRIMER PASO REAL ES UN `alter publication`, y no es mío:** hoy
+      `supabase_realtime` tiene **0 tablas** (reverificado contra producción el
+      10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es DDL en el
+      proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo también con
+      local: `config.toml` tiene el contenedor de `realtime` **apagado** desde ADR-0010,
+      así que probar esto en local exige encenderlo primero (y ADR-0010 avisa que dos
+      stacks compitiendo era justo lo que rompía los healthchecks).
+      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0031, `0054`). La
+      cola de la Fase 3 tiene su red puesta antes de existir.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
+
+- [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
+      sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
+      se verificó lo principal: la cola sube sola al volver la red (la prenda encolada
+      apareció en `conteo_lineas`), y la prueba destapó tres defectos del camino de fallo
+      que ya existían — encolaba rechazos del servidor, trababa la pantalla con un error
+      contradictorio, «Las 1 prendas» — todos corregidos (ADR-0032, addendum).
+      **Lo que falta ver en navegador es el flujo corregido:** escanear sin red y que la
+      línea aparezca SIN error rojo, con el buscador tomando foco. Se trabó por el arnés
+      (pestaña oculta → React no revela el streaming), no por la app. Receta: build de
+      producción, `cayla-retail-prod`, conteo abierto, dos recargas con red, apagar Next **y**
+      `docker stop supabase_kong_cayla-retail`, recargar, escanear `BLU-0001-BLA-S`, levantar
+      los dos, esperar el latido de 30 s.
+      Y sigue pendiente **vender por la app en navegador** (la idempotencia de `0054` se probó
+      por SQL y HTTP, no con el modal): entra natural en el paso 3 del brief.
+
+- [ ] **Los candados de local pueden abrirse solos con NULL — barrido pendiente.**
+      `34_candados_no_null.sql` cerró `es_lider`, `es_supervisor` y `puede_operar_sede`
+      en **producción**. Local tiene otros nombres (`fn_es_lider`, `fn_puede_operar_sede`)
+      y **no recibió ese endurecimiento**. El mecanismo: si la función devuelve NULL
+      —una sesión sin rol—, `if not fn_puede_operar_sede(...)` no dispara el `raise`,
+      porque `not NULL` no es true, y **el permiso pasa**. `fn_puede_operar_sede` es un
+      `select` sin `coalesce` sobre `fn_es_lider()`, así que puede devolver NULL.
+      Cerrado hasta ahora en **una sola** función: `registrar_venta`, por `0054`, y solo
+      porque era la que esa migración reescribía igual (ADR-0031). Falta el barrido:
+      listar cada `if not <candado>` de las funciones de local y pasarlo a `is not true`,
+      o ponerle `coalesce(..., false)` a `fn_es_lider`/`fn_puede_operar_sede` en su
+      definición, que es el arreglo por el otro lado y probablemente el correcto.
+      `mi_sede()`/`fn_sede_actual_persona()` **NO** llevan `coalesce`: devuelven uuid, y
+      ahí NULL es la respuesta honesta.
+      Reversible: sí. Riesgo real hoy: bajo (local es entorno de desarrollo), pero
+      mantiene local y producción divergiendo justo en el modelo de seguridad.
 
 - [x] **RESUELTO 2026-09-09. Ahora corre 3 tareas y encontró 1 error real el primer día.**
       `"typecheck": "tsc --noEmit"` en los tres paquetes y la tarea declarada en

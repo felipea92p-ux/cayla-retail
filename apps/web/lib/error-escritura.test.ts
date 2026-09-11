@@ -80,12 +80,34 @@ describe("no re-traduce lo que las RPC ya dicen bien", () => {
     const delaRpc = "No tienes permiso para vender en esa caja";
     expect(traducirError({ message: delaRpc, code: "P0001" }, "registrar la venta")).toBe(delaRpc);
   });
+
+  it("PERO el rechazo por token reusado sí se traduce: es P0001 y no habla idioma CAYLA", () => {
+    // El texto vive en `0054_venta_idempotente.sql` y, palabra por palabra, en producción desde
+    // un parche a mano. Es la única excepción a la regla de este bloque, y por eso se fija acá.
+    const delaRpc =
+      "Este token ya se uso para una venta con otros datos (caja, metodo de pago o monto no coinciden) -- no se puede reutilizar.";
+    const salida = traducirError({ message: delaRpc, code: "P0001" }, "registrar la venta");
+    expect(salida).not.toContain("token");
+    expect(salida).toContain("La venta anterior sí se registró");
+    expect(salida).toContain("Ventas de hoy");
+  });
 });
 
 describe("los bordes de red y el fallback", () => {
   it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
     const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
     expect(salida).toContain("No se guardó nada");
+  });
+
+  it("cuando el reintento es seguro, deja de prometer que no se guardó nada", () => {
+    // `Failed to fetch` no distingue "no salió" de "salió, entró, y se cortó la respuesta".
+    // Con la venta idempotente (0054) la duda deja de importar, y el mensaje puede decirlo.
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta", {
+      reintentoSeguro: true,
+    });
+    expect(salida).not.toContain("No se guardó nada");
+    expect(salida).toContain("mismo carrito");
+    expect(salida).toContain("no la cobra dos veces");
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {

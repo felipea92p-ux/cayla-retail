@@ -82,6 +82,16 @@ returns uuid language plpgsql security definer set search_path = retail, public
 as $$
 declare v_persona_id uuid; v_caja_id uuid;
 begin
+  -- ⚠ AGREGADO AL ARCHIVO EL 2026-09-10. Producción ya tenía este candado —alguien
+  -- lo parchó a mano y nunca quedó escrito— y este archivo seguía sin él, así que
+  -- volver a pegarlo DESARMABA la validación en silencio. Ver ADR-0026.
+  --
+  -- `is not true` y no `not`: si `puede_operar_sede` devolviera NULL, `not NULL`
+  -- tampoco es true y el `raise` no dispararía — el candado se abriría solo. Es el
+  -- mismo agujero que el `coalesce` de `03_candados.sql` cierra del otro lado.
+  if retail.puede_operar_sede(p_sede_id) is not true then
+    raise exception 'No tienes permiso para abrir caja en esa sede';
+  end if;
   if exists (select 1 from cajas where sede_id = p_sede_id and estado = 'abierta') then
     raise exception 'Ya hay una caja abierta en esta sede — ciérrala antes de abrir otra';
   end if;
@@ -101,6 +111,12 @@ declare v_persona_id uuid; v_caja cajas%rowtype; v_esperado numeric;
 begin
   select * into v_caja from cajas where id = p_caja_id;
   if not found then raise exception 'La caja % no existe', p_caja_id; end if;
+  -- ⚠ AGREGADO AL ARCHIVO EL 2026-09-10, igual que en `abrir_caja` (ver allá el porqué).
+  -- La sede se resuelve DESDE LA CAJA, no desde un parámetro: `cerrar_caja` solo recibe
+  -- `p_caja_id`, así que no hay otra forma de saber de qué sede es.
+  if retail.puede_operar_sede(v_caja.sede_id) is not true then
+    raise exception 'No tienes permiso para cerrar caja en esa sede';
+  end if;
   if v_caja.estado <> 'abierta' then raise exception 'Esta caja ya está cerrada'; end if;
   select id into v_persona_id from public.personas where auth_user_id = auth.uid();
   select v_caja.monto_apertura + coalesce(sum(monto_total), 0) into v_esperado
@@ -113,6 +129,12 @@ end;
 $$;
 
 -- ---------- registrar venta ----------
+-- ⚠ ESTA VERSIÓN ESTÁ DESACTUALIZADA A PROPÓSITO: `35_registrar_venta_p_nota.sql`
+--   la redefine con la validación de permiso y con la idempotencia por `p_token`
+--   (más la columna `ventas.token_cliente`). No se duplica el cuerpo acá para no
+--   tener dos fuentes de verdad de la misma función.
+--   **Si pegas este archivo suelto, pegá `35` después** — si no, la venta pierde el
+--   candado y la idempotencia sin que nada avise.
 create or replace function retail.registrar_venta(
   p_caja_id uuid, p_metodo_pago text, p_items jsonb, p_nota text default null
 )

@@ -13,6 +13,14 @@ import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import { anclarPorNombre, type Anclaje, type TerminoPropio, type TerminoUniversal } from "./anclar";
 
 /**
+ * Lo que costó la llamada. Viaja hasta la pantalla en vez de quedarse en un log:
+ * así el costo real se contrasta con el estimado en vez de creerlo.
+ */
+export type Uso = { entrada: number; salida: number; cacheLeido: number };
+
+const SIN_USO: Uso = { entrada: 0, salida: 0, cacheLeido: 0 };
+
+/**
  * Esquema de la respuesta, en JSON Schema y no en Zod a propósito:
  * `packages/shared` usa Zod v3 y el helper `zodOutputFormat` del SDK exige la
  * API de `zod/v4`. Tener dos dialectos de Zod conviviendo en el repo es justo
@@ -68,8 +76,8 @@ export async function anclarConIA(
   pendientes: TerminoPropio[],
   universales: TerminoUniversal[],
   queSon: string
-): Promise<Anclaje[]> {
-  if (pendientes.length === 0) return [];
+): Promise<{ anclajes: Anclaje[]; uso: Uso }> {
+  if (pendientes.length === 0) return { anclajes: [], uso: SIN_USO };
 
   const client = new Anthropic();
 
@@ -79,9 +87,32 @@ export async function anclarConIA(
     .join("\n");
 
   const respuesta = await client.messages.parse({
-    model: "claude-opus-5",
+    /**
+     * Haiku 4.5, decidido con Felipe (2026-09-10) después de medir: anclar los 30
+     * colores y 37 categorías cuesta ~$0.03 con Haiku contra ~$0.15 con Opus 5, y
+     * a 100 clientes al año la diferencia total del sistema son ~15 dólares. El
+     * ahorro no es lo que decide — es que la tarea está acotada: elegir entre 19
+     * colores y 567 hojas de un árbol, con el catálogo entero delante.
+     *
+     * Se descartó el tier gratuito de Gemini, que sale aún más barato, por una
+     * razón que no es de precio: ahí los prompts se usan para entrenar. Lo que
+     * viaja acá es el catálogo de un cliente —sus productos, precios y costos—, y
+     * eso no se manda a entrenar el modelo de nadie.
+     *
+     * Si el anclaje de CAYLA sale torcido, éste es el string que se sube: los 37
+     * términos que Felipe conoce de memoria son el examen de admisión del modelo.
+     */
+    model: "claude-haiku-4-5",
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    /**
+     * Haiku 4.5 no acepta `thinking: {type: "adaptive"}` ni `output_config.effort`
+     * —los dos dan 400—, así que acá va el presupuesto fijo, que es la forma que
+     * esta generación sí entiende. Debe ser menor que `max_tokens` y mínimo 1024.
+     * 4.000 no es un número al azar: elegir entre 567 rutas jerárquicas es la
+     * parte donde un modelo pequeño se equivoca, y es lo único que amerita que
+     * piense antes de responder.
+     */
+    thinking: { type: "enabled", budget_tokens: 4000 },
     system: [
       { type: "text", text: INSTRUCCIONES },
       {
@@ -90,6 +121,11 @@ export async function anclarConIA(
         // ANTES de los términos volátiles, porque el caché es un match de
         // prefijo y cualquier byte que cambie antes lo invalida entero. El ttl
         // largo cubre el onboarding completo de un cliente.
+        //
+        // OJO al leer `usage.cache_read_input_tokens`: en CATEGORÍAS cachea (el
+        // árbol son ~18.500 tokens), en COLORES no — 19 valores más las
+        // instrucciones no llegan al mínimo cacheable de Haiku. Un cero ahí no es
+        // un bug ni cuesta nada: esa llamada entera vale una fracción de centavo.
         type: "text",
         text: `Términos universales disponibles (${queSon}), como "id<TAB>nombre":\n\n${catalogo}`,
         cache_control: { type: "ephemeral", ttl: "1h" },
@@ -118,14 +154,38 @@ export async function anclarConIA(
   const idsValidos = new Set(universales.map((u) => u.id));
   const clavesPedidas = new Set(pendientes.map((p) => p.clave));
 
-  return salida.anclajes
+  const anclajes = salida.anclajes
     .filter((a) => clavesPedidas.has(a.clave))
-    .map((a) => ({
-      clave: a.clave,
-      universalId: idsValidos.has(a.universalId) ? a.universalId : null,
-      confianza: a.confianza as Anclaje["confianza"],
-      porque: a.porque,
-    }));
+    .map((a) => {
+      const valido = idsValidos.has(a.universalId);
+      // Tres casos distintos que ANTES se veían iguales, y por eso el examen del
+      // 2026-09-10 mostraba "SIN ANCLAR" junto a un texto que decía "coincide
+      // exactamente con Bolsos": el modelo señalaba un id que el catálogo no
+      // traía y acá se volvía null en silencio. Un descarte mudo convierte un
+      // fallo del sistema en lo que parece una decisión del modelo — y manda a
+      // revisar el término equivocado.
+      if (valido) {
+        return { clave: a.clave, universalId: a.universalId, confianza: a.confianza as Anclaje["confianza"], porque: a.porque };
+      }
+      if (!a.universalId) {
+        return { clave: a.clave, universalId: null, confianza: "baja" as const, porque: a.porque || "Ninguno calzó." };
+      }
+      return {
+        clave: a.clave,
+        universalId: null,
+        confianza: "baja" as const,
+        porque: `El modelo señaló "${a.universalId}", que no está en el catálogo que se le pasó. Revisar. (Dijo: ${a.porque})`,
+      };
+    });
+
+  return {
+    anclajes,
+    uso: {
+      entrada: respuesta.usage.input_tokens,
+      salida: respuesta.usage.output_tokens,
+      cacheLeido: respuesta.usage.cache_read_input_tokens ?? 0,
+    },
+  };
 }
 
 /** Las dos pasadas juntas: lo obvio por código, el resto por criterio. */
@@ -133,9 +193,9 @@ export async function anclar(
   propios: TerminoPropio[],
   universales: TerminoUniversal[],
   queSon: string
-): Promise<{ anclajes: Anclaje[]; conIA: number }> {
+): Promise<{ anclajes: Anclaje[]; conIA: number; uso: Uso }> {
   const { resueltos, pendientes } = anclarPorNombre(propios, universales);
-  const deIA = await anclarConIA(pendientes, universales, queSon);
+  const { anclajes: deIA, uso } = await anclarConIA(pendientes, universales, queSon);
 
   // Un pendiente que el modelo no devolvió queda explícitamente sin anclar en
   // vez de desaparecer del resultado: la pantalla tiene que poder mostrarlo.
@@ -149,5 +209,5 @@ export async function anclar(
       porque: "El modelo no lo clasificó.",
     }));
 
-  return { anclajes: [...resueltos, ...deIA, ...faltantes], conIA: pendientes.length };
+  return { anclajes: [...resueltos, ...deIA, ...faltantes], conIA: pendientes.length, uso };
 }

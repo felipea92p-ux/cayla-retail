@@ -2,5 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  # esbuild lo traen vitest y tsx. Es el bundler de Go que compila TS en
+  # milisegundos; su script de instalacion solo baja el binario de su plataforma.
+  esbuild: true
   sharp: true
   unrs-resolver: true

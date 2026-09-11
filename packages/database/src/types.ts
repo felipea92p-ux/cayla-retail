@@ -1,3 +1,33 @@
+// ============================================================================
+// GENERADO por `pnpm --filter @cayla-retail/database gen-types`
+// (`supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail`)
+//
+// ⚠ TIENE PARCHES A MANO. Regenerar a ciegas los BORRA.
+//
+//   Ningún entorno tiene hoy el esquema completo, así que ninguna regeneración
+//   sale correcta sola:
+//     · producción NO tiene la taxonomía universal (`0052` no está aplicada allá)
+//     · local NO tiene `catalogo_con_stock`, `configuracion_empresa`,
+//       `sede_meta`, `sede_datos_fiscales`, `persona_actual`, `puede_operar_sede`
+//
+//   Lo puesto a mano, con fecha, para poder reponerlo después de regenerar:
+//     · 2026-09-10 — los 5 tipos de taxonomía y las 2 columnas de anclaje
+//       (solo existen en local)
+//     · 2026-09-10 — `ventas.token_cliente` y `registrar_venta.p_token`
+//       (solo existen en producción; local se puso al día con la migración
+//       `0054`, así que este parche sobra el día que se regenere DESPUÉS de
+//       aplicar `0052` en producción)
+//     · 2026-09-11 — `importaciones`, `producto_atributos`,
+//       `productos.importacion_id` y las funciones `importar_catalogo`,
+//       `deshacer_importacion`, `fn_codigo_tres_letras`,
+//       `fn_familia_color_de_universal`, `fn_familia_de_universal`
+//       (migración `0055`; solo existen en local hasta que se aplique allá)
+//
+//   El arreglo de fondo —decidir cuál de los dos entornos es la fuente— está en
+//   el BACKLOG. Mientras tanto, después de cada `gen-types` hay que releer esta
+//   lista y reponer lo que falte.
+// ============================================================================
+
 export type Json =
   | string
   | number
@@ -960,6 +990,56 @@ export type Database = {
           },
         ]
       }
+      importaciones: {
+        Row: {
+          categorias_creadas: number
+          colores_creados: number
+          created_at: string
+          deshecha_en: string | null
+          estado: string
+          id: string
+          origen: string
+          persona_id: string | null
+          plan: Json
+          productos_creados: number
+          variantes_creadas: number
+        }
+        Insert: {
+          categorias_creadas?: number
+          colores_creados?: number
+          created_at?: string
+          deshecha_en?: string | null
+          estado?: string
+          id?: string
+          origen: string
+          persona_id?: string | null
+          plan: Json
+          productos_creados?: number
+          variantes_creadas?: number
+        }
+        Update: {
+          categorias_creadas?: number
+          colores_creados?: number
+          created_at?: string
+          deshecha_en?: string | null
+          estado?: string
+          id?: string
+          origen?: string
+          persona_id?: string | null
+          plan?: Json
+          productos_creados?: number
+          variantes_creadas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importaciones_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lotes: {
         Row: {
           created_at: string
@@ -1464,8 +1544,52 @@ export type Database = {
           },
         ]
       }
+      producto_atributos: {
+        Row: {
+          atributo_id: string
+          producto_id: string
+          valor_id: string | null
+          valor_texto: string | null
+        }
+        Insert: {
+          atributo_id: string
+          producto_id: string
+          valor_id?: string | null
+          valor_texto?: string | null
+        }
+        Update: {
+          atributo_id?: string
+          producto_id?: string
+          valor_id?: string | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_atributos_atributo_id_fkey"
+            columns: ["atributo_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_atributos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producto_atributos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producto_atributos_valor_id_fkey"
+            columns: ["valor_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomia_valores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
+          importacion_id: string | null
           categoria_id: string | null
           codigo: string | null
           costo_mano_obra: number | null
@@ -1484,6 +1608,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           categoria_id?: string | null
           codigo?: string | null
           costo_mano_obra?: number | null
@@ -1502,6 +1627,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           categoria_id?: string | null
           codigo?: string | null
           costo_mano_obra?: number | null
@@ -2072,6 +2198,7 @@ export type Database = {
           monto_total: number
           nota: string | null
           sede_id: string
+          token_cliente: string | null
           usuario_id: string | null
         }
         Insert: {
@@ -2082,6 +2209,7 @@ export type Database = {
           monto_total: number
           nota?: string | null
           sede_id: string
+          token_cliente?: string | null
           usuario_id?: string | null
         }
         Update: {
@@ -2092,6 +2220,7 @@ export type Database = {
           monto_total?: number
           nota?: string | null
           sede_id?: string
+          token_cliente?: string | null
           usuario_id?: string | null
         }
         Relationships: [
@@ -2374,6 +2503,10 @@ export type Database = {
         }
         Returns: string
       }
+      deshacer_importacion: {
+        Args: { p_importacion_id: string }
+        Returns: Json
+      }
       devolver_a_almacen: {
         Args: {
           p_cantidad: number
@@ -2433,8 +2566,20 @@ export type Database = {
         Returns: string
       }
       fn_clave_texto: { Args: { p: string }; Returns: string }
+      fn_codigo_tres_letras: {
+        Args: { p_nombre: string; p_tabla: string }
+        Returns: string
+      }
       fn_componer_codigo_variante: {
         Args: { p_base: string; p_color_id: string; p_talla: string }
+        Returns: string
+      }
+      fn_familia_color_de_universal: {
+        Args: { p_valor_id: string }
+        Returns: string
+      }
+      fn_familia_de_universal: {
+        Args: { p_categoria_id: string }
         Returns: string
       }
       fn_reservar_numero_serie: {
@@ -2446,6 +2591,7 @@ export type Database = {
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
+      importar_catalogo: { Args: { p_catalogo: Json }; Returns: Json }
       mi_sede: { Args: never; Returns: string }
       persona_actual: {
         Args: never

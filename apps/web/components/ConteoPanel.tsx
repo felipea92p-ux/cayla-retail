@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { traducirError, esFalloDeRed } from "@/lib/error-escritura";
+import { avisoDeRed } from "@/lib/sin-red";
 import { AltaEnConteo, type ModeloRecordado } from "@/components/AltaEnConteo";
 import type {
   CatalogoParaConteo,
@@ -43,6 +44,13 @@ type Props = {
   catalogo: CatalogoParaConteo;
   categorias: CategoriaElegible[];
   colores: ColorElegible[];
+  /**
+   * Cuándo armó el servidor esta pantalla. Sin red, el service worker sirve la ÚLTIMA
+   * versión que se cargó con internet — con su catálogo y con este timestamp — así que esto
+   * es la edad REAL de la foto contra la que se está contando, no la hora actual. Es el dato
+   * que convierte "datos viejos en silencio" en "datos viejos, y de cuándo". Ver ADR-0032.
+   */
+  generadoEn: string;
 };
 
 /** Cola de reintento. NO es local-first (eso es ADR-0018): es la red floja de la tienda. */
@@ -56,7 +64,7 @@ const clave = (t: string) =>
     .replace(/[̀-ͯ]/g, "")
     .trim();
 
-export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: Props) {
+export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, generadoEn }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   // Sobrevive a cada alta porque vive acá: `AltaEnConteo` se monta y se desmonta con
@@ -73,6 +81,20 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   const [guardando, setGuardando] = useState(false);
   const [abriendo, setAbriendo] = useState(false);
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
+  // Arranca en `true` a propósito: en el servidor no hay `navigator`, y empezar en `false`
+  // pintaría "sin internet" durante el primer render de CADA carga, incluidas las buenas.
+  // El efecto de montaje corrige enseguida si de verdad no hay red.
+  const [enLinea, setEnLinea] = useState(true);
+  // Lo pone el service worker cuando sirve esta pantalla desde la caché (ADR-0032). Es la
+  // única señal que no miente: con el servidor caído y el wifi vivo, `navigator.onLine`
+  // sigue diciendo `true` — comprobado apagando el servidor en la prueba.
+  const [desdeCache, setDesdeCache] = useState(false);
+  // Evita que el reintento automático se dispare encima de sí mismo: la cola cambia cuando
+  // termina, y sin este candado ese cambio volvería a disparar el efecto.
+  const reintentando = useRef(false);
+  // Corregir una cantidad ya contada. Ver el comentario del botón, abajo.
+  const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null);
+  const [correccion, setCorreccion] = useState("");
 
   const buscador = useRef<HTMLInputElement>(null);
   const campoCantidad = useRef<HTMLInputElement>(null);
@@ -151,14 +173,26 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
 
       setGuardando(false);
 
+      if (err && !esFalloDeRed(err)) {
+        // El servidor SE ENTERÓ y dijo no (conteo cerrado, sin permiso, cantidad inválida).
+        // Repetirlo daría el mismo no: se muestra y no se encola. La versión anterior encolaba
+        // cualquier error, y con el reintento automático eso habría sido un rechazo
+        // repitiéndose cada 30 segundos para siempre.
+        setError(traducirError(err, "guardar lo contado"));
+        return;
+      }
+
       if (err) {
-        // No se pierde el trabajo: va a la cola y la persona sigue contando.
+        // Fallo de RED: el servidor no se enteró. El trabajo va a la cola y, para quien
+        // cuenta, esto se comporta igual que un guardado normal — la línea aparece, el
+        // buscador vuelve a tomar foco, la pistola sigue. El aviso de arriba ya dice cuántas
+        // están pendientes; poner además un error rojo que diga «no se guardó nada» debajo
+        // de un aviso que dice «está guardada en este equipo» era exactamente lo que pasaba,
+        // y son dos frases que se contradicen sobre la misma prenda. — ADR-0032
         guardarPendientes([
           ...pendientes,
           { varianteId: variante.varianteId, cantidad: cuantas, referencia: variante.referencia },
         ]);
-        setError(traducirError(err, "guardar lo contado"));
-        return;
       }
 
       setLineas((previas) => {
@@ -193,10 +227,49 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
     [conteo, supabase, pendientes, guardarPendientes, enfocarBuscador]
   );
 
-  async function reintentar() {
-    if (!conteo || pendientes.length === 0) return;
+  /**
+   * Fijar la cantidad de una prenda ya contada, en vez de sumarle.
+   *
+   * Es el único lugar que usa `p_modo: 'fijar'`. Contar SUMA a propósito —cada disparo
+   * de la pistola es una prenda que levantaste de la pila—, pero eso deja sin arreglo
+   * el 40 tecleado donde iban 4. La RPC ya sabía fijar desde el principio (ADR-0027);
+   * lo que faltaba era exponerlo.
+   *
+   * `cantidad_sistema` NO se toca: sigue siendo lo que el sistema decía en el primer
+   * escaneo. Corregir el dedo gordo de alguien no reescribe el instante que la línea
+   * afirma.
+   */
+  async function corregir(linea: LineaContada, nueva: number) {
+    if (!conteo) return;
+    setGuardando(true);
+    setError(null);
+
+    const { error: err } = await supabase.rpc("conteo_contar", {
+      p_conteo_id: conteo.id,
+      p_variante_id: linea.varianteId,
+      p_cantidad: nueva,
+      p_modo: "fijar",
+    });
+
+    setGuardando(false);
+    if (err) {
+      setError(traducirError(err, "corregir la cantidad"));
+      return;
+    }
+
+    setLineas((previas) =>
+      previas.map((l) => (l.varianteId === linea.varianteId ? { ...l, contada: nueva } : l))
+    );
+    setCorrigiendoId(null);
+    enfocarBuscador();
+  }
+
+  const reintentar = useCallback(async () => {
+    if (!conteo || pendientes.length === 0 || reintentando.current) return;
+    reintentando.current = true;
     setGuardando(true);
     const quedan: Pendiente[] = [];
+    let rechazo: string | null = null;
     for (const p of pendientes) {
       const { error: err } = await supabase.rpc("conteo_contar", {
         p_conteo_id: conteo.id,
@@ -204,15 +277,123 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         p_cantidad: p.cantidad,
         p_modo: "sumar",
       });
-      if (err) quedan.push(p);
+      if (err) {
+        quedan.push(p);
+        // Si el servidor contestó y dijo no, la persona tiene que enterarse de POR QUÉ: un
+        // reintento silencioso cada 30 s no lo va a arreglar. Se queda en la cola igual —
+        // borrarla sería perder el conteo— pero con el motivo a la vista.
+        if (!esFalloDeRed(err)) rechazo = `${p.referencia}: ${traducirError(err, "guardar lo contado")}`;
+      }
     }
     setGuardando(false);
+    reintentando.current = false;
     guardarPendientes(quedan);
+    if (rechazo) setError(rechazo);
     if (quedan.length === 0) {
       setError(null);
+      // El servidor acaba de contestar: si esta pantalla había salido de la caché, ese dato
+      // describe cómo LLEGÓ, no cómo está ahora. Sin esto el aviso rojo seguiría en pantalla
+      // con la cola ya vacía y la conexión de vuelta.
+      setDesdeCache(false);
       router.refresh(); // Una sola vez, al final: acá sí conviene releer del servidor.
     }
-  }
+  }, [conteo, pendientes, supabase, guardarPendientes, router]);
+
+  // ---------- la red que va y viene ----------
+  // El censo dura días con la red de la tienda: la conexión se cae y vuelve sola muchas
+  // veces. Antes la cola solo se vaciaba si alguien se acordaba de apretar «Reintentar»;
+  // una persona escaneando 500 prendas no está mirando ese botón.
+  useEffect(() => {
+    const alCambiar = () => setEnLinea(navigator.onLine);
+    alCambiar();
+    window.addEventListener("online", alCambiar);
+    window.addEventListener("offline", alCambiar);
+    return () => {
+      window.removeEventListener("online", alCambiar);
+      window.removeEventListener("offline", alCambiar);
+    };
+  }, []);
+
+  // La marca que dejó el worker. Se lee una vez, al montar: describe CÓMO llegó este
+  // documento, y eso ya no cambia mientras la pestaña siga viva. `caches` no existe en
+  // contextos no seguros ni en navegadores viejos, así que el `catch` deja el aviso apagado
+  // en vez de romper la pantalla del censo.
+  useEffect(() => {
+    let vigente = true;
+    void (async () => {
+      try {
+        const marca = await caches.match("/__cayla/servido-desde-cache");
+        if (vigente && marca) setDesdeCache(true);
+      } catch {
+        /* sin Cache API: se cae al comportamiento de antes, que es `navigator.onLine` solo. */
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  // `navigator.onLine` dice "hay una interfaz de red", no "el servidor contesta" — un wifi
+  // de tienda conectado a un router sin salida da `true`. Por eso el reintento no confía en
+  // el evento: intenta, y si vuelve a fallar la cola se queda como estaba y se reintentará
+  // en el próximo `online`. El costo de un intento de más es una petición; el de uno de
+  // menos es una prenda contada que nunca sube.
+  useEffect(() => {
+    if (!enLinea || pendientes.length === 0) return;
+    // Sincronizar con un sistema externo (el servidor) cuando una condición del mundo cambia
+    // es para lo que existe `useEffect`. La alternativa —reintentar solo desde el evento
+    // `online`— se ve más limpia y pierde el caso que más importa: abrir la pantalla con una
+    // cola que quedó de ayer en este equipo. Ahí no hay transición que escuchar, porque la
+    // red nunca se fue: llegó antes que nadie.
+    void reintentar();
+  }, [enLinea, pendientes.length, reintentar]);
+
+  // El latido. Cubre el caso que ningún evento cubre: el equipo tiene wifi todo el tiempo
+  // (así que `online` nunca se dispara) y el servidor estuvo caído un rato. Sin esto, la
+  // cola quedaría quieta hasta que alguien escaneara otra prenda o recargara — y la
+  // pantalla le dice que NO cierre la pestaña. Cuesta una llamada cada 30 s, y solo
+  // mientras haya algo pendiente.
+  useEffect(() => {
+    if (pendientes.length === 0) return;
+    const id = window.setInterval(() => void reintentar(), 30_000);
+    return () => window.clearInterval(id);
+  }, [pendientes.length, reintentar]);
+
+  // El texto que la Encargada lee sobre la red. La lógica vive en `lib/sin-red.ts` para
+  // poder fijarla por prueba: es lo único de todo el service worker que ella llega a ver.
+  const aviso = avisoDeRed({ enLinea, desdeCache, pendientes: pendientes.length, generadoEn });
+  const sinConexion = !enLinea || desdeCache;
+
+  // El aviso se arma una vez y se usa en las DOS ramas del render. La primera versión vivía
+  // solo en la del conteo abierto, y la prueba con el servidor apagado lo destapó: la pantalla
+  // volvía a abrir —que era el objetivo— pero callada. Y la rama SIN conteo abierto es donde
+  // más falta hace, porque el único botón que ofrece necesita servidor.
+  const nodoAviso = aviso ? (
+    <div
+      className={`card-cayla flex flex-wrap items-center justify-between gap-3 p-4 ${
+        aviso.tono === "sin-red" ? "border-rojo/40" : "border-ambar/50"
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="label-cayla text-[11px] text-tinta">{aviso.titulo}</p>
+        <p className="mt-1 text-sm text-tinta/80">{aviso.detalle}</p>
+      </div>
+      {/* El botón queda, aunque el reintento ahora sea automático: `navigator.onLine` puede
+          decir que hay red cuando el router no tiene salida, y en ese caso la única señal de
+          que volvió es que alguien lo pruebe. Se esconde solo sin red de verdad (`enLinea`
+          en false) — NO por la marca de caché, que describe cómo llegó la pantalla y se
+          queda pegada mientras viva la pestaña: ahí el botón es justo lo que hace falta. */}
+      {enLinea && pendientes.length > 0 && (
+        <button
+          onClick={() => void reintentar()}
+          disabled={guardando}
+          className="label-cayla shrink-0 rounded-md border border-ambar px-4 py-2 text-[11px] text-ambar disabled:opacity-60"
+        >
+          Reintentar ahora
+        </button>
+      )}
+    </div>
+  ) : null;
 
   // ---------- buscar / escanear ----------
   function resolver(e: React.FormEvent) {
@@ -272,7 +453,9 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
   // ---------- sin conteo abierto ----------
   if (!conteo) {
     return (
-      <div className="card-cayla space-y-4 p-6">
+      <div className="space-y-4">
+        {nodoAviso}
+        <div className="card-cayla space-y-4 p-6">
         <div>
           <h2 className="font-display text-xl text-tinta">No hay un conteo abierto en {persona.sedeCodigo}</h2>
           <p className="mt-2 max-w-prose text-sm text-tinta/70">
@@ -283,11 +466,22 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         {error && <p className="text-sm text-rojo">{error}</p>}
         <button
           onClick={abrirConteo}
-          disabled={abriendo}
+          disabled={abriendo || sinConexion}
           className="label-cayla rounded-md bg-rojo px-5 py-3 text-[11px] text-crema transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {abriendo ? "Abriendo…" : "Abrir conteo del piso"}
         </button>
+        {/* ABRIR un conteo sí necesita servidor: crea la fila contra la que se cuenta después.
+            Ofrecer el botón sin conexión sería prometer algo que va a fallar. Contar, en
+            cambio, sigue funcionando — pero solo sobre un conteo que ya estaba abierto. */}
+        {sinConexion && (
+          <p className="text-sm text-tinta/70">
+            Abrir un conteo necesita conexión — es lo único de esta pantalla que no se puede
+            hacer sin ella. Si ya había uno abierto, se puede seguir contando: recarga cuando
+            vuelva la señal.
+          </p>
+        )}
+        </div>
       </div>
     );
   }
@@ -316,21 +510,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
         )}
       </div>
 
-      {pendientes.length > 0 && (
-        <div className="card-cayla flex flex-wrap items-center justify-between gap-3 border-ambar/50 p-4">
-          <p className="text-sm text-tinta/80">
-            {pendientes.length} {pendientes.length === 1 ? "prenda contada" : "prendas contadas"} sin guardar —
-            el internet falló. No se perdió nada.
-          </p>
-          <button
-            onClick={reintentar}
-            disabled={guardando}
-            className="label-cayla rounded-md border border-ambar px-4 py-2 text-[11px] text-ambar disabled:opacity-60"
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      {nodoAviso}
 
       {/* ---------- el buscador: la pistola teclea acá y manda Enter ---------- */}
       <form onSubmit={resolver} className="card-cayla p-4">
@@ -472,6 +652,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
           <p className="label-cayla px-2 pb-2 text-[11px] text-tinta/65">Ya contadas</p>
           {lineas.map((l) => {
             const dif = l.contada - l.sistema;
+            const corrigiendo = corrigiendoId === l.varianteId;
             return (
               <div key={l.varianteId} className="flex items-baseline justify-between gap-3 px-2 py-2.5">
                 <div className="min-w-0">
@@ -480,15 +661,67 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores }: 
                     {[l.talla, l.color].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-display text-lg text-tinta">{l.contada}</p>
-                  {dif !== 0 && (
-                    <p className={`text-xs ${dif > 0 ? "text-verde" : "text-rojo"}`}>
-                      antes {l.sistema} · {dif > 0 ? "+" : ""}
-                      {dif}
+
+                {corrigiendo ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const n = Number(correccion);
+                      if (!Number.isFinite(n) || n < 0) return;
+                      void corregir(l, n);
+                    }}
+                    className="flex shrink-0 items-center gap-1.5"
+                  >
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={correccion}
+                      onChange={(e) => setCorreccion(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-14 border-b-2 border-rojo bg-transparent pb-0.5 text-right font-display text-lg text-tinta outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={guardando}
+                      className="label-cayla rounded bg-rojo px-2.5 py-1.5 text-[10px] text-crema disabled:opacity-60"
+                    >
+                      Fijar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCorrigiendoId(null)}
+                      className="label-cayla px-1 text-[10px] text-tinta/60"
+                    >
+                      No
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCorrigiendoId(l.varianteId);
+                      setCorreccion(String(l.contada));
+                    }}
+                    className="shrink-0 text-right"
+                    // Sin esto, un 40 tecleado donde iban 4 no tiene arreglo desde la
+                    // pantalla: contar solo SUMA. En un censo de cientos de prendas el
+                    // error de tecleo es seguro, y mandar a la Encargada a buscar a la
+                    // Líder por su propio dedo gordo es la clase de fricción que hace
+                    // que el sistema se abandone (principio 10).
+                    title="Tocar para corregir la cantidad"
+                  >
+                    <p className="font-display text-lg text-tinta underline decoration-tinta/20 decoration-dotted underline-offset-4">
+                      {l.contada}
                     </p>
-                  )}
-                </div>
+                    {dif !== 0 && (
+                      <p className={`text-xs ${dif > 0 ? "text-verde" : "text-rojo"}`}>
+                        antes {l.sistema} · {dif > 0 ? "+" : ""}
+                        {dif}
+                      </p>
+                    )}
+                  </button>
+                )}
               </div>
             );
           })}

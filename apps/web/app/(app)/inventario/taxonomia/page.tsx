@@ -65,17 +65,13 @@ export default async function TaxonomiaPage() {
             {coloresUniv.length} colores disponibles. La versión está fijada: no cambia sola.
           </p>
 
-          {persona.rol !== "lider" && (
-            <p className="card-cayla p-4 text-xs text-tinta/65">
-              Solo una Líder puede cambiar el anclaje del vocabulario. Puedes mirarlo, no editarlo.
-            </p>
-          )}
 
           <AnclarVocabulario
             que="colores"
             titulo="Colores"
             terminos={coloresPropios.map((c) => ({ ...c.termino, ancladoA: c.ancladoA }))}
             universales={coloresUniv}
+            puedeEditar={persona.rol === "lider"}
           />
 
           <AnclarVocabulario
@@ -83,6 +79,7 @@ export default async function TaxonomiaPage() {
             titulo="Categorías"
             terminos={categoriasPropias.map((c) => ({ ...c.termino, ancladoA: c.ancladoA }))}
             universales={categoriasUniv}
+            puedeEditar={persona.rol === "lider"}
           />
         </>
       )}
