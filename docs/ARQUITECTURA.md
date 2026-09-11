@@ -126,11 +126,12 @@ flowchart TB
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` →
-  `CajaPanel.tsx` → `AbrirCajaModal` (RPC `abrir_caja`),
-  `RegistrarVentaModal` (RPC `registrar_venta`), `CerrarCajaModal` (RPC
-  `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
-  servidor).
+- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` +
+  `codigos_barras` (tolerada) → `CajaPanel.tsx` → `AbrirCajaModal` (RPC
+  `abrir_caja`), `RegistrarVentaModal` (RPC `registrar_venta`; reconoce lo
+  escaneado con `lib/buscar-prenda.ts`: `codigos_barras` → código corto → SKU,
+  la misma resolución que el conteo), `CerrarCajaModal` (RPC `cerrar_caja`,
+  con conteo ciego: el monto esperado se calcula en el servidor).
 
 **Producción (Taller)**
 - `/produccion` → `OrdenesProduccion.tsx` → RPCs `registrar_produccion`,

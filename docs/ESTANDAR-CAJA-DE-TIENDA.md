@@ -311,7 +311,7 @@ de Felipe.
 
 | # | Mecanismo | De quién | Por qué importa un sábado a las 7 pm | Dónde aterriza | Hoy |
 |:-:|---|---|---|---|:-:|
-| 1 | **La caja lee la etiqueta que ella misma imprime** (código corto y código de fábrica) | Shopify (muestra el código que coincidió), Square (GTIN), Bsale («productos creados con el código asociado») | Escanear es el gesto que el equipo ya aprendió. Si la etiqueta nueva no entra, la Encargada teclea el SKU largo o desiste | `vender/page.tsx:78-86` no pasa `codigo` (aunque `VarianteConStock.codigo` existe, `lib/catalogo.ts:12`); `RegistrarVentaModal.tsx:83,160` compara solo `sku`. El conteo sí resuelve por `codigos_barras` (`lib/conteo.ts:194-206`) y la etiqueta imprime `codigo ?? sku` (`EtiquetasGenerator.tsx:24-25`) | ❌ **defecto** |
+| 1 | **La caja lee la etiqueta que ella misma imprime** (código corto y código de fábrica) | Shopify (muestra el código que coincidió), Square (GTIN), Bsale («productos creados con el código asociado») | Escanear es el gesto que el equipo ya aprendió. Si la etiqueta nueva no entra, la Encargada teclea el SKU largo o desiste | **Hecho el 2026-09-11, el mismo día del hallazgo.** Era un defecto: `vender/page.tsx` no pasaba `codigo` y `RegistrarVentaModal.tsx` comparaba solo `sku`, mientras la etiqueta imprime `codigo ?? sku` y el conteo resuelve por `codigos_barras`. Ahora la lógica vive en `lib/buscar-prenda.ts` (con prueba): `codigos_barras` → código corto → SKU, y la fila muestra el código que va en la etiqueta. Verificado en navegador con el catálogo de prueba: código corto, EAN de fábrica y SKU viejo entran; una venta real quedó en `ventas`/`movimientos` | ✅ |
 | 2 | **Vuelto automático + pago dividido** | Shopify (teclado inline), Square, Loyverse (pago combinado), Bsale (vuelto) | «S/150: 100 por Yape y 50 en efectivo» es la venta más común con clienta joven. Hoy se registra como un solo método y el cierre descuadra | `ventas.metodo_pago` único (`0007:30`); `<select>` único (`RegistrarVentaModal.tsx:360-371`); `grep vuelto` → 0. Pago dividido → `venta_pagos` (o `ventas.pagos jsonb` con `check` suma = total), `registrar_venta`, `cerrar_caja` | ❌ · esquema |
 | 3 | **Descuento con motivo y permiso** | Loyverse (recibo o artículo), Bsale («si autorizado»), Alegra | Hoy el precio unitario se edita a mano (`:328-336`) sin rastro: el margen se pierde en silencio y nadie sabe si fue promoción, error o favor | `ventas` sin columna de descuento (`0007:26-35`); `grep descuento` en `supabase/` → solo «descuento de stock». Descuento + motivo en la línea (`movimientos`) o en la venta; permiso: Encargada hasta X %, Líder sin tope | ❌ · esquema + decisión de negocio |
 | 4 | **Clienta y tipo de comprobante EN la venta** | Bsale, INVY, Alegra | La clienta pide boleta al pagar, no en otra pestaña que solo abre la Líder | `ConsultaDocumento.tsx` solo en `ComprobantesPanel`/`ProformasPanel`; `emitir_comprobante` ya admite `p_venta_id` y `p_items` (`0037:40-51`); `comprobantes.venta_id` nunca se llena desde la app | ❌ (esquema listo) · decisión de UX (`BACKLOG.md:447`) |
@@ -374,17 +374,19 @@ idioma CAYLA en los tres modales (`lib/error-escritura.ts`).
 
 ## 5. Orden sugerido para recolectar
 
-De menor a mayor superficie tocada, y el defecto primero. Ninguno se construye en esta sesión:
-es el menú para que Felipe elija. Cada uno dice qué se gana, qué se paga y cómo se verifica.
+De menor a mayor superficie tocada, y el defecto primero. El 1 se hizo el mismo día; del 2 en
+adelante es el menú para que Felipe elija. Cada uno dice qué se gana, qué se paga y cómo se
+verifica.
 
-1. **La caja lee la etiqueta** (mecanismo 1). Solo `apps/web`: pasar `codigo` en
-   `vender/page.tsx:78-86`, cargar `codigos_barras` como hace `lib/conteo.ts:194-206`, y que
-   `alTeclado` (`RegistrarVentaModal.tsx:155-165`) resuelva por código corto, código de fábrica y
-   SKU, en ese orden. Sin SQL.
-   *Ganas:* el censo etiquetado vende desde el primer día; la Zebra sirve en la caja igual que en
-   el conteo. *Pagas:* nada. ~1 hora.
-   *Cómo verificas tú:* imprimes una etiqueta desde Inventario, la escaneas en Vender → entra al
-   carrito. Escaneas el código de fábrica de una prenda adoptada en el censo → también.
+1. **La caja lee la etiqueta** (mecanismo 1). **Hecho el 2026-09-11** — solo `apps/web`, sin
+   SQL: `lib/buscar-prenda.ts` resuelve por `codigos_barras` → código corto → SKU (10 pruebas),
+   `vender/page.tsx` carga `codigos_barras` tolerando su fallo, y el modal muestra el código de
+   la etiqueta en cada fila. De paso se arregló que el aviso «quedan N» del tope de stock nunca
+   se mostraba (el tope se calculaba dentro del updater de `setCarrito`).
+   *Verificado en navegador:* `BLU-0001-BLA-L` (corto), `7750243001234` (EAN de fábrica) y
+   `prb-blu-lima-bla-m` (SKU viejo, en minúsculas) entraron al carrito; la venta quedó en
+   `ventas` y `movimientos` y el stock bajó. **Lo que falta es tuyo:** escanear una etiqueta
+   impresa con la Zebra real en una tienda.
 
 2. **Nota, vuelto y desglose por método en el cierre** (mecanismos 11, 2-a, 6-a). Solo `apps/web`:
    `p_nota` ya existe; el vuelto es «monto recibido − total», en pantalla, sin guardarlo; el

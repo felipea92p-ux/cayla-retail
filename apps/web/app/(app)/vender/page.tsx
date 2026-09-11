@@ -67,16 +67,27 @@ export default async function VenderPage() {
   );
 }
 
-/** La caja y el buscador de prendas. El catálogo es lo más pesado de la pantalla. */
+/**
+ * La caja y el buscador de prendas. El catálogo es lo más pesado de la pantalla.
+ *
+ * `codigos_barras` viaja aparte y se tolera: es lo que hace que un código de fábrica o
+ * un SKU viejo resuelvan al escanear (0047), pero si no llega, el código corto y el SKU de
+ * cada variante siguen resolviendo solos (`lib/buscar-prenda.ts`) — la caja no se queda
+ * sin vender por una tabla secundaria.
+ */
 async function Caja() {
   const persona = await requirePersonaActual(); // memorizado por request: no cuesta viaje nuevo
-  const [variantes, cajaAbierta] = await Promise.all([
+  const supabase = await createClient();
+  const [variantes, cajaAbierta, resCodigos] = await Promise.all([
     getCatalogoConStock(persona),
     getCajaAbierta(persona.sedeId),
+    supabase.from("codigos_barras").select("codigo, variante_id"),
   ]);
+  const codigos = tolerar(resCodigos, "los códigos de barras");
 
   const variantesParaVenta = variantes.map((v) => ({
     varianteId: v.varianteId,
+    codigo: v.codigo,
     sku: v.sku,
     referencia: v.referencia,
     talla: v.talla,
@@ -85,13 +96,24 @@ async function Caja() {
     stockAqui: v.stockPorSede[persona.sedeCodigo] ?? 0,
   }));
 
+  const porCodigoBarras: Record<string, string> = {};
+  for (const c of codigos.datos ?? []) porCodigoBarras[c.codigo] = c.variante_id;
+
   return (
-    <CajaPanel
-      sedeId={persona.sedeId}
-      sedeCodigo={persona.sedeCodigo}
-      cajaAbierta={cajaAbierta}
-      variantes={variantesParaVenta}
-    />
+    <>
+      {codigos.fallo && (
+        <p className="text-sm text-ambar-profundo">
+          {codigos.fallo} Las etiquetas con código corto y las viejas se leen igual; las de fábrica, por ahora, no.
+        </p>
+      )}
+      <CajaPanel
+        sedeId={persona.sedeId}
+        sedeCodigo={persona.sedeCodigo}
+        cajaAbierta={cajaAbierta}
+        variantes={variantesParaVenta}
+        porCodigoBarras={porCodigoBarras}
+      />
+    </>
   );
 }
 

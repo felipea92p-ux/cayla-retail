@@ -725,16 +725,31 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **La caja no lee la etiqueta que ella misma imprime.** Encontrado el 2026-09-11 al
+- [x] **CERRADO 2026-09-11, el mismo día — la caja ya lee la etiqueta que ella misma imprime.**
+      `lib/buscar-prenda.ts` (pieza pura, 10 pruebas) resuelve un escaneo por `codigos_barras`
+      → código corto → SKU, como hace el conteo; `vender/page.tsx` carga `codigos_barras`
+      tolerando su fallo (si no llega, el código corto y el SKU resuelven solos); el modal
+      muestra en cada fila el código que va en la etiqueta. **Verificado en navegador** con el
+      catálogo de prueba (`seed-pruebas/catalogo-de-prueba.sql`, aplicado con
+      `request.jwt.claims` del Líder del seed porque `recalcular_stock` tiene candado): entraron
+      `BLU-0001-BLA-L` (corto), `7750243001234` (EAN de fábrica registrado en local) y
+      `prb-blu-lima-bla-m` (SKU viejo, en minúsculas); la venta quedó en `ventas` (S/178, con
+      token) y `movimientos`, y el stock de AQP bajó 2→1 y 1→0 — o sea que **«vender por la app
+      en navegador» también queda probado** (estaba pendiente desde el 10-09).
+      **De paso, un segundo defecto en el mismo flujo:** el aviso «En AQP quedan N…» del tope de
+      stock nunca se mostraba — `tope` se calculaba dentro del updater de `setCarrito`, que
+      React corre al renderizar, después de que `setAviso` ya decidió con `tope` en falso.
+      Ahora se decide contra el carrito del render actual. Visto y arreglado en la misma prueba.
+      **Lo que falta es de Felipe:** escanear una etiqueta impresa con la Zebra real.
+      Texto original abajo:
+      **La caja no lee la etiqueta que ella misma imprime.** Encontrado el 2026-09-11 al
       mapear la caja para el estándar (`docs/ESTANDAR-CAJA-DE-TIENDA.md`, mecanismo 1). La
       etiqueta imprime el código corto (`codigo ?? sku`, `EtiquetasGenerator.tsx:24-25`) y el
       conteo resuelve por `codigos_barras` (`lib/conteo.ts:194-206`), pero el buscador de
       venta compara **solo `sku`** (`RegistrarVentaModal.tsx:83,160`) y `vender/page.tsx:78-86`
       ni le pasa `codigo` aunque `VarianteConStock.codigo` existe. Cualquier prenda etiquetada
       después del censo, o adoptada con su código de fábrica, **no entra al escanearla en
-      Vender** — la Zebra sirve en el conteo y no en la caja. Arreglo solo en `apps/web`, sin
-      SQL: pasar `codigo`, cargar `codigos_barras`, y resolver el Enter por código corto →
-      código de fábrica → SKU. Se verifica escaneando una etiqueta impresa.
+      Vender** — la Zebra sirve en el conteo y no en la caja.
 - [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
       sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
       se verificó lo principal: la cola sube sola al volver la red (la prenda encolada

@@ -5,15 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import { filtrarPrendas, resolverCodigo, type PrendaBuscable } from "@/lib/buscar-prenda";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
-type VarianteBusqueda = {
-  varianteId: string;
-  sku: string;
-  referencia: string;
-  talla: string | null;
-  color: string | null;
+type VarianteBusqueda = PrendaBuscable & {
   precio: number | null;
   stockAqui: number;
 };
@@ -21,6 +17,7 @@ type VarianteBusqueda = {
 type ItemCarrito = {
   varianteId: string;
   referencia: string;
+  codigo: string | null; // lo que dice la etiqueta; el sku es el respaldo
   sku: string;
   cantidad: number;
   monto: number; // precio unitario
@@ -31,6 +28,8 @@ type Props = {
   sedeCodigo: string;
   cajaId: string;
   variantes: VarianteBusqueda[];
+  /** `codigos_barras` aplanada: código impreso o de fábrica → variante. Vacía si no llegó. */
+  porCodigoBarras: Record<string, string>;
   onClose: () => void;
 };
 
@@ -43,7 +42,7 @@ const ETIQUETA_METODO: Record<MetodoPago, string> = {
 
 const MAX_RESULTADOS = 6;
 
-export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: Props) {
+export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, porCodigoBarras, onClose }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [activo, setActivo] = useState(0);
@@ -75,14 +74,11 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
    */
   const token = useRef<string | null>(null);
 
-  const term = q.trim().toLowerCase();
+  const term = q.trim();
 
-  const resultados = useMemo(() => {
-    if (!term) return [];
-    return variantes
-      .filter((v) => `${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""}`.toLowerCase().includes(term))
-      .slice(0, MAX_RESULTADOS);
-  }, [variantes, term]);
+  // La lógica de reconocer una prenda vive en `lib/buscar-prenda.ts`, con prueba: es lo
+  // que decide si una etiqueta escaneada entra o no, y ahí no se puede adivinar.
+  const resultados = useMemo(() => filtrarPrendas(q, variantes, MAX_RESULTADOS), [variantes, q]);
 
   function agregar(v: VarianteBusqueda) {
     // Sin stock en esta sede no se agrega. La RPC lo rechazaría igual por el
@@ -92,28 +88,34 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
       setAviso(`${v.referencia} no tiene stock en ${sedeCodigo}. Búscala en Inventario para ver dónde está.`);
       return;
     }
-    let tope = false;
-    setCarrito((actual) => {
-      const existente = actual.find((it) => it.varianteId === v.varianteId);
-      if (!existente) {
-        return [
-          ...actual,
-          {
-            varianteId: v.varianteId,
-            referencia: v.referencia,
-            sku: v.sku,
-            cantidad: 1,
-            monto: v.precio ?? 0,
-            stockAqui: v.stockAqui,
-          },
-        ];
-      }
-      if (existente.cantidad >= v.stockAqui) {
-        tope = true;
-        return actual;
-      }
-      return actual.map((it) => (it.varianteId === v.varianteId ? { ...it, cantidad: it.cantidad + 1 } : it));
-    });
+    // El tope se decide contra el carrito de ESTE render, no adentro del updater de
+    // `setCarrito`: React puede correr ese updater recién al renderizar, y para entonces
+    // el aviso ya se había decidido con el tope en falso — así "quedan N" no se veía nunca
+    // y la Encargada escaneaba sin saber por qué la prenda no entraba (visto el 2026-09-11).
+    const existente = carrito.find((it) => it.varianteId === v.varianteId);
+    const tope = existente !== undefined && existente.cantidad >= v.stockAqui;
+    if (!tope) {
+      setCarrito((actual) => {
+        const ya = actual.find((it) => it.varianteId === v.varianteId);
+        if (!ya) {
+          return [
+            ...actual,
+            {
+              varianteId: v.varianteId,
+              referencia: v.referencia,
+              codigo: v.codigo,
+              sku: v.sku,
+              cantidad: 1,
+              monto: v.precio ?? 0,
+              stockAqui: v.stockAqui,
+            },
+          ];
+        }
+        // Dos escaneos antes de un render: el updater vuelve a mirar el tope por su cuenta.
+        if (ya.cantidad >= v.stockAqui) return actual;
+        return actual.map((it) => (it.varianteId === v.varianteId ? { ...it, cantidad: it.cantidad + 1 } : it));
+      });
+    }
     setAviso(tope ? `En ${sedeCodigo} quedan ${v.stockAqui} de ${v.referencia}. No puedes vender más.` : null);
     setQ("");
     setActivo(0);
@@ -156,8 +158,9 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
     if (e.key === "Enter") {
       e.preventDefault();
       if (!term) return;
-      // Un escaneo trae el SKU exacto: ahí no hay nada que elegir de la lista.
-      const exacta = variantes.find((v) => v.sku.toLowerCase() === term);
+      // Un escaneo trae un código completo —el corto de la etiqueta, el de fábrica o el
+      // SKU viejo—: ahí no hay nada que elegir de la lista.
+      const exacta = resolverCodigo(q, variantes, porCodigoBarras);
       if (exacta) return agregar(exacta);
       if (resultados.length > 0) return agregar(resultados[Math.min(activo, resultados.length - 1)]);
       setAviso(`No encontramos «${q.trim()}» en ${sedeCodigo}. Revisa la etiqueta o búscala en Inventario.`);
@@ -262,7 +265,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
                 setAviso(null);
               }}
               onKeyDown={alTeclado}
-              placeholder="Referencia, SKU, talla, color…"
+              placeholder="Código de la etiqueta, referencia, talla, color…"
               role="combobox"
               aria-expanded={resultados.length > 0}
               aria-controls="venta-resultados"
@@ -289,7 +292,9 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
                     >
                       <span>
                         {v.referencia}{" "}
-                        <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                        <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
+                        {/* El código que va en la etiqueta: así la Encargada confirma que es ESA prenda. */}
+                        <span className="font-mono text-xs text-tinta/65">{v.codigo ?? v.sku}</span>
                       </span>
                       <span className={`text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/65"}`}>
                         {v.stockAqui <= 0 ? `sin stock en ${sedeCodigo}` : `stock ${v.stockAqui}`}
@@ -314,7 +319,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
                 <div key={it.varianteId} className="card-cayla flex items-center gap-2 p-2 text-sm">
                   <div className="flex-1">
                     <p className="font-medium text-tinta">{it.referencia}</p>
-                    <p className="font-mono text-xs text-tinta/65">{it.sku}</p>
+                    <p className="font-mono text-xs text-tinta/65">{it.codigo ?? it.sku}</p>
                   </div>
                   <input
                     type="number"

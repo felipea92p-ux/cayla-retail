@@ -17,9 +17,15 @@ ya tiene tres cosas que ninguno de los 5 tiene (el reintento que no cobra dos ve
 venta sin red que bloquea la última unidad, SUNAT sin peaje por documento).
 
 **El hallazgo salió del mapa, no de la comparación:** la etiqueta imprime el código corto y
-el conteo lo resuelve por `codigos_barras`, pero la caja busca solo por `sku`. Una prenda
-etiquetada después del censo no entra al escanearla en Vender. Va a ARREGLAR, primero del
-menú, sin SQL.
+el conteo lo resuelve por `codigos_barras`, pero la caja buscaba solo por `sku`. Una prenda
+etiquetada después del censo no entraba al escanearla en Vender. Felipe pidió arreglarlo en
+la misma sesión: la lógica de reconocer una prenda salió del componente a
+`lib/buscar-prenda.ts` (pura, con prueba) y resuelve como el conteo — `codigos_barras` →
+código corto → SKU. Verificado en navegador con el catálogo de prueba: entraron el código
+corto, un EAN de fábrica y el SKU viejo en minúsculas, y la venta quedó en `ventas` y
+`movimientos` con el stock descontado. **La prueba destapó un segundo defecto:** el aviso
+«quedan N» del tope de stock nunca se mostraba, porque el tope se calculaba dentro del updater
+de `setCarrito` y React lo corre después de que el aviso ya se decidió. Arreglado ahí mismo.
 
 Lo que Felipe se lleva: **un puntaje sin su porqué no se puede copiar** — la columna dice
 «5» y no dice qué hace Shopify para merecerlo; recién con la documentación en la mano

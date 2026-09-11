@@ -7,6 +7,7 @@ import { CerrarCajaModal } from "@/components/CerrarCajaModal";
 
 type VarianteBusqueda = {
   varianteId: string;
+  codigo: string | null;
   sku: string;
   referencia: string;
   talla: string | null;
@@ -22,9 +23,10 @@ type Props = {
   sedeCodigo: string;
   cajaAbierta: CajaAbierta | null;
   variantes: VarianteBusqueda[];
+  porCodigoBarras: Record<string, string>;
 };
 
-export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props) {
+export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes, porCodigoBarras }: Props) {
   const [modal, setModal] = useState<"abrir" | "vender" | "cerrar" | null>(null);
 
   if (!cajaAbierta) {
@@ -73,6 +75,7 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
           sedeCodigo={sedeCodigo}
           cajaId={cajaAbierta.id}
           variantes={variantes}
+          porCodigoBarras={porCodigoBarras}
           onClose={() => setModal(null)}
         />
       )}
