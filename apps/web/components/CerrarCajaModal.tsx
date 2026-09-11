@@ -67,7 +67,7 @@ export function CerrarCajaModal({ cajaId, sedeCodigo, efectivoEncoladoSinSubir, 
           {efectivoEncoladoSinSubir > 0 && (
             <div className="card-cayla border-ambar/50 bg-ambar/10 p-3 text-xs leading-relaxed text-ambar-profundo">
               Hay {money(efectivoEncoladoSinSubir)} en efectivo de ventas guardadas sin conexión que todavía no
-              subieron — el sistema no las está contando en "esperado" todavía, aunque ese efectivo sí esté en el
+              subieron — el sistema no las está contando en «esperado» todavía, aunque ese efectivo sí esté en el
               cajón. Vas a ver un sobrante hasta que suban solas; no es un error de cuadre. Puedes cerrar igual.
             </div>
           )}

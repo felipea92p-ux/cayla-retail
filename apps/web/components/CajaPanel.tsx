@@ -51,7 +51,17 @@ const LATIDO_MS = 30_000;
 export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props) {
   const router = useRouter();
   const [modal, setModal] = useState<"abrir" | "vender" | "cerrar" | null>(null);
+  // La sede que describe `cola` ahora mismo. Si `sedeCodigo` cambia (la Encargada cambia de
+  // sede sin que este componente se desmonte), se ajusta ACÁ, durante el render — no en un
+  // `useEffect` con un `setState` síncrono al inicio, que React desaconseja porque encadena
+  // un render extra evitable (react-hooks/set-state-in-effect). El patrón "ajustar estado
+  // durante el render" es el que React mismo recomienda para esto.
+  const [sedeDeLaCola, setSedeDeLaCola] = useState(sedeCodigo);
   const [cola, setCola] = useState<VentaEncolada[]>(() => obtenerColaSede(sedeCodigo));
+  if (sedeCodigo !== sedeDeLaCola) {
+    setSedeDeLaCola(sedeCodigo);
+    setCola(obtenerColaSede(sedeCodigo));
+  }
   const [sinConexion, setSinConexion] = useState(false);
   const [rechazos, setRechazos] = useState<Record<string, string>>({});
   // El token que está mostrando su confirmación de "Descartar" — nunca se descarta con un
@@ -63,7 +73,6 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
 
   useEffect(() => {
     vigente.current = true;
-    setCola(obtenerColaSede(sedeCodigo));
 
     async function sincronizar() {
       const enLinea = await hayConexionAlServidor();
@@ -142,7 +151,8 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
     quitarDeCola(token);
     setCola(obtenerColaSede(sedeCodigo));
     setRechazos((actual) => {
-      const { [token]: _descartada, ...resto } = actual;
+      const resto = { ...actual };
+      delete resto[token];
       return resto;
     });
     setConfirmandoDescarte(null);
