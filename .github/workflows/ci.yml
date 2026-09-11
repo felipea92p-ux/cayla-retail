@@ -1,4 +1,4 @@
-# CI — los tres verificadores que Vercel no corre.
+# CI — los verificadores que Vercel no corre: tipos, lint, pruebas, y la base desde cero.
 #
 # POR QUÉ EXISTE. Hasta el 2026-09-09 el único gate real de este repo era `pnpm build`, y
 # se corría cuando alguien se acordaba. `pnpm typecheck` existía pero devolvía verde sin
@@ -9,9 +9,16 @@
 # mismo lockfile, y `next.config.ts` no tiene `ignoreBuildErrors`. Repetirlo acá agrega
 # minutos y no agrega señal. Lo que Vercel NO corre —y por eso está acá— es lint y pruebas.
 #
-# LO QUE ESTE CI NO PUEDE DECIR. No toca base de datos: `migraciones:verificar` necesita el
-# Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint y las
-# 79 pruebas pasan", nunca "las migraciones están aplicadas" ni "la pantalla se ve bien".
+# POR QUÉ LEVANTA LA BASE (desde el 2026-09-11). Hasta ese día este CI no tocaba Postgres, y
+# un merge entró a main con dos migraciones numeradas `0054`: verde acá, y `npx supabase db
+# reset` muerto en local con `schema_migrations_pkey` — la contabilidad del propio CLI se
+# niega a aplicar dos archivos de la misma versión. Nadie lo vio hasta el primer `db reset`
+# a mano (PR #5). El job `migraciones` hace exactamente eso, en un Postgres recién nacido:
+# aplica `0001`→la última y corre `seed.sql`. Es el mismo comando que atrapó el problema.
+#
+# LO QUE ESTE CI NO PUEDE DECIR. Verde significa "el código tipa, pasa lint, las pruebas
+# pasan y las migraciones corren desde cero en local". Nunca "las migraciones están
+# aplicadas EN PRODUCCIÓN" (eso se pega a mano, ver CLAUDE.md) ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 
 name: CI
@@ -74,3 +81,51 @@ jobs:
       - name: Pruebas
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+  migraciones:
+    name: Migraciones desde cero
+    runs-on: ubuntu-latest
+    # Paralelo a `verificar`, a propósito: un lint roto no debería esconder que la base no
+    # levanta, ni al revés. Cada uno cuenta su propia verdad.
+    #
+    # Sin `pnpm install`: `scripts/migraciones/verificar.mjs` usa solo módulos `node:` y el
+    # CLI de Supabase llega como binario. El job se ahorra el minuto de dependencias.
+    #
+    # Docker es lo que tarda (bajar la imagen de Postgres 17). Si se cuelga, 15 minutos es
+    # mucho más de lo que un `db reset` sano necesita (~1 min) y mucho menos que las 6 horas
+    # que GitHub deja correr un job por defecto.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Misma versión que la máquina de Felipe (`npx supabase --version`). Si se sube acá,
+      # se sube allá: dos CLI distintos pueden aplicar la misma carpeta de formas distintas
+      # (imagen de Postgres, formato de `schema_migrations`), y el verde dejaría de
+      # significar "lo mismo que en local".
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.107.0
+
+      # Solo Postgres. `supabase start` levantaría además Auth, la API, Studio, Mailpit…;
+      # para aplicar migraciones sobra con el contenedor de la base — y `config.toml` ya
+      # apaga la mitad de esos servicios en local.
+      - name: Postgres desde cero
+        run: supabase db start
+
+      # El comando que atrapó el problema del 11-sep. Falla con cualquier migración rota Y
+      # con dos archivos de la misma versión (`schema_migrations_pkey`). Al final corre
+      # `supabase/seed.sql`, que mueve las tablas a `retail` como en producción.
+      - name: Aplicar 0001 → última, y el seed
+        run: supabase db reset
+
+      # Deriva: cada cuerpo de función que quedó en la base tiene un archivo del repo que
+      # lo explica. Hoy es INFORME, no gate: el script solo sale con error si no puede leer
+      # la base. Los archivos `0015`/`0027` ya salen marcados por deriva vieja (políticas de
+      # `storage.objects`, una función borrada después) y no van a dejar de estarlo — para
+      # convertirlo en gate hace falta un modo estricto que sepa ignorarlos. Está en BACKLOG.
+      - name: Qué promete cada archivo
+        run: node scripts/migraciones/verificar.mjs

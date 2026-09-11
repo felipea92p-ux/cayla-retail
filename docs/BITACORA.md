@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (el CI levanta la base: el verde ahora dice lo que hoy faltó que dijera)
+
+Cierre del hallazgo de la mañana: se agregó el job `migraciones` a `.github/workflows/ci.yml`
+— Postgres 17 desde cero, `supabase db reset` de `0001` a la última con `seed.sql`, y el
+verificador como informe. Sin `pnpm install` (el script usa solo `node:`) y con el CLI
+fijado en `2.107.0`, la versión de la máquina de Felipe. Se descartó meter el CLI como
+devDependency: pnpm 11 bloquea su postinstall salvo lista blanca, y Vercel bajaría un
+binario de 40 MB en cada deploy para nada. La cabecera del workflow cambió de significado:
+verde ya incluye "las migraciones corren desde cero en local"; sigue sin incluir "están
+aplicadas en producción" ni "la pantalla se ve bien".
+
+Lo que Felipe se lleva: **un gate vale por lo que declara que NO revisa, y el de hoy
+declaraba en su cabecera exactamente el agujero por donde entró el `main` roto.** Leer
+esa cabecera ayer habría dicho dónde iba a fallar. Y la de método: el gate correcto es el
+comando que un humano habría corrido para descubrir el problema — no una versión "más
+liviana" que lo aproxima.
+
 ## 2026-09-11 (`main` verde en CI y roto en local: dos sesiones, el mismo problema, y nadie eligió)
 
 Dos sesiones resolvieron la idempotencia de `registrar_venta` el mismo día, cada una en
