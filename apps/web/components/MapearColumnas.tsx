@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { Boton, Desplegable } from "@/components/ui/campos";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CAMPOS, planPorCabeceras, type Campo, type PlanDeMapeo, type FilaEstandar } from "@/lib/importacion/mapeo";
 
 /**
@@ -189,9 +191,7 @@ export function MapearColumnas({
                   </span>
 
                   {talla ? (
-                    <span className="label-cayla inline-flex w-fit items-center rounded-full border border-verde/45 bg-verde/10 px-3 py-1 text-[11px] text-verde-profundo">
-                      Talla {talla.talla}
-                    </span>
+                    <Badge variant="verde">Talla {talla.talla}</Badge>
                   ) : (
                     <Desplegable
                       valor={c.campo}
@@ -213,28 +213,28 @@ export function MapearColumnas({
           <div className="border-t border-sand pt-4">
             <p className="label-cayla mb-2 text-[11px] text-tinta/65">Así quedan las primeras</p>
             <div className="scroll-cayla overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="label-cayla text-[10px] text-tinta/65">
+              <Table className="text-left text-xs">
+                <TableHeader>
+                  <TableRow className="label-cayla text-[10px] text-tinta/65 hover:bg-transparent">
                     {["Prenda", "Talla", "Color", "Costo", "Precio"].map((h) => (
-                      <th key={h} className="pb-2 pr-4 font-semibold">
+                      <TableHead key={h} className="pb-2 pr-4 font-semibold">
                         {h}
-                      </th>
+                      </TableHead>
                     ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tinta/5">
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-tinta/5">
                   {r.variantes.slice(0, 8).map((v, i) => (
-                    <tr key={i} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                      <td className="py-2 pr-4 text-tinta">{v.referencia}</td>
-                      <td className="py-2 pr-4 text-tinta">{v.talla || "—"}</td>
-                      <td className="py-2 pr-4 text-tinta">{v.color || "—"}</td>
-                      <td className="py-2 pr-4 tabular-nums text-tinta/65">{v.costo ? v.costo.toFixed(2) : "—"}</td>
-                      <td className="py-2 pr-4 tabular-nums text-tinta">{v.precio ? v.precio.toFixed(2) : "—"}</td>
-                    </tr>
+                    <TableRow key={i} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
+                      <TableCell className="py-2 pr-4 text-tinta">{v.referencia}</TableCell>
+                      <TableCell className="py-2 pr-4 text-tinta">{v.talla || "—"}</TableCell>
+                      <TableCell className="py-2 pr-4 text-tinta">{v.color || "—"}</TableCell>
+                      <TableCell className="py-2 pr-4 tabular-nums text-tinta/65">{v.costo ? v.costo.toFixed(2) : "—"}</TableCell>
+                      <TableCell className="py-2 pr-4 tabular-nums text-tinta">{v.precio ? v.precio.toFixed(2) : "—"}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
 

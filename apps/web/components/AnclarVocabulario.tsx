@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Boton } from "@/components/ui/campos";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { etiquetaCorta, hojasRepetidas } from "@/lib/taxonomia/anclar";
 
 /**
@@ -171,9 +173,9 @@ export function AnclarVocabulario({
               <>
                 {" "}
                 ·{" "}
-                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[10px] text-verde-profundo">
+                <Badge variant="verde" className="px-2.5 py-0.5 text-[10px]">
                   completo
-                </span>
+                </Badge>
               </>
             )}
           </p>
@@ -200,21 +202,21 @@ export function AnclarVocabulario({
       {propuestas ? (
         <div className="anim-entrada mt-5 space-y-5">
           <div className="scroll-cayla overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="label-cayla text-[10px] text-tinta/65">
-                  <th className="pb-2 pr-4 font-semibold">De la marca</th>
-                  <th className="pb-2 pr-4 font-semibold">Cuelga de</th>
-                  <th className="pb-2 font-semibold">Por qué</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader>
+                <TableRow className="label-cayla text-[10px] text-tinta/65 hover:bg-transparent">
+                  <TableHead className="pb-2 pr-4 font-semibold">De la marca</TableHead>
+                  <TableHead className="pb-2 pr-4 font-semibold">Cuelga de</TableHead>
+                  <TableHead className="pb-2 font-semibold">Por qué</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {propuestas.map((p) => {
                   const dudosa = p.confianza === "baja" || !p.universalId;
                   return (
-                    <tr key={p.clave} className="align-top transition-colors duration-150 hover:bg-tinta/[0.025]">
-                      <td className="py-2.5 pr-4 text-sm text-tinta">{p.nombrePropio}</td>
-                      <td className="py-2.5 pr-4">
+                    <TableRow key={p.clave} className="align-top transition-colors duration-150 hover:bg-tinta/[0.025]">
+                      <TableCell className="py-2.5 pr-4 text-sm text-tinta">{p.nombrePropio}</TableCell>
+                      <TableCell className="py-2.5 pr-4">
                         {/* Un input con datalist y no el Desplegable propio: son
                             1.804 categorías, y un menú de 1.804 filas no es un
                             menú. Escribir para filtrar es lo correcto acá. */}
@@ -238,15 +240,15 @@ export function AnclarVocabulario({
                             }`}
                           />
                         </div>
-                      </td>
-                      <td className={`py-2.5 text-xs ${dudosa ? "text-ambar-profundo" : "text-tinta/65"}`}>
+                      </TableCell>
+                      <TableCell className={`py-2.5 text-xs ${dudosa ? "text-ambar-profundo" : "text-tinta/65"}`}>
                         {p.universalId ? p.porque : "Ninguno calzó — elígelo tú o déjalo sin anclar."}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Una sola lista para toda la tabla: repetirla por fila serían 1.804

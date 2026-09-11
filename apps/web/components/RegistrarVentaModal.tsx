@@ -2,12 +2,14 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Command as CommandPrimitive } from "cmdk";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { encolarVenta, pasaElUmbralDeSobra } from "@/lib/ventas-offline";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 
 type VarianteBusqueda = {
   varianteId: string;
@@ -51,7 +53,10 @@ const MAX_RESULTADOS = 6;
 export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion, onVentaEncolada, onClose }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [activo, setActivo] = useState(0);
+  /** El varianteId resaltado dentro de `resultados`. cmdk lo mueve solo con las
+      flechas y lo reasienta al primer resultado cuando la lista cambia; acá
+      solo se LEE para saber a quién agrega un Enter sin match exacto. */
+  const [resaltado, setResaltado] = useState("");
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +126,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
     });
     setAviso(tope ? `En ${sedeCodigo} quedan ${v.stockAqui} de ${v.referencia}. No puedes vender más.` : null);
     setQ("");
-    setActivo(0);
+    setResaltado("");
     // Devolver el foco al buscador es lo que permite escanear una prenda tras otra sin
     // tocar el mouse: la pistola dispara el siguiente código sobre el campo correcto.
     buscador.current?.focus();
@@ -154,39 +159,43 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
    * quitarle a este campo la capacidad de enviar el formulario: vender es un acto aparte,
    * con su propio botón.
    *
-   * Las flechas y el Escape se levantan de `Desplegable` (ui/campos.tsx), no se inventan: es
-   * el mismo teclado del selector de sede y del panel "+ Nuevo" (ADR-0019).
+   * Las flechas las mueve `cmdk` solo (Command de abajo, `shouldFilter={false}`): resalta el
+   * primer resultado cuando la lista cambia y las sube/baja sin que este handler intervenga.
+   * Enter y Escape SÍ se interceptan acá, ANTES de que cmdk los vea (`stopPropagation`) — cmdk
+   * dispararía su propio `onSelect` sobre lo resaltado, que no sabe nada de "SKU exacto
+   * primero" ni puede evitar que Escape suba hasta el Modal y lo cierre entero.
    */
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
+      e.stopPropagation();
       if (!term) return;
       // Un escaneo trae el SKU exacto: ahí no hay nada que elegir de la lista.
       const exacta = variantes.find((v) => v.sku.toLowerCase() === term);
       if (exacta) return agregar(exacta);
-      if (resultados.length > 0) return agregar(resultados[Math.min(activo, resultados.length - 1)]);
+      if (resultados.length > 0) {
+        const elegida = resultados.find((v) => v.varianteId === resaltado) ?? resultados[0];
+        return agregar(elegida);
+      }
       setAviso(`No encontramos «${q.trim()}» en ${sedeCodigo}. Revisa la etiqueta o búscala en Inventario.`);
       return;
     }
-    if (e.key === "ArrowDown" && resultados.length > 0) {
-      e.preventDefault();
-      setActivo((i) => (i + 1) % resultados.length);
-      return;
-    }
-    if (e.key === "ArrowUp" && resultados.length > 0) {
-      e.preventDefault();
-      setActivo((i) => (i - 1 + resultados.length) % resultados.length);
-      return;
-    }
-    if (e.key === "Escape" && q !== "") {
-      // Con texto escrito, Escape limpia la búsqueda. Sin él sube hasta Radix y cierra el
-      // modal entero, que es lo correcto solo cuando no queda nada que limpiar.
-      e.preventDefault();
-      e.stopPropagation();
-      setQ("");
-      setActivo(0);
-      setAviso(null);
-    }
+  }
+
+  /**
+   * Radix escucha Escape con un listener de CAPTURA sobre `document`
+   * (`@radix-ui/react-use-escape-keydown`) — corre ANTES de que cualquier
+   * `onKeyDown` normal (fase de burbuja, como `alTeclado` de arriba) llegue a
+   * ejecutarse. `preventDefault()` ahí siempre llega tarde para frenarlo. La
+   * única forma real de evitar que Escape cierre el modal es el propio gancho
+   * que Radix expone para esto: `onEscapeKeyDown` en `Dialog.Content`.
+   */
+  function alEscapeDelModal(e: KeyboardEvent) {
+    if (q === "") return; // nada que limpiar: que cierre el modal, como siempre.
+    e.preventDefault();
+    setQ("");
+    setResaltado("");
+    setAviso(null);
   }
 
   const total = carrito.reduce((acc, it) => acc + it.cantidad * it.monto, 0);
@@ -259,6 +268,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
       titulo={ok ? "Venta registrada" : "Registrar venta"}
       subtitulo={`Sede ${sedeCodigo}`}
       onClose={onClose}
+      onEscapeKeyDown={alEscapeDelModal}
     >
       {ok ? (
         <div className="space-y-5">
@@ -296,60 +306,51 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, sinConexion
             <label className={campoEtiqueta} htmlFor="venta-buscar">
               Escanea la etiqueta o busca la prenda
             </label>
-            <input
-              id="venta-buscar"
-              ref={buscador}
-              autoFocus
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setActivo(0);
-                setAviso(null);
-              }}
-              onKeyDown={alTeclado}
-              placeholder="Referencia, SKU, talla, color…"
-              role="combobox"
-              aria-expanded={resultados.length > 0}
-              aria-controls="venta-resultados"
-              aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-              aria-autocomplete="list"
-              className={campoTexto}
-            />
-            {resultados.length > 0 && (
-              <ul
-                id="venta-resultados"
-                role="listbox"
-                aria-label="Prendas encontradas"
-                className="card-cayla divide-y divide-sand"
-              >
-                {resultados.map((v, i) => (
-                  <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo}>
-                    <button
-                      type="button"
-                      onMouseEnter={() => setActivo(i)}
-                      onClick={() => agregar(v)}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                        i === activo ? "bg-sand" : ""
-                      }`}
-                    >
-                      <span>
-                        {v.referencia}{" "}
-                        <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
-                      </span>
-                      <span className={`text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/65"}`}>
-                        {v.stockAqui <= 0 ? `sin stock en ${sedeCodigo}` : `stock ${v.stockAqui}`}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {/* Un buscador que no encuentra y no dice nada enseña a desconfiar de él. */}
-            {term !== "" && resultados.length === 0 && (
-              <p className="card-cayla px-3 py-3 text-sm text-tinta/70">
-                No encontramos «{q.trim()}» en {sedeCodigo}. Revisa la etiqueta o búscala en Inventario.
-              </p>
-            )}
+            {/* shouldFilter=false: el filtro ya lo hace `resultados` (useMemo de arriba),
+                cmdk solo pone el teclado (resaltar/mover) y el click encima. */}
+            <Command shouldFilter={false} value={resaltado} onValueChange={setResaltado} className="overflow-visible bg-transparent">
+              <CommandPrimitive.Input
+                id="venta-buscar"
+                ref={buscador}
+                autoFocus
+                value={q}
+                onValueChange={(v) => {
+                  setQ(v);
+                  setAviso(null);
+                }}
+                onKeyDown={alTeclado}
+                placeholder="Referencia, SKU, talla, color…"
+                className={campoTexto}
+              />
+              {resultados.length > 0 && (
+                <CommandList className="card-cayla mt-1.5 max-h-none divide-y divide-sand overflow-x-visible overflow-y-visible">
+                  <CommandGroup aria-label="Prendas encontradas" className="p-0">
+                    {resultados.map((v) => (
+                      <CommandItem
+                        key={v.varianteId}
+                        value={v.varianteId}
+                        onSelect={() => agregar(v)}
+                        className="flex items-center justify-between rounded-none px-3 py-2 text-left text-sm data-[selected=true]:bg-sand"
+                      >
+                        <span>
+                          {v.referencia}{" "}
+                          <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                        </span>
+                        <span className={`text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/65"}`}>
+                          {v.stockAqui <= 0 ? `sin stock en ${sedeCodigo}` : `stock ${v.stockAqui}`}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              )}
+              {/* Un buscador que no encuentra y no dice nada enseña a desconfiar de él. */}
+              {term !== "" && resultados.length === 0 && (
+                <p className="card-cayla mt-1.5 px-3 py-3 text-sm text-tinta/70">
+                  No encontramos «{q.trim()}» en {sedeCodigo}. Revisa la etiqueta o búscala en Inventario.
+                </p>
+              )}
+            </Command>
             {aviso && <p className="text-sm text-ambar-profundo">{aviso}</p>}
           </div>
 

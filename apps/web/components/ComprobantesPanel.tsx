@@ -7,6 +7,8 @@ import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/compr
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -18,12 +20,14 @@ const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
   nota_credito: "Nota de crédito",
 };
 
-const ESTADO_ESTILO: Record<Comprobante["estado"], string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
+type VarianteEstado = "verde" | "ambar" | "rojo" | "neutro";
+
+const VARIANTE_POR_ESTADO: Record<Comprobante["estado"], VarianteEstado> = {
+  pendiente: "ambar",
+  enviado: "ambar",
+  aceptado: "verde",
+  rechazado: "rojo",
+  anulado: "neutro",
 };
 
 const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
@@ -38,7 +42,7 @@ const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
 // su CDR y su PDF, exactamente igual que uno real — pero SUNAT nunca lo vio.
 // La pantalla lo dice con palabras y con borde punteado; el color no alcanza,
 // y el estado solo NO puede distinguirlos.
-const ESTILO_PRUEBA = "border-dashed border-tinta/30 bg-tinta/5 text-tinta/75";
+const CLASE_PRUEBA = "border-dashed border-tinta/30 bg-tinta/5 text-tinta/75";
 
 function esPrueba(c: Comprobante) {
   return c.entorno_transmision === "sandbox";
@@ -52,10 +56,10 @@ function etiquetaEstado(c: Comprobante) {
   const base = anulacionEnTramite(c) ? "Anulación en trámite" : ESTADO_ETIQUETA[c.estado];
   return esPrueba(c) ? `${base} · prueba` : base;
 }
-function estiloEstado(c: Comprobante) {
-  if (esPrueba(c)) return ESTILO_PRUEBA;
-  if (anulacionEnTramite(c)) return "border-ambar/30 bg-ambar/10 text-ambar-profundo";
-  return ESTADO_ESTILO[c.estado];
+function varianteEstado(c: Comprobante): VarianteEstado {
+  if (esPrueba(c)) return "neutro";
+  if (anulacionEnTramite(c)) return "ambar";
+  return VARIANTE_POR_ESTADO[c.estado];
 }
 
 function money(n: number) {
@@ -369,35 +373,35 @@ export function ComprobantesPanel({
         ) : (
           <div className="scroll-cayla card-cayla overflow-hidden">
             <div className="scroll-cayla overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Comprobante</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">SUNAT</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="min-w-[760px] text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Fecha</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Comprobante</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Cliente</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Total</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Estado</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">SUNAT</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {comprobantes.map((c) => {
                   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
                   const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
                   return (
-                    <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                      <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
+                    <TableRow key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
+                      <TableCell className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
                         {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
-                      </td>
-                      <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
-                      <td className="px-3 py-3">
-                        <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
+                      </TableCell>
+                      <TableCell className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</TableCell>
+                      <TableCell className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</TableCell>
+                      <TableCell className="px-3 py-3">
+                        <Badge variant={varianteEstado(c)} className={esPrueba(c) ? CLASE_PRUEBA : undefined}>
                           {etiquetaEstado(c)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-3 py-3">
                         {puedeTransmitir ? (
                           <Boton
                             type="button"
@@ -448,12 +452,12 @@ export function ComprobantesPanel({
                         {errorTransmision?.id === c.id && (
                           <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </div>
           </div>
         )}

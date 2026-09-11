@@ -9,6 +9,8 @@ import { FotoProducto } from "@/components/FotoProducto";
 import { MinimosPorSede } from "@/components/MinimosPorSede";
 import { RecetaCosto } from "@/components/RecetaCosto";
 import { Ayuda } from "@/components/Ayuda";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const ETIQUETA_TIPO: Record<string, string> = {
   entrada: "Entrada",
@@ -266,18 +268,13 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
             const contenedor = contenedorPorSedeCodigo.get(codigo);
             const bajoMinimo = v.sedesBajoMinimo.includes(codigo);
             return (
-              <span
-                key={codigo}
-                className={`rounded-full px-2.5 py-1 text-xs ${
-                  bajoMinimo ? "bg-red-50 text-red-700" : "bg-neutral-100 text-neutral-600"
-                }`}
-              >
+              <Badge key={codigo} variant={bajoMinimo ? "rojo" : "neutro"} className="px-2.5 py-1 text-xs normal-case tracking-normal">
                 {codigo} <b>{cantidad}</b>
                 {v.minimoPorSede[codigo] != null && (
-                  <span className={bajoMinimo ? "text-red-400" : "text-neutral-400"}> / mín {v.minimoPorSede[codigo]}</span>
+                  <span className={bajoMinimo ? "text-rojo-profundo/60" : "text-tinta/50"}> / mín {v.minimoPorSede[codigo]}</span>
                 )}
-                {contenedor && <span className="text-neutral-400"> · {contenedor}</span>}
-              </span>
+                {contenedor && <span className="text-tinta/50"> · {contenedor}</span>}
+              </Badge>
             );
           })}
         </div>
@@ -291,45 +288,45 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-neutral-900">Historial de movimientos</h2>
+        <h2 className="mb-2 text-sm font-semibold text-tinta">Historial de movimientos</h2>
         {!movimientos || movimientos.length === 0 ? (
           <p className="py-6 text-center text-sm italic text-tinta/65">
             Sin movimientos registrados. Cada entrada, salida o traslado de esta prenda va a aparecer
             acá; se registran desde Inventario.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-neutral-200 text-neutral-400">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Fecha</th>
-                  <th className="px-3 py-2 font-medium">Tipo</th>
-                  <th className="px-3 py-2 font-medium">Sede</th>
-                  <th className="px-3 py-2 font-medium">Cantidad</th>
-                  <th className="px-3 py-2 font-medium">Motivo</th>
-                  <th className="px-3 py-2 font-medium">Usuario</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-x-auto card-cayla">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-sand text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-3 py-2 font-medium">Fecha</TableHead>
+                  <TableHead className="px-3 py-2 font-medium">Tipo</TableHead>
+                  <TableHead className="px-3 py-2 font-medium">Sede</TableHead>
+                  <TableHead className="px-3 py-2 font-medium">Cantidad</TableHead>
+                  <TableHead className="px-3 py-2 font-medium">Motivo</TableHead>
+                  <TableHead className="px-3 py-2 font-medium">Usuario</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {movimientos.map((m) => (
-                  <tr key={m.id} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-3 py-2 text-neutral-600">{formatearFecha(m.created_at)}</td>
-                    <td className="px-3 py-2 text-neutral-900">{ETIQUETA_TIPO[m.tipo] ?? m.tipo}</td>
-                    <td className="px-3 py-2 text-neutral-600">
+                  <TableRow key={m.id} className="border-b border-tinta/10 last:border-0 hover:bg-transparent">
+                    <TableCell className="px-3 py-2 text-tinta/75">{formatearFecha(m.created_at)}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta">{ETIQUETA_TIPO[m.tipo] ?? m.tipo}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/75">
                       {sedePorId.get(m.sede_id) ?? "—"}
                       {m.tipo === "traslado" && m.sede_destino_id && ` → ${sedePorId.get(m.sede_destino_id) ?? "—"}`}
-                    </td>
-                    <td className="px-3 py-2 text-neutral-900">{m.cantidad}</td>
-                    <td className="px-3 py-2 text-neutral-600">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-tinta">{m.cantidad}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/75">
                       {m.tipo === "salida" ? ETIQUETA_MOTIVO[m.motivo ?? ""] ?? m.motivo : m.motivo || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-neutral-600">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/75">
                       {m.usuario_id ? nombrePorId.get(m.usuario_id) ?? "—" : "—"}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import { InventarioNav } from "@/components/InventarioNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { Ayuda } from "@/components/Ayuda";
 import { CerrarConteoPanel } from "@/components/CerrarConteoPanel";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /**
  * Revisar y cerrar un conteo — la aprobación.
@@ -132,44 +133,44 @@ async function Contenido() {
           </p>
         ) : (
           <div className="scroll-cayla overflow-x-auto card-cayla">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="label-cayla border-b border-tinta/15 text-[11px] text-tinta/65">
-                <tr>
-                  <th className="px-4 py-2.5">Prenda</th>
-                  <th className="px-4 py-2.5 text-right">Contadas</th>
-                  <th className="px-4 py-2.5 text-right">Sistema</th>
-                  <th className="px-4 py-2.5 text-right">Diferencia</th>
-                  <th className="px-4 py-2.5 text-right">Al costo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/10">
+            <Table className="min-w-[640px] text-left text-sm">
+              <TableHeader className="label-cayla border-b border-tinta/15 text-[11px] text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4 py-2.5">Prenda</TableHead>
+                  <TableHead className="px-4 py-2.5 text-right">Contadas</TableHead>
+                  <TableHead className="px-4 py-2.5 text-right">Sistema</TableHead>
+                  <TableHead className="px-4 py-2.5 text-right">Diferencia</TableHead>
+                  <TableHead className="px-4 py-2.5 text-right">Al costo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/10">
                 {conDiferencia.map((l) => (
-                  <tr key={l.varianteId}>
-                    <td className="px-4 py-2.5">
+                  <TableRow key={l.varianteId} className="hover:bg-transparent">
+                    <TableCell className="px-4 py-2.5">
                       <span className="text-tinta">{l.referencia}</span>{" "}
                       <span className="text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/")}</span>
                       {l.origen === "no_contado" && (
                         <span className="ml-2 text-xs text-ambar-profundo">nadie la contó</span>
                       )}
                       {l.codigo && <p className="font-mono text-xs text-tinta/65">{l.codigo}</p>}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-tinta/75">{l.contada}</td>
-                    <td className="px-4 py-2.5 text-right text-tinta/75">{l.sistema}</td>
-                    <td
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-right text-tinta/75">{l.contada}</TableCell>
+                    <TableCell className="px-4 py-2.5 text-right text-tinta/75">{l.sistema}</TableCell>
+                    <TableCell
                       className={`px-4 py-2.5 text-right font-medium ${
                         l.diferencia < 0 ? "text-rojo" : "text-verde-profundo"
                       }`}
                     >
                       {l.diferencia > 0 ? "+" : ""}
                       {l.diferencia}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-tinta/75">
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-right text-tinta/75">
                       {l.sinCosto ? <span className="text-xs text-ambar-profundo">sin costo</span> : money(l.soles)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

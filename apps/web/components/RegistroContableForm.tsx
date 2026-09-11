@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   EVENTOS,
   eventoPorId,
@@ -340,35 +341,35 @@ export function RegistroContableForm({ unidades, cuentas, defaultUnidadId }: Pro
               Ver el asiento contable (debe / haber)
               <span className="transition-transform group-open:rotate-90">›</span>
             </summary>
-            <table className="w-full text-left text-xs">
-              <thead className="text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-4 py-1.5 text-[10px] font-normal">Cuenta</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Debe</th>
-                  <th className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Haber</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader className="text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-4 py-1.5 text-[10px] font-normal">Cuenta</TableHead>
+                  <TableHead className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Debe</TableHead>
+                  <TableHead className="label-cayla px-4 py-1.5 text-right text-[10px] font-normal">Haber</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {lineas.map((l, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2 text-tinta/80">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-tinta/75">
+                  <TableRow key={i} className="hover:bg-transparent">
+                    <TableCell className="px-4 py-2 text-tinta/80">{nombreCuenta.get(l.cuenta) ?? l.cuenta}</TableCell>
+                    <TableCell className="px-4 py-2 text-right tabular-nums text-tinta/75">
                       {l.debe > 0 ? money(l.debe) : ""}
-                    </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-tinta/75">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-right tabular-nums text-tinta/75">
                       {l.haber > 0 ? money(l.haber) : ""}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-              <tfoot className="border-t border-tinta/10 text-tinta">
-                <tr>
-                  <td className="label-cayla px-4 py-2 text-right text-[10px] text-tinta/65">Total</td>
-                  <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalDebe)}</td>
-                  <td className="px-4 py-2 text-right font-display tabular-nums">{money(totalHaber)}</td>
-                </tr>
-              </tfoot>
-            </table>
+              </TableBody>
+              <TableFooter className="border-t border-tinta/10 bg-transparent text-tinta">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell className="label-cayla px-4 py-2 text-right text-[10px] text-tinta/65">Total</TableCell>
+                  <TableCell className="px-4 py-2 text-right font-display tabular-nums">{money(totalDebe)}</TableCell>
+                  <TableCell className="px-4 py-2 text-right font-display tabular-nums">{money(totalHaber)}</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </details>
         </div>
       )}

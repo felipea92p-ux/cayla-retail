@@ -3,6 +3,38 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (shadcn de verdad: tablas, badges, tooltip y el combobox de la pistola)
+
+Con el puente de tokens ya puesto, se migraron ~20 tablas crudas y ~9 pastillas de estado
+a `Table`/`Badge`, `Ayuda.tsx` a `Popover` (gana colisión de viewport, antes no la tenía),
+y el buscador de 5 pantallas a `Command`. De paso salieron dos bugs de marca reales (chips
+con `bg-red-50`/`neutral-*` en vez de tokens CAYLA) y se corrigieron.
+
+Lo que casi se rompe y no se rompió: `RegistrarVentaModal` y `ConteoPanel` tienen su Enter
+cableado para la pistola de código de barras (coincidencia exacta primero, nunca un
+submit). `cmdk` intercepta Enter para su propia selección — mismo problema que estos dos
+archivos ya resuelven a mano. Se le explicó el trade-off a Felipe, decidió migrar igual, y
+se ajustó cada uno a lo que necesitaba: `RegistrarVentaModal` con `onKeyDown` propio que
+intercepta Enter ANTES que `cmdk`; `ConteoPanel` sin tocar el input/form en absoluto (solo
+la lista de "varias coincidencias" pasó a `Command`). Probado con teclado real (tipear +
+Enter, igual que la pistola): coincidencia exacta, flechas, Enter sobre lo resaltado — los
+tres caminos funcionan.
+
+El hallazgo que no estaba en el plan: Escape con texto en el modal de venta debía limpiar
+la búsqueda sin cerrar, y el modal se cerraba igual pese a `preventDefault`+
+`stopPropagation`. Causa raíz medida en el código de Radix: escucha Escape con un listener
+de CAPTURA sobre `document`, que corre antes que cualquier `onKeyDown` de burbuja —
+`stopPropagation` después nunca pudo ganarle. Es un bug que YA EXISTÍA (el código viejo
+confiaba en el mismo mecanismo que nunca podía funcionar), arreglado con el gancho real de
+Radix (`onEscapeKeyDown` en `Dialog.Content`), agregado como prop opcional de `Modal.tsx`.
+
+Lo que Felipe se lleva: **un comentario que dice "esto evita que Escape cierre el modal"
+no es lo mismo que haberlo probado con un teclado** — la mecánica sonaba razonable y
+llevaba tiempo viva sin que nadie la ejercitara con el evento real. Y que antes de migrar
+un patrón de UI hecho a mano hay que leer el código, no solo el resumen de una auditoría:
+"buscador simple" y "buscador cableado para una pistola" se ven casi iguales hasta que se
+lee el `onKeyDown`.
+
 ## 2026-09-11 (shadcn entra sin gastar el rojo)
 
 Felipe pidió configurar shadcn/ui con los colores del sistema existente. Se dejó la base

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Boton } from "@/components/ui/campos";
+import { Badge } from "@/components/ui/badge";
 import type { PlanDeMapeo } from "@/lib/importacion/mapeo";
 import { etiquetaCorta } from "@/lib/taxonomia/anclar";
 
@@ -71,13 +72,11 @@ function Grupo({ titulo, campo }: { titulo: string; campo: Campo }) {
                 {v.apariciones} {v.apariciones === 1 ? "prenda" : "prendas"}
               </span>
               {v.propuesta?.universalNombre ? (
-                <span className="label-cayla inline-flex items-center rounded-full border border-sand bg-crema px-3 py-1 text-[11px] text-tinta/75">
+                <Badge variant="outline" className="text-tinta/75">
                   se agrupa bajo {etiquetaCorta(v.propuesta.universalNombre)}
-                </span>
+                </Badge>
               ) : (
-                <span className="label-cayla inline-flex items-center rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar-profundo">
-                  sin agrupar
-                </span>
+                <Badge variant="ambar">sin agrupar</Badge>
               )}
             </li>
           ))}
@@ -225,9 +224,7 @@ export function RevisarValores({
   if (importado && deshecha !== null) {
     return (
       <section className="anim-entrada card-cayla p-5">
-        <span className="label-cayla inline-flex items-center rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar-profundo">
-          Importación deshecha
-        </span>
+        <Badge variant="ambar">Importación deshecha</Badge>
         <p className="font-display mt-3 text-3xl text-tinta">
           {deshecha} <span className="text-lg text-tinta/65">{deshecha === 1 ? "prenda descontinuada" : "prendas descontinuadas"}</span>
         </p>
@@ -243,9 +240,7 @@ export function RevisarValores({
   if (importado) {
     return (
       <section className="anim-entrada card-cayla p-5">
-        <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-3 py-1 text-[11px] text-verde-profundo">
-          {importado.repetida ? "Ya estaba importado" : "Catálogo importado"}
-        </span>
+        <Badge variant="verde">{importado.repetida ? "Ya estaba importado" : "Catálogo importado"}</Badge>
         {importado.repetida && (
           <p className="mt-2 text-xs text-tinta/75">
             El intento anterior sí había entrado: esto es lo que ya está en el catálogo. No se importó dos veces.

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { exigir } from "@/lib/resultado";
 import { EsqueletoTabla } from "@/components/Esqueleto";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const CAT_NOMBRE: Record<string, string> = {
   "333": "Maquinaria y equipo",
@@ -92,47 +93,47 @@ async function Contenido() {
           </div>
 
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Bien</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Serie</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Categoría</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Desde</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Costo</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Desgaste</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Valor hoy</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Bien</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Serie</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Categoría</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Desde</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Costo</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Desgaste</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Valor hoy</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {activos.map((a, i) => {
                   const neto = Number(a.costo) - Number(a.depreciacion_apertura);
                   return (
-                    <tr key={i}>
-                      <td className="px-3 py-2.5 font-medium text-tinta">{a.nombre}</td>
-                      <td className="px-3 py-2.5 text-tinta/65">{a.serie ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-tinta/75">{CAT_NOMBRE[a.cuenta_codigo] ?? a.cuenta_codigo}</td>
-                      <td className="px-3 py-2.5 text-tinta/65">{fecha(a.fecha_adquisicion)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/75">{money(Number(a.costo))}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/65">
+                    <TableRow key={i} className="hover:bg-transparent">
+                      <TableCell className="px-3 py-2.5 font-medium text-tinta">{a.nombre}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/65">{a.serie ?? "—"}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/75">{CAT_NOMBRE[a.cuenta_codigo] ?? a.cuenta_codigo}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/65">{fecha(a.fecha_adquisicion)}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-right tabular-nums text-tinta/75">{money(Number(a.costo))}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-right tabular-nums text-tinta/65">
                         −{money(Number(a.depreciacion_apertura))}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-medium tabular-nums text-tinta">{money(neto)}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-right font-medium tabular-nums text-tinta">{money(neto)}</TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-              <tfoot className="border-t border-tinta/10 font-medium text-tinta">
-                <tr>
-                  <td className="label-cayla px-3 py-2.5 text-[11px] text-tinta/65" colSpan={4}>
+              </TableBody>
+              <TableFooter className="border-t border-tinta/10 bg-transparent font-medium text-tinta">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell className="label-cayla px-3 py-2.5 text-[11px] text-tinta/65" colSpan={4}>
                     Total
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{money(totalCosto)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-tinta/75">−{money(totalDep)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{money(totalNeto)}</td>
-                </tr>
-              </tfoot>
-            </table>
+                  </TableCell>
+                  <TableCell className="px-3 py-2.5 text-right tabular-nums">{money(totalCosto)}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-right tabular-nums text-tinta/75">−{money(totalDep)}</TableCell>
+                  <TableCell className="px-3 py-2.5 text-right tabular-nums">{money(totalNeto)}</TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </div>
 
           <p className="text-xs text-tinta/65">

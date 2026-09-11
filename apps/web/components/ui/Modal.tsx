@@ -16,13 +16,18 @@ type Props = {
   children: ReactNode | ((cerrar: () => void) => ReactNode);
   /** Ancho del panel en escritorio (Tailwind max-w-*). Por defecto el tamaño estándar de formulario corto. */
   ancho?: string;
+  /** Para un modal con su propio campo de búsqueda: llamar `e.preventDefault()`
+      acá es la ÚNICA forma real de que Escape NO cierre el modal (Radix lo
+      escucha con un listener de captura sobre `document`, que corre antes que
+      cualquier `onKeyDown` normal del formulario). */
+  onEscapeKeyDown?: (e: KeyboardEvent) => void;
 };
 
 // Cascarón único para todos los modales del sistema. Antes cada uno reimplementaba
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm" }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", onEscapeKeyDown }: Props) {
   const [cerrando, setCerrando] = useState(false);
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
@@ -50,6 +55,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             que el clic afuera siga llegando al velo para cerrar. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
           <Dialog.Content
+            onEscapeKeyDown={onEscapeKeyDown}
             className={`scroll-cayla pointer-events-auto max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand bg-crema p-6 shadow-xl outline-none sm:rounded-2xl ${
               cerrando ? "anim-salida" : "anim-entrada"
             } ${ancho}`}

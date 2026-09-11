@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Command as CommandPrimitive } from "cmdk";
 import { CodigoQR } from "@/components/CodigoQR";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 // `Codigo128` sigue en el repo, arreglado y verificado con la Zebra el 2026-09-09,
 // pero la etiqueta imprime QR: es lo que CAYLA ya usa, y no tiene el techo de 15
 // caracteres que dejaba afuera a una talla XXL. Leer sigue funcionando con ambos.
@@ -238,44 +240,58 @@ export function EtiquetasGenerator({
       {/* ---------- de a una: para reimprimir la que se despegó ---------- */}
       <div className="space-y-1.5">
         <label className="label-cayla text-[10px] text-tinta/70">O buscar una prenda</label>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Referencia, código, talla, color…"
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo"
-        />
-        {resultados.length > 0 && (
-          <div className="divide-y divide-tinta/5 card-cayla">
-            {resultados.map((v) => {
-              const hermanas = delModelo(v.productoId);
-              return (
-                <div key={v.varianteId} className="flex items-center gap-2 px-3 py-2 text-sm">
-                  <button onClick={() => agregarUna(v)} className="min-w-0 flex-1 text-left">
-                    <span className="text-tinta">
-                      {v.referencia}{" "}
-                      <span className="text-tinta/65">
-                        {[v.talla, v.color].filter(Boolean).join("/")}
-                      </span>
-                    </span>
-                    <span className="ml-2 font-mono text-[10px] text-tinta/65">
-                      {v.codigo ?? v.sku}
-                    </span>
-                  </button>
-                  {hermanas.length > 1 && (
-                    <button
-                      onClick={() =>
-                        agregarVarias(hermanas.map((h) => ({ variante: h, cantidad: cuantas(h) })))
-                      }
-                      className="label-cayla shrink-0 rounded border border-tinta/20 px-2 py-1 text-[9px] text-tinta/75 hover:border-rojo hover:text-rojo"
+        <Command shouldFilter={false} className="overflow-visible bg-transparent">
+          <CommandPrimitive.Input
+            value={q}
+            onValueChange={setQ}
+            placeholder="Referencia, código, talla, color…"
+            className="w-full border-b border-tinta/20 bg-transparent px-1 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo"
+          />
+          {resultados.length > 0 && (
+            <CommandList className="mt-1.5 max-h-none divide-y divide-tinta/5 card-cayla overflow-x-visible overflow-y-visible">
+              <CommandGroup className="p-0">
+                {resultados.map((v) => {
+                  const hermanas = delModelo(v.productoId);
+                  return (
+                    <CommandItem
+                      key={v.varianteId}
+                      value={v.varianteId}
+                      onSelect={() => agregarUna(v)}
+                      className="flex items-center gap-2 rounded-none px-3 py-2 text-sm data-[selected=true]:bg-sand/40"
                     >
-                      + el modelo ({hermanas.length})
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="text-tinta">
+                          {v.referencia}{" "}
+                          <span className="text-tinta/65">
+                            {[v.talla, v.color].filter(Boolean).join("/")}
+                          </span>
+                        </span>
+                        <span className="ml-2 font-mono text-[10px] text-tinta/65">
+                          {v.codigo ?? v.sku}
+                        </span>
+                      </span>
+                      {hermanas.length > 1 && (
+                        <button
+                          type="button"
+                          // Este botón vive DENTRO del CommandItem (dos acciones por fila,
+                          // no una): sin stopPropagation, el click también dispara el
+                          // onSelect del item y agrega la variante suelta de más.
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            agregarVarias(hermanas.map((h) => ({ variante: h, cantidad: cuantas(h) })));
+                          }}
+                          className="label-cayla shrink-0 rounded border border-tinta/20 px-2 py-1 text-[9px] text-tinta/75 hover:border-rojo hover:text-rojo"
+                        >
+                          + el modelo ({hermanas.length})
+                        </button>
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          )}
+        </Command>
       </div>
 
       {seleccion.length > 0 && (

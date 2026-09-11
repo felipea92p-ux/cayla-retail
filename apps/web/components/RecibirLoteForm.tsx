@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Command as CommandPrimitive } from "cmdk";
 import { createClient } from "@/lib/supabase/client";
 import { ORIGENES_LOTE, FAMILIAS, type OrigenLote, type Familia } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 
 type Contenedor = { id: string; codigo: string; tipo: string };
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
@@ -596,48 +598,50 @@ export function RecibirLoteForm({
 
         {/* Camino secundario: reingreso de algo que ya está en el catálogo. */}
         <div className="space-y-1.5">
-          <label className="text-xs text-neutral-500">
+          <label className="text-xs text-tinta/65">
             ¿Reingreso de algo que ya existe? Búscalo para no duplicarlo:
           </label>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Referencia, SKU, talla, color…"
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-          />
-          {q.trim() && (
-            <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200">
-              {resultadosVariantes.map((v) => (
-                <button
-                  type="button"
-                  key={v.varianteId}
-                  onClick={() => agregarExistente(v)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
-                >
-                  <span>
-                    {v.referencia} <span className="text-neutral-400">{[v.talla, v.color].filter(Boolean).join("/")}</span>
-                  </span>
-                  <span className="text-xs text-neutral-400">restock</span>
-                </button>
-              ))}
-              {resultadosProductos.map((p) => (
-                <button
-                  type="button"
-                  key={p.id}
-                  onClick={() => agregarNuevaVarianteDeProducto(p)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-neutral-50"
-                >
-                  <span>{p.referencia}</span>
-                  <span className="text-xs text-neutral-400">nueva talla/color</span>
-                </button>
-              ))}
-              {resultadosVariantes.length === 0 && resultadosProductos.length === 0 && (
-                <p className="px-3 py-2 text-xs text-neutral-400">
+          <Command shouldFilter={false} className="overflow-visible bg-transparent">
+            <CommandPrimitive.Input
+              value={q}
+              onValueChange={setQ}
+              placeholder="Referencia, SKU, talla, color…"
+              className="w-full rounded-lg border border-sand px-3 py-2 text-sm text-tinta outline-none focus:border-rojo"
+            />
+            {q.trim() && (
+              <CommandList className="mt-1.5 max-h-none divide-y divide-sand rounded-lg border border-sand overflow-x-visible overflow-y-visible">
+                <CommandGroup className="p-0">
+                  {resultadosVariantes.map((v) => (
+                    <CommandItem
+                      key={v.varianteId}
+                      value={`existente-${v.varianteId}`}
+                      onSelect={() => agregarExistente(v)}
+                      className="flex items-center justify-between rounded-none px-3 py-2 text-sm data-[selected=true]:bg-sand/40"
+                    >
+                      <span>
+                        {v.referencia} <span className="text-tinta/50">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                      </span>
+                      <span className="text-xs text-tinta/50">restock</span>
+                    </CommandItem>
+                  ))}
+                  {resultadosProductos.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={`producto-${p.id}`}
+                      onSelect={() => agregarNuevaVarianteDeProducto(p)}
+                      className="flex items-center justify-between rounded-none px-3 py-2 text-sm data-[selected=true]:bg-sand/40"
+                    >
+                      <span>{p.referencia}</span>
+                      <span className="text-xs text-tinta/50">nueva talla/color</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                <CommandEmpty className="px-3 py-2 text-left text-xs text-tinta/50">
                   No hay coincidencias. Si es mercadería nueva, usa &ldquo;+ Agregar prenda nueva&rdquo; arriba.
-                </p>
-              )}
-            </div>
-          )}
+                </CommandEmpty>
+              </CommandList>
+            )}
+          </Command>
         </div>
       </div>
 

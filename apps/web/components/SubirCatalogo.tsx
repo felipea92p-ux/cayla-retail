@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { MapearColumnas } from "./MapearColumnas";
 import { RevisarValores } from "./RevisarValores";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { PlanDeMapeo } from "@/lib/importacion/mapeo";
 
 /**
@@ -240,30 +241,30 @@ export function SubirCatalogo() {
           {/* Scrollea dentro de su caja: un catálogo de 12 columnas no debe
               empujar la pantalla entera hacia los lados. */}
           <div className="scroll-cayla mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="label-cayla text-[10px] text-tinta/65">
-                  <th className="pb-2 pr-2 font-semibold">#</th>
+            <Table className="text-left text-xs">
+              <TableHeader>
+                <TableRow className="label-cayla text-[10px] text-tinta/65 hover:bg-transparent">
+                  <TableHead className="pb-2 pr-2 font-semibold">#</TableHead>
                   {cabeceras.map((c, i) => (
-                    <th key={i} className="whitespace-nowrap pb-2 pr-4 font-semibold">
+                    <TableHead key={i} className="whitespace-nowrap pb-2 pr-4 font-semibold">
                       {c.trim() || <span className="normal-case italic tracking-normal text-tinta/35">sin título</span>}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {datos.slice(0, MAX_FILAS_VISIBLES).map((f, i) => (
-                  <tr key={i} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                    <td className="py-2 pr-2 tabular-nums text-tinta/35">{i + 1}</td>
+                  <TableRow key={i} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
+                    <TableCell className="py-2 pr-2 tabular-nums text-tinta/35">{i + 1}</TableCell>
                     {f.map((c, j) => (
-                      <td key={j} className="whitespace-nowrap py-2 pr-4 text-tinta">
+                      <TableCell key={j} className="whitespace-nowrap py-2 pr-4 text-tinta">
                         {c || <span className="text-tinta/25">—</span>}
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {datos.length > MAX_FILAS_VISIBLES && (

@@ -2,8 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Command as CommandPrimitive } from "cmdk";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 
 type ModeloOpcion = { id: string; referencia: string };
 export type OrdenLinea = { varianteId: string; talla: string | null; color: string | null; cantidad: number };
@@ -170,39 +174,39 @@ export function OrdenesProduccion({
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Modelo</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Entraron</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Costo real/prenda</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Precio tienda</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Semáforo</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Modelo</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Entraron</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Costo real/prenda</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Precio tienda</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Semáforo</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {terminadas.map((o) => {
                   const s = semaforo(o.precioTaller, o.costoUnitario);
                   const m = Math.round((o.precioTaller - o.costoUnitario) * 100) / 100;
                   return (
-                    <tr key={o.id}>
-                      <td className="px-3 py-2.5 font-medium text-tinta">
+                    <TableRow key={o.id} className="hover:bg-transparent">
+                      <TableCell className="px-3 py-2.5 font-medium text-tinta">
                         {o.modelo}
                         {o.material && <span className="ml-2 text-xs font-normal text-tinta/65">· {o.material}</span>}
                         {o.detalle && <span className="ml-2 text-xs font-normal text-tinta/65">{o.detalle}</span>}
                         {o.esMuestra && <span className="label-cayla ml-2 text-[10px] text-taupe-profundo">muestra</span>}
-                      </td>
-                      <td className="px-3 py-2.5 text-tinta/70">{o.esMuestra ? "—" : o.cantidad}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{money(o.costoUnitario)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{o.precioTaller > 0 ? money(o.precioTaller) : "—"}</td>
-                      <td className="px-3 py-2.5">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/70">{o.esMuestra ? "—" : o.cantidad}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{money(o.costoUnitario)}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-right tabular-nums text-tinta/80">{o.precioTaller > 0 ? money(o.precioTaller) : "—"}</TableCell>
+                      <TableCell className="px-3 py-2.5">
                         <span className="flex items-center gap-2">
                           <span className={`inline-block h-2.5 w-2.5 rounded-full ${s.dot}`} />
                           <span className="text-tinta/70">{o.precioTaller > 0 ? `${s.txt} · ${Math.round((m / o.precioTaller) * 100)}%` : s.txt}</span>
                         </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-right">
                         {o.esMuestra ? (
                           <span className="label-cayla text-[11px] text-taupe-profundo">muestra cerrada</span>
                         ) : (
@@ -217,12 +221,12 @@ export function OrdenesProduccion({
                             )}
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -262,9 +266,9 @@ function OrdenEnProceso({
           )}
           <p className="mt-0.5 text-xs text-tinta/65">{sub}</p>
         </div>
-        <span className="label-cayla shrink-0 rounded-full border border-ambar/30 bg-ambar/10 px-3 py-1 text-[11px] text-ambar">
+        <Badge variant="ambar" className="shrink-0">
           {orden.esMuestra ? "Muestra" : "En proceso"}
-        </span>
+        </Badge>
       </div>
 
       {/* Etapas — se adaptan al tipo de orden (muestra = desarrollo, producción = fabricación). */}
@@ -561,17 +565,25 @@ function NuevaOrdenForm({
                 <button type="button" onClick={() => setProductoId("")} className="label-cayla text-[11px] text-rojo">Cambiar</button>
               </div>
             ) : (
-              <>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre del modelo…" className={inputCls} />
+              <Command shouldFilter={false} className="overflow-visible bg-transparent">
+                <CommandPrimitive.Input value={q} onValueChange={setQ} placeholder="Nombre del modelo…" className={inputCls} />
                 {resultados.length > 0 && (
-                  <div className="divide-y divide-tinta/5 border border-tinta/10 bg-crema">
-                    {resultados.map((m) => (
-                      <button key={m.id} type="button" onClick={() => { setProductoId(m.id); setQ(""); }}
-                        className="block w-full px-3 py-2 text-left text-sm text-tinta hover:bg-sand/40">{m.referencia}</button>
-                    ))}
-                  </div>
+                  <CommandList className="mt-1.5 max-h-none divide-y divide-tinta/5 border border-tinta/10 bg-crema overflow-x-visible overflow-y-visible">
+                    <CommandGroup className="p-0">
+                      {resultados.map((m) => (
+                        <CommandItem
+                          key={m.id}
+                          value={m.id}
+                          onSelect={() => { setProductoId(m.id); setQ(""); }}
+                          className="block rounded-none px-3 py-2 text-left text-sm text-tinta data-[selected=true]:bg-sand/40"
+                        >
+                          {m.referencia}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
                 )}
-              </>
+              </Command>
             )}
           </div>
         )}

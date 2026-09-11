@@ -5,6 +5,7 @@ import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/sha
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
 import { CampoTexto } from "@/components/ui/campos";
+import { Badge } from "@/components/ui/badge";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -99,13 +100,9 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   }, [clave, validacion.valido]);
 
   const chip = (valor: string, bueno: boolean) => (
-    <span
-      className={`label-cayla rounded-full border px-2.5 py-0.5 text-[11px] ${
-        bueno ? "border-verde/45 bg-verde/10 text-verde-profundo" : "border-rojo/40 bg-rojo/10 text-rojo-profundo"
-      }`}
-    >
+    <Badge variant={bueno ? "verde" : "rojo"} className="px-2.5 py-0.5">
       {valor}
-    </span>
+    </Badge>
   );
 
   const datos = actual?.fase === "listo" ? actual.datos : null;

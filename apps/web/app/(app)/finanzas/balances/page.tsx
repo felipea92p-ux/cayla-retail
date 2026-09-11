@@ -7,6 +7,7 @@ import { mesActualLima } from "@/lib/finanzas-nucleo";
 import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { Ayuda } from "@/components/Ayuda";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -267,44 +268,44 @@ async function Estados({ anio, mes }: { anio: number; mes: number }) {
         </h2>
         <p className="mb-3 text-xs text-tinta/65">Cómo cambió lo que es tuyo durante {MESES[mes - 1]}.</p>
         <div className="overflow-x-auto card-cayla">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-tinta/10 text-tinta/65">
-              <tr>
-                <th className="label-cayla px-4 py-2 text-[11px]"></th>
-                <th className="label-cayla px-4 py-2 text-right text-[11px]">Capital</th>
-                <th className="label-cayla px-4 py-2 text-right text-[11px]">Utilidades</th>
-                <th className="label-cayla px-4 py-2 text-right text-[11px]">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-tinta/5">
-              <tr>
-                <td className="px-4 py-2.5 text-tinta/75">Saldo inicial</td>
-                <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.capitalInicial)}</td>
-                <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadesInicial)}</td>
-                <td className="px-4 py-2.5 text-right text-tinta">{money(e.cambiosPatrimonio.patrimonioInicial)}</td>
-              </tr>
+          <Table className="text-sm">
+            <TableHeader className="border-b border-tinta/10 text-tinta/65">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="label-cayla px-4 py-2 text-[11px]"></TableHead>
+                <TableHead className="label-cayla px-4 py-2 text-right text-[11px]">Capital</TableHead>
+                <TableHead className="label-cayla px-4 py-2 text-right text-[11px]">Utilidades</TableHead>
+                <TableHead className="label-cayla px-4 py-2 text-right text-[11px]">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-tinta/5">
+              <TableRow className="hover:bg-transparent">
+                <TableCell className="px-4 py-2.5 text-tinta/75">Saldo inicial</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.capitalInicial)}</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadesInicial)}</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta">{money(e.cambiosPatrimonio.patrimonioInicial)}</TableCell>
+              </TableRow>
               {e.cambiosPatrimonio.aportesNetos !== 0 && (
-                <tr>
-                  <td className="px-4 py-2.5 text-tinta/65">(+) Aportes netos</td>
-                  <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.aportesNetos)}</td>
-                  <td className="px-4 py-2.5 text-right text-tinta/65">—</td>
-                  <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.aportesNetos)}</td>
-                </tr>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell className="px-4 py-2.5 text-tinta/65">(+) Aportes netos</TableCell>
+                  <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.aportesNetos)}</TableCell>
+                  <TableCell className="px-4 py-2.5 text-right text-tinta/65">—</TableCell>
+                  <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.aportesNetos)}</TableCell>
+                </TableRow>
               )}
-              <tr>
-                <td className="px-4 py-2.5 text-tinta/65">(+) Utilidad del mes</td>
-                <td className="px-4 py-2.5 text-right text-tinta/65">—</td>
-                <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadDelPeriodo)}</td>
-                <td className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadDelPeriodo)}</td>
-              </tr>
-              <tr className="bg-crema font-medium">
-                <td className="label-cayla px-4 py-3 text-[11px] text-tinta">Saldo final</td>
-                <td className="px-4 py-3 text-right text-tinta">{money(e.cambiosPatrimonio.capitalFinal)}</td>
-                <td className="px-4 py-3 text-right text-tinta">{money(e.cambiosPatrimonio.utilidadesFinal)}</td>
-                <td className="font-display px-4 py-3 text-right text-lg text-tinta">{money(e.cambiosPatrimonio.patrimonioFinal)}</td>
-              </tr>
-            </tbody>
-          </table>
+              <TableRow className="hover:bg-transparent">
+                <TableCell className="px-4 py-2.5 text-tinta/65">(+) Utilidad del mes</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta/65">—</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadDelPeriodo)}</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-tinta/75">{money(e.cambiosPatrimonio.utilidadDelPeriodo)}</TableCell>
+              </TableRow>
+              <TableRow className="bg-crema font-medium hover:bg-crema">
+                <TableCell className="label-cayla px-4 py-3 text-[11px] text-tinta">Saldo final</TableCell>
+                <TableCell className="px-4 py-3 text-right text-tinta">{money(e.cambiosPatrimonio.capitalFinal)}</TableCell>
+                <TableCell className="px-4 py-3 text-right text-tinta">{money(e.cambiosPatrimonio.utilidadesFinal)}</TableCell>
+                <TableCell className="font-display px-4 py-3 text-right text-lg text-tinta">{money(e.cambiosPatrimonio.patrimonioFinal)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </section>
 

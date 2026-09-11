@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
 type Proveedor = { id: string; nombre: string };
@@ -434,31 +435,31 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
       {filas.length > 0 && (
         <div className="card-cayla space-y-2 overflow-x-auto p-4">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes ({filas.length})</p>
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="text-left text-xs text-tinta/65">
-                <th className="pb-2 pr-2">Talla</th>
-                <th className="pb-2 pr-2">Color</th>
-                <th className="pb-2 pr-2">SKU</th>
-                <th className="pb-2 pr-2">Costo S/</th>
-                <th className="pb-2 pr-2">Precio S/</th>
-                <th className="pb-2 pr-2">Stock mín.</th>
-                <th className="pb-2" />
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-[760px]">
+            <TableHeader>
+              <TableRow className="text-left text-xs text-tinta/65 hover:bg-transparent">
+                <TableHead className="pb-2 pr-2">Talla</TableHead>
+                <TableHead className="pb-2 pr-2">Color</TableHead>
+                <TableHead className="pb-2 pr-2">SKU</TableHead>
+                <TableHead className="pb-2 pr-2">Costo S/</TableHead>
+                <TableHead className="pb-2 pr-2">Precio S/</TableHead>
+                <TableHead className="pb-2 pr-2">Stock mín.</TableHead>
+                <TableHead className="pb-2" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filas.map((f) => (
-                <tr key={f.key} className="border-t border-tinta/10">
-                  <td className="py-1.5 pr-2 text-tinta/80">{f.talla ?? "—"}</td>
-                  <td className="py-1.5 pr-2 text-tinta/80">{f.color ?? "—"}</td>
-                  <td className="py-1.5 pr-2">
+                <TableRow key={f.key} className="border-t border-tinta/10 hover:bg-transparent">
+                  <TableCell className="py-1.5 pr-2 text-tinta/80">{f.talla ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 pr-2 text-tinta/80">{f.color ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 pr-2">
                     <input
                       value={f.sku}
                       onChange={(e) => actualizarFila(f.key, "sku", e.target.value)}
                       className="w-32 border border-tinta/20 bg-crema px-2 py-1 text-xs font-mono text-tinta outline-none focus:border-rojo"
                     />
-                  </td>
-                  <td className="py-1.5 pr-2">
+                  </TableCell>
+                  <TableCell className="py-1.5 pr-2">
                     <input
                       type="number"
                       min={0}
@@ -467,8 +468,8 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
                       onChange={(e) => actualizarFila(f.key, "costo", Number(e.target.value))}
                       className="w-20 border border-tinta/20 bg-crema px-2 py-1 text-xs text-tinta outline-none focus:border-rojo"
                     />
-                  </td>
-                  <td className="py-1.5 pr-2">
+                  </TableCell>
+                  <TableCell className="py-1.5 pr-2">
                     <input
                       type="number"
                       min={0}
@@ -477,8 +478,8 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
                       onChange={(e) => actualizarFila(f.key, "precio", Number(e.target.value))}
                       className="w-20 border border-tinta/20 bg-crema px-2 py-1 text-xs text-tinta outline-none focus:border-rojo"
                     />
-                  </td>
-                  <td className="py-1.5 pr-2">
+                  </TableCell>
+                  <TableCell className="py-1.5 pr-2">
                     <input
                       type="number"
                       min={0}
@@ -486,16 +487,16 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
                       onChange={(e) => actualizarFila(f.key, "stockMinimo", Number(e.target.value))}
                       className="w-16 border border-tinta/20 bg-crema px-2 py-1 text-xs text-tinta outline-none focus:border-rojo"
                     />
-                  </td>
-                  <td className="py-1.5">
+                  </TableCell>
+                  <TableCell className="py-1.5">
                     <button type="button" onClick={() => quitarFila(f.key)} className="text-xs text-rojo/70 hover:text-rojo">
                       Quitar
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           <p className="text-xs text-tinta/65">
             Quita las combinaciones que no existen físicamente (ej. no fabricas XL en Blanco).
           </p>

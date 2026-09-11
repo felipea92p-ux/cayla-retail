@@ -9,15 +9,17 @@ import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { traducirError } from "@/lib/error-escritura";
 
 type Sede = { id: string; codigo: string };
 
-const ESTADO_ESTILO: Record<Proforma["estado"], string> = {
-  vigente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  convertida: "border-verde/45 bg-verde/10 text-verde-profundo",
-  vencida: "border-tinta/20 bg-tinta/5 text-tinta/65",
-  anulada: "border-tinta/20 bg-tinta/5 text-tinta/65",
+const ESTADO_VARIANTE: Record<Proforma["estado"], "ambar" | "verde" | "neutro"> = {
+  vigente: "ambar",
+  convertida: "verde",
+  vencida: "neutro",
+  anulada: "neutro",
 };
 
 const ESTADO_ETIQUETA: Record<Proforma["estado"], string> = {
@@ -177,18 +179,18 @@ export function ProformasPanel({
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full min-w-[760px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]" />
-                </tr>
-              </thead>
+            <Table className="min-w-[760px] text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Fecha</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Cliente</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Total</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Estado</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]" />
+                </TableRow>
+              </TableHeader>
               {/* Excepciones primero: vigentes (y entre ellas, por vencer) arriba de convertidas/vencidas. */}
-              <tbody className="divide-y divide-tinta/5">
+              <TableBody className="divide-y divide-tinta/5">
                 {[...proformas]
                   .sort((a, b) => {
                     const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
@@ -197,8 +199,8 @@ export function ProformasPanel({
                     return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
                   })
                   .map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-3 py-2.5 text-tinta/75">
+                    <TableRow key={p.id} className="hover:bg-transparent">
+                      <TableCell className="px-3 py-2.5 text-tinta/75">
                         {p.porVencer && (
                           <span
                             title="Vence en menos de 48 horas"
@@ -206,15 +208,13 @@ export function ProformasPanel({
                           />
                         )}
                         {formatearFecha(p.created_at)}
-                      </td>
-                      <td className="px-3 py-2.5 text-tinta/75">{p.cliente_nombre ?? "Cliente varios"}</td>
-                      <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(p.total))}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`label-cayla border px-3 py-1 text-[11px] ${ESTADO_ESTILO[p.estado]}`}>
-                          {ESTADO_ETIQUETA[p.estado]}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/75">{p.cliente_nombre ?? "Cliente varios"}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-medium text-tinta">{money(Number(p.total))}</TableCell>
+                      <TableCell className="px-3 py-2.5">
+                        <Badge variant={ESTADO_VARIANTE[p.estado]}>{ESTADO_ETIQUETA[p.estado]}</Badge>
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-right">
                         {p.estado === "vigente" && (
                           <button
                             onClick={() => setModal({ convertir: p })}
@@ -223,11 +223,11 @@ export function ProformasPanel({
                             Convertir
                           </button>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

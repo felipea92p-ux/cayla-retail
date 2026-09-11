@@ -10,6 +10,7 @@ import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTarjetas } from "@/components/Esqueleto";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -136,30 +137,30 @@ async function Egresos({ sedes, anio, mes }: { sedes: Sede[]; anio: number; mes:
           </div>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-sand text-left">
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Sede</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Categoría</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Especificación</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Método</th>
-                  <th className="label-cayla px-3 py-2 text-right text-[11px]">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-sand text-left hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Fecha</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Sede</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Categoría</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Especificación</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Método</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-right text-[11px]">Monto</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {gastos.map((g) => (
-                  <tr key={g.id} className="border-b border-sand/60 last:border-0 hover:bg-sand/40">
-                    <td className="px-3 py-2 text-tinta/80">{formatearFecha(g.createdAt)}</td>
-                    <td className="px-3 py-2 text-tinta/80">{g.sedeCodigo}</td>
-                    <td className="px-3 py-2 text-tinta">{ETIQUETA_GASTO_CATEGORIA[g.categoria]}</td>
-                    <td className="px-3 py-2 text-tinta/80">{g.especificacion ?? "—"}</td>
-                    <td className="px-3 py-2 text-tinta/80">{ETIQUETA_METODO_PAGO_GASTO[g.metodoPago]}</td>
-                    <td className="font-display px-3 py-2 text-right tabular-nums text-tinta">{money(g.total)}</td>
-                  </tr>
+                  <TableRow key={g.id} className="border-b border-sand/60 last:border-0 hover:bg-sand/40">
+                    <TableCell className="px-3 py-2 text-tinta/80">{formatearFecha(g.createdAt)}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/80">{g.sedeCodigo}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta">{ETIQUETA_GASTO_CATEGORIA[g.categoria]}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/80">{g.especificacion ?? "—"}</TableCell>
+                    <TableCell className="px-3 py-2 text-tinta/80">{ETIQUETA_METODO_PAGO_GASTO[g.metodoPago]}</TableCell>
+                    <TableCell className="font-display px-3 py-2 text-right tabular-nums text-tinta">{money(g.total)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

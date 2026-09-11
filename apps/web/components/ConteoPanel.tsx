@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError, esFalloDeRed } from "@/lib/error-escritura";
 import { avisoDeRed } from "@/lib/sin-red";
 import { AltaEnConteo, type ModeloRecordado } from "@/components/AltaEnConteo";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import type {
   CatalogoParaConteo,
   CategoriaElegible,
@@ -567,22 +568,33 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
       )}
 
       {/* ---------- varias coincidencias ---------- */}
+      {/* El input de arriba queda AFUERA de este Command a propósito: es un
+          <form onSubmit> nativo, y cmdk hace `preventDefault()` de Enter para
+          su propia selección — meterlo adentro le quitaría el submit a la
+          pistola. Acá el Command solo pone semántica de lista (listbox/option)
+          y el estilo del hover; no hay navegación por flechas que preservar,
+          la versión anterior tampoco la tenía. */}
       {candidatas && (
-        <div className="card-cayla divide-y divide-tinta/10 p-2">
+        <Command shouldFilter={false} className="card-cayla overflow-visible bg-transparent p-2">
           <p className="px-2 pb-2 text-xs text-tinta/65">{candidatas.length} prendas coinciden — elige una</p>
-          {candidatas.map((v) => (
-            <button
-              key={v.varianteId}
-              onClick={() => elegir(v)}
-              className="flex w-full items-baseline justify-between gap-3 px-2 py-2.5 text-left hover:text-rojo"
-            >
-              <span className="text-sm text-tinta">{v.referencia}</span>
-              <span className="shrink-0 text-xs text-tinta/65">
-                {[v.talla, v.color].filter(Boolean).join(" · ")}
-              </span>
-            </button>
-          ))}
-        </div>
+          <CommandList className="max-h-none divide-y divide-tinta/10 overflow-x-visible overflow-y-visible">
+            <CommandGroup className="p-0">
+              {candidatas.map((v) => (
+                <CommandItem
+                  key={v.varianteId}
+                  value={v.varianteId}
+                  onSelect={() => elegir(v)}
+                  className="flex items-baseline justify-between gap-3 rounded-none px-2 py-2.5 text-left hover:text-rojo data-[selected=true]:bg-transparent data-[selected=true]:text-rojo"
+                >
+                  <span className="text-sm text-tinta">{v.referencia}</span>
+                  <span className="shrink-0 text-xs text-tinta/65">
+                    {[v.talla, v.color].filter(Boolean).join(" · ")}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
       )}
 
       {/* ---------- la prenda elegida: cuántas hay ---------- */}

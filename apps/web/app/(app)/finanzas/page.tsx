@@ -11,6 +11,7 @@ import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
 import { Ayuda } from "@/components/Ayuda";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -144,32 +145,32 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
 
         {eerr && eerr.porSede.length > 0 && (
           <div className="mt-3 overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Sede</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Ventas</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Costo</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Mermas</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Gastos</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Utilidad</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Sede</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Ventas</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Costo</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Mermas</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Gastos</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Utilidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {eerr.porSede.map((s) => (
-                  <tr key={s.sedeCodigo}>
-                    <td className="px-3 py-2.5 font-medium text-tinta">{s.sedeCodigo}</td>
-                    <td className="px-3 py-2.5 text-tinta/75">{money(s.ventas)}</td>
-                    <td className="px-3 py-2.5 text-tinta/75">{money(s.cogs)}</td>
-                    <td className="px-3 py-2.5 text-tinta/75">{money(s.mermas)}</td>
-                    <td className="px-3 py-2.5 text-tinta/75">{money(s.gastos)}</td>
-                    <td className={`px-3 py-2.5 font-medium ${s.utilidad >= 0 ? "text-tinta" : "text-rojo"}`}>
+                  <TableRow key={s.sedeCodigo} className="hover:bg-transparent">
+                    <TableCell className="px-3 py-2.5 font-medium text-tinta">{s.sedeCodigo}</TableCell>
+                    <TableCell className="px-3 py-2.5 text-tinta/75">{money(s.ventas)}</TableCell>
+                    <TableCell className="px-3 py-2.5 text-tinta/75">{money(s.cogs)}</TableCell>
+                    <TableCell className="px-3 py-2.5 text-tinta/75">{money(s.mermas)}</TableCell>
+                    <TableCell className="px-3 py-2.5 text-tinta/75">{money(s.gastos)}</TableCell>
+                    <TableCell className={`px-3 py-2.5 font-medium ${s.utilidad >= 0 ? "text-tinta" : "text-rojo"}`}>
                       {money(s.utilidad)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -186,37 +187,37 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Sede</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Categoría</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Pago</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Detalle</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table className="text-left text-xs">
+              <TableHeader className="border-b border-tinta/10 text-tinta/65">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Fecha</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Sede</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Categoría</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Pago</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Detalle</TableHead>
+                  <TableHead className="label-cayla px-3 py-2 text-[11px]">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {gastosData.map((g) => {
                   const sede = sedes.find((s) => s.id === g.sede_id);
                   return (
-                    <tr key={g.id}>
-                      <td className="px-3 py-2.5 text-tinta/75">{formatearFecha(g.created_at)}</td>
-                      <td className="px-3 py-2.5 font-medium text-tinta">{sede?.codigo ?? "—"}</td>
-                      <td className="px-3 py-2.5 text-tinta/75">
+                    <TableRow key={g.id} className="hover:bg-transparent">
+                      <TableCell className="px-3 py-2.5 text-tinta/75">{formatearFecha(g.created_at)}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-medium text-tinta">{sede?.codigo ?? "—"}</TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/75">
                         {ETIQUETA_GASTO_CATEGORIA[g.categoria as GastoCategoria] ?? g.categoria}
-                      </td>
-                      <td className="px-3 py-2.5 text-tinta/75">
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/75">
                         {g.metodo_pago ? ETIQUETA_METODO_PAGO_GASTO[g.metodo_pago as MetodoPagoGasto] ?? g.metodo_pago : "—"}
-                      </td>
-                      <td className="px-3 py-2.5 text-tinta/75">{g.especificacion ?? "—"}</td>
-                      <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(g.total))}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="px-3 py-2.5 text-tinta/75">{g.especificacion ?? "—"}</TableCell>
+                      <TableCell className="px-3 py-2.5 font-medium text-tinta">{money(Number(g.total))}</TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

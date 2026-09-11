@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -141,30 +142,30 @@ async function Analisis() {
           </p>
         ) : (
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full">
-              <thead className="border-b border-tinta/10">
-                <tr>
-                  <th className={th}>Prenda</th>
-                  <th className={th}>Stock</th>
-                  <th className={th}>Vende/día</th>
-                  <th className={th}>Compra sugerida</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table>
+              <TableHeader className="border-b border-tinta/10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={th}>Prenda</TableHead>
+                  <TableHead className={th}>Stock</TableHead>
+                  <TableHead className={th}>Vende/día</TableHead>
+                  <TableHead className={th}>Compra sugerida</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {sugerencias.map((v) => (
-                  <tr key={v.varianteId}>
-                    <td className={td}>
+                  <TableRow key={v.varianteId} className="hover:bg-transparent">
+                    <TableCell className={td}>
                       <Link href={`/producto/${v.varianteId}`} className="text-tinta hover:text-rojo">
                         {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                       </Link>
-                    </td>
-                    <td className={`${td} text-tinta/75`}>{v.stockTotal}</td>
-                    <td className={`${td} text-tinta/75`}>{v.velocidadDiaria > 0 ? v.velocidadDiaria : "—"}</td>
-                    <td className={`${td} font-display text-lg text-rojo`}>{v.sugerida}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{v.stockTotal}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{v.velocidadDiaria > 0 ? v.velocidadDiaria : "—"}</TableCell>
+                    <TableCell className={`${td} font-display text-lg text-rojo`}>{v.sugerida}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
         <p className="mt-2 text-xs text-tinta/65">
@@ -183,50 +184,50 @@ async function Analisis() {
             </Ayuda>
           </h2>
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full">
-              <thead className="border-b border-tinta/10">
-                <tr>
-                  <th className={th}>Familia</th>
-                  <th className={th}>Vendidas</th>
-                  <th className={th}>Monto</th>
-                  <th className={th}>Stock</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table>
+              <TableHeader className="border-b border-tinta/10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={th}>Familia</TableHead>
+                  <TableHead className={th}>Vendidas</TableHead>
+                  <TableHead className={th}>Monto</TableHead>
+                  <TableHead className={th}>Stock</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {familiasOrdenadas.map(([nombre, a]) => (
-                  <tr key={nombre}>
-                    <td className={`${td} capitalize text-tinta`}>{nombre}</td>
-                    <td className={`${td} text-tinta/75`}>{a.unidades}</td>
-                    <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
-                    <td className={`${td} text-tinta/75`}>{a.stock}</td>
-                  </tr>
+                  <TableRow key={nombre} className="hover:bg-transparent">
+                    <TableCell className={`${td} capitalize text-tinta`}>{nombre}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{a.unidades}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{money(a.monto)}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{a.stock}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
 
         <div>
           <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Top categorías por venta</h2>
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full">
-              <thead className="border-b border-tinta/10">
-                <tr>
-                  <th className={th}>Categoría</th>
-                  <th className={th}>Vendidas</th>
-                  <th className={th}>Monto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table>
+              <TableHeader className="border-b border-tinta/10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={th}>Categoría</TableHead>
+                  <TableHead className={th}>Vendidas</TableHead>
+                  <TableHead className={th}>Monto</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {categoriasTop.map(([nombre, a]) => (
-                  <tr key={nombre}>
-                    <td className={`${td} text-tinta`}>{nombre}</td>
-                    <td className={`${td} text-tinta/75`}>{a.unidades}</td>
-                    <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
-                  </tr>
+                  <TableRow key={nombre} className="hover:bg-transparent">
+                    <TableCell className={`${td} text-tinta`}>{nombre}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{a.unidades}</TableCell>
+                    <TableCell className={`${td} text-tinta/75`}>{money(a.monto)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </div>
@@ -236,28 +237,28 @@ async function Analisis() {
         <div>
           <h2 className="label-cayla mb-3 text-[11px] text-tinta/70">Ventas por sede</h2>
           <div className="overflow-x-auto card-cayla">
-            <table className="w-full">
-              <thead className="border-b border-tinta/10">
-                <tr>
-                  <th className={th}>Sede</th>
-                  <th className={th}>Unidades</th>
-                  <th className={th}>Monto</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
+            <Table>
+              <TableHeader className="border-b border-tinta/10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={th}>Sede</TableHead>
+                  <TableHead className={th}>Unidades</TableHead>
+                  <TableHead className={th}>Monto</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-tinta/5">
                 {sedesOrdenadas.length === 0 ? (
-                  <tr><td className={`${td} italic text-tinta/65`} colSpan={3}>Sin ventas en la ventana.</td></tr>
+                  <TableRow className="hover:bg-transparent"><TableCell className={`${td} italic text-tinta/65`} colSpan={3}>Sin ventas en la ventana.</TableCell></TableRow>
                 ) : (
                   sedesOrdenadas.map(([codigo, a]) => (
-                    <tr key={codigo}>
-                      <td className={`${td} text-tinta`}>{codigo}</td>
-                      <td className={`${td} text-tinta/75`}>{a.unidades}</td>
-                      <td className={`${td} text-tinta/75`}>{money(a.monto)}</td>
-                    </tr>
+                    <TableRow key={codigo} className="hover:bg-transparent">
+                      <TableCell className={`${td} text-tinta`}>{codigo}</TableCell>
+                      <TableCell className={`${td} text-tinta/75`}>{a.unidades}</TableCell>
+                      <TableCell className={`${td} text-tinta/75`}>{money(a.monto)}</TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
 
