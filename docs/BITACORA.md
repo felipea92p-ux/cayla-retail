@@ -3,6 +3,50 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (pidió "todo GSAP para más smooth"; se marcó la contradicción con lo recién decidido)
+
+Minutos después de cerrar ADR-0038 ("GSAP solo para scroll"), Felipe pidió aplicar
+"todos los cambios posibles con GSAP para que la app quede más estética y smooth" — el
+default exacto que esa ADR existe para bloquear. Se le marcó con AskUserQuestion en vez
+de ejecutar directo (toca más de un módulo a la vez). Eligió la opción acotada: 2-3
+mejoras puntuales, no una pasada masiva.
+
+Se hicieron 3: `lib/motion-gsap.ts` centraliza el registro de plugins y la curva
+`caylaEase` (antes solo vivía en `RevelarAlScroll.tsx`, y ya no alcanzaba con un segundo
+consumidor); `Flip` en el carrito de `RegistrarVentaModal.tsx` para que las filas se
+reacomoden con transición al agregar/quitar una prenda, en vez de saltar — capturado
+antes del `setCarrito`, atado a `carrito.length` para no dispararse con solo subir una
+cantidad; y `RevelarAlScroll` extendido a `/finanzas` (misma forma de dashboard apilado
+que `/comercial`). Deliberadamente NO se tocó `Segmentado` — su indicador ya es CSS puro
+y meterle GSAP ahí habría sido decoración, no mejora.
+
+Verificado en navegador con `/prueba-carrito` (RegistrarVentaModal con props falsas,
+sin Supabase) + bypass temporal de login, ambos revertidos: agregar y quitar prendas
+reordena el carrito sin errores de consola. `tsc`, `eslint`, 227 tests y `next build`
+en verde.
+
+## 2026-09-11 (GSAP entra solo por la puerta que CSS no cubre: el scroll)
+
+Felipe pidió integrar GSAP. Antes de instalar se auditó `globals.css` y apareció la misma
+tensión de ADR-0011: ya existe una capa de movimiento propia, construida a propósito sin
+librerías. Se le marcó con AskUserQuestion antes de tocar nada — ¿qué necesita hacer con
+GSAP que CSS no resuelve? Respuesta: ScrollTrigger. Ahí sí hay una razón real (soporte de
+navegador parejo para `animation-timeline: scroll()`, y GSAP es gratis desde que Webflow lo
+adquirió) → ADR-0038.
+
+Se construyó `components/ui/RevelarAlScroll.tsx`: revela con el mismo gesto de
+`.anim-asentar`, pero disparado al cruzar el viewport en vez de al montar. La curva de
+easing no se aproximó a ojo — se registró la MISMA `cubic-bezier` de `--ease-cayla` vía
+`CustomEase`, así que la capa de scroll se ve idéntica a la capa CSS. `prefers-reduced-motion`
+colapsa la duración igual que en `globals.css`, nunca elimina la animación de golpe. Primera
+aplicación: `/comercial` (dashboard con secciones apiladas que el Líder recorre con scroll).
+
+Verificado en navegador con ruta de prueba temporal y bypass temporal de login en
+`proxy.ts` (sin credenciales de sesión a mano) — ambos revertidos antes de cerrar. Confirmado
+por DOM: bloques ya cruzados quedan en `opacity: 1`, los que siguen fuera de vista en
+`opacity: 0.35, translateY(4px)` (el estado previo de `.anim-asentar`). `tsc`, `eslint` y
+`next build` en verde.
+
 ## 2026-09-11 (shadcn entra sin gastar el rojo)
 
 Felipe pidió configurar shadcn/ui con los colores del sistema existente. Se dejó la base
