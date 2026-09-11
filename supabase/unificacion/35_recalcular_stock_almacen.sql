@@ -24,7 +24,7 @@
 --   Líder puede correrla" (`retail.es_lider()`), perdido en algún punto
 --   entre el ADR-0020 original y hoy — verificado que hoy no lo tenía; (4)
 --   quita el `EXECUTE` que tenía de más para `PUBLIC` (y por herencia
---   `anon`), mismo patrón de ADR-0011/ADR-0030.
+--   `anon`), mismo patrón de ADR-0011/ADR-0032.
 --
 -- QUÉ ASUME
 --   Que la regla de "es almacén" es exactamente la que usa

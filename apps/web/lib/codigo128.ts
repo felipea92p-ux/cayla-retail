@@ -7,20 +7,29 @@
  * impresa, un test— mida EXACTAMENTE lo que la app imprime, y no una copia del
  * algoritmo que puede derivar sin que nadie lo note.
  *
- * POR QUÉ IMPORTA EL LARGO DEL TEXTO (y por qué existe el código corto, ADR-0025).
- * El SVG se dibuja con `preserveAspectRatio="none"`, así que se estira al ancho de
- * la etiqueta sin importar cuántas barras tenga: 14 caracteres y 40 caracteres
- * ocupan lo mismo, solo que con barras la mitad de finas. Y Code 128 se decodifica
- * por PROPORCIÓN de anchos, así que cuando cada módulo baja de ~3 puntos de
- * impresora, el redondeo del cabezal térmico deforma esa proporción y el lector
- * empieza a fallar.
+ * POR QUÉ IMPORTA EL LARGO DEL TEXTO. Un Code 128 mide `11·(n+2) + 2` módulos para
+ * n caracteres, y cada módulo tiene un tamaño físico FIJO (ver `MODULO_MM` abajo).
+ * O sea que el largo del texto es, literalmente, el ancho impreso:
  *
- *   BLU-0042-AZM-M        (14 ch) → 189 módulos → ~3.1 puntos/módulo a 300 dpi
- *   BLUSA-…-M-AZUL-MARINO (40 ch) → 475 módulos → ~1.2 puntos/módulo  ✗
+ *   BLU-0042-AZM-M        (14 ch) → 189 módulos →  48.0 mm  entra
+ *   BLU-0042-AZM-XXL      (16 ch) → 211 módulos →  53.6 mm  no entra
+ *   BLUSA-…-M-AZUL-MARINO (40 ch) → 475 módulos → 120.7 mm  no entra
  *
- * Esa aritmética es la razón declarada del código corto, y sigue sin verificarse
- * contra papel real. `scripts/etiquetas/hoja-de-prueba.mjs` genera la hoja para
- * medirlo.
+ * En los ~50 mm útiles de la etiqueta entran 15 caracteres. Ése es el techo que
+ * dejaba afuera a una talla XXL, y la razón de fondo por la que la etiqueta pasó a
+ * imprimir QR (ADR-0025, corregido el 2026-09-10).
+ *
+ * ⚠ NO CONFUNDIR ESTO CON EL DEFECTO QUE SE ARREGLÓ. Hasta el 2026-09-09 el dibujo
+ * se ESTIRABA al ancho de la etiqueta, y eso deformaba la proporción de anchos de la
+ * que depende Code 128 — rompía CUALQUIER código, corto o largo. El primer escaneo
+ * de `BLU-0001-AZM-M`, que tiene 14 caracteres, también falló. Acortar el código no
+ * habría arreglado nada: el arreglo fue dejar de estirar. Verificado después con la
+ * pistola Zebra. El detalle está en el comentario de `medir()`.
+ *
+ * DÓNDE SE USA HOY. La etiqueta imprime QR (`components/CodigoQR.tsx`), así que este
+ * camino no está en uso. Se conserva arreglado y verificado porque leer sigue
+ * funcionando con ambas simbologías, y porque `codigos_barras` no distingue: para
+ * el sistema, un código de barras y un QR son dos filas que apuntan a la misma prenda.
  */
 
 /** Tabla oficial de patrones Code 128 (anchos de barra/espacio por símbolo, 0-106). */
@@ -77,11 +86,66 @@ export function barrasCode128(texto: string): Barras | null {
 }
 
 /**
- * Puntos de impresora por módulo, que es lo que de verdad decide si se lee.
- * Regla de la industria para impresión térmica: **≥3**. Por debajo de 2 es
- * inleíble en la práctica.
+ * Puntos de impresora por módulo si el código se ESTIRA para llenar un ancho dado.
+ * Se conserva para explicar por qué eso está mal, no para dibujar así.
  */
 export function puntosPorModulo(modulos: number, anchoUtilMm = 50, dpi = 300): number {
   const mmPorPunto = 25.4 / dpi;
   return anchoUtilMm / modulos / mmPorPunto;
+}
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * EL MÓDULO SE FIJA; EL ANCHO SE DEDUCE. NUNCA AL REVÉS.
+ *
+ * Descubierto el 2026-09-09 escaneando con el celular: los códigos se dibujaban
+ * con `preserveAspectRatio="none"` y `width: 100%`, o sea que 189 módulos y 475
+ * módulos ocupaban lo MISMO — el ancho de la etiqueta. Como Code 128 se decodifica
+ * por PROPORCIÓN de anchos, y `shapeRendering="crispEdges"` además redondea cada
+ * borde a la grilla del dispositivo, una barra de 2 módulos y otra de 3 terminaban
+ * midiendo igual. El lector devolvía basura: `755123:1<7V90` en vez de
+ * `7501234567890`, y ráfagas de dígitos donde tomaba un símbolo roto por el código
+ * de "cambiar a subconjunto C".
+ *
+ * El encoder estaba —y está— bien: los patrones decodifican exacto y el checksum
+ * cierra. Lo que estaba mal era estirar el dibujo.
+ *
+ * Ahora el módulo tiene un tamaño físico fijo y el código ocupa lo que ocupa. Eso
+ * convierte "este código es demasiado largo" de un problema invisible (se imprimía
+ * igual, ilegible) en uno imposible: no entra, y hay que decirlo antes de imprimir.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
+/** 0.254 mm = exactamente 3 puntos a 300 dpi, el mínimo de la impresión térmica. */
+export const MODULO_MM = 0.254;
+
+/** Ancho útil del código dentro de una etiqueta de 62 mm, descontados los márgenes. */
+export const ANCHO_UTIL_MM = 50;
+
+export type Medida = {
+  modulos: number;
+  anchoMm: number;
+  cabe: boolean;
+  /** Cuántos caracteres entran como máximo con este módulo y este ancho. */
+  maxCaracteres: number;
+};
+
+/**
+ * Cuánto mide de verdad el código, y si entra en la etiqueta.
+ *
+ * Un Code 128 B mide `11·(n+2) + 2` módulos para n caracteres (start, datos,
+ * checksum y stop), así que el límite de caracteres sale de despejar esa cuenta.
+ */
+export function medir(
+  modulos: number,
+  { moduloMm = MODULO_MM, anchoUtilMm = ANCHO_UTIL_MM } = {}
+): Medida {
+  const anchoMm = modulos * moduloMm;
+  const modulosDisponibles = Math.floor(anchoUtilMm / moduloMm);
+  return {
+    modulos,
+    anchoMm,
+    cabe: anchoMm <= anchoUtilMm,
+    maxCaracteres: Math.max(0, Math.floor((modulosDisponibles - 2) / 11) - 2),
+  };
 }

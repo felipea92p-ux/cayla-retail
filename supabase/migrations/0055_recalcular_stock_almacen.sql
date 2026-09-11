@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0053 — `recalcular_stock()` vuelve a saber que el almacén existe
+-- 0055 — `recalcular_stock()` vuelve a saber que el almacén existe
 --
 -- Ver ADR-0031 y el espejo de producción (`supabase/unificacion/
 -- 35_recalcular_stock_almacen.sql`) para el razonamiento completo. Esta

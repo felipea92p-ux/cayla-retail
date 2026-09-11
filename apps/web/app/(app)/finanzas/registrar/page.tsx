@@ -22,7 +22,14 @@ export default async function RegistrarContablePage() {
   ]);
 
   const cuentas = cuentasRes.data ?? [];
-  const unidades = todasSedes.filter((s) => s.activo && (["tienda", "fabrica", "corporativo"] as string[]).includes(s.tipo));
+  // Sin `s.activo`: esa columna es de Dynamic (`retail.sedes` la expone como vista sobre
+  // `public.sedes.activa`), y su criterio no es el de retail — la tienda de Lima está
+  // abierta y operando, pero allá figura inactiva. Filtrar por ella dejaba una sede donde
+  // se puede vender pero no cargarle el alquiler, que es el estado inconsistente que el
+  // principio 2 prohíbe. Decisión de Felipe, 2026-09-10: retail no mira ese flag (ADR-0029).
+  // El día que se cierre una sede de verdad, esto se resuelve con una columna propia en
+  // `retail.sede_meta` — NO volviendo a colgarse del flag de Dynamic.
+  const unidades = todasSedes.filter((s) => (["tienda", "fabrica", "corporativo"] as string[]).includes(s.tipo));
 
   return (
     <div className="space-y-8">

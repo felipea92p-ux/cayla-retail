@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 34 — `registrar_venta` deja de duplicar una venta si la red se corta
--- Aplicado en producción (cayla-DYNAMIC) el 2026-09-10. Ver ADR-0030.
+-- Aplicado en producción (cayla-DYNAMIC) el 2026-09-10. Ver ADR-0032.
 --
 -- QUÉ PROMETE
 --   Si la red se corta después de que la venta ya se comiteó pero antes de
@@ -66,7 +66,7 @@
 --
 -- CÓMO SE REVIERTE
 --   1. drop function if exists retail.registrar_venta(uuid, text, jsonb, text, uuid);
---   2. Recrear la función vieja de 4 argumentos (cuerpo en ADR-0030, sección
+--   2. Recrear la función vieja de 4 argumentos (cuerpo en ADR-0032, sección
 --      "Original en producción").
 --   3. grant execute on function retail.registrar_venta(uuid, text, jsonb, text)
 --        to authenticated, service_role;

@@ -11,6 +11,49 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
+      puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
+      migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
+      valores de la Shopify Product Taxonomy v2026-08 en local, motor de anclaje
+      en dos pasadas (`lib/taxonomia/anclar.ts` puro y testeado +
+      `anclar-ia.ts`), endpoint `POST/PUT /api/taxonomia/anclar` (propone / guarda,
+      nunca en un solo paso) y pantalla `/inventario/taxonomia`.
+      **Bloqueado por lo mismo que todo lo demás de IA: no hay `ANTHROPIC_API_KEY`
+      en el entorno.** Sin ella el endpoint responde 503 con el mensaje que lo
+      explica, y el anclaje de los 30 colores y 32 categorías de CAYLA nunca se ha
+      ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
+      se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
+      **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
+      Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
+      archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
+      URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
+      ancla los valores distintos y siembra el vocabulario propio del cliente con
+      SUS nombres → RPC `importar_catalogo` transaccional (llamar
+      `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
+      Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
+      carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
+      versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
+      taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
+      la regla es que **la IA compila el mapeo, no procesa las filas**.
+
+- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
+      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
+      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
+      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
+      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
+      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+
+- [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
+      medido.** `packages/database/package.json` usa `--project-id
+      vovjyyiafkxteijimpuy` (producción). Generar desde local —lo natural cuando
+      las tablas nuevas solo existen ahí— **borra** `catalogo_con_stock`,
+      `configuracion_empresa`, `sede_meta`, `sede_datos_fiscales`,
+      `persona_actual` y `puede_operar_sede`, que existen en producción y no en
+      local. Hoy los 5 tipos de taxonomía y las 2 columnas de anclaje se
+      insertaron a mano por eso. Mientras el drift exista, regenerar a ciegas
+      rompe la app: hace falta decidir cuál de los dos entornos es la fuente.
+
+
 - [x] **`almacen interno`: aplicado y verificado en producción 2026-09-03 —
       backend completo, frontend adaptado, falta la prueba en vivo por Felipe.**
       "Recibir mercadería" era el único camino para crear un producto y no
@@ -157,15 +200,28 @@ importante que ha entrado a este archivo desde que existe.
       silencio. **Verificado con una Encargada real:** abre, crea la prenda
       adoptando su código de fábrica, cuenta 4 — y al cerrar recibe "Solo un líder
       puede cerrar un conteo". El stock quedó en 0 hasta que el Líder cerró.
-- [ ] **`censo`: las pantallas.** Es lo único que falta para que el equipo pueda
-      usarlo — las RPC están, las manos no. Captura por matriz (talla × color, una
-      tarjeta por color en móvil de 375px), pantalla de conteo con la pistola
-      (buscador siempre enfocado, conteo a ciegas, "crear esta prenda" cuando el
-      código no existe), resumen de varianza en soles, y etiquetas en lote (con
-      tope de ~120 por tanda). Más `lib/conteo.ts` con proyección delgada: hoy
-      `getCatalogoConStock` trae ~1,1 MB por render y a 900 SKUs eso rompe justo
-      las dos pantallas del censo. **Ojo al entrar: hay otra sesión trabajando en
-      el frontend** (`AppShell.tsx`, `vender/`, los modales) — coordinar antes.
+- [x] **CERRADO 2026-09-10 — `censo`: las pantallas.** El ítem estaba viejo: al auditarlo el
+      2026-09-10 resultó que la proyección delgada (`getCatalogoParaConteo`, 6 columnas en
+      vez de 1,1 MB) y la pantalla de conteo con pistola ya existían desde `ab479ba`.
+      **Cerrado hoy: el cierre del conteo** — `/inventario/conteo/cerrar`, con la varianza
+      valorizada en soles, el aviso de lo que nadie contó, y las dos decisiones de la Líder
+      (cerrar / anular). Era el agujero que dejaba el módulo entero sin servir: la pantalla
+      de conteo prometía "lo contado no entra al inventario hasta que la Líder cierra" y
+      `cerrar_conteo` no estaba cableada en ninguna parte.
+      **CERRADO TAMBIÉN el alta repetida, y no como se había planeado.** El backlog pedía una
+      MATRIZ talla × color; al mirarlo de cerca se descartó y se hizo otra cosa, por dos
+      razones. (1) `conteo_crear_variante` siempre termina llamando a `conteo_contar`, así que
+      crear las 12 celdas de golpe metería 11 líneas «contadas: 0» al conteo — en el cierre eso
+      significa «miré y no había», que es una afirmación, no un vacío. (2) El dolor real no era
+      declarar 12 celdas: era que la segunda talla del mismo modelo pedía otra vez los siete
+      campos. Se implementó **recordar el modelo**: la siguiente alta pide talla, color y
+      cantidad, y nada más.
+      **Y de paso destapó un defecto que el censo habría golpeado en la prenda nº 2:**
+      `AltaEnConteo` nunca pasaba `p_producto_id`, así que declarar la talla M y después la L
+      de la misma blusa creaba DOS productos con la misma referencia y dos códigos cortos
+      distintos — y el código corto es lo que va impreso en la etiqueta y lo que agrupa el
+      catálogo por modelo. Recordar el modelo es lo que lo impide.
+      (Etiquetas en lote quedó fuera del alcance del censo: esa pantalla es de la sesión de QR.)
 - [x] **CERRADO 2026-09-10 — LA `33` YA ESTÁ EN PRODUCCIÓN. No queda ninguna migración
       pendiente de pegar.** Aplicada desde la sesión a pedido de Felipe (autorización
       explícita: "aplícala tú"), y verificada en la misma base, no por suposición:
@@ -413,7 +469,12 @@ importante que ha entrado a este archivo desde que existe.
       **Pendiente, sin bloquear el proyecto:** preguntarle al contador si
       CAYLA ya cruzó el umbral SIRE (75 UIT, ~S/412,500/año) — obligación
       distinta del PLE (300 UIT) que probablemente ya aplica hoy.
-- [ ] **`crear_producto_con_variantes`: construido y verificado (build/lint,
+- [x] **LA RPC YA ESTÁ EN PRODUCCIÓN — verificado 2026-09-10.** `retail.crear_producto_con_variantes`
+      existe con una sola firma, y la pantalla `/inventario/producto/nuevo` está
+      desplegada. O sea que `unificacion/16` se pegó en algún momento y nadie lo anotó.
+      **Lo único que queda de este item es manual y de Felipe:** crear un producto real
+      con varias tallas/colores y confirmar que aparece en Catálogo. Texto original abajo:**
+      **`crear_producto_con_variantes`: construido y verificado (build/lint,
       `next build` limpio) 2026-09-04 — falta que Felipe pegue la RPC en
       producción.** "Recibir mercadería" crea un `producto` nuevo por CADA
       ítem agregado con "+ Agregar prenda nueva": pedir la misma referencia
@@ -431,7 +492,16 @@ importante que ha entrado a este archivo desde que existe.
       (ej. varias tallas/colores) para confirmar que aparece en Catálogo** —
       cierra además la verificación que le faltaba a `almacen interno` de
       arriba ("que Felipe entre un producto real por la pantalla").
-- [ ] **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
+- [ ] **PROVEEDOR YA CONTRATADO — lo que queda es confirmar Vercel, 2026-09-10.**
+      `apps/web/.env.local` tiene un `PADRON_TOKEN` real de `apisnetpe_v1`, así que la
+      parte de "contratar" está hecha; y la BITÁCORA del 08-09 registra la consulta
+      funcionando en producción (el fallo de ese día fue `apisnetpe` vs `apisnetpe_v1`,
+      no falta de credencial). **Lo único abierto: confirmar que Vercel tenga
+      `PADRON_PROVEEDOR=apisnetpe_v1` — con el `_v1`.** No pude verificarlo desde la
+      sesión: el conector de Vercel devuelve 403 y hay que reautenticar el scope "cayla".
+      Se comprueba en un segundo emitiendo en producción y escribiendo un DNI. Texto
+      original abajo:**
+      **`padrón RENIEC/SUNAT`: construido y verificado 2026-09-05 — falta que
       Felipe contrate un proveedor y ponga dos variables de entorno.** El modal
       de emisión ya lee el DNI/RUC y muestra a quién pertenece antes de emitir
       (nombre o razón social, y para RUC además estado y condición, porque una
@@ -449,6 +519,26 @@ importante que ha entrado a este archivo desde que existe.
       + `pnpm dev` levanta la app completa contra local (instrucciones en el
       README). Verificado emitiendo una boleta real. Precio: Storage apagado en
       local — subir fotos de producto no funciona ahí.
+- [ ] **La misma función de permiso se llama DISTINTO en local y en producción, y
+      plpgsql no lo delata — 2026-09-10.** Local: `retail.fn_puede_operar_sede`.
+      Producción: `retail.puede_operar_sede`, **sin el `fn_`**. Verificado en las dos
+      bases. Los archivos están bien escritos: 20 de `migrations/` usan la versión con
+      `fn_` y 17 de `unificacion/` la de sin — nadie se equivocó todavía.
+      **Por qué es una trampa y no una curiosidad:** el cuerpo de una función plpgsql
+      NO se resuelve al crearla, solo al ejecutarla. O sea que copiar un gemelo al otro
+      —el gesto más natural del mundo cuando escribes el par— produce un
+      `create or replace` que **corre en verde** y revienta la primera vez que alguien
+      la usa, con "function does not exist" y la clienta esperando. `migraciones:verificar`
+      tampoco lo ve: comprueba que la función exista por nombre, no a quién llama por
+      dentro. Hoy casi muerde al aplicar la `33`: el archivo dice
+      `retail.puede_operar_sede` y en local eso no existe, lo que parece un error y no
+      lo es.
+      Arreglo de fondo: renombrar en producción para que los dos lados digan lo mismo
+      (con un alias temporal que llame al nuevo, para no romper las 17 que ya la
+      nombran). Arreglo barato mientras tanto: que `migraciones:verificar` extraiga los
+      nombres que llama cada cuerpo y los cruce contra el inventario — es la misma idea
+      que ya tiene, un nivel más adentro.
+
 - [ ] `migraciones duales (local sin prefijo / producción con prefijo retail.)`:
       la causa raíz de ADR-0004 y ADR-0006 sigue viva — cada cambio de esquema
       se escribe dos veces y las dos copias se desincronizan. Ahora que el local
@@ -989,7 +1079,7 @@ importante que ha entrado a este archivo desde que existe.
 ## ✅ CERRADO (últimos, con fecha)
 
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
-      corta a mitad de un cobro (ADR-0030).** `registrar_venta` era atómica
+      corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se
       perdía después del commit, un reintento de la Encargada entraba como
       venta nueva, con doble descuento de stock. Se agregó `p_token uuid`

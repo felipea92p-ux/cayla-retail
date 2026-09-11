@@ -1,11 +1,72 @@
 # ADR-0025 — Código corto al lado del SKU, y varios códigos de barras por prenda
 
 **Fecha:** 2026-09-09
-**Estado:** aplicado y verificado en local (`supabase/migrations/0047_codigos.sql`);
-pendiente de pegar en producción (`supabase/unificacion/29_codigos.sql`, después
-de la `28`)
+**Estado:** aplicado y verificado en local y en producción
+(`supabase/migrations/0047_codigos.sql` · `supabase/unificacion/29_codigos.sql`).
+**La decisión se sostiene; el diagnóstico que la justificaba estaba mal.**
+Ver la corrección de abajo antes de leer el Contexto.
+
+---
+
+## ⚠ Corrección del 2026-09-10 — la causa escrita acá es falsa
+
+**Lo que este ADR afirma más abajo:** que el SKU largo no se lee porque se degrada a
+1.2 puntos por módulo, y que por eso hace falta un código corto.
+
+**Lo que resultó ser cierto, midiendo:** el defecto no era el largo del código. Era
+que el SVG se **estiraba** al ancho de la etiqueta (`preserveAspectRatio="none"` +
+`width: 100%`), y eso deforma la proporción de anchos de la que Code 128 depende para
+decodificarse. Eso rompía **cualquier** código.
+
+La prueba de que el diagnóstico estaba mal es directa: el primer escaneo real falló
+con `BLU-0001-AZM-M` — **el código corto, de 14 caracteres**. Devolvió
+`755123:1<7V90` y ráfagas de dígitos. Si la causa hubiera sido el largo, ése tendría
+que haber leído bien.
+
+Un round-trip (encoder → patrón → decodificador escrito aparte) probó que el cálculo
+siempre estuvo bien: los cinco casos decodifican exacto y el checksum cierra. El
+arreglo fue **dejar de estirar** — el módulo pasa a tener tamaño físico fijo y el
+ancho se deduce (`d80c57d`). Verificado por Felipe con la pistola Zebra.
+
+**Por qué la decisión igual se sostiene, con otra razón.** Con el módulo fijo en
+0.254 mm, el largo del texto ES el ancho impreso, y en los ~50 mm útiles de la
+etiqueta entran 15 caracteres:
+
+| texto | caracteres | módulos | ancho | |
+|---|---|---|---|---|
+| `BLU-0042-AZM-M` | 14 | 189 | 48.0 mm | entra |
+| `BLU-0042-AZM-XXL` | 16 | 211 | 53.6 mm | **no entra** |
+| `BLUSA-MANGA-…-AZUL-MARINO` | 40 | 475 | 120.7 mm | **no entra** |
+
+O sea que el SKU largo no es que se lea mal: **no cabe**. Pero el código corto
+tampoco alcanzaba — una talla XXL se pasa por 3.6 mm.
+
+**Qué lo resolvió de verdad:** la etiqueta pasó a imprimir **QR** el 2026-09-10
+(`397e666`), que es además lo que CAYLA ya venía usando. Un QR versión 1 guarda esos
+16 caracteres con 7.3 puntos por módulo, y no tiene techo de 15. El código corto
+sigue siendo la decisión correcta —es estable ante un typo, se dicta por teléfono y
+hace imposible el duplicado— pero **no por legibilidad del código de barras**.
+
+**VERIFICADO CON HARDWARE REAL el 2026-09-10.** Felipe imprimió la hoja de prueba y
+la escaneó con la pistola. Las tres cosas que había que medir pasaron: cada QR
+devuelve exactamente el código impreso debajo, la Zebra los engancha rápido y de
+lejos (es lectora 2D), y el texto de la derecha se lee sin esfuerzo a la distancia a
+la que se mira una etiqueta colgada. La etiqueta de CAYLA deja de ser una hipótesis.
+
+**La lección, que es la que cuesta:** este ADR observó bien el síntoma (el estirado
+estaba descrito, en la línea 17) y sacó la conclusión equivocada — le echó la culpa
+al largo del texto en vez de al renderizador. Actuar sobre ese diagnóstico habría
+dado un código más corto que **igual no se leía**. La aritmética estaba escrita como
+si fuera evidencia; era una hipótesis sin medir, y decía "verificar el dpi exacto"
+como si eso fuera un detalle pendiente y no la prueba entera.
+
+---
 
 ## Contexto
+
+> Lo que sigue quedó como se escribió el 2026-09-09, con su error incluido. No se
+> reescribe: un ADR es historia, y borrar el razonamiento equivocado borraría también
+> la lección.
 
 El SKU se genera en el cliente como slug de la referencia
 (`NuevoProductoForm.tsx:31-37`, `RecibirLoteForm.tsx:55-61`). "Blusa manga larga

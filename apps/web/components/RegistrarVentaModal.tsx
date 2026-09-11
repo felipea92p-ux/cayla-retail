@@ -54,7 +54,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ total: number; prendas: number } | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
-  // Un token por carrito (ADR-0030): si la red se corta después de que la venta ya
+  // Un token por carrito (ADR-0032): si la red se corta después de que la venta ya
   // se comiteó pero antes de que la respuesta llegue, un reintento con ESTE MISMO
   // carrito reenvía este mismo token y registrar_venta devuelve la venta que ya
   // existe en vez de duplicarla. Por eso solo cambia cuando el carrito realmente
@@ -209,7 +209,7 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, onClose }: 
     if (error) {
       // Sin tocar tokenVenta.current: si esto fue un corte de red y la venta ya se
       // había comiteado del otro lado, un reintento con el mismo token la recupera
-      // en vez de duplicarla (ADR-0030). No hay forma de distinguir ese caso de un
+      // en vez de duplicarla (ADR-0032). No hay forma de distinguir ese caso de un
       // error real desde el navegador, así que se deja el mismo token siempre.
       setError(traducirError(error, "registrar la venta"));
       return;

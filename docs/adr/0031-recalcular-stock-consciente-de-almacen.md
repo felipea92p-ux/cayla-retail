@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Al cerrar ADR-0030 (idempotencia de `registrar_venta`), se revisó el resto de
+Al cerrar ADR-0032 (idempotencia de `registrar_venta`), se revisó el resto de
 ítems abiertos de `docs/BACKLOG.md` para decidir el siguiente paso. Uno de
 ellos —"`recalcular_stock` borra el `stock_minimo` de una variante sin
 movimientos"— llevaba anotado desde `0044_almacen_interno.sql` como un

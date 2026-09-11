@@ -1,4 +1,4 @@
-# ADR-0030 — `registrar_venta` deja de duplicar una venta si la red se corta
+# ADR-0032 — `registrar_venta` deja de duplicar una venta si la red se corta
 
 **Fecha:** 2026-09-10
 **Estado:** Backend aplicado y verificado en producción. Frontend (envío del token) pendiente — ver Consecuencias.

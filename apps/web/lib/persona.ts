@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSedes } from "@/lib/sedes";
+import { etiquetaSede } from "@/lib/etiqueta-sede";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -12,6 +13,14 @@ export type PersonaActual = {
    *  puede "pararse" en cualquier tienda o en el Taller con el selector del AppShell. */
   sedeId: string;
   sedeCodigo: string;
+  /**
+   * Cómo se MUESTRA la sede en pantalla ("TND LIM", "TLL LIM", "CCO"). `sedeCodigo`
+   * se queda para lo que es: identificar, comparar e imprimir. Se separan porque en
+   * producción el código dejó de ser legible — el Taller es `LIM` y la tienda de Lima
+   * es `003`, así que la cabecera decía "003" y nadie sabía en qué sede estaba parado.
+   * La regla vive en `lib/etiqueta-sede.ts`.
+   */
+  sedeEtiqueta: string;
   /**
    * 'tienda' | 'fabrica' | 'almacen' | 'corporativo'. Se expone acá porque el
    * CÓDIGO de la sede no sirve para decidir nada: el Taller se llama `TALLER`
@@ -82,6 +91,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
   // vista sobre las sedes de dynamic).
   const sedePropia = sedes.find((s) => s.id === data.sede_id);
   let sedeCodigo = sedePropia?.codigo ?? "";
+  let sedeEtiqueta = sedePropia ? etiquetaSede(sedePropia) : "";
   let sedeTipo = sedePropia?.tipo ?? "";
 
   // Selector de sede del Líder: la cookie solo cambia la PERSPECTIVA de la app; el
@@ -94,6 +104,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
       if (sedeActiva && sedeActiva.tipo !== "almacen") {
         sedeId = sedeActiva.id;
         sedeCodigo = sedeActiva.codigo;
+        sedeEtiqueta = etiquetaSede(sedeActiva);
         sedeTipo = sedeActiva.tipo;
       }
     }
@@ -105,6 +116,7 @@ export const requirePersonaActual = cache(async (): Promise<PersonaActual> => {
     rol,
     sedeId,
     sedeCodigo,
+    sedeEtiqueta,
     sedeTipo,
   };
 });

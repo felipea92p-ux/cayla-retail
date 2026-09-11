@@ -19,12 +19,17 @@ import { Boton, Hilo } from "@/components/ui/campos";
 // la misma pieza del `Segmentado` (que ya se desliza en horizontal) puesta de
 // canto. Estructura, ancho y respiro cambiaron; ninguna ruta lo hizo.
 
-type Persona = { nombre: string; rol: "lider" | "integrante"; sedeCodigo: string; sedeId: string; sedeTipo: string };
+// `sedeEtiqueta` y no `sedeCodigo`: la cabecera y el lateral dicen DÓNDE está parada la
+// persona, y para eso el código no sirve desde la unificación con Dynamic (el Taller es
+// `LIM`, la tienda de Lima es `003`). El código sigue vivo donde es identificador —
+// tablas de Finanzas, columnas de stock por sede, etiquetas impresas.
+type Persona = { nombre: string; rol: "lider" | "integrante"; sedeEtiqueta: string; sedeId: string; sedeTipo: string };
 
 type Props = {
   persona: Persona;
-  /** Tiendas + taller para el selector del Líder (vacío para una Encargada). */
-  sedesOperativas: { id: string; codigo: string }[];
+  /** Tiendas + taller para el selector del Líder (vacío para una Encargada), ya
+   *  etiquetadas y ordenadas — el layout las arma. */
+  sedesOperativas: { id: string; etiqueta: string }[];
   children: React.ReactNode;
 };
 
@@ -437,7 +442,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-tinta">{persona.nombre}</p>
               <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                {esLider ? "Líder" : esTaller ? "Taller" : "Encargada"} · {persona.sedeCodigo}
+                {esLider ? "Líder" : esTaller ? "Taller" : "Encargada"} · {persona.sedeEtiqueta}
               </p>
             </div>
             <LogoutButton />
@@ -461,7 +466,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
             {esLider && sedesOperativas.length > 0 ? (
               <SedeSwitcher sedes={sedesOperativas} sedeActualId={persona.sedeId} />
             ) : (
-              <span className="label-cayla text-[11px] text-tinta/65">{persona.sedeCodigo}</span>
+              <span className="label-cayla text-[11px] text-tinta/65">{persona.sedeEtiqueta}</span>
             )}
           </div>
         </div>

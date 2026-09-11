@@ -1,7 +1,7 @@
 -- ============================================================================
--- 0052 — `registrar_venta` deja de duplicar una venta si la red se corta
+-- 0054 — `registrar_venta` deja de duplicar una venta si la red se corta
 --
--- Ver ADR-0030 y el espejo de producción (`supabase/unificacion/
+-- Ver ADR-0032 y el espejo de producción (`supabase/unificacion/
 -- 34_idempotencia_registrar_venta.sql`) para el razonamiento completo: dos
 -- rondas de revisión adversarial encontraron y cerraron ahí dos bugs reales
 -- (un bypass de autorización, y una rama de la carrera concurrente sin la

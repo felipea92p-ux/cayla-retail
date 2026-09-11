@@ -3,6 +3,34 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-10 (el estándar universal va debajo, no en lugar de)
+
+Felipe preguntó si se podía usar IA para importar el inventario de cada cliente
+nuevo. La primera respuesta apuntaba al vocabulario de CAYLA y él la frenó en
+seco: **ese vocabulario es de CAYLA**, no sirve para una zapatería ni para una
+marca deportiva, y pidió buscar un estándar universal si existía. Existe: la
+Shopify Standard Product Taxonomy — MIT, en español, release de hace un mes, 663
+categorías de ropa y 8.240 atributos con valores predefinidos. Google Product
+Taxonomy lleva congelada desde 2021 y no tiene atributos; los códigos de color y
+talla del NRF (hoy GS1 US) cuestan 250 dólares y están pensados para EDI.
+
+**El dato que ordenó todo el diseño: Shopify tiene 19 colores y CAYLA tiene 30.**
+El estándar universal es más pobre que el vocabulario propio, y eso no es un
+defecto — es lo que significa interoperar. Por eso va DEBAJO y no EN LUGAR DE:
+"Arena" sigue siendo Arena para la Líder y es "Beige" para el sistema. Con eso el
+trabajo de la IA cambia de naturaleza: deja de ser "adivina a qué categoría de
+CAYLA va esto" (imposible de generalizar a otra marca) y pasa a ser "mapea al
+universal", que es el mismo trabajo para todos los clientes, para siempre
+(ADR-0030). Quedaron cargadas 1.849 categorías y 10.216 valores en local.
+
+Lo que Felipe se lleva: **un estándar de interoperabilidad no es el vocabulario
+más rico, es el más compartido** — y por eso se pone debajo del propio en vez de
+reemplazarlo. Y la regla que va a gobernar el importador entero: lo que resuelve
+el código no se le pregunta a la IA (la mitad de los 30 colores se ancla por
+comparación exacta de cadenas, gratis, sin que el modelo los vea). Queda
+pendiente ejecutarlo: no hay ANTHROPIC_API_KEY en el entorno, así que la calidad
+real de las propuestas del modelo todavía no se ha visto.
+
 ## 2026-09-10 (el identificador no es la etiqueta, y el flag prestado no es tuyo)
 Felipe preguntó dónde cambiar a mano las letras del selector de sede: quería que
 `LIM` dijera Taller y `003` dijera Tienda Lima. No hacía falta escribirlas — la
@@ -2481,7 +2509,13 @@ Se descubrió en el camino que `docs/adr/0029-*.md` ya estaba prometido en
 archivo todavía no existiera en este checkout — colisión de numeración de
 ADR, el mismo patrón que ya documentó la memoria de "sesiones paralelas".
 Se renumeró a ADR-0030 antes de commitear, sin esperar a que la otra rama se
-fusionara para descubrirlo tarde.
+fusionara para descubrirlo tarde. **Al fusionar contra `origin/main` (que ya
+llevaba 8 commits más) la misma colisión volvió a pasar una segunda vez**:
+otra sesión también usó `0030` (taxonomía universal) y `0052` para su
+migración local — se renumeró de nuevo a ADR-0032 y `0054`/`0055` recién al
+resolver el merge, no antes, porque `origin/main` siguió avanzando mientras
+esta rama esperaba. La lección se repite: verificar la numeración libre justo
+antes de fusionar, no solo antes de escribir.
 
 **Lo que Felipe aprende acá:** un borrador que "se ve bien" y un borrador
 verificado no son lo mismo — los dos bugs de las rondas 1 y 2 habrían pasado
@@ -2536,3 +2570,181 @@ desde que se construyó el almacén interno y nadie lo supo porque nadie la
 había invocado; el mismo ejercicio de verificarla para otra cosa (el borde
 de `stock_minimo`) fue lo que sacó a la luz que dos números reales, en
 pantalla, ya estaban mal.
+
+## 2026-09-10 (auditoría del código ajeno, ya desplegado — y una trampa que casi muerde)
+Felipe pidió verificar si era seguro pushear los commits de las otras sesiones. Se habían
+pusheado ya: `origin/main` estaba en `f7bdfc4`, los 10 commits arriba. Así que la pregunta
+cambió de "¿conviene?" a "¿hay que revertir algo?". No hay que revertir nada.
+
+**Lo auditado, contra la base y contra el código, no contra la intención.** Los 3 RPC que
+llama la pantalla de conteo existen en producción con firma idéntica a local. Las 6 tablas
+también. `EtiquetasGenerator` trata el `codigo` nulo con `?? sku` en las cuatro partes donde
+lo usa — importa porque producción tiene 2 variantes sin código (las de color "azul " con
+espacio) y habrían impreso etiqueta en blanco. Y cero lecturas silenciosas en el código
+nuevo: la única coincidencia de `{ data }` en `lib/conteo.ts` está DENTRO de un comentario
+que explica por qué usaron `exigirOpcional` en su lugar. El CI —estrenado hoy— salió verde
+en su primera corrida real, 42 s.
+
+**La trampa, que es el hallazgo que sobrevive a esta sesión:** la función de permiso se
+llama distinto en cada lado. Local `retail.fn_puede_operar_sede`, producción
+`retail.puede_operar_sede`, sin el `fn_`. Los archivos están bien —20 de `migrations/` usan
+una y 17 de `unificacion/` la otra—, pero el cuerpo de una función plpgsql **no se resuelve
+al crearla, solo al ejecutarla**. Copiar un gemelo al otro, que es el gesto natural cuando
+escribes el par, deja un `create or replace` que corre en verde y falla la primera vez que
+alguien lo usa. `migraciones:verificar` tampoco lo vería: comprueba que la función exista,
+no a quién llama por dentro. Anotado en el BACKLOG con las dos salidas.
+
+**Lo que Felipe aprende acá:** hoy leí `retail.puede_operar_sede` en el archivo que estaba
+por aplicar, lo busqué en local, no estaba, y por un momento pensé que iba a romper
+producción. La costumbre de comprobar antes de opinar convirtió un susto en un hallazgo — y
+el hallazgo vale más que el susto, porque esa diferencia de nombres sigue ahí esperando a
+quien escriba el próximo par de gemelos.
+
+## 2026-09-10 (cierre: qué falta de verdad, cruzado contra la base)
+Con todo pusheado y el CI en verde, se auditó qué queda. El resultado más útil no es la
+lista sino que **el backlog mentía en tres items más**, siempre en la misma dirección:
+daba por pendiente algo ya hecho, porque quien lo hizo no lo anotó.
+
+**El cruce que conviene repetir antes de cada despliegue:** se extrajeron los 25 `.rpc(` que
+llama `apps/web` y se preguntaron de golpe contra producción. **Los 25 existen, con
+exactamente una firma cada uno** — ni falta ninguno ni hay sobrecargas (la trampa del
+ADR-0009). Es una consulta, contesta en un segundo, y responde de verdad la pregunta "¿la
+app y la base están de acuerdo?", que hasta hoy se contestaba pantalla por pantalla cuando
+algo se rompía.
+
+Corregidos: `crear_producto_con_variantes` YA está en producción (con su pantalla
+`/inventario/producto/nuevo` desplegada), o sea que `unificacion/16` se pegó y nadie lo
+registró; y el padrón YA tiene proveedor contratado — hay un token real de `apisnetpe_v1` y
+la bitácora del 08-09 registra la consulta funcionando —, así que lo único abierto ahí es
+confirmar el valor exacto en Vercel.
+
+**Un susto que no lo era:** `recibir_lote_completo` no aparecía en producción y
+`/inventario/recibir` es de uso diario. Resultó que ese es el nombre del ARCHIVO de
+migración (`0031_recibir_lote_completo.sql`); la función se llama `recibir_lote` y está.
+Segunda vez en el día que un nombre de archivo o una diferencia de nombres entre entornos
+manda por el camino equivocado.
+
+**Lo que Felipe aprende acá:** tres items del backlog decían "falta pegar X" y X estaba
+pegado. El patrón no es descuido de una persona: es que aplicar algo en producción y
+anotarlo son dos gestos distintos, y el segundo se olvida cuando el primero salió bien. Por
+eso el cruce automático vale más que la lista escrita — la lista recuerda lo que alguien
+decidió anotar, la base sabe lo que pasó.
+
+## 2026-09-10 (cierre de sesión)
+Se le pasó a la sesión "Daniel - Organizacion inventario INC" —la de las etiquetas, que
+sigue trabajando— los dos cabos que dejó su propio commit `d80c57d`: ADR-0025 quedó con la
+razón equivocada escrita (el código corto se justifica por el ancho físico, no por la
+degradación a 1.2 puntos/módulo), y la cabecera de `lib/codigo128.ts` todavía describe el
+estirado que ese commit eliminó, o sea que contradice al código que tiene debajo. Enviado
+como aviso, no como encargo: si ya lo tenían en el refactor, siguen.
+
+Y queda publicado un resumen visual de la jornada, con el libro de cuentas de las ocho
+afirmaciones que la base desmintió.
+
+**Lo que Felipe aprende acá:** un comentario que envejece mal es peor que no tenerlo. El de
+`codigo128.ts` explica con precisión un bug que ya no existe — quien lo lea mañana va a
+diagnosticar hacia atrás. Cuando un arreglo desmiente la razón escrita, corregir el texto
+es parte del arreglo, no papeleo posterior.
+
+## 2026-09-10 (la etiqueta deja de ser una hipótesis — y un ADR enseñaba una causa falsa)
+
+**La etiqueta de CAYLA está verificada con hardware real.** Felipe imprimió la hoja de prueba
+y la escaneó con la pistola: cada QR devuelve exactamente el código impreso debajo, la Zebra
+los engancha rápido y de lejos, y el texto de la derecha se lee sin esfuerzo a la distancia a
+la que se mira una etiqueta colgada. La etiqueta pasó a ser **QR + el código legible al lado**
+(`397e666`), que es además lo que CAYLA ya venía usando en la operación.
+
+**Leer QR no requirió construir nada.** El lector manda el contenido como si lo tecleara, y
+`conteo_contar_por_codigo` resuelve cualquier texto contra `codigos_barras` → `variantes.codigo`
+→ `sku`. Como esa tabla ya modela "varios códigos, una prenda" sin importar la simbología, los
+QR que CAYLA ya tiene pegados se adoptan con un `insert`: la ropa ya etiquetada queda escaneable
+sin reimprimir nada.
+
+**El camino hasta acá tuvo dos errores míos, y el segundo enseña más que el primero.**
+
+El 09-09 escribí en ADR-0025 que el SKU largo no se leía porque se degradaba a 1.2 puntos por
+módulo. El 09-10 Felipe escaneó y salió basura — pero salió basura con `BLU-0001-AZM-M`, **el
+código CORTO de 14 caracteres**. Si la causa hubiera sido el largo, ése tenía que haber leído
+bien. El defecto real era que el SVG se **estiraba** al ancho de la etiqueta y deformaba la
+proporción de anchos de la que Code 128 depende: rompía cualquier código. Un round-trip probó
+que el encoder siempre estuvo bien. El arreglo fue dejar de estirar (`d80c57d`).
+
+**Lo que aprendió Felipe:** que un ADR puede observar bien el síntoma y sacar la conclusión
+equivocada. Ese ADR TENÍA descrito el estirado, en su propia línea 17 — y aun así le echó la
+culpa al largo del texto en vez de al renderizador. Actuar sobre ese diagnóstico habría dado un
+código más corto que igual no se leía. La aritmética estaba escrita como si fuera evidencia,
+y decía "verificar el dpi exacto" como si fuera un detalle pendiente y no la prueba entera.
+
+Corregido el 10-09: ADR-0025 lleva ahora la corrección ANTES del contexto —quien lee de arriba
+hacia abajo se topaba primero con la causa falsa— y el contexto viejo queda como estaba, con su
+error incluido. Un ADR es historia; borrar el razonamiento equivocado borraría la lección.
+La cabecera de `lib/codigo128.ts` también contaba la historia vieja y contradecía al código de
+abajo. Los dos cabos los detectó una sesión paralela leyendo mi propio commit.
+
+**Se sumó una librería, rompiendo la tradición del repo, y vale decir por qué.** Code 128 se
+escribió a mano con razón: una tabla de patrones y un checksum, 40 líneas auditables. QR no es
+comparable — Reed-Solomon sobre campos de Galois, ocho patrones de enmascarado con evaluación de
+penalidad, formato con códigos BCH. Son 600+ líneas donde un error produce un código que *a
+veces* escanea: pasa las pruebas y falla en el mostrador. `qrcode.react` 4.2.0.
+
+Y se aplicó dos veces la misma disciplina: **la hoja de prueba dibuja con el mismo código que la
+app**, no con una copia. Para el QR eso significó renderizar el propio componente a HTML estático
+desde Node. Si generara el suyo, mediría otra cosa — que es exactamente el error que casi
+cometemos con el código de barras.
+
+## 2026-09-10 (el conteo por fin se puede cerrar)
+El censo tenía un callejón sin salida que ningún documento registraba: la pantalla de
+conteo funcionaba entera —escanear, contar a ciegas, crear al vuelo— y le decía a la
+Encargada, con esas palabras, «lo contado no entra al inventario hasta que la Líder
+cierra». Pero `cerrar_conteo` **no estaba cableada en ninguna parte de la app**. Ni
+`previsualizar_cierre_conteo`, ni `anular_conteo`. Las tres RPC existían en la base desde
+`0048` y ninguna tenía un botón: el equipo podía contar 900 prendas y esas 900 no entraban
+nunca. Una pantalla prometiendo algo que el sistema no podía cumplir.
+
+Nace `/inventario/conteo/cerrar`: la varianza valorizada al costo, el aviso aparte de lo
+que nadie contó (que al cerrar queda en cero), y las dos decisiones de la Líder. Va en
+pantalla propia y no como sección de la de contar, porque son dos trabajos distintos de
+dos personas distintas — contar es un gesto que se repite 500 veces con el foco clavado en
+el buscador; aprobar pasa una vez y necesita ver todo antes de tocar nada. Y navegar es lo
+que garantiza que la cifra esté fresca.
+
+**Lo que Felipe aprende acá:** «faltan 47 unidades» no se puede aprobar. 47 medias y 47
+abrigos son el mismo número y no el mismo problema. Por eso la varianza se muestra en
+soles al costo, y por eso la conversión vive en `lib/`, no en la RPC: el costo es un dato
+del catálogo, no del conteo, y meterlo adentro ataría lo contable a la mecánica de contar.
+
+Y la regla que se probó aparte, porque es la que se rompe callada: **una prenda sin costo
+no vale cero.** Durante el censo se crean prendas al vuelo y muchas nacen sin costo;
+sumarlas como 0 daría una varianza más chica que la real — la dirección en la que un
+número equivocado hace daño, porque un faltante que se ve pequeño no se investiga. La
+pantalla las declara aparte: «la cifra real es mayor que esta, no menor». La aritmética se
+extrajo a `lib/conteo-varianza.ts` para poder probarla sin montar Supabase, el mismo
+patrón que `panel-serie.ts` frente a `panel.ts`. 7 pruebas nuevas.
+
+De paso, el ítem del backlog estaba viejo por tercera vez esta semana: daba por pendientes
+la proyección delgada y la pantalla de conteo, que ya existían desde `ab479ba`.
+
+## 2026-09-10 (el alta deja de repetirse, y con eso deja de partir prendas en dos)
+El backlog pedía una MATRIZ talla × color para el alta durante el censo. Se descartó y se
+hizo otra cosa, con el desacuerdo puesto sobre la mesa antes de construir. Dos razones:
+`conteo_crear_variante` siempre termina llamando a `conteo_contar`, así que crear las 12
+celdas de golpe metería 11 líneas «contadas: 0» — que en el cierre significa «miré y no
+había», una afirmación y no un vacío, justo en el informe que se acababa de construir para
+que fuera confiable. Y porque el dolor real no era declarar 12 celdas: era que la segunda
+talla del mismo modelo volvía a pedir los siete campos.
+
+Ahora el alta recuerda el modelo: la siguiente pide talla, color y cantidad.
+
+**Lo que Felipe aprende acá, y vale más que la comodidad:** buscando el ahorro de tecleo
+apareció un defecto que el censo habría golpeado en la prenda número dos. `AltaEnConteo`
+nunca pasaba `p_producto_id`, y la RPC, sin ese dato, **inserta un producto nuevo cada
+vez**. Declarar la talla M y después la L de la misma blusa creaba dos productos con la
+misma referencia y DOS códigos cortos distintos. El código corto es lo que va impreso en la
+etiqueta y lo que agrupa el catálogo por modelo: la prenda quedaba partida en dos para el
+inventario, la rotación y la clase ABC, sin que nada fallara. Recordar el modelo no es un
+atajo de tecleo; es lo que impide esa partición.
+
+La lección de método: la funcionalidad que se pidió (la matriz) y el problema que la
+motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
+primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
+defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
