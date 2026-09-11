@@ -3,6 +3,31 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (`main` verde en CI y roto en local: dos sesiones, el mismo problema, y nadie eligió)
+
+Dos sesiones resolvieron la idempotencia de `registrar_venta` el mismo día, cada una en
+su rama, y el merge que las juntó (`718a732`) se quedó con **las dos**: dos `0054`, dos
+`0055` (el importador trajo la suya), `34`/`35` repetidos en `unificacion/`, tres
+`ADR-0031` y dos `ADR-0032`. CI pasó porque no toca la base; `npx supabase db reset`
+sobre ese `main` muere en `0054` con `schema_migrations_pkey` — Supabase no acepta dos
+migraciones con la misma versión. Se desduplicó: un solo `0054`, `0055_importar` →
+`0056`, `34`/`35` de la rama → `36`/`37` (el `34` de main queda supersedido por el `37`,
+que reescribe la misma función), ADR de la rama → 0033/0034 y el del importador → 0035,
+cada referencia corregida por lo que significa y no por el número. **Y el modal de venta
+se resolvió a favor de la rama, no de main:** main regeneraba el token después de cada
+éxito y al tocar el carrito; la rama nunca lo regenera dentro de la misma sesión de
+venta. Es la única de las dos que evita el cobro doble cuando la red se corta después del
+commit y la Encargada "corrige" el carrito antes de reintentar — y es lo que producción
+ya tenía (`is not true`). Verificado: `db reset` limpio hasta `0056`, una sola firma de
+`registrar_venta`, 53 de 53 cuerpos de función explicados por el repo.
+
+Lo que Felipe se lleva: **cuando dos ramas resuelven lo mismo, no gana la que llegó
+primero a `main` sino la que aguanta el peor caso** — y el peor caso acá no era "la red
+falla", era "la red falla y alguien toca el carrito antes de reintentar". Y una de
+método: un CI que no levanta la base no puede decir "las migraciones corren"; la
+numeración libre (migraciones, ADR, gemelos de `unificacion/`) se verifica contra
+`origin/main` en el momento de fusionar, con `db reset` como juez, no con el ojo.
+
 ## 2026-09-11 (el importador entero, y la IA que nunca ve la fila 2.847)
 
 Se cerró el importador de catálogos de punta a punta: Excel, CSV, Google Sheets,
@@ -11,7 +36,7 @@ universal cuelga cada color nuevo, y el catálogo se escribe en una sola
 transacción con stock en cero. Se puede deshacer (descontinuar, nunca borrar).
 Verificado en el navegador con la sesión real, no solo en tests: un CSV sucio
 terminó en "3 prendas · 6 variantes" y la base lo confirmó con códigos cortos
-asignados (ADR-0031).
+asignados (ADR-0035).
 
 Felipe pidió que las pantallas siguieran la estética integrada, y al estudiar
 `globals.css` y `components/ui/campos.tsx` apareció que mis cuatro componentes
@@ -62,7 +87,7 @@ IndexedDB + Realtime para que el dato viva en el navegador, pero **las 41 rutas 
 Server Components**: con el wifi caído no llega ni el HTML, así que ningún JavaScript
 nuestro corre y da igual lo que haya guardado. Faltaba el escalón de abajo —un service
 worker— y las dos piezas solo sirven juntas. Felipe eligió el alcance acotado: solo la
-pantalla del censo (ADR-0032).
+pantalla del censo (ADR-0034).
 
 **Y no hizo falta IndexedDB.** El documento del conteo ya trae el catálogo adentro,
 porque el Server Component lo resolvió antes de renderizar: guardar el documento guarda
@@ -88,7 +113,7 @@ otros datos y el `exception when unique_violation` de la carrera—, puesta a ma
 alguien y sin usar por nadie. Le faltaban tres cosas: que el modal mandara el token,
 que local tuviera lo mismo (`0054`, una migración que va al revés que todas: el repo
 poniéndose al día con producción), y decidir quién genera el token y cuánto vive
-(ADR-0031).
+(ADR-0033).
 
 **Y el valor real no era el que decía el plan.** El plan lo justificaba como
 precondición de la cola de la venta sin internet. Mirando `lib/error-escritura.ts`

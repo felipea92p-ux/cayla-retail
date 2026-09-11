@@ -1,5 +1,5 @@
 -- ============================================================================
--- 35 — `registrar_venta` vuelve a resolver: `p_nota` recupera su default
+-- 37 — `registrar_venta` vuelve a resolver: `p_nota` recupera su default
 -- Correr en cayla-DYNAMIC (SQL Editor). Todo en el cajón `retail`.
 --
 -- ⚠ ESTO ARREGLA UNA VENTA QUE HOY NO SE PUEDE REGISTRAR EN PRODUCCIÓN.

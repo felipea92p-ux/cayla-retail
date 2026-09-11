@@ -6,7 +6,7 @@ import { useEffect } from "react";
  * Registra `public/sw.js`, y se monta SOLO en la pantalla de conteo.
  *
  * Podría vivir en el layout y registrarse una vez para toda la app. No lo hace por una
- * razón de alcance: el worker existe hoy para una pantalla (ADR-0032), y registrarlo desde
+ * razón de alcance: el worker existe hoy para una pantalla (ADR-0034), y registrarlo desde
  * el layout haría que un equipo que nunca abre el conteo igual arrastre un service worker.
  * Cuantos menos navegadores tengan uno instalado, menos superficie hay para el fallo clásico
  * —servir una versión vieja— el día que este archivo tenga un bug.

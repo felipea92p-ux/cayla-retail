@@ -48,7 +48,7 @@ type Props = {
    * Cuándo armó el servidor esta pantalla. Sin red, el service worker sirve la ÚLTIMA
    * versión que se cargó con internet — con su catálogo y con este timestamp — así que esto
    * es la edad REAL de la foto contra la que se está contando, no la hora actual. Es el dato
-   * que convierte "datos viejos en silencio" en "datos viejos, y de cuándo". Ver ADR-0032.
+   * que convierte "datos viejos en silencio" en "datos viejos, y de cuándo". Ver ADR-0034.
    */
   generadoEn: string;
 };
@@ -85,7 +85,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
   // pintaría "sin internet" durante el primer render de CADA carga, incluidas las buenas.
   // El efecto de montaje corrige enseguida si de verdad no hay red.
   const [enLinea, setEnLinea] = useState(true);
-  // Lo pone el service worker cuando sirve esta pantalla desde la caché (ADR-0032). Es la
+  // Lo pone el service worker cuando sirve esta pantalla desde la caché (ADR-0034). Es la
   // única señal que no miente: con el servidor caído y el wifi vivo, `navigator.onLine`
   // sigue diciendo `true` — comprobado apagando el servidor en la prueba.
   const [desdeCache, setDesdeCache] = useState(false);
@@ -188,7 +188,7 @@ export function ConteoPanel({ persona, conteo, catalogo, categorias, colores, ge
         // buscador vuelve a tomar foco, la pistola sigue. El aviso de arriba ya dice cuántas
         // están pendientes; poner además un error rojo que diga «no se guardó nada» debajo
         // de un aviso que dice «está guardada en este equipo» era exactamente lo que pasaba,
-        // y son dos frases que se contradicen sobre la misma prenda. — ADR-0032
+        // y son dos frases que se contradicen sobre la misma prenda. — ADR-0034
         guardarPendientes([
           ...pendientes,
           { varianteId: variante.varianteId, cantidad: cuantas, referencia: variante.referencia },
