@@ -811,6 +811,18 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [x] **CI ya levanta la base desde cero (2026-09-11).** Job `migraciones` en
+      `.github/workflows/ci.yml`: Postgres 17 solo (`supabase db start`), `supabase db
+      reset` de `0001` a la última con `seed.sql`, y el verificador como informe. Es el
+      comando que atrapó el `main` roto del 11-sep (dos `0054`, `schema_migrations_pkey`)
+      — desde ahora se atrapa en el PR, no en el primer `db reset` a mano. CLI fijado en
+      `2.107.0`, la misma versión que la máquina de Felipe: si se sube uno, se sube el otro.
+      **Lo que sigue abierto:** `scripts/migraciones/verificar.mjs` solo sale con error si
+      no puede leer la base; cuando un archivo promete algo que falta, imprime y sale en
+      verde. No puede ser gate tal cual porque `0015`/`0027` ya salen marcados por deriva
+      vieja (políticas de `storage.objects`, `marcar_produccion_terminada` borrada después).
+      Falta un modo estricto que conozca esa lista y falle con cualquier otra ausencia.
+
 - [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
       sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
       se verificó lo principal: la cola sube sola al volver la red (la prenda encolada
