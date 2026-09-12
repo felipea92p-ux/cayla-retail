@@ -369,10 +369,7 @@ export function PuntoDeVenta({
         <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
           <div className="px-4 pt-4 sm:px-6 sm:pt-5">
             <div className="mb-3 flex items-end justify-between gap-4">
-              <div>
-                <p className="label-cayla text-[11px] text-taupe-profundo">Venta en tienda</p>
-                <h1 className="font-display text-xl text-tinta">Catálogo de prendas</h1>
-              </div>
+              <h1 className="font-display text-xl text-tinta">Catálogo de prendas</h1>
               <button
                 type="button"
                 onClick={() => setManualAbierto(true)}
