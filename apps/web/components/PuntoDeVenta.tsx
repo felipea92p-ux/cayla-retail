@@ -367,17 +367,24 @@ export function PuntoDeVenta({
         className={`grid lg:grid-cols-[minmax(0,1fr)_420px] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
         <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
-          <div className="relative px-4 pt-2 sm:px-6 sm:pt-3">
-            <button
-              type="button"
-              onClick={() => setManualAbierto(true)}
-              disabled={bloqueado}
-              className="label-cayla absolute top-2 right-4 flex h-10 items-center gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40 sm:right-6"
-            >
-              <CircleDollarSign className="h-4 w-4" />
-              Monto manual
-            </button>
-            <h1 className="font-display mb-3 text-center text-3xl text-tinta sm:text-4xl">Catálogo De Prendas</h1>
+          <div className="px-4 pt-2 sm:px-6 sm:pt-3">
+            {/* Grid de 3 columnas en vez de `justify-between`: así el título queda
+                centrado de verdad contra TODO el ancho de la fila — con solo dos
+                columnas (título + botón), `text-center` centra dentro de un
+                hueco que ya viene corrido por el ancho del botón. */}
+            <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+              <span aria-hidden />
+              <h1 className="font-display text-center text-3xl text-tinta sm:text-4xl">Catálogo De Prendas</h1>
+              <button
+                type="button"
+                onClick={() => setManualAbierto(true)}
+                disabled={bloqueado}
+                className="label-cayla flex h-10 items-center justify-self-end gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40"
+              >
+                <CircleDollarSign className="h-4 w-4" />
+                Monto manual
+              </button>
+            </div>
 
             <div className="relative z-20">
               <label className="flex h-12 items-center rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
