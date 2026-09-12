@@ -288,4 +288,19 @@ if (process.argv.includes("--md")) {
   console.log(`  ✓ docs/datos/generado/DRIFT.md reescrito\n`);
 }
 
+// Salir con 1 cuando hay pantallas rotas es DELIBERADO: así esto sirve de alarma
+// automática y puede frenar un despliegue (decisión D-19). Pero `pnpm` pinta ese
+// código en rojo con un ELIFECYCLE que parece que el comando se rompió, y no es eso.
+// Un mensaje que se explica solo cuesta tres líneas y ahorra el susto.
+if (rotas.length) {
+  console.log(`  ─────────────────────────────────────────────────────────────`);
+  console.log(`  Este comando termina con código 1 A PROPÓSITO: encontró ${rotas.length} pantalla${rotas.length > 1 ? "s" : ""} rota${rotas.length > 1 ? "s" : ""}.`);
+  console.log(`  El "ELIFECYCLE / Command failed" que imprime pnpm justo debajo NO es un`);
+  console.log(`  fallo del comando — es la alarma sonando. Si terminara en 0 con pantallas`);
+  console.log(`  rotas, no serviría para frenar un despliegue.`);
+  console.log(``);
+  console.log(`  Qué hacer: docs/datos/SQL-PENDIENTE-PRODUCCION.sql y`);
+  console.log(`  docs/datos/DIAGNOSTICO-PANTALLAS-ROTAS.md\n`);
+}
+
 process.exit(rotas.length ? 1 : 0);
