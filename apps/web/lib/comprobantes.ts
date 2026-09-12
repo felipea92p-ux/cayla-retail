@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 
-export type TipoComprobante = "boleta" | "factura" | "nota_credito";
+export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito";
 export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado";
 /** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
  *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
@@ -24,12 +24,12 @@ export type Comprobante = {
    *  no la confirmó: el resumen diario de boletas se procesa diferido. */
   anulacion_solicitada_at: string | null;
   created_at: string;
-  sede_id: string;
+  ubicacion_id: string;
 };
 
 export type SerieComprobante = {
   id: string;
-  sede_id: string;
+  ubicacion_id: string;
   tipo: TipoComprobante;
   serie: string;
   siguiente_numero: number;
@@ -45,7 +45,7 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
   const res = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, anulacion_solicitada_at, created_at, sede_id"
+      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, anulacion_solicitada_at, created_at, ubicacion_id"
     )
     .gte("created_at", desde)
     .lt("created_at", hasta)
@@ -55,12 +55,12 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
 
 export async function getSeriesComprobantes(): Promise<SerieComprobante[]> {
   const supabase = await createClient();
-  // Sin series, la pantalla avisa "esta sede no tiene serie configurada" y nadie puede
-  // emitir. Si eso sale de una consulta fallida en vez de la realidad, se manda a Felipe a
-  // configurar algo que ya estaba configurado.
+  // Sin series, la pantalla avisa "esta ubicación no tiene serie configurada" y nadie
+  // puede emitir. Si eso sale de una consulta fallida en vez de la realidad, se manda a
+  // Felipe a configurar algo que ya estaba configurado.
   const resSeries = await supabase
     .from("series_comprobantes")
-    .select("id, sede_id, tipo, serie, siguiente_numero")
+    .select("id, ubicacion_id, tipo, serie, siguiente_numero")
     .order("tipo");
   return exigir(resSeries, "las series de comprobantes") as SerieComprobante[];
 }

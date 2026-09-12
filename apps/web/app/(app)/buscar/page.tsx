@@ -1,24 +1,21 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoConStock } from "@/lib/catalogo";
+import { getCatalogo } from "@/lib/catalogo-v2";
 import { createClient } from "@/lib/supabase/server";
-import { mapaSedes } from "@/lib/sedes";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 
-// Búsqueda global (el dolor #1 del negocio, nombrado por Felipe en el descubrimiento:
-// "no saber si se tiene stock e ir a almacén a buscarlo a ciegas"). Resultado en
-// segundos: cuánto hay, en qué sede, y en QUÉ contenedor del almacén está guardado.
-// La pistola Zebra funciona aquí sin configurar nada: tipea el código y da Enter.
+// Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
+// `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
+// Encontrado en producción: el buscador del header (`BuscadorGlobal` en
+// AppShell.tsx) quedó activo al recortar la navegación de Fase 1, pero seguía
+// apuntando a esta ruta sin adaptar — un enlace que compilaba y rompía al usarse,
+// justo lo que la Fase 1 prohibía dejar pasar. Bug real reportado por Felipe.
 export default async function BuscarPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const term = (q ?? "").trim();
 
-  // El título sale de lo que la Encargada acaba de escribir: no depende de ninguna
-  // consulta, así que se dibuja de inmediato. Antes esperaba a que cargara el catálogo
-  // ENTERO — con la pistola Zebra eso se siente como si el escaneo no hubiera entrado.
   return (
     <div className="space-y-6">
       <div>
@@ -26,9 +23,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           Búsqueda
           <Ayuda titulo="Búsqueda">
             Para responderle a una clienta sin ir al almacén a ciegas. Te dice cuánto hay de esa
-            prenda, en qué sede está y —si está guardada— en qué contenedor del almacén. Puedes
-            escribir la referencia, la talla o el color, o escanear la etiqueta con la pistola: es
-            lo mismo, la pistola solo escribe el código por ti.
+            prenda y en qué ubicación. Puedes escribir la referencia, el SKU, la talla o el
+            color, o escanear la etiqueta con la pistola: es lo mismo, la pistola solo escribe
+            el código por ti.
           </Ayuda>
         </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
@@ -45,102 +42,100 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   );
 }
 
-/**
- * La parte que viaja por la red. `key={term}` en el Suspense de arriba es deliberado: sin
-  * él, cambiar de búsqueda reusaría el boundary ya resuelto y la Encargada seguiría viendo
-  * los resultados VIEJOS mientras llegan los nuevos, sin señal de que están cargando. Con
-  * el key, cada término monta su propio boundary y vuelve a mostrar el esqueleto.
- */
 async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
-  const persona = await requirePersonaActual();
-  const supabase = await createClient();
-  const [variantes, resStock, sedes] = await Promise.all([
-    getCatalogoConStock(persona),
-    supabase.from("stock").select("variante_id, cantidad, sede_id, contenedores(codigo)"),
-    mapaSedes(),
-  ]);
+  const catalogo = await getCatalogo();
 
-  // Buscar es la pantalla del "no ir al almacén a ciegas": si el stock no cargó, decir
-  // "sin coincidencias" mandaría a alguien a buscar algo que sí está. Falla en duro.
-  const stockRows = exigir(resStock, "el stock por sede");
-
-  // varianteId → detalle por sede (cantidad + contenedor si es almacén)
-  const detallePorVariante = new Map<string, { sede: string; esAlmacen: boolean; cantidad: number; contenedor: string | null }[]>();
-  stockRows.forEach((r) => {
-    const sede = sedes.get(r.sede_id);
-    const contenedor = Array.isArray(r.contenedores) ? r.contenedores[0] : r.contenedores;
-    if (!sede) return;
-    const lista = detallePorVariante.get(r.variante_id) ?? [];
-    lista.push({ sede: sede.codigo, esAlmacen: sede.tipo === "almacen", cantidad: r.cantidad, contenedor: contenedor?.codigo ?? null });
-    detallePorVariante.set(r.variante_id, lista);
-  });
-
-  const resultados = variantes
+  const resultados = catalogo
     .filter((v) =>
-      `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.familia ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""}`
+      `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.talla ?? ""} ${v.color ?? ""}`
         .toLowerCase()
         .includes(term)
     )
     .slice(0, 30);
 
+  if (resultados.length === 0) {
+    return (
+      <p className="text-sm text-tinta/65">
+        Sin coincidencias para &ldquo;{textoOriginal}&rdquo; — revisa la escritura o prueba con menos
+        palabras.
+      </p>
+    );
+  }
+
+  // El stock por ubicación se pide SOLO para lo que ya matcheó, no para el
+  // catálogo entero: RLS acota las filas a lo que la persona puede ver
+  // (líder = todas, integrante = la suya), así que esto ya sale bien
+  // recortado sin filtrar nada a mano acá.
+  const supabase = await createClient();
+  const stockRows = exigir(
+    await supabase
+      .from("stock")
+      .select("variante_id, cantidad, ubicacion:ubicaciones ( nombre )")
+      .in(
+        "variante_id",
+        resultados.map((r) => r.varianteId)
+      )
+      .gt("cantidad", 0),
+    "el stock de estos resultados"
+  );
+
+  const stockPorVariante = new Map<string, { ubicacion: string; cantidad: number }[]>();
+  stockRows.forEach((r) => {
+    const lista = stockPorVariante.get(r.variante_id) ?? [];
+    lista.push({ ubicacion: r.ubicacion?.nombre ?? "—", cantidad: r.cantidad });
+    stockPorVariante.set(r.variante_id, lista);
+  });
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-tinta/65">
-        {resultados.length === 0
-          ? `Sin coincidencias para "${textoOriginal}" — revisa la escritura o prueba con menos palabras.`
-          : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}`}
+        {resultados.length} resultado{resultados.length === 1 ? "" : "s"}
       </p>
 
       <div className="space-y-3">
         {resultados.map((v) => {
-          const detalles = (detallePorVariante.get(v.varianteId) ?? []).filter((d) => d.cantidad > 0);
-          const hayStock = v.stockTotal > 0;
+          const detalles = stockPorVariante.get(v.varianteId) ?? [];
+          const stockTotal = detalles.reduce((acc, d) => acc + d.cantidad, 0);
+          const hayStock = stockTotal > 0;
           return (
-            <Link
-              key={v.varianteId}
-              href={`/producto/${v.varianteId}`}
-              className="block card-cayla p-5 transition-colors hover:border-rojo/40"
-            >
+            <div key={v.varianteId} className="card-cayla p-5">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  {v.fotoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.fotoUrl} alt="" className="h-14 w-14 shrink-0 border border-tinta/10 object-cover" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-tinta">
-                      {v.referencia}{" "}
-                      <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-tinta/65">
-                      {[v.familia, v.categoria].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-tinta">
+                    {v.referencia}{" "}
+                    <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
+                  </p>
+                  {v.categoria && <p className="mt-0.5 text-xs text-tinta/65">{v.categoria}</p>}
+                  <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{v.stockTotal}</p>
-                  <p className="label-cayla text-[11px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
-                  {v.precio != null && <p className="mt-1 text-xs text-tinta/70">S/{v.precio.toFixed(2)}</p>}
+                  <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
+                  <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
+                  <p className="mt-1 text-xs text-tinta/70">S/{v.precio.toFixed(2)}</p>
                 </div>
               </div>
 
               {detalles.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
-                  {detalles.map((d) => (
-                    <span key={d.sede} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
-                      {d.sede} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
-                      {d.esAlmacen && (
-                        <span className="text-rojo"> · {d.contenedor ?? "sin ubicación"}</span>
-                      )}
+                  {detalles.map((d, i) => (
+                    <span key={`${d.ubicacion}-${i}`} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
+                      {d.ubicacion} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
                     </span>
                   ))}
                 </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </div>
+
+      {/* Link a `/producto/[varianteId]` (detalle) queda para Fase 2: esa
+          pantalla también depende del catálogo V1. La tarjeta ya responde la
+          pregunta que motiva la búsqueda (cuánto hay y dónde) sin necesitar
+          ese detalle. */}
+      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+        Ver catálogo completo →
+      </Link>
     </div>
   );
 }

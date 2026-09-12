@@ -9,10 +9,6 @@ node_modules/
 .DS_Store
 supabase/.branches/
 supabase/.temp/
-
-# Foto de un momento de producción (scripts/migraciones/README.md) — una vieja
-# miente con cara de dato, así que nunca se versiona.
-scripts/migraciones/inventario-produccion.json
 .vercel
 .env*
 .claude/settings.local.json
@@ -28,6 +24,10 @@ scripts/etiquetas/hoja-de-prueba.html
 # `node scripts/taxonomia/cargar.mjs` desde un release inmutable.
 supabase/seed-taxonomia/
 
-# Salida cruda de gen-types: se compara contra src/types.ts (que tiene parches
-# a mano) y se traslada lo que cambio. Nunca se versiona ni pisa types.ts.
-packages/database/src/types.produccion.ts
+# Imita LOCALMENTE las tablas reales de Dynamic (public.sedes/personas +
+# sus funciones) para poder probar 0009_integracion_dynamic.sql contra
+# `supabase db reset` sin tocar el proyecto compartido real. NUNCA debe
+# llegar a producción — ahí esas tablas ya existen de verdad. Se queda
+# fuera de git a propósito: así jamás puede colarse en un `git archive`
+# ni en un copy/paste al SQL Editor de producción.
+supabase/migrations/0000_local_stub_dynamic.sql

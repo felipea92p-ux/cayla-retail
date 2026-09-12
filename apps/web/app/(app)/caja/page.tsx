@@ -1,0 +1,45 @@
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getCajaAbierta, getResumenCaja, getMovimientosCaja } from "@/lib/caja";
+import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
+import { CajaAbiertaPanel } from "@/components/CajaAbiertaPanel";
+
+// Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
+// posible es abrirla — `registrar_venta` la exige (0008_caja_y_pagos.sql),
+// así que ofrecer otra cosa acá sería un enlace que la RPC igual rechazaría.
+export default async function CajaPage() {
+  const persona = await requirePersonaActualV2();
+  const caja = await getCajaAbierta(persona.ubicacionId);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Caja · {persona.ubicacionEtiqueta}</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          {caja ? "Caja abierta" : "Sin caja abierta"}
+        </h1>
+      </div>
+
+      {!caja ? (
+        <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
+      ) : (
+        <CajaConDatos cajaId={caja.id} montoApertura={caja.montoApertura} caja={caja} />
+      )}
+    </div>
+  );
+}
+
+async function CajaConDatos({
+  cajaId,
+  montoApertura,
+  caja,
+}: {
+  cajaId: string;
+  montoApertura: number;
+  caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
+}) {
+  const [resumen, movimientos] = await Promise.all([
+    getResumenCaja(cajaId, montoApertura),
+    getMovimientosCaja(cajaId),
+  ]);
+  return <CajaAbiertaPanel caja={caja} resumen={resumen} movimientos={movimientos} />;
+}

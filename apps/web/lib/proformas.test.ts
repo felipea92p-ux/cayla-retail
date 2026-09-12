@@ -14,7 +14,7 @@ const enHoras = (h: number) => new Date(AHORA + h * 3600 * 1000).toISOString();
 function fila(extra: Partial<ProformaFila>): ProformaFila {
   return {
     id: "p1",
-    sede_id: "s1",
+    ubicacion_id: "u1",
     cliente_nombre: "Ana Torres",
     cliente_num_doc: null,
     total: 350,

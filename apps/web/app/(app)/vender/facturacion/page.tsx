@@ -1,26 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requirePersonaActual } from "@/lib/persona";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getComprobantesMes, getSeriesComprobantes } from "@/lib/comprobantes";
 import { getProformasMes } from "@/lib/proformas";
-import { mesActualLima, mesLimaUTC } from "@/lib/finanzas-nucleo";
-import { createClient } from "@/lib/supabase/server";
-import { VenderNav } from "@/components/VenderNav";
+import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ProformasPanel } from "@/components/ProformasPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// Facturación electrónica. Reserva comprobantes con correlativo oficial y los
-// transmite a SUNAT por Lucode (PSE) desde la misma pantalla; anular es un
-// tercer paso aparte. Ver ADR-0005, ADR-0009, ADR-0015 y ADR-0016.
-// Toda la pantalla es de líder: emitir, transmitir y anular mueven documentos
-// legales, y el redirect de abajo es la primera de las tres capas que lo
-// exigen (pantalla, RPC, RLS).
-// Vive en Vender, no en Finanzas (movido 2026-09-03, pedido de Felipe): emitir
-// un comprobante cierra una venta, no es un reporte financiero.
+// Facturación electrónica — rescatada de producción (2026-09-12, ver
+// supabase/migrations/0010_facturacion.sql). Reserva comprobantes con
+// correlativo oficial y los transmite a SUNAT por Lucode (PSE) desde la
+// misma pantalla; anular es un tercer paso aparte. Toda la pantalla es de
+// líder: emitir, transmitir y anular mueven documentos legales, y el
+// redirect de abajo es la primera de las tres capas que lo exigen
+// (pantalla, RPC, RLS).
 export default async function FacturacionPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const persona = await requirePersonaActual();
+  const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
 
   const { m } = await searchParams;
@@ -28,17 +26,14 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
   const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
-  const supabase = await createClient();
-  const [comprobantes, series, proformas, sedesResult] = await Promise.all([
+  const [comprobantes, series, proformas, ubicaciones] = await Promise.all([
     getComprobantesMes(desde, hasta),
     getSeriesComprobantes(),
     getProformasMes(desde, hasta),
-    supabase.from("sedes").select("id, codigo").neq("tipo", "almacen").order("codigo"),
+    getUbicaciones(),
   ]);
-  const sedes = (sedesResult.data ?? []).filter(
-    (s): s is { id: string; codigo: string } => s.id != null && s.codigo != null
-  );
-  const sedeActual = sedes.find((s) => s.id === persona.sedeId) ?? sedes[0];
+  const ubicacionesOperativas = ubicaciones.filter((u) => u.tipo !== "almacen");
+  const ubicacionActual = ubicacionesOperativas.find((u) => u.id === persona.ubicacionId) ?? ubicacionesOperativas[0];
 
   const mesPrevio = mes === 1 ? `${anio - 1}-12` : `${anio}-${mes - 1}`;
   const mesSiguiente = mes === 12 ? `${anio + 1}-1` : `${anio}-${mes + 1}`;
@@ -71,14 +66,12 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
         </div>
       </div>
 
-      <VenderNav />
-
-      {/* Proforma primero: es el trabajo pendiente (¿quién va a volver a comprar?),
-          antes que el historial ya cerrado de comprobantes (patrón Ramp, Ronda 2). */}
-      <ProformasPanel proformas={proformas} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+      {/* Proforma primero: es el trabajo pendiente (¿quién va a volver a
+          comprar?), antes que el historial ya cerrado de comprobantes. */}
+      <ProformasPanel proformas={proformas} ubicaciones={ubicacionesOperativas} ubicacionActualId={ubicacionActual?.id ?? ""} />
 
       <div className="border-t border-tinta/10 pt-8">
-        <ComprobantesPanel comprobantes={comprobantes} series={series} sedes={sedes} sedeActualId={sedeActual?.id ?? ""} />
+        <ComprobantesPanel comprobantes={comprobantes} series={series} ubicaciones={ubicacionesOperativas} ubicacionActualId={ubicacionActual?.id ?? ""} />
       </div>
     </div>
   );

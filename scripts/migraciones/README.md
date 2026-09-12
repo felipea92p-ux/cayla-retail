@@ -32,7 +32,6 @@ cara de dato. Se genera cuando se necesita.
 | Archivo sin faltantes | Solo que **existe algo con esos nombres**. `create or replace` se repite entre archivos, así que no dice *cuál versión* está viva. |
 | `? sin promesas detectables` | El verificador **no supo qué buscarle** (suele ser un archivo de solo `insert` o `grant`). No está aprobado. |
 | `! sobrecargas vivas` | Hay dos funciones con el mismo nombre y distinta firma. Ver abajo. |
-| `✗ … su cuerpo no coincide` | **Certeza, y de la seria.** Esa función existe pero su código no lo produce ningún archivo del repo: alguien la escribió a mano contra la base. Ver abajo. |
 
 La regla que gobierna el diseño: **lo que no entendió, lo dice.** Un verificador que
 aprueba lo que no leyó enseña a confiar en un verde que no significa nada — la misma
@@ -59,29 +58,3 @@ Si responde `is not unique`, esa llamada está rota hoy.
 **La regla que sale de esto:** toda migración que le agregue un argumento a una función
 existente lleva su `drop function` de la firma vieja, con los tipos explícitos. Ver
 ADR-0026.
-
-## Cuerpos: el drift que no falla nunca
-
-Desde el 2026-09-10 el verificador compara el **código** de cada función de `retail`, no
-solo su nombre. Normaliza el cuerpo —le quita comentarios, prefijos de schema y
-espaciado— y lo busca entre **todas** las definiciones que el repo tiene de ese nombre. Si
-no coincide con ninguna, ese código no lo produce ningún archivo.
-
-Nació de un caso real: `retail.recalcular_stock` en producción traía un arreglo con su
-propio comentario que no existía en ningún archivo del repositorio. Alguien lo aplicó a
-mano en el SQL Editor y no quedó escrito.
-
-**Por qué este drift es peor que el otro.** El que todos vigilan es «producción está atrás
-del repo»: falta algo, y tarde o temprano una pantalla se rompe y lo delata. Éste es al
-revés — producción está ADELANTE — y por eso **no falla nunca**. Todo anda bien allá, así
-que nada avisa. Lo que se pierde en silencio es que `npx supabase db reset` más
-`unificacion/` deje de reproducir el sistema.
-
-Se compara contra TODAS las definiciones, no contra «la última», a propósito: un gemelo de
-`unificacion/` puede ser legítimamente distinto del archivo de `migrations/` —pasó con
-`27_ajuste_con_signo.sql`, que en producción es más grande— y coincidir con cualquiera de
-las dos es suficiente para decir que el repo lo explica.
-
-Solo se comparan las funciones de `retail`. `public` en producción es el schema entero de
-Dynamic y sus funciones no son nuestras.
-
