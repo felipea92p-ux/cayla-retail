@@ -25,6 +25,23 @@ alter schema public rename to retail;
 create schema public;
 grant usage on schema public to postgres, anon, authenticated, service_role;
 
+-- Renombrar el schema NO otorga permisos de tabla — visto el 2026-09-12 al verificar el
+-- POS a pantalla completa: PostgREST respondía "Could not find the table 'retail.sedes'
+-- in the schema cache" con la tabla existiendo y con USAGE de sobra en el schema (ese
+-- privilegio sí viaja con el rename, por ser del schema; el de tabla es aparte y esta
+-- base nunca lo tuvo). Sin esto, TODA la app queda rota contra local — no solo Vender —
+-- porque cualquier `select` de PostgREST contra cualquier tabla de `retail` falla igual.
+-- Los `default privileges` son para que una tabla NUEVA de una migración futura nazca
+-- con permiso, sin tener que acordarse de repetir este grant cada vez (causa raíz, no
+-- parche por tabla).
+grant usage on schema retail to postgres, anon, authenticated, service_role;
+grant all on all tables in schema retail to postgres, anon, authenticated, service_role;
+grant all on all sequences in schema retail to postgres, anon, authenticated, service_role;
+grant all on all routines in schema retail to postgres, anon, authenticated, service_role;
+alter default privileges in schema retail grant all on tables to postgres, anon, authenticated, service_role;
+alter default privileges in schema retail grant all on sequences to postgres, anon, authenticated, service_role;
+alter default privileges in schema retail grant all on routines to postgres, anon, authenticated, service_role;
+
 -- Las 32 funciones del repo llevan `set search_path = public` escrito en su
 -- definición. Renombrar el schema NO reescribe ese texto: quedarían apuntando a
 -- un `public` vacío y toda RPC fallaría con "relation does not exist". Se

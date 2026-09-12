@@ -13,8 +13,9 @@ import {
   type VentaEncolada,
 } from "@/lib/ventas-offline";
 import { AbrirCajaModal } from "@/components/AbrirCajaModal";
-import { RegistrarVentaModal } from "@/components/RegistrarVentaModal";
+import { PuntoDeVenta } from "@/components/PuntoDeVenta";
 import { CerrarCajaModal } from "@/components/CerrarCajaModal";
+import type { ReactNode } from "react";
 
 type VarianteBusqueda = {
   varianteId: string;
@@ -23,6 +24,7 @@ type VarianteBusqueda = {
   referencia: string;
   talla: string | null;
   color: string | null;
+  categoria: string | null;
   precio: number | null;
   stockAqui: number;
 };
@@ -35,6 +37,9 @@ type Props = {
   cajaAbierta: CajaAbierta | null;
   variantes: VarianteBusqueda[];
   porCodigoBarras: Record<string, string>;
+  personaNombre: string;
+  personaRolEtiqueta: string;
+  ventasHoyNode: ReactNode;
 };
 
 /**
@@ -50,9 +55,18 @@ type Props = {
  */
 const LATIDO_MS = 30_000;
 
-export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes, porCodigoBarras }: Props) {
+export function CajaPanel({
+  sedeId,
+  sedeCodigo,
+  cajaAbierta,
+  variantes,
+  porCodigoBarras,
+  personaNombre,
+  personaRolEtiqueta,
+  ventasHoyNode,
+}: Props) {
   const router = useRouter();
-  const [modal, setModal] = useState<"abrir" | "vender" | "cerrar" | null>(null);
+  const [modal, setModal] = useState<"abrir" | "cerrar" | null>(null);
   // La sede que describe `cola` ahora mismo. Si `sedeCodigo` cambia (la Encargada cambia de
   // sede sin que este componente se desmonte), se ajusta ACÁ, durante el render — no en un
   // `useEffect` con un `setState` síncrono al inicio, que React desaconseja porque encadena
@@ -221,71 +235,55 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes, porCodig
 
   if (!cajaAbierta) {
     return (
-      <div className="space-y-3">
-        {avisos}
-        <div className="flex items-center justify-between card-cayla p-5">
-          <div>
-            <p className="label-cayla text-[11px] text-rojo">Caja cerrada</p>
-            <p className="mt-1.5 text-sm text-tinta/75">Abre la caja de {sedeCodigo} para registrar ventas hoy.</p>
-          </div>
-          <button
-            onClick={() => setModal("abrir")}
-            className="label-cayla rounded-md shrink-0 bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            Abrir caja
-          </button>
-          {modal === "abrir" && <AbrirCajaModal sedeId={sedeId} sedeCodigo={sedeCodigo} onClose={() => setModal(null)} />}
+      <main className="flex min-h-screen items-center justify-center bg-crema p-5">
+        <div className="w-full max-w-md space-y-3">
+          {avisos}
+          <section className="card-cayla p-8 text-center">
+            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-tinta text-crema">
+              <span className="font-display text-2xl">C</span>
+            </div>
+            <p className="label-cayla text-[11px] text-tinta/60">CAYLA · {sedeCodigo}</p>
+            <h1 className="font-display mt-4 text-3xl text-tinta">La caja está cerrada</h1>
+            <p className="mx-auto mt-3 max-w-xs text-sm text-tinta/70">
+              Registra el fondo inicial para comenzar a vender en esta sede.
+            </p>
+            <button
+              onClick={() => setModal("abrir")}
+              className="label-cayla mt-8 w-full rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+            >
+              Abrir caja
+            </button>
+          </section>
         </div>
-      </div>
+        {modal === "abrir" && <AbrirCajaModal sedeId={sedeId} sedeCodigo={sedeCodigo} onClose={() => setModal(null)} />}
+      </main>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {avisos}
-
-      <div className="flex items-center justify-between card-cayla p-5">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/70">Caja abierta · {sedeCodigo}</p>
-          <p className="mt-1.5 text-sm text-tinta/75">
-            Apertura <span className="font-display text-base text-tinta">S/{cajaAbierta.montoApertura.toFixed(2)}</span>
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <button
-            onClick={() => setModal("vender")}
-            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            Vender
-          </button>
-          <button
-            onClick={() => setModal("cerrar")}
-            className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          >
-            Cerrar
-          </button>
-        </div>
-
-        {modal === "vender" && (
-          <RegistrarVentaModal
-            sedeCodigo={sedeCodigo}
-            cajaId={cajaAbierta.id}
-            variantes={variantesConOverlay}
-            porCodigoBarras={porCodigoBarras}
-            sinConexion={sinConexion}
-            onVentaEncolada={() => setCola(obtenerColaSede(sedeCodigo))}
-            onClose={() => setModal(null)}
-          />
-        )}
-        {modal === "cerrar" && (
-          <CerrarCajaModal
-            cajaId={cajaAbierta.id}
-            sedeCodigo={sedeCodigo}
-            efectivoEncoladoSinSubir={efectivoEncolado}
-            onClose={() => setModal(null)}
-          />
-        )}
-      </div>
-    </div>
+    <>
+      <PuntoDeVenta
+        sedeCodigo={sedeCodigo}
+        cajaId={cajaAbierta.id}
+        variantes={variantesConOverlay}
+        porCodigoBarras={porCodigoBarras}
+        sinConexion={sinConexion}
+        colaCount={cola.length}
+        avisos={avisos}
+        personaNombre={personaNombre}
+        personaRolEtiqueta={personaRolEtiqueta}
+        ventasHoyNode={ventasHoyNode}
+        onVentaEncolada={() => setCola(obtenerColaSede(sedeCodigo))}
+        onCerrarCaja={() => setModal("cerrar")}
+      />
+      {modal === "cerrar" && (
+        <CerrarCajaModal
+          cajaId={cajaAbierta.id}
+          sedeCodigo={sedeCodigo}
+          efectivoEncoladoSinSubir={efectivoEncolado}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </>
   );
 }
