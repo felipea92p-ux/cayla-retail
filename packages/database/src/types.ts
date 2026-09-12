@@ -262,6 +262,191 @@ export type Database = {
         }
         Relationships: []
       }
+      compra_items: {
+        Row: {
+          cantidad: number
+          compra_id: string
+          costo_unitario: number
+          descripcion: string | null
+          id: string
+          producto_id: string
+          subtotal: number | null
+          variante_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          compra_id: string
+          costo_unitario: number
+          descripcion?: string | null
+          id?: string
+          producto_id: string
+          subtotal?: number | null
+          variante_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          compra_id?: string
+          costo_unitario?: number
+          descripcion?: string | null
+          id?: string
+          producto_id?: string
+          subtotal?: number | null
+          variante_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_pagos: {
+        Row: {
+          compra_id: string
+          created_at: string
+          fecha: string
+          id: string
+          metodo: string
+          monto: number
+          referencia: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          metodo: string
+          monto: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto?: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_pagos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_pagos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras: {
+        Row: {
+          condicion: string
+          created_at: string
+          estado: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          id: string
+          igv: number
+          motivo_anulacion: string | null
+          nota: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo: string
+          total: number
+          ubicacion_destino_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          condicion: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo?: string
+          total: number
+          ubicacion_destino_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          condicion?: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv?: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero?: string
+          proveedor_id?: string
+          serie?: string
+          subtotal?: number
+          tipo?: string
+          total?: number
+          ubicacion_destino_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_ubicacion_destino_id_fkey"
+            columns: ["ubicacion_destino_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comprobantes: {
         Row: {
           anulacion_solicitada_at: string | null
@@ -625,7 +810,6 @@ export type Database = {
           id: string
           nota: string | null
           numero_guia: string | null
-          orden_compra_id: string | null
           proveedor_id: string
           recibido_por: string | null
           ubicacion_id: string
@@ -635,7 +819,6 @@ export type Database = {
           id?: string
           nota?: string | null
           numero_guia?: string | null
-          orden_compra_id?: string | null
           proveedor_id: string
           recibido_por?: string | null
           ubicacion_id: string
@@ -645,19 +828,11 @@ export type Database = {
           id?: string
           nota?: string | null
           numero_guia?: string | null
-          orden_compra_id?: string | null
           proveedor_id?: string
           recibido_por?: string | null
           ubicacion_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "lotes_orden_compra_id_fkey"
-            columns: ["orden_compra_id"]
-            isOneToOne: false
-            referencedRelation: "ordenes_compra"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "lotes_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -678,6 +853,7 @@ export type Database = {
         Row: {
           cambio_id: string | null
           cantidad: number
+          compra_item_id: string | null
           conteo_item_id: string | null
           created_at: string
           devolucion_item_id: string | null
@@ -698,6 +874,7 @@ export type Database = {
         Insert: {
           cambio_id?: string | null
           cantidad: number
+          compra_item_id?: string | null
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
@@ -718,6 +895,7 @@ export type Database = {
         Update: {
           cambio_id?: string | null
           cantidad?: number
+          compra_item_id?: string | null
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
@@ -741,6 +919,20 @@ export type Database = {
             columns: ["cambio_id"]
             isOneToOne: false
             referencedRelation: "cambios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
             referencedColumns: ["id"]
           },
           {
@@ -811,93 +1003,6 @@ export type Database = {
             columns: ["venta_item_id"]
             isOneToOne: false
             referencedRelation: "venta_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ordenes_compra: {
-        Row: {
-          created_at: string
-          estado: string
-          fecha: string
-          fecha_estimada: string | null
-          id: string
-          monto_estimado: number | null
-          proveedor_id: string
-          ubicacion_destino_id: string
-        }
-        Insert: {
-          created_at?: string
-          estado?: string
-          fecha?: string
-          fecha_estimada?: string | null
-          id?: string
-          monto_estimado?: number | null
-          proveedor_id: string
-          ubicacion_destino_id: string
-        }
-        Update: {
-          created_at?: string
-          estado?: string
-          fecha?: string
-          fecha_estimada?: string | null
-          id?: string
-          monto_estimado?: number | null
-          proveedor_id?: string
-          ubicacion_destino_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ordenes_compra_proveedor_id_fkey"
-            columns: ["proveedor_id"]
-            isOneToOne: false
-            referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_compra_ubicacion_destino_id_fkey"
-            columns: ["ubicacion_destino_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ordenes_compra_items: {
-        Row: {
-          cantidad: number
-          costo_unitario: number
-          id: string
-          orden_id: string
-          variante_id: string
-        }
-        Insert: {
-          cantidad: number
-          costo_unitario: number
-          id?: string
-          orden_id: string
-          variante_id: string
-        }
-        Update: {
-          cantidad?: number
-          costo_unitario?: number
-          id?: string
-          orden_id?: string
-          variante_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ordenes_compra_items_orden_id_fkey"
-            columns: ["orden_id"]
-            isOneToOne: false
-            referencedRelation: "ordenes_compra"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_compra_items_variante_id_fkey"
-            columns: ["variante_id"]
-            isOneToOne: false
-            referencedRelation: "variantes"
             referencedColumns: ["id"]
           },
         ]
@@ -1468,7 +1573,119 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      compra_items_resumen: {
+        Row: {
+          cantidad: number | null
+          compra_id: string | null
+          costo_unitario: number | null
+          descripcion: string | null
+          id: string | null
+          pendiente: number | null
+          producto_id: string | null
+          recibido: number | null
+          subtotal: number | null
+          variante_id: string | null
+        }
+        Insert: {
+          cantidad?: number | null
+          compra_id?: string | null
+          costo_unitario?: number | null
+          descripcion?: string | null
+          id?: string | null
+          pendiente?: never
+          producto_id?: string | null
+          recibido?: never
+          subtotal?: number | null
+          variante_id?: string | null
+        }
+        Update: {
+          cantidad?: number | null
+          compra_id?: string | null
+          costo_unitario?: number | null
+          descripcion?: string | null
+          id?: string | null
+          pendiente?: never
+          producto_id?: string | null
+          recibido?: never
+          subtotal?: number | null
+          variante_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras_resumen: {
+        Row: {
+          condicion: string | null
+          created_at: string | null
+          documento: string | null
+          estado: string | null
+          estado_pago: string | null
+          estado_recepcion: string | null
+          facturado_cantidad: number | null
+          fecha_emision: string | null
+          fecha_vencimiento: string | null
+          id: string | null
+          igv: number | null
+          nota: string | null
+          numero: string | null
+          pagado: number | null
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          proveedor_ruc: string | null
+          recibido_cantidad: number | null
+          saldo: number | null
+          serie: string | null
+          subtotal: number | null
+          tipo: string | null
+          total: number | null
+          ubicacion_destino_id: string | null
+          vencida: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_ubicacion_destino_id_fkey"
+            columns: ["ubicacion_destino_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       abrir_caja: {
@@ -1487,6 +1704,10 @@ export type Database = {
           p_motivo_rechazo?: string
           p_respuesta_sunat?: Json
         }
+        Returns: undefined
+      }
+      anular_compra: {
+        Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
       }
       anular_comprobante: {
@@ -1616,6 +1837,7 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: boolean
       }
+      fn_puede_registrar_compras: { Args: never; Returns: boolean }
       fn_reservar_numero_serie: {
         Args: { p_tipo: string; p_ubicacion_id: string }
         Returns: {
@@ -1645,12 +1867,20 @@ export type Database = {
         Args: { p_devolucion_id: string; p_motivo?: string }
         Returns: undefined
       }
+      recibir_compras: {
+        Args: {
+          p_items: Json
+          p_nota?: string
+          p_numero_guia?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       recibir_lote: {
         Args: {
           p_items: Json
           p_nota?: string
           p_numero_guia?: string
-          p_orden_compra_id?: string
           p_proveedor_id: string
           p_ubicacion_id: string
         }
@@ -1664,6 +1894,23 @@ export type Database = {
           p_ubicacion_id: string
           p_variante_nueva_id: string
           p_venta_item_id: string
+        }
+        Returns: string
+      }
+      registrar_compra: {
+        Args: {
+          p_condicion: string
+          p_fecha_emision?: string
+          p_fecha_vencimiento?: string
+          p_igv_porcentaje?: number
+          p_items: Json
+          p_nota?: string
+          p_numero: string
+          p_pago?: Json
+          p_proveedor_id: string
+          p_serie: string
+          p_tipo?: string
+          p_ubicacion_destino_id: string
         }
         Returns: string
       }
@@ -1684,6 +1931,16 @@ export type Database = {
           p_monto: number
           p_motivo: string
           p_tipo: string
+        }
+        Returns: string
+      }
+      registrar_pago_compra: {
+        Args: {
+          p_compra_id: string
+          p_fecha?: string
+          p_metodo: string
+          p_monto: number
+          p_referencia?: string
         }
         Returns: string
       }
@@ -1737,12 +1994,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1766,11 +2023,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1791,11 +2048,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1816,11 +2073,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1833,11 +2090,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
