@@ -299,7 +299,10 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
-- [ ] **Dos colores escritos a mano que no calzan con los 29.** **Decidido el 2026-09-11:
+- [x] **CERRADO 2026-09-11 — resuelto en producción con la `38`: las 2 variantes con `"azul "`
+      son Azul marino (`AZM`) y tienen código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); producción
+      tiene 0 variantes sin código y 0 colores fuera del vocabulario.** Texto anterior:
+      **Dos colores escritos a mano que no calzan con los 29.** **Decidido el 2026-09-11:
       «azul» es Azul marino (AZM); el backfill va dentro de `unificacion/38` (ver el ítem de
       ARREGLAR). Medido en producción ese día: queda ese solo, `"azul "` (con espacio al final),
       en 2 variantes sin código; «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
@@ -736,7 +739,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/38` en producción.** Felipe
+- [x] **CERRADO 2026-09-11 — la `38` ya está en producción.** Aplicada con autorización
+      explícita de Felipe («pégalo tú y muéstrame el post-check»), con `execute_sql` y NO
+      `apply_migration` (el historial de migraciones de Dynamic no es el nuestro). Se corrieron
+      los mismos bytes de `unificacion/38` (secciones 1–4 extraídas del archivo, no
+      transcritas). Pre-flight antes de correr: huellas de las dos RPC idénticas a las leídas
+      esa tarde, una firma por función, exactamente las 2 variantes con `"azul "`. Post-check
+      después: una firma por función (`fn_normalizar_color` incluida), **0 variantes sin
+      código**, `JEA-0001-AZM-26` y `CMS-0001-AZM-S` con código corto y en `codigos_barras`
+      (sus SKU viejos siguen ahí), totales 19/0/0/38, y `fn_normalizar_color('azm')` →
+      Azul marino, `(null,'negro')` → Negro, `(null,'Fucsia chillón')` → sin código. Y la
+      prueba que el repo exige: los tres cuerpos de producción coinciden con los del archivo
+      con el normalizado del verificador (`verificar.mjs`), así que el repo sigue describiendo
+      producción. Texto original abajo:
+      **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/38` en producción.** Felipe
       decidió: «azul» es Azul marino. `0057_alta_con_vocabulario.sql`: `fn_normalizar_color`
       (código del vocabulario → nombre exacto → texto libre sin código, la misma regla para
       los cuatro caminos), `crear_producto_con_variantes` y `recibir_lote` con la MISMA firma

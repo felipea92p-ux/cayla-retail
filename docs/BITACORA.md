@@ -22,7 +22,11 @@ Medido en producción: 19 variantes, 2 sin código, color `"azul "` con espacio.
 arreglarlo y decidió que «azul» es Azul marino. Quedó en local (`0057`): una función chica con
 la regla del color para los cuatro caminos, las dos RPC con la misma firma, los dos formularios
 eligiendo del vocabulario, y el backfill. Verificado en navegador por los dos caminos (14
-variantes `BLU-0002-…` y una `FAL-0002-VIN-M`). Producción espera que Felipe pegue la `38`.
+variantes `BLU-0002-…` y una `FAL-0002-VIN-M`). Y producción la misma tarde: Felipe autorizó
+(«pégalo tú y muéstrame el post-check»), se corrieron los mismos bytes de la `38` con
+`execute_sql`, y el post-check dio 0 variantes sin código, una firma por función y los tres
+cuerpos iguales a los del repo con el normalizado del verificador — el repo sigue describiendo
+producción, que es la regla que más costó aprender el 10-sep.
 De paso salió que local arrastraba una segunda `recibir_lote` de 8 parámetros que producción
 ya no tiene — la 0057 la tira.
 
