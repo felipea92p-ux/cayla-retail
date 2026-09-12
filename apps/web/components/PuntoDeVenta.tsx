@@ -22,13 +22,18 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
+import { METODOS_PAGO, validarDocumento, type MetodoPago, type TipoDocumentoCliente } from "@cayla-retail/shared";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { encolarVenta, pasaElUmbralDeSobra } from "@/lib/ventas-offline";
 import { filtrarPrendas, resolverCodigo, type PrendaBuscable } from "@/lib/buscar-prenda";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
+import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
+
+/** 18% — IGV de Perú. El total del carrito ya lo incluye ("Incluye IGV" en el
+ *  ticket), así que el comprobante lo extrae en vez de sumarlo aparte. */
+const TASA_IGV = 0.18;
 
 /**
  * "Cargo especial" (migración 0061): variante centinela para "Monto manual" — una prenda
@@ -62,7 +67,15 @@ type ItemCarrito = {
   stockAqui: number;
 };
 
-type VentaOk = { total: number; prendas: number; offline: boolean };
+type VentaOk = {
+  total: number;
+  prendas: number;
+  offline: boolean;
+  /** null: no se intentó (venta offline) o falló — la venta sigue siendo válida
+   *  igual, el comprobante se puede emitir después desde Facturación. */
+  comprobante: { tipo: "boleta" | "factura"; serie: string; numero: number } | null;
+  comprobanteError: string | null;
+};
 
 const ETIQUETA_METODO: Record<MetodoPago, string> = {
   efectivo: "Efectivo",
@@ -81,6 +94,7 @@ const MAX_RESULTADOS = 6;
 const money = (n: number) => `S/${n.toFixed(2)}`;
 
 type Props = {
+  sedeId: string;
   sedeCodigo: string;
   /** Null con la caja cerrada — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
@@ -102,6 +116,7 @@ type Props = {
 };
 
 export function PuntoDeVenta({
+  sedeId,
   sedeCodigo,
   cajaId,
   variantes,
@@ -128,6 +143,9 @@ export function PuntoDeVenta({
   const [categoria, setCategoria] = useState("Todo");
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
+  const [tipoComprobante, setTipoComprobante] = useState<"boleta" | "factura">("boleta");
+  const [clienteNumDoc, setClienteNumDoc] = useState("");
+  const [clienteNombre, setClienteNombre] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -279,6 +297,47 @@ export function PuntoDeVenta({
   const total = carrito.reduce((acc, it) => acc + it.cantidad * it.monto, 0);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
 
+  // Derivado, no un estado aparte (mismo patrón que ComprobantesPanel.tsx:194-201):
+  // el tipo de documento nunca puede contradecir el tipo de comprobante elegido.
+  const clienteTipoDoc: TipoDocumentoCliente = tipoComprobante === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const facturaSinRuc = tipoComprobante === "factura" && !validarDocumento("ruc", clienteNumDoc).valido;
+
+  /**
+   * Emite el comprobante DESPUÉS de que la venta ya está adentro — nunca antes ni junto
+   * en la misma transacción, porque son dos RPC distintas y la venta es la que de verdad
+   * importa: si esto falla, la venta ya cobrada NO se deshace ni se avisa como error (el
+   * "ok" de abajo lo separa: `comprobante` puede quedar null con `comprobanteError` puesto,
+   * y la propia pantalla de Facturación puede emitirlo después con estos mismos datos).
+   */
+  async function emitirComprobante(
+    ventaId: string
+  ): Promise<{ tipo: "boleta" | "factura"; serie: string; numero: number } | { error: string }> {
+    const subtotal = Math.round((total / (1 + TASA_IGV)) * 100) / 100;
+    const igv = Math.round((total - subtotal) * 100) / 100;
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("emitir_comprobante", {
+      p_sede_id: sedeId,
+      p_tipo: tipoComprobante,
+      p_subtotal: subtotal,
+      p_igv: igv,
+      p_total: total,
+      p_venta_id: ventaId,
+      p_cliente_tipo_doc: clienteTipoDoc,
+      p_cliente_num_doc: clienteNumDoc || undefined,
+      p_cliente_nombre: clienteNombre || undefined,
+    });
+    if (error) return { error: traducirError(error, "emitir el comprobante") };
+    const { data: fila, error: errorLectura } = await supabase.from("comprobantes").select("serie, numero").eq("id", data).single();
+    if (errorLectura || !fila) return { error: "El comprobante se emitió pero no se pudo leer su serie y número." };
+    return { tipo: tipoComprobante, serie: fila.serie, numero: fila.numero };
+  }
+
+  function limpiarComprobante() {
+    setTipoComprobante("boleta");
+    setClienteNumDoc("");
+    setClienteNombre("");
+  }
+
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
     if (cajaId === null) return;
@@ -286,20 +345,24 @@ export function PuntoDeVenta({
       setError("Todavía no agregaste ninguna prenda. Escanea la etiqueta o busca en el catálogo.");
       return;
     }
+    if (facturaSinRuc) {
+      setError("La factura necesita un RUC válido. Cambia a boleta o corrige el número.");
+      return;
+    }
     setLoading(true);
     setError(null);
     token.current ??= crypto.randomUUID();
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_venta", {
+    const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
       p_caja_id: cajaId,
       p_metodo_pago: metodoPago,
       p_items: carrito.map((it) => ({ variante_id: it.varianteId, cantidad: it.cantidad, monto: it.monto })),
       p_token: token.current,
     });
 
-    setLoading(false);
     if (error) {
+      setLoading(false);
       if (esFalloDeRed(error)) {
         const sinSobra = carrito.filter((it) => !pasaElUmbralDeSobra(it.stockAqui, it.cantidad));
         if (sinSobra.length > 0) {
@@ -317,15 +380,28 @@ export function PuntoDeVenta({
           creadoEn: new Date().toISOString(),
         });
         onVentaEncolada();
-        setOk({ total, prendas, offline: true });
+        // Sin conexión no hay cómo emitir comprobante — se hace después, desde
+        // Facturación, cuando la venta ya haya subido (ver ADR de la cola offline).
+        setOk({ total, prendas, offline: true, comprobante: null, comprobanteError: null });
         setCarrito([]);
+        limpiarComprobante();
         return;
       }
       setError(traducirError(error, "registrar la venta"));
       return;
     }
-    setOk({ total, prendas, offline: false });
+
+    const resultado = await emitirComprobante(ventaId as string);
+    setLoading(false);
+    setOk({
+      total,
+      prendas,
+      offline: false,
+      comprobante: "error" in resultado ? null : resultado,
+      comprobanteError: "error" in resultado ? resultado.error : null,
+    });
     setCarrito([]);
+    limpiarComprobante();
     router.refresh();
   }
 
@@ -661,7 +737,7 @@ export function PuntoDeVenta({
                   );
                 })}
               </div>
-              <span className="mb-2 flex items-center gap-1 text-[11px] text-tinta/50">
+              <span className="mb-4 flex items-center gap-1 text-[11px] text-tinta/50">
                 Cómo pagó la clienta
                 <Ayuda titulo="Método de pago">
                   Cómo pagó la clienta. Acá se registra, no se cobra: Yape y POS se cobran en su propio aparato y esto
@@ -670,11 +746,47 @@ export function PuntoDeVenta({
                 </Ayuda>
               </span>
 
+              <div className="mb-4 space-y-2 border-t border-sand pt-3">
+                <span className="flex items-center gap-1 text-[11px] text-tinta/50">
+                  Comprobante
+                  <Ayuda titulo="Boleta o factura">
+                    Se emite junto con la venta, con serie y número oficial. Boleta admite DNI opcional o ningún
+                    documento; factura exige el RUC de la empresa. Si la clienta no pide nada, deja «Boleta» con el
+                    documento en blanco.
+                  </Ayuda>
+                </span>
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
+                  {(["boleta", "factura"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTipoComprobante(t)}
+                      disabled={bloqueado}
+                      className={`label-cayla h-8 rounded-md text-[11px] transition-colors ${
+                        tipoComprobante === t ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
+                      }`}
+                    >
+                      {t === "boleta" ? "Boleta" : "Factura"}
+                    </button>
+                  ))}
+                </div>
+                <fieldset disabled={bloqueado}>
+                  <ConsultaDocumento
+                    tipo={tipoComprobante === "factura" ? "ruc" : "dni"}
+                    obligatorio={tipoComprobante === "factura"}
+                    numero={clienteNumDoc}
+                    onNumero={setClienteNumDoc}
+                    nombre={clienteNombre}
+                    onNombre={setClienteNombre}
+                  />
+                </fieldset>
+              </div>
+
               {error && <p className="mb-2 text-sm text-rojo">{error}</p>}
 
               <button
                 type="submit"
-                disabled={bloqueado || loading || carrito.length === 0}
+                disabled={bloqueado || loading || carrito.length === 0 || facturaSinRuc}
                 className="flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50"
               >
                 <span className="label-cayla text-[11px]">{loading ? "Procesando…" : "Cobrar"}</span>
@@ -733,6 +845,20 @@ export function PuntoDeVenta({
             ) : (
               <p className="text-center text-xs text-tinta/65">
                 Ya está descontada del stock de {sedeCodigo} y aparece abajo, en «Ventas de hoy».
+              </p>
+            )}
+            {ok.comprobante && (
+              <p className="card-cayla text-center text-sm text-tinta">
+                {ok.comprobante.tipo === "boleta" ? "Boleta" : "Factura"}{" "}
+                <span className="font-mono">
+                  {ok.comprobante.serie}-{String(ok.comprobante.numero).padStart(8, "0")}
+                </span>{" "}
+                emitida
+              </p>
+            )}
+            {ok.comprobanteError && (
+              <p className="text-center text-xs leading-relaxed text-rojo-profundo">
+                La venta entró bien, pero el comprobante no: {ok.comprobanteError} Puedes emitirlo desde Facturación.
               </p>
             )}
             <button type="button" autoFocus onClick={() => setOk(null)} className={`${botonPrimario} w-full`}>

@@ -236,6 +236,7 @@ export function CajaPanel({
   return (
     <>
       <PuntoDeVenta
+        sedeId={sedeId}
         sedeCodigo={sedeCodigo}
         cajaId={cajaAbierta?.id ?? null}
         variantes={variantesConOverlay}
