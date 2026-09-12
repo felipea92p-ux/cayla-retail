@@ -299,11 +299,11 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
-- [x] **CERRADO 2026-09-11 — resuelto en producción con la `38`: las 2 variantes con `"azul "`
+- [x] **CERRADO 2026-09-11 — resuelto en producción con la `39` (entonces `38`): las 2 variantes con `"azul "`
       son Azul marino (`AZM`) y tienen código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); producción
       tiene 0 variantes sin código y 0 colores fuera del vocabulario.** Texto anterior:
       **Dos colores escritos a mano que no calzan con los 29.** **Decidido el 2026-09-11:
-      «azul» es Azul marino (AZM); el backfill va dentro de `unificacion/38` (ver el ítem de
+      «azul» es Azul marino (AZM); el backfill va dentro de `unificacion/39` (ver el ítem de
       ARREGLAR). Medido en producción ese día: queda ese solo, `"azul "` (con espacio al final),
       en 2 variantes sin código; «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
       la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
@@ -739,10 +739,10 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [x] **CERRADO 2026-09-11 — la `38` ya está en producción.** Aplicada con autorización
+- [x] **CERRADO 2026-09-11 — la `39` (nacida como `38`; renumerada al fusionar con `main`, que ya usaba el 38 para `migraciones_aplicadas`) ya está en producción, y registrada ahí con su nombre definitivo.** Aplicada con autorización
       explícita de Felipe («pégalo tú y muéstrame el post-check»), con `execute_sql` y NO
       `apply_migration` (el historial de migraciones de Dynamic no es el nuestro). Se corrieron
-      los mismos bytes de `unificacion/38` (secciones 1–4 extraídas del archivo, no
+      los mismos bytes de `unificacion/39` (secciones 1–4 extraídas del archivo, no
       transcritas). Pre-flight antes de correr: huellas de las dos RPC idénticas a las leídas
       esa tarde, una firma por función, exactamente las 2 variantes con `"azul "`. Post-check
       después: una firma por función (`fn_normalizar_color` incluida), **0 variantes sin
@@ -752,8 +752,8 @@ importante que ha entrado a este archivo desde que existe.
       prueba que el repo exige: los tres cuerpos de producción coinciden con los del archivo
       con el normalizado del verificador (`verificar.mjs`), así que el repo sigue describiendo
       producción. Texto original abajo:
-      **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/38` en producción.** Felipe
-      decidió: «azul» es Azul marino. `0057_alta_con_vocabulario.sql`: `fn_normalizar_color`
+      **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/39` en producción.** Felipe
+      decidió: «azul» es Azul marino. `0059_alta_con_vocabulario.sql` (nació como `0057`): `fn_normalizar_color`
       (código del vocabulario → nombre exacto → texto libre sin código, la misma regla para
       los cuatro caminos), `crear_producto_con_variantes` y `recibir_lote` con la MISMA firma
       guardan `color_id` y llaman `fn_asignar_codigo_variante` por variante nueva, y el
@@ -764,9 +764,9 @@ importante que ha entrado a este archivo desde que existe.
       todas con `color_id`, código y dos entradas en `codigos_barras`; por SQL, las cuatro ramas
       del color más el error en idioma CAYLA. **De paso:** local arrastraba una segunda
       `recibir_lote` de 8 parámetros (0018, cuerpo viejo) que producción no tiene desde la 31;
-      la 0057 la tira. Es compatible con el deploy viejo (texto libre entra sin código, como
+      la 0059 la tira. Es compatible con el deploy viejo (texto libre entra sin código, como
       hasta hoy), así que el orden es SQL primero, deploy después.
-      **Pendiente de Felipe:** pegar `supabase/unificacion/38_alta_con_vocabulario.sql` en el
+      **Pendiente de Felipe:** pegar `supabase/unificacion/39_alta_con_vocabulario.sql` en el
       SQL Editor de producción — trae pre-flight (debe listar solo las 2 de `"azul "`) y
       post-check (una firma por función, `JEA-0001-AZM-26` y `CMS-0001-AZM-S` con código).
       Texto original abajo:

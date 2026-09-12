@@ -357,7 +357,7 @@ export function RecibirLoteForm({
         </Campo>
         <Campo etiqueta="Color">
           {/* Del vocabulario, nunca tecleado: es lo que hace que la variante nazca con
-              código corto (0057). Un color nuevo se agrega en Inventario → Vocabulario. */}
+              código corto (0059). Un color nuevo se agrega en Inventario → Vocabulario. */}
           <select
             value={it.colorId}
             onChange={(e) => actualizar(it.clientId, "colorId", e.target.value)}

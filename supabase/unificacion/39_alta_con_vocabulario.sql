@@ -1,7 +1,7 @@
 -- ============================================================================
--- 38 · Toda variante nace con color del vocabulario y código corto
+-- 39 · Toda variante nace con color del vocabulario y código corto
 --      CUERPO SCHEMA-CALIFICADO PARA PRODUCCIÓN — correr en cayla-DYNAMIC.
---      Solo toca `retail`. Gemela de `supabase/migrations/0057_alta_con_vocabulario.sql`
+--      Solo toca `retail`. Gemela de `supabase/migrations/0059_alta_con_vocabulario.sql`
 --      (leer ahí el porqué completo). Se PEGA en el SQL Editor, no se registra
 --      con `apply_migration` (el historial de migraciones de Dynamic no es el
 --      nuestro — ver BACKLOG, 2026-09-10).
@@ -249,6 +249,14 @@ update retail.variantes v
 -- (c) Código corto para todo lo que ya puede tenerlo.
 select count(retail.fn_asignar_codigo_variante(id)) as codigos_asignados
   from retail.variantes where codigo is null;
+
+-- ---------- registro (convención desde 38_migraciones_aplicadas) ----------
+-- Este archivo CORRIÓ en producción el 2026-09-11 con el nombre `38_alta_con_vocabulario.sql`
+-- (se renumeró a 39 al fusionar con main, que ya usaba el 38 para el registro). Se anota con
+-- el nombre definitivo, que es el que el repo conoce.
+insert into retail.migraciones_aplicadas (archivo, aplicada_at, nota) values
+  ('39_alta_con_vocabulario.sql', '2026-09-11', 'aplicada con execute_sql con autorización de Felipe; pre-flight y post-check en BACKLOG.md')
+  on conflict (archivo) do nothing;
 
 -- ---------- POST-CHECK ----------
 -- 1) Una sola firma viva por función (no se creó sobrecarga):

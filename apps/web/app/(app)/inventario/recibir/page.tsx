@@ -29,7 +29,7 @@ export default async function RecibirLotePage() {
         .eq("sede_destino_id", persona.sedeId)
         .in("estado", ["pendiente", "confirmada"])
         .order("created_at", { ascending: false }),
-      // El vocabulario cerrado de colores (0046): una prenda nueva elige de acá (0057).
+      // El vocabulario cerrado de colores (0046): una prenda nueva elige de acá (0059).
       getColores(),
     ]);
 

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0057 · Toda variante nace con color del vocabulario y código corto,
+-- 0059 · Toda variante nace con color del vocabulario y código corto,
 --        por cualquier camino
 --
 -- EL DEFECTO (encontrado 2026-09-11 al mapear talla y color para el estándar,
@@ -292,5 +292,5 @@ do $$
 declare v_n integer;
 begin
   select count(fn_asignar_codigo_variante(id)) into v_n from variantes where codigo is null;
-  raise notice '0057: % códigos cortos asignados en el backfill', v_n;
+  raise notice '0059: % códigos cortos asignados en el backfill', v_n;
 end $$;

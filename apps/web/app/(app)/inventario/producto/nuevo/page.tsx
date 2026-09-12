@@ -19,7 +19,7 @@ export default async function NuevoProductoPage() {
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // El vocabulario cerrado (0046): `getColores` es `exigir`, no `tolerar` — sin colores
     // el formulario dejaría crear prendas sin color por un fallo de red, que es justo lo
-    // que 0057 vino a cerrar.
+    // que 0059 vino a cerrar.
     getColores(),
   ]);
 

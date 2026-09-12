@@ -273,8 +273,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | Función | Qué resuelve |
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
-| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift. Desde `0057` la variante nueva nace con `color_id` del vocabulario y código corto |
-| `crear_producto_con_variantes` | Alta de un modelo con su matriz talla × color (solo Líder). Desde `0057` resuelve el color con `fn_normalizar_color` y asigna código por variante |
+| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift. Desde `0059` la variante nueva nace con `color_id` del vocabulario y código corto |
+| `crear_producto_con_variantes` | Alta de un modelo con su matriz talla × color (solo Líder). Desde `0059` resuelve el color con `fn_normalizar_color` y asigna código por variante |
 | `fn_normalizar_color` | La única regla del color para los cuatro caminos de alta: código del vocabulario → nombre exacto → texto libre sin código (ADR-0025, el código no se inventa) |
 | `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0033) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |

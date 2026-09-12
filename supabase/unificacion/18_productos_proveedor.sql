@@ -1,8 +1,8 @@
 -- ============================================================================
 -- ⚠ REDEFINIDA DESPUÉS (2026-09-11): el cuerpo vivo de
---   `retail.crear_producto_con_variantes` es el de `38_alta_con_vocabulario.sql` —
+--   `retail.crear_producto_con_variantes` es el de `39_alta_con_vocabulario.sql` —
 --   misma firma, más `color_id` del vocabulario y el código corto por variante. La
---   columna `productos.proveedor_id` de este archivo sigue vigente. Pegar la 38
+--   columna `productos.proveedor_id` de este archivo sigue vigente. Pegar la 39
 --   DESPUÉS de este, nunca al revés.
 -- ============================================================================
 -- productos.proveedor_id + crear_producto_con_variantes · CUERPO

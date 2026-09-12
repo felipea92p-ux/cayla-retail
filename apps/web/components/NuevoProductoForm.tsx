@@ -187,7 +187,7 @@ export function NuevoProductoForm({
       p_variantes: filas.map((f) => ({
         sku: f.sku.trim(),
         talla: f.talla || undefined,
-        // La RPC (0057) resuelve `colorId` contra el vocabulario y guarda el nombre canónico;
+        // La RPC (0059) resuelve `colorId` contra el vocabulario y guarda el nombre canónico;
         // `color` texto sigue existiendo solo para clientes viejos y acá ya no se manda.
         colorId: f.colorId || undefined,
         costo: f.costo,

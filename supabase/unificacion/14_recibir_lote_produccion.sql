@@ -1,8 +1,8 @@
 -- ============================================================================
 -- ⚠ REDEFINIDA DESPUÉS (2026-09-11): el cuerpo vivo de `retail.recibir_lote` es el de
---   `38_alta_con_vocabulario.sql` — misma firma, más `color_id` del vocabulario y el
+--   `39_alta_con_vocabulario.sql` — misma firma, más `color_id` del vocabulario y el
 --   código corto por variante nueva. Este archivo se conserva como registro de lo
---   que corrió; pegar la 38 DESPUÉS de este, nunca al revés.
+--   que corrió; pegar la 39 DESPUÉS de este, nunca al revés.
 -- ============================================================================
 -- recibir_lote completo · CUERPO SCHEMA-CALIFICADO PARA PRODUCCIÓN
 -- Correr en cayla-DYNAMIC. Solo toca `retail`.

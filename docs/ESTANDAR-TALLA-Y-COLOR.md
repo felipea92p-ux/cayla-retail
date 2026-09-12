@@ -207,7 +207,7 @@ especificación graduada son de la columna de Producción (el Taller), no de est
 
 | # | Mecanismo | De quién | Por qué importa | Dónde aterriza | Hoy |
 |:-:|---|---|---|---|:-:|
-| 1 | **Toda variante nace con color del vocabulario y código corto, por cualquier camino** | Lightspeed (variante = SKU siempre), ApparelMagic (UPC automático), Zoho (patrón de SKU) | Sin código no hay etiqueta legible (ADR-0025: el SKU de 40 caracteres es lo que la Zebra no lee), no hay `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás: «azul» y «Azul marino» vuelven a convivir | **Arreglado en local el 2026-09-11, el mismo día** (`0057_alta_con_vocabulario.sql`): `fn_normalizar_color` (una regla para los cuatro caminos: código del vocabulario → nombre exacto → texto libre sin código), `crear_producto_con_variantes` y `recibir_lote` con la misma firma guardan `color_id` y asignan código; los dos formularios eligen del vocabulario. Verificado en navegador: 14 variantes desde «Nuevo producto» (`BLU-0002-AZM-S…`) y una desde «Recibir» (`FAL-0002-VIN-M`), todas con código y en `codigos_barras`. **Y en producción la misma tarde** (`unificacion/38`, pegada con autorización explícita): las 2 variantes con `"azul "` pasaron a Azul marino con código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); post-check con 0 variantes sin código y los tres cuerpos iguales a los del repo. Era: `0035:65` y `0031:98` insertaban texto sin `color_id` y sin código; solo el conteo y el importador lo hacían bien | ✅ local y producción |
+| 1 | **Toda variante nace con color del vocabulario y código corto, por cualquier camino** | Lightspeed (variante = SKU siempre), ApparelMagic (UPC automático), Zoho (patrón de SKU) | Sin código no hay etiqueta legible (ADR-0025: el SKU de 40 caracteres es lo que la Zebra no lee), no hay `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás: «azul» y «Azul marino» vuelven a convivir | **Arreglado en local el 2026-09-11, el mismo día** (`0059_alta_con_vocabulario.sql`): `fn_normalizar_color` (una regla para los cuatro caminos: código del vocabulario → nombre exacto → texto libre sin código), `crear_producto_con_variantes` y `recibir_lote` con la misma firma guardan `color_id` y asignan código; los dos formularios eligen del vocabulario. Verificado en navegador: 14 variantes desde «Nuevo producto» (`BLU-0002-AZM-S…`) y una desde «Recibir» (`FAL-0002-VIN-M`), todas con código y en `codigos_barras`. **Y en producción la misma tarde** (`unificacion/39`, entonces `38`, pegada con autorización explícita): las 2 variantes con `"azul "` pasaron a Azul marino con código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); post-check con 0 variantes sin código y los tres cuerpos iguales a los del repo. Era: `0035:65` y `0031:98` insertaban texto sin `color_id` y sin código; solo el conteo y el importador lo hacían bien | ✅ local y producción |
 | 2 | **La matriz talla × color como vista de stock** | Lightspeed (*matrix*), ApparelMagic («used throughout»), Odoo (grid) | «Veinticinco posiciones» se leen de un vistazo en una cuadrícula; en una lista de 25 filas se leen una por una | `InventarioAgrupado.tsx:193-215` expande el modelo en **filas** «talla · color» con stock por sede; la ficha `/producto/[varianteId]` muestra **una** variante sin sus hermanas (`page.tsx:150-200`) y sigue con `text-neutral-*` pre-brandbook | 🟡 |
 | 3 | **Entrada por cuadrícula** (Recibir, producción, traslado) | Odoo (*Variant Grid Entry*), Uphance (*size-run entry*), Lightspeed (import de matriz) | Recibir 12 unidades de una blusa es una cuadrícula con 12 celdas, no 12 filas agregadas a mano | La matriz existe **solo al crear** (`NuevoProductoForm.tsx:96-103`, «Generar variantes»); `RecibirLoteForm` agrega ítem por ítem; `OrdenesProduccion.tsx:9` ya tiene líneas por talla/color (`OrdenLinea`) pero se llenan una a una | 🟡 |
 | 4 | **La talla que se está quedando** (señal por talla dentro del modelo) | ApparelMagic (*sell-out date* por SKU), Uphance (*forecast at size*) | §L: «Esa frase es el producto entero». §G: «el mayor motivo de rebajas es el desbalance de tallas» | `inteligencia.ts` calcula `diasInventario`, `reponerYa` y `estancado` **por variante** (`:117-121`) y nunca compara una talla con sus hermanas; grep `curva|rezagad` → 0. El dato (`movimientos` por variante) ya existe | 🟡 · se desarrolla en la columna 6 |
@@ -255,19 +255,19 @@ producción; del 2 en adelante es el menú para que Felipe elija.
 
 1. **Toda variante nace con color del vocabulario y código corto** (mecanismo 1). **Hecho en
    local el 2026-09-11**, con la decisión de Felipe de que «azul» es Azul marino:
-   `0057_alta_con_vocabulario.sql` — `fn_normalizar_color` (una regla para los cuatro caminos),
+   `0059_alta_con_vocabulario.sql` — `fn_normalizar_color` (una regla para los cuatro caminos),
    las dos RPC con la misma firma guardan `color_id` y llaman `fn_asignar_codigo_variante`, y el
    backfill resuelve los colores escritos a mano que calzan con el vocabulario sin pisar
    hermanas ya normalizadas. Los dos formularios eligen del vocabulario con el mismo `<select>`
    que `AltaEnConteo`. De paso: local arrastraba una segunda `recibir_lote` de 8 parámetros
-   (0018) que producción ya no tiene; la 0057 la tira (ADR-0026).
+   (0018) que producción ya no tiene; la 0059 la tira (ADR-0026).
    *Verificado en navegador:* «Blusa prueba vocabulario» con 7 tallas × Azul marino/Negro →
    14 variantes con `BLU-0002-AZM-S … BLU-0002-NEG-XXL` y dos entradas en `codigos_barras`
    cada una; «Falda prueba vocabulario» desde Recibir → `FAL-0002-VIN-M` con sus 2 unidades en
    almacén. Por SQL: texto «negro» calza (`NEG`), «Fucsia chillón» se conserva sin código, sin
    color → `-U`, y un código inventado falla con «El color XXX no está en el vocabulario de
    CAYLA».
-   **Producción, la misma tarde:** `unificacion/38` pegada con autorización explícita de
+   **Producción, la misma tarde:** `unificacion/39` (entonces `38`) pegada con autorización explícita de
    Felipe; pre-flight y post-check en el BACKLOG. Producción quedó con 0 variantes sin código
    (`JEA-0001-AZM-26`, `CMS-0001-AZM-S` incluidas) y desde ahí ningún modelo nuevo nace sin
    código, por ninguno de los cuatro caminos.
