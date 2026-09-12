@@ -20,6 +20,14 @@
 -- cientos de miles de cargos manuales—, se repone con un `ajuste` normal,
 -- igual que cualquier otro producto; no hace falta un caso especial para eso.
 --
+-- Se siembra con un `movimiento` de `entrada`, no escribiendo `stock` a mano
+-- (principio 4: `movimientos` es la única fuente de verdad, `stock` es un
+-- snapshot derivado). La primera versión de este archivo sí escribía `stock`
+-- directo, y `recalcular_stock()` — que recompone `stock` desde `movimientos`
+-- sin saber nada de ese atajo — la dejó en negativo apenas hubo una venta real
+-- de "Monto manual" de por medio (visto el 2026-09-12 al sembrar el catálogo
+-- de prueba). Iba a pasar tarde o temprano con cualquier otro recálculo.
+--
 -- Aviso conocido y aceptado: al vivir en `productos`/`variantes` como
 -- cualquier prenda, esta variante también aparece en selectores de otras
 -- pantallas (Traslados, Producción, Inventario) que no filtran por esto.
@@ -42,7 +50,27 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into stock (variante_id, sede_id, cantidad)
-select '22222222-2222-4222-8222-222222222222', id, 999999
-from sedes
-on conflict (variante_id, sede_id) do nothing;
+do $$
+declare
+  v_sede record;
+  v_movimiento_id uuid;
+begin
+  -- `not exists` y no `on conflict`: un movimiento no tiene una llave natural
+  -- que lo vuelva idempotente por sí solo, así que la guardia es "¿ya existe
+  -- ALGÚN movimiento de siembra para esta variante y sede?" — para que
+  -- correr esta migración dos veces (un `db reset` repetido) no duplique
+  -- el stock de sobra en cada corrida.
+  for v_sede in select id from sedes loop
+    if not exists (
+      select 1 from movimientos
+      where variante_id = '22222222-2222-4222-8222-222222222222'
+        and sede_id = v_sede.id
+        and motivo = 'siembra_cargo_especial'
+    ) then
+      insert into movimientos (variante_id, sede_id, tipo, cantidad, motivo)
+        values ('22222222-2222-4222-8222-222222222222', v_sede.id, 'entrada', 999999, 'siembra_cargo_especial')
+        returning id into v_movimiento_id;
+      perform fn_aplicar_movimiento(v_movimiento_id);
+    end if;
+  end loop;
+end $$;

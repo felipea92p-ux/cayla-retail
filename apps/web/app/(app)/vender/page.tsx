@@ -25,29 +25,21 @@ function formatearHora(iso: string) {
 }
 
 /**
- * Punto de venta a pantalla completa (fuera de `(app)`, sin el sidebar de AppShell — es la
- * misma "Caja del día" de siempre, con el layout de POS pedido el 2026-09-12). La
- * navegación a Facturación sigue en `(app)/vender/facturacion`, con su propio chrome; el
- * regreso desde acá es "Cerrar caja" — esto es un modo de trabajo enfocado, no un rincón
- * más del ERP.
+ * Vender: la caja del día de la sede — abrir, vender, cerrar, y ver lo vendido hoy.
+ * Vive dentro de `(app)` (sidebar + cabecera de AppShell) a pedido de Felipe (2026-09-12):
+ * la versión a pantalla completa sin sidebar (probada ese mismo día) rompía la coherencia
+ * con el resto del ERP. El catálogo+ticket de `PuntoDeVenta` queda como una pieza dentro
+ * de esta página, no como una pantalla aparte.
  */
-export default async function VenderPosPage() {
+export default async function VenderPage() {
   return (
-    <Suspense fallback={<CargandoPos />}>
-      <PuntoDeVentaCargado />
+    <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
+      <Caja />
     </Suspense>
   );
 }
 
-function CargandoPos() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-crema">
-      <p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>
-    </main>
-  );
-}
-
-async function PuntoDeVentaCargado() {
+async function Caja() {
   const persona = await requirePersonaActual();
   const supabase = await createClient();
   const [variantes, cajaAbierta, resCodigos] = await Promise.all([
@@ -79,8 +71,6 @@ async function PuntoDeVentaCargado() {
       cajaAbierta={cajaAbierta}
       variantes={variantesParaVenta}
       porCodigoBarras={porCodigoBarras}
-      personaNombre={persona.nombre}
-      personaRolEtiqueta={persona.rol === "lider" ? "Líder" : "Integrante"}
       ventasHoyNode={
         <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
           <VentasDeHoy sedeId={persona.sedeId} sedeCodigo={persona.sedeCodigo} />
@@ -90,8 +80,8 @@ async function PuntoDeVentaCargado() {
   );
 }
 
-/** Mismo query que la versión con AppShell — ver ese historial de decisiones ahí. Acá solo
- *  la lista: el total y el "sin ventas todavía" ya los muestra el panel de ticket. */
+/** Mismo query de siempre — ver ADRs previos para el porqué de `tolerar()` acá y no
+ *  `exigir()`. Solo la lista: el total y el "sin ventas todavía" los muestra el ticket. */
 async function VentasDeHoy({ sedeId, sedeCodigo }: { sedeId: string; sedeCodigo: string }) {
   const supabase = await createClient();
   const { datos: ventasHoy, fallo } = tolerar(

@@ -17,7 +17,6 @@ import {
   RefreshCw,
   Smartphone,
   Trash2,
-  UserRound,
   Wifi,
   WifiOff,
   X,
@@ -93,8 +92,6 @@ type Props = {
   /** Los avisos de conexión/rechazo que ya arma CajaPanel — se renderizan tal cual,
    *  arriba del todo, para no duplicar esa lógica acá. */
   avisos: ReactNode;
-  personaNombre: string;
-  personaRolEtiqueta: string;
   ventasHoyNode: ReactNode;
   onVentaEncolada: () => void;
   onCerrarCaja: () => void;
@@ -108,8 +105,6 @@ export function PuntoDeVenta({
   sinConexion,
   colaCount,
   avisos,
-  personaNombre,
-  personaRolEtiqueta,
   ventasHoyNode,
   onVentaEncolada,
   onCerrarCaja,
@@ -330,17 +325,9 @@ export function PuntoDeVenta({
       : { texto: "En línea", claseTono: "bg-verde/10 text-verde-profundo", Icono: Wifi, girar: false };
 
   return (
-    <main className="flex h-[calc(100vh-0px)] min-h-screen flex-col bg-crema text-tinta">
-      <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
-        <div className="mr-auto flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-tinta text-crema">
-            <span className="font-display text-xl">C</span>
-          </div>
-          <div>
-            <p className="text-base font-bold text-tinta">CAYLA</p>
-            <p className="text-[11px] text-tinta/65">ERP · Punto de venta</p>
-          </div>
-        </div>
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta">
+      <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
+        <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {sedeCodigo}</p>
         <span className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium ${estadoConexion.claseTono}`}>
           <estadoConexion.Icono className={`h-3.5 w-3.5 ${estadoConexion.girar ? "animate-spin" : ""}`} />
           {estadoConexion.texto}
@@ -352,21 +339,12 @@ export function PuntoDeVenta({
         >
           Cerrar caja
         </button>
-        <div className="hidden h-9 items-center gap-2 border-l border-sand pl-4 sm:flex">
-          <UserRound className="h-4 w-4 text-tinta/60" />
-          <div>
-            <p className="text-xs font-semibold text-tinta">{personaNombre}</p>
-            <p className="text-[10px] text-tinta/60">
-              {personaRolEtiqueta} · {sedeCodigo}
-            </p>
-          </div>
-        </div>
-      </header>
+      </div>
 
       {avisos && <div className="space-y-2 px-4 pt-3 sm:px-6">{avisos}</div>}
 
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="flex min-h-[50vh] min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
           <div className="px-4 pt-4 sm:px-6 sm:pt-5">
             <div className="mb-3 flex items-end justify-between gap-4">
               <div>
@@ -527,7 +505,7 @@ export function PuntoDeVenta({
           </div>
         </section>
 
-        <aside className="flex min-h-[45vh] flex-col bg-papel lg:h-[calc(100vh-65px)]">
+        <aside className="flex min-h-[45vh] flex-col bg-papel lg:max-h-[42rem]">
           <div className="flex items-center justify-between border-b border-sand px-5 py-4">
             <div>
               <p className="text-xs text-tinta/60">Ticket actual</p>
@@ -734,6 +712,6 @@ export function PuntoDeVenta({
           </div>
         </Modal>
       )}
-    </main>
+    </div>
   );
 }

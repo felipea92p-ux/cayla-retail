@@ -37,8 +37,6 @@ type Props = {
   cajaAbierta: CajaAbierta | null;
   variantes: VarianteBusqueda[];
   porCodigoBarras: Record<string, string>;
-  personaNombre: string;
-  personaRolEtiqueta: string;
   ventasHoyNode: ReactNode;
 };
 
@@ -61,8 +59,6 @@ export function CajaPanel({
   cajaAbierta,
   variantes,
   porCodigoBarras,
-  personaNombre,
-  personaRolEtiqueta,
   ventasHoyNode,
 }: Props) {
   const router = useRouter();
@@ -235,7 +231,7 @@ export function CajaPanel({
 
   if (!cajaAbierta) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-crema p-5">
+      <div className="flex justify-center py-10">
         <div className="w-full max-w-md space-y-3">
           {avisos}
           <section className="card-cayla p-8 text-center">
@@ -256,7 +252,7 @@ export function CajaPanel({
           </section>
         </div>
         {modal === "abrir" && <AbrirCajaModal sedeId={sedeId} sedeCodigo={sedeCodigo} onClose={() => setModal(null)} />}
-      </main>
+      </div>
     );
   }
 
@@ -270,8 +266,6 @@ export function CajaPanel({
         sinConexion={sinConexion}
         colaCount={cola.length}
         avisos={avisos}
-        personaNombre={personaNombre}
-        personaRolEtiqueta={personaRolEtiqueta}
         ventasHoyNode={ventasHoyNode}
         onVentaEncolada={() => setCola(obtenerColaSede(sedeCodigo))}
         onCerrarCaja={() => setModal("cerrar")}
