@@ -105,6 +105,16 @@ select '22222222-2222-4222-8222-000000000003', 'Micaela', 'Vendedora', 'integran
 from public.sedes where codigo = 'TRU'
 on conflict (auth_user_id) do nothing;
 
+-- Colaboradores autorizados (0013): sin esto, NINGUNA de las dos cuentas
+-- de prueba locales puede entrar — fn_tiene_acceso_retail() exige estar en
+-- esta tabla, no solo activo en Dynamic. Producción tiene su propia lista
+-- real (Felipe la definió, 2026-09-13), completamente aparte de este seed.
+insert into retail.colaboradores (persona_id)
+select id from public.personas where auth_user_id in (
+  '22222222-2222-4222-8222-000000000001', '22222222-2222-4222-8222-000000000003'
+)
+on conflict (persona_id) do nothing;
+
 insert into retail.proveedores (nombre, ruc, contacto) values
   ('Textiles Andina SAC', '20512345678', 'Jorge Ramos'),
   ('Confecciones del Sur EIRL', '20498765432', 'Lucía Paredes');
