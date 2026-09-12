@@ -229,38 +229,15 @@ export function CajaPanel({
     </>
   );
 
-  if (!cajaAbierta) {
-    return (
-      <div className="flex justify-center py-10">
-        <div className="w-full max-w-md space-y-3">
-          {avisos}
-          <section className="card-cayla p-8 text-center">
-            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-tinta text-crema">
-              <span className="font-display text-2xl">C</span>
-            </div>
-            <p className="label-cayla text-[11px] text-tinta/60">CAYLA · {sedeCodigo}</p>
-            <h1 className="font-display mt-4 text-3xl text-tinta">La caja está cerrada</h1>
-            <p className="mx-auto mt-3 max-w-xs text-sm text-tinta/70">
-              Registra el fondo inicial para comenzar a vender en esta sede.
-            </p>
-            <button
-              onClick={() => setModal("abrir")}
-              className="label-cayla mt-8 w-full rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-            >
-              Abrir caja
-            </button>
-          </section>
-        </div>
-        {modal === "abrir" && <AbrirCajaModal sedeId={sedeId} sedeCodigo={sedeCodigo} onClose={() => setModal(null)} />}
-      </div>
-    );
-  }
-
+  // El catálogo y el ticket se ven SIEMPRE, caja abierta o no (pedido de Felipe,
+  // 2026-09-12): con la caja cerrada, PuntoDeVenta se dibuja igual pero desactivado
+  // (opacidad + pointer-events-none, más `disabled` real en cada control — no solo
+  // visual), y el botón que abre/cierra la caja es el único que sigue activo.
   return (
     <>
       <PuntoDeVenta
         sedeCodigo={sedeCodigo}
-        cajaId={cajaAbierta.id}
+        cajaId={cajaAbierta?.id ?? null}
         variantes={variantesConOverlay}
         porCodigoBarras={porCodigoBarras}
         sinConexion={sinConexion}
@@ -268,9 +245,10 @@ export function CajaPanel({
         avisos={avisos}
         ventasHoyNode={ventasHoyNode}
         onVentaEncolada={() => setCola(obtenerColaSede(sedeCodigo))}
-        onCerrarCaja={() => setModal("cerrar")}
+        onAbrirCerrarCaja={() => setModal(cajaAbierta ? "cerrar" : "abrir")}
       />
-      {modal === "cerrar" && (
+      {modal === "abrir" && <AbrirCajaModal sedeId={sedeId} sedeCodigo={sedeCodigo} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && cajaAbierta && (
         <CerrarCajaModal
           cajaId={cajaAbierta.id}
           sedeCodigo={sedeCodigo}

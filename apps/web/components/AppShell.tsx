@@ -473,8 +473,12 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
       </header>
 
       {/* ==================== Contenido ==================== */}
+      {/* Vender es la única pantalla sin el tope de max-w-5xl: el catálogo +
+          ticket necesita todo el ancho disponible, no el de una página de
+          lectura (pedido de Felipe, 2026-09-12). El resto de la app sigue
+          centrado en la columna angosta de siempre. */}
       <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className={pathname === "/vender" ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 
       {/* ==================== Pestañas (celular) ==================== */}

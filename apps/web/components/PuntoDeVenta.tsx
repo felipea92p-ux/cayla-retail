@@ -82,7 +82,9 @@ const money = (n: number) => `S/${n.toFixed(2)}`;
 
 type Props = {
   sedeCodigo: string;
-  cajaId: string;
+  /** Null con la caja cerrada — el catálogo se ve igual, pero queda desactivado
+   *  (ver `bloqueado` más abajo). */
+  cajaId: string | null;
   /** Ya con el overlay de la cola offline aplicado (ver CajaPanel) — incluye la variante
    *  centinela de "Monto manual", que este componente filtra antes de mostrar nada. */
   variantes: VarianteBusqueda[];
@@ -94,7 +96,9 @@ type Props = {
   avisos: ReactNode;
   ventasHoyNode: ReactNode;
   onVentaEncolada: () => void;
-  onCerrarCaja: () => void;
+  /** Un solo botón que abre o cierra la caja según toque — CajaPanel decide cuál
+   *  modal mostrar según si `cajaId` es null. */
+  onAbrirCerrarCaja: () => void;
 };
 
 export function PuntoDeVenta({
@@ -107,8 +111,12 @@ export function PuntoDeVenta({
   avisos,
   ventasHoyNode,
   onVentaEncolada,
-  onCerrarCaja,
+  onAbrirCerrarCaja,
 }: Props) {
+  // Único candado real: los `disabled` de abajo ya impiden el click, pero las
+  // funciones se protegen solas (teclado, doble-render, lo que sea) en vez de
+  // confiar en que la UI nunca deje pasar una llamada.
+  const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
   const listaCarrito = useRef<HTMLDivElement>(null);
@@ -161,6 +169,7 @@ export function PuntoDeVenta({
   }, [carrito.length]);
 
   function agregar(v: VarianteBusqueda) {
+    if (bloqueado) return;
     if (v.stockAqui <= 0) {
       setAviso(`${v.referencia} no tiene stock en ${sedeCodigo}. Búscala en Inventario para ver dónde está.`);
       setQ("");
@@ -200,6 +209,7 @@ export function PuntoDeVenta({
   }
 
   function agregarMontoManual() {
+    if (bloqueado) return;
     const valor = Number(montoManual);
     if (!valor) return;
     capturarFlip();
@@ -271,6 +281,7 @@ export function PuntoDeVenta({
 
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
+    if (cajaId === null) return;
     if (carrito.length === 0) {
       setError("Todavía no agregaste ninguna prenda. Escanea la etiqueta o busca en el catálogo.");
       return;
@@ -334,16 +345,27 @@ export function PuntoDeVenta({
         </span>
         <button
           type="button"
-          onClick={onCerrarCaja}
-          className="label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          onClick={onAbrirCerrarCaja}
+          className={
+            bloqueado
+              ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+              : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+          }
         >
-          Cerrar caja
+          {bloqueado ? "Abrir caja" : "Cerrar caja"}
         </button>
       </div>
 
       {avisos && <div className="space-y-2 px-4 pt-3 sm:px-6">{avisos}</div>}
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_420px]">
+      {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
+          fuera de alcance del mouse. `disabled` real en cada control de abajo, no
+          solo esto: `pointer-events-none` no le dice nada al teclado ni a un lector
+          de pantalla. */}
+      <div
+        aria-disabled={bloqueado}
+        className={`grid lg:grid-cols-[minmax(0,1fr)_420px] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+      >
         <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
           <div className="px-4 pt-4 sm:px-6 sm:pt-5">
             <div className="mb-3 flex items-end justify-between gap-4">
@@ -354,6 +376,7 @@ export function PuntoDeVenta({
               <button
                 type="button"
                 onClick={() => setManualAbierto(true)}
+                disabled={bloqueado}
                 className="label-cayla flex h-10 items-center gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40"
               >
                 <CircleDollarSign className="h-4 w-4" />
@@ -368,6 +391,7 @@ export function PuntoDeVenta({
                   id="venta-buscar"
                   ref={buscador}
                   autoFocus
+                  disabled={bloqueado}
                   value={q}
                   onChange={(e) => {
                     setQ(e.target.value);
@@ -443,6 +467,7 @@ export function PuntoDeVenta({
                   key={c}
                   type="button"
                   onClick={() => setCategoria(c)}
+                  disabled={bloqueado}
                   className={`label-cayla h-8 shrink-0 rounded-lg border px-3 text-[11px] transition-colors ${
                     categoria === c ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
                   }`}
@@ -463,6 +488,7 @@ export function PuntoDeVenta({
                     key={v.varianteId}
                     type="button"
                     onClick={() => agregar(v)}
+                    disabled={bloqueado}
                     className="relative flex h-auto min-h-44 flex-col items-stretch justify-between rounded-xl border border-sand bg-papel p-3 text-left transition-colors hover:bg-sand/30"
                   >
                     <div className="flex h-16 items-center justify-center rounded-lg bg-sand/40 text-taupe">
@@ -622,6 +648,7 @@ export function PuntoDeVenta({
                       key={m}
                       type="button"
                       onClick={() => setMetodoPago(m)}
+                      disabled={bloqueado}
                       className={`flex h-12 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px] transition-colors ${
                         metodoPago === m ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
                       }`}
@@ -645,7 +672,7 @@ export function PuntoDeVenta({
 
               <button
                 type="submit"
-                disabled={loading || carrito.length === 0}
+                disabled={bloqueado || loading || carrito.length === 0}
                 className="flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50"
               >
                 <span className="label-cayla text-[11px]">{loading ? "Procesando…" : "Cobrar"}</span>
