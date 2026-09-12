@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-12 (apartado C, columna 3: el traslado instantáneo es un modelo que se quedó chico)
+
+Tercera columna, «Varios almacenes y transferencias», mismo método. Es la más comoditizada
+de las siete —doce de dieciséis con 4 o más—, así que la vara no está en tener sedes con
+stock sino en cómo se modela el viaje: Lightspeed (`OPEN → SENT → RECEIVED`, recepción
+parcial), Business Central (transfer order con ubicación en tránsito, envío y recepción como
+dos actos) y NetSuite (*Inventory in Transit*, *Pending Receipt*) coinciden en que **mientras
+la caja viaja, el stock no es de nadie**. CAYLA tiene buena base (almacén interno, conteos por
+zona, sugerencia de traslado con botón, stock por sede a la vista) y un traslado atómico:
+`fn_aplicar_movimiento` resta en el origen y suma en el destino en el mismo acto. Resultado en
+`docs/ESTANDAR-ALMACENES-Y-TRASLADOS.md`.
+
+**El hallazgo salió de Bsale, no de los grandes:** en Perú el traslado entre establecimientos
+lleva Guía de Remisión Electrónica, obligatoria desde 2023, y SUNAT puede retener la mercadería
+en carretera. Bsale la emite desde el despacho con motivo «traslado entre establecimientos» y
+ubigeo de destino; en el repo no hay una sola mención. Va al menú como decisión de Felipe,
+con una verificación previa: si Lucode emite GRE remitente.
+
+Lo que Felipe se lleva: **cuando una función es de todos, la diferencia está en el modelo, no
+en la función** — «trasladar» lo tienen dieciséis; «trasladar sin que el destino vea lo que
+aún no tiene» lo tienen tres. Y que una columna funcional puede esconder una obligación
+fiscal: la GRE no aparece en ninguna tabla de funciones y es lo que un inspector mira en la
+carretera.
+
 ## 2026-09-11 (apartado C, columna 2: el modelo ya está; lo que falta es lo de encima)
 
 Segunda columna del apartado C, «Talla y color», con el mismo método y en la misma sesión.

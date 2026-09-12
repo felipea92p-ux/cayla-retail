@@ -29,8 +29,24 @@ importante que ha entrado a este archivo desde que existe.
       vista y como forma de entrada, la señal por talla, la curva y la temporada. Doce
       mecanismos; el 1 es un defecto (ver ARREGLAR); el 4 y el 5 se desarrollan en las columnas
       6 y 3; el 10 (curva de tallas y paquetes) es decisión de negocio.
-      **Siguen las otras cinco columnas** (almacenes y transferencias, fiscal, finanzas, IA,
-      omnicanal), una por sesión, mismo método.
+      **Columna 3, «Varios almacenes y transferencias» — análisis hecho el 2026-09-12:**
+      `docs/ESTANDAR-ALMACENES-Y-TRASLADOS.md` (artefacto «El estándar de almacenes y
+      traslados»). Es la columna más comoditizada (12 de 16 con 4 o más); los 5 (Lightspeed,
+      NetSuite, BC) se distinguen por **cómo modelan el viaje**: el traslado es un documento con
+      estados (enviado → en tránsito → recibido), recepción parcial en destino, y el stock que
+      viaja no es de nadie. **CAYLA lo tiene atómico e instantáneo** (`fn_aplicar_movimiento`,
+      `0045:220-227`): TRU aprieta y AQP ya «tiene» lo que viaja 20 horas. Y lo peruano que
+      ninguna ficha global mide: mover mercadería entre establecimientos exige **Guía de
+      Remisión Electrónica** (SUNAT, obligatoria desde 2023) — grep `remisión` en el repo → 0.
+      Doce mecanismos; tres ya están (conteo por zona, stock por sede a la vista, traslado
+      sugerido con botón); el menú: (1) escaneo en el traslado y botón «Devolver a almacén»,
+      solo `apps/web`; (2) recepción contra orden con lo pedido y lo recibido, y reconciliar
+      `produccionesPendientes = []` (`recibir/page.tsx:70`, deuda de ADR-0004); (3) el traslado
+      con estados — esquema `traslados` + líneas, **decisiones de negocio**: quién confirma en
+      destino, qué pasa con una diferencia, cuántos días antes de avisar; (4) la GRE al enviar —
+      **verificar si Lucode emite GRE remitente**, decisión de Felipe por ser SUNAT.
+      **Siguen las otras cuatro columnas** (fiscal, finanzas, IA, omnicanal), una por sesión,
+      mismo método.
 - [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
