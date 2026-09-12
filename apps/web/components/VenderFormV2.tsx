@@ -5,15 +5,27 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { campoEtiqueta, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { Segmentado } from "@/components/ui/campos";
+import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
 
 // Prioridad 1 (2026-09-12): pantalla mínima para poder probar Caja/POS de
 // punta a punta (una caja sin ventas no se puede cuadrar). No reemplaza a
 // `RegistrarVentaModal.tsx` (V1, con buscador tipo pistola Zebra) — esa
 // experiencia se retoma cuando Ventas entre de lleno al roadmap; esto solo
 // prueba `registrar_venta` con caja + pagos múltiples reales.
+//
+// Boleta/factura en el mismo paso (pedido de Felipe, 2026-09-12): antes,
+// vender y facturar eran dos pantallas sin relación — la venta no dejaba
+// ningún comprobante, y Facturación emitía uno "suelto" tecleando el total
+// a mano. Ahora `registrar_venta` recibe el tipo elegido acá y emite el
+// comprobante en la MISMA transacción (0011_venta_con_comprobante.sql):
+// si no hay serie registrada para esa ubicación, la venta entera revienta
+// antes de tocar el stock, en vez de quedar cobrada y sin forma de facturar.
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; precio: number };
 type Linea = { varianteId: string; cantidad: number; precioUnitario: number; descuentoUnitario: number };
 type Pago = { metodo: "efectivo" | "tarjeta" | "yape" | "plin" | "transferencia"; monto: number };
+type ComprobanteEmitido = { tipo: TipoComprobante; texto: string } | null;
 
 const METODOS: Pago["metodo"][] = ["efectivo", "tarjeta", "yape", "plin", "transferencia"];
 
@@ -32,10 +44,15 @@ export function VenderFormV2({
     primeraVariante ? [{ varianteId: primeraVariante.varianteId, cantidad: 1, precioUnitario: primeraVariante.precio, descuentoUnitario: 0 }] : []
   );
   const [pagos, setPagos] = useState<Pago[]>([{ metodo: "efectivo", monto: 0 }]);
+  const [tipoComprobante, setTipoComprobante] = useState<TipoComprobante>("boleta");
+  const [clienteNumDoc, setClienteNumDoc] = useState("");
+  const [clienteNombre, setClienteNombre] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ total: number } | null>(null);
+  const [ok, setOk] = useState<{ total: number; comprobante: ComprobanteEmitido } | null>(null);
   const tokenVenta = useRef<string>(crypto.randomUUID());
+
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
 
   const total = useMemo(
     () => lineas.reduce((acc, l) => acc + (l.precioUnitario - l.descuentoUnitario) * l.cantidad, 0),
@@ -94,7 +111,7 @@ export function VenderFormV2({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_venta", {
+    const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
       p_ubicacion_id: ubicacionId,
       p_items: lineas.map((l) => ({
         variante_id: l.varianteId,
@@ -104,14 +121,32 @@ export function VenderFormV2({
       })),
       p_pagos: pagos.filter((p) => p.monto > 0),
       p_token: tokenVenta.current,
+      p_tipo_comprobante: tipoComprobante,
+      p_cliente_tipo_doc: clienteTipoDoc,
+      p_cliente_num_doc: clienteNumDoc || undefined,
+      p_cliente_nombre: clienteNombre || undefined,
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError(traducirError(error, "registrar la venta"));
       return;
     }
+    // El comprobante ya quedó creado en la misma transacción de arriba —
+    // esta consulta es solo para mostrar su serie-número, nunca puede
+    // "fallar en emitir": si algo salió mal, registrar_venta ya revirtió
+    // todo y el error se mostró arriba en vez de llegar hasta acá.
+    let comprobante: ComprobanteEmitido = null;
+    if (ventaId) {
+      const { data: comp } = await supabase
+        .from("comprobantes")
+        .select("tipo, serie, numero")
+        .eq("venta_id", ventaId)
+        .maybeSingle();
+      if (comp) comprobante = { tipo: comp.tipo as TipoComprobante, texto: `${comp.serie}-${String(comp.numero).padStart(6, "0")}` };
+    }
+    setLoading(false);
     tokenVenta.current = crypto.randomUUID();
-    setOk({ total });
+    setOk({ total, comprobante });
     router.refresh();
   }
 
@@ -120,6 +155,11 @@ export function VenderFormV2({
       <div className="card-cayla space-y-3 p-5 text-center">
         <p className="label-cayla text-[11px] text-verde-profundo">Venta registrada</p>
         <p className="font-display text-3xl text-tinta">S/{ok.total.toFixed(2)}</p>
+        {ok.comprobante && (
+          <p className="text-sm text-tinta/75">
+            {ETIQUETA_TIPO[ok.comprobante.tipo]} <span className="font-mono tabular-nums">{ok.comprobante.texto}</span>
+          </p>
+        )}
         <button
           type="button"
           autoFocus
@@ -129,6 +169,9 @@ export function VenderFormV2({
               setLineas([{ varianteId: primeraVariante.varianteId, cantidad: 1, precioUnitario: primeraVariante.precio, descuentoUnitario: 0 }]);
             }
             setPagos([{ metodo: "efectivo", monto: 0 }]);
+            setTipoComprobante("boleta");
+            setClienteNumDoc("");
+            setClienteNombre("");
           }}
           className={`${botonPrimario} w-full`}
         >
@@ -188,6 +231,30 @@ export function VenderFormV2({
       <div className="flex justify-between border-t border-sand pt-3 text-sm font-semibold text-tinta">
         <span>Total</span>
         <span>S/{total.toFixed(2)}</span>
+      </div>
+
+      <div className="space-y-3 border-t border-sand pt-4">
+        <Segmentado
+          etiqueta="Comprobante"
+          valor={tipoComprobante}
+          onValor={(t) => {
+            setTipoComprobante(t);
+            setClienteNumDoc("");
+            setClienteNombre("");
+          }}
+          opciones={[
+            { valor: "boleta", texto: ETIQUETA_TIPO.boleta },
+            { valor: "factura", texto: ETIQUETA_TIPO.factura },
+          ] as const}
+        />
+        <ConsultaDocumento
+          tipo={tipoComprobante === "factura" ? "ruc" : "dni"}
+          obligatorio={tipoComprobante === "factura"}
+          numero={clienteNumDoc}
+          onNumero={setClienteNumDoc}
+          nombre={clienteNombre}
+          onNombre={setClienteNombre}
+        />
       </div>
 
       <div className="space-y-3">

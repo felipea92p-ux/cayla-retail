@@ -1624,6 +1624,22 @@ export type Database = {
         }[]
       }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_ventas_del_dia: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          cliente_nombre: string
+          comprobante_estado: string
+          comprobante_texto: string
+          comprobante_tipo: string
+          hora: string
+          items: Json
+          metodos_pago: string
+          total: number
+          ubicacion_nombre: string
+          vendedor: string
+          venta_id: string
+        }[]
+      }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {
         Args: { p_devolucion_id: string; p_motivo?: string }
@@ -1683,8 +1699,12 @@ export type Database = {
       registrar_venta: {
         Args: {
           p_cliente_id?: string
+          p_cliente_nombre?: string
+          p_cliente_num_doc?: string
+          p_cliente_tipo_doc?: string
           p_items: Json
           p_pagos: Json
+          p_tipo_comprobante?: string
           p_token?: string
           p_ubicacion_id: string
         }

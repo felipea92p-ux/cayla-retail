@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
+import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
+import { ESTADO_ESTILO, ESTADO_ETIQUETA, ETIQUETA_TIPO, tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
@@ -11,29 +12,6 @@ import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/compon
 import { traducirError } from "@/lib/error-escritura";
 
 type Ubicacion = { id: string; nombre: string };
-
-const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
-  boleta: "Boleta",
-  factura: "Factura",
-  nota_credito: "Nota de crédito",
-  nota_debito: "Nota de débito",
-};
-
-const ESTADO_ESTILO: Record<Comprobante["estado"], string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
-};
-
-const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
-  pendiente: "Pendiente de enviar",
-  enviado: "Enviado a SUNAT",
-  aceptado: "Aceptado",
-  rechazado: "Rechazado",
-  anulado: "Anulado",
-};
 
 // Un comprobante transmitido contra el sandbox de Lucode queda "aceptado" con
 // su CDR y su PDF, exactamente igual que uno real — pero SUNAT nunca lo vio.
@@ -198,8 +176,7 @@ export function ComprobantesPanel({
   // aparte que pueda contradecir al tipo de comprobante — se deriva de él. Antes,
   // tipear un DNI y luego cambiar a Factura dejaba "factura + dni", y la venta se
   // caía recién al apretar Emitir, con la clienta esperando en el mostrador.
-  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
-    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
   // Formulario de serie
   const [serieUbicacionId, setSerieUbicacionId] = useState(ubicacionActualId);

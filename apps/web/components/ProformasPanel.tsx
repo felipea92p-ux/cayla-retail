@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Proforma } from "@/lib/proformas";
-import type { TipoComprobante } from "@/lib/comprobantes";
+import type { TipoComprobante } from "@/lib/comprobantes-reglas";
+import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
@@ -70,8 +71,7 @@ export function ProformasPanel({
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [convertirNombre, setConvertirNombre] = useState("");
-  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
-    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
   const vigentes = proformas.filter((p) => p.estado === "vigente");
   const porVencer = vigentes.filter((p) => p.porVencer);

@@ -1,42 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import type { Comprobante, SerieComprobante, VentaDelDia } from "@/lib/comprobantes-reglas";
 
-export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito";
-export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado";
-/** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
- *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
-export type EntornoTransmision = "sandbox" | "produccion" | null;
+// Tipos y reglas puras (lo que un componente cliente puede necesitar como
+// VALOR: constantes, `tipoDocumentoDeCliente`) viven en comprobantes-reglas.ts,
+// no acá — ver ese archivo para el porqué. Este archivo es solo lectura de
+// servidor (principio del repo: lib/ nunca escribe; la emisión pasa por RPC
+// desde el componente cliente).
+export type { TipoComprobante, EstadoComprobante, EntornoTransmision, Comprobante, SerieComprobante, ItemVentaDelDia, VentaDelDia } from "@/lib/comprobantes-reglas";
 
-export type Comprobante = {
-  id: string;
-  tipo: TipoComprobante;
-  serie: string;
-  numero: number;
-  cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
-  cliente_num_doc: string | null;
-  cliente_nombre: string | null;
-  total: number;
-  estado: EstadoComprobante;
-  entorno_transmision: EntornoTransmision;
-  motivo_rechazo: string | null;
-  motivo_anulacion: string | null;
-  /** Con esto lleno y `estado` todavía "aceptado", la baja se pidió pero SUNAT
-   *  no la confirmó: el resumen diario de boletas se procesa diferido. */
-  anulacion_solicitada_at: string | null;
-  created_at: string;
-  ubicacion_id: string;
-};
-
-export type SerieComprobante = {
-  id: string;
-  ubicacion_id: string;
-  tipo: TipoComprobante;
-  serie: string;
-  siguiente_numero: number;
-};
-
-// Lectura pura (principio de arquitectura del repo: lib/ nunca escribe).
-// La emisión pasa por la RPC `emitir_comprobante` desde el componente cliente.
 export async function getComprobantesMes(desde: string, hasta: string): Promise<Comprobante[]> {
   const supabase = await createClient();
   // Un comprobante que no se ve es un comprobante que se vuelve a emitir. Si esta
@@ -63,4 +35,15 @@ export async function getSeriesComprobantes(): Promise<SerieComprobante[]> {
     .select("id, ubicacion_id, tipo, serie, siguiente_numero")
     .order("tipo");
   return exigir(resSeries, "las series de comprobantes") as SerieComprobante[];
+}
+
+/** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
+ *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve
+ *  todas las ubicaciones o una sola si se lo pides; un integrante solo ve la
+ *  suya sin importar qué `ubicacionId` se mande — no hay nada que este lib
+ *  necesite reforzar acá. */
+export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[]> {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
+  return exigir(res, "las ventas de hoy") as unknown as VentaDelDia[];
 }

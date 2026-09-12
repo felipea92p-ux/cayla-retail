@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getComprobantesMes, getSeriesComprobantes } from "@/lib/comprobantes";
+import { getComprobantesMes, getSeriesComprobantes, getVentasDeHoy } from "@/lib/comprobantes";
 import { getProformasMes } from "@/lib/proformas";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ProformasPanel } from "@/components/ProformasPanel";
+import { VentasDelDiaPanel } from "@/components/VentasDelDiaPanel";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -26,11 +27,16 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
   const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
-  const [comprobantes, series, proformas, ubicaciones] = await Promise.all([
+  const [comprobantes, series, proformas, ubicaciones, ventasHoy] = await Promise.all([
     getComprobantesMes(desde, hasta),
     getSeriesComprobantes(),
     getProformasMes(desde, hasta),
     getUbicaciones(),
+    // Sin ubicación: un líder ve las ventas de todas las tiendas del día,
+    // que es justo lo que pidió ("todo lo que se vendió hoy") — un
+    // integrante vería solo la suya igual, aunque acá nunca entra (la
+    // pantalla entera es líder-only, ver el redirect de arriba).
+    getVentasDeHoy(),
   ]);
   const ubicacionesOperativas = ubicaciones.filter((u) => u.tipo !== "almacen");
   const ubicacionActual = ubicacionesOperativas.find((u) => u.id === persona.ubicacionId) ?? ubicacionesOperativas[0];
@@ -66,9 +72,17 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
         </div>
       </div>
 
-      {/* Proforma primero: es el trabajo pendiente (¿quién va a volver a
-          comprar?), antes que el historial ya cerrado de comprobantes. */}
-      <ProformasPanel proformas={proformas} ubicaciones={ubicacionesOperativas} ubicacionActualId={ubicacionActual?.id ?? ""} />
+      {/* Ventas de hoy primero: es lo más inmediato — qué pasó en el mostrador
+          en las últimas horas, antes que el trabajo pendiente (proformas) o el
+          historial administrativo del mes (comprobantes). */}
+      <VentasDelDiaPanel ventas={ventasHoy} />
+
+      <div className="border-t border-tinta/10 pt-8">
+        {/* Proforma primero de los dos de abajo: es el trabajo pendiente
+            (¿quién va a volver a comprar?), antes que el historial ya cerrado
+            de comprobantes. */}
+        <ProformasPanel proformas={proformas} ubicaciones={ubicacionesOperativas} ubicacionActualId={ubicacionActual?.id ?? ""} />
+      </div>
 
       <div className="border-t border-tinta/10 pt-8">
         <ComprobantesPanel comprobantes={comprobantes} series={series} ubicaciones={ubicacionesOperativas} ubicacionActualId={ubicacionActual?.id ?? ""} />
