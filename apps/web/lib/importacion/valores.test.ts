@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { valoresDistintos, cruzarConVocabulario, normalizarTalla } from "./valores";
+import { valoresDistintos, cruzarConVocabulario, normalizarTalla, tokenTalla } from "./valores";
 import type { FilaEstandar } from "./mapeo";
 
 function fila(color: string, categoria = ""): FilaEstandar {
@@ -91,11 +91,41 @@ describe("normalizarTalla", () => {
     ["TALLA: L", "L"],
     ["XL", "XL"],
     ["38", "38"],
-    ["Único", "ÚNICO"],
+    // Todas las formas de talla única colapsan a una, como fn_token_talla en la base.
+    ["Único", "Único"],
+    ["U", "Único"],
+    ["unica", "Único"],
+    ["Talla única", "Único"],
+    ["", "Único"],
   ];
   for (const [entrada, esperado] of casos) {
     it(`"${entrada}" → "${esperado}"`, () => {
       expect(normalizarTalla(entrada)).toBe(esperado);
+    });
+  }
+});
+
+describe("tokenTalla replica fn_token_talla (0047)", () => {
+  // Los esperados son lo que devuelve la función de Postgres, verificado con
+  // `select fn_token_talla(x)` en local. Si esto cambia allá, cambia acá.
+  const casos: Array<[string, string]> = [
+    ["", "U"],
+    ["   ", "U"],
+    ["U", "U"],
+    ["Único", "U"],
+    ["unica", "U"],
+    ["Talla única", "U"],
+    ["Estándar", "STD"],
+    ["M", "M"],
+    ["m", "M"],
+    ["S/M", "SM"],
+    ["SM", "SM"],
+    ["38", "38"],
+    ["Ñandú 2", "NANDU2"],
+  ];
+  for (const [entrada, esperado] of casos) {
+    it(`"${entrada}" → "${esperado}"`, () => {
+      expect(tokenTalla(entrada)).toBe(esperado);
     });
   }
 });

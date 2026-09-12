@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsearNumero, aplicarMapeo, camposFaltantes, type PlanDeMapeo } from "./mapeo";
+import { parsearNumero, aplicarMapeo, camposFaltantes, planPorCabeceras, type PlanDeMapeo } from "./mapeo";
 
 /**
  * `aplicarMapeo` es la pieza donde un bug entra SILENCIOSO a la base: no lanza
@@ -13,6 +13,16 @@ describe("parsearNumero — donde se pierde dinero", () => {
     ["89,90", 89.9],            // coma decimal, como escribe media Latinoamérica
     ["S/ 89.90", 89.9],         // con moneda peruana delante
     ["S/89,90", 89.9],
+    // "S/." con punto: el símbolo oficial del sol hasta 2015, y el formato que
+    // Excel en Perú sigue poniendo por defecto. Sin quitar el símbolo ENTERO,
+    // el punto de "S/." contaba como separador y 89.90 salía como 8.990 — el
+    // precio multiplicado por 100, sin ningún error. Revisión del 2026-09-11.
+    ["S/. 89.90", 89.9],
+    ["S/. 1,500.00", 1500],
+    ["S/.89,90", 89.9],
+    ["S/.120", 120],
+    ["$ 45.00", 45],
+    ["USD 45.00", 45],
     ["  1.234,56  ", 1234.56],  // europeo: punto de miles, coma decimal
     ["1,234.56", 1234.56],      // americano: al revés
     ["1,500", 1500],            // 3 dígitos detrás = miles, NO 1.5
@@ -159,5 +169,26 @@ describe("camposFaltantes", () => {
       ],
     };
     expect(camposFaltantes(plan)).toEqual([]);
+  });
+});
+
+describe("planPorCabeceras — el camino sin modelo", () => {
+  it("reconoce las cabeceras de un catálogo peruano típico por su nombre", () => {
+    // Las del archivo de prueba de CAYLA, tal cual.
+    const plan = planPorCabeceras(["N", "COD", "CATEGORIA", "DESCRIPCION", "MARCA", "TALLA", "COLOR", "P. COMPRA", "PVP", "OBS"]);
+    expect(plan.disposicion).toBe("fila_por_variante");
+    expect(plan.columnas.map((c) => c.campo)).toEqual([
+      "ignorar", "codigoCliente", "categoria", "referencia", "marca", "talla", "color", "costo", "precio", "ignorar",
+    ]);
+    expect(camposFaltantes(plan)).toEqual([]);
+    // Nunca se declara seguro: es una coincidencia de palabra, no una certeza.
+    expect(plan.columnas.every((c) => c.confianza !== "alta")).toBe(true);
+  });
+
+  it("un campo se asigna una sola vez y lo que no reconoce va a ignorar, visible", () => {
+    const plan = planPorCabeceras(["Precio", "PRECIO", "xyz", ""]);
+    expect(plan.columnas.map((c) => c.campo)).toEqual(["precio", "ignorar", "ignorar", "ignorar"]);
+    expect(plan.columnas[2].confianza).toBe("baja");
+    expect(camposFaltantes(plan)).toEqual(["referencia", "talla"]);
   });
 });

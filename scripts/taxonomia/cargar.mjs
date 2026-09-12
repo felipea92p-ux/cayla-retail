@@ -28,17 +28,17 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { VERSION_FIJADA } from "./version.mjs";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 
 /**
- * La versión va FIJADA acá, no se resuelve a "latest". El estándar saca release
- * cada trimestre y v2026-08 sumó 2.000 categorías; un catálogo que se
- * reclasifica solo de un día para otro es peor que uno desactualizado. Subir de
- * versión es editar esta línea a conciencia — y `revisar-version.mjs` avisa
- * cuándo vale la pena.
+ * La versión va FIJADA (en version.mjs, compartida por los tres scripts), no se
+ * resuelve a "latest". El estándar saca release cada trimestre y v2026-08 sumó
+ * 2.000 categorías; un catálogo que se reclasifica solo de un día para otro es
+ * peor que uno desactualizado. Subir de versión es editar esa línea a
+ * conciencia — y `revisar-version.mjs` avisa cuándo vale la pena.
  */
-const VERSION_FIJADA = "2026-08";
 
 /**
  * Los verticales que cubren las 6 familias de CAYLA (`categorias.familia`):

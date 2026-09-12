@@ -9,6 +9,10 @@ node_modules/
 .DS_Store
 supabase/.branches/
 supabase/.temp/
+
+# Foto de un momento de producción (scripts/migraciones/README.md) — una vieja
+# miente con cara de dato, así que nunca se versiona.
+scripts/migraciones/inventario-produccion.json
 .vercel
 .env*
 .claude/settings.local.json
@@ -23,3 +27,7 @@ scripts/etiquetas/hoja-de-prueba.html
 # Seed de la taxonomia universal: dato derivado, ~2MB, se regenera con
 # `node scripts/taxonomia/cargar.mjs` desde un release inmutable.
 supabase/seed-taxonomia/
+
+# Salida cruda de gen-types: se compara contra src/types.ts (que tiene parches
+# a mano) y se traslada lo que cambio. Nunca se versiona ni pisa types.ts.
+packages/database/src/types.produccion.ts

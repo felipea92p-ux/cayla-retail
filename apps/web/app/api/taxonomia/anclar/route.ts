@@ -1,6 +1,7 @@
 import { requirePersonaActual } from "@/lib/persona";
 import { createClient } from "@/lib/supabase/server";
 import { anclar } from "@/lib/taxonomia/anclar-ia";
+import { permitirLlamada, traducirErrorIA } from "@/lib/ia/cliente";
 import {
   getCategoriasPropias,
   getCategoriasUniversales,
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
     return Response.json({ anclajes: [], conIA: 0, mensaje: "Ya está todo anclado." });
   }
 
+  const freno = permitirLlamada(persona.id);
+  if (!freno.ok) return Response.json({ error: freno.mensaje }, { status: 429 });
+
   try {
     const { anclajes, conIA } = await anclar(
       pendientes,
@@ -87,53 +91,17 @@ export async function POST(request: Request) {
       conIA,
     });
   } catch (e) {
-    const { mensaje, status } = traducirErrorIA(e);
+    // El traductor a idioma CAYLA vive en lib/ia/cliente.ts, compartido con los
+    // tres endpoints del importador — antes cada uno tenía el suyo, o ninguno.
+    const { mensaje, status } = traducirErrorIA(
+      e,
+      "El anclaje automático",
+      "Mientras tanto el vocabulario se puede anclar a mano."
+    );
     return Response.json({ error: mensaje }, { status });
   }
 }
 
-/**
- * Los fallos de la API en idioma CAYLA, misma regla que `traducirError` para
- * Postgres (ADR-0022). El crudo llega en inglés y dice "credit balance is too
- * low" — cierto, pero deja a quien lo lee sin saber si rompió algo, si es su
- * culpa o a quién avisar. Y el más probable de todos no es un bug: es que se
- * acabó el saldo, que le pasa a cualquier cuenta de prepago.
- *
- * Lo que no se reconoce se devuelve tal cual, nunca se traga: un traductor que
- * inventa un mensaje para lo que no entendió es peor que no tenerlo.
- */
-function traducirErrorIA(e: unknown): { mensaje: string; status: number } {
-  const crudo = e instanceof Error ? e.message : String(e);
-  const status = typeof (e as { status?: number })?.status === "number" ? (e as { status: number }).status : 0;
-
-  if (crudo.includes("credit balance")) {
-    return {
-      mensaje:
-        "La cuenta de Anthropic se quedó sin saldo. El anclaje automático no puede correr hasta que se recargue " +
-        "en console.anthropic.com (Plans & Billing). Mientras tanto el vocabulario se puede anclar a mano.",
-      status: 402,
-    };
-  }
-  if (status === 401 || crudo.includes("authentication_error")) {
-    return {
-      mensaje: "La clave de Anthropic no es válida o fue revocada. Hay que revisar ANTHROPIC_API_KEY.",
-      status: 401,
-    };
-  }
-  if (status === 429) {
-    return {
-      mensaje: "Anthropic está limitando las consultas por volumen. Espera un momento y vuelve a intentar.",
-      status: 429,
-    };
-  }
-  if (status === 529 || status >= 500) {
-    return {
-      mensaje: "Anthropic no está respondiendo en este momento. No se guardó nada; reintenta en unos minutos.",
-      status: 503,
-    };
-  }
-  return { mensaje: `No se pudo consultar el anclaje: ${crudo}`, status: 502 };
-}
 
 export async function PUT(request: Request) {
   const persona = await requirePersonaActual();

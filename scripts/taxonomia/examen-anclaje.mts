@@ -64,6 +64,20 @@ const universales = consultar<TerminoUniversal[]>(
       `select coalesce(json_agg(json_build_object('id',c.id,'nombre',c.nombre,'ruta',c.ruta) order by c.ruta),'[]') from retail.taxonomia_categorias c where c.nivel > 1;`
 );
 
+// Sin filas no hay examen: con la taxonomía sin cargar (el estado normal
+// después de un `db reset`, que la vacía), esto seguía adelante y le pedía al
+// modelo que anclara contra una lista vacía — pagando por un resultado que
+// solo podía ser "nada calzó". Revisión del 2026-09-11.
+if (universales.length === 0) {
+  throw new Error(
+    `No hay ${que === "colores" ? "colores universales" : "categorías universales"} en el Postgres local. ` +
+      `Carga la taxonomía primero: node scripts/taxonomia/cargar.mjs --aplicar`
+  );
+}
+if (propios.length === 0) {
+  throw new Error(`No hay ${que} propios en el Postgres local. ¿Corrió el seed? (npx supabase db reset)`);
+}
+
 // La clave sale de .env.local igual que en la app: un examen que use otra
 // credencial no estaría probando lo que corre de verdad.
 const env = readFileSync(new URL("../../apps/web/.env.local", import.meta.url), "utf8");

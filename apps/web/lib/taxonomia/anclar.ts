@@ -61,17 +61,60 @@ export function claveTexto(texto: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** Primera pasada: coincidencia exacta de nombre normalizado. Sin IA, sin costo. */
+/**
+ * La ruta universal entera es larga ("Ropa y accesorios > Prendas de vestir >
+ * Ropa deportiva > Pantalones"); en pantalla alcanza con la hoja… salvo que la
+ * hoja se repita. "Pantalones" está en cuatro ramas, y mostrar solo la hoja
+ * hacía que un anclaje a la rama equivocada se viera correcto, y que el
+ * datalist ofreciera cuatro opciones idénticas que resolvían siempre a la
+ * primera. Se muestra la hoja y, cuando hace falta para distinguirla, el
+ * padre: "Pantalones · Ropa deportiva". `repetidas` son las hojas que aparecen
+ * más de una vez en el catálogo que se está mostrando; sin ella, se agrega el
+ * padre siempre que la ruta tenga más de dos niveles.
+ */
+export function etiquetaCorta(ruta: string, repetidas?: Set<string>): string {
+  const partes = ruta.split(" > ");
+  const hoja = partes[partes.length - 1] ?? ruta;
+  if (partes.length < 2) return hoja;
+  const ambigua = repetidas ? repetidas.has(hoja) : partes.length > 2;
+  return ambigua ? `${hoja} · ${partes[partes.length - 2]}` : hoja;
+}
+
+/** Las hojas que se repiten entre varias rutas: las que `etiquetaCorta` debe desambiguar. */
+export function hojasRepetidas(rutas: string[]): Set<string> {
+  const veces = new Map<string, number>();
+  for (const r of rutas) {
+    const hoja = r.split(" > ").pop() ?? r;
+    veces.set(hoja, (veces.get(hoja) ?? 0) + 1);
+  }
+  return new Set([...veces].filter(([, n]) => n > 1).map(([h]) => h));
+}
+
+/**
+ * Primera pasada: coincidencia exacta de nombre normalizado. Sin IA, sin costo.
+ *
+ * Solo cuando el nombre es ÚNICO en el catálogo universal. El árbol de ropa
+ * repite 73 hojas en 188 ramas ("Pantalones" está bajo ropa deportiva, de
+ * bebé, de dormir…): con un Map a secas ganaba la última rama cargada, el
+ * anclaje salía "exacto" y la pantalla lo mostraba como correcto. Un nombre
+ * repetido no es una coincidencia exacta: es una pregunta, y va al modelo con
+ * el catálogo entero delante. Revisión del 2026-09-11.
+ */
 export function anclarPorNombre(
   propios: TerminoPropio[],
   universales: TerminoUniversal[]
 ): { resueltos: Anclaje[]; pendientes: TerminoPropio[] } {
-  const porClave = new Map(universales.map((u) => [claveTexto(u.nombre), u.id]));
+  const porClave = new Map<string, string[]>();
+  for (const u of universales) {
+    const k = claveTexto(u.nombre);
+    porClave.set(k, [...(porClave.get(k) ?? []), u.id]);
+  }
   const resueltos: Anclaje[] = [];
   const pendientes: TerminoPropio[] = [];
 
   for (const p of propios) {
-    const id = porClave.get(claveTexto(p.nombre));
+    const ids = porClave.get(claveTexto(p.nombre));
+    const id = ids?.length === 1 ? ids[0] : undefined;
     if (id) {
       resueltos.push({ clave: p.clave, universalId: id, confianza: "exacta", porque: "" });
     } else {

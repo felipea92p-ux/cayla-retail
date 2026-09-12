@@ -35,29 +35,58 @@ importante que ha entrado a este archivo desde que existe.
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
       infiere qué es cada columna y de qué universal cuelga cada color o
-      categoría nueva; `importar_catalogo` (0055) escribe todo en una
-      transacción con stock en cero; `deshacer_importacion` descontinúa, nunca
-      borra. Costos medidos: $0.006 el mapeo, $0.01 los valores, $0.0036 una
-      foto de cuaderno. Verificado en el navegador con la sesión real y
-      confirmado en la base. 178 tests.
-      **Lo que falta para usarlo en producción:** pegar `0056` (y `0052` + su
-      seed, si no se pegaron aún) con prefijo `retail.`. Y darle a *guardar* en
-      **Inventario → Vocabulario** para anclar los 30 colores y 37 categorías de
-      CAYLA — el examen ya corrió y aprobó; solo falta confirmar en pantalla
-      (corregir a mano `Tops → Tops cortos deportivos` y decidir `Fucsia →
-      Púrpura` o `Rosa`).
+      categoría nueva; `importar_catalogo` (0056, redefinido en **0057** tras la
+      revisión adversarial del 11-sep) escribe todo en una transacción con
+      stock en cero; `deshacer_importacion` descontinúa, nunca borra, y ahora
+      tiene botón. Costos medidos CON el caché contado (antes se omitía y salía
+      diez veces menos): $0.014 el mapeo, **$0.19 los valores la primera vez en
+      la hora** (escribe ~85.000 tokens del árbol al caché; las siguientes ~$0.01),
+      $0.0036 una foto. 209 tests.
+      **Lo que falta para usarlo en producción:** pegar
+      `supabase/seed-taxonomia/produccion/9-migracion-0057.sql` (se genera con
+      `node scripts/taxonomia/preparar-produccion.mjs`; ya lleva `retail.` y
+      `retail.es_lider()`). Sin eso, la 0056 que ya está allá llama a
+      `fn_es_lider()`, que no existe en producción, y el importador revienta al
+      primer uso — es por lo que la prueba de Felipe del 11-sep no dejó rastro.
+      Y darle a *guardar* en **Inventario → Vocabulario** para anclar los 30
+      colores y 37 categorías de CAYLA (corregir a mano `Tops → Tops cortos
+      deportivos` y decidir `Fucsia → Púrpura` o `Rosa`).
+      **Límite honesto que dejó la revisión:** el freno de 40 llamadas al modelo
+      por persona y hora (`permitirLlamada`) vive en memoria del proceso — en
+      Vercel es por instancia, así que es un freno, no una garantía. La
+      garantía sería una tabla; el día que haga falta, es esa función la que se
+      reemplaza.
       **Lo que queda fuera, dicho:** las prendas que CAYLA ya tiene no ganan
       atributos ricos (tejido, patrón) — `producto_atributos` existe pero el
       importador solo la llena para catálogos nuevos; llenarla para el catálogo
       actual es otro trabajo. Y el cron semanal para `revisar-version.mjs` no
       existe: se corre a mano cuando se quiera saber si hay versión nueva.
+      **Aparte, sin resolver (2026-09-11):** Felipe espera que los productos
+      disponibles de CAYLA se saquen probablemente de "Ingreso Mercadería" de
+      SINATRA. Verificado contra `SINATRA 2025.xlsm`: 2.219 filas de compra, 21
+      `CATEGORÍA` con duplicados de forma (`Pantalones`/`PANTALONES`,
+      `Body`/`body`, mapeables 1:1 contra `retail.categorias` con el motor de
+      anclaje de arriba), `DETALLE` texto libre sin estructura (1.439 valores
+      distintos, ej. "Sosten lino algodon", "Lino Prada"), `TALLA` vacía al
+      100%, 807 filas (36%) con error de fórmula — confirma en 2025 lo mismo que
+      `docs/ANALISIS-SINATRA.md` ya midió en 2026: **es un registro de compras,
+      no un catálogo**, sin SKU y sin talla/color por fila para
+      `crear_producto_con_variantes` sin inventar datos. El catálogo real de
+      CAYLA se sigue capturando por el censo físico (ítem `catalogo real` más
+      abajo), no por esta hoja. Queda sin resolver qué significa exactamente
+      "sacar los productos disponibles" de Ingreso Mercadería si no es un import
+      1:1 — ¿leer qué categorías/marcas circulan históricamente para pre-poblar
+      sugerencias del censo? ¿otra cosa? "El importador de clientes" y "leer
+      Ingreso Mercadería" comparten el motor de anclaje pero no son el mismo
+      problema: el primero recibe un archivo ya pensado como catálogo por el
+      cliente, el segundo es un registro de compras que nunca lo fue.
 
-- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
-      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
-      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
-      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
-      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
-      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+- [x] **`0052` + seed + `0056` ya están en producción** (Felipe los pegó el
+      11-sep desde `supabase/seed-taxonomia/produccion/`). Falta la **`0057`**
+      (ver el ítem del importador). `revisar-version.mjs` ahora lee los anclajes
+      de producción si se le pasan `REVISAR_SUPABASE_URL` y
+      `REVISAR_SUPABASE_KEY` (service role, solo en la terminal, nunca en un
+      archivo); sin ellas lee local y lo avisa.
 
 - [ ] **`gen-types`: ningún entorno tiene el esquema completo, así que ninguna
       regeneración sale bien sola — y ya son 3 parches a mano.**
@@ -177,7 +206,15 @@ importante que ha entrado a este archivo desde que existe.
       siempre. `unificacion/26_ultima_venta_en_aplicar_movimiento.sql` la restaura
       y hace backfill desde `movimientos`. **Pendiente de Felipe: pegar `26` en el
       SQL Editor de producción, ANTES que `27`.**
-- [x] **`el ajuste lleva signo` — hecho y verificado en local 2026-09-09
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión.** `pg_constraint` confirma las tres redes (`stock`,
+      `stock_almacen`, `movimientos_cantidad_coherente`) con `convalidated =
+      true`, y `fn_aplicar_movimiento` ya tenía el patrón nuevo (conserva
+      `ultima_venta` y la guarda del ajuste). Se volvió a pegar `unificacion/27`
+      por no saber que ya estaba — sin daño, el script es idempotente
+      (`if not exists` + `validate` es no-op sobre una red ya validada). Texto
+      original, como quedó registrado el 2026-09-09:
+      **`el ajuste lleva signo` — hecho y verificado en local 2026-09-09
       (`0045_ajuste_con_signo.sql`, ADR-0023); falta pegar `unificacion/27`.**
       Era imposible registrar un conteo MENOR a lo que dice el sistema: la rama
       `ajuste` proponía la fila con el delta y Postgres evalúa el CHECK sobre la
@@ -187,19 +224,30 @@ importante que ha entrado a este archivo desde que existe.
       creado stock negativo en silencio. Se arregla con
       asegurar→bloquear→verificar→sumar bajo `for update`, y se ponen las tres
       redes que faltaban (`stock`, `stock_almacen`, y `movimientos.cantidad <> 0`
-      con signo solo para el ajuste). **Pendiente de Felipe: correr el pre-flight
-      de `unificacion/27` y LEERLO antes de aplicar** — si hay filas negativas o
-      movimientos en cero, se miran una por una y se corrigen con movimientos,
-      nunca borrando.
-- [x] **`vocabulario cerrado de colores` — hecho y verificado en local 2026-09-09
+      con signo solo para el ajuste).
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión (`retail.colores` tenía `created_at` del 2026-09-09
+      20:31).** 30 colores, no 29: Felipe agregó **"Arena"** (`ARN`, familia
+      tierra) a mano esa misma noche (20:45), resolviendo la ambigüedad que
+      dejaba pendiente el ítem de abajo. "azul" a secas sigue sin resolver (ver
+      ese ítem). Se volvió a pegar `unificacion/28` por no saber que ya estaba —
+      sin daño (`create table if not exists`, `on conflict do nothing`). Texto
+      original, como quedó registrado el 2026-09-09:
+      **`vocabulario cerrado de colores` — hecho y verificado en local 2026-09-09
       (`0046_colores.sql`, ADR-0024); falta pegar `unificacion/28`.** 29 colores
       aprobados por Felipe, con índice único sobre el nombre normalizado: la base
       rechaza "azul marino" si ya existe "Azul marino". Es la pieza con mayor
       costo de postergación del proyecto — unificar colores después del censo no
-      es un `update` de texto, es fusionar variantes con stock e historial. NO se
-      hizo tabla de tallas, a propósito: agregarla tarde es barato (no es FK de
-      nada), agregar colores tarde es caro.
-- [x] **`código corto + codigos_barras` — hecho y verificado en local 2026-09-09
+      es un `update` de texto, es fusionar variantes con stock e historial.
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión.** 37 categorías con 37 prefijos distintos, 5 modelos y 17
+      variantes con código corto, 2 variantes esperando color (el "azul" a secas
+      de abajo) — exactamente el estado que predice el archivo. Las 13 funciones
+      de `29`+`30` existen en `pg_proc` con `count = 1` cada una, sin sobrecargas
+      fantasma. No se volvió a pegar (se verificó ANTES de pedirle a Felipe que
+      la pegara, al notar que `codigos_barras` ya existía). Texto original, como
+      quedó registrado el 2026-09-09:
+      **`código corto + codigos_barras` — hecho y verificado en local 2026-09-09
       (`0047_codigos.sql`, ADR-0025); falta pegar `unificacion/29` DESPUÉS de la
       `28`.** `BLU-0042-AZM-M` al lado del SKU, que no se toca. El argumento no es
       estético: `EtiquetasGenerator` estira el Code 128 al ancho de la etiqueta,
@@ -210,11 +258,12 @@ importante que ha entrado a este archivo desde que existe.
       casi todas las prendas ya traen código de fábrica convierte el censo en
       "escanear lo que está en la percha" en vez de "pegar 900 etiquetas primero";
       el backfill registra el `sku` viejo, así que las etiquetas ya impresas
-      siguen funcionando. **Pendiente de Felipe: los TRES pre-flight de
-      `unificacion/29`** (categorías que el archivo no conoce, variantes
-      duplicadas, SKUs repetidos). Si el de duplicados devuelve filas, se resuelve
-      una por una — nunca borrando.
-- [x] **`sesiones de conteo` — hecho y verificado en local 2026-09-09
+      siguen funcionando.
+- [x] **RESUELTO EN PRODUCCIÓN — verificado 2026-09-10, ya estaba aplicada antes
+      de esta sesión** (mismo hallazgo que el ítem de arriba: las 7 funciones de
+      conteo ya existían en `pg_proc`, count = 1 cada una). No se volvió a pegar.
+      Texto original, como quedó registrado el 2026-09-09:
+      **`sesiones de conteo` — hecho y verificado en local 2026-09-09
       (`0048_conteos.sql`, ADR-0027); falta pegar `unificacion/30` al final de la
       cola.** Dos tablas y siete RPC. Un conteo que puede crear prendas al vuelo
       es un censo; un censo sobre un catálogo cargado es un conteo — la misma
@@ -282,6 +331,31 @@ importante que ha entrado a este archivo desde que existe.
       alarma, la tabla vive en `retail.sede_meta`, se movió de schema en la
       unificación; (b) la sobrecarga de `fn_set_meta_cobertura` que reporta es de
       `public`, o sea de Dynamic, no nuestra. Texto original abajo:**
+      **Addenda de otra sesión, en paralelo y sin saberlo (2026-09-10):**
+      esta misma pantalla se construyó dos veces a la vez sin que ninguna de
+      las dos partes lo supiera hasta el final del día — una sesión en esta
+      máquina armó `/inventario/censo` + `CensoPanel.tsx` el mismo día en que
+      Danytristee ya tenía `/inventario/conteo` cerrado desde el 09-09.
+      Se descartó la versión duplicada sin pushear (cero costo real más allá
+      de las horas) y quedan dos lecciones de método, verificadas al intentar
+      correr esa versión antes de descartarla:
+      1. La tecla Enter/Escape simulada por la herramienta de navegador de
+         Claude no siempre llega al `onKeyDown` de React en este entorno —
+         se confirmó disparando `new KeyboardEvent(...)` directo por
+         JavaScript, que sí activó el flujo completo (RPC incluida). No es un
+         bug de pantalla; ninguna prueba automatizada reemplaza probar con
+         teclado real o la pistola.
+      2. `npx supabase db reset` es la única prueba real de que una migración
+         local no tiene el prefijo `retail.` que solo va en el gemelo de
+         producción (ADR-0010) — se encontró exactamente ese bug al intentar
+         correrlo, no antes.
+      **La deuda estructural que esto expone, más grande que el censo:** con
+      un colaborador externo empujando en vivo a `origin/main` e invisible
+      para `list_sessions`/`ListAgents`, cualquier sesión puede duplicar
+      trabajo suyo sin ninguna alarma previa — pasó con el censo y, aparte,
+      con el arreglo de `pnpm typecheck` (Danytristee lo hizo un día antes,
+      por su cuenta, mismo síntoma). Sincronizar contra `origin/main` al abrir
+      sesión ya no alcanza cuando el remoto se mueve varias veces por día.
       **Pegar en producción `27` → `28` → `29` → `30`, en ese orden.** Estado real
       de producción **verificado contra la base el 2026-09-09** (no contra estos
       documentos, que decían otra cosa): la `25`, la `26` y la `31` **ya están
@@ -291,6 +365,21 @@ importante que ha entrado a este archivo desde que existe.
       Cada una depende de la anterior: la 29 arma el código de cada prenda con el
       código de color que crea la 28, y la 30 no puede registrar un conteo hacia
       abajo sin el ajuste con signo de la 27.
+- [ ] **Un colores escrito a mano que no calza con los 29 — "azul" a secas.**
+      **CORREGIDO 2026-09-10: "Arena" ya se agregó** (`ARN`, familia tierra, por
+      Felipe el 2026-09-09 20:45) — queda solo "azul", 2 variantes de producción
+      (confirmado: `esperan_color = 2`), que hay que decidir si es marino o
+      claro. Mientras no tenga color resuelto, esas 2 variantes **no reciben
+      código corto** — es deliberado (ADR-0025: el código no se inventa), y en
+      cuanto se le asigne color, `retail.fn_asignar_codigo_variante` se lo da.
+- [ ] **`recalcular_stock` borra el `stock_minimo` de una variante sin
+      movimientos.** Borde heredado de ADR-0020, encontrado al extender esa
+      función para el almacén: `fijar_stock_minimo` crea una fila de `stock` con
+      cantidad 0 solo para guardar el mínimo, y el `delete` final la borra si esa
+      variante todavía no tiene ningún movimiento en esa sede. Se dejó anotado en
+      el comentario del bloque 7 de `0044` en vez de cambiarlo por cuenta propia,
+      porque es una decisión de quien escribió ADR-0020. Arreglo probable: sumar
+      `and s.stock_minimo is null` al `delete`.
       **Los siete pre-flight se corrieron contra producción y dieron todos 0**
       (stock negativo, stock_almacen negativo, movimientos en cero, movimientos
       negativos que no son ajuste, categorías desconocidas, variantes duplicadas,
@@ -299,6 +388,10 @@ importante que ha entrado a este archivo desde que existe.
       Guía paso a paso con el SQL listo para copiar:
       `~/AppData/Local/Temp/.../scratchpad/falta-pegar.html`, publicada como
       artifact "Lo que falta pegar".
+      **Nota al reconciliar (2026-09-11): este párrafo quedó desactualizado por el de
+      arriba — "Arena" ya se agregó (`0050_color_arena.sql`), solo "azul" seguía sin
+      resolver. Se deja tal cual, sin reescribir, porque describe el estado real del
+      2026-09-09; la corrección ya está en el bullet anterior.**
 - [x] **CERRADO 2026-09-11 — resuelto en producción con la `39` (entonces `38`): las 2 variantes con `"azul "`
       son Azul marino (`AZM`) y tienen código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); producción
       tiene 0 variantes sin código y 0 colores fuera del vocabulario.** Texto anterior:
@@ -720,22 +813,91 @@ importante que ha entrado a este archivo desde que existe.
       siguen pasando por los RPC, `movimientos` sigue siendo la única fuente de verdad
       (principio 4). Escrituras local-first sin arbitraje dejarían el stock en −1
       cuando dos sedes venden offline la misma última unidad — rompe el principio 2.
-      Regla de negocio ya decidida por Felipe (2026-09-09): la venta offline se permite
-      **solo con stock de sobra**; si es la última unidad, bloquea. Falta definir con
-      él el umbral exacto de "de sobra" y qué ve la Encargada cuando se bloquea.
-      **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario` en 131 ms de TTFB
-      y 750 ms de carga total; el "~2 s" que se repetía nunca fue una medición). El
-      motor ya está elegido: instantánea en IndexedDB + Supabase Realtime, sin motor
-      externo (ADR-0018).
-      **EL PRIMER PASO REAL ES UN `alter publication`, y no es mío:** hoy
-      `supabase_realtime` tiene **0 tablas** (reverificado contra producción el
-      10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es DDL en el
-      proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo también con
-      local: `config.toml` tiene el contenedor de `realtime` **apagado** desde ADR-0010,
-      así que probar esto en local exige encenderlo primero (y ADR-0010 avisa que dos
-      stacks compitiendo era justo lo que rompía los healthchecks).
-      **Ya NO depende de la idempotencia:** cerrada el 10-sep (ADR-0033, `0054`). La
-      cola de la Fase 3 tiene su red puesta antes de existir.
+      **Depende de Fase 0 y Fase 1** — sin eso, la primera carga sigue cruzando a
+      Washington igual. **Fase 0 y Fase 1: aplicadas y medidas** (09-09: `/inventario`
+      en 131 ms de TTFB y 750 ms de carga total; el "~2 s" que se repetía nunca fue una
+      medición). El motor ya está elegido: instantánea en IndexedDB + Supabase Realtime,
+      sin motor externo (ADR-0018). **EL PRIMER PASO REAL ES UN `alter publication`, y
+      no es mío:** hoy `supabase_realtime` tiene **0 tablas** (reverificado contra
+      producción el 10-sep). Habilitarla sobre `retail.stock` y `retail.movimientos` es
+      DDL en el proyecto compartido con Dynamic → parar y confirmar con Felipe. Ojo
+      también con local: `config.toml` tiene el contenedor de `realtime` **apagado**
+      desde ADR-0010, así que probar esto en local exige encenderlo primero (y ADR-0010
+      avisa que dos stacks compitiendo era justo lo que rompía los healthchecks). **Ya NO
+      depende de la idempotencia de la venta:** cerrada el 10-sep (ADR-0033,
+      "el reintento no cobra dos veces", `0054`). **Tampoco depende del umbral de "stock
+      de sobra" para VENDER offline** — se construyó aparte, ver el ítem de la cola de
+      ventas offline (ADR-0036) abajo.
+- [x] **CERRADO 2026-09-11 — la cola de ventas offline, construida y verificada en
+      local (ADR-0036).** No dependía de Fase 2/IndexedDB: es una cola propia en
+      `localStorage`, independiente de la réplica de lecturas. `registrar_venta`
+      (ADR-0032, y su token ADR-0033 "el reintento no cobra dos veces") ya sabía no
+      duplicar un reintento; faltaba que el navegador supiera CUÁNDO reintentar y qué
+      hacer mientras tanto. Construido: `esFalloDeRed()` (`lib/error-escritura.ts`,
+      reusa las mismas huellas de `fetch` que ya traducía errores — y resultó ser la
+      misma pregunta que ya se había hecho `ConteoPanel` el mismo día, ADR-0034;
+      quedó una sola función para las dos colas) distingue un corte de red de un
+      rechazo real del servidor; `lib/ventas-offline.ts` (puro, 11 pruebas) tiene la
+      cola por caja, el umbral de ADR-0013 §C (`stockAqui - cantidad >= 1`, evaluado
+      ANTES de encolar) y el overlay que descuenta en pantalla lo que la cola ya
+      vendió sin subir (sin esto, dos ventas offline de la última unidad pasarían las
+      dos); `CajaPanel.tsx` corre el sondeo de conexión y la subida en el mismo trío
+      mount/`online`/latido de 30 s. **Verificado a mano** apagando y prendiendo
+      `supabase_kong_cayla-retail`: con Kong abajo el panel abre con el aviso; vender
+      4 de 5 se encola y muestra el acuse "Guardada — sube sola"; un segundo intento
+      sobre la última unidad se bloquea con el texto del umbral y NO se encola; al
+      volver la red sube sola — Postgres queda con stock en 1, una sola fila en
+      `ventas` y en `movimientos`, el `token_cliente` coincide con el de la cola.
+      `pnpm test`/`typecheck`/`build` limpios (123 pruebas). Fuera de alcance a
+      propósito (dice el ADR): inventario offline, caja offline, facturación offline —
+      la pantalla avisa que emitir comprobante de una venta encolada necesita esperar
+      a que suba.
+      **ADENDA "Paso 3.1", misma tarde — se cerró un agujero real que auditar el código
+      dejó ver: si la caja cerraba antes de que la venta subiera, quedaba huérfana para
+      siempre** (nadie volvía a mirar su cola — plata cobrada que el sistema dejaba de
+      saber que existía, principio 9). Se decidió NO bloquear "Cerrar caja" con algo
+      pendiente (peor que el problema: dejaría a la Encargada sin poder cerrar si la red
+      no vuelve esa noche) y en cambio la cola pasó de ser por CAJA a ser por SEDE
+      (`obtenerColaSede()`), así que sigue subiendo/mostrándose aunque la caja que generó
+      la venta ya haya cerrado. `CerrarCajaModal` avisa ahora cuánto efectivo hay
+      encolado sin subir, porque `cerrar_caja` no lo cuenta en el "esperado" todavía y
+      sin el aviso se lee como un sobrante falso. **Verificado con Postgres real:**
+      caja cerrada directo en la base con una venta todavía en la cola del navegador →
+      la pantalla de "caja cerrada" (antes muda) mostró "Subiendo 1 venta…" y luego el
+      rechazo real ("Esta caja ya está cerrada") sin perder la venta de vista; una caja
+      NUEVA de la misma sede siguió viendo el stock descontado por esa venta atascada.
+      **Hallazgo aparte anotado en el ADR:** una recarga completa de la pantalla con el
+      servidor caído no funciona — el server component también depende de Kong, así que
+      cae a la pantalla de error genérica. La cola protege una venta a mitad de envío,
+      no un arranque en frío sin servidor (eso sigue siendo Fase 2 / ADR-0018).
+      **ADENDA 2, cerrada la misma tarde — botón "Descartar" para un rechazo que nunca
+      se va a resolver solo.** El Paso 3.1 dejó anotado que una venta rechazada para
+      siempre (su caja no vuelve a existir "abierta") se reintentaba cada 30 s sin
+      parar, sin más salida que borrar `localStorage` a mano desde la consola. Ahora
+      cada rechazo tiene un botón "Descartar" con confirmación de dos pasos que dice
+      explícito que NO registra la venta ni corrige el stock — solo saca la entrada de
+      la cola local, y le recuerda a quien confirma que si la prenda salió de la
+      tienda hay que anotarlo a mano. Se descartó guardar un registro de auditoría en
+      el servidor: no hay ninguna fila que recuperar ahí, el rechazo pasó ANTES del
+      insert. **Verificado con Postgres real:** venta rechazada por caja cerrada →
+      "Cancelar" deja la cola intacta, "Descartar" → "Sí, descartar" muestra el monto
+      (S/70.00) y al confirmar vacía la cola sin error. `pnpm test`/`typecheck`/`build`
+      limpios (126 pruebas).
+      **ADENDA 3, al reconciliar con `main` (2026-09-11) — colisión real con trabajo
+      paralelo, no solo de números.** Mientras esta rama construía la cola, `main`
+      reconcilió dos ramas que habían resuelto el mismo día el mismo problema de
+      idempotencia (ver PR de "reconciliar-duplicados") y de paso cambió las reglas
+      del token de `RegistrarVentaModal.tsx` que esta rama daba por sentadas: antes
+      regeneraba el token en cada edición del carrito, y main lo arregló (ADR-0033,
+      "el reintento no cobra dos veces") porque regenerar ahí puede cobrar una venta
+      dos veces si el corte de red fue de VUELTA (la venta sí entró, pero la
+      respuesta se perdió) y la Encargada edita el carrito antes de reintentar. Esta
+      rama todavía tenía ese patrón en la ruta bloqueada por el umbral. Se adoptó el
+      modelo de main (token fijo por sesión de venta, `token.current ??=
+      crypto.randomUUID()`) y la cola offline se reescribió sobre él — sin volver a
+      regenerar el token en ningún punto. El ADR de esta cola nació como 0033 y pasó
+      a **0036** por la misma colisión de números. Re-verificado después de
+      reconciliar: `pnpm test`/`typecheck`/`build` limpios.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
@@ -811,6 +973,18 @@ importante que ha entrado a este archivo desde que existe.
       ni le pasa `codigo` aunque `VarianteConStock.codigo` existe. Cualquier prenda etiquetada
       después del censo, o adoptada con su código de fábrica, **no entra al escanearla en
       Vender** — la Zebra sirve en el conteo y no en la caja.
+- [x] **CI ya levanta la base desde cero (2026-09-11).** Job `migraciones` en
+      `.github/workflows/ci.yml`: Postgres 17 solo (`supabase db start`), `supabase db
+      reset` de `0001` a la última con `seed.sql`, y el verificador como informe. Es el
+      comando que atrapó el `main` roto del 11-sep (dos `0054`, `schema_migrations_pkey`)
+      — desde ahora se atrapa en el PR, no en el primer `db reset` a mano. CLI fijado en
+      `2.107.0`, la misma versión que la máquina de Felipe: si se sube uno, se sube el otro.
+      **Lo que sigue abierto:** `scripts/migraciones/verificar.mjs` solo sale con error si
+      no puede leer la base; cuando un archivo promete algo que falta, imprime y sale en
+      verde. No puede ser gate tal cual porque `0015`/`0027` ya salen marcados por deriva
+      vieja (políticas de `storage.objects`, `marcar_produccion_terminada` borrada después).
+      Falta un modo estricto que conozca esa lista y falle con cualquier otra ausencia.
+
 - [ ] **Queda UNA prueba de navegador del conteo sin red, y es corta.** El 11-sep se
       sembró el catálogo de prueba (`supabase/seed-pruebas/catalogo-de-prueba.sql`) y con él
       se verificó lo principal: la cola sube sola al volver la red (la prenda encolada
@@ -1354,6 +1528,35 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-11 — **GSAP integrado, pero solo para lo que CSS no cubre: scroll
+      (ADR-0038).** Felipe pidió integrar GSAP; antes de instalar se marcó la
+      tensión con la capa de movimiento propia de `globals.css` (ADR-0011) —
+      se resolvió que GSAP entra únicamente para `ScrollTrigger`. Se construyó
+      `components/ui/RevelarAlScroll.tsx`, con el mismo gesto visual que
+      `.anim-asentar` (misma curva `--ease-cayla`, registrada exacta vía
+      `CustomEase`) pero disparado al cruzar el viewport en el scroll, y
+      `prefers-reduced-motion` resuelto igual que en CSS. Primera aplicación:
+      `/comercial`. Verificado en navegador (ruta de prueba + bypass temporal
+      de login en `proxy.ts`, ambos revertidos). `tsc`/`eslint`/`next build`
+      en verde. Precedente para el resto del repo: antes de usar GSAP en una
+      pantalla nueva, primero preguntar si CSS puro ya lo resuelve.
+      **Adenda (mismo día):** Felipe pidió aplicar "todo GSAP" para más
+      estética — se marcó la contradicción con lo recién decidido y eligió la
+      opción acotada. Se agregaron 3 cosas: `lib/motion-gsap.ts` (registro
+      centralizado de plugins + `caylaEase`, ya con dos consumidores), `Flip`
+      en el carrito de `RegistrarVentaModal.tsx` (reflujo suave al
+      agregar/quitar una prenda en el POS) y `RevelarAlScroll` extendido a
+      `/finanzas`. Deliberadamente sin tocar `Segmentado` — su indicador ya es
+      CSS puro y no lo necesitaba. Verificado en navegador, 227 tests + build
+      en verde.
+- [x] 2026-09-11 — **34 usos de `text-[10px]`/`text-[9px]` quedaban debajo del piso
+      de 11px fijado el 08-sep para `.label-cayla`.** El barrido de ese día subió el
+      token (`--text-xs`, `--text-sm`) y la clase compartida, pero estos usaban valores
+      sueltos entre corchetes — invisibles para un cambio de token. Subidos a
+      `text-[11px]` en 11 archivos (Conteo, Etiquetas, Inventario Agrupado,
+      RegistroContableForm, entre otros). Se dejó intacta la etiqueta física impresa
+      (`Codigo128.tsx`, `CodigoQR.tsx`, `EtiquetasGenerator.tsx:396/399`, 8 casos): ese
+      tamaño lo manda el papel de 62×29mm, no la pantalla.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

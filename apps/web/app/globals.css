@@ -97,6 +97,57 @@
   --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
 }
 
+/* ==================================================================
+   Puente shadcn/ui · v1.0 (2026-09-11)
+   shadcn no trae paleta propia — lee estos nombres semánticos y los
+   componentes que se instalen con `npx shadcn add <lo-que-sea>` se
+   pintan solos con la identidad CAYLA de arriba. Ningún color nuevo:
+   todo apunta a un --color-* que ya existía.
+
+   `primary` es tinta, no rojo — calca a `<Boton peso="primario">`
+   (bg-tinta, hover:bg-rojo). Si `primary` fuera rojo, cada componente
+   nuevo pintaría rojo por defecto y se rompería "acento sagrado, máx.
+   2 por pantalla" apenas se junten dos en una pantalla.
+   `accent` (hover neutral de menús/listas) es sand, igual que el
+   hover de `Desplegable` (`hover:bg-tinta/[0.03]`) — el rojo no se
+   gasta en un simple pasar el mouse.
+   `ring` (foco de teclado) sí es rojo: es exactamente lo que ya hace
+   `focus-visible:outline-rojo/60` en `<Boton>` y `<Hilo>`.
+   `destructive` es rojo-profundo, no rojo: son dos rojos por diseño
+   desde ADR-0012 (`rojo` se mueve/reacciona, `rojo-profundo` es
+   cuerpo fijo de texto/estado) y "borrar" pide el que no se confunde
+   con el hilo de foco.
+   No se define `--radius`: `rounded-sm/md/lg/xl` de Tailwind ya
+   resuelven solos contra `--radius-sm/md/lg/xl` de arriba.
+   Sin modo oscuro: el brandbook es una sola paleta, no dos.
+   ================================================================== */
+@theme {
+  --color-background: var(--color-crema);
+  --color-foreground: var(--color-tinta);
+
+  --color-card: var(--color-papel);
+  --color-card-foreground: var(--color-tinta);
+  --color-popover: var(--color-papel);
+  --color-popover-foreground: var(--color-tinta);
+
+  --color-primary: var(--color-tinta);
+  --color-primary-foreground: var(--color-crema);
+  --color-secondary: var(--color-sand);
+  --color-secondary-foreground: var(--color-tinta);
+
+  --color-muted: var(--color-sand);
+  --color-muted-foreground: var(--color-tinta-60);
+  --color-accent: var(--color-sand);
+  --color-accent-foreground: var(--color-tinta);
+
+  --color-destructive: var(--color-rojo-profundo);
+  --color-destructive-foreground: var(--color-crema);
+
+  --color-border: var(--color-sand);
+  --color-input: var(--color-sand);
+  --color-ring: var(--color-rojo);
+}
+
 body {
   background: var(--color-crema);
   color: var(--color-tinta);
@@ -164,7 +215,6 @@ body {
     overflow: hidden;
   }
 }
-
 
 /* ==================================================================
    Capa de movimiento · v3.1 (2026-09-08)
@@ -308,4 +358,79 @@ body {
   *, *::before, *::after {
     transition-duration: 1ms !important;
   }
+}
+
+/* ==================================================================
+   Bklit UI · charts (2026-09-11)
+   Bklit no trae paleta propia — como el puente shadcn de arriba, estos
+   tokens apuntan a los --color-* de la identidad CAYLA. Sin modo
+   oscuro: mismo criterio que el resto del sistema (una sola paleta).
+
+   --chart-1..5 es una RAMPA SECUENCIAL de un solo tono (tinta,
+   oscuro→claro), no una paleta categórica: para series ordenadas por
+   tiempo (años del comparativo, meses…) la profundidad viene de la
+   opacidad, igual que ya hacen text-tinta/65, /75, /80 en toda la app
+   — no un color nuevo por serie. El año más reciente usa --chart-1
+   (tinta al 100%, el más visible); los anteriores se atenúan.
+
+   El crosshair usa rojo a propósito: es exactamente el "hilo vivo"
+   que ya describe la Capa de movimiento más abajo — 1px que marca
+   dónde estás, lo único con color que se mueve en el sistema. No es
+   un color de serie, es UI de interacción, y solo aparece al pasar
+   el cursor — no compite con el máx. 2 usos de rojo por pantalla.
+   ================================================================== */
+:root {
+  --chart-1: var(--color-tinta);
+  --chart-2: color-mix(in oklch, var(--color-tinta) 74%, var(--color-crema));
+  --chart-3: color-mix(in oklch, var(--color-tinta) 52%, var(--color-crema));
+  --chart-4: color-mix(in oklch, var(--color-tinta) 36%, var(--color-crema));
+  --chart-5: color-mix(in oklch, var(--color-tinta) 26%, var(--color-crema));
+
+  --chart-background: var(--color-papel);
+  --chart-foreground: var(--color-tinta);
+  --chart-foreground-muted: var(--color-tinta-60);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--color-taupe-profundo);
+
+  --chart-crosshair: var(--color-rojo);
+  --chart-grid: var(--color-sand);
+  --chart-brush-border: var(--color-sand);
+
+  --chart-tooltip-background: color-mix(in oklch, var(--color-tinta) 92%, transparent);
+  --chart-tooltip-foreground: var(--color-crema);
+  --chart-tooltip-muted: color-mix(in oklch, var(--color-crema) 65%, transparent);
+
+  --chart-marker-background: var(--color-papel);
+  --chart-marker-border: var(--color-sand);
+  --chart-marker-foreground: var(--color-tinta);
+  --chart-label: var(--color-tinta-60);
+
+  --chart-scale-01: var(--color-papel);
+  --chart-scale-02: var(--color-sand);
+  --chart-scale-03: color-mix(in oklch, var(--color-tinta) 40%, var(--color-crema));
+  --chart-scale-04: color-mix(in oklch, var(--color-tinta) 65%, var(--color-crema));
+  --chart-scale-05: var(--color-tinta);
+  --chart-scale-pattern-color: var(--color-sand);
+
+  /* Legend (utilidad de Bklit): mismos semánticos que el puente shadcn de
+     arriba — texto en tinta, hover neutral en sand, track en sand. */
+  --legend: var(--color-papel);
+  --legend-foreground: var(--color-tinta);
+  --legend-muted: var(--color-sand);
+  --legend-muted-foreground: var(--color-tinta-60);
+  --legend-track: var(--color-sand);
+}
+
+/* Solo estos ocho se leen como clase Tailwind (text-chart-label,
+   bg-legend-track, etc.) en los componentes instalados — el resto se usa
+   como var() cruda vía `chartCssVars`, así que no necesita @theme inline. */
+@theme inline {
+  --color-chart-label: var(--chart-label);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-legend-foreground: var(--legend-foreground);
+  --color-legend-muted: var(--legend-muted);
+  --color-legend-muted-foreground: var(--legend-muted-foreground);
+  --color-legend-track: var(--legend-track);
 }

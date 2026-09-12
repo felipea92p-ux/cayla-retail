@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Boton } from "@/components/ui/campos";
+import { etiquetaCorta, hojasRepetidas } from "@/lib/taxonomia/anclar";
 
 /**
  * Pantalla de anclaje del vocabulario propio al estándar universal (0052).
@@ -35,11 +36,6 @@ type Propuesta = {
   nombreUniversal: string | null;
 };
 
-/** La ruta universal entera es larga; en pantalla alcanza con la hoja. */
-function hoja(ruta: string) {
-  return ruta.split(" > ").pop() ?? ruta;
-}
-
 export function AnclarVocabulario({
   que,
   titulo,
@@ -58,10 +54,20 @@ export function AnclarVocabulario({
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
   const [guardadas, setGuardadas] = useState(0);
+  // La cifra se re-asienta solo cuando CAMBIA por algo que hizo la persona
+  // (globals.css, capa de movimiento): al abrir la pantalla se ve quieta.
+  // Como `guardadas` arranca en 0 y solo sube al guardar, es la señal exacta.
+  const cambio = guardadas > 0;
 
   const anclados = terminos.filter((t) => t.ancladoA !== null).length + guardadas;
   const pendientes = terminos.length - anclados;
   const etiquetaDe = (u: Universal) => u.ruta ?? u.nombre;
+  // Las hojas que se repiten en el catálogo (74 en el árbol de ropa): para
+  // ésas la etiqueta corta lleva el padre, y así "Pantalones · Ropa deportiva"
+  // y "Pantalones · Ropa de bebé" son dos opciones y no una repetida cuatro
+  // veces. Ver etiquetaCorta en lib/taxonomia/anclar.ts.
+  const repetidas = useMemo(() => hojasRepetidas(universales.map(etiquetaDe)), [universales]);
+  const corta = (ruta: string) => etiquetaCorta(ruta, repetidas);
 
   async function proponer() {
     setProponiendo(true);
@@ -107,7 +113,20 @@ export function AnclarVocabulario({
         setAviso({ tono: "error", texto: datos.error ?? "No se pudieron guardar los anclajes." });
         return;
       }
+      // Un 207 es `res.ok` (2xx) pero significa "algunos no": antes se
+      // celebraba igual y las propuestas fallidas desaparecían de la pantalla,
+      // sin forma de reintentarlas. Quedan a la vista, y solo ellas.
+      const fallidos: string[] = Array.isArray(datos.fallidos) ? datos.fallidos : [];
       setGuardadas(datos.guardados ?? 0);
+      if (fallidos.length > 0) {
+        const quedan = new Set(fallidos);
+        setPropuestas((actual) => (actual ?? []).filter((p) => quedan.has(p.clave)));
+        setAviso({
+          tono: "error",
+          texto: `Se anclaron ${datos.guardados}, pero ${fallidos.length} no se pudieron guardar. Quedan en pantalla para reintentar.`,
+        });
+        return;
+      }
       setPropuestas(null);
       setAviso({ tono: "ok", texto: `Se anclaron ${datos.guardados} términos.` });
     } catch {
@@ -141,7 +160,7 @@ export function AnclarVocabulario({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-xl text-tinta">{titulo}</h2>
-          <p key={anclados} className="anim-asentar mt-1 text-xs text-tinta/75">
+          <p key={anclados} className={`${cambio ? "anim-asentar " : ""}mt-1 text-xs text-tinta/75`}>
             <span className="font-display text-base text-tinta">{anclados}</span> de {terminos.length} anclados
             {pendientes > 0 ? (
               <>
@@ -152,7 +171,7 @@ export function AnclarVocabulario({
               <>
                 {" "}
                 ·{" "}
-                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[10px] text-verde-profundo">
+                <span className="label-cayla inline-flex items-center rounded-full border border-verde/45 bg-verde/10 px-2.5 py-0.5 text-[11px] text-verde-profundo">
                   completo
                 </span>
               </>
@@ -183,7 +202,7 @@ export function AnclarVocabulario({
           <div className="scroll-cayla overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="label-cayla text-[10px] text-tinta/65">
+                <tr className="label-cayla text-[11px] text-tinta/65">
                   <th className="pb-2 pr-4 font-semibold">De la marca</th>
                   <th className="pb-2 pr-4 font-semibold">Cuelga de</th>
                   <th className="pb-2 font-semibold">Por qué</th>
@@ -202,9 +221,10 @@ export function AnclarVocabulario({
                         <div className="relative min-w-52">
                           <input
                             list={listaId}
-                            defaultValue={p.nombreUniversal ? hoja(p.nombreUniversal) : ""}
+                            defaultValue={p.nombreUniversal ? corta(p.nombreUniversal) : ""}
                             onBlur={(e) => {
-                              const u = universales.find((x) => hoja(etiquetaDe(x)) === e.target.value || etiquetaDe(x) === e.target.value);
+                              const v = e.target.value.trim();
+                              const u = universales.find((x) => corta(etiquetaDe(x)) === v || etiquetaDe(x) === v);
                               corregir(p.clave, u ? etiquetaDe(u) : "");
                             }}
                             placeholder="sin anclar"
@@ -230,11 +250,12 @@ export function AnclarVocabulario({
           </div>
 
           {/* Una sola lista para toda la tabla: repetirla por fila serían 1.804
-              opciones × N filas en el DOM. Se ofrece la hoja, que es lo que la
-              persona reconoce; el onBlur la vuelve a resolver a la ruta. */}
+              opciones × N filas en el DOM. Se ofrece la etiqueta corta (la hoja,
+              con el padre si la hoja se repite), que es lo que la persona
+              reconoce; el onBlur la vuelve a resolver a la ruta. */}
           <datalist id={listaId}>
             {universales.map((u) => (
-              <option key={u.id} value={hoja(etiquetaDe(u))} />
+              <option key={u.id} value={corta(etiquetaDe(u))} />
             ))}
           </datalist>
 
@@ -253,7 +274,7 @@ export function AnclarVocabulario({
             <li key={t.clave} className="flex flex-wrap items-baseline gap-x-3 py-2 text-sm">
               <span className="text-tinta">{t.nombre}</span>
               {t.ancladoA ? (
-                <span className="text-xs text-tinta/65">→ {hoja(t.ancladoA.nombre)}</span>
+                <span className="text-xs text-tinta/65">→ {corta(t.ancladoA.nombre)}</span>
               ) : (
                 <span className="text-xs text-tinta/35">sin anclar</span>
               )}

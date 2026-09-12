@@ -11,6 +11,7 @@ import { FinanzasNav } from "@/components/FinanzasNav";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { RegistrarGastoButton } from "@/components/RegistrarGastoButton";
 import { Ayuda } from "@/components/Ayuda";
+import { RevelarAlScroll } from "@/components/ui/RevelarAlScroll";
 
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -103,7 +104,7 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
     <>
 
       {/* Estado de Resultados del mes */}
-      <div>
+      <RevelarAlScroll>
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-5">
           <div className="bg-crema p-4">
             <p className="label-cayla text-[11px] text-tinta/65">Ventas</p>
@@ -172,10 +173,10 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
             </table>
           </div>
         )}
-      </div>
+      </RevelarAlScroll>
 
       {/* Gastos del mes */}
-      <div>
+      <RevelarAlScroll>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="label-cayla text-[11px] text-tinta/65">Gastos de {MESES[mes - 1]}</h2>
           <RegistrarGastoButton sedeId={sedeActual.id} sedeCodigo={sedeActual.codigo} otrasSedes={otrasSedes} />
@@ -219,7 +220,7 @@ async function Resumen({ anio, mes }: { anio: number; mes: number }) {
             </table>
           </div>
         )}
-      </div>
+      </RevelarAlScroll>
     </>
   );
 }

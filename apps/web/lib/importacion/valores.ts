@@ -113,10 +113,39 @@ export function cruzarConVocabulario(
  * es la única variante de escritura frecuente de verdad.
  */
 export function normalizarTalla(texto: string): string {
-  return texto
+  const t = texto
     .trim()
     .toUpperCase()
     .replace(/^TALLA\s*[-:.]?\s*/i, "")
     .replace(/^T\s*[-:.]\s*/i, "")
     .replace(/\s+/g, " ");
+
+  // Las formas de "talla única" colapsan a UNA, igual que hace `fn_token_talla`
+  // (0047) al generar el código corto. Sin esto, un archivo con "U" en una fila
+  // y "Único" en otra del mismo modelo y color pasaba el dedup (tallas distintas
+  // para `variantes_identidad_unica`) pero producía el mismo código
+  // (BLU-0001-AZM-U dos veces) y `variantes_codigo_unico` abortaba la
+  // importación entera con un 23505 crudo. Revisión del 2026-09-11.
+  if (["U", "UNICO", "ÚNICO", "UNICA", "ÚNICA", "TALLA UNICA", "TALLA ÚNICA", ""].includes(t)) return "Único";
+  return t;
+}
+
+/**
+ * Réplica exacta de `fn_token_talla` (0047): el segmento de talla del código
+ * corto. Existe acá por una sola razón: el dedup del importador tiene que usar
+ * LA MISMA clave que `variantes_codigo_unico`, o deja pasar lo que ese índice
+ * rechaza. "S/M" y "SM" son tallas distintas para `variantes_identidad_unica`
+ * pero el mismo token (se quitan los no alfanuméricos), así que producirían el
+ * mismo código y la importación entera moría con un 23505 crudo. Si esto y la
+ * función de Postgres divergen, el bug es acá; el test lo fija.
+ */
+export function tokenTalla(texto: string): string {
+  const clave = claveTexto(texto);
+  if (!clave) return "U";
+  if (["unico", "unica", "talla unica", "u"].includes(clave)) return "U";
+  if (clave === "estandar") return "STD";
+  return texto
+    .replace(/[áéíóúüñÁÉÍÓÚÜÑ]/g, (c) => "aeiouunAEIOUUN"["áéíóúüñÁÉÍÓÚÜÑ".indexOf(c)])
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase();
 }

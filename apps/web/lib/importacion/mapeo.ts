@@ -98,8 +98,19 @@ export type FilaEstandar = {
 export function parsearNumero(texto: string): number {
   if (!texto) return 0;
 
-  // Fuera moneda, espacios y cualquier cosa que no sea dígito, signo o separador.
-  const limpio = texto.replace(/[^\d.,-]/g, "").trim();
+  // Primero el símbolo de moneda ENTERO, y recién después lo que no sea dígito
+  // o separador. El orden importa: "S/." lleva un punto, y si se quitaba solo la
+  // "S" y la "/", ese punto quedaba dentro del número — "S/. 89.90" pasaba a
+  // ".89.90", dos puntos se leían como miles, y el precio salía 8.990. Cien
+  // veces más, sin ningún error. Es el formato que Excel en Perú pone por
+  // defecto. Lo encontró la revisión adversarial del 2026-09-11.
+  // Segunda defensa: un separador que no va precedido por dígito no es
+  // separador (".89" → "89"), venga de la moneda que venga.
+  const limpio = texto
+    .replace(/S\/\.?/gi, "")
+    .replace(/[^\d.,-]/g, "")
+    .replace(/^[.,]+/, "")
+    .trim();
   if (!limpio || !/\d/.test(limpio)) return 0;
 
   const ultimoPunto = limpio.lastIndexOf(".");
@@ -185,6 +196,56 @@ export function aplicarMapeo(
   }
 
   return salida;
+}
+
+/**
+ * Un plan SIN modelo, por el nombre de la columna. Es el camino de respaldo
+ * cuando no hay clave de Anthropic, se acabó el saldo, o la API no responde:
+ * la pantalla prometía "las columnas se pueden asignar a mano" y no había
+ * ninguna forma de llegar a los desplegables sin que el modelo respondiera
+ * primero. Revisión del 2026-09-11.
+ *
+ * Es deliberadamente tonto: mira solo la cabecera, nunca los datos, y lo que
+ * no reconoce va a "ignorar" con confianza baja para que se vea. Todo lo que
+ * propone se marca como "media" a lo sumo: una coincidencia de palabra no es
+ * una certeza. `disposicion` siempre es fila por variante — detectar una
+ * matriz de tallas por cabeceras (S, M, L…) sin mirar qué hay dentro sería
+ * adivinar.
+ */
+export function planPorCabeceras(cabeceras: string[]): PlanDeMapeo {
+  const REGLAS: [Campo, RegExp][] = [
+    ["codigoCliente", /^(cod(igo)?|sku|ref(erencia)?\s*(cod|n[ºo°]|#)|c[óo]d\.?)\b/i],
+    ["referencia", /^(descripci[óo]n|nombre|producto|prenda|art[íi]culo|modelo|referencia|detalle|item)\b/i],
+    ["categoria", /^(categor[íi]a|tipo|l[íi]nea|familia|rubro|clase)\b/i],
+    ["talla", /^(talla|tamaño|size|medida)\b/i],
+    ["color", /^(color|tono)\b/i],
+    ["costo", /^(costo|coste|p\.?\s*(costo|compra)|precio\s*(de\s*)?(costo|compra)|compra)\b/i],
+    ["precio", /^(precio|pvp|p\.?\s*venta|venta|p\.?\s*u(nitario)?|valor)\b/i],
+    ["marca", /^(marca|brand)\b/i],
+    ["genero", /^(g[ée]nero|sexo)\b/i],
+    ["temporada", /^(temporada|colecci[óo]n|season)\b/i],
+    ["tejido", /^(tejido|tela|material|composici[óo]n)\b/i],
+    ["patron", /^(patr[óo]n|estampado|diseño)\b/i],
+  ];
+  const usados = new Set<Campo>();
+  const columnas: ColumnaMapeada[] = cabeceras.map((cabecera, indice) => {
+    const texto = cabecera.trim().replace(/\s+/g, " ");
+    for (const [campo, regla] of REGLAS) {
+      // Cada campo una sola vez: si hay dos columnas "PRECIO", la segunda
+      // queda en "ignorar" y la persona decide, en vez de que la última pise.
+      if (!usados.has(campo) && regla.test(texto)) {
+        usados.add(campo);
+        return { indice, campo, confianza: "media", porque: `Por el nombre de la columna ("${texto}").` };
+      }
+    }
+    return { indice, campo: "ignorar", confianza: "baja", porque: texto ? "No reconocí el nombre." : "Sin título." };
+  });
+  return {
+    disposicion: "fila_por_variante",
+    columnas,
+    columnasTalla: [],
+    notas: "Asignado por el nombre de cada columna, sin el modelo. Revisa cada una.",
+  };
 }
 
 /** Los campos que el plan dejó sin cubrir. `referencia` es el único imprescindible. */

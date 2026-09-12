@@ -1,7 +1,7 @@
 // server-only por lo mismo que anclar-ia.ts: acá se usa ANTHROPIC_API_KEY.
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
+import type Anthropic from "@anthropic-ai/sdk";
+import { pedirJSON, type Uso } from "@/lib/ia/cliente";
 import { detectarCabecera, type Tabla } from "./tabla";
 import { ErrorDeLectura } from "./leer-archivo";
 
@@ -26,9 +26,33 @@ import { ErrorDeLectura } from "./leer-archivo";
  * eso el cliente casi siempre puede exportar a Excel, y hay que pedírselo.
  */
 
-/** 5 MB. Una foto de celular pesa 2-4; un PDF de texto de 20 páginas, menos de 1.
- *  Más que esto es un PDF escaneado a alta resolución, que conviene convertir. */
-export const MAX_BYTES_DOCUMENTO = 5 * 1024 * 1024;
+/** 4 MB, el mismo techo que leer-archivo.ts y por la misma razón (Vercel corta
+ *  en 4,5). Una foto de celular pesa 2-4; un PDF de texto de 20 páginas, menos
+ *  de 1. Más que esto es un PDF escaneado a alta resolución, que conviene
+ *  convertir. */
+export const MAX_BYTES_DOCUMENTO = 4 * 1024 * 1024;
+
+/**
+ * Páginas máximas de un PDF. Cada página son ~2.000 tokens de entrada y, si
+ * trae tabla, ~1.500 de salida; a 20 páginas la salida roza el techo de 16.000
+ * y el costo pasa de centavos a dólares. Un PDF más largo casi siempre salió
+ * de un sistema que también exporta a Excel — y eso es lo que hay que pedir.
+ * Antes no había tope: un PDF de 60 páginas se mandaba entero, se cortaba por
+ * max_tokens y se cobraba igual. Revisión del 2026-09-11.
+ */
+export const MAX_PAGINAS_PDF = 20;
+
+/**
+ * Cuenta las páginas de un PDF sin librería: los objetos de página se declaran
+ * como `/Type /Page` (y NO `/Pages`, que es el árbol). Es una aproximación —
+ * un PDF comprimido en object streams puede esconderlos— pero solo sirve para
+ * frenar los evidentes, y para esos acierta. Si no encuentra ninguno devuelve
+ * 0 y se deja pasar: mejor un PDF raro que pasa a uno normal que se rechaza.
+ */
+export function contarPaginasPDF(datos: ArrayBuffer): number {
+  const texto = Buffer.from(datos).toString("latin1");
+  return (texto.match(/\/Type\s*\/Page(?![s\w])/g) ?? []).length;
+}
 
 const MIME_IMAGEN: Record<string, "image/jpeg" | "image/png" | "image/webp" | "image/gif"> = {
   jpg: "image/jpeg",
@@ -71,8 +95,11 @@ Devuelve una tabla: cabeceras y filas. Reglas:
 export type ResultadoDocumento = {
   tabla: Tabla;
   notas: string;
-  uso: { entrada: number; salida: number };
+  uso: Uso;
 };
+
+/** Lo que promete ESQUEMA, escrito a mano: si divergen, el bug es de tipos. */
+type SalidaDocumento = { cabeceras: string[]; filas: string[][]; notas: string };
 
 export async function leerDocumento(datos: ArrayBuffer, nombre: string): Promise<ResultadoDocumento> {
   if (datos.byteLength > MAX_BYTES_DOCUMENTO) {
@@ -83,6 +110,17 @@ export async function leerDocumento(datos: ArrayBuffer, nombre: string): Promise
   }
 
   const ext = nombre.toLowerCase().split(".").pop() ?? "";
+
+  if (ext === "pdf") {
+    const paginas = contarPaginasPDF(datos);
+    if (paginas > MAX_PAGINAS_PDF) {
+      throw new ErrorDeLectura(
+        `El PDF tiene ${paginas} páginas y el máximo son ${MAX_PAGINAS_PDF}. Un catálogo así casi siempre viene de un sistema ` +
+          `que también exporta a Excel o CSV: pídelo en ese formato, que es más exacto y no cuesta nada leerlo.`
+      );
+    }
+  }
+
   const base64 = Buffer.from(datos).toString("base64");
 
   // El bloque de contenido cambia según sea PDF o imagen; el resto del pedido es
@@ -96,9 +134,7 @@ export async function leerDocumento(datos: ArrayBuffer, nombre: string): Promise
             throw new ErrorDeLectura(`No sé leer un .${ext} como documento. Acepto PDF y fotos (jpg, png, webp).`);
           })();
 
-  const client = new Anthropic();
-  const respuesta = await client.messages.parse({
-    model: "claude-haiku-4-5",
+  const { salida, uso } = await pedirJSON<SalidaDocumento>({
     // 16.000 es el techo sin streaming del SDK (por encima exige .stream()).
     // Alcanza para ~400 prendas por documento, que es mucho más de lo que trae
     // una foto de cuaderno; un PDF que no quepa recibe el mensaje de partirlo.
@@ -111,17 +147,11 @@ export async function leerDocumento(datos: ArrayBuffer, nombre: string): Promise
         content: [bloque, { type: "text", text: `Transcribe el inventario de este documento (${nombre}).` }],
       },
     ],
-    output_config: { format: jsonSchemaOutputFormat(ESQUEMA) },
+    esquema: ESQUEMA,
+    // Antes este mensaje estaba detrás de un `if (stop_reason === "max_tokens")`
+    // que nunca corría: parse() del SDK lanzaba antes. Ver lib/ia/cliente.ts.
+    siNoCabe: "El documento tiene más prendas de las que se pueden transcribir de una vez. Pártelo en dos, o pide el Excel.",
   });
-
-  const salida = respuesta.parsed_output;
-  if (!salida) {
-    throw new ErrorDeLectura(
-      respuesta.stop_reason === "max_tokens"
-        ? "El documento tiene más prendas de las que se pueden transcribir de una vez. Pártelo en dos, o pide el Excel."
-        : "No se pudo transcribir el documento. Prueba con una foto más nítida o con el archivo original."
-    );
-  }
 
   if (salida.filas.length === 0) {
     throw new ErrorDeLectura(
@@ -146,6 +176,6 @@ export async function leerDocumento(datos: ArrayBuffer, nombre: string): Promise
       origen: `${nombre} · transcrito`,
     },
     notas: salida.notas,
-    uso: { entrada: respuesta.usage.input_tokens, salida: respuesta.usage.output_tokens },
+    uso,
   };
 }

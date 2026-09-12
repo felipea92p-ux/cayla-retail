@@ -1,6 +1,9 @@
 import { requirePersonaActual } from "@/lib/persona";
+import { createClient } from "@/lib/supabase/server";
 import { inferirMapeo } from "@/lib/importacion/inferir-mapeo";
-import { aplicarMapeo, camposFaltantes, type PlanDeMapeo } from "@/lib/importacion/mapeo";
+import { aplicarMapeo, camposFaltantes, planPorCabeceras, type PlanDeMapeo } from "@/lib/importacion/mapeo";
+import { permitirLlamada, traducirErrorIA } from "@/lib/ia/cliente";
+import { claveTexto } from "@/lib/taxonomia/anclar";
 
 // POST /api/importacion/mapear
 //   { filas, filaCabecera }        → PROPONE un plan con la IA
@@ -14,8 +17,41 @@ import { aplicarMapeo, camposFaltantes, type PlanDeMapeo } from "@/lib/importaci
 // POR QUÉ EL MISMO ENDPOINT HACE LAS DOS COSAS: cuando la persona corrige una
 // columna en pantalla hay que volver a calcular la vista previa, y eso NO debe
 // gastar otra llamada al modelo. Con `plan` en el cuerpo, el camino es puro
-// código — instantáneo y gratis. Es la misma razón por la que el plan se guarda:
-// reimportar el mismo archivo no vuelve a pagar.
+// código — instantáneo y gratis. Es la misma razón por la que el plan se guarda
+// en `importaciones.plan` (0056) con las cabeceras del archivo: reimportar un
+// archivo con las MISMAS cabeceras reutiliza ese plan y no vuelve a pagar. (La
+// primera versión lo prometía en este comentario y no lo hacía — revisión del
+// 2026-09-11.)
+
+/** Cabeceras comparables: sin mayúsculas, acentos ni espacios dobles. */
+function firmaCabeceras(cabeceras: string[]): string {
+  return cabeceras.map(claveTexto).join("\u0001");
+}
+
+/**
+ * El plan de la última importación aplicada con estas mismas cabeceras, si la
+ * hay. Se miran las últimas 20: un cliente reimporta el archivo de siempre,
+ * no uno de hace un año.
+ */
+async function planGuardado(cabeceras: string[]): Promise<{ plan: PlanDeMapeo; fecha: string } | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("importaciones")
+    .select("plan, created_at")
+    .eq("estado", "aplicada")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const firma = firmaCabeceras(cabeceras);
+  for (const fila of data ?? []) {
+    const plan = fila.plan as (PlanDeMapeo & { cabeceras?: string[] }) | null;
+    if (Array.isArray(plan?.cabeceras) && firmaCabeceras(plan.cabeceras) === firma) {
+      const { cabeceras: _c, ...sinCabeceras } = plan;
+      void _c;
+      return { plan: sinCabeceras, fecha: fila.created_at };
+    }
+  }
+  return null;
+}
 
 export async function POST(request: Request) {
   const persona = await requirePersonaActual();
@@ -46,16 +82,36 @@ export async function POST(request: Request) {
     });
   }
 
+  // Sin clave no hay modelo, pero sí hay pantalla: se devuelve el plan por
+  // nombre de columna y la persona lo termina con los desplegables. Antes era
+  // un 503 que prometía "se pueden asignar a mano" sin dar cómo.
   if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json(
-      {
-        error:
-          "La lectura automática de columnas todavía no está activada: falta ANTHROPIC_API_KEY. " +
-          "Las columnas se pueden asignar a mano mientras tanto.",
-      },
-      { status: 503 }
-    );
+    const plan = planPorCabeceras(filas[filaCabecera] ?? []);
+    const variantes = aplicarMapeo(filas, plan, filaCabecera);
+    return Response.json({
+      plan,
+      variantes: variantes.slice(0, 50),
+      total: variantes.length,
+      faltan: camposFaltantes(plan),
+      aviso: "Falta ANTHROPIC_API_KEY: las columnas se asignaron por su nombre, sin el modelo. Revisa cada una.",
+    });
   }
+
+  // Antes de pagar: ¿ya se importó un archivo con estas cabeceras?
+  const previo = await planGuardado(filas[filaCabecera] ?? []);
+  if (previo) {
+    const variantes = aplicarMapeo(filas, previo.plan, filaCabecera);
+    const fecha = new Date(previo.fecha).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+    return Response.json({
+      plan: { ...previo.plan, notas: `Mismas columnas que la importación del ${fecha}: se reutilizó ese plan, sin consultar al modelo.` },
+      variantes: variantes.slice(0, 50),
+      total: variantes.length,
+      faltan: camposFaltantes(previo.plan),
+    });
+  }
+
+  const freno = permitirLlamada(persona.id);
+  if (!freno.ok) return Response.json({ error: freno.mensaje }, { status: 429 });
 
   try {
     const { plan, uso } = await inferirMapeo(filas, filaCabecera);
@@ -70,13 +126,11 @@ export async function POST(request: Request) {
       uso,
     });
   } catch (e) {
-    const crudo = e instanceof Error ? e.message : String(e);
-    if (crudo.includes("credit balance")) {
-      return Response.json(
-        { error: "La cuenta de Anthropic se quedó sin saldo. Las columnas se pueden asignar a mano." },
-        { status: 402 }
-      );
-    }
-    return Response.json({ error: `No se pudo leer las columnas: ${crudo}` }, { status: 502 });
+    const { mensaje, status } = traducirErrorIA(
+      e,
+      "La lectura automática de columnas",
+      "Mientras tanto se pueden asignar a mano."
+    );
+    return Response.json({ error: mensaje }, { status });
   }
 }

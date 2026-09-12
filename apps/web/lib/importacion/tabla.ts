@@ -38,6 +38,12 @@ const SEPARADORES: Separador[] = [";", ",", "\t", "|"];
  * filas. Contar apariciones a secas se equivoca con "Blusa, manga larga": las
  * comas de dentro de un campo ganarían. Lo que delata al separador de verdad no
  * es que aparezca mucho, es que aparezca CONSISTENTEMENTE en todas las filas.
+ *
+ * El ancho de referencia es el MÁS FRECUENTE entre las primeras 20 líneas, no
+ * el de la primera: un CSV exportado con un título arriba ("INVENTARIO 2026",
+ * sin separadores) hacía que la primera línea diera 1 columna con todos los
+ * separadores, los cuatro se descartaban y se caía al `;` por defecto — con un
+ * archivo de comas eso es una sola columna gigante. Revisión del 2026-09-11.
  */
 export function detectarSeparador(texto: string): Separador {
   const lineas = texto.split(/\r?\n/).filter((l) => l.trim()).slice(0, 20);
@@ -48,13 +54,20 @@ export function detectarSeparador(texto: string): Separador {
 
   for (const sep of SEPARADORES) {
     const cuentas = lineas.map((l) => partirLinea(l, sep).length);
-    const columnas = cuentas[0];
-    if (columnas < 2) continue;
-    // Cuántas filas tienen exactamente el mismo ancho que la primera.
-    const consistentes = cuentas.filter((c) => c === columnas).length;
-    // Se premia la consistencia y, a igualdad, tener más columnas: un separador
-    // equivocado suele dar 1 sola columna en todas las filas — consistente, sí,
-    // pero inútil, y por eso `columnas < 2` ya lo descartó arriba.
+    // El ancho que más se repite, ignorando 1: un separador equivocado da 1
+    // sola columna en todas las filas — consistente, sí, pero inútil.
+    const frecuencia = new Map<number, number>();
+    for (const c of cuentas) if (c >= 2) frecuencia.set(c, (frecuencia.get(c) ?? 0) + 1);
+    if (frecuencia.size === 0) continue;
+    let columnas = 0;
+    let consistentes = 0;
+    for (const [c, n] of frecuencia) {
+      if (n > consistentes || (n === consistentes && c > columnas)) {
+        consistentes = n;
+        columnas = c;
+      }
+    }
+    // Se premia la consistencia y, a igualdad, tener más columnas.
     const puntaje = consistentes * 100 + columnas;
     if (puntaje > mejorPuntaje) {
       mejorPuntaje = puntaje;
@@ -71,7 +84,7 @@ function partirLinea(linea: string, sep: string): string[] {
   let enComillas = false;
   for (let i = 0; i < linea.length; i++) {
     const c = linea[i];
-    if (c === '"') {
+    if (c === '"' && (enComillas || actual === "")) {
       if (enComillas && linea[i + 1] === '"') {
         actual += '"';
         i++;
@@ -119,7 +132,12 @@ export function parsearCSV(texto: string, separador?: Separador): string[][] {
       continue;
     }
 
-    if (c === '"') {
+    if (c === '"' && celda === "") {
+      // Solo una comilla AL INICIO de la celda abre el modo entrecomillado
+      // (RFC 4180). Una en mitad de la celda es texto: 32" de una medida, una
+      // comilla tipográfica mal exportada, unas pulgadas. Antes cualquier `"`
+      // abría el modo y, si no cerraba, se tragaba el resto del archivo en una
+      // sola celda. Revisión del 2026-09-11.
       enComillas = true;
     } else if (c === sep) {
       fila.push(celda);
@@ -179,6 +197,17 @@ function normalizar(filas: string[][]): string[][] {
 export function detectarCabecera(filas: string[][]): number {
   const limite = Math.min(filas.length - 1, 15);
 
+  // Se puntúan TODAS las candidatas y gana la mejor, en vez de quedarse con la
+  // primera que cumpla. Con "la primera" pasaban dos cosas: una fila de
+  // metadatos arriba ("Tienda: Trujillo | Fecha: enero") ganaba a la cabecera
+  // real, y un catálogo sin ningún número (nombres, tallas y colores, precio
+  // aparte) no tenía ninguna fila con MENOS números que la siguiente, así que
+  // caía a la fila 0 aunque la cabecera estuviera en la 3. Revisión del
+  // 2026-09-11.
+  let mejor = -1;
+  let mejorPuntaje = -Infinity;
+  let primeraDeTexto = -1;
+
   for (let i = 0; i < limite; i++) {
     const fila = filas[i];
     const llenas = fila.filter((c) => c.trim() !== "");
@@ -189,11 +218,26 @@ export function detectarCabecera(filas: string[][]): number {
     const unicas = new Set(llenas.map((c) => c.trim().toLowerCase()));
     if (unicas.size !== llenas.length) continue;
 
-    const siguiente = filas[i + 1];
-    if (!siguiente) continue;
+    const siguientes = filas.slice(i + 1, i + 6);
+    if (siguientes.length === 0) continue;
 
-    if (proporcionNumerica(fila) < proporcionNumerica(siguiente)) return i;
+    const propia = proporcionNumerica(fila);
+    if (propia === 0 && primeraDeTexto < 0) primeraDeTexto = i;
+
+    // Cuánto más numéricas son las filas de abajo que ésta. Mirar cinco y no
+    // una evita que una fila de datos rara (toda texto) desvíe la decisión.
+    const deAbajo = siguientes.reduce((s, f) => s + proporcionNumerica(f), 0) / siguientes.length;
+    const puntaje = deAbajo - propia;
+    if (puntaje > mejorPuntaje) {
+      mejorPuntaje = puntaje;
+      mejor = i;
+    }
   }
+
+  if (mejor >= 0 && mejorPuntaje > 0) return mejor;
+  // Sin números en ninguna parte: la primera fila completa y sin repetidos
+  // hecha solo de texto es la mejor apuesta.
+  if (primeraDeTexto >= 0) return primeraDeTexto;
   return 0;
 }
 

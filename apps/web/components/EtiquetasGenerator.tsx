@@ -172,12 +172,12 @@ export function EtiquetasGenerator({
     <div className="space-y-5">
       {/* ---------- en lote: lo que hace usable el final de un censo ---------- */}
       <div className="card-cayla space-y-4 p-4">
-        <p className="label-cayla text-[10px] text-tinta/70">Agregar en lote</p>
+        <p className="label-cayla text-[11px] text-tinta/70">Agregar en lote</p>
 
         {delConteo.length > 0 && (
           <button
             onClick={() => agregarVarias(delConteo)}
-            className="label-cayla w-full rounded-md border border-rojo px-4 py-3 text-left text-[10px] text-rojo transition-colors hover:bg-rojo hover:text-crema"
+            className="label-cayla w-full rounded-md border border-rojo px-4 py-3 text-left text-[11px] text-rojo transition-colors hover:bg-rojo hover:text-crema"
           >
             Las {delConteo.length} prendas del conteo abierto en {sedeCodigo}
             <span className="ml-2 normal-case tracking-normal opacity-80">
@@ -188,7 +188,7 @@ export function EtiquetasGenerator({
 
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-0 flex-1 space-y-1">
-            <label className="label-cayla text-[10px] text-tinta/60">Familia</label>
+            <label className="label-cayla text-[11px] text-tinta/60">Familia</label>
             <select
               value={familia}
               onChange={(e) => {
@@ -206,7 +206,7 @@ export function EtiquetasGenerator({
             </select>
           </div>
           <div className="min-w-0 flex-1 space-y-1">
-            <label className="label-cayla text-[10px] text-tinta/60">Categoría</label>
+            <label className="label-cayla text-[11px] text-tinta/60">Categoría</label>
             <select
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
@@ -223,7 +223,7 @@ export function EtiquetasGenerator({
           <button
             disabled={porFiltro.length === 0}
             onClick={() => agregarVarias(porFiltro.map((v) => ({ variante: v, cantidad: cuantas(v) })))}
-            className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
+            className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40"
           >
             Agregar {porFiltro.length || ""}
           </button>
@@ -237,7 +237,7 @@ export function EtiquetasGenerator({
 
       {/* ---------- de a una: para reimprimir la que se despegó ---------- */}
       <div className="space-y-1.5">
-        <label className="label-cayla text-[10px] text-tinta/70">O buscar una prenda</label>
+        <label className="label-cayla text-[11px] text-tinta/70">O buscar una prenda</label>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -257,7 +257,7 @@ export function EtiquetasGenerator({
                         {[v.talla, v.color].filter(Boolean).join("/")}
                       </span>
                     </span>
-                    <span className="ml-2 font-mono text-[10px] text-tinta/65">
+                    <span className="ml-2 font-mono text-[11px] text-tinta/65">
                       {v.codigo ?? v.sku}
                     </span>
                   </button>
@@ -266,7 +266,7 @@ export function EtiquetasGenerator({
                       onClick={() =>
                         agregarVarias(hermanas.map((h) => ({ variante: h, cantidad: cuantas(h) })))
                       }
-                      className="label-cayla shrink-0 rounded border border-tinta/20 px-2 py-1 text-[9px] text-tinta/75 hover:border-rojo hover:text-rojo"
+                      className="label-cayla shrink-0 rounded border border-tinta/20 px-2 py-1 text-[11px] text-tinta/75 hover:border-rojo hover:text-rojo"
                     >
                       + el modelo ({hermanas.length})
                     </button>
@@ -290,7 +290,7 @@ export function EtiquetasGenerator({
                       {[s.variante.talla, s.variante.color].filter(Boolean).join("/")}
                     </span>
                   </p>
-                  <p className="font-mono text-[10px] text-tinta/65">
+                  <p className="font-mono text-[11px] text-tinta/65">
                     {s.variante.codigo ?? s.variante.sku}
                   </p>
                 </div>
@@ -316,7 +316,7 @@ export function EtiquetasGenerator({
                       actual.filter((x) => x.variante.varianteId !== s.variante.varianteId)
                     )
                   }
-                  className="label-cayla shrink-0 text-[9px] text-rojo"
+                  className="label-cayla shrink-0 text-[11px] text-rojo"
                 >
                   Quitar
                 </button>
@@ -328,7 +328,7 @@ export function EtiquetasGenerator({
               </span>
               <button
                 onClick={() => setSeleccion([])}
-                className="label-cayla text-[9px] text-tinta/60 hover:text-rojo"
+                className="label-cayla text-[11px] text-tinta/60 hover:text-rojo"
               >
                 Vaciar
               </button>
@@ -338,7 +338,7 @@ export function EtiquetasGenerator({
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={imprimir}
-              className="label-cayla rounded-md bg-tinta px-5 py-3 text-[10px] text-crema transition-colors hover:bg-rojo"
+              className="label-cayla rounded-md bg-tinta px-5 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
             >
               Imprimir {etiquetas.length} etiqueta{etiquetas.length === 1 ? "" : "s"}
               {tandas > 1 && ` · tanda ${tandaActual + 1} de ${tandas}`}
@@ -349,14 +349,14 @@ export function EtiquetasGenerator({
                 <button
                   disabled={tandaActual === 0}
                   onClick={() => setTanda(tandaActual - 1)}
-                  className="label-cayla rounded border border-tinta/20 px-2.5 py-2 text-[10px] text-tinta disabled:opacity-40"
+                  className="label-cayla rounded border border-tinta/20 px-2.5 py-2 text-[11px] text-tinta disabled:opacity-40"
                 >
                   ←
                 </button>
                 <button
                   disabled={tandaActual >= tandas - 1}
                   onClick={() => setTanda(tandaActual + 1)}
-                  className="label-cayla rounded border border-tinta/20 px-2.5 py-2 text-[10px] text-tinta disabled:opacity-40"
+                  className="label-cayla rounded border border-tinta/20 px-2.5 py-2 text-[11px] text-tinta disabled:opacity-40"
                 >
                   Siguiente tanda →
                 </button>

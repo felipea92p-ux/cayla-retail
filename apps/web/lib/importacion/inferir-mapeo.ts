@@ -1,7 +1,6 @@
 // server-only por lo mismo que anclar-ia.ts: acá se usa ANTHROPIC_API_KEY.
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
+import { pedirJSON, type Uso } from "@/lib/ia/cliente";
 import { CAMPOS, type Campo, type Disposicion, type PlanDeMapeo } from "./mapeo";
 
 /**
@@ -84,7 +83,15 @@ Reglas:
 export type ResultadoInferencia = {
   plan: PlanDeMapeo;
   /** Lo que costó, para poder contrastarlo con lo estimado en vez de creerlo. */
-  uso: { entrada: number; salida: number; cacheLeido: number };
+  uso: Uso;
+};
+
+/** Lo que promete ESQUEMA, escrito a mano: si divergen, el bug es de tipos. */
+type SalidaPlan = {
+  disposicion: string;
+  columnas: { indice: number; campo: string; confianza: string; porque: string }[];
+  columnasTalla: { indice: number; talla: string }[];
+  notas: string;
 };
 
 export async function inferirMapeo(filas: string[][], filaCabecera: number): Promise<ResultadoInferencia> {
@@ -101,9 +108,7 @@ export async function inferirMapeo(filas: string[][], filaCabecera: number): Pro
     ...muestra.map((f, n) => `${n + 1}: ${f.map((c) => c.trim()).join(" | ")}`),
   ].join("\n");
 
-  const client = new Anthropic();
-  const respuesta = await client.messages.parse({
-    model: "claude-haiku-4-5",
+  const { salida, uso } = await pedirJSON<SalidaPlan>({
     max_tokens: 16000,
     // Ver anclar-ia.ts: Haiku 4.5 rechaza thinking adaptive y output_config.effort.
     thinking: { type: "enabled", budget_tokens: 4000 },
@@ -119,11 +124,8 @@ export async function inferirMapeo(filas: string[][], filaCabecera: number): Pro
       },
     ],
     messages: [{ role: "user", content: `Columnas del archivo:\n\n${tabla}` }],
-    output_config: { format: jsonSchemaOutputFormat(ESQUEMA) },
+    esquema: ESQUEMA,
   });
-
-  const salida = respuesta.parsed_output;
-  if (!salida) throw new Error("El modelo no devolvió un plan que calce con el esquema esperado.");
 
   // El modelo puede señalar una columna que no existe, repetir un índice o
   // devolver una talla vacía. Se filtra acá: lo que llega al aplicador solo
@@ -160,17 +162,21 @@ export async function inferirMapeo(filas: string[][], filaCabecera: number): Pro
   }
   columnas.sort((a, b) => a.indice - b.indice);
 
+  // Una matriz de tallas SIN columnas de talla no es una matriz: es un plan
+  // con el que `aplicarMapeo` no produce ninguna variante, y `camposFaltantes`
+  // no lo ve porque en matriz la talla no se exige como columna. Pasaba cuando
+  // el modelo declaraba matriz pero devolvía columnasTalla vacío, o cuando
+  // todas las que señaló estaban fuera del ancho. Se degrada a fila por
+  // variante y se dice: la persona ve "falta la talla" en vez de "0 prendas".
+  let disposicion = salida.disposicion as Disposicion;
+  let notas = salida.notas;
+  if (disposicion === "matriz_de_tallas" && columnasTalla.length === 0) {
+    disposicion = "fila_por_variante";
+    notas = `${notas ? `${notas} ` : ""}Parecía una matriz de tallas pero no se encontró ninguna columna de talla: se trata como una fila por variante.`;
+  }
+
   return {
-    plan: {
-      disposicion: salida.disposicion as Disposicion,
-      columnas,
-      columnasTalla,
-      notas: salida.notas,
-    },
-    uso: {
-      entrada: respuesta.usage.input_tokens,
-      salida: respuesta.usage.output_tokens,
-      cacheLeido: respuesta.usage.cache_read_input_tokens ?? 0,
-    },
+    plan: { disposicion, columnas, columnasTalla, notas },
+    uso,
   };
 }

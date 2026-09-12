@@ -110,7 +110,7 @@ export function RecetaCosto({
               </span>
               <span className="flex items-center gap-3">
                 <span className="text-tinta/75">S/{(i.cantidad * (i.precioUnitario ?? 0)).toFixed(2)}</span>
-                <button onClick={() => quitarItem(i.id)} className="label-cayla text-[10px] text-rojo">Quitar</button>
+                <button onClick={() => quitarItem(i.id)} className="label-cayla text-[11px] text-rojo">Quitar</button>
               </span>
             </div>
           ))}
