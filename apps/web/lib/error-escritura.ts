@@ -131,6 +131,38 @@ const HUELLAS: { marca: string; frase: string }[] = [
     frase:
       "La venta anterior sí se registró, aunque la pantalla dijera que no. Revísala abajo en «Ventas de hoy» antes de volver a cobrar: si esto es una venta distinta, cierra y abre «Registrar venta» de nuevo.",
   },
+  {
+    // 0046_colores.sql:83 — `colores.nombre` es unique, texto exacto.
+    marca: "colores_nombre_key",
+    frase: "Ya existe un color con ese nombre exacto en el vocabulario.",
+  },
+  {
+    // 0046_colores.sql:83 — el candado de verdad: "Azul marino" y "azul marino"
+    // son el mismo color para `fn_clave_texto`, aunque el texto no calce byte a byte.
+    marca: "colores_clave_unica",
+    frase: "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
+  },
+  {
+    // 0046_colores.sql:73 — el código son 3 mayúsculas y es la clave primaria.
+    marca: "colores_pkey",
+    frase: "Ese código de 3 letras ya lo usa otro color. Prueba con otro.",
+  },
+  {
+    // 0009_categorias.sql:14 — no hay dos categorías con el mismo nombre dentro de la misma familia.
+    marca: "categorias_familia_nombre_key",
+    frase: "Ya existe una categoría con ese nombre en esa familia.",
+  },
+  {
+    // 0047_codigos.sql:135 — el prefijo son exactamente 3 mayúsculas.
+    marca: "categorias_prefijo_formato",
+    frase: "El prefijo tiene que ser exactamente 3 letras mayúsculas (ej. BLU).",
+  },
+  {
+    // 0047_codigos.sql:136 — dos categorías no pueden compartir prefijo, o el código de la
+    // prenda (BLU-0042) sería ambiguo.
+    marca: "categorias_prefijo_unico",
+    frase: "Ese prefijo ya lo usa otra categoría — el código de las prendas dejaría de ser único. Prueba con otras 3 letras.",
+  },
 ];
 
 /** Textos que delatan que ni siquiera se llegó al servidor. */

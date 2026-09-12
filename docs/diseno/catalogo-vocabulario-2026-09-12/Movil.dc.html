@@ -1,0 +1,422 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --crema:#f5f0e8; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --sand:#e8e0d0; --papel:#fbf8f2;
+    --r-md:8px; --r-lg:12px; --r-xl:16px;
+    --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
+    --ease: cubic-bezier(0.32,0.72,0.24,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  a{color:var(--rojo);} a:hover{color:var(--rojo-profundo);}
+  .shell{
+    width:390px; min-height:844px; background:var(--crema); color:var(--tinta);
+    font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif; font-size:15px; line-height:1.5;
+    display:flex; flex-direction:column;
+  }
+  .header{ display:flex; align-items:center; gap:10px; padding:16px 16px 12px; }
+  .header-word{ font-family:'EB Garamond'; font-size:15px; letter-spacing:0.22em; }
+  .header .search-fake{ flex:1; border:1px solid var(--sand); border-radius:var(--r-md); padding:9px 12px; font-size:13px; color:rgb(26 26 24/0.5); display:flex; align-items:center; gap:7px; }
+  .header .search-fake svg{ width:15px; height:15px; flex-shrink:0; }
+  .sede-chip-sm{ border:1px solid var(--sand); border-radius:var(--r-md); padding:7px 10px; font-size:12px; color:var(--tinta-60); flex-shrink:0; }
+
+  .body{ flex:1; padding:6px 16px 16px; overflow-y:auto; }
+  .pagina-titulo{ font-family:'EB Garamond'; font-size:23px; margin:6px 0 2px; }
+  .pagina-sub{ font-size:12.5px; color:var(--tinta-60); margin:0 0 16px; }
+
+  .nivel1-row{ display:flex; gap:6px; background:var(--sand); border-radius:var(--r-lg); padding:4px; margin-bottom:16px; }
+  .tab-nivel1{ flex:1; appearance:none; background:none; border:none; padding:9px 0; border-radius:calc(var(--r-lg) - 4px); font-family:'DM Sans'; font-size:10.5px; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; color:var(--tinta-60); cursor:pointer; transition:all 200ms var(--ease); }
+  .tab-nivel1.activo{ background:var(--tinta); color:var(--crema); }
+
+  .subtema-row{ display:flex; gap:8px; overflow-x:auto; margin-bottom:18px; padding-bottom:2px; }
+  .subtema-btn{ display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:var(--r-lg); border:1px solid var(--sand); background:var(--papel); font-size:13px; color:rgb(26 26 24/0.72); white-space:nowrap; flex-shrink:0; font-family:'DM Sans'; }
+  .subtema-btn svg{ width:15px; height:15px; flex-shrink:0; }
+  .subtema-btn.activo{ background:var(--tinta); border-color:var(--tinta); color:var(--crema); }
+
+  .modelo-card{ background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-xl); margin-bottom:8px; overflow:hidden; }
+  .modelo-head{ display:flex; align-items:center; gap:10px; padding:13px 14px; }
+  .modelo-info{ flex:1; min-width:0; }
+  .modelo-codigo{ font-size:9.5px; letter-spacing:0.08em; font-weight:600; color:var(--tinta-60); text-transform:uppercase; display:block; }
+  .modelo-nombre{ font-weight:500; font-size:14px; }
+  .modelo-stock{ font-family:'EB Garamond'; font-size:15px; flex-shrink:0; }
+  .chevron{ width:15px; height:15px; color:rgb(26 26 24/0.5); flex-shrink:0; transition:transform 220ms var(--ease); }
+  .variantes{ border-top:1px solid var(--sand); padding:4px 14px 12px; display:flex; flex-direction:column; gap:2px; }
+  .variante-row{ display:flex; align-items:center; gap:10px; padding:7px 0; font-size:13px; }
+  .swatch-sm{ width:14px; height:14px; border-radius:50%; border:1px solid rgb(26 26 24/0.15); flex-shrink:0; }
+  .variante-talla{ width:28px; color:var(--tinta-60); flex-shrink:0; }
+  .variante-color{ flex:1; }
+  .variante-stock{ color:var(--tinta-60); font-size:12px; }
+
+  .familia-card{ background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-xl); margin-bottom:8px; overflow:hidden; }
+  .familia-head{ display:flex; align-items:center; gap:10px; padding:13px 14px; }
+  .familia-nombre{ font-weight:500; flex:1; font-size:14px; }
+  .familia-cuenta{ font-size:11.5px; color:var(--tinta-60); }
+  .cats-lista{ border-top:1px solid var(--sand); padding:10px 14px 12px; display:flex; flex-wrap:wrap; gap:7px; }
+  .cat-chip{ display:flex; align-items:center; gap:7px; border:1px solid var(--sand); border-radius:var(--r-lg); padding:6px 10px 6px 7px; font-size:12.5px; }
+  .cat-prefijo{ font-size:9.5px; font-weight:700; background:var(--sand); color:var(--tinta-60); border-radius:5px; padding:2px 5px; }
+  .cats-vacio{ border-top:1px solid var(--sand); padding:12px 14px; font-size:12.5px; color:var(--tinta-60); font-style:italic; }
+
+  .colores-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:9px; }
+  .color-card{ background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-xl); padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .color-swatch{ width:100%; height:44px; border-radius:var(--r-lg); border:1px solid rgb(26 26 24/0.12); }
+  .color-nombre{ font-weight:500; font-size:13px; }
+  .color-meta{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--tinta-60); }
+  .color-add{ border:1.5px dashed var(--sand); border-radius:var(--r-xl); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:104px; cursor:pointer; color:var(--tinta-60); background:none; font-size:12px; font-family:'DM Sans'; }
+  .color-add svg{ width:19px; height:19px; }
+
+  .panel-agregar{ margin-top:14px; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-xl); padding:16px; box-shadow:var(--shadow-md); }
+  .panel-titulo{ font-family:'EB Garamond'; font-size:17px; margin:0 0 3px; }
+  .panel-sub{ font-size:12px; color:var(--tinta-60); margin:0 0 14px; }
+  .campo{ margin-bottom:12px; }
+  .campo label{ display:block; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; font-size:10px; color:rgb(26 26 24/0.65); margin-bottom:5px; }
+  .campo input[type="text"]{ width:100%; border:1px solid var(--sand); border-radius:var(--r-md); padding:9px 11px; font-size:14px; font-family:'DM Sans'; color:var(--tinta); background:var(--crema); }
+  .campo-color{ display:flex; align-items:center; gap:10px; }
+  .campo-color input[type="color"]{ width:38px; height:36px; border:1px solid var(--sand); border-radius:var(--r-md); padding:2px; background:var(--crema); }
+  .panel-botones{ display:flex; gap:8px; margin-top:4px; }
+  .btn{ flex:1; text-align:center; font-family:'DM Sans'; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; font-size:10.5px; padding:11px 10px; border-radius:var(--r-md); cursor:pointer; }
+  .btn-primario{ background:var(--tinta); color:var(--crema); border:1px solid var(--tinta); }
+  .btn-fantasma{ background:none; border:1px solid rgb(26 26 24/0.25); color:var(--tinta); }
+
+  .op-nota{ font-size:12.5px; color:var(--tinta-60); margin:0 0 14px; }
+  .op-grid{ display:flex; flex-direction:column; gap:8px; }
+  .op-card{ background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-xl); padding:13px; display:flex; align-items:center; gap:12px; }
+  .op-icon{ width:34px; height:34px; border-radius:var(--r-lg); background:var(--sand); display:flex; align-items:center; justify-content:center; color:var(--tinta); flex-shrink:0; }
+  .op-icon svg{ width:17px; height:17px; }
+  .op-texto{ min-width:0; }
+  .op-nombre{ font-weight:500; font-size:13.5px; }
+  .op-desc{ font-size:11.5px; color:var(--tinta-60); }
+
+  .bottom-nav{ display:grid; grid-template-columns:repeat(5,1fr); border-top:1px solid rgb(26 26 24/0.1); background:rgb(245 240 232/0.92); padding:8px 0 10px; }
+  .bn-item{ display:flex; flex-direction:column; align-items:center; gap:3px; color:rgb(26 26 24/0.55); }
+  .bn-item svg{ width:19px; height:19px; }
+  .bn-item span{ font-size:10px; }
+  .bn-item.activo{ color:var(--rojo); }
+  .bn-nuevo{ display:flex; align-items:center; justify-content:center; }
+  .bn-nuevo span{ width:42px; height:42px; border-radius:var(--r-lg); background:var(--tinta); color:var(--crema); display:flex; align-items:center; justify-content:center; }
+  .bn-nuevo svg{ width:18px; height:18px; }
+</style>
+</helmet>
+
+<div class="shell">
+  <div class="header">
+    <span class="header-word">CAYLA</span>
+    <div class="search-fake">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Buscar…
+    </div>
+    <span class="sede-chip-sm">AQP</span>
+  </div>
+
+  <div class="body">
+    <h1 class="pagina-titulo">Inventario</h1>
+    <p class="pagina-sub">Vocabulario separado de la operación diaria.</p>
+
+    <div class="nivel1-row">
+      <sc-for list="{{nivel1Tabs}}" as="t" hint-placeholder-count="2">
+        <button class="tab-nivel1 {{t.claseActiva}}" onClick="{{t.onClick}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{esCatalogo}}" hint-placeholder-val="{{true}}">
+      <div class="subtema-row">
+        <sc-for list="{{subtemas}}" as="s" hint-placeholder-count="3">
+          <button class="subtema-btn {{s.claseActiva}}" onClick="{{s.onClick}}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.icono}}"/></svg>
+            {{s.label}}
+          </button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{esModelos}}" hint-placeholder-val="{{true}}">
+        <sc-for list="{{modelos}}" as="m" hint-placeholder-count="3">
+          <div class="modelo-card">
+            <div class="modelo-head" onClick="{{m.onToggle}}">
+              <div class="modelo-info">
+                <span class="modelo-codigo">{{m.codigo}}</span>
+                <span class="modelo-nombre">{{m.nombre}}</span>
+              </div>
+              <span class="modelo-stock font-display">{{m.stockTotal}}</span>
+              <svg class="chevron" style="transform: rotate({{m.chevronDeg}}deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <sc-if value="{{m.expandido}}" hint-placeholder-val="{{false}}">
+              <div class="variantes">
+                <sc-for list="{{m.variantes}}" as="v" hint-placeholder-count="3">
+                  <div class="variante-row">
+                    <span class="swatch-sm" style="background-color: {{v.hex}}"></span>
+                    <span class="variante-talla">{{v.talla}}</span>
+                    <span class="variante-color">{{v.color}}</span>
+                    <span class="variante-stock">{{v.stock}} un.</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </sc-if>
+
+      <sc-if value="{{esCategorias}}" hint-placeholder-val="{{false}}">
+        <sc-for list="{{familias}}" as="f" hint-placeholder-count="6">
+          <div class="familia-card">
+            <div class="familia-head" onClick="{{f.onToggle}}">
+              <span class="familia-nombre">{{f.nombre}}</span>
+              <span class="familia-cuenta">{{f.cuentaTexto}}</span>
+              <svg class="chevron" style="transform: rotate({{f.chevronDeg}}deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <sc-if value="{{f.abierta}}" hint-placeholder-val="{{false}}">
+              <sc-if value="{{f.tieneCategorias}}" hint-placeholder-val="{{true}}">
+                <div class="cats-lista">
+                  <sc-for list="{{f.categorias}}" as="c" hint-placeholder-count="2">
+                    <span class="cat-chip"><span class="cat-prefijo">{{c.prefijo}}</span>{{c.nombre}}</span>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{f.sinCategorias}}" hint-placeholder-val="{{false}}">
+                <div class="cats-vacio">Sin categorías todavía.</div>
+              </sc-if>
+            </sc-if>
+          </div>
+        </sc-for>
+      </sc-if>
+
+      <sc-if value="{{esColores}}" hint-placeholder-val="{{false}}">
+        <div class="colores-grid">
+          <sc-for list="{{colores}}" as="col" hint-placeholder-count="10">
+            <div class="color-card">
+              <div class="color-swatch" style="background-color: {{col.hex}}"></div>
+              <div class="color-nombre">{{col.nombre}}</div>
+              <div class="color-meta"><span>{{col.codigo}}</span><span>{{col.familia}}</span></div>
+            </div>
+          </sc-for>
+          <button class="color-add" onClick="{{abrirAgregar}}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg>
+            Agregar
+          </button>
+        </div>
+
+        <sc-if value="{{agregando}}" hint-placeholder-val="{{false}}">
+          <div class="panel-agregar">
+            <p class="panel-titulo">Nuevo color</p>
+            <p class="panel-sub">Queda disponible de inmediato para cualquier prenda.</p>
+            <div class="campo">
+              <label>Nombre</label>
+              <input type="text" value="{{formNombre}}" onChange="{{cambiarNombre}}" placeholder="Ej. Verde botella" />
+            </div>
+            <div class="campo">
+              <label>Código (3 letras)</label>
+              <input type="text" value="{{formCodigo}}" onChange="{{cambiarCodigo}}" placeholder="VEB" />
+            </div>
+            <div class="campo campo-color">
+              <div>
+                <label>Color</label>
+                <input type="color" value="{{formHex}}" onChange="{{cambiarHex}}" />
+              </div>
+            </div>
+            <div class="panel-botones">
+              <button class="btn btn-fantasma" onClick="{{cerrarAgregar}}">Cancelar</button>
+              <button class="btn btn-primario" onClick="{{guardarColor}}">Guardar</button>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{esOperacion}}" hint-placeholder-val="{{false}}">
+      <p class="op-nota">Los flujos que consumen el catálogo, aparte del vocabulario.</p>
+      <div class="op-grid">
+        <sc-for list="{{operacion}}" as="o" hint-placeholder-count="7">
+          <div class="op-card">
+            <div class="op-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{o.icono}}"/></svg></div>
+            <div class="op-texto">
+              <div class="op-nombre">{{o.nombre}}</div>
+              <div class="op-desc">{{o.desc}}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bn-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span>Inicio</span></div>
+    <div class="bn-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z"/></svg><span>Vender</span></div>
+    <div class="bn-nuevo"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></span></div>
+    <div class="bn-item activo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10"/></svg><span>Inventario</span></div>
+    <div class="bn-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg><span>Más</span></div>
+  </nav>
+</div>
+</x-dc>
+
+<script data-dc-script>
+const COLORES_INICIALES = [
+  { codigo:'AZM', nombre:'Azul marino', hex:'#1f3a5f', familia:'azul' },
+  { codigo:'VIN', nombre:'Vino',        hex:'#6b1f2e', familia:'rojo' },
+  { codigo:'ARE', nombre:'Arena',       hex:'#cdb896', familia:'tierra' },
+  { codigo:'BLA', nombre:'Blanco',      hex:'#f7f4ee', familia:'neutro' },
+  { codigo:'NEG', nombre:'Negro',       hex:'#1a1a18', familia:'neutro' },
+  { codigo:'VOL', nombre:'Verde oliva', hex:'#5c6b3f', familia:'verde' },
+  { codigo:'ROS', nombre:'Rosa palo',   hex:'#d8a8a0', familia:'rojo' },
+  { codigo:'MOS', nombre:'Mostaza',     hex:'#b8862f', familia:'amarillo' },
+  { codigo:'GRI', nombre:'Gris piedra', hex:'#8a8579', familia:'neutro' },
+  { codigo:'BEI', nombre:'Beige',       hex:'#e0d2b8', familia:'tierra' },
+];
+
+const MODELOS_INICIALES = [
+  { id:'m1', codigo:'BLU-0042', nombre:'Blusa Aurora', categoria:'Blusas', variantes:[
+      { talla:'S', color:'Azul marino', hex:'#1f3a5f', stock:3 },
+      { talla:'M', color:'Azul marino', hex:'#1f3a5f', stock:4 },
+      { talla:'M', color:'Vino', hex:'#6b1f2e', stock:2 },
+      { talla:'L', color:'Arena', hex:'#cdb896', stock:0 },
+  ]},
+  { id:'m2', codigo:'POL-0015', nombre:'Polo Básico Algodón', categoria:'Polos', variantes:[
+      { talla:'S', color:'Blanco', hex:'#f7f4ee', stock:6 },
+      { talla:'M', color:'Blanco', hex:'#f7f4ee', stock:8 },
+      { talla:'M', color:'Negro', hex:'#1a1a18', stock:5 },
+      { talla:'L', color:'Negro', hex:'#1a1a18', stock:3 },
+  ]},
+  { id:'m3', codigo:'JEA-0008', nombre:'Pantalón Recto Denim', categoria:'Pantalones', variantes:[
+      { talla:'28', color:'Azul', hex:'#3a5a8c', stock:2 },
+      { talla:'30', color:'Azul', hex:'#3a5a8c', stock:4 },
+      { talla:'32', color:'Negro', hex:'#1a1a18', stock:1 },
+  ]},
+];
+
+const FAMILIAS_INICIALES = [
+  { nombre:'Indumentaria', categorias:[{nombre:'Blusas',prefijo:'BLU'},{nombre:'Polos',prefijo:'POL'},{nombre:'Pantalones',prefijo:'JEA'}] },
+  { nombre:'Calzado', categorias:[{nombre:'Zapatillas',prefijo:'ZAP'}] },
+  { nombre:'Accesorios', categorias:[{nombre:'Carteras',prefijo:'CAR'}] },
+  { nombre:'Bisutería', categorias:[{nombre:'Aretes',prefijo:'ARE'}] },
+  { nombre:'Belleza', categorias:[] },
+  { nombre:'Papelería', categorias:[] },
+];
+
+const ICONOS = {
+  modelos: 'M9 3.5a3 3 0 106 0M12 3.5V7m0 0L4 12.5h16L12 7z M6 16h12',
+  categorias: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z',
+  colores: 'M12 2.5C8 7.5 5 11 5 14.5a7 7 0 0014 0c0-3.5-3-7-7-12z',
+  proveedores: 'M3 8h10v8H3zM13 11h4l4 3.5V16h-8v-5zM7 19a1.6 1.6 0 100-3.2 1.6 1.6 0 000 3.2zm10.5 0a1.6 1.6 0 100-3.2 1.6 1.6 0 000 3.2z',
+  compras: 'M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z',
+  recibir: 'M12 3v11m0 0l-4-4m4 4l4-4M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4',
+  almacen: 'M3 21V9l9-5 9 5v12M3 21h18M9 21v-6h6v6',
+  conteo: 'M9 6h11M9 12h11M9 18h11M4.5 6.2l1 1 2-2M4.5 12.2l1 1 2-2M4.5 18.2l1 1 2-2',
+  etiquetas: 'M20.6 13.4L12 22 2 12V2h10l8.6 8.6a2 2 0 010 2.8zM7 7h.01',
+  importar: 'M12 15.5V4m0 0L8 8m4-4l4 4M4 15.5v4a2 2 0 002 2h12a2 2 0 002-2v-4',
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = {
+      nivel1: 'catalogo',
+      subtema: 'colores',
+      expandidoModelos: {},
+      abiertaFamilias: { Indumentaria: true },
+      colores: COLORES_INICIALES,
+      agregando: false,
+      formNombre: '',
+      formCodigo: '',
+      formHex: '#c9b79c',
+    };
+  }
+
+  irNivel1(v){ this.setState({ nivel1: v }); }
+  irSubtema(v){ this.setState({ subtema: v }); }
+  toggleModelo(id){
+    const cp = { ...this.state.expandidoModelos };
+    cp[id] = !cp[id];
+    this.setState({ expandidoModelos: cp });
+  }
+  toggleFamilia(nombre){
+    const cp = { ...this.state.abiertaFamilias };
+    cp[nombre] = !cp[nombre];
+    this.setState({ abiertaFamilias: cp });
+  }
+
+  renderVals(){
+    const s = this.state;
+
+    const nivel1Tabs = [
+      { key:'catalogo', label:'Catálogo', claseActiva: s.nivel1==='catalogo' ? 'activo' : '', onClick: () => this.irNivel1('catalogo') },
+      { key:'operacion', label:'Operación', claseActiva: s.nivel1==='operacion' ? 'activo' : '', onClick: () => this.irNivel1('operacion') },
+    ];
+
+    const subtemas = [
+      { key:'modelos', label:'Modelos', icono:ICONOS.modelos, claseActiva: s.subtema==='modelos' ? 'activo' : '', onClick: () => this.irSubtema('modelos') },
+      { key:'categorias', label:'Categorías', icono:ICONOS.categorias, claseActiva: s.subtema==='categorias' ? 'activo' : '', onClick: () => this.irSubtema('categorias') },
+      { key:'colores', label:'Colores', icono:ICONOS.colores, claseActiva: s.subtema==='colores' ? 'activo' : '', onClick: () => this.irSubtema('colores') },
+    ];
+
+    const modelos = MODELOS_INICIALES.map((m) => {
+      const expandido = !!s.expandidoModelos[m.id];
+      const stockTotal = m.variantes.reduce((a, v) => a + v.stock, 0);
+      return { ...m, expandido, chevronDeg: expandido ? 180 : 0, stockTotal, onToggle: () => this.toggleModelo(m.id) };
+    });
+
+    const familias = FAMILIAS_INICIALES.map((f) => {
+      const abierta = !!s.abiertaFamilias[f.nombre];
+      const tiene = f.categorias.length > 0;
+      return {
+        nombre: f.nombre,
+        cuentaTexto: f.categorias.length + (f.categorias.length === 1 ? ' categoría' : ' categorías'),
+        abierta,
+        chevronDeg: abierta ? 180 : 0,
+        tieneCategorias: tiene,
+        sinCategorias: !tiene,
+        categorias: f.categorias,
+        onToggle: () => this.toggleFamilia(f.nombre),
+      };
+    });
+
+    const operacion = [
+      { icono:ICONOS.proveedores, nombre:'Proveedores', desc:'A quién le compramos.' },
+      { icono:ICONOS.compras, nombre:'Compras', desc:'Pedidos abiertos.' },
+      { icono:ICONOS.recibir, nombre:'Recibir', desc:'Ingresar un lote nuevo.' },
+      { icono:ICONOS.almacen, nombre:'Almacén', desc:'Esperando bajar a piso.' },
+      { icono:ICONOS.conteo, nombre:'Conteo', desc:'Verificar el stock real.' },
+      { icono:ICONOS.etiquetas, nombre:'Etiquetas', desc:'Imprimir el código.' },
+      { icono:ICONOS.importar, nombre:'Importar', desc:'Meter un catálogo entero.' },
+    ];
+
+    return {
+      nivel1Tabs,
+      esCatalogo: s.nivel1 === 'catalogo',
+      esOperacion: s.nivel1 === 'operacion',
+      subtemas,
+      esModelos: s.subtema === 'modelos',
+      esCategorias: s.subtema === 'categorias',
+      esColores: s.subtema === 'colores',
+      modelos,
+      familias,
+      colores: s.colores,
+      operacion,
+      agregando: s.agregando,
+      formNombre: s.formNombre,
+      formCodigo: s.formCodigo,
+      formHex: s.formHex,
+      abrirAgregar: () => this.setState({ agregando: true, formNombre:'', formCodigo:'', formHex:'#c9b79c' }),
+      cerrarAgregar: () => this.setState({ agregando: false }),
+      cambiarNombre: (e) => this.setState({ formNombre: e.target.value }),
+      cambiarCodigo: (e) => this.setState({ formCodigo: e.target.value.toUpperCase().slice(0,3) }),
+      cambiarHex: (e) => this.setState({ formHex: e.target.value }),
+      guardarColor: () => {
+        const nombre = this.state.formNombre.trim() || 'Nuevo color';
+        const codigo = (this.state.formCodigo.trim() || 'NVO').toUpperCase();
+        const hex = this.state.formHex || '#cccccc';
+        this.setState({ colores: [...this.state.colores, { nombre, codigo, hex, familia:'nuevo' }], agregando: false });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
