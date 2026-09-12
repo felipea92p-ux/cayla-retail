@@ -16,6 +16,10 @@ TRU (Trujillo, tienda) · AQP (Arequipa, tienda) · LIM (Lima, tienda) · Taller
 
 ## Desarrollo
 
+Somos varias personas con acceso de escritura — el flujo completo (ramas, PR,
+convención de migraciones) vive en [CONTRIBUTING.md](CONTRIBUTING.md). Esta sección es
+solo cómo levantar tu entorno local.
+
 ```bash
 pnpm install
 ```
@@ -53,16 +57,26 @@ tengas corriendo, que es el único testigo que no opina.
 ### Levantar el entorno local completo
 
 Hasta el 2026-09-05 la app **no podía** correr contra el Supabase local (ver
-ADR-0010). Ya sí. Desde cero:
+ADR-0010). Ya sí. Desde cero, primero el stub local de Dynamic (una sola vez, ver
+[ADR-0033](docs/adr/0033-stub-local-de-dynamic-para-poder-desarrollar-sin-red.md) —
+el archivo destino queda fuera de git a propósito, así que cada quien lo genera
+localmente desde la plantilla):
+
+```bash
+cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
+```
+
+Y ahora sí, el entorno completo:
 
 ```bash
 npx supabase start
 ```
 
 Eso levanta Postgres, la API, Auth y Studio; aplica todas las migraciones de
-`supabase/migrations/`; y corre `supabase/seed.sql`, que mueve las tablas al
-schema `retail` (igual que producción) y siembra lo mínimo para entrar: un usuario, su
-persona Líder y las series de comprobantes de AQP.
+`supabase/migrations/` (con el stub de arriba ya adentro); y corre `supabase/seed.sql`,
+que siembra lo mínimo para entrar: dos personas (Felipe, líder en LIM; Micaela,
+integrante en TRU — para poder probar que RLS de verdad acota por ubicación) y un
+catálogo de prueba con movimiento real.
 
 Copia las claves que imprime a `apps/web/.env.local` (plantilla en
 `apps/web/.env.example`):
@@ -75,7 +89,8 @@ cp apps/web/.env.example apps/web/.env.local   # y pega API_URL y PUBLISHABLE_KE
 pnpm dev
 ```
 
-Entra en http://localhost:3000 con **felipe@cayla.local** / **cayla-local**.
+Entra en http://localhost:3000 con **felipe@cayla.local** / **cayla-local** (líder) o
+**micaela@cayla.local** / **cayla-local** (integrante).
 
 Para volver la base a cero (rehace migraciones + seed):
 
@@ -85,8 +100,12 @@ npx supabase db reset
 
 **Qué NO funciona en local:** subir fotos de producto — el servicio de Storage
 está apagado a propósito en `supabase/config.toml` porque es el único que queda
-"unhealthy" y hacía abortar `supabase start` entero. Todo lo demás (catálogo,
-ventas, finanzas, facturación, producción) funciona igual que en producción.
+"unhealthy" y hacía abortar `supabase start` entero. Todo lo demás que existe hoy en V2
+(catálogo, ventas, caja/pagos múltiples, cambios de talla/color, facturación) funciona
+igual que en producción. **Comercial, Finanzas, Producción y Taxonomía universal
+quedaron fuera del corte V1→V2** (`0af2f1b`, 2026-09-12) — no tenían pantalla propia en
+V2 y su data en retail era de prueba, no de operación real. Vuelven en una fase futura
+si se decide reconstruirlos sobre V2.
 
 **El catálogo no se siembra**: son SKUs reales que se cargan por la pantalla de
 Recibir mercadería (`docs/GUIA-CARGA-CATALOGO.md`). Un catálogo de juguete haría
