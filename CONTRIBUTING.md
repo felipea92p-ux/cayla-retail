@@ -1,0 +1,103 @@
+# Cómo colaborar en CAYLA Retail
+
+Somos 5 personas con acceso de escritura al repo (Felipe + Danytristee, Trix-One,
+CuervoCayla, ColibriCayla). Esta guía es el flujo para que cada quien avance su parte en
+su propia máquina, sin pisar el trabajo de los demás, y lo junte seguido — no una vez al
+final.
+
+## 1. Entorno local — un stack por persona, nadie comparte base de datos
+
+Cada quien levanta su propio Postgres local, aislado en su máquina, con Docker. Nadie
+necesita pedirle nada a nadie: es 100% autocontenido.
+
+```bash
+git clone https://github.com/felipea92p-ux/cayla-retail.git
+```
+
+1. Docker Desktop corriendo.
+2. `pnpm install` — activa de paso el hook de [.githooks/pre-commit](.githooks/pre-commit)
+   (tipos + tests + lint solo de lo que estás commiteando, ~19s).
+3. `cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql`
+   — imita lo mínimo de Dynamic que retail necesita para resolver identidad (ver
+   [ADR-0033](docs/adr/0033-stub-local-de-dynamic-para-poder-desarrollar-sin-red.md)).
+   **Este paso es nuevo y es una sola vez** — el archivo destino queda fuera de git a
+   propósito (nunca debe poder colarse en un copy/paste al SQL Editor de producción),
+   así que cada quien lo genera localmente desde la plantilla, igual que `.env.local`.
+4. `npx supabase start` — Postgres 17 + Auth + API + Studio en los puertos fijos de
+   [supabase/config.toml](supabase/config.toml) (54421 API / 54422 DB / 54423 Studio —
+   nadie los elige a mano). Aplica todas las migraciones de `supabase/migrations/`
+   (con el stub del paso 3 ya adentro) y corre `supabase/seed.sql`.
+5. `cp apps/web/.env.example apps/web/.env.local` y pegar ahí lo que imprime
+   `npx supabase status`.
+6. `pnpm dev` → entra en `http://localhost:3000` con `felipe@cayla.local` / `cayla-local`
+   (líder) o `micaela@cayla.local` / `cayla-local` (integrante, para probar que RLS
+   realmente acota por ubicación).
+7. Si algo se ve raro y no tiene explicación de código: `pnpm local:donde` antes de
+   sospechar un bug. Diagnostica en segundos si estás hablando con el stack de este repo
+   o, por accidente, con el de `cayla-dynamic` (si también lo tenés clonado en la misma
+   máquina — ver la tabla de puertos en [README.md](README.md)).
+
+Para volver la base a cero en cualquier momento: `npx supabase db reset`. Es una
+operación normal y esperada, no un último recurso — el estado local nunca es la fuente
+de verdad de nada, `supabase/migrations/` + `seed.sql` sí.
+
+**Qué no funciona en local:** subir fotos de producto (Storage apagado a propósito, ver
+ADR-0010). Todo lo demás que exista en V2 (catálogo, ventas, caja, cambios,
+facturación) funciona igual que en producción.
+
+## 2. GitHub — rama por tarea, nunca directo a `main`
+
+Hoy `main` no tiene ninguna protección — cualquiera de las 5 personas puede pushear sin
+que pase ningún check. Los choques que ya pasaron (migraciones `0054` duplicadas,
+19-sep; renumeración `0057`→`0059`, 12-sep) tienen la misma causa: nadie vio el trabajo
+del otro antes de que aterrizara en `main`.
+
+1. **Rama por tarea.** Las sesiones de Claude Code ya lo hacen solas
+   (`claude/<tema>-<hash>`). Para trabajo humano directo: `<usuario>/<dominio>-<tema>`
+   (ej. `trix/facturacion-anulacion`), mismo espíritu que el scope de los commits.
+2. **`git fetch origin && git merge origin/main` (o rebase) al ABRIR la sesión de
+   trabajo, no solo antes de pushear.** `main` se mueve varias veces por hora — pasó en
+   vivo mientras se escribía este documento (`0af2f1b` → `b93ffee` en menos de una
+   hora). Empezar sobre una base vieja es la forma más cara de duplicar trabajo (pasó
+   con el conector de Lucode, 5-sep, y con el censo construido dos veces, 11-sep).
+3. **Abrir PR contra `main` al cerrar un paso verificable** (principio 7 de CLAUDE.md) —
+   no al final del proyecto, al final de cada paso chico. Esto es lo que reemplaza
+   "juntar todo al final": integración seguida, con historial visible, no un merge
+   gigante y sorpresivo.
+4. **`main` debería exigir el check `Tipos, lint y pruebas`** (`.github/workflows/ci.yml`)
+   antes de mergear, sin push directo salvo para el admin del repo. Pendiente de que
+   quien tenga permiso admin en GitHub lo active:
+   ```bash
+   gh api -X PUT repos/felipea92p-ux/cayla-retail/branches/main/protection --input - <<'EOF'
+   {
+     "required_status_checks": {"strict": true, "contexts": ["Tipos, lint y pruebas"]},
+     "enforce_admins": false,
+     "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false, "require_code_owner_reviews": false},
+     "restrictions": null,
+     "allow_force_pushes": false,
+     "allow_deletions": false
+   }
+   EOF
+   ```
+
+## 3. Migraciones nuevas — con timestamp, no con el próximo número a ojo
+
+Desde hoy (ver [ADR-0034](docs/adr/0034-migraciones-nuevas-nacen-con-timestamp-no-con-el-proximo-numero.md)):
+
+```bash
+npx supabase migration new nombre_descriptivo
+```
+
+Nunca se elige a mano el "próximo número libre" — con 5 personas escribiendo en paralelo
+eso es lo que ya chocó dos veces. El timestamp hace el choque imposible por diseño, no
+por disciplina. `0001`-`0010` (las migraciones del corte V2) no se tocan ni se renumeran.
+
+Las migraciones se escriben **sin** el prefijo `retail.` — corren así contra el Postgres
+local. El prefijo se agrega solo al pegar en el SQL Editor de producción (ver CLAUDE.md
+§"Cómo aplicar SQL a producción").
+
+## 4. Antes de cada commit
+
+`pnpm install` deja activado un hook de git que revisa tipos, tests y lint — solo de los
+archivos que estás commiteando (~19s). Errores en archivos ajenos a tu commit avisan
+pero no bloquean: en este repo casi siempre hay más de una persona trabajando a la vez.

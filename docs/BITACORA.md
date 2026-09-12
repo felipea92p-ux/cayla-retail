@@ -2748,3 +2748,31 @@ La lección de método: la funcionalidad que se pidió (la matriz) y el problema
 motivaba (repetir trabajo) no eran lo mismo, y atacar el segundo destapó un bug que la
 primera habría tapado — con la matriz, las 12 variantes nacen del mismo producto y el
 defecto no se ve nunca, hasta que alguien da de alta dos prendas sueltas.
+
+## 2026-09-12 (el corte V1→V2 dejó el entorno local roto para todos menos para quien lo cortó)
+
+`0009_integracion_dynamic.sql` (el corte de hoy) delega la identidad en `public.fn_rol_actual()`/
+`fn_sede_actual_persona()` de Dynamic, pero el stub local que `seed.sql` ya asumía
+(`0000_local_stub_dynamic.sql`) nunca se commiteó. Casi se resuelve mal: el primer intento fue
+crearlo directo en `supabase/migrations/`, hasta encontrar que `.gitignore` ya lo excluía a
+propósito, con la razón escrita al lado — esa carpeta se copia/pega al SQL Editor de
+producción, y ahí `public.sedes`/`personas` son las tablas reales de Dynamic; un
+`create or replace function` de este stub pegado por error las sobreescribiría en silencio.
+La regla estaba bien. Lo que faltaba era otra cosa: nada generaba ese archivo la primera vez.
+Se agregó `supabase/0000_local_stub_dynamic.sql.example`, versionado, mismo patrón que
+`.env.example` → `.env.local` — copiar es un paso nuevo del setup, no una excepción a la regla
+de seguridad. Cuerpo de las dos funciones y el enum `rol_usuario`, copiados exactos desde
+cayla-dynamic (`pg_get_functiondef`, producción, no a mano). Verificado con `db reset` limpio
+desde la plantilla y una consulta directa: `fn_rol_actual()` resuelve `admin` para Felipe,
+`retail.fn_es_lider()` da `true`.
+
+De paso, auditando cómo colabora el equipo (5 personas con push directo a `main`, cero
+protección) salió el mismo patrón de siempre: dos migraciones `0054` duplicadas el 11-sep,
+`0057`→`0059` renumerado hoy mismo. ADR-0034 mueve las migraciones nuevas a timestamp
+(`supabase migration new`) para que el choque sea imposible por diseño, no por acordarse de
+revisar contra `origin/main` al fusionar.
+
+Lo que Felipe se lleva: **una regla de seguridad puede estar perfectamente bien y romper el
+onboarding igual** — "fuera de git a propósito" cerraba el riesgo real (contaminar
+producción) pero no traía consigo cómo cumplirla la primera vez. Corregir la regla habría sido
+el error; lo que faltaba era la plantilla, no menos candado.
