@@ -18,6 +18,7 @@ import { CerrarCajaModal } from "@/components/CerrarCajaModal";
 
 type VarianteBusqueda = {
   varianteId: string;
+  codigo: string | null;
   sku: string;
   referencia: string;
   talla: string | null;
@@ -33,6 +34,7 @@ type Props = {
   sedeCodigo: string;
   cajaAbierta: CajaAbierta | null;
   variantes: VarianteBusqueda[];
+  porCodigoBarras: Record<string, string>;
 };
 
 /**
@@ -48,7 +50,7 @@ type Props = {
  */
 const LATIDO_MS = 30_000;
 
-export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props) {
+export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes, porCodigoBarras }: Props) {
   const router = useRouter();
   const [modal, setModal] = useState<"abrir" | "vender" | "cerrar" | null>(null);
   // La sede que describe `cola` ahora mismo. Si `sedeCodigo` cambia (la Encargada cambia de
@@ -269,6 +271,7 @@ export function CajaPanel({ sedeId, sedeCodigo, cajaAbierta, variantes }: Props)
             sedeCodigo={sedeCodigo}
             cajaId={cajaAbierta.id}
             variantes={variantesConOverlay}
+            porCodigoBarras={porCodigoBarras}
             sinConexion={sinConexion}
             onVentaEncolada={() => setCola(obtenerColaSede(sedeCodigo))}
             onClose={() => setModal(null)}

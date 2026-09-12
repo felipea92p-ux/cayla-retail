@@ -3,6 +3,68 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-11 (apartado C, columna 2: el modelo ya está; lo que falta es lo de encima)
+
+Segunda columna del apartado C, «Talla y color», con el mismo método y en la misma sesión.
+Tres sacan 5: Lightspeed (el estándar del sector: variante = SKU con inventario propio,
+reposición por variante y por local) y los dos especialistas de moda, ApparelMagic (fecha de
+agotamiento pronosticada por SKU, UPC automático) y Uphance («forecast at style, color, and
+size», traslados conscientes de la curva, carryover de temporada). La lectura es la inversa de
+la caja: aquí el modelo correcto viene de los grandes (NetSuite *Matrix Items*) y CAYLA ya lo
+tiene en el núcleo — identidad única, vocabulario de colores, código corto, universal debajo.
+Lo que separa a los 5 del resto es lo que se construye encima: la matriz como vista y como
+entrada, la señal por talla, la curva. Resultado en `docs/ESTANDAR-TALLA-Y-COLOR.md`.
+
+**El hallazgo, otra vez del mapa y no de la comparación:** de los cuatro caminos que crean una
+prenda, dos —«Nuevo producto» y «Recibir mercadería»— insertaban el color como texto libre y
+nunca llamaban a `fn_asignar_codigo_variante`; solo el conteo y el importador lo hacían bien.
+Medido en producción: 19 variantes, 2 sin código, color `"azul "` con espacio. Felipe pidió
+arreglarlo y decidió que «azul» es Azul marino. Quedó en local (`0059`; nació como `0057` y se renumeró al fusionar con `main`): una función chica con
+la regla del color para los cuatro caminos, las dos RPC con la misma firma, los dos formularios
+eligiendo del vocabulario, y el backfill. Verificado en navegador por los dos caminos (14
+variantes `BLU-0002-…` y una `FAL-0002-VIN-M`). Y producción la misma tarde: Felipe autorizó
+(«pégalo tú y muéstrame el post-check»), se corrieron los mismos bytes de la `39` (entonces `38`) con
+`execute_sql`, y el post-check dio 0 variantes sin código, una firma por función y los tres
+cuerpos iguales a los del repo con el normalizado del verificador — el repo sigue describiendo
+producción, que es la regla que más costó aprender el 10-sep.
+De paso salió que local arrastraba una segunda `recibir_lote` de 8 parámetros que producción
+ya no tiene — la 0059 la tira.
+
+Lo que Felipe se lleva: **un modelo de datos correcto no protege nada si un camino lo esquiva**
+— el vocabulario cerrado y el código corto se decidieron el 09-sep y las dos pantallas más
+viejas siguieron escribiendo como antes. La regla que sale de acá: cuando se agrega una
+restricción al núcleo (colores, códigos), se listan TODOS los caminos que escriben esa tabla y
+se pasan uno por uno, no solo el que motivó el cambio.
+
+## 2026-09-11 (apartado C, columna 1: en la caja no hay nada que aprender de los ERP grandes)
+
+Se aplicó al apartado C —la comparativa funcional de 16 sistemas— el mismo método que al D,
+empezando por la columna «Caja de tienda»: puntajes transcritos del documento (que es de otra
+cuenta y hubo que leer por el navegador), la caja de los siete que la tienen de verdad
+verificada en su documentación oficial, y cada mecanismo contrastado contra el repo archivo
+por archivo. Resultado en `docs/ESTANDAR-CAJA-DE-TIENDA.md` y el artefacto «El estándar de
+la caja»: doce mecanismos, seis que no existen, cuatro que son decisiones de negocio antes
+que de código. Lo que la columna enseña: los tres 5 nacieron del mostrador y los 0–2 de la
+contabilidad, el ERP o el mayorista — todo lo que vale está en seis cajas chicas, y CAYLA
+ya tiene tres cosas que ninguno de los 5 tiene (el reintento que no cobra dos veces, la
+venta sin red que bloquea la última unidad, SUNAT sin peaje por documento).
+
+**El hallazgo salió del mapa, no de la comparación:** la etiqueta imprime el código corto y
+el conteo lo resuelve por `codigos_barras`, pero la caja buscaba solo por `sku`. Una prenda
+etiquetada después del censo no entraba al escanearla en Vender. Felipe pidió arreglarlo en
+la misma sesión: la lógica de reconocer una prenda salió del componente a
+`lib/buscar-prenda.ts` (pura, con prueba) y resuelve como el conteo — `codigos_barras` →
+código corto → SKU. Verificado en navegador con el catálogo de prueba: entraron el código
+corto, un EAN de fábrica y el SKU viejo en minúsculas, y la venta quedó en `ventas` y
+`movimientos` con el stock descontado. **La prueba destapó un segundo defecto:** el aviso
+«quedan N» del tope de stock nunca se mostraba, porque el tope se calculaba dentro del updater
+de `setCarrito` y React lo corre después de que el aviso ya se decidió. Arreglado ahí mismo.
+
+Lo que Felipe se lleva: **un puntaje sin su porqué no se puede copiar** — la columna dice
+«5» y no dice qué hace Shopify para merecerlo; recién con la documentación en la mano
+aparecen los mecanismos concretos (el carrito que no se tapa, el vuelto automático, la
+lista de lo que no funciona sin red). Y que el estándar se mide en las dos direcciones:
+antes de copiar hacia arriba, anotar lo que los de arriba no tienen.
 ## 2026-09-11 (pidió "todo GSAP para más smooth"; se marcó la contradicción con lo recién decidido)
 
 Minutos después de cerrar ADR-0038 ("GSAP solo para scroll"), Felipe pidió aplicar

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import type { ColorElegible } from "@/lib/conteo";
 
 type Categoria = { id: string; familia: string; nombre: string; tallasSugeridas: string[] | null };
 type Proveedor = { id: string; nombre: string };
@@ -12,7 +13,10 @@ type Proveedor = { id: string; nombre: string };
 type Fila = {
   key: string;
   talla: string | null;
+  /** El nombre canónico del vocabulario (0046). Solo para leerlo y armar el SKU. */
   color: string | null;
+  /** El código de tres letras que la RPC resuelve contra `colores` — el dato de verdad. */
+  colorId: string | null;
   sku: string;
   costo: number;
   precio: number;
@@ -37,11 +41,20 @@ function slug(texto: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-function claveCombo(talla: string | null, color: string | null) {
-  return `${talla ?? ""}||${color ?? ""}`;
+function claveCombo(talla: string | null, colorId: string | null) {
+  return `${talla ?? ""}||${colorId ?? ""}`;
 }
 
-export function NuevoProductoForm({ categorias, proveedores }: { categorias: Categoria[]; proveedores: Proveedor[] }) {
+export function NuevoProductoForm({
+  categorias,
+  proveedores,
+  colores: vocabulario,
+}: {
+  categorias: Categoria[];
+  proveedores: Proveedor[];
+  /** El vocabulario cerrado de colores (0046, ADR-0024). Un color que no está acá no existe. */
+  colores: ColorElegible[];
+}) {
   const router = useRouter();
 
   const [referencia, setReferencia] = useState("");
@@ -56,7 +69,10 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
 
   const [tallas, setTallas] = useState<string[]>([]);
   const [tallaNueva, setTallaNueva] = useState("");
-  const [colores, setColores] = useState<string[]>([]);
+  // Los colores elegidos son entradas del vocabulario, nunca texto: hasta el 2026-09-11
+  // este formulario aceptaba «azul» a mano, la RPC lo guardaba tal cual y la variante
+  // nacía sin código corto (docs/ESTANDAR-TALLA-Y-COLOR.md, mecanismo 1).
+  const [colores, setColores] = useState<ColorElegible[]>([]);
   const [colorNuevo, setColorNuevo] = useState("");
 
   const [costoBase, setCostoBase] = useState(0);
@@ -87,29 +103,33 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
   }
 
   function agregarColor() {
-    const c = colorNuevo.trim();
-    if (!c || colores.includes(c)) return;
-    setColores((actual) => [...actual, c]);
+    const elegido = vocabulario.find((c) => c.codigo === colorNuevo);
+    if (!elegido || colores.some((c) => c.codigo === elegido.codigo)) return;
+    setColores((actual) => [...actual, elegido]);
     setColorNuevo("");
   }
+  const coloresDisponibles = vocabulario.filter((c) => !colores.some((x) => x.codigo === c.codigo));
 
   // Genera la matriz talla × color a partir de lo elegido — conserva las filas
   // ya generadas que sigan aplicando (si ya editaste su precio/SKU a mano no
   // se pierde al agregar una talla más) y agrega solo las combinaciones nuevas.
   function generarVariantes() {
     setFilas((actual) => {
-      const porClave = new Map(actual.map((f) => [claveCombo(f.talla, f.color), f]));
+      const porClave = new Map(actual.map((f) => [claveCombo(f.talla, f.colorId), f]));
       const listaTallas = tallas.length > 0 ? tallas : [null];
-      const listaColores = colores.length > 0 ? colores : [null];
+      const listaColores: (ColorElegible | null)[] = colores.length > 0 ? colores : [null];
       return listaTallas.flatMap((talla) =>
         listaColores.map((color) => {
-          const existente = porClave.get(claveCombo(talla, color));
+          const existente = porClave.get(claveCombo(talla, color?.codigo ?? null));
           if (existente) return existente;
-          const sku = [skuPadre, talla, color].filter(Boolean).map((p) => slug(String(p))).join("-") || skuPadre;
+          // El SKU lleva el código del color (AZM), no su nombre: es más corto y no cambia
+          // si un día se renombra el color en el vocabulario.
+          const sku = [skuPadre, talla, color?.codigo].filter(Boolean).map((p) => slug(String(p))).join("-") || skuPadre;
           return {
             key: crypto.randomUUID(),
             talla,
-            color,
+            color: color?.nombre ?? null,
+            colorId: color?.codigo ?? null,
             sku,
             costo: costoBase,
             precio: precioBase,
@@ -167,7 +187,9 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
       p_variantes: filas.map((f) => ({
         sku: f.sku.trim(),
         talla: f.talla || undefined,
-        color: f.color || undefined,
+        // La RPC (0059) resuelve `colorId` contra el vocabulario y guarda el nombre canónico;
+        // `color` texto sigue existiendo solo para clientes viejos y acá ya no se manda.
+        colorId: f.colorId || undefined,
         costo: f.costo,
         precio: f.precio,
         precioOferta: f.precioOferta === "" ? undefined : f.precioOferta,
@@ -342,34 +364,43 @@ export function NuevoProductoForm({ categorias, proveedores }: { categorias: Cat
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm text-tinta/80">Colores</label>
+          <label className="text-sm text-tinta/80" htmlFor="nuevo-color">Colores</label>
           <div className="flex flex-wrap gap-1.5">
             {colores.map((c) => (
               <button
-                key={c}
+                key={c.codigo}
                 type="button"
-                onClick={() => setColores((actual) => actual.filter((x) => x !== c))}
-                className="border border-tinta/25 bg-sand px-2.5 py-1 text-xs text-tinta hover:border-rojo hover:text-rojo"
+                onClick={() => setColores((actual) => actual.filter((x) => x.codigo !== c.codigo))}
+                className="inline-flex items-center gap-1.5 border border-tinta/25 bg-sand px-2.5 py-1 text-xs text-tinta hover:border-rojo hover:text-rojo"
                 title="Quitar color"
               >
-                {c} ×
+                {c.hex && <span aria-hidden className="inline-block h-3 w-3 border border-tinta/20" style={{ backgroundColor: c.hex }} />}
+                {c.nombre} <span className="font-mono text-[10px] text-tinta/55">{c.codigo}</span> ×
               </button>
             ))}
           </div>
+          {/* Un color que no está en el vocabulario no se puede teclear: se agrega en
+              Inventario → Vocabulario (solo Líder), no acá con un nombre suelto. */}
           <div className="flex gap-2">
-            <input
+            <select
+              id="nuevo-color"
               value={colorNuevo}
               onChange={(e) => setColorNuevo(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  agregarColor();
-                }
-              }}
-              placeholder="Agregar color (ej. Negro)"
               className="flex-1 border border-tinta/20 bg-crema px-3 py-1.5 text-sm text-tinta outline-none focus:border-rojo"
-            />
-            <button type="button" onClick={agregarColor} className="label-cayla rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo">
+            >
+              <option value="">Elegir un color del vocabulario…</option>
+              {coloresDisponibles.map((c) => (
+                <option key={c.codigo} value={c.codigo}>
+                  {c.nombre} ({c.codigo})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={agregarColor}
+              disabled={!colorNuevo}
+              className="label-cayla rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo disabled:opacity-40"
+            >
               + Agregar
             </button>
           </div>

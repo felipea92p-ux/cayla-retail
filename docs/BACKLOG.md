@@ -11,6 +11,26 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Apartado C, columna «Caja de tienda» — análisis hecho el 2026-09-11; el menú
+      espera la elección de Felipe.** `docs/ESTANDAR-CAJA-DE-TIENDA.md` (artefacto «El
+      estándar de la caja»): los siete sistemas con caja real (Shopify, Lightspeed, Square,
+      Loyverse, Bsale, INVY, Odoo) verificados en su documentación oficial y contrastados
+      contra el repo archivo por archivo. Doce mecanismos en la tabla del estándar; los que
+      faltan del todo: pago dividido + vuelto, descuento con motivo y permiso, clienta y
+      comprobante EN la venta, cambio/devolución desde la venta original, recibo, apartado.
+      Cuatro son **decisiones de negocio antes que de código** (descuento: hasta cuánto la
+      Encargada; comprobante: ¿emite la Encargada?; devolución: ¿a qué sede reingresa, dinero
+      o vale?; apartado: ¿con seña, cuántos días?). Orden sugerido en §5 del doc, de menor a
+      mayor superficie.
+      **Columna 2, «Talla y color» — análisis hecho el mismo día:** `docs/ESTANDAR-TALLA-Y-COLOR.md`
+      (artefacto «El estándar de talla y color»). Se lee al revés que la caja: el modelo correcto
+      viene de los grandes (NetSuite *Matrix Items*) y CAYLA ya lo tiene en el núcleo; lo que
+      separa a los tres 5 (Lightspeed, ApparelMagic, Uphance) es lo de encima — la matriz como
+      vista y como forma de entrada, la señal por talla, la curva y la temporada. Doce
+      mecanismos; el 1 es un defecto (ver ARREGLAR); el 4 y el 5 se desarrollan en las columnas
+      6 y 3; el 10 (curva de tallas y paquetes) es decisión de negocio.
+      **Siguen las otras cinco columnas** (almacenes y transferencias, fiscal, finanzas, IA,
+      omnicanal), una por sesión, mismo método.
 - [x] **Importador de catálogos de clientes con IA — CONSTRUIDO y verificado de
       punta a punta (ADR-0030, ADR-0035).** Excel, CSV, Google Sheets, PDF y foto
       entran por `/inventario/importar`; el modelo (`claude-haiku-4-5`, fijo)
@@ -372,7 +392,13 @@ importante que ha entrado a este archivo desde que existe.
       arriba — "Arena" ya se agregó (`0050_color_arena.sql`), solo "azul" seguía sin
       resolver. Se deja tal cual, sin reescribir, porque describe el estado real del
       2026-09-09; la corrección ya está en el bullet anterior.**
-- [ ] **Dos colores escritos a mano que no calzan con los 29.** Los va a destapar
+- [x] **CERRADO 2026-09-11 — resuelto en producción con la `39` (entonces `38`): las 2 variantes con `"azul "`
+      son Azul marino (`AZM`) y tienen código (`JEA-0001-AZM-26`, `CMS-0001-AZM-S`); producción
+      tiene 0 variantes sin código y 0 colores fuera del vocabulario.** Texto anterior:
+      **Dos colores escritos a mano que no calzan con los 29.** **Decidido el 2026-09-11:
+      «azul» es Azul marino (AZM); el backfill va dentro de `unificacion/39` (ver el ítem de
+      ARREGLAR). Medido en producción ese día: queda ese solo, `"azul "` (con espacio al final),
+      en 2 variantes sin código; «Arena» ya se resolvió (`ARN`, migración 32).** Texto original: los va a destapar
       la `28` en cuanto se pegue: **"Arena"** (3 variantes) y **"azul"** a secas
       (2 variantes) — 5 de las 19 variantes de producción. Arena es un color real
       del catálogo de CAYLA y probablemente convenga agregarlo (`ARN`, familia
@@ -875,6 +901,78 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [x] **CERRADO 2026-09-11 — la `39` (nacida como `38`; renumerada al fusionar con `main`, que ya usaba el 38 para `migraciones_aplicadas`) ya está en producción, y registrada ahí con su nombre definitivo.** Aplicada con autorización
+      explícita de Felipe («pégalo tú y muéstrame el post-check»), con `execute_sql` y NO
+      `apply_migration` (el historial de migraciones de Dynamic no es el nuestro). Se corrieron
+      los mismos bytes de `unificacion/39` (secciones 1–4 extraídas del archivo, no
+      transcritas). Pre-flight antes de correr: huellas de las dos RPC idénticas a las leídas
+      esa tarde, una firma por función, exactamente las 2 variantes con `"azul "`. Post-check
+      después: una firma por función (`fn_normalizar_color` incluida), **0 variantes sin
+      código**, `JEA-0001-AZM-26` y `CMS-0001-AZM-S` con código corto y en `codigos_barras`
+      (sus SKU viejos siguen ahí), totales 19/0/0/38, y `fn_normalizar_color('azm')` →
+      Azul marino, `(null,'negro')` → Negro, `(null,'Fucsia chillón')` → sin código. Y la
+      prueba que el repo exige: los tres cuerpos de producción coinciden con los del archivo
+      con el normalizado del verificador (`verificar.mjs`), así que el repo sigue describiendo
+      producción. Texto original abajo:
+      **ARREGLADO EN LOCAL 2026-09-11 — falta pegar `unificacion/39` en producción.** Felipe
+      decidió: «azul» es Azul marino. `0059_alta_con_vocabulario.sql` (nació como `0057`): `fn_normalizar_color`
+      (código del vocabulario → nombre exacto → texto libre sin código, la misma regla para
+      los cuatro caminos), `crear_producto_con_variantes` y `recibir_lote` con la MISMA firma
+      guardan `color_id` y llaman `fn_asignar_codigo_variante` por variante nueva, y el
+      backfill normaliza lo escrito a mano que calza sin pisar hermanas. `NuevoProductoForm` y
+      `RecibirLoteForm` eligen del vocabulario (el `<select>` de `AltaEnConteo`); el SKU sugerido
+      lleva el código del color, no el nombre. **Verificado en navegador:** 14 variantes desde
+      «Nuevo producto» (`BLU-0002-AZM-S…NEG-XXL`) y una desde «Recibir» (`FAL-0002-VIN-M`),
+      todas con `color_id`, código y dos entradas en `codigos_barras`; por SQL, las cuatro ramas
+      del color más el error en idioma CAYLA. **De paso:** local arrastraba una segunda
+      `recibir_lote` de 8 parámetros (0018, cuerpo viejo) que producción no tiene desde la 31;
+      la 0059 la tira. Es compatible con el deploy viejo (texto libre entra sin código, como
+      hasta hoy), así que el orden es SQL primero, deploy después.
+      **Pendiente de Felipe:** pegar `supabase/unificacion/39_alta_con_vocabulario.sql` en el
+      SQL Editor de producción — trae pre-flight (debe listar solo las 2 de `"azul "`) y
+      post-check (una firma por función, `JEA-0001-AZM-26` y `CMS-0001-AZM-S` con código).
+      Texto original abajo:
+      **Dos de los cuatro caminos que crean una prenda esquivan el vocabulario de colores y el
+      código corto.** Encontrado el 2026-09-11 al mapear talla y color para el estándar
+      (`docs/ESTANDAR-TALLA-Y-COLOR.md`, mecanismo 1). `crear_producto_con_variantes`
+      (`0035:65`, la pantalla «Nuevo producto» con su matriz) y `recibir_lote` (`0031:98`,
+      «Recibir mercadería») insertan `color` como texto libre **sin `color_id`** y **nunca llaman**
+      `fn_asignar_codigo_variante`; `NuevoProductoForm.tsx:344-362` y `RecibirLoteForm.tsx:39`
+      toman el color escrito a mano. Solo `conteo_crear_variante` (0048) e `importar_catalogo`
+      (0056) lo hacen bien. Consecuencia: esas variantes no tienen código corto (la etiqueta
+      imprime el SKU de 40 caracteres que la Zebra no lee — ADR-0025), no están en
+      `codigos_barras`, y el vocabulario cerrado (ADR-0024) se rompe por atrás. **Medido en
+      producción el 11-sep: 19 variantes, 2 sin código, color `"azul "` con espacio al final.**
+      Arreglo: los dos formularios eligen el color de `getColores()` con el `Desplegable` de
+      `AltaEnConteo`; las dos RPC reciben `color_id`, lo guardan y llaman
+      `fn_asignar_codigo_variante` por variante (como `importar_catalogo`, `0056:324-340`);
+      backfill de las 2 de producción (decidir si «azul» es marino o claro — ítem de más abajo).
+      Sin cambio de esquema, pero son cuerpos de función en producción: **decisión de Felipe.**
+- [x] **CERRADO 2026-09-11, el mismo día — la caja ya lee la etiqueta que ella misma imprime.**
+      `lib/buscar-prenda.ts` (pieza pura, 10 pruebas) resuelve un escaneo por `codigos_barras`
+      → código corto → SKU, como hace el conteo; `vender/page.tsx` carga `codigos_barras`
+      tolerando su fallo (si no llega, el código corto y el SKU resuelven solos); el modal
+      muestra en cada fila el código que va en la etiqueta. **Verificado en navegador** con el
+      catálogo de prueba (`seed-pruebas/catalogo-de-prueba.sql`, aplicado con
+      `request.jwt.claims` del Líder del seed porque `recalcular_stock` tiene candado): entraron
+      `BLU-0001-BLA-L` (corto), `7750243001234` (EAN de fábrica registrado en local) y
+      `prb-blu-lima-bla-m` (SKU viejo, en minúsculas); la venta quedó en `ventas` (S/178, con
+      token) y `movimientos`, y el stock de AQP bajó 2→1 y 1→0 — o sea que **«vender por la app
+      en navegador» también queda probado** (estaba pendiente desde el 10-09).
+      **De paso, un segundo defecto en el mismo flujo:** el aviso «En AQP quedan N…» del tope de
+      stock nunca se mostraba — `tope` se calculaba dentro del updater de `setCarrito`, que
+      React corre al renderizar, después de que `setAviso` ya decidió con `tope` en falso.
+      Ahora se decide contra el carrito del render actual. Visto y arreglado en la misma prueba.
+      **Lo que falta es de Felipe:** escanear una etiqueta impresa con la Zebra real.
+      Texto original abajo:
+      **La caja no lee la etiqueta que ella misma imprime.** Encontrado el 2026-09-11 al
+      mapear la caja para el estándar (`docs/ESTANDAR-CAJA-DE-TIENDA.md`, mecanismo 1). La
+      etiqueta imprime el código corto (`codigo ?? sku`, `EtiquetasGenerator.tsx:24-25`) y el
+      conteo resuelve por `codigos_barras` (`lib/conteo.ts:194-206`), pero el buscador de
+      venta compara **solo `sku`** (`RegistrarVentaModal.tsx:83,160`) y `vender/page.tsx:78-86`
+      ni le pasa `codigo` aunque `VarianteConStock.codigo` existe. Cualquier prenda etiquetada
+      después del censo, o adoptada con su código de fábrica, **no entra al escanearla en
+      Vender** — la Zebra sirve en el conteo y no en la caja.
 - [x] **CI ya levanta la base desde cero (2026-09-11).** Job `migraciones` en
       `.github/workflows/ci.yml`: Postgres 17 solo (`supabase db start`), `supabase db
       reset` de `0001` a la última con `seed.sql`, y el verificador como informe. Es el

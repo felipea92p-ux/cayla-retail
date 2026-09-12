@@ -127,11 +127,12 @@ flowchart TB
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` →
-  `CajaPanel.tsx` → `AbrirCajaModal` (RPC `abrir_caja`),
-  `RegistrarVentaModal` (RPC `registrar_venta`), `CerrarCajaModal` (RPC
-  `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
-  servidor).
+- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` +
+  `codigos_barras` (tolerada) → `CajaPanel.tsx` → `AbrirCajaModal` (RPC
+  `abrir_caja`), `RegistrarVentaModal` (RPC `registrar_venta`; reconoce lo
+  escaneado con `lib/buscar-prenda.ts`: `codigos_barras` → código corto → SKU,
+  la misma resolución que el conteo), `CerrarCajaModal` (RPC `cerrar_caja`,
+  con conteo ciego: el monto esperado se calcula en el servidor).
 
 **Producción (Taller)**
 - `/produccion` → `OrdenesProduccion.tsx` → RPCs `registrar_produccion`,
@@ -287,7 +288,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | Función | Qué resuelve |
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
-| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
+| `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift. Desde `0059` la variante nueva nace con `color_id` del vocabulario y código corto |
+| `crear_producto_con_variantes` | Alta de un modelo con su matriz talla × color (solo Líder). Desde `0059` resuelve el color con `fn_normalizar_color` y asigna código por variante |
+| `fn_normalizar_color` | La única regla del color para los cuatro caminos de alta: código del vocabulario → nombre exacto → texto libre sin código (ADR-0025, el código no se inventa) |
 | `registrar_venta` | Venta + N movimientos de salida. **Idempotente por `p_token`**: mismo token + mismo carrito devuelve la venta ya registrada; con otros datos, rechaza. `p_token` nulo se comporta como antes (ADR-0033) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
