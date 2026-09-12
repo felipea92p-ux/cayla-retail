@@ -367,19 +367,17 @@ export function PuntoDeVenta({
         className={`grid lg:grid-cols-[minmax(0,1fr)_420px] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
         <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
-          <div className="px-4 pt-4 sm:px-6 sm:pt-5">
-            <div className="mb-3 flex items-end justify-between gap-4">
-              <h1 className="font-display text-xl text-tinta">Catálogo de prendas</h1>
-              <button
-                type="button"
-                onClick={() => setManualAbierto(true)}
-                disabled={bloqueado}
-                className="label-cayla flex h-10 items-center gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40"
-              >
-                <CircleDollarSign className="h-4 w-4" />
-                Monto manual
-              </button>
-            </div>
+          <div className="relative px-4 pt-2 sm:px-6 sm:pt-3">
+            <button
+              type="button"
+              onClick={() => setManualAbierto(true)}
+              disabled={bloqueado}
+              className="label-cayla absolute top-2 right-4 flex h-10 items-center gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40 sm:right-6"
+            >
+              <CircleDollarSign className="h-4 w-4" />
+              Monto manual
+            </button>
+            <h1 className="font-display mb-3 text-center text-3xl text-tinta sm:text-4xl">Catálogo De Prendas</h1>
 
             <div className="relative z-20">
               <label className="flex h-12 items-center rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
