@@ -80,6 +80,15 @@ drop function if exists retail.fn_persona_actual();
 -- retail tenga que hacer una consulta cruzada de schema (retail→public)
 -- por cada carga de página, y evita que su superficie de tipos incluya
 -- sueldo/CTS/régimen de pensión, que no son asunto de retail.
+-- Un líder (admin/supervisor_sede) puede operar CUALQUIER ubicación sin
+-- importar lo que devuelva esta función (fn_puede_operar_ubicacion ya lo
+-- permite por separado) — así que si su sede_dynamic no enlaza a ninguna
+-- ubicación real de retail (ej. Central/Oficina, que no son ni tienda ni
+-- almacén), es seguro darle un default de UI en vez de NULL: no es un
+-- permiso nuevo, solo evita que el gate de login lo trate como "sin
+-- persona". Un integrante SIN enlace real SÍ sigue devolviendo NULL en
+-- todo: para integrante esto es un permiso real, no un default, y
+-- rellenarlo sería el mismo hueco de seguridad que 0006 ya corrigió una vez.
 create function retail.fn_persona_actual_resumen()
 returns table (nombre text, es_lider boolean, ubicacion_id uuid, ubicacion_nombre text, ubicacion_tipo text)
 language sql stable security definer
@@ -88,9 +97,15 @@ as $$
   select
     p.nombres || ' ' || p.apellidos,
     fn_es_lider(),
-    u.id,
-    u.nombre,
-    u.tipo
+    case when u.id is null and fn_es_lider()
+      then (select id from ubicaciones order by (tipo = 'tienda') desc, created_at asc limit 1)
+      else u.id end,
+    case when u.id is null and fn_es_lider()
+      then (select nombre from ubicaciones order by (tipo = 'tienda') desc, created_at asc limit 1)
+      else u.nombre end,
+    case when u.id is null and fn_es_lider()
+      then (select tipo from ubicaciones order by (tipo = 'tienda') desc, created_at asc limit 1)
+      else u.tipo end
   from public.personas p
   left join ubicaciones u on u.sede_dynamic_id = p.sede_base_id
   where p.auth_user_id = auth.uid() and p.estado = 'activo';
