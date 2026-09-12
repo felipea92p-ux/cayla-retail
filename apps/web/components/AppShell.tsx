@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Boton, Hilo } from "@/components/ui/campos";
+import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -23,10 +24,19 @@ import { Boton, Hilo } from "@/components/ui/campos";
 // la unificación con Dynamic y hacía falta `sedeEtiqueta` aparte. Por eso acá
 // no hay campo "código": no existe en `retail.ubicaciones` (V2) y no hace
 // falta traducir nada.
-type Persona = { nombre: string; rol: "lider" | "integrante"; ubicacionEtiqueta: string };
+type Persona = {
+  nombre: string;
+  rol: "lider" | "integrante";
+  ubicacionId: string;
+  ubicacionEtiqueta: string;
+  puedeCambiarUbicacion: boolean;
+};
 
 type Props = {
   persona: Persona;
+  /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
+   *  el selector, así que no hace falta traerle la lista completa. */
+  ubicaciones: { id: string; nombre: string }[];
   children: React.ReactNode;
 };
 
@@ -317,7 +327,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AppShell({ persona, children }: Props) {
+export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
@@ -446,10 +456,16 @@ export function AppShell({ persona, children }: Props) {
           <div className="min-w-0 flex-1 sm:max-w-sm">
             <BuscadorGlobal compacto />
           </div>
-          {/* Selector de ubicación del Líder: pendiente para Fase 2 — Inventario y
-              Recepción ya ofrecen su propio selector local mientras tanto. */}
+          {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
+              cambia toda la app de perspectiva, no solo Inventario/Recepción
+              (que ya tenían el suyo propio, local a esa pantalla). Un
+              integrante sigue viendo solo la etiqueta, sin poder tocarla. */}
           <div className="ml-auto shrink-0">
-            <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+            {persona.puedeCambiarUbicacion ? (
+              <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
+            ) : (
+              <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+            )}
           </div>
         </div>
       </header>
