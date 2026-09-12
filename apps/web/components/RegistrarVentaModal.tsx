@@ -114,6 +114,13 @@ export function RegistrarVentaModal({ sedeCodigo, cajaId, variantes, porCodigoBa
     // recién ahí —con la clienta enfrente— es la peor forma de saberlo.
     if (v.stockAqui <= 0) {
       setAviso(`${v.referencia} no tiene stock en ${sedeCodigo}. Búscala en Inventario para ver dónde está.`);
+      // El campo se limpia igual que cuando la prenda sí entra: si queda el código escrito,
+      // el siguiente disparo de la pistola se le pega y la caja dice «No encontramos
+      // «7750243001234BLU-0001-BLA-L»» — dos escaneos válidos leídos como uno inválido
+      // (visto el 2026-09-12 al probar la caja fusionada).
+      setQ("");
+      setActivo(0);
+      buscador.current?.focus();
       return;
     }
     // El tope se decide contra el carrito de ESTE render, no adentro del updater de
