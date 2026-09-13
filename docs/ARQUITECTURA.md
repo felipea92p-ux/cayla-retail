@@ -1,5 +1,12 @@
 # Arquitectura de cayla-retail
 
+> ⚠️ **Para el MODELO DE DATOS, este archivo ya no es la fuente.** Ve a
+> **[`docs/datos/`](datos/README.md)**: ahí el diccionario se regenera desde la base real
+> y no puede envejecer en silencio. Este documento sigue siendo el mapa del grafo
+> rutas↔lib↔RPC del front, pero su foto del esquema quedó vieja — las afirmaciones que el
+> SQL no respalda están listadas con archivo y línea en
+> [`docs/datos/13-PROMESAS-INCUMPLIDAS.md`](datos/13-PROMESAS-INCUMPLIDAS.md).
+
 > Mapa de referencia del sistema completo: negocio, stack, modelo de datos y
 > el grafo de conexiones real entre rutas, componentes, `lib/` y la base de
 > datos. Generado el 2026-09-04 leyendo el código fuente (no la visión de
@@ -308,7 +315,7 @@ Integrante solo su sede (o su almacén asociado).
 ## 7. Dónde vive esto en producción (crítico para tocar SQL)
 
 Producción **no** vive en su propio proyecto Supabase: vive dentro del
-proyecto de **cayla-dynamic**, en un schema llamado `retail` (28 tablas ahí
+proyecto de **cayla-dynamic**, en un schema llamado `retail` (45 tablas y 2 vistas ahí
 hoy). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al proyecto Dynamic,
 no al proyecto original de retail. Toda migración pegada en el SQL Editor
 de producción necesita el prefijo `retail.` en cada tabla (o
