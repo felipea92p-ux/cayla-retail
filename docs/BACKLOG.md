@@ -1078,6 +1078,27 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-12 — **Vocabulario cerrado (colores + categorías) y código corto
+      portados a V2, sin fusionar la rama V1 entera — más `activos_fijos`
+      rescatada.** El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` sin
+      el candado que evita "Azul marino" y "azul marino" como filas
+      distintas, y sin código corto de prenda. Se evaluó fusionar
+      `trix/catalogo-vocabulario` completa y se descartó: 350 archivos,
+      mayoría módulos que V2 ya había borrado a propósito (Producción,
+      Inventario V1, Finanzas), y `supabase/migrations/` habría quedado con
+      los dos núcleos a la vez sin que Git lo marcara como conflicto. Se
+      portó en cambio solo el vocabulario, como migraciones nuevas sobre el
+      esquema real de V2: `colores_clave_unica` (vía `fn_clave_texto`) + los
+      30 colores reales, `categorias.familia`/`prefijo` + las 37 reales, y el
+      código corto acuñado por un TRIGGER en `variantes` (no una RPC — V2 no
+      tiene una única función que cree variantes). De paso se rescató
+      `activos_fijos` (39 filas reales en producción, sin tabla en V2),
+      simplificada sin la FK a `cuentas_contables` (Contabilidad sigue sin
+      dato real). Verificado: `db reset` limpio, candado de duplicados
+      probado en vivo (rechaza "azul  MARINO"), catálogo del seed con código
+      corto real asignado solo por el trigger, `tsc`/`eslint` en verde.
+      **Pendiente:** ninguna pantalla lee `variantes.codigo` todavía — la
+      base está lista, falta conectar la UI.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

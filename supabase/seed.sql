@@ -133,15 +133,20 @@ insert into retail.proveedores (nombre, ruc, contacto) values
   ('Textiles Andina SAC', '20512345678', 'Jorge Ramos'),
   ('Confecciones del Sur EIRL', '20498765432', 'Lucía Paredes');
 
+-- `on conflict do nothing`: el vocabulario cerrado real (20260912235500_vocabulario_cerrado.sql)
+-- ya trae "Blusas", "Vestidos", "Pantalones", "Faldas" y los 5 colores de abajo con su
+-- código real — este seed es solo demo local, no pisa esas filas si ya existen.
 insert into retail.categorias (nombre) values
-  ('Blusas'), ('Vestidos'), ('Pantalones'), ('Faldas'), ('Casacas');
+  ('Blusas'), ('Vestidos'), ('Pantalones'), ('Faldas'), ('Casacas')
+  on conflict (nombre) do nothing;
 
 insert into retail.colores (codigo, nombre, hex) values
   ('NEG', 'Negro', '#1a1a18'),
   ('BLA', 'Blanco', '#f5f0e8'),
   ('BEI', 'Beige', '#d8c3a5'),
   ('AZM', 'Azul Marino', '#1f3a5f'),
-  ('ROS', 'Rosa', '#e8a5b0');
+  ('ROS', 'Rosa', '#e8a5b0')
+  on conflict (codigo) do nothing;
 
 insert into retail.clientes (tipo_doc, num_doc, nombre, telefono) values
   ('dni', '45612378', 'Valeria Chávez', '987111222'),
