@@ -36,7 +36,7 @@ stack:
 
 **54321 es el default de Supabase, y NO es el nuestro.** Apuntar ahí no explota: la
 base local de Dynamic es la foto de la producción unificada, así que también tiene un
-schema `retail` — con 28 tablas en vez de 36. Catálogo, stock y ventas responden
+schema `retail`, pero con menos tablas y más atrasado. Catálogo, stock y ventas responden
 normal; lo que falta son las tablas posteriores a la unificación (`comprobantes`,
 `conteos`, `colores`, `stock_almacen`…). O sea que Facturación y Conteo fallan
 mientras el resto anda, y eso se diagnostica como bug del repo. Costó una hora, cuatro
