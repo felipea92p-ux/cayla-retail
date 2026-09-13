@@ -376,7 +376,11 @@ export type Database = {
         Row: {
           condicion: string
           created_at: string
+          documento: string | null
           estado: string
+          estado_pago: string | null
+          estado_recepcion: string | null
+          facturado_cantidad: number
           fecha_emision: string
           fecha_vencimiento: string | null
           id: string
@@ -384,7 +388,10 @@ export type Database = {
           motivo_anulacion: string | null
           nota: string | null
           numero: string
+          pagado: number
           proveedor_id: string
+          recibido_cantidad: number
+          saldo: number | null
           serie: string
           subtotal: number
           tipo: string
@@ -395,7 +402,11 @@ export type Database = {
         Insert: {
           condicion: string
           created_at?: string
+          documento?: string | null
           estado?: string
+          estado_pago?: string | null
+          estado_recepcion?: string | null
+          facturado_cantidad?: number
           fecha_emision?: string
           fecha_vencimiento?: string | null
           id?: string
@@ -403,7 +414,10 @@ export type Database = {
           motivo_anulacion?: string | null
           nota?: string | null
           numero: string
+          pagado?: number
           proveedor_id: string
+          recibido_cantidad?: number
+          saldo?: number | null
           serie: string
           subtotal: number
           tipo?: string
@@ -414,7 +428,11 @@ export type Database = {
         Update: {
           condicion?: string
           created_at?: string
+          documento?: string | null
           estado?: string
+          estado_pago?: string | null
+          estado_recepcion?: string | null
+          facturado_cantidad?: number
           fecha_emision?: string
           fecha_vencimiento?: string | null
           id?: string
@@ -422,7 +440,10 @@ export type Database = {
           motivo_anulacion?: string | null
           nota?: string | null
           numero?: string
+          pagado?: number
           proveedor_id?: string
+          recibido_cantidad?: number
+          saldo?: number | null
           serie?: string
           subtotal?: number
           tipo?: string
@@ -1862,6 +1883,59 @@ export type Database = {
           venta_id: string
         }[]
       }
+      listar_compras: {
+        Args: {
+          p_busqueda?: string
+          p_con_saldo?: boolean
+          p_condicion?: string
+          p_cursor_fecha?: string
+          p_cursor_id?: string
+          p_desde?: string
+          p_estado_pago?: string
+          p_estado_recepcion?: string
+          p_hasta?: string
+          p_limite?: number
+          p_orden?: string
+          p_por_recibir?: boolean
+          p_proveedor_id?: string
+          p_solo_vencidas?: boolean
+          p_solo_vigentes?: boolean
+        }
+        Returns: {
+          condicion: string | null
+          created_at: string | null
+          documento: string | null
+          estado: string | null
+          estado_pago: string | null
+          estado_recepcion: string | null
+          facturado_cantidad: number | null
+          fecha_emision: string | null
+          fecha_vencimiento: string | null
+          id: string | null
+          igv: number | null
+          nota: string | null
+          numero: string | null
+          pagado: number | null
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          proveedor_ruc: string | null
+          recibido_cantidad: number | null
+          saldo: number | null
+          serie: string | null
+          subtotal: number | null
+          tipo: string | null
+          total: number | null
+          ubicacion_destino_id: string | null
+          vencida: boolean | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "compras_resumen"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {
         Args: { p_devolucion_id: string; p_motivo?: string }
@@ -1966,6 +2040,18 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: string
+      }
+      resumen_compras: {
+        Args: never
+        Returns: {
+          con_saldo: number
+          deuda: number
+          por_recibir: number
+          registradas: number
+          vencidas: number
+          vencido: number
+          vigentes: number
+        }[]
       }
       transferir: {
         Args: {

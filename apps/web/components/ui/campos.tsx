@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -103,6 +103,22 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   trabajando?: boolean;
 };
 
+/* Altura única de todo control de una línea (input, fecha, combo): 36px, que
+   es lo que ya medía un input `text-sm` + `py-2`. Se fija explícita porque
+   Safari le da a `type="date"` su propia altura y letra internas, y un combo
+   con `appearance-none` pierde la altura nativa — sin un número común, cada
+   uno mide distinto al lado del otro. */
+export const ALTO_CONTROL = "h-9";
+
+/* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
+   (::-webkit-datetime-edit), con relleno y tamaño de letra propios. Se le
+   quita todo eso para que mida igual que un input de texto. Chrome ignora
+   estas reglas sin efecto. */
+const FECHA_COMO_TEXTO =
+  "[&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit]:text-sm [&::-webkit-datetime-edit]:leading-none " +
+  "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
+  "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
+
 export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, className = "", ...props }: CampoTextoProps) {
   const id = useId();
   const [enfocado, setEnfocado] = useState(false);
@@ -120,12 +136,80 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, class
             setEnfocado(false);
             props.onBlur?.(e);
           }}
-          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${
+          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${ALTO_CONTROL} ${
             mono ? "font-mono tabular-nums tracking-wider" : ""
-          } ${className}`}
+          } ${props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""} ${className}`}
         />
         <Hilo activo={enfocado} trabajando={trabajando} />
       </div>
+    </Campo>
+  );
+}
+
+/* ------------------------------------------------------------------
+   SelectNativo / CampoSelectNativo — el <select> del navegador, vestido
+   igual que CampoTexto: mismo padding (py-2), mismo tamaño de letra,
+   sin caja, y el mismo hilo vivo al enfocar. Agregado el 2026-09-12
+   para el módulo de Compras: un combo con la caja de `campoSelect`
+   (borde + px-3) al lado de un input sobre el hilo medía distinto y se
+   veía como de otro sistema. Se usa donde la lista es larga (292
+   proveedores, todo el catálogo) o donde hace falta un <select> real
+   dentro de una fila de líneas; para 2-6 opciones que cambian el
+   formulario sigue siendo `Segmentado`, y `Desplegable` para listas
+   cortas con estilo propio.
+   ------------------------------------------------------------------ */
+type SelectNativoProps = SelectHTMLAttributes<HTMLSelectElement> & { mono?: boolean };
+
+export function SelectNativo({ mono, className = "", children, ...props }: SelectNativoProps) {
+  const [enfocado, setEnfocado] = useState(false);
+  return (
+    <div className="relative">
+      <select
+        {...props}
+        onFocus={(e) => {
+          setEnfocado(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setEnfocado(false);
+          props.onBlur?.(e);
+        }}
+        // `appearance-none` saca la flecha y el fondo del sistema operativo,
+        // que es lo que hacía que midiera distinto; la flecha se dibuja abajo.
+        className={`w-full cursor-pointer appearance-none [-webkit-appearance:none] bg-transparent py-2 pl-0.5 pr-6 text-sm text-tinta outline-none disabled:cursor-not-allowed disabled:text-tinta/40 ${ALTO_CONTROL} ${
+          mono ? "font-mono tabular-nums tracking-wider" : ""
+        } ${className}`}
+      >
+        {children}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 16 16"
+        className={`pointer-events-none absolute right-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 transition-colors ${enfocado ? "text-rojo" : "text-tinta/55"}`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M4 6l4 4 4-4" />
+      </svg>
+      <Hilo activo={enfocado} />
+    </div>
+  );
+}
+
+export function CampoSelectNativo({
+  etiqueta,
+  ayuda,
+  pie,
+  tono,
+  ...props
+}: SelectNativoProps & { etiqueta: ReactNode; ayuda?: ReactNode; pie?: ReactNode; tono?: CampoProps["tono"] }) {
+  const id = useId();
+  return (
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
+      <SelectNativo id={id} {...props} />
     </Campo>
   );
 }

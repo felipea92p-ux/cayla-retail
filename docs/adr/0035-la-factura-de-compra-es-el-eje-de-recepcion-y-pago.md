@@ -3,13 +3,20 @@
 **Fecha:** 2026-09-12
 **Estado:** Decidido con Felipe. Migración `20260912231956_compras_desde_factura.sql`
 aplicada y verificada en local (seed con 3 facturas, 11 casos de rechazo probados).
-Pantallas pendientes (pasos 2-4 del plan).
+Pantallas construidas y probadas en navegador el mismo día: `/compras` (lista),
+`/compras/nueva`, `/compras/[compraId]` (detalle + pago + anular),
+`/compras/recibir` (contra una o varias facturas, con reparto por variante) y
+`/compras/por-pagar`. Pendiente: pegar la migración en producción.
 **Afecta:** `supabase/migrations/` (tablas `compras`, `compra_items`, `compra_pagos`,
 columna `movimientos.compra_item_id`, vistas `compras_resumen` y
 `compra_items_resumen`, RPCs `registrar_compra`, `registrar_pago_compra`,
 `anular_compra`, `recibir_compras`; se eliminan `ordenes_compra`,
 `ordenes_compra_items` y `lotes.orden_compra_id`), `supabase/seed.sql`,
-`packages/database/src/types.ts`.
+`packages/database/src/types.ts`; `apps/web/lib/compras.ts` (lectura, server) y
+`apps/web/lib/compras-reglas.ts` (tipos/etiquetas, sin Supabase — lo importan
+los componentes cliente), `components/CompraFormV2.tsx`,
+`CompraDetallePanel.tsx`, `RecepcionCompraFormV2.tsx`, `ComprasNav.tsx`,
+rutas en `app/(app)/compras/`, y "Compras" en el menú de `AppShell.tsx`.
 
 ## Contexto
 
