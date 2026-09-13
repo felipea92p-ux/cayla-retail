@@ -418,3 +418,75 @@ funcione impecable. *Decidido.*
 ---
 
 *Sección añadida el 2026-09-12, misma sesión. Reglas R-25 a R-43.*
+
+---
+
+## 11 · Permisos finos
+
+**R-44 · Compras puede crear proveedores y pagarles, con registro.** *Decidido.*
+
+> **El riesgo queda escrito, no resuelto:** quien puede dar de alta un proveedor y además
+> pagarle puede inventarse uno. Felipe elige velocidad sobre control preventivo, que es
+> razonable con un equipo de seis donde todos se conocen. **El control es posterior:**
+> queda anotado quién creó cada proveedor y cuándo, y eso solo sirve si alguien mira ese
+> registro de vez en cuando. Conviene revisarlo el día que el equipo crezca.
+
+**R-45 · El descuento va escalonado, con tres candados.** *Decidido, afinado sobre la
+propuesta de Felipe.*
+
+| Rango | Quién |
+|---|---|
+| Hasta **20%** | La líder de equipo, sola |
+| De **20% a 35%** | La líder, **con argumento escrito** |
+| Más de **35%** | Lo autoriza Felipe |
+
+Y dos reglas que van encima del porcentaje:
+
+1. **Ningún descuento puede dejar el precio por debajo del costo**, sin importar el
+   rango autorizado. La líder no ve el costo y no tiene cómo saberlo: **lo calcula el
+   sistema y frena, sin revelar el número.**
+2. **El motivo se elige de una lista, no se escribe libre.** «Cumpleaños clienta top»,
+   «prenda con desperfecto», «liquidación de temporada», «cerrar la venta», y «otro» con
+   texto. Un texto libre no se puede sumar; una lista sí — y a fin de mes se ve **cuánto
+   margen se fue por cada motivo**. Eso convierte el descuento de una fuga invisible en
+   una decisión que se mide.
+
+**R-46 · Anular una venta o un comprobante: la líder de equipo, el mismo día.**
+*Decidido.* Después ya no.
+
+> **Consecuencia de diseño:** hace falta una ventana de tiempo. Lo natural es atarla a la
+> caja: **mientras la caja de ese día siga abierta, se puede anular; cuando cierra, se
+> cierra también esa puerta.** Reusa un concepto que el sistema ya tiene en vez de
+> inventar un plazo en horas.
+
+**R-47 · Ajustar stock sin venta: la líder, con motivo obligatorio.** *Decidido.*
+
+> Es el permiso más delicado del inventario — el que permite hacer desaparecer
+> mercadería del sistema. El control elegido no es un tope sino la **trazabilidad**:
+> cada ajuste con su motivo y su autor. El campo ya existe (`movimientos.motivo`), pero
+> hoy es **texto libre sin lista cerrada** (ver `01-INVARIANTES.md`): para que esto sirva
+> de verdad, el motivo de un ajuste debería salir de una lista, igual que R-45.
+
+**R-48 · Cada líder ve solo su sede.** *Decidido.* Ni las ventas ni los números de las
+otras tiendas.
+
+> **Tensión que conviene mirar:** el sistema ya calcula sugerencias de traslado entre
+> sedes, y esas sugerencias hablan del stock de otra tienda. La sugerencia **sí se le
+> puede mostrar** («manda 3 de esta talla a Arequipa») sin abrirle el inventario ajeno.
+> Pero si alguna vez se decide que pueda consultar el stock de las otras, que sea una
+> decisión y no un efecto secundario de construir los traslados.
+
+**R-49 · Una persona cesada deja de entrar, sola.** *Decidido.* Si en el sistema de
+personal figura cesada, no entra a retail.
+
+> **Y es de los arreglos más baratos de todos.** La vista `retail.personas` **ya expone
+> la columna `estado`** (verificado el 2026-09-12), y `apps/web/lib/persona.ts` **no la
+> menciona ni una vez**: pide solo `id, nombre, rol, sede_id`. Hoy una colaboradora dada
+> de baja en RR.HH. **sigue pudiendo vender y cerrar caja** mientras exista su cuenta.
+> El arreglo son unas tres líneas: leer `estado` y negar el acceso si no es `activo`.
+> No hace falta construir nada nuevo ni amarrar los sistemas: ya están amarrados.
+
+---
+
+*Sección añadida el 2026-09-12. Reglas R-44 a R-49. Con esto, las 49 reglas cubren cómo
+compra, cómo paga, cómo produce, cómo vende y quién puede qué en CAYLA.*
