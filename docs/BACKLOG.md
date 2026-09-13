@@ -79,12 +79,15 @@ importante que ha entrado a este archivo desde que existe.
       Generar desde **local** borra `catalogo_con_stock`, `configuracion_empresa`,
       `sede_meta`, `sede_datos_fiscales`, `persona_actual` y `puede_operar_sede`.
       Generar desde **producción** borra los 5 tipos de taxonomía y las 2 columnas
-      de anclaje (`0052` no está aplicada allá).
+      de anclaje. ⚠️ **CORREGIDO 2026-09-12: esta frase era falsa.** `0052` SÍ está aplicada
+      en producción — las 5 tablas de taxonomía existen allá y
+      `taxonomia_categoria_atributos` tiene 16.527 filas. Verificado contra la base.
+      Ver `docs/datos/13-PROMESAS-INCUMPLIDAS.md` · P-17.
       Lo puesto a mano hasta hoy, ahora listado con fecha en la cabecera del
       propio `types.ts` —que no tenía ninguna, y ése es justo el mecanismo por el
       que un parche se pierde—: los 5 tipos de taxonomía + 2 columnas de anclaje
       (10-sep) y `ventas.token_cliente` + `registrar_venta.p_token` (10-sep).
-      **La salida más corta es aplicar `0052` en producción**: con eso producción
+      ~~**La salida más corta es aplicar `0052` en producción**~~ — ya está aplicada. Con eso producción
       pasa a ser superconjunto de local y `gen-types` vuelve a ser fiable de un
       solo tiro. Es DDL en el proyecto compartido, o sea decisión de Felipe.
 
