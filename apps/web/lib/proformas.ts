@@ -15,7 +15,7 @@ export async function getProformasMes(desde: string, hasta: string) {
   // y la clienta recibe dos precios distintos por lo mismo.
   const res = await supabase
     .from("proformas")
-    .select("id, sede_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, created_at, vence_at")
+    .select("id, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, created_at, vence_at")
     .gte("created_at", desde)
     .lt("created_at", hasta)
     .order("created_at", { ascending: false });

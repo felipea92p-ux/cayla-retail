@@ -4,14 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Proforma } from "@/lib/proformas";
-import type { TipoComprobante } from "@/lib/comprobantes";
+import type { TipoComprobante } from "@/lib/comprobantes-reglas";
+import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { traducirError } from "@/lib/error-escritura";
 
-type Sede = { id: string; codigo: string };
+type Ubicacion = { id: string; nombre: string };
 
 const ESTADO_ESTILO: Record<Proforma["estado"], string> = {
   vigente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
@@ -48,12 +49,12 @@ function formatearFecha(iso: string) {
 // ver primero.
 export function ProformasPanel({
   proformas,
-  sedes,
-  sedeActualId,
+  ubicaciones,
+  ubicacionActualId,
 }: {
   proformas: Proforma[];
-  sedes: Sede[];
-  sedeActualId: string;
+  ubicaciones: Ubicacion[];
+  ubicacionActualId: string;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
@@ -61,7 +62,7 @@ export function ProformasPanel({
   const [error, setError] = useState<string | null>(null);
 
   // Formulario de creación
-  const [sedeId, setSedeId] = useState(sedeActualId);
+  const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
   const [total, setTotal] = useState(0);
   const [clienteNombre, setClienteNombre] = useState("");
   const [venceEnDias, setVenceEnDias] = useState(7);
@@ -70,8 +71,7 @@ export function ProformasPanel({
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [convertirNombre, setConvertirNombre] = useState("");
-  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
-    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
   const vigentes = proformas.filter((p) => p.estado === "vigente");
   const porVencer = vigentes.filter((p) => p.porVencer);
@@ -97,11 +97,14 @@ export function ProformasPanel({
     const subtotal = Math.round((total - igv) * 100) / 100;
     const venceAt = new Date(Date.now() + venceEnDias * 24 * 3600 * 1000).toISOString();
     const { error } = await supabase.rpc("crear_proforma", {
-      p_sede_id: sedeId,
+      p_ubicacion_id: ubicacionId,
       // Sin catálogo de ítems en esta pantalla todavía (mismo nivel de detalle
       // que "Emitir comprobante" hoy: un total, no líneas) — se guarda como un
       // solo ítem para no inventar una estructura que nadie lee todavía.
-      p_items: [{ descripcion: "Venta", cantidad: 1, precio: total }],
+      // `precio_unitario`, no `precio`: es la forma que espera emitir_comprobante()
+      // cuando convertir_proforma_a_comprobante() reenvía estos items (0010) — con
+      // el nombre viejo, Lucode recibía un precio undefined en cada línea.
+      p_items: [{ descripcion: "Venta", cantidad: 1, precio_unitario: total }],
       p_subtotal: subtotal,
       p_igv: igv,
       p_total: total,
@@ -237,10 +240,10 @@ export function ProformasPanel({
         <Modal titulo="Nueva proforma" onClose={cerrarModal}>
           <form onSubmit={onCrear} className="space-y-4">
             <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className={campoSelect}>
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
+              <label className={campoEtiqueta}>Ubicación</label>
+              <select value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)} className={campoSelect}>
+                {ubicaciones.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
                 ))}
               </select>
             </div>

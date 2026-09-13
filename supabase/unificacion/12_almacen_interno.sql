@@ -334,10 +334,6 @@ $$;
 -- archivo, agrupaba TODOS los movimientos de una sede en una sola bolsa; si
 -- se corriera tal cual con movimientos ya enrutados al almacén, los mezclaría
 -- de vuelta en el piso — por eso se reescribe completa acá, no se parcha.
--- ⚠ VERSIÓN VIEJA DE `recalcular_stock`: `25_recalcular_stock_neto.sql` la
---   redefine con el candado de Líder, el ruteo al almacén, el arreglo de
---   traslados y el de `stock_minimo`. No se duplica el cuerpo acá para no tener
---   dos fuentes de verdad. **Si pegas este archivo suelto, pegá `25` después.**
 create or replace function retail.recalcular_stock()
 returns void language plpgsql security definer set search_path = retail, public
 as $$

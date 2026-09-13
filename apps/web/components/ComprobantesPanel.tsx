@@ -3,36 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes";
+import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
+import { ESTADO_ESTILO, ESTADO_ETIQUETA, ETIQUETA_TIPO, tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 
-type Sede = { id: string; codigo: string };
-
-const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
-  boleta: "Boleta",
-  factura: "Factura",
-  nota_credito: "Nota de crédito",
-};
-
-const ESTADO_ESTILO: Record<Comprobante["estado"], string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
-};
-
-const ESTADO_ETIQUETA: Record<Comprobante["estado"], string> = {
-  pendiente: "Pendiente de enviar",
-  enviado: "Enviado a SUNAT",
-  aceptado: "Aceptado",
-  rechazado: "Rechazado",
-  anulado: "Anulado",
-};
+type Ubicacion = { id: string; nombre: string };
 
 // Un comprobante transmitido contra el sandbox de Lucode queda "aceptado" con
 // su CDR y su PDF, exactamente igual que uno real — pero SUNAT nunca lo vio.
@@ -77,13 +56,13 @@ function formatearFecha(iso: string) {
 export function ComprobantesPanel({
   comprobantes,
   series,
-  sedes,
-  sedeActualId,
+  ubicaciones,
+  ubicacionActualId,
 }: {
   comprobantes: Comprobante[];
   series: SerieComprobante[];
-  sedes: Sede[];
-  sedeActualId: string;
+  ubicaciones: Ubicacion[];
+  ubicacionActualId: string;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"emitir" | "serie" | "anular" | null>(null);
@@ -188,7 +167,7 @@ export function ComprobantesPanel({
   }
 
   // Formulario de emisión
-  const [sedeId, setSedeId] = useState(sedeActualId);
+  const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [total, setTotal] = useState(0);
   const [clienteNumDoc, setClienteNumDoc] = useState("");
@@ -197,11 +176,10 @@ export function ComprobantesPanel({
   // aparte que pueda contradecir al tipo de comprobante — se deriva de él. Antes,
   // tipear un DNI y luego cambiar a Factura dejaba "factura + dni", y la venta se
   // caía recién al apretar Emitir, con la clienta esperando en el mostrador.
-  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
-    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
   // Formulario de serie
-  const [serieSedeId, setSerieSedeId] = useState(sedeActualId);
+  const [serieUbicacionId, setSerieUbicacionId] = useState(ubicacionActualId);
   const [serieTipo, setSerieTipo] = useState<TipoComprobante>("boleta");
   const [serieTexto, setSerieTexto] = useState("");
   // Vacío = el sistema sigue llevando el correlativo solo. Se llena únicamente
@@ -215,7 +193,7 @@ export function ComprobantesPanel({
 
   // Serie que le toca a la combinación elegida en el modal de emisión. Es
   // derivado puro de props + estado que ya existían: no consulta nada nuevo.
-  const serieDelComprobante = series.find((s) => s.sede_id === sedeId && s.tipo === tipo);
+  const serieDelComprobante = series.find((s) => s.ubicacion_id === ubicacionId && s.tipo === tipo);
 
   function cerrarModal() {
     setModal(null);
@@ -238,7 +216,7 @@ export function ComprobantesPanel({
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const { error } = await supabase.rpc("emitir_comprobante", {
-      p_sede_id: sedeId,
+      p_ubicacion_id: ubicacionId,
       p_tipo: tipo,
       p_subtotal: subtotal,
       p_igv: igv,
@@ -263,7 +241,7 @@ export function ComprobantesPanel({
     setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_serie_comprobante", {
-      p_sede_id: serieSedeId,
+      p_ubicacion_id: serieUbicacionId,
       p_tipo: serieTipo,
       p_serie: serieTexto,
       // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
@@ -319,13 +297,13 @@ export function ComprobantesPanel({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="label-cayla text-[11px] text-tinta/65">
-            Series por sede
+            Series por ubicación
             <Ayuda titulo="Series de comprobantes">
               La serie identifica desde qué tienda salió el comprobante: una letra según el tipo
               (B para boleta, F para factura) más tres dígitos. En facturación electrónica las
               defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
               tienda (B004 Trujillo, B005 Arequipa, B006 Lima) para saber de dónde vino cada venta.
-              Regístrala una sola vez por sede y tipo; el correlativo lo lleva el sistema.
+              Regístrala una sola vez por ubicación y tipo; el correlativo lo lleva el sistema.
             </Ayuda>
           </h2>
           <Boton peso="discreto" onClick={() => setModal("serie")}>
@@ -334,15 +312,15 @@ export function ComprobantesPanel({
         </div>
         {series.length === 0 ? (
           <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/65">
-            Ninguna sede tiene serie registrada todavía. Sin esto, no se puede emitir nada.
+            Ninguna ubicación tiene serie registrada todavía. Sin esto, no se puede emitir nada.
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
             {series.map((s) => {
-              const sede = sedes.find((sd) => sd.id === s.sede_id);
+              const ubicacion = ubicaciones.find((u) => u.id === s.ubicacion_id);
               return (
                 <div key={s.id} className="bg-crema p-3">
-                  <p className="text-xs text-tinta/70">{sede?.codigo ?? "—"} · {ETIQUETA_TIPO[s.tipo]}</p>
+                  <p className="text-xs text-tinta/70">{ubicacion?.nombre ?? "—"} · {ETIQUETA_TIPO[s.tipo]}</p>
                   <p className="font-display mt-0.5 text-lg text-tinta">
                     {s.serie}-{String(s.siguiente_numero).padStart(6, "0")}
                   </p>
@@ -464,15 +442,15 @@ export function ComprobantesPanel({
         <Modal titulo="Emitir comprobante" ancho="max-w-md" onClose={cerrarModal}>
           {(cerrar) => (
           <form onSubmit={onEmitir} className="mt-5 space-y-2">
-            {/* Sede y tipo son las dos decisiones que determinan el correlativo,
+            {/* Ubicación y tipo son las dos decisiones que determinan el correlativo,
                 así que van juntas y arriba de él: se leen como los dos diales
                 que mueven la cifra de abajo. */}
             <div className="grid gap-x-5 sm:grid-cols-2">
             <CampoSelect
-              etiqueta="Sede"
-              valor={sedeId}
-              onValor={setSedeId}
-              opciones={sedes.map((s) => ({ valor: s.id, texto: s.codigo }))}
+              etiqueta="Ubicación"
+              valor={ubicacionId}
+              onValor={setUbicacionId}
+              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
             />
 
             <Segmentado
@@ -495,7 +473,7 @@ export function ComprobantesPanel({
                 ahora solo se veía DESPUÉS de emitir, en la tabla. El dato ya
                 llegaba en `series`; lo único que faltaba era mostrarlo.
                 La `key` fuerza el remontaje para que la cifra se re-asiente
-                cuando cambia la sede o el tipo — así el ojo nota que cambió. */}
+                cuando cambia la ubicación o el tipo — así el ojo nota que cambió. */}
             <div className="rounded-xl border border-sand bg-papel px-5 py-4">
               <p className="label-cayla text-[11px] text-tinta/65">Se va a reservar el número</p>
               {serieDelComprobante ? (
@@ -509,8 +487,8 @@ export function ComprobantesPanel({
                 </p>
               ) : (
                 <p className="anim-asentar mt-1.5 text-xs leading-relaxed text-ambar">
-                  {sedes.find((s) => s.id === sedeId)?.codigo ?? "Esta sede"} todavía no tiene serie de{" "}
-                  {ETIQUETA_TIPO[tipo].toLowerCase()} registrada. Regístrala antes de emitir.
+                  {ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "Esta ubicación"} todavía no tiene serie
+                  de {ETIQUETA_TIPO[tipo].toLowerCase()} registrada. Regístrala antes de emitir.
                 </p>
               )}
             </div>
@@ -566,10 +544,10 @@ export function ComprobantesPanel({
           {(cerrar) => (
           <form onSubmit={onRegistrarSerie} className="mt-5 space-y-2">
             <CampoSelect
-              etiqueta="Sede"
-              valor={serieSedeId}
-              onValor={setSerieSedeId}
-              opciones={sedes.map((s) => ({ valor: s.id, texto: s.codigo }))}
+              etiqueta="Ubicación"
+              valor={serieUbicacionId}
+              onValor={setSerieUbicacionId}
+              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
             />
             <CampoSelect
               etiqueta="Tipo"

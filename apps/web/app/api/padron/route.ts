@@ -50,16 +50,15 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
 
-  const { data: persona, error: errPersona } = await supabase
-    .from("personas")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .single();
+  // La identidad la resuelve Dynamic (integración 2026-09-12, ver
+  // supabase/migrations/0009_integracion_dynamic.sql) — sin fila activa ahí,
+  // esta RPC no devuelve nada.
+  const { data: persona, error: errPersona } = await supabase.rpc("fn_persona_actual_resumen").maybeSingle();
   // Mismo criterio que en el export: un fallo del servidor no se le achaca al usuario.
   if (errPersona) {
     return Response.json({ error: "No se pudo verificar tu cuenta. Reintenta." }, { status: 503 });
   }
-  if (!persona?.id) return Response.json({ error: "Sin persona vinculada" }, { status: 403 });
+  if (!persona) return Response.json({ error: "Sin persona vinculada" }, { status: 403 });
 
   // Se revalida en el servidor aunque el formulario ya lo haya hecho: la
   // validación del navegador es una cortesía para quien tipea, nunca una
@@ -69,7 +68,7 @@ export async function GET(request: Request) {
     return Response.json({ error: validacion.motivo }, { status: 400 });
   }
 
-  if (excedeTope(persona.id)) {
+  if (excedeTope(user.id)) {
     return Response.json({ error: "Demasiadas consultas seguidas. Espera un minuto." }, { status: 429 });
   }
 

@@ -1,104 +1,78 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
-import { getSedes } from "@/lib/sedes";
-import { Ayuda } from "@/components/Ayuda";
-import { InventarioNav } from "@/components/InventarioNav";
-import { EsqueletoTabla } from "@/components/Esqueleto";
-import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 
-/**
- * La cabecera, los botones y la navegación no dependen de ninguna consulta de catálogo —
- * solo de saber quién eres. Antes igual esperaban a que llegara TODO el inventario para
- * dibujarse, porque la página hacía `await` de todo antes de devolver JSX.
- *
- * Ahora la página solo espera la persona (que el layout ya resolvió, así que sale
- * memorizada y no cuesta viaje nuevo) y el catálogo baja por streaming dentro de su propio
- * <Suspense>. Lo que no depende de la red aparece de inmediato.
- *
- * Importante para el principio 2: esto NO guarda una copia de nada. Es la misma consulta
- * al mismo servidor, solo que la pantalla se dibuja en dos tiempos en vez de uno. No hay
- * una segunda verdad que pueda quedar desfasada — que es justo lo que sí traería
- * local-first (ADR-0018).
- */
-export default async function InventarioPage() {
-  const persona = await requirePersonaActual();
+// Fase UI 1 (2026-09-11): rediseño completo, no una adaptación de
+// `app/(app)/inventario/page.tsx` (V1) — ese archivo separa piso de venta y
+// `stock_almacen` como dos tablas distintas por sede. V2 unificó eso en una
+// sola tabla `stock` por `ubicacion_id` (más simple a propósito, ver
+// `supabase/migrations/0002_esquema.sql`): una integrante ve directamente su
+// ubicación; un Líder puede elegir cualquiera porque `fn_puede_operar_ubicacion`
+// se lo permite (RLS lo vuelve a validar, esto es solo la UI).
+export default async function InventarioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ubicacion?: string }>;
+}) {
+  const persona = await requirePersonaActualV2();
+  const { ubicacion: ubicacionQuery } = await searchParams;
+  const ubicaciones = await getUbicaciones();
+
+  const ubicacionActivaId =
+    persona.rol === "lider" && ubicacionQuery && ubicaciones.some((u) => u.id === ubicacionQuery)
+      ? ubicacionQuery
+      : persona.ubicacionId;
+  const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
+
+  const stock = await getStockPorUbicacion(ubicacionActivaId);
+  const totalUnidades = stock.reduce((acc, f) => acc + f.cantidad, 0);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">
-            Catálogo
-            <Ayuda titulo="Catálogo">
-              Todas las prendas del negocio, agrupadas por modelo. Cada fila es un modelo y adentro
-              están sus tallas y colores — eso es una variante, y es lo que de verdad se cuenta y se
-              vende. Una prenda entra acá cuando alguien la recibe: no aparece sola por haberla
-              comprado.
-            </Ayuda>
-          </h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
         </div>
-        <div className="flex gap-2">
-          {persona.rol === "lider" && (
-            <Link
-              href="/inventario/producto/nuevo"
-              className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
-            >
-              + Nuevo producto
-            </Link>
-          )}
-          <a
-            href="/api/export/inventario"
-            className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          >
-            Exportar Excel
-          </a>
-        </div>
+        {persona.rol === "lider" && (
+          <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />
+        )}
       </div>
 
-      <InventarioNav />
+      <p className="text-sm text-tinta/65">
+        {stock.length} referencia{stock.length === 1 ? "" : "s"} con stock · {totalUnidades} unidad
+        {totalUnidades === 1 ? "" : "es"} en total
+      </p>
 
-      <Suspense fallback={<EsqueletoTabla filas={8} />}>
-        <Catalogo />
-      </Suspense>
+      {stock.length === 0 ? (
+        <p className="card-cayla p-5 text-sm text-tinta/75">Esta ubicación no tiene stock todavía.</p>
+      ) : (
+        <div className="card-cayla overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-tinta/10 text-left">
+                <th className="label-cayla px-5 py-3 text-[11px] text-tinta/65">Referencia</th>
+                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">SKU</th>
+                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">Talla</th>
+                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">Color</th>
+                <th className="label-cayla px-5 py-3 text-right text-[11px] text-tinta/65">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-tinta/10">
+              {stock.map((f) => (
+                <tr key={f.varianteId}>
+                  <td className="px-5 py-2.5 text-tinta">{f.referencia}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-tinta/75">{f.sku}</td>
+                  <td className="px-3 py-2.5 text-tinta/75">{f.talla ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-tinta/75">{f.color ?? "—"}</td>
+                  <td className="px-5 py-2.5 text-right tabular-nums text-tinta">{f.cantidad}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
-}
-
-/** La parte que sí espera la red. Vive aparte para que el <Suspense> de arriba tenga qué envolver. */
-async function Catalogo() {
-  // `requirePersonaActual` y `getSedes` están memorizados por request (React cache), así
-  // que pedirlos de nuevo acá no cuesta un viaje: se reusa lo que ya resolvió el layout.
-  const persona = await requirePersonaActual();
-  const [{ variantes }, todasSedes] = await Promise.all([getCatalogoInteligente(persona), getSedes()]);
-  const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
-
-  // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
-  const porProducto = new Map<string, ProductoAgrupado>();
-  variantes.forEach((v: VarianteInteligente) => {
-    const actual = porProducto.get(v.productoId);
-    if (actual) {
-      actual.variantes.push(v);
-    } else {
-      porProducto.set(v.productoId, {
-        productoId: v.productoId,
-        referencia: v.referencia,
-        familia: v.familia,
-        categoria: v.categoria,
-        marca: v.marca,
-        fotoUrl: v.fotoUrl,
-        variantes: [v],
-      });
-    }
-  });
-  const productos = [...porProducto.values()].sort((a, b) => a.referencia.localeCompare(b.referencia));
-
-  const sedeActual = sedesOperativas.find((s) => s.id === persona.sedeId) ?? {
-    id: persona.sedeId,
-    codigo: persona.sedeCodigo,
-  };
-
-  return <InventarioAgrupado productos={productos} sedeActual={sedeActual} todasLasSedes={sedesOperativas} />;
 }

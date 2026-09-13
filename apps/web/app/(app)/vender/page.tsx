@@ -1,35 +1,19 @@
 import { Suspense } from "react";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoConStock } from "@/lib/catalogo";
-import { getCajaAbierta } from "@/lib/finanzas";
-import { tolerar } from "@/lib/resultado";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCajaAbierta, getResumenCaja } from "@/lib/caja";
 import { createClient } from "@/lib/supabase/server";
-import { CajaPanel } from "@/components/CajaPanel";
-
-const ETIQUETA_METODO: Record<string, string> = {
-  efectivo: "Efectivo",
-  pos: "POS",
-  yape: "Yape",
-  transferencia: "Transferencia",
-};
-
-const LIMA_OFFSET_MS = 5 * 3600 * 1000;
-function inicioDiaLima(): Date {
-  const lima = new Date(Date.now() - LIMA_OFFSET_MS);
-  lima.setUTCHours(0, 0, 0, 0);
-  return new Date(lima.getTime() + LIMA_OFFSET_MS);
-}
-
-function formatearHora(iso: string) {
-  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-}
+import { exigir, tolerar } from "@/lib/resultado";
+import { PuntoDeVenta } from "@/components/PuntoDeVenta";
 
 /**
- * Vender: la caja del día de la sede — abrir, vender, cerrar, y ver lo vendido hoy.
- * Vive dentro de `(app)` (sidebar + cabecera de AppShell) a pedido de Felipe (2026-09-12):
- * la versión a pantalla completa sin sidebar (probada ese mismo día) rompía la coherencia
- * con el resto del ERP. El catálogo+ticket de `PuntoDeVenta` queda como una pieza dentro
- * de esta página, no como una pantalla aparte.
+ * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
+ * Reconciliado con V2 el 2026-09-12 (el corte V1→V2 llegó a `main` mientras se
+ * construía esto): `PuntoDeVenta.tsx` reemplaza a `VenderFormV2.tsx` como la
+ * experiencia real de Vender — la pantalla mínima de V2 fue explícitamente un
+ * placeholder ("no reemplaza a RegistrarVentaModal... se retoma cuando Ventas
+ * entre de lleno al roadmap"). Vive dentro de `(app)` con el sidebar de AppShell,
+ * sin el tope de ancho `max-w-5xl` (ver AppShell.tsx).
  */
 export default async function VenderPage() {
   return (
@@ -40,57 +24,57 @@ export default async function VenderPage() {
 }
 
 async function Caja() {
-  const persona = await requirePersonaActual();
+  const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  const [variantes, cajaAbierta, resCodigos] = await Promise.all([
-    getCatalogoConStock(persona),
-    getCajaAbierta(persona.sedeId),
-    supabase.from("codigos_barras").select("codigo, variante_id"),
+  const [variantes, caja, resStock] = await Promise.all([
+    getCatalogo(),
+    getCajaAbierta(persona.ubicacionId),
+    supabase.from("stock").select("variante_id, cantidad").eq("ubicacion_id", persona.ubicacionId),
   ]);
-  const codigos = tolerar(resCodigos, "los códigos de barras");
+  const filasStock = exigir(resStock, "el stock de esta ubicación");
+  const stockPorVariante = new Map(filasStock.map((f) => [f.variante_id, f.cantidad]));
 
-  const variantesParaVenta = variantes.map((v) => ({
-    varianteId: v.varianteId,
-    codigo: v.codigo,
-    sku: v.sku,
-    referencia: v.referencia,
-    talla: v.talla,
-    color: v.color,
-    categoria: v.categoria,
-    precio: v.precio,
-    stockAqui: v.stockPorSede[persona.sedeCodigo] ?? 0,
-  }));
+  const variantesParaVenta = variantes
+    .filter((v) => v.activo)
+    .map((v) => ({
+      varianteId: v.varianteId,
+      sku: v.sku,
+      referencia: v.referencia,
+      talla: v.talla,
+      color: v.color,
+      categoria: v.categoria,
+      precio: v.precio,
+      codigosBarras: v.codigosBarras,
+      stockAqui: stockPorVariante.get(v.varianteId) ?? 0,
+    }));
 
-  const porCodigoBarras: Record<string, string> = {};
-  for (const c of codigos.datos ?? []) porCodigoBarras[c.codigo] = c.variante_id;
+  const esperadoEnCajon = caja ? (await getResumenCaja(caja.id, caja.montoApertura)).esperadoEnCajon : null;
 
   return (
-    <CajaPanel
-      sedeId={persona.sedeId}
-      sedeCodigo={persona.sedeCodigo}
-      cajaAbierta={cajaAbierta}
+    <PuntoDeVenta
+      ubicacionId={persona.ubicacionId}
+      ubicacionEtiqueta={persona.ubicacionEtiqueta}
+      cajaId={caja?.id ?? null}
+      esperadoEnCajon={esperadoEnCajon}
       variantes={variantesParaVenta}
-      porCodigoBarras={porCodigoBarras}
       ventasHoyNode={
         <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
-          <VentasDeHoy sedeId={persona.sedeId} sedeCodigo={persona.sedeCodigo} />
+          <VentasDeHoy ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
         </Suspense>
       }
     />
   );
 }
 
-/** Mismo query de siempre — ver ADRs previos para el porqué de `tolerar()` acá y no
- *  `exigir()`. Solo la lista: el total y el "sin ventas todavía" los muestra el ticket. */
-async function VentasDeHoy({ sedeId, sedeCodigo }: { sedeId: string; sedeCodigo: string }) {
+/** `fn_ventas_del_dia` (0011_venta_con_comprobante.sql) ya trae ítems, vendedor y
+ *  estado del comprobante — reemplaza el `select` a mano contra `ventas` de la
+ *  versión V1. Se le pasa la ubicación siempre: aunque un Líder podría ver todas
+ *  (parámetro null), en Vender importa lo que se vendió EN ESTA sede, no un
+ *  consolidado — para eso está Facturación. */
+async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: string; ubicacionEtiqueta: string }) {
   const supabase = await createClient();
   const { datos: ventasHoy, fallo } = tolerar(
-    await supabase
-      .from("ventas")
-      .select("id, monto_total, metodo_pago, created_at")
-      .eq("sede_id", sedeId)
-      .gte("created_at", inicioDiaLima().toISOString())
-      .order("created_at", { ascending: false }),
+    await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId }),
     "las ventas de hoy"
   );
 
@@ -102,7 +86,7 @@ async function VentasDeHoy({ sedeId, sedeCodigo }: { sedeId: string; sedeCodigo:
   if (ventas.length === 0) {
     return (
       <p className="font-display card-cayla py-6 text-center text-sm text-tinta/60 italic">
-        Aún no hay ventas hoy en {sedeCodigo}.
+        Aún no hay ventas hoy en {ubicacionEtiqueta}.
       </p>
     );
   }
@@ -110,10 +94,12 @@ async function VentasDeHoy({ sedeId, sedeCodigo }: { sedeId: string; sedeCodigo:
   return (
     <div className="card-cayla divide-y divide-sand !p-0">
       {ventas.map((v) => (
-        <div key={v.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-          <span className="text-tinta/60">{formatearHora(v.created_at)}</span>
-          <span className="text-tinta/60">{ETIQUETA_METODO[v.metodo_pago] ?? v.metodo_pago}</span>
-          <span className="font-medium text-tinta">S/{Number(v.monto_total).toFixed(2)}</span>
+        <div key={v.venta_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+          <span className="text-tinta/60">{v.hora}</span>
+          <span className="min-w-0 flex-1 truncate text-tinta/60">
+            {v.comprobante_texto ?? "Sin comprobante"} {v.metodos_pago ? `· ${v.metodos_pago}` : ""}
+          </span>
+          <span className="font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
         </div>
       ))}
     </div>

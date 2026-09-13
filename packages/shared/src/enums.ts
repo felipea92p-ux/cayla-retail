@@ -47,8 +47,11 @@ export const LEAD_TIME_DIAS = 14; // días asumidos de reposición, para el reor
 // tiempo a reaccionar, más largo deja de ser una excepción y se vuelve ruido.
 export const HORAS_PROFORMA_POR_VENCER = 48;
 
-// Fase 2 financiera (apps/web/lib/finanzas.ts, supabase/migrations/0007_finanzas.sql).
-export const METODOS_PAGO = ["efectivo", "pos", "yape", "transferencia"] as const;
+// V2: cómo paga la clienta una venta — debe calzar con el check de
+// `venta_pagos.metodo` (supabase/migrations/0008_caja_y_pagos.sql). Quedó
+// desactualizado tras el corte V1→V2 ("pos" → "tarjeta", se sumó "plin");
+// corregido al reconciliar Vender con V2 (2026-09-12).
+export const METODOS_PAGO = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
 
 // Categorías fijas de gasto OPERATIVO — revisadas con Felipe (2026-07-19) tras el

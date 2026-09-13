@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { traducirError, esFalloDeRed } from "./error-escritura";
+import { traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -46,27 +46,27 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
 
   it("la referencia duplicada dice A DÓNDE ir, no solo qué falló", () => {
     const salida = traducirError(
-      { message: 'duplicate key value violates unique constraint "productos_sku_padre_key"', code: "23505" },
-      "crear el producto"
+      { message: 'duplicate key value violates unique constraint "variantes_sku_key"', code: "23505" },
+      "crear la variante"
     );
-    expect(salida).toContain("¿Reingreso de algo que ya existe?");
+    expect(salida).toContain("revisa el catálogo");
   });
 
-  it("el rechazo de RLS explica el cambio de sede en vez de hablar de políticas", () => {
+  it("el rechazo de RLS explica el permiso por ubicación en vez de hablar de políticas", () => {
     const salida = traducirError(
       { message: 'new row violates row-level security policy for table "movimientos"', code: "42501" },
       "registrar el movimiento"
     );
     expect(salida).toContain("permiso");
-    expect(salida).toContain("cambia de sede");
+    expect(salida).toContain("ubicación");
   });
 
   it("la caja duplicada por índice único queda en una sola frase", () => {
     const salida = traducirError(
-      { message: 'duplicate key value violates unique constraint "cajas_sede_abierta_unique"', code: "23505" },
+      { message: 'duplicate key value violates unique constraint "cajas_ubicacion_abierta_unica"', code: "23505" },
       "abrir la caja"
     );
-    expect(salida).toBe("Esta sede ya tiene una caja abierta. Ciérrala antes de abrir otra.");
+    expect(salida).toBe("Esta ubicación ya tiene una caja abierta. Ciérrala antes de abrir otra.");
   });
 });
 
@@ -80,34 +80,12 @@ describe("no re-traduce lo que las RPC ya dicen bien", () => {
     const delaRpc = "No tienes permiso para vender en esa caja";
     expect(traducirError({ message: delaRpc, code: "P0001" }, "registrar la venta")).toBe(delaRpc);
   });
-
-  it("PERO el rechazo por token reusado sí se traduce: es P0001 y no habla idioma CAYLA", () => {
-    // El texto vive en `0054_venta_idempotente.sql` y, palabra por palabra, en producción desde
-    // un parche a mano. Es la única excepción a la regla de este bloque, y por eso se fija acá.
-    const delaRpc =
-      "Este token ya se uso para una venta con otros datos (caja, metodo de pago o monto no coinciden) -- no se puede reutilizar.";
-    const salida = traducirError({ message: delaRpc, code: "P0001" }, "registrar la venta");
-    expect(salida).not.toContain("token");
-    expect(salida).toContain("La venta anterior sí se registró");
-    expect(salida).toContain("Ventas de hoy");
-  });
 });
 
 describe("los bordes de red y el fallback", () => {
   it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
     const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
     expect(salida).toContain("No se guardó nada");
-  });
-
-  it("cuando el reintento es seguro, deja de prometer que no se guardó nada", () => {
-    // `Failed to fetch` no distingue "no salió" de "salió, entró, y se cortó la respuesta".
-    // Con la venta idempotente (0054) la duda deja de importar, y el mensaje puede decirlo.
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta", {
-      reintentoSeguro: true,
-    });
-    expect(salida).not.toContain("No se guardó nada");
-    expect(salida).toContain("mismo carrito");
-    expect(salida).toContain("no la cobra dos veces");
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -119,25 +97,5 @@ describe("los bordes de red y el fallback", () => {
 
   it("sin error, la frase sigue nombrando la acción del negocio", () => {
     expect(traducirError(null, "cerrar la caja")).toBe("No se pudo cerrar la caja.");
-  });
-});
-
-describe("esFalloDeRed — la distinción que comparten las dos colas offline (ADR-0034, ADR-0036)", () => {
-  it("un corte de red (error de supabase-js) es fallo de red", () => {
-    expect(esFalloDeRed({ message: "TypeError: Failed to fetch" })).toBe(true);
-  });
-
-  it("también cuenta si la huella vive en `details` o `hint`, no solo en `message`", () => {
-    expect(esFalloDeRed({ message: "algo", details: "NetworkError when attempting to fetch resource." })).toBe(true);
-  });
-
-  it("un rechazo real del servidor (la RPC respondió) NO es fallo de red", () => {
-    expect(esFalloDeRed({ message: "Esta caja ya está cerrada — no se pueden registrar más ventas ahí", code: "P0001" })).toBe(
-      false
-    );
-  });
-
-  it("sin error no hay nada que encolar", () => {
-    expect(esFalloDeRed(null)).toBe(false);
   });
 });

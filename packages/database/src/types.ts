@@ -1,37 +1,3 @@
-// ============================================================================
-// GENERADO por `pnpm --filter @cayla-retail/database gen-types`
-// (`supabase gen types typescript --project-id vovjyyiafkxteijimpuy --schema retail`)
-//
-// ⚠ TIENE PARCHES A MANO. Por eso `gen-types` ya NO escribe acá: deja la
-//   salida cruda en src/types.produccion.ts (gitignored) para compararla y
-//   trasladar solo lo que cambió. Antes escribía encima y borraba a la vez
-//   los parches y esta lista que dice qué reponer (revisión 2026-09-11).
-//
-//   Ningún entorno tiene hoy el esquema completo, así que ninguna regeneración
-//   sale correcta sola:
-//     · producción NO tiene la taxonomía universal (`0052` no está aplicada allá)
-//     · local NO tiene `catalogo_con_stock`, `configuracion_empresa`,
-//       `sede_meta`, `sede_datos_fiscales`, `persona_actual`, `puede_operar_sede`
-//
-//   Lo puesto a mano, con fecha, para poder reponerlo después de regenerar:
-//     · 2026-09-10 — los 5 tipos de taxonomía y las 2 columnas de anclaje
-//       (solo existen en local)
-//     · 2026-09-10 — `ventas.token_cliente` y `registrar_venta.p_token`
-//       (solo existen en producción; local se puso al día con la migración
-//       `0054`, así que este parche sobra el día que se regenere DESPUÉS de
-//       aplicar `0052` en producción)
-//     · 2026-09-11 — `importaciones`, `producto_atributos`,
-//       `productos.importacion_id` y las funciones `importar_catalogo`,
-//       `deshacer_importacion`, `fn_codigo_tres_letras`,
-//       `fn_familia_color_de_universal`, `fn_familia_de_universal`
-//       (migración `0056`; solo existen en local hasta que se aplique allá)
-//     · 2026-09-11 — `importaciones.token` (migración `0057`)
-//
-//   El arreglo de fondo —decidir cuál de los dos entornos es la fuente— está en
-//   el BACKLOG. Mientras tanto, después de cada `gen-types` hay que releer esta
-//   lista y reponer lo que falte.
-// ============================================================================
-
 export type Json =
   | string
   | number
@@ -41,250 +7,42 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   retail: {
     Tables: {
-      activos_fijos: {
+      caja_movimientos: {
         Row: {
-          costo: number
+          caja_id: string
           created_at: string
-          cuenta_codigo: string
-          depreciacion_apertura: number
-          descripcion: string | null
-          estado: string
-          fecha_adquisicion: string
-          id: string
-          nombre: string
-          nota: string | null
-          serie: string | null
-          tasa_anual: number
-          unidad_id: string
-          updated_at: string
-          valor_residual: number
-          vida_util_meses: number
-        }
-        Insert: {
-          costo: number
-          created_at?: string
-          cuenta_codigo: string
-          depreciacion_apertura?: number
-          descripcion?: string | null
-          estado?: string
-          fecha_adquisicion: string
-          id?: string
-          nombre: string
-          nota?: string | null
-          serie?: string | null
-          tasa_anual: number
-          unidad_id: string
-          updated_at?: string
-          valor_residual?: number
-          vida_util_meses: number
-        }
-        Update: {
-          costo?: number
-          created_at?: string
-          cuenta_codigo?: string
-          depreciacion_apertura?: number
-          descripcion?: string | null
-          estado?: string
-          fecha_adquisicion?: string
-          id?: string
-          nombre?: string
-          nota?: string | null
-          serie?: string | null
-          tasa_anual?: number
-          unidad_id?: string
-          updated_at?: string
-          valor_residual?: number
-          vida_util_meses?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activos_fijos_unidad_id_fkey"
-            columns: ["unidad_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ajustes_efectivo: {
-        Row: {
-          created_at: string
-          fecha: string
           id: string
           monto: number
           motivo: string
-          sede_id: string
+          tipo: string
           usuario_id: string | null
         }
         Insert: {
+          caja_id: string
           created_at?: string
-          fecha?: string
           id?: string
           monto: number
           motivo: string
-          sede_id: string
+          tipo: string
           usuario_id?: string | null
         }
         Update: {
+          caja_id?: string
           created_at?: string
-          fecha?: string
           id?: string
           monto?: number
           motivo?: string
-          sede_id?: string
+          tipo?: string
           usuario_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ajustes_efectivo_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "caja_movimientos_caja_id_fkey"
+            columns: ["caja_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ajustes_efectivo_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asiento_lineas: {
-        Row: {
-          asiento_id: string
-          cuenta_id: string
-          debe: number
-          glosa: string | null
-          haber: number
-          id: string
-        }
-        Insert: {
-          asiento_id: string
-          cuenta_id: string
-          debe?: number
-          glosa?: string | null
-          haber?: number
-          id?: string
-        }
-        Update: {
-          asiento_id?: string
-          cuenta_id?: string
-          debe?: number
-          glosa?: string | null
-          haber?: number
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asiento_lineas_asiento_id_fkey"
-            columns: ["asiento_id"]
-            isOneToOne: false
-            referencedRelation: "asientos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asiento_lineas_cuenta_id_fkey"
-            columns: ["cuenta_id"]
-            isOneToOne: false
-            referencedRelation: "cuentas_contables"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asientos: {
-        Row: {
-          creado_por: string | null
-          created_at: string
-          fecha: string
-          glosa: string
-          id: string
-          origen: string
-          referencia_id: string | null
-          referencia_tipo: string | null
-          unidad_id: string
-        }
-        Insert: {
-          creado_por?: string | null
-          created_at?: string
-          fecha?: string
-          glosa: string
-          id?: string
-          origen?: string
-          referencia_id?: string | null
-          referencia_tipo?: string | null
-          unidad_id: string
-        }
-        Update: {
-          creado_por?: string | null
-          created_at?: string
-          fecha?: string
-          glosa?: string
-          id?: string
-          origen?: string
-          referencia_id?: string | null
-          referencia_tipo?: string | null
-          unidad_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asientos_creado_por_fkey"
-            columns: ["creado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asientos_unidad_id_fkey"
-            columns: ["unidad_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bom_items: {
-        Row: {
-          cantidad_requerida: number
-          created_at: string
-          id: string
-          insumo: string
-          precio_unitario: number | null
-          producto_id: string
-          unidad: string
-        }
-        Insert: {
-          cantidad_requerida: number
-          created_at?: string
-          id?: string
-          insumo: string
-          precio_unitario?: number | null
-          producto_id: string
-          unidad: string
-        }
-        Update: {
-          cantidad_requerida?: number
-          created_at?: string
-          id?: string
-          insumo?: string
-          precio_unitario?: number | null
-          producto_id?: string
-          unidad?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bom_items_producto_id_fkey"
-            columns: ["producto_id"]
-            isOneToOne: false
-            referencedRelation: "productos"
+            referencedRelation: "cajas"
             referencedColumns: ["id"]
           },
         ]
@@ -299,9 +57,10 @@ export type Database = {
           estado: string
           id: string
           monto_apertura: number
-          monto_cierre_contado: number | null
-          monto_cierre_esperado: number | null
-          sede_id: string
+          monto_cierre_real: number | null
+          monto_cierre_sistema: number | null
+          nota: string | null
+          ubicacion_id: string
         }
         Insert: {
           abierta_en?: string
@@ -312,9 +71,10 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura: number
-          monto_cierre_contado?: number | null
-          monto_cierre_esperado?: number | null
-          sede_id: string
+          monto_cierre_real?: number | null
+          monto_cierre_sistema?: number | null
+          nota?: string | null
+          ubicacion_id: string
         }
         Update: {
           abierta_en?: string
@@ -325,100 +85,153 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura?: number
-          monto_cierre_contado?: number | null
-          monto_cierre_esperado?: number | null
-          sede_id?: string
+          monto_cierre_real?: number | null
+          monto_cierre_sistema?: number | null
+          nota?: string | null
+          ubicacion_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "cajas_abierta_por_fkey"
-            columns: ["abierta_por"]
+            foreignKeyName: "cajas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cambios: {
+        Row: {
+          cantidad: number
+          created_at: string
+          diferencia: number
+          id: string
+          metodo_pago_diferencia: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+          usuario_id: string | null
+          variante_nueva_id: string
+          venta_item_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          diferencia?: number
+          id?: string
+          metodo_pago_diferencia?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+          usuario_id?: string | null
+          variante_nueva_id: string
+          venta_item_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          diferencia?: number
+          id?: string
+          metodo_pago_diferencia?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+          usuario_id?: string | null
+          variante_nueva_id?: string
+          venta_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cambios_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cajas_cerrada_por_fkey"
-            columns: ["cerrada_por"]
+            foreignKeyName: "cambios_variante_nueva_id_fkey"
+            columns: ["variante_nueva_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "variantes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cajas_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "cambios_venta_item_id_fkey"
+            columns: ["venta_item_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "venta_items"
             referencedColumns: ["id"]
           },
         ]
       }
       categorias: {
         Row: {
-          taxonomia_categoria_id: string | null
-          created_at: string
-          familia: string
+          activo: boolean
           id: string
           nombre: string
-          prefijo: string
-          tallas_sugeridas: string[] | null
         }
         Insert: {
-          taxonomia_categoria_id?: string | null
-          created_at?: string
-          familia: string
+          activo?: boolean
           id?: string
           nombre: string
-          prefijo: string
-          tallas_sugeridas?: string[] | null
         }
         Update: {
-          taxonomia_categoria_id?: string | null
-          created_at?: string
-          familia?: string
+          activo?: boolean
           id?: string
           nombre?: string
-          prefijo?: string
-          tallas_sugeridas?: string[] | null
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nombre: string
+          num_doc: string | null
+          telefono: string | null
+          tipo_doc: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nombre: string
+          num_doc?: string | null
+          telefono?: string | null
+          tipo_doc?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nombre?: string
+          num_doc?: string | null
+          telefono?: string | null
+          tipo_doc?: string | null
         }
         Relationships: []
       }
       codigos_barras: {
         Row: {
           codigo: string
-          creado_por: string | null
           created_at: string
           id: string
-          nota: string | null
           origen: string
           variante_id: string
         }
         Insert: {
           codigo: string
-          creado_por?: string | null
           created_at?: string
           id?: string
-          nota?: string | null
-          origen: string
+          origen?: string
           variante_id: string
         }
         Update: {
           codigo?: string
-          creado_por?: string | null
           created_at?: string
           id?: string
-          nota?: string | null
           origen?: string
           variante_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "codigos_barras_creado_por_fkey"
-            columns: ["creado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "codigos_barras_variante_id_fkey"
             columns: ["variante_id"]
@@ -428,54 +241,24 @@ export type Database = {
           },
         ]
       }
-      codigos_correlativos: {
-        Row: {
-          prefijo: string
-          ultimo: number
-          updated_at: string
-        }
-        Insert: {
-          prefijo: string
-          ultimo?: number
-          updated_at?: string
-        }
-        Update: {
-          prefijo?: string
-          ultimo?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       colores: {
         Row: {
-          taxonomia_valor_id: string | null
           activo: boolean
           codigo: string
-          created_at: string
-          familia_color: string
           hex: string | null
           nombre: string
-          orden: number
         }
         Insert: {
-          taxonomia_valor_id?: string | null
           activo?: boolean
           codigo: string
-          created_at?: string
-          familia_color: string
           hex?: string | null
           nombre: string
-          orden?: number
         }
         Update: {
-          taxonomia_valor_id?: string | null
           activo?: boolean
           codigo?: string
-          created_at?: string
-          familia_color?: string
           hex?: string | null
           nombre?: string
-          orden?: number
         }
         Relationships: []
       }
@@ -502,11 +285,11 @@ export type Database = {
           numero: number
           respuesta_anulacion: Json | null
           respuesta_sunat: Json | null
-          sede_id: string
           serie: string
           subtotal: number
           tipo: string
           total: number
+          ubicacion_id: string
           usuario_id: string | null
           venta_id: string | null
         }
@@ -532,11 +315,11 @@ export type Database = {
           numero: number
           respuesta_anulacion?: Json | null
           respuesta_sunat?: Json | null
-          sede_id: string
           serie: string
           subtotal?: number
           tipo: string
           total: number
+          ubicacion_id: string
           usuario_id?: string | null
           venta_id?: string | null
         }
@@ -562,22 +345,15 @@ export type Database = {
           numero?: number
           respuesta_anulacion?: Json | null
           respuesta_sunat?: Json | null
-          sede_id?: string
           serie?: string
           subtotal?: number
           tipo?: string
           total?: number
+          ubicacion_id?: string
           usuario_id?: string | null
           venta_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "comprobantes_anulado_por_fkey"
-            columns: ["anulado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "comprobantes_comprobante_original_id_fkey"
             columns: ["comprobante_original_id"]
@@ -586,17 +362,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "comprobantes_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "comprobantes_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comprobantes_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
           {
@@ -644,112 +413,51 @@ export type Database = {
         }
         Relationships: []
       }
-      contenedores: {
+      conteo_items: {
         Row: {
-          codigo: string
-          created_at: string
-          id: string
-          sede_id: string
-          tipo: string
-        }
-        Insert: {
-          codigo: string
-          created_at?: string
-          id?: string
-          sede_id: string
-          tipo: string
-        }
-        Update: {
-          codigo?: string
-          created_at?: string
-          id?: string
-          sede_id?: string
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contenedores_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      conteo_lineas: {
-        Row: {
-          actualizado_en: string
           cantidad_contada: number
           cantidad_sistema: number
-          contado_en: string
-          contado_por: string | null
-          contenedor_id: string | null
           conteo_id: string
           diferencia: number | null
           id: string
           movimiento_id: string | null
-          nota: string | null
           variante_id: string
         }
         Insert: {
-          actualizado_en?: string
           cantidad_contada: number
           cantidad_sistema: number
-          contado_en?: string
-          contado_por?: string | null
-          contenedor_id?: string | null
           conteo_id: string
           diferencia?: number | null
           id?: string
           movimiento_id?: string | null
-          nota?: string | null
           variante_id: string
         }
         Update: {
-          actualizado_en?: string
           cantidad_contada?: number
           cantidad_sistema?: number
-          contado_en?: string
-          contado_por?: string | null
-          contenedor_id?: string | null
           conteo_id?: string
           diferencia?: number | null
           id?: string
           movimiento_id?: string | null
-          nota?: string | null
           variante_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "conteo_lineas_contado_por_fkey"
-            columns: ["contado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conteo_lineas_contenedor_id_fkey"
-            columns: ["contenedor_id"]
-            isOneToOne: false
-            referencedRelation: "contenedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conteo_lineas_conteo_id_fkey"
+            foreignKeyName: "conteo_items_conteo_id_fkey"
             columns: ["conteo_id"]
             isOneToOne: false
             referencedRelation: "conteos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conteo_lineas_movimiento_id_fkey"
+            foreignKeyName: "conteo_items_movimiento_fkey"
             columns: ["movimiento_id"]
             isOneToOne: false
             referencedRelation: "movimientos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conteo_lineas_variante_id_fkey"
+            foreignKeyName: "conteo_items_variante_id_fkey"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes"
@@ -759,333 +467,188 @@ export type Database = {
       }
       conteos: {
         Row: {
-          abierto_en: string
           abierto_por: string | null
-          alcance: string
-          alcance_categoria_id: string | null
-          alcance_contenedor_id: string | null
-          alcance_familia: string | null
           cerrado_en: string | null
           cerrado_por: string | null
+          created_at: string
           estado: string
           id: string
-          lineas_ajustadas: number | null
-          nombre: string | null
-          nota: string | null
-          sede_id: string
-          tratar_no_contado: string
-          ubicacion: string
-          unidades_diferencia: number | null
+          sububicacion_id: string | null
+          ubicacion_id: string
         }
         Insert: {
-          abierto_en?: string
           abierto_por?: string | null
-          alcance?: string
-          alcance_categoria_id?: string | null
-          alcance_contenedor_id?: string | null
-          alcance_familia?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
+          created_at?: string
           estado?: string
           id?: string
-          lineas_ajustadas?: number | null
-          nombre?: string | null
-          nota?: string | null
-          sede_id: string
-          tratar_no_contado?: string
-          ubicacion?: string
-          unidades_diferencia?: number | null
+          sububicacion_id?: string | null
+          ubicacion_id: string
         }
         Update: {
-          abierto_en?: string
           abierto_por?: string | null
-          alcance?: string
-          alcance_categoria_id?: string | null
-          alcance_contenedor_id?: string | null
-          alcance_familia?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
+          created_at?: string
           estado?: string
           id?: string
-          lineas_ajustadas?: number | null
-          nombre?: string | null
-          nota?: string | null
-          sede_id?: string
-          tratar_no_contado?: string
-          ubicacion?: string
-          unidades_diferencia?: number | null
+          sububicacion_id?: string | null
+          ubicacion_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "conteos_abierto_por_fkey"
-            columns: ["abierto_por"]
+            foreignKeyName: "conteos_sububicacion_id_fkey"
+            columns: ["sububicacion_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "sububicaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conteos_alcance_categoria_id_fkey"
-            columns: ["alcance_categoria_id"]
+            foreignKeyName: "conteos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conteos_alcance_contenedor_id_fkey"
-            columns: ["alcance_contenedor_id"]
-            isOneToOne: false
-            referencedRelation: "contenedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conteos_cerrado_por_fkey"
-            columns: ["cerrado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conteos_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
       }
-      cuentas_contables: {
+      devolucion_items: {
         Row: {
-          activo: boolean
-          codigo: string
-          created_at: string
-          elemento: string
-          es_contra: boolean
-          explicacion: string
+          cantidad: number
+          condicion: string
+          devolucion_id: string
           id: string
-          naturaleza: string
-          nombre: string
-          orden: number
-          updated_at: string
+          movimiento_id: string | null
+          venta_item_id: string
         }
         Insert: {
-          activo?: boolean
-          codigo: string
-          created_at?: string
-          elemento: string
-          es_contra?: boolean
-          explicacion: string
+          cantidad: number
+          condicion: string
+          devolucion_id: string
           id?: string
-          naturaleza: string
-          nombre: string
-          orden?: number
-          updated_at?: string
+          movimiento_id?: string | null
+          venta_item_id: string
         }
         Update: {
-          activo?: boolean
-          codigo?: string
-          created_at?: string
-          elemento?: string
-          es_contra?: boolean
-          explicacion?: string
+          cantidad?: number
+          condicion?: string
+          devolucion_id?: string
           id?: string
-          naturaleza?: string
-          nombre?: string
-          orden?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      depositos_bancarios: {
-        Row: {
-          created_at: string
-          fecha: string
-          id: string
-          monto: number
-          nota: string | null
-          sede_id: string
-          usuario_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          fecha?: string
-          id?: string
-          monto: number
-          nota?: string | null
-          sede_id: string
-          usuario_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          fecha?: string
-          id?: string
-          monto?: number
-          nota?: string | null
-          sede_id?: string
-          usuario_id?: string | null
+          movimiento_id?: string | null
+          venta_item_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "depositos_bancarios_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "devolucion_items_devolucion_id_fkey"
+            columns: ["devolucion_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "devoluciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "depositos_bancarios_usuario_id_fkey"
-            columns: ["usuario_id"]
+            foreignKeyName: "devolucion_items_movimiento_fkey"
+            columns: ["movimiento_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucion_items_venta_item_id_fkey"
+            columns: ["venta_item_id"]
+            isOneToOne: false
+            referencedRelation: "venta_items"
             referencedColumns: ["id"]
           },
         ]
       }
-      gastos: {
+      devoluciones: {
         Row: {
-          categoria: string
+          aprobado_en: string | null
+          aprobado_por: string | null
           created_at: string
-          especificacion: string | null
-          id: string
-          igv: number
-          metodo_pago: string | null
-          sede_id: string
-          subtotal: number
-          total: number
-          usuario_id: string | null
-        }
-        Insert: {
-          categoria: string
-          created_at?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago?: string | null
-          sede_id: string
-          subtotal?: number
-          total: number
-          usuario_id?: string | null
-        }
-        Update: {
-          categoria?: string
-          created_at?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago?: string | null
-          sede_id?: string
-          subtotal?: number
-          total?: number
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gastos_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gastos_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      importaciones: {
-        Row: {
-          categorias_creadas: number
-          colores_creados: number
-          created_at: string
-          deshecha_en: string | null
           estado: string
           id: string
-          origen: string
-          persona_id: string | null
-          plan: Json
-          productos_creados: number
-          token: string | null
-          variantes_creadas: number
+          motivo: string
+          reembolso_metodo: string | null
+          reembolso_monto: number | null
+          solicitado_por: string | null
+          ubicacion_id: string
+          venta_id: string
         }
         Insert: {
-          categorias_creadas?: number
-          colores_creados?: number
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           created_at?: string
-          deshecha_en?: string | null
           estado?: string
           id?: string
-          origen: string
-          persona_id?: string | null
-          plan: Json
-          productos_creados?: number
-          token?: string | null
-          variantes_creadas?: number
+          motivo: string
+          reembolso_metodo?: string | null
+          reembolso_monto?: number | null
+          solicitado_por?: string | null
+          ubicacion_id: string
+          venta_id: string
         }
         Update: {
-          categorias_creadas?: number
-          colores_creados?: number
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           created_at?: string
-          deshecha_en?: string | null
           estado?: string
           id?: string
-          origen?: string
-          persona_id?: string | null
-          plan?: Json
-          productos_creados?: number
-          token?: string | null
-          variantes_creadas?: number
+          motivo?: string
+          reembolso_metodo?: string | null
+          reembolso_monto?: number | null
+          solicitado_por?: string | null
+          ubicacion_id?: string
+          venta_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "importaciones_persona_id_fkey"
-            columns: ["persona_id"]
+            foreignKeyName: "devoluciones_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
             referencedColumns: ["id"]
           },
         ]
       }
       lotes: {
         Row: {
-          created_at: string
           fecha_recepcion: string
           id: string
           nota: string | null
           numero_guia: string | null
           orden_compra_id: string | null
-          origen: string
-          proveedor: string | null
-          proveedor_id: string | null
+          proveedor_id: string
           recibido_por: string | null
-          sede_id: string
+          ubicacion_id: string
         }
         Insert: {
-          created_at?: string
           fecha_recepcion?: string
           id?: string
           nota?: string | null
           numero_guia?: string | null
           orden_compra_id?: string | null
-          origen: string
-          proveedor?: string | null
-          proveedor_id?: string | null
+          proveedor_id: string
           recibido_por?: string | null
-          sede_id: string
+          ubicacion_id: string
         }
         Update: {
-          created_at?: string
           fecha_recepcion?: string
           id?: string
           nota?: string | null
           numero_guia?: string | null
           orden_compra_id?: string | null
-          origen?: string
-          proveedor?: string | null
-          proveedor_id?: string | null
+          proveedor_id?: string
           recibido_por?: string | null
-          sede_id?: string
+          ubicacion_id?: string
         }
         Relationships: [
           {
@@ -1103,107 +666,137 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lotes_recibido_por_fkey"
-            columns: ["recibido_por"]
+            foreignKeyName: "lotes_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lotes_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
       }
       movimientos: {
         Row: {
-          canal: string | null
+          cambio_id: string | null
           cantidad: number
-          contenedor_id: string | null
+          conteo_item_id: string | null
           created_at: string
+          devolucion_item_id: string | null
           id: string
           lote_id: string | null
-          monto: number | null
           motivo: string | null
           nota: string | null
-          sede_destino_id: string | null
-          sede_id: string
+          sububicacion_destino_id: string | null
+          sububicacion_id: string | null
           tipo: string
+          transferencia_item_id: string | null
+          ubicacion_destino_id: string | null
+          ubicacion_id: string
           usuario_id: string | null
           variante_id: string
-          venta_id: string | null
+          venta_item_id: string | null
         }
         Insert: {
-          canal?: string | null
+          cambio_id?: string | null
           cantidad: number
-          contenedor_id?: string | null
+          conteo_item_id?: string | null
           created_at?: string
+          devolucion_item_id?: string | null
           id?: string
           lote_id?: string | null
-          monto?: number | null
           motivo?: string | null
           nota?: string | null
-          sede_destino_id?: string | null
-          sede_id: string
+          sububicacion_destino_id?: string | null
+          sububicacion_id?: string | null
           tipo: string
+          transferencia_item_id?: string | null
+          ubicacion_destino_id?: string | null
+          ubicacion_id: string
           usuario_id?: string | null
           variante_id: string
-          venta_id?: string | null
+          venta_item_id?: string | null
         }
         Update: {
-          canal?: string | null
+          cambio_id?: string | null
           cantidad?: number
-          contenedor_id?: string | null
+          conteo_item_id?: string | null
           created_at?: string
+          devolucion_item_id?: string | null
           id?: string
           lote_id?: string | null
-          monto?: number | null
           motivo?: string | null
           nota?: string | null
-          sede_destino_id?: string | null
-          sede_id?: string
+          sububicacion_destino_id?: string | null
+          sububicacion_id?: string | null
           tipo?: string
+          transferencia_item_id?: string | null
+          ubicacion_destino_id?: string | null
+          ubicacion_id?: string
           usuario_id?: string | null
           variante_id?: string
-          venta_id?: string | null
+          venta_item_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "movimientos_contenedor_id_fkey"
-            columns: ["contenedor_id"]
+            foreignKeyName: "movimientos_cambio_id_fkey"
+            columns: ["cambio_id"]
             isOneToOne: false
-            referencedRelation: "contenedores"
+            referencedRelation: "cambios"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_lote_id_fkey"
+            foreignKeyName: "movimientos_conteo_item_fkey"
+            columns: ["conteo_item_id"]
+            isOneToOne: false
+            referencedRelation: "conteo_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_devolucion_item_fkey"
+            columns: ["devolucion_item_id"]
+            isOneToOne: false
+            referencedRelation: "devolucion_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_lote_fkey"
             columns: ["lote_id"]
             isOneToOne: false
             referencedRelation: "lotes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_sede_destino_id_fkey"
-            columns: ["sede_destino_id"]
+            foreignKeyName: "movimientos_sububicacion_destino_id_fkey"
+            columns: ["sububicacion_destino_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "sububicaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "movimientos_sububicacion_id_fkey"
+            columns: ["sububicacion_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "sububicaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_usuario_id_fkey"
-            columns: ["usuario_id"]
+            foreignKeyName: "movimientos_transferencia_item_fkey"
+            columns: ["transferencia_item_id"]
             isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "transferencia_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_ubicacion_destino_id_fkey"
+            columns: ["ubicacion_destino_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
           {
@@ -1211,6 +804,13 @@ export type Database = {
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_venta_item_fkey"
+            columns: ["venta_item_id"]
+            isOneToOne: false
+            referencedRelation: "venta_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1223,11 +823,8 @@ export type Database = {
           fecha_estimada: string | null
           id: string
           monto_estimado: number | null
-          nota: string | null
-          proveedor: string
-          proveedor_id: string | null
-          sede_destino_id: string
-          updated_at: string
+          proveedor_id: string
+          ubicacion_destino_id: string
         }
         Insert: {
           created_at?: string
@@ -1236,11 +833,8 @@ export type Database = {
           fecha_estimada?: string | null
           id?: string
           monto_estimado?: number | null
-          nota?: string | null
-          proveedor: string
-          proveedor_id?: string | null
-          sede_destino_id: string
-          updated_at?: string
+          proveedor_id: string
+          ubicacion_destino_id: string
         }
         Update: {
           created_at?: string
@@ -1249,11 +843,8 @@ export type Database = {
           fecha_estimada?: string | null
           id?: string
           monto_estimado?: number | null
-          nota?: string | null
-          proveedor?: string
-          proveedor_id?: string | null
-          sede_destino_id?: string
-          updated_at?: string
+          proveedor_id?: string
+          ubicacion_destino_id?: string
         }
         Relationships: [
           {
@@ -1264,10 +855,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ordenes_compra_sede_destino_id_fkey"
-            columns: ["sede_destino_id"]
+            foreignKeyName: "ordenes_compra_ubicacion_destino_id_fkey"
+            columns: ["ubicacion_destino_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1311,346 +902,30 @@ export type Database = {
           },
         ]
       }
-      ordenes_produccion: {
-        Row: {
-          cantidad_planeada: number
-          cantidad_producida: number
-          created_at: string
-          destino_sede_id: string | null
-          estado: string
-          etapa: string | null
-          fecha_fin: string | null
-          fecha_inicio: string | null
-          id: string
-          nota: string | null
-          sede_id: string
-          updated_at: string
-          variante_id: string
-        }
-        Insert: {
-          cantidad_planeada: number
-          cantidad_producida?: number
-          created_at?: string
-          destino_sede_id?: string | null
-          estado?: string
-          etapa?: string | null
-          fecha_fin?: string | null
-          fecha_inicio?: string | null
-          id?: string
-          nota?: string | null
-          sede_id: string
-          updated_at?: string
-          variante_id: string
-        }
-        Update: {
-          cantidad_planeada?: number
-          cantidad_producida?: number
-          created_at?: string
-          destino_sede_id?: string | null
-          estado?: string
-          etapa?: string | null
-          fecha_fin?: string | null
-          fecha_inicio?: string | null
-          id?: string
-          nota?: string | null
-          sede_id?: string
-          updated_at?: string
-          variante_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ordenes_produccion_destino_sede_id_fkey"
-            columns: ["destino_sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_produccion_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ordenes_produccion_variante_id_fkey"
-            columns: ["variante_id"]
-            isOneToOne: false
-            referencedRelation: "variantes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      patrimonio_items: {
-        Row: {
-          categoria: string | null
-          created_at: string
-          id: string
-          monto: number
-          nombre: string
-          nota: string | null
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          categoria?: string | null
-          created_at?: string
-          id?: string
-          monto?: number
-          nombre: string
-          nota?: string | null
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          categoria?: string | null
-          created_at?: string
-          id?: string
-          monto?: number
-          nombre?: string
-          nota?: string | null
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      produccion_lineas: {
-        Row: {
-          cantidad: number
-          created_at: string
-          id: string
-          produccion_id: string
-          variante_id: string
-        }
-        Insert: {
-          cantidad: number
-          created_at?: string
-          id?: string
-          produccion_id: string
-          variante_id: string
-        }
-        Update: {
-          cantidad?: number
-          created_at?: string
-          id?: string
-          produccion_id?: string
-          variante_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produccion_lineas_produccion_id_fkey"
-            columns: ["produccion_id"]
-            isOneToOne: false
-            referencedRelation: "producciones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "produccion_lineas_variante_id_fkey"
-            columns: ["variante_id"]
-            isOneToOne: false
-            referencedRelation: "variantes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      producciones: {
-        Row: {
-          cantidad: number
-          costo_avios: number
-          costo_maquila: number
-          costo_tela: number
-          costo_unitario: number | null
-          creado_por: string | null
-          created_at: string
-          detalle: string | null
-          es_muestra: boolean
-          estado: string
-          etapas: Json
-          fecha: string
-          fecha_entrega: string | null
-          id: string
-          inventariado_at: string | null
-          nota: string | null
-          precio_taller: number
-          producto_id: string | null
-          unidad_id: string
-          variante_id: string | null
-        }
-        Insert: {
-          cantidad: number
-          costo_avios?: number
-          costo_maquila?: number
-          costo_tela?: number
-          costo_unitario?: number | null
-          creado_por?: string | null
-          created_at?: string
-          detalle?: string | null
-          es_muestra?: boolean
-          estado?: string
-          etapas?: Json
-          fecha?: string
-          fecha_entrega?: string | null
-          id?: string
-          inventariado_at?: string | null
-          nota?: string | null
-          precio_taller?: number
-          producto_id?: string | null
-          unidad_id: string
-          variante_id?: string | null
-        }
-        Update: {
-          cantidad?: number
-          costo_avios?: number
-          costo_maquila?: number
-          costo_tela?: number
-          costo_unitario?: number | null
-          creado_por?: string | null
-          created_at?: string
-          detalle?: string | null
-          es_muestra?: boolean
-          estado?: string
-          etapas?: Json
-          fecha?: string
-          fecha_entrega?: string | null
-          id?: string
-          inventariado_at?: string | null
-          nota?: string | null
-          precio_taller?: number
-          producto_id?: string | null
-          unidad_id?: string
-          variante_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "producciones_creado_por_fkey"
-            columns: ["creado_por"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "producciones_producto_id_fkey"
-            columns: ["producto_id"]
-            isOneToOne: false
-            referencedRelation: "productos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "producciones_unidad_id_fkey"
-            columns: ["unidad_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "producciones_variante_id_fkey"
-            columns: ["variante_id"]
-            isOneToOne: false
-            referencedRelation: "variantes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      producto_atributos: {
-        Row: {
-          atributo_id: string
-          producto_id: string
-          valor_id: string | null
-          valor_texto: string | null
-        }
-        Insert: {
-          atributo_id: string
-          producto_id: string
-          valor_id?: string | null
-          valor_texto?: string | null
-        }
-        Update: {
-          atributo_id?: string
-          producto_id?: string
-          valor_id?: string | null
-          valor_texto?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "producto_atributos_atributo_id_fkey"
-            columns: ["atributo_id"]
-            isOneToOne: false
-            referencedRelation: "taxonomia_atributos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "producto_atributos_producto_id_fkey"
-            columns: ["producto_id"]
-            isOneToOne: false
-            referencedRelation: "productos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "producto_atributos_valor_id_fkey"
-            columns: ["valor_id"]
-            isOneToOne: false
-            referencedRelation: "taxonomia_valores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       productos: {
         Row: {
-          importacion_id: string | null
           categoria_id: string | null
-          codigo: string | null
-          costo_mano_obra: number | null
           created_at: string
           descripcion: string | null
           estado: string
-          foto_url: string | null
-          genero: string | null
           id: string
-          marca: string | null
-          material: string | null
-          proveedor_id: string | null
           referencia: string
-          sku_padre: string
-          temporada: string | null
-          updated_at: string
         }
         Insert: {
-          importacion_id?: string | null
           categoria_id?: string | null
-          codigo?: string | null
-          costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
           estado?: string
-          foto_url?: string | null
-          genero?: string | null
           id?: string
-          marca?: string | null
-          material?: string | null
-          proveedor_id?: string | null
           referencia: string
-          sku_padre: string
-          temporada?: string | null
-          updated_at?: string
         }
         Update: {
-          importacion_id?: string | null
           categoria_id?: string | null
-          codigo?: string | null
-          costo_mano_obra?: number | null
           created_at?: string
           descripcion?: string | null
           estado?: string
-          foto_url?: string | null
-          genero?: string | null
           id?: string
-          marca?: string | null
-          material?: string | null
-          proveedor_id?: string | null
           referencia?: string
-          sku_padre?: string
-          temporada?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
@@ -1658,13 +933,6 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "productos_proveedor_id_fkey"
-            columns: ["proveedor_id"]
-            isOneToOne: false
-            referencedRelation: "proveedores"
             referencedColumns: ["id"]
           },
         ]
@@ -1679,9 +947,9 @@ export type Database = {
           id: string
           igv: number
           items: Json
-          sede_id: string
           subtotal: number
           total: number
+          ubicacion_id: string
           usuario_id: string | null
           vence_at: string | null
         }
@@ -1694,9 +962,9 @@ export type Database = {
           id?: string
           igv?: number
           items: Json
-          sede_id: string
           subtotal?: number
           total: number
+          ubicacion_id: string
           usuario_id?: string | null
           vence_at?: string | null
         }
@@ -1709,9 +977,9 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json
-          sede_id?: string
           subtotal?: number
           total?: number
+          ubicacion_id?: string
           usuario_id?: string | null
           vence_at?: string | null
         }
@@ -1724,17 +992,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "proformas_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "proformas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proformas_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "personas"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1742,154 +1003,58 @@ export type Database = {
       proveedores: {
         Row: {
           activo: boolean
-          banco: string | null
-          categoria: string | null
           contacto: string | null
           created_at: string
-          cuenta_bancaria: string | null
-          direccion: string | null
           id: string
-          marca: string | null
           nombre: string
-          nota: string | null
           ruc: string | null
-          score: number | null
-          telefono: string | null
-          updated_at: string
         }
         Insert: {
           activo?: boolean
-          banco?: string | null
-          categoria?: string | null
           contacto?: string | null
           created_at?: string
-          cuenta_bancaria?: string | null
-          direccion?: string | null
           id?: string
-          marca?: string | null
           nombre: string
-          nota?: string | null
           ruc?: string | null
-          score?: number | null
-          telefono?: string | null
-          updated_at?: string
         }
         Update: {
           activo?: boolean
-          banco?: string | null
-          categoria?: string | null
           contacto?: string | null
           created_at?: string
-          cuenta_bancaria?: string | null
-          direccion?: string | null
           id?: string
-          marca?: string | null
           nombre?: string
-          nota?: string | null
           ruc?: string | null
-          score?: number | null
-          telefono?: string | null
-          updated_at?: string
         }
         Relationships: []
-      }
-      sede_datos_fiscales: {
-        Row: {
-          departamento: string | null
-          direccion: string | null
-          distrito: string | null
-          provincia: string | null
-          sede_id: string
-          telefono: string | null
-          ubigeo: string | null
-          updated_at: string
-        }
-        Insert: {
-          departamento?: string | null
-          direccion?: string | null
-          distrito?: string | null
-          provincia?: string | null
-          sede_id: string
-          telefono?: string | null
-          ubigeo?: string | null
-          updated_at?: string
-        }
-        Update: {
-          departamento?: string | null
-          direccion?: string | null
-          distrito?: string | null
-          provincia?: string | null
-          sede_id?: string
-          telefono?: string | null
-          ubigeo?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      sede_meta: {
-        Row: {
-          created_at: string
-          sede_id: string
-          tienda_asociada_id: string | null
-          tipo: string
-        }
-        Insert: {
-          created_at?: string
-          sede_id: string
-          tienda_asociada_id?: string | null
-          tipo: string
-        }
-        Update: {
-          created_at?: string
-          sede_id?: string
-          tienda_asociada_id?: string | null
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sede_meta_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: true
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sede_meta_tienda_asociada_id_fkey"
-            columns: ["tienda_asociada_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       series_comprobantes: {
         Row: {
           id: string
-          sede_id: string
           serie: string
           siguiente_numero: number
           tipo: string
+          ubicacion_id: string
         }
         Insert: {
           id?: string
-          sede_id: string
           serie: string
           siguiente_numero?: number
           tipo: string
+          ubicacion_id: string
         }
         Update: {
           id?: string
-          sede_id?: string
           serie?: string
           siguiente_numero?: number
           tipo?: string
+          ubicacion_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "series_comprobantes_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "series_comprobantes_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1897,50 +1062,28 @@ export type Database = {
       stock: {
         Row: {
           cantidad: number
-          contenedor_id: string | null
-          sede_id: string
-          stock_minimo: number | null
-          ultima_entrada: string | null
-          ultima_salida: string | null
-          ultima_venta: string | null
+          ubicacion_id: string
           updated_at: string
           variante_id: string
         }
         Insert: {
           cantidad?: number
-          contenedor_id?: string | null
-          sede_id: string
-          stock_minimo?: number | null
-          ultima_entrada?: string | null
-          ultima_salida?: string | null
-          ultima_venta?: string | null
+          ubicacion_id: string
           updated_at?: string
           variante_id: string
         }
         Update: {
           cantidad?: number
-          contenedor_id?: string | null
-          sede_id?: string
-          stock_minimo?: number | null
-          ultima_entrada?: string | null
-          ultima_salida?: string | null
-          ultima_venta?: string | null
+          ubicacion_id?: string
           updated_at?: string
           variante_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "stock_contenedor_id_fkey"
-            columns: ["contenedor_id"]
+            foreignKeyName: "stock_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "contenedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
           {
@@ -1952,41 +1095,77 @@ export type Database = {
           },
         ]
       }
-      stock_almacen: {
+      sububicaciones: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          tipo: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          tipo?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          tipo?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sububicaciones_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transferencia_items: {
         Row: {
           cantidad: number
-          sede_id: string
-          ultima_entrada: string | null
-          ultima_salida: string | null
-          updated_at: string
+          id: string
+          movimiento_id: string | null
+          transferencia_id: string
           variante_id: string
         }
         Insert: {
-          cantidad?: number
-          sede_id: string
-          ultima_entrada?: string | null
-          ultima_salida?: string | null
-          updated_at?: string
+          cantidad: number
+          id?: string
+          movimiento_id?: string | null
+          transferencia_id: string
           variante_id: string
         }
         Update: {
           cantidad?: number
-          sede_id?: string
-          ultima_entrada?: string | null
-          ultima_salida?: string | null
-          updated_at?: string
+          id?: string
+          movimiento_id?: string | null
+          transferencia_id?: string
           variante_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "stock_almacen_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "transferencia_items_movimiento_fkey"
+            columns: ["movimiento_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "movimientos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stock_almacen_variante_id_fkey"
+            foreignKeyName: "transferencia_items_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_items_variante_id_fkey"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes"
@@ -1994,195 +1173,157 @@ export type Database = {
           },
         ]
       }
-      taxonomia_atributos: {
+      transferencias: {
         Row: {
-          descripcion: string | null
-          handle: string
+          creado_por: string | null
+          created_at: string
+          estado: string
           id: string
-          nombre: string
+          nota: string | null
+          ubicacion_destino_id: string
+          ubicacion_origen_id: string
         }
         Insert: {
-          descripcion?: string | null
-          handle: string
-          id: string
-          nombre: string
-        }
-        Update: {
-          descripcion?: string | null
-          handle?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
           id?: string
-          nombre?: string
-        }
-        Relationships: []
-      }
-      taxonomia_categoria_atributos: {
-        Row: {
-          atributo_id: string
-          categoria_id: string
-        }
-        Insert: {
-          atributo_id: string
-          categoria_id: string
+          nota?: string | null
+          ubicacion_destino_id: string
+          ubicacion_origen_id: string
         }
         Update: {
-          atributo_id?: string
-          categoria_id?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nota?: string | null
+          ubicacion_destino_id?: string
+          ubicacion_origen_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "taxonomia_categoria_atributos_atributo_id_fkey"
-            columns: ["atributo_id"]
+            foreignKeyName: "transferencias_ubicacion_destino_id_fkey"
+            columns: ["ubicacion_destino_id"]
             isOneToOne: false
-            referencedRelation: "taxonomia_atributos"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "taxonomia_categoria_atributos_categoria_id_fkey"
-            columns: ["categoria_id"]
+            foreignKeyName: "transferencias_ubicacion_origen_id_fkey"
+            columns: ["ubicacion_origen_id"]
             isOneToOne: false
-            referencedRelation: "taxonomia_categorias"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
       }
-      taxonomia_categorias: {
+      ubicacion_datos_fiscales: {
         Row: {
-          id: string
-          nivel: number
-          nombre: string
-          padre_id: string | null
-          ruta: string
-          vertical: string
+          departamento: string | null
+          direccion: string | null
+          distrito: string | null
+          provincia: string | null
+          telefono: string | null
+          ubicacion_id: string
+          ubigeo: string | null
+          updated_at: string
         }
         Insert: {
-          id: string
-          nivel: number
-          nombre: string
-          padre_id?: string | null
-          ruta: string
-          vertical: string
+          departamento?: string | null
+          direccion?: string | null
+          distrito?: string | null
+          provincia?: string | null
+          telefono?: string | null
+          ubicacion_id: string
+          ubigeo?: string | null
+          updated_at?: string
         }
         Update: {
-          id?: string
-          nivel?: number
-          nombre?: string
-          padre_id?: string | null
-          ruta?: string
-          vertical?: string
+          departamento?: string | null
+          direccion?: string | null
+          distrito?: string | null
+          provincia?: string | null
+          telefono?: string | null
+          ubicacion_id?: string
+          ubigeo?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "taxonomia_categorias_padre_id_fkey"
-            columns: ["padre_id"]
-            isOneToOne: false
-            referencedRelation: "taxonomia_categorias"
+            foreignKeyName: "ubicacion_datos_fiscales_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: true
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
       }
-      taxonomia_valores: {
+      ubicaciones: {
         Row: {
-          atributo_id: string
-          handle: string
+          activo: boolean
+          created_at: string
           id: string
           nombre: string
+          sede_dynamic_id: string | null
+          tipo: string
         }
         Insert: {
-          atributo_id: string
-          handle: string
-          id: string
+          activo?: boolean
+          created_at?: string
+          id?: string
           nombre: string
+          sede_dynamic_id?: string | null
+          tipo: string
         }
         Update: {
-          atributo_id?: string
-          handle?: string
+          activo?: boolean
+          created_at?: string
           id?: string
           nombre?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "taxonomia_valores_atributo_id_fkey"
-            columns: ["atributo_id"]
-            isOneToOne: false
-            referencedRelation: "taxonomia_atributos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      taxonomia_versiones: {
-        Row: {
-          cargada_en: string
-          es_activa: boolean
-          version: string
-        }
-        Insert: {
-          cargada_en?: string
-          es_activa?: boolean
-          version: string
-        }
-        Update: {
-          cargada_en?: string
-          es_activa?: boolean
-          version?: string
+          sede_dynamic_id?: string | null
+          tipo?: string
         }
         Relationships: []
       }
       variantes: {
         Row: {
-          codigo: string | null
-          color: string | null
-          color_id: string | null
+          activo: boolean
+          color_codigo: string | null
           costo: number
           created_at: string
-          foto_url: string | null
           id: string
           precio: number
-          precio_oferta: number | null
-          precio_taller: number
           producto_id: string
           sku: string
-          stock_minimo: number
           talla: string | null
-          updated_at: string
         }
         Insert: {
-          codigo?: string | null
-          color?: string | null
-          color_id?: string | null
+          activo?: boolean
+          color_codigo?: string | null
           costo?: number
           created_at?: string
-          foto_url?: string | null
           id?: string
-          precio?: number
-          precio_oferta?: number | null
-          precio_taller?: number
+          precio: number
           producto_id: string
           sku: string
-          stock_minimo?: number
           talla?: string | null
-          updated_at?: string
         }
         Update: {
-          codigo?: string | null
-          color?: string | null
-          color_id?: string | null
+          activo?: boolean
+          color_codigo?: string | null
           costo?: number
           created_at?: string
-          foto_url?: string | null
           id?: string
           precio?: number
-          precio_oferta?: number | null
-          precio_taller?: number
           producto_id?: string
           sku?: string
-          stock_minimo?: number
           talla?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "variantes_color_id_fkey"
-            columns: ["color_id"]
+            foreignKeyName: "variantes_color_codigo_fkey"
+            columns: ["color_codigo"]
             isOneToOne: false
             referencedRelation: "colores"
             referencedColumns: ["codigo"]
@@ -2196,38 +1337,109 @@ export type Database = {
           },
         ]
       }
+      venta_items: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          descuento_unitario: number
+          id: string
+          precio_unitario: number
+          subtotal: number | null
+          variante_id: string
+          venta_id: string
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario: number
+          descuento_unitario?: number
+          id?: string
+          precio_unitario: number
+          subtotal?: number | null
+          variante_id: string
+          venta_id: string
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          descuento_unitario?: number
+          id?: string
+          precio_unitario?: number
+          subtotal?: number | null
+          variante_id?: string
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venta_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venta_items_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venta_pagos: {
+        Row: {
+          id: string
+          metodo: string
+          monto: number
+          venta_id: string
+        }
+        Insert: {
+          id?: string
+          metodo: string
+          monto: number
+          venta_id: string
+        }
+        Update: {
+          id?: string
+          metodo?: string
+          monto?: number
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venta_pagos_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventas: {
         Row: {
-          caja_id: string
+          caja_id: string | null
+          cliente_id: string | null
           created_at: string
           id: string
-          metodo_pago: string
-          monto_total: number
-          nota: string | null
-          sede_id: string
           token_cliente: string | null
+          ubicacion_id: string
           usuario_id: string | null
         }
         Insert: {
-          caja_id: string
+          caja_id?: string | null
+          cliente_id?: string | null
           created_at?: string
           id?: string
-          metodo_pago: string
-          monto_total: number
-          nota?: string | null
-          sede_id: string
           token_cliente?: string | null
+          ubicacion_id: string
           usuario_id?: string | null
         }
         Update: {
-          caja_id?: string
+          caja_id?: string | null
+          cliente_id?: string | null
           created_at?: string
           id?: string
-          metodo_pago?: string
-          monto_total?: number
-          nota?: string | null
-          sede_id?: string
           token_cliente?: string | null
+          ubicacion_id?: string
           usuario_id?: string | null
         }
         Relationships: [
@@ -2239,120 +1451,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ventas_sede_id_fkey"
-            columns: ["sede_id"]
+            foreignKeyName: "ventas_cliente_id_fkey"
+            columns: ["cliente_id"]
             isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ventas_usuario_id_fkey"
-            columns: ["usuario_id"]
+            foreignKeyName: "ventas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
             isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ventas_historicas_mensuales: {
-        Row: {
-          anio: number
-          id: string
-          mes: number
-          monto: number
-          sede_id: string
-        }
-        Insert: {
-          anio: number
-          id?: string
-          mes: number
-          monto?: number
-          sede_id: string
-        }
-        Update: {
-          anio?: number
-          id?: string
-          mes?: number
-          monto?: number
-          sede_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ventas_historicas_mensuales_sede_id_fkey"
-            columns: ["sede_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
       }
     }
     Views: {
-      personas: {
-        Row: {
-          auth_user_id: string | null
-          email: string | null
-          estado: string | null
-          id: string | null
-          nombre: string | null
-          rol: string | null
-          sede_id: string | null
-        }
-        Insert: {
-          auth_user_id?: string | null
-          email?: string | null
-          estado?: string | null
-          id?: string | null
-          nombre?: never
-          rol?: never
-          sede_id?: string | null
-        }
-        Update: {
-          auth_user_id?: string | null
-          email?: string | null
-          estado?: string | null
-          id?: string | null
-          nombre?: never
-          rol?: never
-          sede_id?: string | null
-        }
-        Relationships: []
-      }
-      sedes: {
-        Row: {
-          activo: boolean | null
-          codigo: string | null
-          id: string | null
-          nombre: string | null
-          tienda_asociada_id: string | null
-          tipo: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sede_meta_tienda_asociada_id_fkey"
-            columns: ["tienda_asociada_id"]
-            isOneToOne: false
-            referencedRelation: "sedes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       abrir_caja: {
-        Args: { p_monto_apertura: number; p_sede_id: string }
+        Args: { p_monto_apertura: number; p_ubicacion_id: string }
         Returns: string
       }
       abrir_conteo: {
-        Args: {
-          p_alcance?: string
-          p_alcance_categoria_id?: string
-          p_alcance_contenedor_id?: string
-          p_alcance_familia?: string
-          p_nombre?: string
-          p_sede_id: string
-          p_ubicacion?: string
-        }
+        Args: { p_sububicacion_id?: string; p_ubicacion_id: string }
         Returns: string
       }
       actualizar_transmision_comprobante: {
@@ -2374,102 +1498,35 @@ export type Database = {
         }
         Returns: undefined
       }
-      anular_conteo: {
-        Args: { p_conteo_id: string; p_motivo: string }
+      aprobar_devolucion: {
+        Args: {
+          p_devolucion_id: string
+          p_reembolso_metodo?: string
+          p_reembolso_monto?: number
+        }
         Returns: undefined
       }
-      bajar_a_piso: {
-        Args: {
-          p_cantidad: number
-          p_nota?: string
-          p_sede_id: string
-          p_variante_id: string
-        }
-        Returns: string
-      }
-      catalogo_con_stock: {
-        Args: never
-        Returns: {
-          categoria: string
-          color: string
-          costo: number
-          created_at: string
-          estado: string
-          familia: string
-          foto_url: string
-          marca: string
-          minimo_por_sede: Json
-          precio: number
-          producto_id: string
-          referencia: string
-          sku: string
-          stock_minimo: number
-          stock_por_sede: Json
-          talla: string
-          ultima_venta: string
-          variante_id: string
-        }[]
-      }
       cerrar_caja: {
-        Args: { p_caja_id: string; p_monto_contado: number }
+        Args: { p_caja_id: string; p_monto_real: number }
         Returns: {
           diferencia: number
-          monto_contado: number
-          monto_esperado: number
+          monto_real: number
+          monto_sistema: number
         }[]
       }
       cerrar_conteo: {
         Args: { p_conteo_id: string }
         Returns: {
           lineas_ajustadas: number
-          lineas_totales: number
           unidades_faltantes: number
           unidades_sobrantes: number
         }[]
       }
-      cerrar_produccion: {
-        Args: {
-          p_buenas: Json
-          p_costo_avios: number
-          p_costo_maquila: number
-          p_costo_tela: number
-          p_produccion_id: string
-        }
-        Returns: undefined
-      }
       conteo_contar: {
         Args: {
-          p_cantidad: number
-          p_contenedor_id?: string
+          p_cantidad_contada: number
           p_conteo_id: string
-          p_modo?: string
           p_variante_id: string
-        }
-        Returns: string
-      }
-      conteo_contar_por_codigo: {
-        Args: {
-          p_cantidad?: number
-          p_codigo: string
-          p_conteo_id: string
-          p_modo?: string
-        }
-        Returns: string
-      }
-      conteo_crear_variante: {
-        Args: {
-          p_cantidad: number
-          p_categoria_id?: string
-          p_codigo_barras?: string
-          p_color_codigo: string
-          p_contenedor_id?: string
-          p_conteo_id: string
-          p_costo?: number
-          p_precio?: number
-          p_producto_id?: string
-          p_referencia: string
-          p_sku?: string
-          p_talla: string
         }
         Returns: string
       }
@@ -2484,16 +1541,12 @@ export type Database = {
         }
         Returns: string
       }
-      crear_producto_con_variantes: {
+      crear_devolucion: {
         Args: {
-          p_categoria_id?: string
-          p_genero?: string
-          p_marca?: string
-          p_proveedor_id?: string
-          p_referencia: string
-          p_sku_padre: string
-          p_temporada?: string
-          p_variantes: Json
+          p_items: Json
+          p_motivo: string
+          p_ubicacion_id: string
+          p_venta_id: string
         }
         Returns: string
       }
@@ -2503,29 +1556,12 @@ export type Database = {
           p_cliente_num_doc?: string
           p_igv: number
           p_items: Json
-          p_sede_id: string
           p_subtotal: number
           p_total: number
+          p_ubicacion_id: string
           p_vence_at?: string
         }
         Returns: string
-      }
-      deshacer_importacion: {
-        Args: { p_importacion_id: string }
-        Returns: Json
-      }
-      devolver_a_almacen: {
-        Args: {
-          p_cantidad: number
-          p_nota?: string
-          p_sede_id: string
-          p_variante_id: string
-        }
-        Returns: string
-      }
-      eliminar_produccion: {
-        Args: { p_produccion_id: string }
-        Returns: undefined
       }
       emitir_comprobante: {
         Args: {
@@ -2534,10 +1570,10 @@ export type Database = {
           p_cliente_tipo_doc?: string
           p_igv: number
           p_items?: Json
-          p_sede_id: string
           p_subtotal: number
           p_tipo: string
           p_total: number
+          p_ubicacion_id: string
           p_venta_id?: string
         }
         Returns: string
@@ -2554,196 +1590,134 @@ export type Database = {
         }
         Returns: string
       }
-      es_lider: { Args: never; Returns: boolean }
-      es_supervisor: { Args: never; Returns: boolean }
-      fijar_stock_minimo: {
-        Args: { p_minimo?: number; p_sede_id: string; p_variante_id: string }
-        Returns: undefined
-      }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
-      fn_asignar_codigo_producto: {
-        Args: { p_producto_id: string }
-        Returns: string
+      fn_es_lider: { Args: never; Returns: boolean }
+      fn_nombres_personas: {
+        Args: { p_ids: string[] }
+        Returns: {
+          id: string
+          nombre: string
+        }[]
       }
-      fn_asignar_codigo_variante: {
-        Args: { p_variante_id: string }
-        Returns: string
+      fn_persona_actual_resumen: {
+        Args: never
+        Returns: {
+          es_lider: boolean
+          nombre: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+          ubicacion_tipo: string
+        }[]
       }
-      fn_clave_texto: { Args: { p: string }; Returns: string }
-      fn_codigo_tres_letras: {
-        Args: { p_nombre: string; p_tabla: string }
-        Returns: string
-      }
-      fn_componer_codigo_variante: {
-        Args: { p_base: string; p_color_id: string; p_talla: string }
-        Returns: string
-      }
-      fn_familia_color_de_universal: {
-        Args: { p_valor_id: string }
-        Returns: string
-      }
-      fn_familia_de_universal: {
-        Args: { p_categoria_id: string }
-        Returns: string
+      fn_puede_operar_ubicacion: {
+        Args: { p_ubicacion_id: string }
+        Returns: boolean
       }
       fn_reservar_numero_serie: {
-        Args: { p_sede_id: string; p_tipo: string }
+        Args: { p_tipo: string; p_ubicacion_id: string }
         Returns: {
           numero: number
           serie: string
         }[]
       }
-      fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
-      fn_token_talla: { Args: { p_talla: string }; Returns: string }
-      importar_catalogo: { Args: { p_catalogo: Json }; Returns: Json }
-      mi_sede: { Args: never; Returns: string }
-      persona_actual: {
-        Args: never
+      fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_ventas_del_dia: {
+        Args: { p_ubicacion_id?: string }
         Returns: {
-          auth_user_id: string
-          email: string
-          id: string
-          nombre: string
-          rol: string
-          sede_id: string
+          cliente_nombre: string
+          comprobante_estado: string
+          comprobante_texto: string
+          comprobante_tipo: string
+          hora: string
+          items: Json
+          metodos_pago: string
+          total: number
+          ubicacion_nombre: string
+          vendedor: string
+          venta_id: string
         }[]
       }
-      previsualizar_cierre_conteo: {
-        Args: { p_conteo_id: string }
-        Returns: {
-          codigo: string
-          color: string
-          contada: number
-          diferencia: number
-          origen: string
-          referencia: string
-          sistema: number
-          talla: string
-          variante_id: string
-        }[]
-      }
-      puede_operar_sede: { Args: { p_sede_id: string }; Returns: boolean }
       recalcular_stock: { Args: never; Returns: undefined }
+      rechazar_devolucion: {
+        Args: { p_devolucion_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       recibir_lote: {
         Args: {
           p_items: Json
           p_nota?: string
           p_numero_guia?: string
           p_orden_compra_id?: string
-          p_origen: string
-          p_proveedor?: string
-          p_sede_id: string
+          p_proveedor_id: string
+          p_ubicacion_id: string
         }
         Returns: string
       }
-      registrar_asiento: {
+      registrar_cambio: {
         Args: {
-          p_fecha?: string
-          p_glosa: string
-          p_lineas: Json
-          p_origen: string
-          p_referencia_id?: string
-          p_referencia_tipo?: string
-          p_unidad_id: string
-        }
-        Returns: string
-      }
-      registrar_codigo_barras: {
-        Args: {
-          p_codigo: string
-          p_nota?: string
-          p_origen?: string
-          p_variante_id: string
-        }
-        Returns: string
-      }
-      registrar_deposito: {
-        Args: {
-          p_fecha?: string
-          p_monto: number
-          p_nota?: string
-          p_sede_id: string
-        }
-        Returns: string
-      }
-      registrar_gasto: {
-        Args: {
-          p_categoria: string
-          p_especificacion?: string
-          p_igv: number
-          p_sede_id: string
-          p_subtotal: number
-          p_total: number
+          p_cantidad?: number
+          p_metodo_pago_diferencia?: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_nueva_id: string
+          p_venta_item_id: string
         }
         Returns: string
       }
       registrar_movimiento: {
         Args: {
-          p_canal?: string
           p_cantidad: number
-          p_contenedor_id?: string
-          p_lote_id?: string
-          p_monto?: number
           p_motivo?: string
           p_nota?: string
-          p_sede_destino_id?: string
-          p_sede_id: string
           p_tipo: string
+          p_ubicacion_id: string
           p_variante_id: string
-          p_venta_id?: string
         }
         Returns: string
       }
-      registrar_produccion: {
+      registrar_movimiento_caja: {
         Args: {
-          p_cantidad: number
-          p_categoria_id?: string
-          p_costo_avios: number
-          p_costo_maquila: number
-          p_costo_tela: number
-          p_detalle?: string
-          p_es_muestra?: boolean
-          p_fecha_entrega?: string
-          p_marcar_terminado?: boolean
-          p_material?: string
-          p_nota?: string
-          p_precio_taller: number
-          p_producto_id?: string
-          p_referencia?: string
-          p_unidad_id: string
-          p_variantes?: Json
+          p_caja_id: string
+          p_monto: number
+          p_motivo: string
+          p_tipo: string
         }
         Returns: string
       }
       registrar_serie_comprobante: {
         Args: {
-          p_sede_id: string
           p_serie: string
           p_siguiente_numero?: number
           p_tipo: string
+          p_ubicacion_id: string
         }
         Returns: string
       }
       registrar_venta: {
         Args: {
-          p_caja_id: string
+          p_cliente_id?: string
+          p_cliente_nombre?: string
+          p_cliente_num_doc?: string
+          p_cliente_tipo_doc?: string
           p_items: Json
-          p_metodo_pago: string
-          p_nota?: string
+          p_pagos: Json
+          p_tipo_comprobante?: string
           p_token?: string
+          p_ubicacion_id: string
         }
         Returns: string
       }
-      revertir_produccion_inventario: {
-        Args: { p_produccion_id: string }
-        Returns: undefined
-      }
-      set_etapa_produccion: {
-        Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
-        Returns: undefined
+      transferir: {
+        Args: {
+          p_items: Json
+          p_nota?: string
+          p_ubicacion_destino_id: string
+          p_ubicacion_origen_id: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -2877,3 +1851,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

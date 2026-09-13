@@ -118,29 +118,3 @@ los tipos explícitos. Sin eso, `create or replace` no es un reemplazo: es una b
   `retail`. `supabase/unificacion/31_…sql` queda como remedio en reserva, no como pendiente —
   su cabecera lo dice. La consulta que lo comprueba está en esa misma cabecera y tarda diez
   segundos; vale repetirla cada vez que se toque la firma de una función.
-
-## Ampliación 2026-09-10 — la limitación de la Decisión A duró un día
-
-La Decisión A dejó escrito que la presencia solo significa «existe algo con ese nombre».
-Esa limitación era teórica hasta que dejó de serlo: `retail.recalcular_stock` en producción
-traía un arreglo —el guard de `stock_minimo`— con un comentario propio que **no existe en
-ningún archivo del repositorio**. Verificado con `grep` sobre todo el árbol. Alguien lo
-aplicó a mano en el SQL Editor y no quedó escrito.
-
-El verificador de entonces lo habría aprobado sin dudar: la función existía.
-
-**Se amplía:** para las funciones de `retail` se compara el CUERPO. Se normaliza —sin
-comentarios, sin prefijo de schema, sin espaciado— y se busca entre todas las definiciones
-que el repo tenga de ese nombre; si no coincide con ninguna, se reporta. Contra todas y no
-contra la última, porque un gemelo de `unificacion/` puede ser legítimamente distinto del
-archivo de `migrations/` y basta con que alguna lo explique.
-
-Probadas las dos alarmas a propósito antes de darlo por bueno: una función que el repo no
-define, y un cuerpo alterado a mano. Ambas se reportan; al restaurar, vuelve a 48 de 48 sin
-falsos positivos.
-
-**Lo que sigue sin cubrir, y conviene decirlo:** tablas, columnas, restricciones, índices y
-políticas se siguen comparando solo por existencia. Una columna que existe con otro tipo, o
-una policy con otro `using`, pasan el chequeo. El cuerpo de una función era el caso con
-evidencia; el resto espera a tener la suya.
-

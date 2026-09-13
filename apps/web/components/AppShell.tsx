@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
-import { SedeSwitcher } from "@/components/SedeSwitcher";
 import { Boton, Hilo } from "@/components/ui/campos";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -19,17 +18,15 @@ import { Boton, Hilo } from "@/components/ui/campos";
 // la misma pieza del `Segmentado` (que ya se desliza en horizontal) puesta de
 // canto. Estructura, ancho y respiro cambiaron; ninguna ruta lo hizo.
 
-// `sedeEtiqueta` y no `sedeCodigo`: la cabecera y el lateral dicen DÓNDE está parada la
-// persona, y para eso el código no sirve desde la unificación con Dynamic (el Taller es
-// `LIM`, la tienda de Lima es `003`). El código sigue vivo donde es identificador —
-// tablas de Finanzas, columnas de stock por sede, etiquetas impresas.
-type Persona = { nombre: string; rol: "lider" | "integrante"; sedeEtiqueta: string; sedeId: string; sedeTipo: string };
+// V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
+// ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
+// la unificación con Dynamic y hacía falta `sedeEtiqueta` aparte. Por eso acá
+// no hay campo "código": no existe en `retail.ubicaciones` (V2) y no hace
+// falta traducir nada.
+type Persona = { nombre: string; rol: "lider" | "integrante"; ubicacionEtiqueta: string };
 
 type Props = {
   persona: Persona;
-  /** Tiendas + taller para el selector del Líder (vacío para una Encargada), ya
-   *  etiquetadas y ordenadas — el layout las arma. */
-  sedesOperativas: { id: string; etiqueta: string }[];
   children: React.ReactNode;
 };
 
@@ -44,11 +41,11 @@ function Icono({ d, className }: { d: string; className?: string }) {
 const IC = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  caja: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
+  productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
-  produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.5 15.5M20 20L8.5 8.5",
-  comercial: "M4 20V10m6 10V4m6 16v-7m4 7H2",
-  finanzas: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
-  mas: "M5 12h.01M12 12h.01M19 12h.01",
+  movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
+  facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
 };
@@ -186,23 +183,17 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
    arrastrar un buscador de "próximo elemento tabulable" para un menú
    de cinco opciones. Nunca deja el foco flotando, que era el problema.
    ------------------------------------------------------------------ */
-function MenuNuevo({ esLider, esTaller, onClose }: { esLider: boolean; esTaller: boolean; onClose: () => void }) {
+// Fase UI 1 (2026-09-11) + Prioridad 1 (2026-09-12): recortado a las
+// escrituras que V2 ya tiene resueltas de punta a punta (RPC + pantalla).
+// "Nuevo producto" y "Registrar gasto" vuelven cuando su propia pantalla se
+// adapte (Fase 2/3/4) — ofrecerlas antes sería un enlace que compila y
+// revienta contra un esquema que ya no existe. "Nueva venta" exige caja
+// abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
+function MenuNuevo({ onClose }: { onClose: () => void }) {
   const acciones = [
-    // Vender y bajar a piso son de tienda. En el Taller no existen, y ofrecerlas
-    // desde el "+" seria la misma mentira que esconder del lateral por otra puerta.
-    ...(esTaller
-      ? []
-      : [
-          { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-          { href: "/inventario/almacen", etiqueta: "Bajar a tienda", detalle: "Pasar prendas del almacén al piso" },
-        ]),
-    { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo o lote al almacén" },
-    ...(esLider
-      ? [
-          { href: "/inventario/producto/nuevo", etiqueta: "Nuevo producto", detalle: "Dar de alta un modelo con sus tallas y colores" },
-          { href: "/finanzas", etiqueta: "Registrar gasto", detalle: "Alquiler, servicios, transporte…" },
-        ]
-      : []),
+    { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
+    { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a una ubicación" },
+    { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
   ];
 
   const [activo, setActivo] = useState(0);
@@ -326,13 +317,11 @@ function MenuNuevo({ esLider, esTaller, onClose }: { esLider: boolean; esTaller:
   );
 }
 
-export function AppShell({ persona, sedesOperativas, children }: Props) {
+export function AppShell({ persona, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
-  // Por TIPO, nunca por codigo: el Taller es TALLER en local y LIM en produccion.
-  const esTaller = persona.sedeTipo === "fabrica";
 
   const abrirNuevo = (e: React.MouseEvent<HTMLButtonElement>) => {
     disparadorNuevo.current = e.currentTarget;
@@ -350,34 +339,29 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
 
   const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
   const vender: Item = { href: "/vender", etiqueta: "Vender", icono: IC.vender };
+  const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
+  const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
-  const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
-  const comercial: Item = { href: "/comercial", etiqueta: "Comercial", icono: IC.comercial };
-  const finanzas: Item = { href: "/finanzas", etiqueta: "Finanzas", icono: IC.finanzas };
-  const mas: Item = { href: "/mas", etiqueta: "Más", icono: IC.mas };
+  const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
+  const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
 
-  // Dos grupos, no una lista de seis. El corte no es decorativo: "Operación"
-  // es lo que se toca con una clienta enfrente, "Dirección" es lo que se mira
-  // sentada — y coincide exactamente con lo que solo ve el Líder, así que a
-  // una Encargada el segundo grupo no le aparece vacío, no le aparece.
+  // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
+  // — Dynamic es dueño de esa identidad (alta, rol, sede, activar/
+  // desactivar), retail ya no la administra ni la duplica. Comercial y
+  // Finanzas siguen sin pantalla V2, siguen fuera por esa otra razón.
+  // "Facturación" vuelve (rescatada de producción, 0010_facturacion.sql) —
+  // líder-only, como ya era: emite documentos legales ante SUNAT.
   const grupos = [
-    // El Taller no tiene caja ni piso de venta: ofrecerle "Vender" seria abrirle
-    // la puerta a una caja abierta en una fabrica, un estado que despues alguien
-    // tiene que explicar. Produccion, en cambio, es literalmente su trabajo.
     {
-      titulo: "Operación",
-      items: [
-        inicio,
-        ...(esTaller ? [] : [vender]),
-        inventario,
-        ...(esLider || esTaller ? [produccion] : []),
-      ],
+      titulo: null,
+      items: [inicio, vender, caja, productos, inventario, movimientos, ...(esLider ? [facturacion] : [])],
     },
-    { titulo: "Dirección", items: esLider ? [comercial, finanzas] : [] },
   ].filter((g) => g.items.length > 0);
 
-  // Celular: 5 columnas fijas con el "+" al centro. El hueco es el botón.
-  const columnas: (Item | null)[] = [inicio, vender, null, inventario, mas];
+  // Celular: 5 columnas fijas con el "+" al centro. Vender y Caja son las
+  // de uso diario en el mostrador; Productos/Movimientos/Colaboradores
+  // quedan a un toque del lateral (no entran en 5 columnas fijas).
+  const columnas: (Item | null)[] = [inicio, vender, null, inventario, caja];
   const indiceMovil = columnas.findIndex((c) => c !== null && activo(c.href));
 
   const iniciales =
@@ -442,7 +426,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-tinta">{persona.nombre}</p>
               <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                {esLider ? "Líder" : esTaller ? "Taller" : "Encargada"} · {persona.sedeEtiqueta}
+                {esLider ? "Líder" : "Integrante"} · {persona.ubicacionEtiqueta}
               </p>
             </div>
             <LogoutButton />
@@ -462,12 +446,10 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
           <div className="min-w-0 flex-1 sm:max-w-sm">
             <BuscadorGlobal compacto />
           </div>
+          {/* Selector de ubicación del Líder: pendiente para Fase 2 — Inventario y
+              Recepción ya ofrecen su propio selector local mientras tanto. */}
           <div className="ml-auto shrink-0">
-            {esLider && sedesOperativas.length > 0 ? (
-              <SedeSwitcher sedes={sedesOperativas} sedeActualId={persona.sedeId} />
-            ) : (
-              <span className="label-cayla text-[11px] text-tinta/65">{persona.sedeEtiqueta}</span>
-            )}
+            <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
           </div>
         </div>
       </header>
@@ -521,7 +503,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
         </div>
       </nav>
 
-      {nuevoAbierto && <MenuNuevo esLider={esLider} esTaller={esTaller} onClose={cerrarNuevo} />}
+      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} />}
     </div>
   );
 }
