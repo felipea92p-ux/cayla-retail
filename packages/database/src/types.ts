@@ -241,6 +241,24 @@ export type Database = {
           },
         ]
       }
+      colaboradores: {
+        Row: {
+          agregado_por: string | null
+          created_at: string
+          persona_id: string
+        }
+        Insert: {
+          agregado_por?: string | null
+          created_at?: string
+          persona_id: string
+        }
+        Update: {
+          agregado_por?: string | null
+          created_at?: string
+          persona_id?: string
+        }
+        Relationships: []
+      }
       colores: {
         Row: {
           activo: boolean
@@ -1727,6 +1745,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      agregar_colaborador: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -1836,6 +1858,25 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_colaboradores: {
+        Args: never
+        Returns: {
+          agregado_en: string
+          correo: string
+          nombre: string
+          persona_id: string
+          sede: string
+        }[]
+      }
+      fn_dynamic_disponibles: {
+        Args: never
+        Returns: {
+          correo: string
+          nombre: string
+          persona_id: string
+          sede: string
+        }[]
+      }
       fn_es_lider: { Args: never; Returns: boolean }
       fn_nombres_personas: {
         Args: { p_ids: string[] }
@@ -1866,6 +1907,7 @@ export type Database = {
           serie: string
         }[]
       }
+      fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
@@ -1935,6 +1977,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {

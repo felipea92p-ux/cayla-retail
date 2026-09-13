@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Boton, Hilo } from "@/components/ui/campos";
+import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -23,10 +24,19 @@ import { Boton, Hilo } from "@/components/ui/campos";
 // la unificación con Dynamic y hacía falta `sedeEtiqueta` aparte. Por eso acá
 // no hay campo "código": no existe en `retail.ubicaciones` (V2) y no hace
 // falta traducir nada.
-type Persona = { nombre: string; rol: "lider" | "integrante"; ubicacionEtiqueta: string };
+type Persona = {
+  nombre: string;
+  rol: "lider" | "integrante";
+  ubicacionId: string;
+  ubicacionEtiqueta: string;
+  puedeCambiarUbicacion: boolean;
+};
 
 type Props = {
   persona: Persona;
+  /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
+   *  el selector, así que no hace falta traerle la lista completa. */
+  ubicaciones: { id: string; nombre: string }[];
   children: React.ReactNode;
 };
 
@@ -47,6 +57,7 @@ const IC = {
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
+  colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
 };
@@ -319,7 +330,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AppShell({ persona, children }: Props) {
+export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
@@ -347,19 +358,34 @@ export function AppShell({ persona, children }: Props) {
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   const compras: Item = { href: "/compras", etiqueta: "Compras", icono: IC.compras };
+  const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
-  // — Dynamic es dueño de esa identidad (alta, rol, sede, activar/
-  // desactivar), retail ya no la administra ni la duplica. Comercial y
-  // Finanzas siguen sin pantalla V2, siguen fuera por esa otra razón.
-  // "Facturación" vuelve (rescatada de producción, 0010_facturacion.sql) —
-  // líder-only, como ya era: emite documentos legales ante SUNAT.
+  // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
+  // desactivar) — eso sigue igual, retail no la administra ni la duplica.
+  // Vuelve el 2026-09-13 con un significado distinto y propio de retail:
+  // no "quién es esta persona" sino "a quién de Dynamic le doy entrada a
+  // retail" (0013_colaboradores_autorizados.sql — "control total temporal"
+  // de 0012 abrió la puerta a cualquiera; esto la vuelve a cerrar a una
+  // lista elegida). Comercial y Finanzas siguen sin pantalla V2, siguen
+  // fuera por esa otra razón. "Facturación" (0010_facturacion.sql) —
+  // líder-only, emite documentos legales ante SUNAT.
   const grupos = [
     {
       titulo: null,
       // Compras (ADR-0035) va después de Inventario: es de donde entra la
-      // mercadería. Líder-only como Facturación — registra facturas y pagos.
-      items: [inicio, vender, caja, productos, inventario, ...(esLider ? [compras] : []), movimientos, ...(esLider ? [facturacion] : [])],
+      // mercadería. Líder-only como Facturación y Colaboradores — registra
+      // facturas y pagos.
+      items: [
+        inicio,
+        vender,
+        caja,
+        productos,
+        inventario,
+        ...(esLider ? [compras] : []),
+        movimientos,
+        ...(esLider ? [facturacion, colaboradores] : []),
+      ],
     },
   ].filter((g) => g.items.length > 0);
 
@@ -451,17 +477,27 @@ export function AppShell({ persona, children }: Props) {
           <div className="min-w-0 flex-1 sm:max-w-sm">
             <BuscadorGlobal compacto />
           </div>
-          {/* Selector de ubicación del Líder: pendiente para Fase 2 — Inventario y
-              Recepción ya ofrecen su propio selector local mientras tanto. */}
+          {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
+              cambia toda la app de perspectiva, no solo Inventario/Recepción
+              (que ya tenían el suyo propio, local a esa pantalla). Un
+              integrante sigue viendo solo la etiqueta, sin poder tocarla. */}
           <div className="ml-auto shrink-0">
-            <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+            {persona.puedeCambiarUbicacion ? (
+              <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
+            ) : (
+              <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+            )}
           </div>
         </div>
       </header>
 
       {/* ==================== Contenido ==================== */}
+      {/* Vender es la única pantalla sin el tope de max-w-5xl: el catálogo +
+          ticket necesita todo el ancho disponible, no el de una página de
+          lectura (pedido de Felipe, 2026-09-12). El resto de la app sigue
+          centrado en la columna angosta de siempre. */}
       <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className={pathname === "/vender" ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 
       {/* ==================== Pestañas (celular) ==================== */}

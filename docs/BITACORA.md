@@ -2776,3 +2776,21 @@ Lo que Felipe se lleva: **una regla de seguridad puede estar perfectamente bien 
 onboarding igual** — "fuera de git a propósito" cerraba el riesgo real (contaminar
 producción) pero no traía consigo cómo cumplirla la primera vez. Corregir la regla habría sido
 el error; lo que faltaba era la plantilla, no menos candado.
+
+## 2026-09-12 (el mismo corte también se llevó el pre-commit, y nadie lo vio)
+
+Explicándole a Felipe el paso 2 del setup ("`pnpm install` activa el hook") salió que
+`0af2f1b` borró `.githooks/pre-commit` (tipos+tests+lint sobre lo commiteado) y el script
+`prepare` que lo activa — sin que ningún commit lo señalara, porque git, si `core.hooksPath`
+apunta a un archivo que ya no existe, no corre nada y no avisa. Restaurado byte a byte desde
+`3cfb6e2` (mismo blob, mismo modo `100755` — se había perdido el bit ejecutable en el primer
+commit porque este checkout tiene `core.filemode=false`, arreglado con `update-index
+--chmod=+x` aparte). Verificado antes de restaurar, no asumido: `apps/web`/`packages/*/src`
+siguen calzando con la estructura V2, y los tres checks pasan limpio (tsc 0 errores reales —
+el único ruido es `.next/types` desactualizado, que el propio hook clasifica como aviso no
+bloqueante, nunca como fallo; vitest 95/95; eslint limpio).
+
+Mismo patrón que el stub de arriba: un corte de núcleo grande (`0af2f1b`) se llevó por delante
+una pieza de infraestructura que no tenía nada que ver con el motivo del corte, y como el
+fallo es silencioso (git no avisa, el commit simplemente pasa) pudo haber quedado así
+indefinidamente si nadie preguntaba "¿y esto de verdad sigue haciendo lo que dice?".

@@ -9,7 +9,11 @@
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
-    "local:donde": "node scripts/local/donde-estoy.mjs"
+    "datos:generar": "node scripts/datos/generar.mjs",
+    "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",
+    "datos:comparar": "node scripts/datos/comparar.mjs --md",
+    "local:donde": "node scripts/local/donde-estoy.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

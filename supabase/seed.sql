@@ -62,6 +62,20 @@ select id, 'Rack A', 'rack' from retail.ubicaciones where nombre = 'Almacén Pri
 union all
 select id, 'Rack B', 'rack' from retail.ubicaciones where nombre = 'Almacén Principal';
 
+-- Series de boleta/factura por tienda — sin esto, `registrar_venta` revienta la
+-- venta ENTERA en cuanto se pide un comprobante ("No hay una serie registrada
+-- para boleta en esta ubicación"), porque emite el comprobante en la misma
+-- transacción (0011_venta_con_comprobante.sql). Visto el 2026-09-12 al probar
+-- Vender de punta a punta: ninguna tienda tenía serie, así que ninguna venta
+-- con boleta o factura podía completarse en local. En producción esto lo carga
+-- un Líder desde Facturación (RPC `registrar_serie`); acá se siembra directo
+-- para no depender de esa pantalla solo para poder vender en desarrollo.
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie, siguiente_numero)
+select u.id, s.tipo, s.serie, 1
+from retail.ubicaciones u
+cross join (values ('boleta', 'B001'), ('factura', 'F001')) as s(tipo, serie)
+where u.tipo = 'tienda';
+
 -- Felipe: 'admin' en el stub de Dynamic — fn_es_lider() lo mapea a líder
 -- de retail (0009_integracion_dynamic.sql).
 insert into public.personas (auth_user_id, nombres, apellidos, rol, sede_base_id)
@@ -104,6 +118,16 @@ insert into public.personas (auth_user_id, nombres, apellidos, rol, sede_base_id
 select '22222222-2222-4222-8222-000000000003', 'Micaela', 'Vendedora', 'integrante', id
 from public.sedes where codigo = 'TRU'
 on conflict (auth_user_id) do nothing;
+
+-- Colaboradores autorizados (0013): sin esto, NINGUNA de las dos cuentas
+-- de prueba locales puede entrar — fn_tiene_acceso_retail() exige estar en
+-- esta tabla, no solo activo en Dynamic. Producción tiene su propia lista
+-- real (Felipe la definió, 2026-09-13), completamente aparte de este seed.
+insert into retail.colaboradores (persona_id)
+select id from public.personas where auth_user_id in (
+  '22222222-2222-4222-8222-000000000001', '22222222-2222-4222-8222-000000000003'
+)
+on conflict (persona_id) do nothing;
 
 insert into retail.proveedores (nombre, ruc, contacto) values
   ('Textiles Andina SAC', '20512345678', 'Jorge Ramos'),
