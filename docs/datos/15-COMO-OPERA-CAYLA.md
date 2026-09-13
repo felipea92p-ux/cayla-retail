@@ -260,6 +260,8 @@ abierta.**
 | A-05 | El método de costeo del inventario (D-45) | el contador |
 | A-06 | Cuánto se compró sin factura el último mes (R-08) | nadie lo tiene — lo da el sistema |
 | A-07 | Si el costo del flete frena los traslados a Lima (R-24) | Felipe con las líderes |
+| A-08 | Si las herramientas del taller se tratan como gasto o como activo (R-51) | el contador |
+| A-09 | La lista concreta de bugs de Alegra, de foros y usuarios reales (R-52) | pendiente, nadie lo ha mirado |
 
 ---
 
@@ -490,3 +492,73 @@ personal figura cesada, no entra a retail.
 
 *Sección añadida el 2026-09-12. Reglas R-44 a R-49. Con esto, las 49 reglas cubren cómo
 compra, cómo paga, cómo produce, cómo vende y quién puede qué en CAYLA.*
+
+---
+
+## 12 · Lo que faltaba anotar
+
+> Estas cuatro salieron en la misma sesión y se escaparon de la primera pasada. Se
+> detectaron revisando el documento contra lo que Felipe había respondido, término por
+> término. Quedan acá para que la lista esté completa de verdad.
+
+**R-50 · El depósito del día debe subirse al sistema con su voucher y su número de
+operación.** Hoy la líder **le manda el voucher a Felipe por WhatsApp**. Lo que Felipe
+quiere —textual: *«lo mejor es que suban al sistema y suban el voucher y registren el
+número operación»*— es que eso viva en el sistema. *Dato duro, y lo calificó de
+excelente idea.*
+
+> **Consecuencia de diseño, y es la que desbloquea la conciliación bancaria:**
+> `depositos_bancarios` **no tiene columna para el número de operación** — hoy, si se
+> anota, va en la nota de texto libre. Sin ese número **ningún depósito se puede casar
+> contra el extracto del banco**, y la conciliación nunca llega a cero.
+>
+> La pantalla necesita tres cosas: el monto, **el número de operación**, y **la foto del
+> voucher**. Las tres, no dos: la foto sirve para auditar, el número sirve para cruzar
+> automáticamente. Una foto sola no se puede cruzar.
+>
+> Ojo con el almacenamiento de archivos: está apagado en el entorno local a propósito
+> (ADR-0010), así que esta pantalla no se va a poder probar entera en local. Conviene
+> saberlo antes de empezarla y no descubrirlo a mitad.
+
+**R-51 · Lo que CAYLA compra no son tres rubros, son cinco.** *Dato duro.* Además de
+mercadería para vender, insumos del taller y servicios de terceros:
+
+- **Insumos de limpieza y útiles de oficina.**
+- **Herramientas de apoyo del taller**: tijeras cortahilos (piqueteras), abre ojal, y
+  similares.
+
+> **Consecuencia de diseño:** las herramientas son el caso que no encaja en ninguna
+> casilla obvia. No son insumo que se consume en una prenda —una piquetera dura años— ni
+> son gasto del mes en sentido estricto. Contablemente son **activos de bajo valor**, y
+> la decisión práctica es tratarlos como gasto al comprarlos en vez de darlos de alta
+> como activo fijo. Vale confirmarlo con el contador, pero **el sistema debe permitir
+> registrarlos sin obligar a decidirlo en el momento de la compra.**
+
+**R-52 · Qué NO repetir de Alegra.** Es el sistema que CAYLA usa hoy y Felipe lo describe
+sin rodeos. Sus quejas, textuales, son requisitos en negativo:
+
+| Lo que falla | Qué significa para lo que construimos |
+|---|---|
+| **Es lento: cada clic espera al servidor** | Es de arquitectura, no de pantalla. Es exactamente lo que ataca la decisión local-first (D-49, ADR-0013, ADR-0018) |
+| **No deja registrar los asesores de atención al cliente de forma dinámica** | Ver R-17: hoy no se sabe quién vendió qué. Sin eso no hay comisiones, ni ranking, ni forma de saber si una tienda vende poco por ubicación o por equipo |
+| **Los inventarios son horribles de manejar** | No entiende talla y color como matriz. Es el hueco de mercado que la propia investigación de CAYLA identifica como su ventaja |
+| **Los reportes no sirven o no se entienden** | Sabe facturar y no dice cómo va el negocio. Es lo que ataca R-41 |
+| **Tiene varios bugs** | Pendiente: Felipe pidió mirar foros y comentarios reales de usuarios para sacar la lista concreta. **No se ha hecho** |
+
+> **Por qué esto vale como documento:** un sistema que la gente esquiva no falla por
+> falta de funciones, falla por fricción. Esta tabla es la lista de fricciones que ya
+> sabemos que existen — y que ya le costaron a CAYLA ventas sin facturar en hora punta
+> (R-14, R-15).
+
+**R-53 · El sistema debería sugerir cuánto comprar.** *Pedido de Felipe*, textual: que
+sugiera **por campañas**, y usando **la demanda y la velocidad de rotación**.
+
+> **Consecuencia, y hay que decirla:** eso tiene nombre —presupuesto abierto de compra— y
+> **hoy no hay con qué construirlo**. Necesita catálogo cargado e historial de ventas por
+> talla y color, y producción tiene 28 movimientos y 2 ventas. **No se construye antes
+> del censo; se construye después.** Ponerlo antes daría sugerencias inventadas, que es
+> peor que no dar ninguna.
+
+---
+
+*Sección añadida el 2026-09-13. Reglas R-50 a R-53. Total: 53 reglas.*
