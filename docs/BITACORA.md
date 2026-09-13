@@ -3,6 +3,33 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-12 (vocabulario cerrado + activos fijos: lo rescatable de V1 se porta, no se fusiona)
+
+El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` de V2 sin el candado que evita
+duplicados ("Azul marino" vs "azul marino" — el mismo bug que V1 tuvo que pagar carísimo
+con ADR-0024) y sin código corto de prenda. Un intento real de fusionar la rama V1
+(`trix/catalogo-vocabulario`) mostró por qué no correspondía: 350 archivos tocados, la
+mayoría módulos enteros que V2 ya había borrado a propósito (Producción, Inventario V1,
+Finanzas), y `supabase/migrations/` habría quedado con los dos núcleos completos a la vez
+sin que Git lo marcara como conflicto — el peor tipo de "sin errores".
+
+Se portó en cambio solo lo que demostró valer la pena, como migraciones nuevas sobre el
+esquema real de V2: `colores_clave_unica` (el candado, vía `fn_clave_texto`) + los 30
+colores de CAYLA, `categorias.familia`/`prefijo` + las 37 reales, y el código corto
+(`BLU-0042-AZM-M`) — pero acuñado con un TRIGGER en `variantes`, no dentro de una RPC como
+en V1: V2 no tiene una única función que cree variantes, así que un trigger cierra la
+puerta para cualquier camino de escritura presente o futuro, sin depender de que cada uno
+se acuerde de llamarlo (la causa exacta de por qué 3 de 5 caminos quedaron rotos en V1).
+De paso se rescató `activos_fijos` (39 filas reales en producción, sin tabla equivalente en
+V2) simplificada — sin la FK a `cuentas_contables` que V1 tenía, porque Contabilidad sigue
+sin dato real y no se está reconstruyendo hoy.
+
+Lo que Felipe se lleva: **un merge "sin conflictos" no es lo mismo que un merge sano** — Git
+solo avisa cuando dos lados tocan la misma línea; cuando un lado borra un archivo entero y
+el otro nunca lo tocó, no hay conflicto que resolver, solo una pérdida silenciosa. La
+pregunta correcta no era "¿hay errores?" sino "¿qué se pierde?" — y la respuesta salió de
+mirar las filas reales de producción, no de adivinar.
+
 ## 2026-09-10 (el estándar universal va debajo, no en lugar de)
 
 Felipe preguntó si se podía usar IA para importar el inventario de cada cliente
@@ -255,6 +282,28 @@ esa entrada abajo), Fase 0.5 de tokens de diseño empezada, y Proveedores
 combinan sin perder nada). Backlog actualizado para reflejar el estado real:
 Lucode reemplaza a Nubefact en toda referencia, con el trámite pendiente que
 le toca a Felipe (alta como PSE tercero en SUNAT SOL, no antes de mañana).
+
+## 2026-09-05 (hook de pre-commit: el linter deja de ser opcional)
+`pnpm lint` llevaba días en rojo y nadie lo veía — así se coló a producción el
+`Date.now()` en el render de Proformas y un renombrado a medias que rompía el
+build. Se puso `.githooks/pre-commit`, activado solo con `pnpm install` (script
+`prepare` que apunta `core.hooksPath`, cero dependencias nuevas: es todo lo que
+hace husky).
+
+Lo que manda de la decisión fueron los NÚMEROS, no la opinión: `eslint` sobre el
+proyecto entero tarda **4 min 15 s**; sobre los archivos de un commit, ~15 s.
+Un hook de cuatro minutos no protege nada porque se saltea con `--no-verify` a la
+tercera vez. Por eso revisa solo lo que estás commiteando: tipos (7,5 s), tests
+(10 s) y lint (14 s) — ~19 s en total, y 0,5 s si el commit es solo de
+documentación o SQL. Se añadió `tsc` además de lo pedido porque era lo único que
+habría cazado el error que rompió el build hoy; los errores de tipos de archivos
+AJENOS avisan pero no bloquean, para que el trabajo a medias de otra sesión no
+te secuestre un commit terminado.
+
+Probado en los cinco escenarios antes de darlo por bueno: commit de solo docs
+(pasa en 0,5 s), error de lint (bloquea y señala la línea), error de tipos propio
+(bloquea), error de tipos ajeno (avisa y deja pasar), y todo limpio (pasa en
+18,7 s). Un hook sin probar es un hook que no existe.
 
 ## 2026-09-05 (el entorno local por fin existe)
 Felipe pidió arreglar lo del Supabase local. Eran tres causas encadenadas, no

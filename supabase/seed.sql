@@ -133,15 +133,20 @@ insert into retail.proveedores (nombre, ruc, contacto) values
   ('Textiles Andina SAC', '20512345678', 'Jorge Ramos'),
   ('Confecciones del Sur EIRL', '20498765432', 'Lucía Paredes');
 
+-- `on conflict do nothing`: el vocabulario cerrado real (20260912235500_vocabulario_cerrado.sql)
+-- ya trae "Blusas", "Vestidos", "Pantalones", "Faldas" y los 5 colores de abajo con su
+-- código real — este seed es solo demo local, no pisa esas filas si ya existen.
 insert into retail.categorias (nombre) values
-  ('Blusas'), ('Vestidos'), ('Pantalones'), ('Faldas'), ('Casacas');
+  ('Blusas'), ('Vestidos'), ('Pantalones'), ('Faldas'), ('Casacas')
+  on conflict (nombre) do nothing;
 
 insert into retail.colores (codigo, nombre, hex) values
   ('NEG', 'Negro', '#1a1a18'),
   ('BLA', 'Blanco', '#f5f0e8'),
   ('BEI', 'Beige', '#d8c3a5'),
   ('AZM', 'Azul Marino', '#1f3a5f'),
-  ('ROS', 'Rosa', '#e8a5b0');
+  ('ROS', 'Rosa', '#e8a5b0')
+  on conflict (codigo) do nothing;
 
 insert into retail.clientes (tipo_doc, num_doc, nombre, telefono) values
   ('dni', '45612378', 'Valeria Chávez', '987111222'),
@@ -241,7 +246,7 @@ do $$
 declare
   ubic_almacen uuid; ubic_lima uuid; ubic_trujillo uuid;
   prov_andina uuid; prov_sur uuid;
-  oc1_id uuid; oc2_id uuid;
+  compra1_id uuid; compra2_id uuid; compra3_id uuid;
   venta1_id uuid; venta2_id uuid; venta3_id uuid;
   vi_vestido uuid; vi_pantalon uuid; vi_blusa_emma uuid;
   devolucion1_id uuid; conteo1_id uuid; cambio1_id uuid;
@@ -256,34 +261,70 @@ begin
   select id into prov_andina from retail.proveedores where nombre = 'Textiles Andina SAC';
   select id into prov_sur from retail.proveedores where nombre = 'Confecciones del Sur EIRL';
 
-  -- ---------- compras y recepción ----------
-  insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, fecha_estimada, monto_estimado)
-    values (prov_andina, ubic_almacen, current_date + 3, 4200.00) returning id into oc1_id;
-  insert into retail.ordenes_compra_items (orden_id, variante_id, cantidad, costo_unitario)
-    select oc1_id, v.id, 20, v.costo from retail.variantes v join retail.productos p on p.id = v.producto_id
-    where p.referencia in ('Blusa Emma', 'Blusa Valentina');
-  perform retail.recibir_lote(ubic_almacen, prov_andina,
-    (select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 20, 'costo_unitario', v.costo))
+  -- ---------- compras: la factura es el eje (migración compras_desde_factura) ----------
+  -- Factura 1 (Textiles Andina, AL CONTADO, líneas DETALLADAS por variante):
+  -- el pago va en la misma llamada — al contado es obligatorio.
+  select retail.registrar_compra(
+    prov_andina, 'F001', '000210', 'contado', ubic_almacen,
+    (select jsonb_agg(jsonb_build_object('producto_id', p.id, 'variante_id', v.id, 'cantidad', 20, 'costo_unitario', v.costo))
        from retail.variantes v join retail.productos p on p.id = v.producto_id
        where p.referencia in ('Blusa Emma', 'Blusa Valentina')),
-    oc1_id, 'GUIA-001-2026', 'Recepción completa OC1');
+    p_pago => jsonb_build_object('monto', (
+        select round(sum(20 * v.costo) * 1.18, 2)
+          from retail.variantes v join retail.productos p on p.id = v.producto_id
+          where p.referencia in ('Blusa Emma', 'Blusa Valentina')),
+      'metodo', 'transferencia', 'referencia', 'BCP-7781'),
+    p_nota => 'Factura al contado, detallada por talla/color'
+  ) into compra1_id;
+  -- recepción completa de la factura 1, con su guía
+  perform retail.recibir_compras(ubic_almacen,
+    (select jsonb_agg(jsonb_build_object('compra_item_id', ci.id, 'variante_id', ci.variante_id, 'cantidad', ci.cantidad))
+       from retail.compra_items ci where ci.compra_id = compra1_id),
+    'GUIA-001-2026', 'Recepción completa F001-000210');
 
-  insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, fecha_estimada, monto_estimado)
-    values (prov_sur, ubic_almacen, current_date + 5, 6800.00) returning id into oc2_id;
-  insert into retail.ordenes_compra_items (orden_id, variante_id, cantidad, costo_unitario)
-    select oc2_id, v.id, 15, v.costo from retail.variantes v join retail.productos p on p.id = v.producto_id
-    where p.referencia in ('Vestido Sofía', 'Vestido Antonella', 'Casaca Ximena', 'Casaca Luciana');
-  perform retail.recibir_lote(ubic_almacen, prov_sur,
-    (select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 15, 'costo_unitario', v.costo))
+  -- Factura 2 (Confecciones del Sur, AL CRÉDITO a 30 días, líneas AGRUPADAS por
+  -- modelo: el proveedor factura "Vestido Sofía x 30" sin desglosar talla/color).
+  -- Sin pago: cae en "Por pagar".
+  select retail.registrar_compra(
+    prov_sur, 'F002', '001045', 'credito', ubic_almacen,
+    (select jsonb_agg(jsonb_build_object('producto_id', x.id, 'descripcion', x.referencia || ' surtido', 'cantidad', 30 * x.n, 'costo_unitario', x.costo))
+       from (select p.id, p.referencia, min(v.costo) as costo, count(v.id) as n
+               from retail.productos p join retail.variantes v on v.producto_id = p.id
+               where p.referencia in ('Vestido Sofía', 'Vestido Antonella', 'Casaca Ximena', 'Casaca Luciana')
+               group by p.id, p.referencia) x),
+    p_fecha_vencimiento => current_date + 30,
+    p_nota => 'Factura al crédito, agrupada por modelo'
+  ) into compra2_id;
+  -- recepción PARCIAL de la factura 2: de cada modelo llega la mitad (15 por
+  -- talla/color de 30), repartida por variante — acá se hace el desglose que
+  -- la factura no trajo
+  perform retail.recibir_compras(ubic_almacen,
+    (select jsonb_agg(jsonb_build_object('compra_item_id', ci.id, 'variante_id', v.id, 'cantidad', 15))
+       from retail.compra_items ci
+       join retail.variantes v on v.producto_id = ci.producto_id
+       where ci.compra_id = compra2_id),
+    'GUIA-014-2026', 'Primera entrega F002-001045, falta la mitad');
+
+  -- Factura 3 (Textiles Andina, crédito ya VENCIDO, sin recibir): para que
+  -- "Por pagar" muestre una vencida desde el primer día.
+  select retail.registrar_compra(
+    prov_andina, 'F001', '000198', 'credito', ubic_lima,
+    (select jsonb_agg(jsonb_build_object('producto_id', p.id, 'variante_id', v.id, 'cantidad', 10, 'costo_unitario', v.costo))
        from retail.variantes v join retail.productos p on p.id = v.producto_id
-       where p.referencia in ('Vestido Sofía', 'Vestido Antonella', 'Casaca Ximena', 'Casaca Luciana')),
-    oc2_id, 'GUIA-014-2026', 'Recepción completa OC2');
+       where p.referencia in ('Pantalón Carla', 'Pantalón Mía')),
+    p_fecha_emision => current_date - 45,
+    p_fecha_vencimiento => current_date - 15,
+    p_nota => 'Crédito vencido, pendiente de recibir'
+  ) into compra3_id;
+  -- un pago parcial contra la factura 3
+  perform retail.registrar_pago_compra(compra3_id, 200.00, 'yape', 'YAPE-3391');
 
+  -- mercadería sin factura (producción propia / ajuste): sigue existiendo recibir_lote
   perform retail.recibir_lote(ubic_almacen, prov_andina,
     (select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 18, 'costo_unitario', v.costo))
        from retail.variantes v join retail.productos p on p.id = v.producto_id
        where p.referencia in ('Pantalón Carla', 'Pantalón Mía', 'Falda Renata', 'Falda Ariana')),
-    null, 'GUIA-002-SIN-OC', 'Mercadería adicional, sin orden previa');
+    'GUIA-002-SIN-FACTURA', 'Mercadería adicional, sin factura');
 
   -- ---------- transferencias ----------
   perform retail.transferir(ubic_almacen, ubic_lima,

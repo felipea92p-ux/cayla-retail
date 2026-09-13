@@ -74,7 +74,10 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 **Producción de retail NO vive en su propio proyecto Supabase — vive DENTRO del
 proyecto de cayla-dynamic, en un schema llamado `retail`.** Verificado 2026-09-03:
 `select schema_name from information_schema.schemata where schema_name = 'retail'`
-devuelve la fila, con 28 tablas ahí adentro (más que las ~22 que prometía la
+devuelve la fila. **Verificado el 2026-09-12 preguntándole a la base: 45 tablas y 2
+vistas** — no 28, no 36, no 44; esos números circulaban en tres documentos distintos y
+ninguno era el bueno. El conteo al día vive en `docs/datos/generado/DICCIONARIO-RETAIL.md`
+y se regenera con `pnpm datos:generar:produccion`. (Históricamente eran ~22 según la
 unificación original — las migraciones de producción `0024`-`0029`, posteriores,
 sumaron tablas propias). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al
 proyecto de Dynamic, no al proyecto original de retail.
