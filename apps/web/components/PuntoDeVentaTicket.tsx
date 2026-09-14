@@ -2,6 +2,7 @@
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import type { MomentoTicket } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { ID_CARGO_ESPECIAL, money, type ItemCarrito } from "@/components/PuntoDeVenta";
@@ -20,8 +21,15 @@ type Props = {
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
-  // Método de pago
-  metodoPago: MetodoPago;
+  // Los dos momentos del ticket: «armar» (líneas + total) y «cobrar» (pago + comprobante)
+  momento: MomentoTicket;
+  onIrACobrar: () => void;
+  onVolverATicket: () => void;
+  /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
+   *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
+  motivoBloqueo: string | null;
+  // Método de pago — null hasta que la colaboradora elija uno
+  metodoPago: MetodoPago | null;
   onMetodoPago: (m: MetodoPago) => void;
   // Comprobante + documento de la clienta
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;

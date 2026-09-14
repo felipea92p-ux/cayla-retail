@@ -8,6 +8,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import { motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
@@ -80,7 +81,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
    *  hay en su tienda. Solo afecta a `catalogo`; el escáner sigue reconociéndolas. */
   const [soloConStock, setSoloConStock] = useState(false);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
+  // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
+  // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
+  const [momento, setMomento] = useState<MomentoTicket>("armar");
+  // Sin preselección a propósito: un «efectivo» que nadie eligió es un dato fantasma
+  // en el cuadre de caja. `cobrar()` no sale con null — lo frena `motivoBloqueo`.
+  const [metodoPago, setMetodoPago] = useState<MetodoPago | null>(null);
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -246,6 +252,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   const total = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
 
+  // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
+  // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
+  // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
+  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, metodoPago, facturaSinRuc });
+
   function limpiarComprobante() {
     setTipoComprobante("boleta");
     setClienteNumDoc("");
@@ -254,13 +265,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
-    if (cajaId === null) return;
-    if (carrito.length === 0) {
-      setError("Todavía no agregaste ninguna prenda. Escanea la etiqueta o busca en el catálogo.");
-      return;
-    }
-    if (facturaSinRuc) {
-      setError("La factura necesita un RUC válido. Cambia a boleta o corrige el número.");
+    // El mismo motivo que apaga el botón frena acá. El `metodoPago === null` de al
+    // lado es solo para que TypeScript lo sepa: `motivoBloqueo` ya lo cubre.
+    if (momento !== "cobrar" || motivoBloqueo !== null || metodoPago === null) {
+      setError(motivoBloqueo);
       return;
     }
     setLoading(true);
@@ -303,7 +311,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     setOk({ total, prendas, comprobante });
     setCarrito([]);
     limpiarComprobante();
+    // Cada venta vuelve a preguntar cómo pagó la clienta: heredar el método de la
+    // anterior sería el mismo dato fantasma que la preselección que se quitó.
+    setMetodoPago(null);
     router.refresh();
+  }
+
+  // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
+  // arranca por las prendas, no por el cobro.
+  function cerrarVentaRegistrada() {
+    setOk(null);
+    setMomento("armar");
   }
 
   return (
@@ -389,6 +407,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           error={error}
           loading={loading}
           onCobrar={cobrar}
+          momento={momento}
+          onIrACobrar={() => {
+            setMomento("cobrar");
+            setError(null);
+          }}
+          onVolverATicket={() => setMomento("armar")}
+          motivoBloqueo={motivoBloqueo}
         />
       </div>
 
@@ -432,7 +457,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
       )}
 
       {ok && (
-        <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={() => setOk(null)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
           <div className="space-y-5">
             <div className="card-cayla p-5 text-center">
               <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
@@ -449,7 +474,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
                 {ETIQUETA_TIPO[ok.comprobante.tipo]} <span className="font-mono">{ok.comprobante.texto}</span> emitida
               </p>
             )}
-            <button type="button" autoFocus onClick={() => setOk(null)} className={`${botonPrimario} w-full`}>
+            <button type="button" autoFocus onClick={cerrarVentaRegistrada} className={`${botonPrimario} w-full`}>
               Nueva venta
             </button>
           </div>
