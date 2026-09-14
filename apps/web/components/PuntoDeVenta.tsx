@@ -116,6 +116,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
   // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
   const [codigoDescuento, setCodigoDescuento] = useState("");
+  // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
+  // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
+  const [nota, setNota] = useState("");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -395,6 +398,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
       p_codigo_descuento: codigoDescuento.trim() || undefined,
+      p_nota: nota.trim() || undefined,
     });
 
     if (error) {
@@ -429,6 +433,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
     setCodigoDescuento("");
+    setNota("");
     setMomento("armar");
   }
 
@@ -538,6 +543,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           esLider={esLider}
           codigoDescuento={codigoDescuento}
           onCodigoDescuento={setCodigoDescuento}
+          nota={nota}
+          onNota={setNota}
           total={total}
           prendas={prendas}
           pagos={pagos}

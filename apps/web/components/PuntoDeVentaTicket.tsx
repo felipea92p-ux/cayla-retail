@@ -104,6 +104,9 @@ type Props = {
   esLider: boolean;
   codigoDescuento: string;
   onCodigoDescuento: (v: string) => void;
+  // Nota del ticket — una línea, hasta 200; vive con las líneas (momento «armar»)
+  nota: string;
+  onNota: (v: string) => void;
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
@@ -163,6 +166,8 @@ export function PuntoDeVentaTicket({
   esLider,
   codigoDescuento,
   onCodigoDescuento,
+  nota,
+  onNota,
   total,
   prendas,
   momento,

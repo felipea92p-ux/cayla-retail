@@ -54,14 +54,20 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
-    // 20260914230000_candado_precio_venta.sql — `registrar_venta` compara cada precio con
+    // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
     // navegador. El detalle es «referencia (sku)».
     marca: "venta_precio_cambiado",
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
   },
   {
-    // 20260914231000_codigos_descuento.sql — una Colaboradora solo descuenta con código.
+    // 20260914220804_nota_en_ventas.sql — la nota del ticket tiene tope; la pantalla ya
+    // corta en 200, esto es por si llega por otro camino.
+    marca: "ventas_nota_corta",
+    frase: "La nota es muy larga: hasta 200 caracteres. Acórtala y vuelve a cobrar.",
+  },
+  {
+    // 20260914215103_codigos_descuento.sql — una Colaboradora solo descuenta con código.
     marca: "venta_descuento_requiere_codigo",
     frase: "Para aplicar un descuento necesitas un código válido. Pídeselo a un Líder, o quita el descuento.",
   },

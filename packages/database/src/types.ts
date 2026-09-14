@@ -2135,6 +2135,7 @@ export type Database = {
           ubicacion_nombre: string
           vendedor: string
           venta_id: string
+          nota: string | null
         }[]
       }
       listar_compras: {
@@ -2323,6 +2324,7 @@ export type Database = {
           p_cliente_tipo_doc?: string
           p_codigo_descuento?: string
           p_items: Json
+          p_nota?: string
           p_pagos: Json
           p_tipo_comprobante?: string
           p_token?: string

@@ -138,3 +138,14 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toContain("hasta un 15 %");
   });
 });
+
+describe("la nota del ticket", () => {
+  it("el check de largo se vuelve una frase con el tope", () => {
+    const salida = traducirError(
+      { message: 'new row for relation "ventas" violates check constraint "ventas_nota_corta"', code: "23514" },
+      "registrar la venta"
+    );
+    expect(salida).not.toContain("ventas_nota_corta");
+    expect(salida).toContain("200");
+  });
+});
