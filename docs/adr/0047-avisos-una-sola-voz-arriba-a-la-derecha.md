@@ -1,4 +1,4 @@
-# ADR-0043 — Avisos: una sola voz arriba a la derecha, y el cursor va al campo
+# ADR-0047 — Avisos: una sola voz arriba a la derecha, y el cursor va al campo
 
 **Fecha:** 2026-09-14
 **Estado:** Implementado en `apps/web` (22 pantallas cableadas), sin cambios de base

@@ -126,11 +126,24 @@ flowchart TB
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` →
-  `CajaPanel.tsx` → `AbrirCajaModal` (RPC `abrir_caja`),
-  `RegistrarVentaModal` (RPC `registrar_venta`), `CerrarCajaModal` (RPC
-  `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
-  servidor).
+- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+  `stock` de la ubicación → `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
+  cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
+  primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
+  adentro —`lib/catalogo-grupos.ts`, memo del padre— filtro «Solo con stock», y «Ventas
+  de hoy», que llega ya renderizado desde `page.tsx` vía RPC `fn_ventas_del_dia`; el
+  escáner recibe el foco al abrir caja, al cerrar cualquier modal —`Modal.alCerrarEnfocar`—
+  y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
+  `Toggle`/`Badge` y `RevelarAlScroll` de GSAP, ADR-0045) y `PuntoDeVentaTicket.tsx`
+  (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
+  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
+  boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
+  que emite el comprobante en la misma transacción). `lib/vender-reglas.ts`:
+  `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
+  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`. El
+  reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`, ADR-0045). Modales del padre:
+  `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
+  conteo ciego: el esperado sale de la respuesta del cierre, no antes).
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
@@ -150,11 +163,11 @@ flowchart TB
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- Avisos globales (ADR-0043): `components/ui/Avisos.tsx`, montado en
+- Avisos globales (ADR-0047): `components/ui/Avisos.tsx`, montado en
   `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
   (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`
   de error en componentes.
-- Adjuntos de factura (ADR-0042, `20260914180000_compras_adjuntos.sql`):
+- Adjuntos de factura (ADR-0046, `20260914180000_compras_adjuntos.sql`):
   tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
   `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →
   `lib/adjuntos-compra.ts` sube del navegador al bucket y registra la fila

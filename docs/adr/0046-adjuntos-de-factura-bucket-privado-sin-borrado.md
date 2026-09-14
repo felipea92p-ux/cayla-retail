@@ -1,4 +1,4 @@
-# ADR-0042 — Adjuntos de factura: bucket privado, la tabla es la verdad, nunca se borra
+# ADR-0046 — Adjuntos de factura: bucket privado, la tabla es la verdad, nunca se borra
 
 **Fecha:** 2026-09-14
 **Estado:** Migración escrita y verificada en local (`20260914180000_compras_adjuntos.sql`), pendiente de correr en producción

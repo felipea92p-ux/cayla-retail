@@ -6,7 +6,20 @@ import { useEffect, useRef, useState } from "react";
 // tecnicismos (protocolo de docencia: dejar a Felipe más capaz de discutir, no de
 // aplaudir). Estilo de marca: sutil en tinta, se enciende en rojo al pasar/abrir.
 // Cero librerías, cierra al tocar afuera o con Escape.
-export function Ayuda({ titulo, children }: { titulo?: string; children: React.ReactNode }) {
+//
+// `tono="falta"` (ticket de Vender, 2026-09-14): el mismo (!) y el mismo globo, pero
+// ya encendido en rojo porque falta algo de verdad — quien lo pinta decide CUÁNDO
+// mostrarlo, y el globo dice QUÉ falta. El default deja el resto de las pantallas
+// exactamente como estaban.
+export function Ayuda({
+  titulo,
+  tono = "ayuda",
+  children,
+}: {
+  titulo?: string;
+  tono?: "ayuda" | "falta";
+  children: React.ReactNode;
+}) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -29,11 +42,15 @@ export function Ayuda({ titulo, children }: { titulo?: string; children: React.R
       <button
         type="button"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAbierto((v) => !v); }}
-        aria-label={titulo ? `Qué es ${titulo}` : "Más información"}
+        aria-label={tono === "falta" ? `Falta: ${titulo ?? "algo por completar"}` : titulo ? `Qué es ${titulo}` : "Más información"}
         // h-5 y no h-4: con la etiqueta ya en 11px, el "!" se desbordaba de un
         // círculo de 16px. `active:scale-90` da el acuse de tacto que faltaba.
         className={`ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-all active:scale-90 ${
-          abierto ? "border-rojo bg-rojo text-crema" : "border-tinta/30 text-tinta/65 hover:border-rojo hover:bg-rojo/8 hover:text-rojo"
+          abierto
+            ? "border-rojo bg-rojo text-crema"
+            : tono === "falta"
+              ? "border-rojo bg-rojo/8 text-rojo hover:bg-rojo hover:text-crema"
+              : "border-tinta/30 text-tinta/65 hover:border-rojo hover:bg-rojo/8 hover:text-rojo"
         }`}
       >
         !

@@ -70,11 +70,187 @@ pegar, no solo antes: las 9 personas quedaron en `lider`, `agregar_colaborador`
 con una sola firma viva, y `public.personas`/`datos_personales`/
 `fn_actualizar_foto_perfil` de Dynamic exactamente iguales a como estaban.
 
+## 2026-09-14 (fusionar 13 commits ajenos sobre 34 de Vender: el conflicto de fondo no salía en el diff)
+
+Mientras las dos sesiones de Vender trabajaban, `origin/main` recibió 13 commits de tres
+manos con 7 migraciones. Uno de ellos (`d22dad0`, con mensaje «añadir CampoFecha») reescribía
+el `PuntoDeVenta.tsx` monolítico para adoptar los avisos globales (ADR-0047). Git lo fusionaba
+«limpio» sobre las tres piezas nuevas —las líneas no se pisaban— y dejaba `setError` sin
+declarar y un `<p>` de error vivo en el Ticket que el equipo ya había decidido matar. Se vio
+compilando la fusión en un branch temporal, no leyendo el diff. Resolución: la guarda de dos
+momentos (ADR-0044) manda y el mensaje sale por `avisar.error`; la prop `error` desaparece del
+contrato del Ticket. De paso, dos ADR de origin chocaban de número con los de Vender
+(0042/0043) → renumerados a 0046/0047. Las 7 migraciones entraron a la base local compartida
+con `migration up --include-all`, sin reset y sin perder las ventas de prueba; el CLI solo
+frenó porque el worktree no tenía el stub `0000` (fuera de git a propósito) — se copia, no se
+«repara» el historial.
+
+Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta** — se compila
+y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
+migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
+
+## 2026-09-14 (el catálogo se mira por prenda, no por variante — y vuelven shadcn y GSAP)
+
+Segunda ola de la sesión A, sobre lo mismo. Felipe pidió cuatro cosas mirando la grilla
+nueva: la barra de scroll del sistema (no la nativa), un borde rojo suave en lo que no
+tiene stock, **una tarjeta por prenda + color con las tallas adentro** («cada ítem va a
+tener foto, no hace falta ver seis Blusa Emma; la pistola ya trae talla, color y precio»),
+y las animaciones "con los componentes de shadcn, para que el sistema tenga un mismo
+orden" más el reveal suave al bajar. Dos decisiones fueron suyas: la talla a mano se
+elige **en la tarjeta** (chips por talla; el ticket nunca ve una línea sin variante) y no en
+el ticket; y shadcn + GSAP **vuelven a V2** — el corte `0af2f1b` los había borrado con sus
+ADR (0037/0038) sin que nadie lo decidiera.
+
+El revival chocó de frente: la sesión B lo hizo en paralelo y llegó primera a `main`
+(V1 literal, ADR-0045). Esta rama descartó la suya y portó solo lo que faltaba como
+adenda: `tooltip`/`toggle`/`badge` instalados con el CLI, que hoy importa `cn` del paquete
+`cn` y los primitivos de `radix-ui` — se adopta y `lib/utils.ts` reexporta ese `cn` para
+que no haya dos implementaciones; `tw-animate-css` para las entradas/salidas propias de
+shadcn; `RevelarAlScroll` que descubre el contenedor que scrollea y no anima lo que ya se
+ve al montar (ADR-0011). Lo construido en Vender: `lib/catalogo-grupos.ts` (TDD, 10 tests:
+agrupa en el orden del catálogo, tallas XS<S<M<L y 28<30<32, stock total, rango de
+precio); tarjeta con hueco de foto 4:5 (iniciales en serif mientras no haya columna de
+foto), chips de talla con `Tooltip` «N en sede», talla agotada tachada, sin stock con
+`border-rojo-profundo/40`, `Toggle` para «Solo con stock» (esconde la tarjeta solo si
+ninguna talla tiene), `Badge` con `anim-asentar` en el globito, `alza-cayla`,
+`scroll-cayla` y `RevelarAlScroll` por tarjeta. Medido en navegador a 1440×900: 48 → 16
+tarjetas; al montar, las 8 a la vista en opacidad 1 y las de abajo en 0.35 hasta que el
+scroll las trae; tocar «M» agrega `BLU-EMMA-BEI-M` y devuelve el foco; tooltip animado
+(`enter`, 150 ms); toggle 16 → 10; abrir caja deja el foco en el escáner y la tecla suelta
+sigue viva después (el defecto de `hayModal` quedó cerrado de verdad).
+
+Lo que Felipe se lleva: **el revival no era "instalar shadcn", era decidir quién anima
+qué.** Tres capas con una responsabilidad cada una — shadcn conserva su `tw-animate` en
+sus componentes, todo lo que no es shadcn sigue con `anim-*` de `globals.css`, y GSAP es
+solo scroll y reflujo — es lo que hace que "un mismo orden" sea una regla y no un deseo.
+Y una trampa del entorno que costó media hora: **`tw-animate-css` no llegaba al CSS
+servido** aunque el import, el paquete y el CLI de Tailwind estaban bien; era la caché
+persistente de Turbopack (`apps/web/.next`), que sobrevive a reiniciar el servidor. Con
+la caché borrada, `.animate-in` y `@keyframes enter` aparecieron a la primera. Aviso:
+el borde rojo de las tarjetas sin stock rompe a propósito el "máximo 2 rojos por
+pantalla" del brandbook — lo pidió Felipe; queda escrito para que nadie lo "arregle".
+
+## 2026-09-14 (el escaneo manda en Vender; el catálogo pasa a plan B)
+
+Sesión A sobre la costura del ADR-0043, rama `feat/pos-escaneo-primero`. La encargada de
+sede tiene lector, pero la pantalla estaba armada como navegador de catálogo: un título
+serif de cuatro columnas de alto («Catálogo De Prendas») y recién debajo el campo de
+escaneo. Además el foco se perdía en tres lugares que la captura no muestra: `autoFocus`
+solo actúa al montar (con la caja cerrada el campo nace `disabled`, y al abrirla nadie lo
+enfocaba); al cerrar «Venta registrada» el `Modal` —Radix— hace `preventDefault` del
+retorno de foco y busca un trigger que estos modales controlados no tienen, así que el
+foco caía al `body`; y si el foco quedaba en un botón (un chip, «Quitar»), la pistola
+perdía el código y **el Enter final activaba ese botón**.
+
+Lo construido: el campo de escaneo es lo primero y lo más grande del panel (h-14, ícono de
+código de barras, `<section>` con el mismo tope de alto que el ticket para que nunca salga
+de la vista); fuera el título; chips + grilla debajo sin encabezado; «Monto manual» al lado
+del campo (medido: en la fila de chips le robaba 277 px a las categorías a 1440); sin
+stock con borde punteado, fondo plano y `opacity-55`, con el chip «Solo con stock» que
+filtra la grilla pero no al escáner (una sin stock escaneada avisa «no tiene stock en
+Tienda Lima», no «no encontramos»). El foco vuelve al escáner por tres vías: `Modal`
+ganó `alCerrarEnfocar` sobre `onCloseAutoFocus` (los otros 12 modales, idénticos); un
+efecto lo enfoca al abrir caja; y una tecla suelta —carácter imprimible con el foco fuera
+de un campo de texto, sin modal abierto— lo enfoca antes de que el carácter caiga
+(`lib/escaner-tecla-suelta.ts`, TDD, 9 tests). Verificado en navegador con sesión real y
+ventas de verdad en la base local (B001-000002 a 000004): pistola + Enter agrega sin mouse;
+con el foco en «Quitar» el código se redirige y la línea sobrevive; DNI y modales
+conservan sus teclas; «Nueva venta» devuelve el foco al escáner (el stack lo firma:
+`Modal … onCloseAutoFocus`). El padre se tocó en dos commits chicos que entraron a
+`main` local apenas compilaron; el único conflicto con B fue la línea anunciada
+(«Venta registrada»: `onClose` de B + `alCerrarEnfocar` de A), resuelto conservando ambas.
+
+Lo que Felipe se lleva: **la pistola es un teclado, y un teclado escribe donde esté el
+foco.** Toda la jerarquía visual no sirve si después de tocar un chip el siguiente
+escaneo cae en un botón; por eso la regla de «qué tecla va al escáner» vive en `lib/`
+con prueba y no en un `onClick` más. Y un segundo aprendizaje del propio código: la guarda
+de «hay modal abierto» tiene que mirar los modales **montados**, no el estado que los
+abre — «Abrir caja» se desmonta porque la caja abrió, no por su `onClose`, y el estado
+queda en `"abrir"` para siempre. Hallazgos que quedan en el backlog: el buscador global
+del AppShell es un segundo campo de escaneo en la misma pantalla (Enter navega a
+`/buscar` y abandona la venta), y el «Cargo especial» tiene stock 0 en la base local.
+
+## 2026-09-14 (el ticket de Vender deja de pedir decisiones antes de que exista la venta)
+
+Sesión B sobre la costura del ADR-0043: con el ticket vacío el panel derecho ya mostraba
+los cinco métodos de pago, Boleta/Factura, el DNI y dos «(!)» encendidos. El diagnóstico
+midió tres causas y ninguna era la que parecía: no existía el concepto de momento (el pie
+se renderizaba entero siempre); los (!) **no eran advertencias sino `Ayuda`**, el botón
+de docencia del 19-jul, que usa el glifo «!» y por eso se lee como alerta; y nunca
+«faltaba» nada porque `efectivo` venía preseleccionado — la única condición de bloqueo
+real (`facturaSinRuc`) apagaba el botón en silencio. Felipe decidió las tres cosas que
+el diagnóstico dejó sobre la mesa: método sin preselección, los (!) del cobro pasan a
+significar «falta algo», y el cobro va dentro del panel, no en un modal (ADR-0044).
+
+Lo construido: el padre aprende `momento` («armar» / «cobrar») y un único
+`motivoBloqueoCobro` (`lib/vender-reglas.ts`, TDD, 7 tests) que alimenta a la vez el
+`disabled` del botón, la línea que lo explica debajo y el freno de `cobrar()`. El
+ticket sigue siendo render puro: en «armar» solo líneas y total; en «cobrar» primero
+cuánto y cómo pagó, después el comprobante con el documento adentro, «← Ticket» para
+volver sin perder lo elegido. `Ayuda` acepta `tono="falta"` con default byte a byte
+igual (probado con `renderToString` contra la versión anterior). Se respetó el protocolo
+del ADR-0043 al pie: el commit del padre entró a `main` local apenas compiló; la UI
+después, en su archivo. Verificado en navegador con sesión real y una venta de verdad en
+la base local (Boleta B001-000001, S/159.80, efectivo): vacío → prenda → Cobrar → método
+→ boleta → «Venta registrada» → vuelve a «armar», y escanear durante el cobro sigue
+sumando al ticket con el total en vivo.
+
+Lo que Felipe se lleva: **un mismo glifo no puede significar dos cosas en la misma
+pantalla.** El (!) de docencia y el (!) de alerta compartían forma, así que la ayuda se
+leía como reproche permanente; la salida no fue un tercer ícono sino darle al (!) del
+cobro una sola regla —aparece solo cuando falta algo y dice qué— y dejar la docencia
+dentro de ese mismo globo. Y el reverso: **un botón apagado que no explica por qué es
+una decisión escondida**; un solo motivo derivado una vez evita que el `disabled`, el
+mensaje y la validación digan cosas distintas.
+
+Adenda del mismo día: Felipe pidió que el ticket llene toda la altura visible y que la
+página no scrollee. Resultó que el catálogo **ya tenía** su scroll interno y no se
+activaba porque nada acotaba la altura: la raíz toma `100dvh − 9rem` (el padding del
+`<main>` de AppShell, sin tocarlo) y la fila de la grilla pasa a `minmax(0,1fr)` para que
+los paneles puedan encoger. Lo que Felipe se lleva: **un `overflow-y-auto` no scrollea
+solo — necesita que algo por encima le ponga tope**; sin la cadena de `min-h-0` hasta la
+raíz, el contenedor crece y el `overflow-hidden` de arriba recorta en silencio.
+
+Tercera vuelta del día sobre el ticket: precio de solo lectura, basurero en «1», campo sin
+flechitas, «Ticket actual» grande, íconos por apartado y un **apartado de descuento** (%
+global o por prenda) que viaja como `descuento_unitario` por línea — la columna que
+`venta_items` ya tenía. Al pedir «los componentes animados de shadcn, tal vez ya
+existentes» se midió que **no existían**: el corte V1→V2 (`0af2f1b`) se había llevado el
+puente shadcn (ADR-0037), GSAP con el `Flip` del carrito (ADR-0038) y los tres ADR, sin
+dejarlo escrito en ningún documento vivo — `docs/adr/` saltaba de 0036 a 0041 y nadie lo
+había notado. Felipe decidió traerlos de vuelta tal cual (ADR-0045), y el `Flip` volvió al
+lugar que tenía en V1: el reflujo de las líneas del ticket. Los códigos de descuento
+quedaron como paso propio (no hay tabla). Verificado en navegador con venta real: Boleta
+B001-000005, dos líneas `79.90 / 7.99 / 71.91`, total 143.82.
+
+Lo que Felipe se lleva: **un corte grande borra cosas que nadie decidió borrar** — la
+pregunta al reemplazar un núcleo no es solo "¿qué se pierde de negocio?" sino "¿qué se
+pierde de infraestructura que otro ADR ya había decidido?". La huella era visible en la
+numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
+con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
+
+## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
+
+Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket
+(`PuntoDeVentaTicket.tsx`), después el catálogo (`PuntoDeVentaCatalogo.tsx`). El padre se
+queda con TODO el estado, los handlers, la cabecera y los modales; los hijos son render puro
+sobre props `valor`/`onValor`. Cero cambios medidos, no supuestos: `renderToString` de la
+versión original y la final es byte a byte idéntico (ids de `useId` incluidos), el HTML del
+servidor para `/vender` da el mismo sha256, y las interacciones responden igual. ADR-0043
+deja el contrato y las cinco reglas de convivencia para las dos ramas que salen de acá.
+
+Lo que Felipe se lleva: **la costura vale más que el corte**. Partir un archivo no evita
+conflictos por sí solo — lo que los evita es que cada sesión sea dueña de un archivo y que
+lo compartido (el padre) se toque en commits chicos que entran a `main` apenas compilan.
+De paso, dos detalles del arnés: el panel del navegador oculto deja las cargas duras en
+«Cargando…» (ya estaba en memoria) y **dos `next dev` en `localhost` comparten la cookie de
+Supabase** — al pisarse el refresh token, la sesión de uno cierra la del otro.
+
 ## 2026-09-14 (la primera vez que el sistema guarda un archivo)
 
 Felipe pidió adjuntar la factura del proveedor y sus documentos. Antes de escribir se
 verificó que el ERP no guardaba ningún archivo todavía — así que las decisiones son las que
-van a heredar las fotos de producto y lo que venga (ADR-0042): bucket privado con prefijo
+van a heredar las fotos de producto y lo que venga (ADR-0046): bucket privado con prefijo
 `retail-` (el proyecto es compartido con Dynamic) y URL firmada de una hora; la tabla
 `compra_adjuntos` es la verdad y se escribe solo por RPC, que exige que la ruta viva en la
 carpeta de esa compra; el archivo sube del navegador al bucket sin pasar por Next; nunca se
@@ -3152,7 +3328,7 @@ y la suma contra el saldo con la factura bloqueada, y escribe todo o nada — an
 sueltos podían dejar el primero registrado y el segundo no. `LineasPago.tsx` es el bloque
 compartido por las tres pantallas.
 
-**Avisos (ADR-0043).** Felipe pidió que toda validación, error, éxito o proceso se vea arriba
+**Avisos (ADR-0047).** Felipe pidió que toda validación, error, éxito o proceso se vea arriba
 a la derecha, y que el cursor vaya al campo de la validación. `components/ui/Avisos.tsx`
 (estado fuera de React, sobrevive a la navegación; todos se van solos con una barra de tiempo al pie que se pausa con el mouse encima) y 22
 pantallas cableadas: desaparecieron 16 `useState` de error y todos los `<p>` rojos inline.

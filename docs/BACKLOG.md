@@ -50,6 +50,55 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       de viajar al navegador durante el turno (no se puede leer ni inspeccionando props).
       **No es un candado y no debe leerse como "conteo ciego resuelto"** — ver abajo.
 
+- [x] **Vender partido en padre + dos paneles sin estado, para trabajar en dos ramas
+      a la vez** (sesión aparte del mismo día, ADR-0043). `PuntoDeVenta.tsx` 705 → 415
+      líneas; `PuntoDeVentaTicket.tsx` y `PuntoDeVentaCatalogo.tsx` nuevos, render puro
+      sobre props. Refactor sin un solo byte de diferencia en el HTML (medido con
+      `renderToString` y con el SSR real). **Regla para las dos ramas que salen de acá:**
+      cada sesión es dueña de UN panel; el padre (estado + handlers) se toca en commits
+      chicos separados de la UI y entran a `main` apenas compilan.
+
+- [x] **El ticket de Vender tiene dos momentos: armar y cobrar** (sesión B del mismo
+      día, ADR-0044, rama `feat/pos-ticket-progresivo`). Con el ticket vacío ya no se
+      despliega el cobro: en «armar» solo líneas y total; pago y comprobante aparecen
+      recién al tocar «Cobrar», con el DNI adentro del bloque de comprobante. Un solo
+      `motivoBloqueoCobro` (`lib/vender-reglas.ts`, 7 tests) apaga el botón, lo explica
+      debajo y frena `cobrar()`. El método de pago ya no viene preseleccionado (decisión
+      de Felipe) y los (!) del cobro son `Ayuda tono="falta"`: solo cuando falta el
+      método o el RUC, y el globo dice qué falta. Verificado en navegador con venta real
+      (Boleta B001-000001 en la base local). Adenda del mismo día: en escritorio el
+      POS es pantalla fija — la página no scrollea, catálogo y ticket scrollean por
+      dentro y el ticket llena toda la altura visible. Segunda adenda: **descuento
+      manual** (tercer momento del ticket; % global o por prenda; viaja como
+      `descuento_unitario` por línea — verificado en la base, Boleta B001-000005),
+      precio de solo lectura, basurero en «1», íconos en los colores del sistema y
+      **vuelven shadcn + GSAP** (ADR-0045: el corte V1→V2 los había borrado sin
+      registro). **Solo en `main` local — falta pushear.**
+
+- [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
+      (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
+      y dominante, sin el título «Catálogo De Prendas», chips + grilla debajo, «Monto
+      manual» al lado del campo, sin stock atenuadas + chip «Solo con stock» (filtra la
+      grilla, no al escáner). El foco vuelve al escáner al abrir caja, al cerrar cualquier
+      modal (`Modal.alCerrarEnfocar` sobre Radix) y ante una tecla suelta con el foco en
+      un botón (`lib/escaner-tecla-suelta.ts`, 9 tests) — antes el Enter de la pistola
+      activaba ese botón. Verificado en navegador con ventas reales en local
+      (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
+
+- [x] **El catálogo de Vender se mira por prenda + color, con las tallas adentro**
+      (sesión A, segunda ola del mismo día, decisión 1A de Felipe). `lib/catalogo-grupos.ts`
+      (10 tests) agrupa y ordena tallas; la tarjeta tiene hueco de foto 4:5, chips de talla
+      (tocar «M» agrega esa variante; agotada queda tachada), `Tooltip` «N en sede»,
+      borde rojo suave sin stock (pedido explícito; rompe el "máx. 2 rojos" del brandbook),
+      `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
+      `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
+      tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+- [ ] **Foto por prenda en el catálogo.** La tarjeta ya tiene el hueco (4:5, iniciales en
+      serif), pero `productos`/`variantes` no tienen columna de foto ni bucket de Storage.
+      Es cambio de modelo de datos: decidir dónde vive (una por producto o por color),
+      quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
+      la pinta sin rediseñar.
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
@@ -67,6 +116,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
       de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
       Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+- [ ] **¿Dónde vive la docencia del cobro ahora que los (!) solo se encienden cuando
+      falta algo?** (ADR-0044). La explicación de «acá se registra, no se cobra» y de
+      «boleta admite DNI opcional; factura exige RUC» quedó dentro de los globos de
+      alerta — se lee solo mientras falte el método o el RUC. Y el tercer (!) del bloque
+      (el de «Consulta de DNI», dentro de `ConsultaDocumento`, compartido con
+      Facturación) sigue siempre encendido. Opciones: dejarlo así, un «?» permanente en
+      la cabecera del cobro, o un prop en `ConsultaDocumento` para apagarlo en el POS.
 
 **Pendiente de construir (no es un fix de una sesión):**
 
@@ -77,7 +133,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.**
+- [ ] **Códigos de descuento** (decisión 1-A, 2026-09-14): el % manual ya existe; los
+      códigos necesitan esquema nuevo — `codigos_descuento` (código, %, vigencia,
+      activo, ¿sede?) + RLS + validación en RPC — y su gemelo `retail.` en producción.
+      Paso propio, no improvisado dentro del ticket.
+- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.** *(Desde el
+      2026-09-14 el descuento ya NO es fantasma: viaja en `descuento_unitario` por línea y
+      la caja no edita el precio. Lo que sigue pendiente es el candado en la RPC.)*
       `registrar_venta` (`0011_venta_con_comprobante.sql:114-117`) inserta
       `precio_unitario`/`descuento_unitario` tal cual llegan, sin compararlos con
       `variantes.precio`. La columna `descuento_unitario` existe (diseño D-44) pero
@@ -120,6 +182,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       deja el stock sin mover (P-05).
 
 **Higiene encontrada de paso:**
+
+- [ ] **El «Cargo especial» tiene stock 0 en la base local, en las tres ubicaciones**
+      (medido 2026-09-14: 0 filas en `stock` y 0 en `movimientos` para la variante
+      centinela). `20260912234726_cargo_especial_pos.sql` siembra 999 999 recorriendo
+      `retail.ubicaciones`, pero en un `db reset` esa tabla está vacía porque `seed.sql`
+      corre después de las migraciones. Efecto: «Monto manual» falla en local con «Stock
+      insuficiente: hay 0 y se pide sacar 1». Producción no lo sufre (las ubicaciones ya
+      existían). Arreglo probable: que `seed.sql` repita la siembra por movimiento.
+- [ ] **El buscador global del AppShell («Buscar o escanear prenda…») es un segundo campo
+      de escaneo en la pantalla de Vender**: con Enter navega a `/buscar` y abandona la
+      venta a medio ticket. Fuera del alcance de la sesión A (AppShell es navegación).
+      Opciones: ocultarlo en `/vender`, o que en `/vender` reenvíe al escáner de la caja.
 
 - [ ] **La base local está 4 migraciones atrás del repo**: `compras_desde_factura`,
       `compras_snapshot_y_paginado`, `vocabulario_cerrado` y `activos_fijos` están en
@@ -236,7 +310,7 @@ importante que ha entrado a este archivo desde que existe.
       manda el parámetro.
 
 - [ ] **`20260914180000_compras_adjuntos` no está en producción.** Adjuntos de
-      factura (ADR-0042): tabla `compra_adjuntos`, RPCs `registrar_adjunto_compra`
+      factura (ADR-0046): tabla `compra_adjuntos`, RPCs `registrar_adjunto_compra`
       / `archivar_adjunto_compra`, y el bucket privado `retail-compras-adjuntos`
       con sus políticas — todo en el mismo archivo; el bloque del bucket corre
       solo donde existe `storage.buckets` (producción). Pegar con `retail.`
