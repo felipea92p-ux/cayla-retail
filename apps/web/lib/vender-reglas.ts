@@ -10,6 +10,28 @@ import type { MetodoPago } from "@cayla-retail/shared";
  *  el comprobante aparecen recién al tocar «Cobrar». */
 export type MomentoTicket = "armar" | "descuento" | "cobrar";
 
+/** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
+ *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
+ *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que
+ *  cubre, `registrar_venta` lo rechazaría por no cuadrar con los ítems. */
+export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
+
+const redondear2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Lo que falta cubrir del total con los pagos puestos, a 2 decimales. Negativo si se
+ *  pasan — `registrar_venta` exige que sumen igual que los ítems al centavo. */
+export function restanteDePagos(total: number, pagos: readonly PagoAplicado[]): number {
+  return redondear2(total - pagos.reduce((acc, p) => acc + p.monto, 0));
+}
+
+/** El vuelto de un pago: lo recibido menos lo que cubre, solo en efectivo (Yape, Plin,
+ *  tarjeta y transferencia no dan vuelto). Nunca negativo: si lo recibido no llega, no
+ *  hay vuelto que mostrar — lo que falta lo dice `motivoBloqueoCobro`. */
+export function vueltoDe(pago: PagoAplicado): number {
+  if (pago.metodo !== "efectivo" || pago.recibido === undefined) return 0;
+  return Math.max(0, redondear2(pago.recibido - pago.monto));
+}
+
 /**
  * Por qué el botón principal del ticket está apagado — o `null` si se puede seguir.
  *
@@ -18,21 +40,26 @@ export type MomentoTicket = "armar" | "descuento" | "cobrar";
  * `cobrar()`. Antes cada una tenía su propia condición y el botón callaba.
  *
  * El orden es el del recorrido real: primero tiene que haber caja, después algo
- * que cobrar, y solo entonces —ya en el momento «cobrar»— cómo pagó la clienta y
- * el comprobante. Pedir el método con el ticket vacío es exactamente la decisión
- * antes de tiempo que este cambio elimina.
+ * que cobrar, y solo entonces —ya en el momento «cobrar»— con qué se cubre la
+ * plata (todos los medios, hasta el centavo) y recién al final el comprobante.
+ * Pedir el método con el ticket vacío es exactamente la decisión antes de tiempo
+ * que este cambio elimina.
  */
 export function motivoBloqueoCobro(v: {
   cajaAbierta: boolean;
   prendas: number;
   momento: MomentoTicket;
-  metodoPago: MetodoPago | null;
+  total: number;
+  pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
   if (v.momento !== "cobrar") return null;
-  if (v.metodoPago === null) return "Elige cómo pagó la clienta.";
+  if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
+  const restante = restanteDePagos(v.total, v.pagos);
+  if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
+  if (restante < 0) return "Los pagos superan el total.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
   return null;
 }
@@ -42,8 +69,6 @@ export function motivoBloqueoCobro(v: {
 // mostrador es un descuento. Viaja como `descuento_unitario` por línea — la columna que
 // `venta_items` ya tiene (≥ 0, ≤ precio, subtotal generado) y que `registrar_venta`
 // recibe — así queda medido por prenda en vez de disfrazado de "precio más bajo".
-
-const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Un % (entero o no) convertido a monto por unidad, con 2 decimales. Fuera de 0..100
  *  se recorta: 0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el

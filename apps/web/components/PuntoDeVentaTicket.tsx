@@ -7,7 +7,7 @@ import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito } from "@/components/PuntoDeVenta";
+import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -107,9 +107,15 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
-  // Método de pago — null hasta que la colaboradora elija uno
-  metodoPago: MetodoPago | null;
-  onMetodoPago: (m: MetodoPago) => void;
+  // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
+  pagos: PagoAplicado[];
+  restante: number;
+  vuelto: number;
+  onAgregarPago: (metodo: MetodoPago) => void;
+  onMontoPago: (indice: number, monto: number) => void;
+  onQuitarPago: (indice: number) => void;
+  /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
+  onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
   onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
@@ -153,8 +159,13 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
-  metodoPago,
-  onMetodoPago,
+  pagos,
+  restante,
+  vuelto,
+  onAgregarPago,
+  onMontoPago,
+  onQuitarPago,
+  onRecibido,
   tipoComprobante,
   onTipoComprobante,
   clienteNumDoc,
@@ -336,7 +347,7 @@ export function PuntoDeVentaTicket({
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1">
-                    {metodoPago === null && (
+                    {pagos.length === 0 && (
                       <Ayuda tono="falta" titulo="Elige cómo pagó la clienta">
                         Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su
                         propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre,
@@ -352,11 +363,11 @@ export function PuntoDeVentaTicket({
                     <button
                       key={m}
                       type="button"
-                      onClick={() => onMetodoPago(m)}
+                      onClick={() => onAgregarPago(m)}
                       disabled={bloqueado}
-                      aria-pressed={metodoPago === m}
+                      aria-pressed={pagos.some((p) => p.metodo === m)}
                       className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                        metodoPago === m ? OPCION_ACTIVA : OPCION_INACTIVA
+                        pagos.some((p) => p.metodo === m) ? OPCION_ACTIVA : OPCION_INACTIVA
                       }`}
                     >
                       {ICONO_METODO[m]}
