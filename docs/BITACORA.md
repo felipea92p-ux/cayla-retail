@@ -3,6 +3,25 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (fusionar 13 commits ajenos sobre 34 de Vender: el conflicto de fondo no salía en el diff)
+
+Mientras las dos sesiones de Vender trabajaban, `origin/main` recibió 13 commits de tres
+manos con 7 migraciones. Uno de ellos (`d22dad0`, con mensaje «añadir CampoFecha») reescribía
+el `PuntoDeVenta.tsx` monolítico para adoptar los avisos globales (ADR-0047). Git lo fusionaba
+«limpio» sobre las tres piezas nuevas —las líneas no se pisaban— y dejaba `setError` sin
+declarar y un `<p>` de error vivo en el Ticket que el equipo ya había decidido matar. Se vio
+compilando la fusión en un branch temporal, no leyendo el diff. Resolución: la guarda de dos
+momentos (ADR-0044) manda y el mensaje sale por `avisar.error`; la prop `error` desaparece del
+contrato del Ticket. De paso, dos ADR de origin chocaban de número con los de Vender
+(0042/0043) → renumerados a 0046/0047. Las 7 migraciones entraron a la base local compartida
+con `migration up --include-all`, sin reset y sin perder las ventas de prueba; el CLI solo
+frenó porque el worktree no tenía el stub `0000` (fuera de git a propósito) — se copia, no se
+«repara» el historial.
+
+Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta** — se compila
+y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
+migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
+
 ## 2026-09-14 (el catálogo se mira por prenda, no por variante — y vuelven shadcn y GSAP)
 
 Segunda ola de la sesión A, sobre lo mismo. Felipe pidió cuatro cosas mirando la grilla
