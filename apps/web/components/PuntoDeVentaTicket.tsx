@@ -97,7 +97,9 @@ export function PuntoDeVentaTicket({
   const apagado = bloqueado || motivoBloqueo !== null;
 
   return (
-    <aside className="flex min-h-[45vh] flex-col bg-papel lg:max-h-[42rem]">
+    // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
+    // viewport): cabecera y pie quedan fijos y solo el medio —líneas o cobro— scrollea.
+    <aside className="flex min-h-[45vh] flex-col bg-papel lg:min-h-0">
       {/* En «armar» la cabecera dice dónde estamos; en «cobrar» ofrece la vuelta al
           ticket y el conteo vivo de prendas. */}
       <div className="flex items-center justify-between border-b border-sand px-5 py-4">

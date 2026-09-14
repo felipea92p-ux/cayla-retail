@@ -76,6 +76,14 @@ dentro de ese mismo globo. Y el reverso: **un botón apagado que no explica por 
 una decisión escondida**; un solo motivo derivado una vez evita que el `disabled`, el
 mensaje y la validación digan cosas distintas.
 
+Adenda del mismo día: Felipe pidió que el ticket llene toda la altura visible y que la
+página no scrollee. Resultó que el catálogo **ya tenía** su scroll interno y no se
+activaba porque nada acotaba la altura: la raíz toma `100dvh − 9rem` (el padding del
+`<main>` de AppShell, sin tocarlo) y la fila de la grilla pasa a `minmax(0,1fr)` para que
+los paneles puedan encoger. Lo que Felipe se lleva: **un `overflow-y-auto` no scrollea
+solo — necesita que algo por encima le ponga tope**; sin la cadena de `min-h-0` hasta la
+raíz, el contenedor crece y el `overflow-hidden` de arriba recorta en silencio.
+
 ## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
 
 Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket

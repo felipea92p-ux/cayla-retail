@@ -118,3 +118,30 @@ clienta sí lo da).
   clics físicos al escalar el viewport; las interacciones se dispararon con
   `element.click()` sobre el DOM real (mismos handlers de React) y se leyó el estado
   después de cada una.
+
+## Adenda (mismo día) — en escritorio el POS es una pantalla fija
+
+Felipe pidió que el ticket ocupe toda la altura visible y que la página no
+scrollee: el catálogo con su scroll propio, la pantalla quieta. Commits `7b47aa4`
+(padre) y `9eb5b66` (ticket).
+
+- La raíz de `PuntoDeVenta` toma `lg:h-[calc(100dvh-9rem)]`: lo que queda bajo la
+  cabecera fija de AppShell, siendo 9rem el `pt-24 + pb-12` de su `<main>`. Se
+  eligió calcular sobre ese padding y **no tocar AppShell** (un `<main>` a altura
+  fija cambiaría el scroll de todas las pantallas). Si ese padding cambia, este
+  número cambia con él — está dicho en el comentario del código.
+- La grilla pasa a `lg:grid-rows-[minmax(0,1fr)]`. Con la fila implícita (`auto`)
+  los paneles nunca encogen por debajo de su contenido, la fila crece y la raíz
+  (`overflow-hidden`) la recorta en silencio: el scroll interno que el catálogo
+  **ya tenía** (`min-h-0 flex-1 overflow-y-auto` alrededor de la grilla, archivo
+  de la sesión A) no se activaba por eso. No hizo falta tocar ese archivo.
+- El aside pierde `lg:max-h-[42rem]` y gana `lg:min-h-0`: cabecera y pie fijos,
+  solo el medio scrollea.
+- Solo en `lg:`. En celular/tablet la pantalla sigue apilada con scroll de página:
+  dos scrolls internos uno debajo del otro serían peores que uno solo.
+
+Medido a 1280×800 y 1100×650: `scrollHeight` de la página = viewport (no scrollea);
+raíz de 96 px a 48 px del borde inferior; escáner siempre visible; catálogo con
+407/2153 px (y 202 px en el viewport bajo); ticket con 8 líneas scrollea por dentro
+con el pie (total + botón) pegado abajo, también en el momento «cobrar».
+
