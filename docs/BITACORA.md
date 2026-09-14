@@ -3,6 +3,46 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (el escaneo manda en Vender; el catálogo pasa a plan B)
+
+Sesión A sobre la costura del ADR-0043, rama `feat/pos-escaneo-primero`. La encargada de
+sede tiene lector, pero la pantalla estaba armada como navegador de catálogo: un título
+serif de cuatro columnas de alto («Catálogo De Prendas») y recién debajo el campo de
+escaneo. Además el foco se perdía en tres lugares que la captura no muestra: `autoFocus`
+solo actúa al montar (con la caja cerrada el campo nace `disabled`, y al abrirla nadie lo
+enfocaba); al cerrar «Venta registrada» el `Modal` —Radix— hace `preventDefault` del
+retorno de foco y busca un trigger que estos modales controlados no tienen, así que el
+foco caía al `body`; y si el foco quedaba en un botón (un chip, «Quitar»), la pistola
+perdía el código y **el Enter final activaba ese botón**.
+
+Lo construido: el campo de escaneo es lo primero y lo más grande del panel (h-14, ícono de
+código de barras, `<section>` con el mismo tope de alto que el ticket para que nunca salga
+de la vista); fuera el título; chips + grilla debajo sin encabezado; «Monto manual» al lado
+del campo (medido: en la fila de chips le robaba 277 px a las categorías a 1440); sin
+stock con borde punteado, fondo plano y `opacity-55`, con el chip «Solo con stock» que
+filtra la grilla pero no al escáner (una sin stock escaneada avisa «no tiene stock en
+Tienda Lima», no «no encontramos»). El foco vuelve al escáner por tres vías: `Modal`
+ganó `alCerrarEnfocar` sobre `onCloseAutoFocus` (los otros 12 modales, idénticos); un
+efecto lo enfoca al abrir caja; y una tecla suelta —carácter imprimible con el foco fuera
+de un campo de texto, sin modal abierto— lo enfoca antes de que el carácter caiga
+(`lib/escaner-tecla-suelta.ts`, TDD, 9 tests). Verificado en navegador con sesión real y
+ventas de verdad en la base local (B001-000002 a 000004): pistola + Enter agrega sin mouse;
+con el foco en «Quitar» el código se redirige y la línea sobrevive; DNI y modales
+conservan sus teclas; «Nueva venta» devuelve el foco al escáner (el stack lo firma:
+`Modal … onCloseAutoFocus`). El padre se tocó en dos commits chicos que entraron a
+`main` local apenas compilaron; el único conflicto con B fue la línea anunciada
+(«Venta registrada»: `onClose` de B + `alCerrarEnfocar` de A), resuelto conservando ambas.
+
+Lo que Felipe se lleva: **la pistola es un teclado, y un teclado escribe donde esté el
+foco.** Toda la jerarquía visual no sirve si después de tocar un chip el siguiente
+escaneo cae en un botón; por eso la regla de «qué tecla va al escáner» vive en `lib/`
+con prueba y no en un `onClick` más. Y un segundo aprendizaje del propio código: la guarda
+de «hay modal abierto» tiene que mirar los modales **montados**, no el estado que los
+abre — «Abrir caja» se desmonta porque la caja abrió, no por su `onClose`, y el estado
+queda en `"abrir"` para siempre. Hallazgos que quedan en el backlog: el buscador global
+del AppShell es un segundo campo de escaneo en la misma pantalla (Enter navega a
+`/buscar` y abandona la venta), y el «Cargo especial» tiene stock 0 en la base local.
+
 ## 2026-09-14 (el ticket de Vender deja de pedir decisiones antes de que exista la venta)
 
 Sesión B sobre la costura del ADR-0043: con el ticket vacío el panel derecho ya mostraba

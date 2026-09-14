@@ -44,11 +44,22 @@ type Props = {
   ventasHoyNode: ReactNode;
 };
 
+/** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
+ *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo. */
+const chip = (prendido: boolean) =>
+  `label-cayla h-8 shrink-0 rounded-lg border px-3 text-[11px] transition-colors ${
+    prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
+  }`;
+
 /**
- * Panel izquierdo de Vender: escaneo/búsqueda, chips de categoría, grilla de prendas y
- * el desplegable de Ventas de hoy. Sin estado propio ni hooks — todo llega por props
- * desde `PuntoDeVenta`, que sigue siendo el dueño de la búsqueda, del catálogo filtrado
- * y de `agregar()`. Es la costura para trabajar el catálogo sin tocar el ticket.
+ * Panel izquierdo de Vender. La encargada de sede tiene lector: su ruta real es
+ * escanear, así que el campo de escaneo es lo primero y lo más grande del panel, y
+ * el catálogo (chips + grilla) es el plan B para cuando la etiqueta no lee — a un
+ * toque, pero sin encabezado propio que le robe alto a la venta.
+ *
+ * Sin estado propio ni hooks — todo llega por props desde `PuntoDeVenta`, que sigue
+ * siendo el dueño de la búsqueda, del catálogo filtrado, del foco y de `agregar()`.
+ * Es la costura para trabajar el catálogo sin tocar el ticket (ADR-0043).
  */
 export function PuntoDeVentaCatalogo({
   ubicacionEtiqueta,
@@ -68,6 +79,8 @@ export function PuntoDeVentaCatalogo({
   categorias,
   categoria,
   onCategoria,
+  soloConStock,
+  onSoloConStock,
   catalogo,
   carrito,
   mostrarVentasHoy,
@@ -75,122 +88,159 @@ export function PuntoDeVentaCatalogo({
   ventasHoyNode,
 }: Props) {
   return (
-    <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
-      <div className="px-4 pt-2 sm:px-6 sm:pt-3">
-        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <span aria-hidden />
-          <h1 className="font-display text-center text-3xl text-tinta sm:text-4xl">Catálogo De Prendas</h1>
+    // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
+    // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
+    // campo de escaneo nunca sale de la vista, por larga que sea la categoría.
+    <section
+      aria-label="Escanear o buscar prendas"
+      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
+    >
+      <div className="px-4 pt-3 sm:px-6 sm:pt-4">
+        {/* Fila de captura: el campo manda (flex-1); «Monto manual» es la tercera vía de
+            captura (sin etiqueta, prenda dañada), por eso vive al lado del campo y no
+            entre los chips, donde le robaba ancho a las categorías. */}
+        <div className="flex items-stretch gap-2">
+          <div className="relative z-20 min-w-0 flex-1">
+            <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+              {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="h-5 w-5 shrink-0 text-tinta/45 transition-colors group-focus-within:text-rojo"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+              >
+                <path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" />
+              </svg>
+              <input
+                id="venta-buscar"
+                ref={buscadorRef}
+                autoFocus
+                disabled={bloqueado}
+                value={q}
+                onChange={(e) => onEscribir(e.target.value)}
+                onKeyDown={onTeclado}
+                placeholder="Escanea la etiqueta o busca la prenda"
+                aria-label="Escanea la etiqueta o busca la prenda"
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={resultados.length > 0}
+                aria-controls="venta-resultados"
+                aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
+                aria-autocomplete="list"
+                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/45"
+              />
+              {q && (
+                <button
+                  type="button"
+                  aria-label="Limpiar búsqueda"
+                  onClick={() => onLimpiarBusqueda()}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
+                >
+                  ×
+                </button>
+              )}
+            </label>
+            {q && (
+              <ul
+                id="venta-resultados"
+                role="listbox"
+                aria-label="Prendas encontradas"
+                className="card-cayla absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
+              >
+                {resultados.length ? (
+                  resultados.map((v, i) => (
+                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo}>
+                      <button
+                        type="button"
+                        onMouseEnter={() => onActivo(i)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => onAgregar(v)}
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                          i === activo ? "bg-sand/60" : ""
+                        } ${v.stockAqui <= 0 ? "opacity-55" : ""}`}
+                      >
+                        <span>
+                          <span className="block font-semibold text-tinta">{v.referencia}</span>
+                          <span className="text-xs text-tinta/60">
+                            {[v.talla, v.color].filter(Boolean).join("/")} · {v.sku}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
+                          <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
+                            {v.stockAqui <= 0 ? `sin stock` : `${v.stockAqui} en sede`}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <p className="px-4 py-5 text-sm text-tinta/65">
+                    No encontramos «{term}» en {ubicacionEtiqueta}.
+                  </p>
+                )}
+              </ul>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => onMontoManual()}
             disabled={bloqueado}
-            className="label-cayla flex h-10 items-center justify-self-end gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40"
+            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 transition-colors hover:bg-sand/40 hover:text-tinta"
           >
             Monto manual
           </button>
         </div>
-
-        <div className="relative z-20">
-          <label className="flex h-12 items-center rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-            <input
-              id="venta-buscar"
-              ref={buscadorRef}
-              autoFocus
-              disabled={bloqueado}
-              value={q}
-              onChange={(e) => onEscribir(e.target.value)}
-              onKeyDown={onTeclado}
-              placeholder="Escanea la etiqueta o busca la prenda"
-              autoComplete="off"
-              role="combobox"
-              aria-expanded={resultados.length > 0}
-              aria-controls="venta-resultados"
-              aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-              aria-autocomplete="list"
-              className="min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-            />
-            {q && (
-              <button
-                type="button"
-                aria-label="Limpiar búsqueda"
-                onClick={() => onLimpiarBusqueda()}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
-              >
-                ×
-              </button>
-            )}
-          </label>
-          {q && (
-            <ul
-              id="venta-resultados"
-              role="listbox"
-              aria-label="Prendas encontradas"
-              className="card-cayla absolute top-14 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
-            >
-              {resultados.length ? (
-                resultados.map((v, i) => (
-                  <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo}>
-                    <button
-                      type="button"
-                      onMouseEnter={() => onActivo(i)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => onAgregar(v)}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${i === activo ? "bg-sand/60" : ""}`}
-                    >
-                      <span>
-                        <span className="block font-semibold text-tinta">{v.referencia}</span>
-                        <span className="text-xs text-tinta/60">
-                          {[v.talla, v.color].filter(Boolean).join("/")} · {v.sku}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
-                        <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                          {v.stockAqui <= 0 ? `sin stock` : `${v.stockAqui} en sede`}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))
-              ) : (
-                <p className="px-4 py-5 text-sm text-tinta/65">
-                  No encontramos «{term}» en {ubicacionEtiqueta}.
-                </p>
-              )}
-            </ul>
-          )}
-        </div>
         {aviso && <p className="mt-2 text-sm text-ambar-profundo">{aviso}</p>}
 
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-3">
-          {categorias.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onCategoria(c)}
-              disabled={bloqueado}
-              className={`label-cayla h-8 shrink-0 rounded-lg border px-3 text-[11px] transition-colors ${
-                categoria === c ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
-              }`}
-            >
-              {c}
-            </button>
-          ))}
+        {/* Catálogo, la ruta secundaria: chips a la izquierda y, al final, el filtro de
+            stock — un chip más, con el mismo aspecto prendido que una categoría. */}
+        <div className="mt-3 flex items-center gap-2 pb-3">
+          <div className="scroll-cayla flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5">
+            {categorias.map((c) => (
+              <button key={c} type="button" onClick={() => onCategoria(c)} disabled={bloqueado} className={chip(categoria === c)}>
+                {c}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-pressed={soloConStock}
+            onClick={() => onSoloConStock(!soloConStock)}
+            disabled={bloqueado}
+            className={chip(soloConStock)}
+          >
+            Solo con stock
+          </button>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {catalogo.length === 0 && (
+            <p className="col-span-full py-10 text-center text-sm text-tinta/60">
+              {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}
+              {categoria === "Todo" ? "." : ` en ${categoria}.`}
+            </p>
+          )}
           {catalogo.map((v) => {
             const enCarrito = carrito.find((it) => it.claveLinea === v.varianteId)?.cantidad ?? 0;
             const sinStock = v.stockAqui <= 0;
             return (
+              // Sin stock sigue siendo clicable a propósito: `agregar()` responde con el
+              // aviso «no tiene stock en esta sede», que es mejor respuesta que un botón muerto.
               <button
                 key={v.varianteId}
                 type="button"
                 onClick={() => onAgregar(v)}
                 disabled={bloqueado}
-                className="relative flex h-auto min-h-40 flex-col items-stretch justify-between rounded-xl border border-sand bg-papel p-3 text-left transition-colors hover:bg-sand/30"
+                aria-disabled={sinStock || undefined}
+                className={`relative flex h-auto min-h-40 flex-col items-stretch justify-between rounded-xl border p-3 text-left transition-colors ${
+                  sinStock ? "border-dashed border-sand bg-crema opacity-55" : "border-sand bg-papel hover:bg-sand/30"
+                }`}
               >
                 <div>
                   <p className="line-clamp-1 text-sm font-semibold text-tinta">{v.referencia}</p>
