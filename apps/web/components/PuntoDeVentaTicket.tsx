@@ -16,6 +16,9 @@ const TASA_IGV = 0.18;
 /** Atajos de % del apartado de descuento — los que se dan de palabra en el mostrador. */
 const ATAJOS_DESCUENTO = [5, 10, 15, 20, 25, 50] as const;
 
+/** Billetes de sol que se reciben en el mostrador — las teclas de «Recibido» los suman. */
+const BILLETES = [10, 20, 50, 100, 200] as const;
+
 /** El botón principal es el mismo en los tres momentos; cambian su texto y lo que hace.
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
  *  rojo a medias ahí se leía como "casi se puede". */
@@ -181,6 +184,17 @@ export function PuntoDeVentaTicket({
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const apagado = bloqueado || motivoBloqueo !== null;
 
+  // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
+  const faltaPago = !cobrando
+    ? null
+    : pagos.length === 0
+      ? "Elige cómo pagó la clienta"
+      : restante > 0
+        ? `Falta cubrir ${money(restante)}`
+        : restante < 0
+          ? "Los pagos superan el total"
+          : null;
+
   // Lo que ya se descontó (suma de todas las líneas), para la fila sobre el total.
   const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
 
@@ -343,15 +357,19 @@ export function PuntoDeVentaTicket({
           ) : cobrando ? (
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
-                  aunque la clienta no pida nada. El (!) solo aparece mientras falte. */}
+                  aunque la clienta no pida nada. Tocar un medio agrega su fila con lo que
+                  falta; combinar («Yape + efectivo», la venta más común de la tienda) es bajar
+                  un monto y tocar otro. El (!) solo aparece mientras no esté cubierto. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1">
-                    {pagos.length === 0 && (
-                      <Ayuda tono="falta" titulo="Elige cómo pagó la clienta">
-                        Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su
-                        propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre,
-                        donde solo se cuenta el efectivo.
+                    {faltaPago !== null && (
+                      <Ayuda tono="falta" titulo={faltaPago}>
+                        {pagos.length === 0
+                          ? "Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se cuenta el efectivo."
+                          : restante > 0
+                            ? "Los medios puestos no llegan al total. Sube un monto o toca otro medio para el resto."
+                            : "La suma de los medios pasa el total y la venta no cuadraría. Baja un monto o quita un medio."}
                       </Ayuda>
                     )}
                     <Wallet className={ICONO_CHICO} aria-hidden />
@@ -359,22 +377,139 @@ export function PuntoDeVentaTicket({
                   </span>
                 </legend>
                 <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
-                  {METODOS_PAGO.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => onAgregarPago(m)}
-                      disabled={bloqueado}
-                      aria-pressed={pagos.some((p) => p.metodo === m)}
-                      className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                        pagos.some((p) => p.metodo === m) ? OPCION_ACTIVA : OPCION_INACTIVA
-                      }`}
-                    >
-                      {ICONO_METODO[m]}
-                      {m}
-                    </button>
-                  ))}
+                  {METODOS_PAGO.map((m) => {
+                    const puesto = pagos.some((p) => p.metodo === m);
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => onAgregarPago(m)}
+                        disabled={bloqueado || puesto}
+                        aria-pressed={puesto}
+                        className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                          puesto ? OPCION_ACTIVA : OPCION_INACTIVA
+                        }`}
+                      >
+                        {ICONO_METODO[m]}
+                        {m}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {pagos.length > 0 && (
+                  <div className="anim-revelar divide-y divide-sand rounded-lg border border-sand bg-crema">
+                    {pagos.map((p, i) => (
+                      <div key={p.metodo} className="space-y-2 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-tinta/70">{ICONO_METODO[p.metodo]}</span>
+                          <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
+                          <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                            <span className="text-xs text-tinta/60">S/</span>
+                            <input
+                              aria-label={`Monto en ${p.metodo}`}
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={p.monto}
+                              onChange={(e) => onMontoPago(i, Number(e.target.value))}
+                              disabled={bloqueado}
+                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            aria-label={`Quitar pago en ${p.metodo}`}
+                            onClick={() => onQuitarPago(i)}
+                            disabled={bloqueado}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                          </button>
+                        </div>
+
+                        {/* Solo el efectivo da vuelto: lo entregado se anota para calcularlo y
+                            mostrarlo grande — nunca viaja a la venta. Las teclas SUMAN billetes
+                            (S/100 + S/50 = 150); «Exacto» pone lo justo; el campo corrige. */}
+                        {p.metodo === "efectivo" && (
+                          <div className="space-y-2 rounded-md bg-sand/40 p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] text-tinta/50">Recibido</span>
+                              <span className="flex items-center gap-1">
+                                <label className="flex h-8 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                                  <span className="text-xs text-tinta/60">S/</span>
+                                  <input
+                                    aria-label="Efectivo recibido"
+                                    type="number"
+                                    inputMode="decimal"
+                                    min={0}
+                                    step="0.01"
+                                    value={p.recibido ?? ""}
+                                    onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
+                                    placeholder="0.00"
+                                    disabled={bloqueado}
+                                    className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
+                                  />
+                                </label>
+                                {p.recibido !== undefined && (
+                                  <button
+                                    type="button"
+                                    aria-label="Borrar lo recibido"
+                                    onClick={() => onRecibido(null)}
+                                    disabled={bloqueado}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-sand/60 hover:text-tinta"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                              {BILLETES.map((b) => (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  onClick={() => onRecibido((p.recibido ?? 0) + b)}
+                                  disabled={bloqueado}
+                                  className="h-8 rounded-md border border-sand bg-papel text-xs font-semibold text-tinta transition-colors hover:bg-sand/40"
+                                >
+                                  +{b}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => onRecibido(p.monto)}
+                                disabled={bloqueado}
+                                className="label-cayla h-8 rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
+                              >
+                                Exacto
+                              </button>
+                            </div>
+                            {vuelto > 0 && (
+                              <p key={vuelto} className="anim-asentar flex items-baseline justify-between pt-1">
+                                <span className="label-cayla text-[11px] text-tinta/60">Vuelto</span>
+                                <span className="font-display text-3xl leading-none text-tinta">{money(vuelto)}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {pagos.length > 0 && (
+                  <p
+                    key={restante}
+                    className={`anim-asentar flex items-baseline justify-between text-xs ${
+                      restante === 0 ? "text-verde-profundo" : restante > 0 ? "text-tinta/70" : "text-rojo-profundo"
+                    }`}
+                  >
+                    <span>{restante === 0 ? "Cubierto" : restante > 0 ? "Falta cubrir" : "Se pasa por"}</span>
+                    <span className="font-semibold">{restante === 0 ? "✓" : money(Math.abs(restante))}</span>
+                  </p>
+                )}
               </fieldset>
 
               {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
