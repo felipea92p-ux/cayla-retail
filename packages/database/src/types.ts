@@ -9,6 +9,71 @@ export type Json =
 export type Database = {
   retail: {
     Tables: {
+      activos_fijos: {
+        Row: {
+          costo: number
+          created_at: string
+          cuenta_codigo: string | null
+          depreciacion_apertura: number
+          descripcion: string | null
+          estado: string
+          fecha_adquisicion: string
+          id: string
+          nombre: string
+          nota: string | null
+          serie: string | null
+          tasa_anual: number
+          ubicacion_id: string
+          updated_at: string
+          valor_residual: number
+          vida_util_meses: number
+        }
+        Insert: {
+          costo: number
+          created_at?: string
+          cuenta_codigo?: string | null
+          depreciacion_apertura?: number
+          descripcion?: string | null
+          estado?: string
+          fecha_adquisicion: string
+          id?: string
+          nombre: string
+          nota?: string | null
+          serie?: string | null
+          tasa_anual: number
+          ubicacion_id: string
+          updated_at?: string
+          valor_residual?: number
+          vida_util_meses: number
+        }
+        Update: {
+          costo?: number
+          created_at?: string
+          cuenta_codigo?: string | null
+          depreciacion_apertura?: number
+          descripcion?: string | null
+          estado?: string
+          fecha_adquisicion?: string
+          id?: string
+          nombre?: string
+          nota?: string | null
+          serie?: string | null
+          tasa_anual?: number
+          ubicacion_id?: string
+          updated_at?: string
+          valor_residual?: number
+          vida_util_meses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activos_fijos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caja_movimientos: {
         Row: {
           caja_id: string
@@ -164,18 +229,24 @@ export type Database = {
       categorias: {
         Row: {
           activo: boolean
+          familia: string | null
           id: string
           nombre: string
+          prefijo: string | null
         }
         Insert: {
           activo?: boolean
+          familia?: string | null
           id?: string
           nombre: string
+          prefijo?: string | null
         }
         Update: {
           activo?: boolean
+          familia?: string | null
           id?: string
           nombre?: string
+          prefijo?: string | null
         }
         Relationships: []
       }
@@ -241,6 +312,24 @@ export type Database = {
           },
         ]
       }
+      codigos_correlativos: {
+        Row: {
+          prefijo: string
+          ultimo: number
+          updated_at: string
+        }
+        Insert: {
+          prefijo: string
+          ultimo?: number
+          updated_at?: string
+        }
+        Update: {
+          prefijo?: string
+          ultimo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           agregado_por: string | null
@@ -263,20 +352,26 @@ export type Database = {
         Row: {
           activo: boolean
           codigo: string
+          familia_color: string | null
           hex: string | null
           nombre: string
+          orden: number
         }
         Insert: {
           activo?: boolean
           codigo: string
+          familia_color?: string | null
           hex?: string | null
           nombre: string
+          orden?: number
         }
         Update: {
           activo?: boolean
           codigo?: string
+          familia_color?: string | null
           hex?: string | null
           nombre?: string
+          orden?: number
         }
         Relationships: []
       }
@@ -1049,6 +1144,7 @@ export type Database = {
       productos: {
         Row: {
           categoria_id: string | null
+          codigo: string | null
           created_at: string
           descripcion: string | null
           estado: string
@@ -1057,6 +1153,7 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
+          codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -1065,6 +1162,7 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
+          codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
@@ -1433,6 +1531,7 @@ export type Database = {
       variantes: {
         Row: {
           activo: boolean
+          codigo: string | null
           color_codigo: string | null
           costo: number
           created_at: string
@@ -1444,6 +1543,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          codigo?: string | null
           color_codigo?: string | null
           costo?: number
           created_at?: string
@@ -1455,6 +1555,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          codigo?: string | null
           color_codigo?: string | null
           costo?: number
           created_at?: string
@@ -1858,6 +1959,15 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_asignar_codigo_producto: {
+        Args: { p_producto_id: string }
+        Returns: string
+      }
+      fn_asignar_codigo_variante: {
+        Args: { p_variante_id: string }
+        Returns: string
+      }
+      fn_clave_texto: { Args: { p: string }; Returns: string }
       fn_colaboradores: {
         Args: never
         Returns: {
@@ -1907,7 +2017,9 @@ export type Database = {
           serie: string
         }[]
       }
+      fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
+      fn_token_talla: { Args: { p_talla: string }; Returns: string }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
