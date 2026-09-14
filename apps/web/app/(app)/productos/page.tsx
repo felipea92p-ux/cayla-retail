@@ -1,5 +1,6 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { ProductosNav } from "@/components/ProductosNav";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -17,6 +18,8 @@ export default async function ProductosPage() {
         <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
       </div>
+
+      <ProductosNav />
 
       {catalogo.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay productos en el catálogo.</p>
