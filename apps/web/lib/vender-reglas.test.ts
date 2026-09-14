@@ -127,6 +127,9 @@ describe("motivoBloqueoCobro — el momento «descuento» tampoco exige método"
   it("mientras se decide un descuento no se pide cómo pagó", () => {
     expect(motivoBloqueoCobro({ ...listo, momento: "descuento", pagos: [] })).toBeNull();
   });
+  it("mirando los tickets en espera tampoco", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "espera", pagos: [] })).toBeNull();
+  });
 });
 
 // ---- Pago mixto y vuelto (2026-09-14): la base ya recibe `p_pagos` como lista y exige

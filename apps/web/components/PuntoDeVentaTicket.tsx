@@ -7,7 +7,7 @@ import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado } from "@/components/PuntoDeVenta";
+import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -112,6 +112,11 @@ type Props = {
   // Nota del ticket — una línea, hasta 200; vive con las líneas (momento «armar»)
   nota: string;
   onNota: (v: string) => void;
+  // Tickets en espera de la sede (Park/Resume) — momento «espera»
+  enEspera: TicketEnEspera[];
+  onDejarEnEspera: () => void;
+  onRetomar: (id: string) => void;
+  onIrAEspera: () => void;
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
@@ -173,6 +178,10 @@ export function PuntoDeVentaTicket({
   onCodigoDescuento,
   nota,
   onNota,
+  enEspera,
+  onDejarEnEspera,
+  onRetomar,
+  onIrAEspera,
   total,
   prendas,
   momento,

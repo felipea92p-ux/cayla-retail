@@ -6,9 +6,10 @@
 import type { MetodoPago } from "@cayla-retail/shared";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
- *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); el pago y
- *  el comprobante aparecen recién al tocar «Cobrar». */
-export type MomentoTicket = "armar" | "descuento" | "cobrar";
+ *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
+ *  la lista de tickets en espera de la sede (vuelve a «armar»); el pago y el comprobante
+ *  aparecen recién al tocar «Cobrar». */
+export type MomentoTicket = "armar" | "descuento" | "espera" | "cobrar";
 
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
  *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la

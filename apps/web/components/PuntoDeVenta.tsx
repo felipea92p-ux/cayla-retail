@@ -12,6 +12,7 @@ import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { aplicarDescuento, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
+import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -58,6 +59,15 @@ export type ItemCarrito = {
  *  cual lo escribe) y a qué líneas alcanza — `null` es todo el ticket; `[]` es que
  *  todavía no eligió ninguna (no se puede aplicar). */
 export type DescuentoForm = { pct: string; elegidas: string[] | null };
+
+/** Un ticket dejado en espera (la clienta fue a probarse otra talla): lo que hace falta
+ *  para retomarlo tal cual — líneas (con su descuento adentro), nota y código. El
+ *  formulario de % no: es un borrador, no parte del ticket. Vive en localStorage por
+ *  sede (`lib/almacen-local.ts`), sin reservar stock. */
+export type TicketEnEspera = { id: string; creadoEn: string; carrito: ItemCarrito[]; nota: string; codigoDescuento: string };
+
+/** Más de esto no es «en espera», es un mostrador desbordado: el sexto avisa. */
+const TOPE_ESPERA = 5;
 /** Un medio con el que pagó la clienta (ver `lib/vender-reglas.ts`); compartido con el
  *  ticket desde acá, como los otros tipos (ADR-0043). */
 export type { PagoAplicado } from "@/lib/vender-reglas";
@@ -119,6 +129,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
+  // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
+  // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
+  // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
+  const [enEspera, setEnEspera] = useState<TicketEnEspera[]>([]);
+  const claveEspera = claveLocal(ubicacionId, "en-espera");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -186,6 +201,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     window.addEventListener("keydown", alTeclaSuelta);
     return () => window.removeEventListener("keydown", alTeclaSuelta);
   }, [bloqueado, hayModal]);
+
+  useEffect(() => {
+    // Hidratar desde localStorage al montar es el patrón correcto en Next (no existe en
+    // el servidor y leerlo durante el render desincroniza la hidratación); la regla lo
+    // marca igual. Misma decisión que el BACKLOG registró el 2026-09-10 para la cola.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnEspera(leer<TicketEnEspera[]>(claveEspera, []));
+  }, [claveEspera]);
+
+  // Al cerrar caja se vacía la espera de la sede (decisión de Felipe): un ticket de ayer
+  // no sobrevive a la caja de hoy. `CerrarCajaModalV2` refresca y `cajaId` llega null. El
+  // estado se ajusta durante el render (patrón «previo + comparación» que documenta React)
+  // y el efecto solo toca el sistema externo: borra la llave.
+  const [bloqueadoPrevio, setBloqueadoPrevio] = useState(bloqueado);
+  if (bloqueado !== bloqueadoPrevio) {
+    setBloqueadoPrevio(bloqueado);
+    if (bloqueado) setEnEspera([]);
+  }
+  useEffect(() => {
+    if (bloqueado) borrar(claveEspera);
+  }, [bloqueado, claveEspera]);
 
   // Reflujo suave de las líneas del ticket al agregar/quitar una prenda (Flip, ADR-0038
   // — vuelve de V1 por ADR-0045): se captura la posición ANTES de que cambie la lista y
@@ -308,6 +344,55 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     setMomento("armar");
   }
 
+  // Ticket en espera (Park/Resume): guarda el actual y deja la caja libre. Sin reserva
+  // de stock — la RPC valida al cobrar, como siempre; acá solo se avisa por nombre.
+  function persistirEspera(lista: TicketEnEspera[]) {
+    setEnEspera(lista);
+    if (!guardar(claveEspera, lista)) avisar.aviso("No se pudo guardar la espera en este navegador: el ticket sigue acá, pero no sobrevivirá a una recarga.");
+  }
+  function limpiarTicket() {
+    setCarrito([]);
+    setNota("");
+    setCodigoDescuento("");
+    setPagos([]);
+    setDescuento({ pct: "", elegidas: null });
+    setMomento("armar");
+  }
+  function dejarEnEspera() {
+    if (carrito.length === 0) return;
+    if (enEspera.length >= TOPE_ESPERA) {
+      avisar.error(`Ya hay ${TOPE_ESPERA} tickets en espera en ${ubicacionEtiqueta}. Retoma o cobra uno antes de dejar otro.`);
+      return;
+    }
+    capturarFlip();
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento }]);
+    limpiarTicket();
+    buscador.current?.focus();
+  }
+  function retomar(id: string) {
+    const ticket = enEspera.find((t) => t.id === id);
+    if (!ticket) return;
+    // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
+    const actual: TicketEnEspera | null =
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento } : null;
+    persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
+    capturarFlip();
+    setCarrito(ticket.carrito);
+    setNota(ticket.nota);
+    setCodigoDescuento(ticket.codigoDescuento);
+    setPagos([]);
+    setMomento("armar");
+    // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
+    // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar.
+    const cortas = ticket.carrito.filter((it) => {
+      const v = variantes.find((x) => x.varianteId === it.varianteId);
+      return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+    });
+    if (cortas.length > 0) {
+      avisar.aviso(`${cortas.map((it) => `${it.referencia} (${it.sku})`).join(", ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}.`);
+    }
+  }
+
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -403,7 +488,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
 
     if (error) {
       setLoading(false);
-      avisar.error(traducirError(error, "registrar la venta"));
+      // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
+      // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
+      // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
+      const porStock = /stock insuficiente|stock_cantidad_no_negativa/i.test(`${error.message} ${error.details ?? ""}`);
+      const cortas = porStock
+        ? carrito.filter((it) => {
+            const v = variantes.find((x) => x.varianteId === it.varianteId);
+            return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+          })
+        : [];
+      avisar.error(
+        cortas.length > 0
+          ? `${cortas.map((it) => `${it.referencia} (${it.sku}) — quedan ${variantes.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
+          : traducirError(error, "registrar la venta")
+      );
       return;
     }
 
@@ -545,6 +644,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           onCodigoDescuento={setCodigoDescuento}
           nota={nota}
           onNota={setNota}
+          enEspera={enEspera}
+          onDejarEnEspera={dejarEnEspera}
+          onRetomar={retomar}
+          onIrAEspera={() => setMomento("espera")}
           total={total}
           prendas={prendas}
           pagos={pagos}
