@@ -1497,6 +1497,10 @@ export type Database = {
         Args: { p_sububicacion_id?: string; p_ubicacion_id: string }
         Returns: string
       }
+      actualizar_mi_foto_perfil: {
+        Args: { p_foto_url: string }
+        Returns: undefined
+      }
       actualizar_transmision_comprobante: {
         Args: {
           p_comprobante_id: string
@@ -1636,6 +1640,21 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_mi_perfil: {
+        Args: never
+        Returns: {
+          apellidos: string
+          celular: string
+          correo: string
+          estado: string
+          foto_url: string
+          nombres: string
+          persona_id: string
+          rol: string
+          ubicacion_nombre: string
+          ultimo_acceso: string
+        }[]
+      }
       fn_nombres_personas: {
         Args: { p_ids: string[] }
         Returns: {
