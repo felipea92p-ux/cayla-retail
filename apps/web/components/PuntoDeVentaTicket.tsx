@@ -15,14 +15,23 @@ const TASA_IGV = 0.18;
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
  *  rojo a medias ahí se leía como "casi se puede". */
 const BOTON_PRINCIPAL =
-  "flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** Hay un solo ticket por pantalla, así que un id fijo alcanza para que el botón
  *  apagado apunte a su motivo (`aria-describedby`) sin hooks en este componente. */
 const ID_MOTIVO = "ticket-motivo-bloqueo";
 
+/** Basurero en trazo — mismo lenguaje que los íconos a mano de AppShell (V2 no trae
+ *  librería de íconos; el corte V1→V2 se llevó `lucide-react` junto con shadcn). */
+function IconoBasurero() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 type Props = {
-  ubicacionEtiqueta: string;
   bloqueado: boolean;
   // Ticket
   carrito: ItemCarrito[];
@@ -68,7 +77,6 @@ type Props = {
  * ticket sin tocar el catálogo (y viceversa).
  */
 export function PuntoDeVentaTicket({
-  ubicacionEtiqueta,
   bloqueado,
   carrito,
   onQuitar,
@@ -101,8 +109,9 @@ export function PuntoDeVentaTicket({
     // viewport): cabecera y pie quedan fijos y solo el medio —líneas o cobro— scrollea.
     <aside className="flex min-h-[45vh] flex-col bg-papel lg:min-h-0">
       {/* En «armar» la cabecera dice dónde estamos; en «cobrar» ofrece la vuelta al
-          ticket y el conteo vivo de prendas. */}
-      <div className="flex items-center justify-between border-b border-sand px-5 py-4">
+          ticket y el conteo vivo de prendas. Un solo título grande: la sede ya está en
+          la barra de arriba («Venta en tienda · sede»), repetirla acá no decía nada. */}
+      <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
         {cobrando ? (
           <>
             <button
@@ -113,21 +122,18 @@ export function PuntoDeVentaTicket({
             >
               ← Ticket
             </button>
-            <div className="text-right">
-              <p className="text-xs text-tinta/60">Cobro</p>
-              <h2 className="font-display text-base text-tinta">{etiquetaPrendas}</h2>
+            <div className="anim-revelar text-right">
+              <h2 className="font-display text-2xl leading-none text-tinta">Cobro</h2>
+              <p className="mt-1 text-xs text-tinta/60">{etiquetaPrendas}</p>
             </div>
           </>
         ) : (
-          <div>
-            <p className="text-xs text-tinta/60">Ticket actual</p>
-            <h2 className="font-display text-base text-tinta">{ubicacionEtiqueta}</h2>
-          </div>
+          <h2 className="font-display text-2xl leading-none text-tinta">Ticket actual</h2>
         )}
       </div>
 
       <form onSubmit={onCobrar} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-40 flex-1 overflow-y-auto">
+        <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
           {cobrando ? (
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
@@ -215,7 +221,9 @@ export function PuntoDeVentaTicket({
           ) : (
             <div className="divide-y divide-sand">
               {carrito.map((it) => (
-                <article key={it.claveLinea} className="px-5 py-4">
+                // `anim-entrada`: la línea responde al escaneo que la creó (regla del
+                // sistema de movimiento: nada se anima solo al entrar a la pantalla).
+                <article key={it.claveLinea} className="anim-entrada px-5 py-4">
                   <div className="flex justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
@@ -234,14 +242,27 @@ export function PuntoDeVentaTicket({
                     <label className="text-[10px] text-tinta/50 uppercase">
                       Cantidad
                       <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
-                        <button
-                          type="button"
-                          aria-label="Reducir cantidad"
-                          onClick={() => onActualizar(it.claveLinea, "cantidad", it.cantidad - 1)}
-                          className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
-                        >
-                          −
-                        </button>
+                        {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
+                            basurero de la línea, que es lo único que queda por hacer. */}
+                        {it.cantidad <= 1 ? (
+                          <button
+                            type="button"
+                            aria-label={`Quitar ${it.referencia}`}
+                            onClick={() => onQuitar(it.claveLinea)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
+                          >
+                            <IconoBasurero />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label="Reducir cantidad"
+                            onClick={() => onActualizar(it.claveLinea, "cantidad", it.cantidad - 1)}
+                            className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
+                          >
+                            −
+                          </button>
+                        )}
                         <input
                           aria-label={`Cantidad de ${it.referencia}`}
                           type="number"
@@ -262,21 +283,15 @@ export function PuntoDeVentaTicket({
                         </button>
                       </div>
                     </label>
-                    <label className="text-[10px] text-tinta/50 uppercase">
+                    {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Lo que
+                        se puede decidir en el mostrador es un descuento, y va aparte. */}
+                    <div className="text-[10px] text-tinta/50 uppercase">
                       Precio unitario
-                      <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema px-2">
-                        <span className="mr-1 text-xs text-tinta/60">S/</span>
-                        <input
-                          aria-label={`Precio de ${it.referencia}`}
-                          type="number"
-                          min={0}
-                          step="0.10"
-                          value={it.precioUnitario}
-                          onChange={(e) => onActualizar(it.claveLinea, "precioUnitario", Number(e.target.value))}
-                          className="w-16 bg-transparent text-right text-sm font-semibold text-tinta outline-none"
-                        />
-                      </div>
-                    </label>
+                      <p className="mt-1 flex h-9 items-center text-sm font-semibold text-tinta normal-case">
+                        <span className="mr-1 text-xs font-normal text-tinta/60">S/</span>
+                        {it.precioUnitario.toFixed(2)}
+                      </p>
+                    </div>
                     <div className="pb-2 text-right">
                       <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
                       <p className="text-sm font-bold text-tinta">{money(it.cantidad * (it.precioUnitario - it.descuentoUnitario))}</p>
@@ -299,7 +314,11 @@ export function PuntoDeVentaTicket({
             </div>
             <div className="text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>
-              <p className="font-display text-5xl leading-none text-tinta">{money(total)}</p>
+              {/* `key={total}`: al cambiar el monto el número se vuelve a montar y se
+                  asienta (responde a la prenda que entró, no se anima solo). */}
+              <p key={total} className="anim-asentar font-display text-5xl leading-none text-tinta">
+                {money(total)}
+              </p>
             </div>
           </div>
 

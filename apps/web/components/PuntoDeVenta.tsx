@@ -396,7 +396,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         />
 
         <PuntoDeVentaTicket
-          ubicacionEtiqueta={ubicacionEtiqueta}
           bloqueado={bloqueado}
           carrito={carrito}
           onQuitar={quitar}
