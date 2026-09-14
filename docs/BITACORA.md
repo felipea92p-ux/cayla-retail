@@ -22,6 +22,20 @@ Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta*
 y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
 migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
 
+## 2026-09-14 («Ventas de hoy» muestra la nota, y el SQL pendiente de producción está medido)
+
+Dos cierres chicos de la sesión A. La nota que B guardó en `ventas.nota` ya se lee en la
+fila de «Ventas de hoy» (truncada, completa en `title`, nada si es null). Y el paquete
+`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-14.sql`: se midió contra el catálogo de
+producción con una consulta de solo lectura por migración —no contra el registro, porque
+lo pegado a mano no siempre se registra— y faltan 7 de 18. Dos sorpresas: `registrar_venta`
+allá tiene 9 parámetros y el front ya manda 11 (no desplegar antes de pegar), y la variante
+centinela del «Cargo especial» no existe en producción — «Monto manual» está roto allá hoy.
+
+Lo que Felipe se lleva: **el registro de migraciones dice qué se registró, no qué existe.**
+Para saber qué le falta a producción se le pregunta al catálogo (`to_regclass`,
+`to_regprocedure`, `information_schema`), un booleano por migración.
+
 ## 2026-09-14 (la cabecera de Vender enlaza a Caja, Cambios y Devoluciones)
 
 Paso chico en zona del padre. Desde la caja no había cómo llegar a ingreso/egreso y
