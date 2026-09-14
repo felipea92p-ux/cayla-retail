@@ -8,7 +8,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
-import { Chip } from "@/components/ui/Chip";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { compararTallas } from "@/lib/tallas";
 import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 
 // Recibir mercadería contra facturas (ADR-0035). Una guía = una recepción,
@@ -340,27 +341,34 @@ export function RecepcionCompraFormV2({
               const recibiendo = propias.reduce((a, l) => a + cantidadLinea(l), 0);
               const pendienteTotal = propias.reduce((a, l) => a + l.pendiente, 0);
               const hayDetalladas = propias.some((l) => l.varianteId);
+              // Primero las líneas con variante (tabla), después las agrupadas
+              // (curva de tallas): así el encabezado de columnas queda pegado a
+              // las filas que describe y no flotando sobre una cuadrícula.
+              const ordenadas = [...propias.filter((l) => l.varianteId), ...propias.filter((l) => !l.varianteId)];
               return (
                 <section key={compraId} className="card-cayla divide-y divide-tinta/10">
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
-                    <div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <p className="text-sm tabular-nums text-tinta">
                         {c.documento} <span className="text-xs text-tinta/65">· emitida {fechaCorta(c.fechaEmision)}</span>
                       </p>
-                      <p className={`text-xs ${recibiendo > pendienteTotal ? "text-rojo" : "text-tinta/65"}`}>
-                        {recibiendo} de {pendienteTotal} pendientes en esta guía
-                      </p>
+                      {/* El avance de la factura como chip, no como texto gris:
+                          con dos facturas en la guía hay que saber sin leer cuál
+                          ya está contada y cuál no. */}
+                      <Chip tono={tonoAvance(recibiendo, pendienteTotal)}>
+                        {recibiendo} de {pendienteTotal}
+                      </Chip>
                     </div>
                     <div className="flex items-center gap-3">
                       {hayDetalladas && (
-                        <>
-                          <button type="button" onClick={() => marcarTodas(compraId, true)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
-                            Todo llegó
-                          </button>
-                          <button type="button" onClick={() => marcarTodas(compraId, false)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
-                            Nada
-                          </button>
-                        </>
+                        <button type="button" onClick={() => marcarTodas(compraId, true)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                          Todo llegó
+                        </button>
+                      )}
+                      {recibiendo > 0 && (
+                        <button type="button" onClick={() => marcarTodas(compraId, false)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                          Vaciar
+                        </button>
                       )}
                       {seleccionadas.length > 1 && (
                         <button type="button" onClick={() => quitar(compraId)} className="label-cayla text-[10px] text-tinta/55 hover:text-rojo">
@@ -370,16 +378,18 @@ export function RecepcionCompraFormV2({
                     </div>
                   </div>
 
-                  {/* encabezado de columnas */}
-                  <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9rem_6rem_6rem]">
-                    {["Producto", "Talla y color", "Pendiente", "Llegó"].map((t, i) => (
-                      <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i >= 2 ? "text-center" : ""}`}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+                  {/* encabezado de columnas: solo si hay filas con variante */}
+                  {hayDetalladas && (
+                    <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9rem_6rem_6rem]">
+                      {["Producto", "Talla y color", "Pendiente", "Llegó"].map((t, i) => (
+                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i >= 2 ? "text-center" : ""}`}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                  {propias.map((l) => {
+                  {ordenadas.map((l) => {
                     const recibiendoLinea = cantidadLinea(l);
                     const excede = recibiendoLinea > l.pendiente;
                     const completa = recibiendoLinea === l.pendiente && l.pendiente > 0;
@@ -415,35 +425,29 @@ export function RecepcionCompraFormV2({
                     // talla ni color, y se reparte acá mirando lo que llegó.
                     const opciones = variantesPorProducto.get(l.productoId) ?? [];
                     return (
-                      <div key={l.id} id={`recibir-linea-${l.id}`} className="space-y-2 px-5 py-3">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <div key={l.id} id={`recibir-linea-${l.id}`} className={`space-y-3 px-5 py-3 ${completa ? "bg-verde/[0.04]" : ""}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                           <span className="min-w-0 text-sm text-tinta">
-                            {l.referencia} <span className="text-xs text-tinta/55">· sin desglose, reparte por talla y color</span>
+                            {l.referencia}{" "}
+                            <span className="text-xs text-tinta/55">
+                              · la factura dice {l.pendiente} sin talla ni color — anota lo que llegó de cada una
+                            </span>
                             {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
                           </span>
-                          <span className={`text-sm tabular-nums ${excede ? "text-rojo" : "text-tinta/65"}`}>
+                          <Chip tono={tonoAvance(recibiendoLinea, l.pendiente)}>
                             {recibiendoLinea} de {l.pendiente}
-                          </span>
+                          </Chip>
                         </div>
                         {opciones.length === 0 ? (
                           <p className="text-xs text-rojo">Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.</p>
                         ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {opciones.map((v) => (
-                              <label key={v.varianteId} className="flex items-center gap-2 rounded-md border border-tinta/15 px-2.5 py-1.5">
-                                <span className="text-xs text-tinta/75">{[v.talla, v.color].filter(Boolean).join(" / ") || v.sku}</span>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  aria-label={`${l.referencia} ${v.talla ?? ""} ${v.color ?? ""}`}
-                                  value={reparto[l.id]?.[v.varianteId] ?? 0}
-                                  onChange={(e) => fijar(l.id, v.varianteId, Number(e.target.value))}
-                                  onFocus={(e) => e.target.select()}
-                                  className={`${NUMERO} w-14 border-tinta/20`}
-                                />
-                              </label>
-                            ))}
-                          </div>
+                          <CurvaVariantes
+                            referencia={l.referencia}
+                            variantes={opciones}
+                            valores={reparto[l.id] ?? {}}
+                            excede={excede}
+                            onFijar={(varianteId, n) => fijar(l.id, varianteId, n)}
+                          />
                         )}
                       </div>
                     );
@@ -481,6 +485,122 @@ export function RecepcionCompraFormV2({
         </div>
       )}
     </form>
+  );
+}
+
+// Avance de una línea o factura, en el mismo código de color que el resto de
+// Compras: nada contado = neutro, a medias = ámbar, completo = verde, más de
+// lo facturado = rojo (la RPC lo va a rechazar; que se vea antes de enviar).
+function tonoAvance(recibiendo: number, pendiente: number): TonoChip {
+  if (recibiendo > pendiente) return "rojo";
+  if (recibiendo === 0) return "neutro";
+  if (recibiendo === pendiente) return "verde";
+  return "ambar";
+}
+
+/* --------------------------------------------------------------------
+   CurvaVariantes · repartir una línea agrupada por talla y color
+
+   Por qué existe: la factura dice "Blusa Emma x 24" y la caja trae 4 S,
+   8 M, 12 L en dos colores. Antes esto era una hilera de chips
+   "S / Beige [0]" que con 5 tallas × 3 colores se volvía una pared donde
+   no se veía qué ya estaba contado. La curva de tallas es cómo el taller
+   y las tiendas ya piensan la mercadería: una fila por color, una columna
+   por talla, el total de la fila al costado. Si las variantes no tienen
+   ni talla ni color (producto único), cae a la lista simple.
+   -------------------------------------------------------------------- */
+const SIN = "—";
+// Celda de la curva: caja completa (no solo línea inferior como NUMERO) para
+// que una cuadrícula de 5 × 3 se lea como cuadrícula y no como renglones sueltos.
+const CELDA =
+  "h-9 rounded-md border bg-transparent px-1 text-center text-sm tabular-nums outline-none transition-colors focus:border-rojo focus:ring-1 focus:ring-rojo/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+function CurvaVariantes({
+  referencia,
+  variantes,
+  valores,
+  excede,
+  onFijar,
+}: {
+  referencia: string;
+  variantes: Variante[];
+  valores: Record<string, number>;
+  excede: boolean;
+  onFijar: (varianteId: string, n: number) => void;
+}) {
+  const tallas = [...new Set(variantes.map((v) => v.talla ?? SIN))].sort(compararTallas);
+  const colores = [...new Set(variantes.map((v) => v.color ?? SIN))].sort((a, b) => a.localeCompare(b, "es"));
+  const conEjes = variantes.some((v) => v.talla || v.color);
+  const porCelda = new Map(variantes.map((v) => [`${v.color ?? SIN}|${v.talla ?? SIN}`, v]));
+
+  const celda = (v: Variante, etiqueta: string, ancho = "w-14 sm:w-16") => {
+    const n = valores[v.varianteId] ?? 0;
+    return (
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        aria-label={`${referencia} ${etiqueta}`}
+        value={n}
+        onChange={(e) => onFijar(v.varianteId, Number(e.target.value))}
+        onFocus={(e) => e.target.select()}
+        className={`${CELDA} ${ancho} ${
+          n > 0 ? (excede ? "border-rojo bg-rojo/[0.06] text-rojo" : "border-tinta/60 bg-tinta/[0.05] text-tinta") : "border-tinta/15 text-tinta/45"
+        }`}
+      />
+    );
+  };
+
+  if (!conEjes) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {variantes.map((v) => (
+          <label key={v.varianteId} className="flex items-center gap-2 rounded-md border border-tinta/15 px-2.5 py-1.5">
+            <span className="text-xs text-tinta/75">{v.sku}</span>
+            {celda(v, v.sku, "w-14")}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  // Solo un eje (todo "Única", o sin color): una fila basta, sin rótulo de
+  // color que no aporta.
+  const unaFila = colores.length === 1 && colores[0] === SIN;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="border-separate border-spacing-x-1.5 border-spacing-y-1 sm:border-spacing-x-2">
+        <thead>
+          <tr>
+            {!unaFila && <th className="w-12 text-left sm:w-24" />}
+            {tallas.map((t) => (
+              <th key={t} className="label-cayla pb-0.5 text-center text-[11px] font-normal text-tinta/55">
+                {t === SIN ? "Talla única" : t}
+              </th>
+            ))}
+            {!unaFila && <th className="label-cayla pb-0.5 pl-2 text-right text-[11px] font-normal text-tinta/55">Total</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {colores.map((color) => {
+            const fila = tallas.map((t) => porCelda.get(`${color}|${t}`));
+            const total = fila.reduce((a, v) => a + (v ? (valores[v.varianteId] ?? 0) : 0), 0);
+            return (
+              <tr key={color}>
+                {!unaFila && <th className="max-w-[4.5rem] truncate pr-1 text-left text-sm font-normal text-tinta/75 sm:max-w-none sm:pr-2">{color === SIN ? "Sin color" : color}</th>}
+                {fila.map((v, i) => (
+                  <td key={tallas[i]} className="text-center">
+                    {v ? celda(v, [tallas[i], color].filter((x) => x !== SIN).join(" ")) : <span className="block w-14 text-center text-xs text-tinta/30 sm:w-16">·</span>}
+                  </td>
+                ))}
+                {!unaFila && <td className={`pl-2 text-right text-sm tabular-nums ${total > 0 ? "text-tinta" : "text-tinta/45"}`}>{total}</td>}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

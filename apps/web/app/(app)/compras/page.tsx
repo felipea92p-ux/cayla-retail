@@ -28,6 +28,9 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 // La última columna es solo la flecha "›": la fila entera es un enlace y sin
 // una señal visible nadie sabía que se podía abrir. En celular no hace falta
 // (la fila apilada ya se ve como tarjeta) y se oculta.
+// El enlace abre el detalle como modal encima de esta lista (ruta
+// interceptada `@modal/(.)factura/[compraId]`): la lista no se desmonta y al cerrar
+// se vuelve exactamente donde se estaba, con scroll y filtros intactos.
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_9rem_7.5rem_8.5rem_1rem]";
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
@@ -115,7 +118,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
             ]}
           />
           {compras.map((c) => (
-            <Link key={c.id} href={`/compras/${c.id}`} className={fila(PLANTILLA, "group transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}>
+            <Link key={c.id} href={`/compras/factura/${c.id}`} className={fila(PLANTILLA, "group transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}>
               <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(c.fechaEmision)}</span>
               <span className={celda()}>
                 <span className={`text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>{c.proveedorNombre}</span>{" "}

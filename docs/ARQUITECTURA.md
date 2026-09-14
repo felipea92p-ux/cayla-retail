@@ -144,12 +144,23 @@ flowchart TB
   `activo=false`. Candados: `proveedores_ruc_unico` y
   `proveedores_nombre_clave_unica` (sobre `fn_clave_texto`, el mismo
   normalizador de `colores`/`categorias`).
-- `/compras` (Facturas), `/compras/nueva`, `/compras/[compraId]`,
+- `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
-  `CompraFormV2`, `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
+  `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
+- Detalle de factura como modal (2026-09-14): el layout de `/compras` tiene
+  un slot paralelo `@modal/` con la ruta interceptada
+  `@modal/(.)factura/[compraId]`. Al hacer clic en una fila (Facturas, Por
+  pagar) la URL pasa a `/compras/factura/<id>` pero la lista queda montada
+  detrás y el detalle se dibuja en `ui/ModalRuta.tsx` (cierra con
+  `router.back()`); recarga o enlace directo → página completa
+  `factura/[compraId]/page.tsx`. Ambas usan `components/CompraDetalle.tsx`.
+  `@modal/default.tsx` (vacío) y `@modal/[...catchAll]` (limpia el modal al
+  cambiar de pestaña) son parte del mecanismo. El prefijo `factura/` es
+  obligatorio: un `(.)[compraId]` directo bajo `/compras` interceptaba
+  también `/compras/por-pagar`, `/compras/nueva`, etc.
 - Avisos globales (ADR-0043): `components/ui/Avisos.tsx`, montado en
   `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
   (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`

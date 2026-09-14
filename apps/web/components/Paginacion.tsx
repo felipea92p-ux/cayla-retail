@@ -8,13 +8,21 @@ import type { Cursor } from "@/lib/compras";
 // toda la tabla en cada carga — las dos cosas que un millón de filas no
 // perdona. Para ir a un punto exacto están los filtros, no el número de página.
 export function serializarCursor(c: Cursor): string {
-  return `${c.fecha}~${c.id}`;
+  return `${c.fecha}~${c.creadoEn}~${c.id}`;
 }
+
+// `creadoEn` viaja tal cual lo devuelve Postgres (ISO con microsegundos y
+// zona): se le reenvía sin tocar, así el `<` del cursor compara exacto.
+const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const ES_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)$/;
+const ES_UUID = /^[0-9a-f-]{36}$/i;
 
 export function leerCursor(texto: string | undefined): Cursor | null {
   if (!texto) return null;
-  const [fecha, id] = texto.split("~");
-  return /^\d{4}-\d{2}-\d{2}$/.test(fecha ?? "") && /^[0-9a-f-]{36}$/i.test(id ?? "") ? { fecha, id } : null;
+  const [fecha, creadoEn, id] = texto.split("~");
+  return ES_FECHA.test(fecha ?? "") && ES_TIMESTAMP.test(creadoEn ?? "") && ES_UUID.test(id ?? "")
+    ? { fecha, creadoEn, id }
+    : null;
 }
 
 export function Paginacion({

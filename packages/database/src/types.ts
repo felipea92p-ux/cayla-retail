@@ -2142,6 +2142,7 @@ export type Database = {
           p_busqueda?: string
           p_con_saldo?: boolean
           p_condicion?: string
+          p_cursor_creado_en?: string
           p_cursor_fecha?: string
           p_cursor_id?: string
           p_desde?: string
@@ -2335,6 +2336,8 @@ export type Database = {
           con_saldo: number
           deuda: number
           por_recibir: number
+          por_vencer: number
+          por_vencer_monto: number
           registradas: number
           vencidas: number
           vencido: number

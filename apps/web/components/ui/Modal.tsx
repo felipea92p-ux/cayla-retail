@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -28,14 +28,20 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
   // que desmonte. Sin esto, un modal que entra suave se iba de un corte seco —
   // que se siente más brusco que no haberlo animado nunca.
-  const pedirCierre = useCallback(() => {
-    setCerrando((yaCerrando) => {
-      if (yaCerrando) return yaCerrando;
-      const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      setTimeout(onClose, sinMovimiento ? 0 : MS_SALIDA);
-      return true;
-    });
-  }, [onClose]);
+  //
+  // El temporizador vive en un efecto y NO dentro del updater de `setCerrando`
+  // (como estuvo al principio): React ejecuta los updaters dos veces en
+  // desarrollo (StrictMode) para delatar efectos escondidos, y un `setTimeout`
+  // ahí adentro disparaba `onClose` dos veces. Con `setModal(null)` daba
+  // igual; con un cierre que navega (`router.back()` en ModalRuta) retrocedía
+  // dos páginas. El efecto corre una vez por cierre y limpia su temporizador.
+  const pedirCierre = useCallback(() => setCerrando(true), []);
+  useEffect(() => {
+    if (!cerrando) return;
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const temporizador = setTimeout(onClose, sinMovimiento ? 0 : MS_SALIDA);
+    return () => clearTimeout(temporizador);
+  }, [cerrando, onClose]);
 
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
