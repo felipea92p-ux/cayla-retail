@@ -118,20 +118,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   const term = q.trim();
   const resultados = useMemo(() => filtrarPrendasV2(q, variantesVisibles, MAX_RESULTADOS), [variantesVisibles, q]);
 
+  // Los modales de caja se montan con la misma condición que los pinta el JSX de abajo —
+  // no basta `modalCaja !== null`: «Abrir caja» se desmonta porque `bloqueado` pasa a
+  // false (la caja ya abrió), no por su onClose, y `modalCaja` se queda en "abrir".
+  const modalAbrirVisible = modalCaja === "abrir" && bloqueado;
+  const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
+  // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
+  // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
+  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null;
+
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
   // cerrada, el campo se montó `disabled`. Al abrir caja, `router.refresh()` trae el
   // `cajaId`, el campo se habilita y esto lo enfoca.
   useEffect(() => {
-    if (!bloqueado) buscador.current?.focus();
-  }, [bloqueado]);
+    if (!bloqueado && !hayModal) buscador.current?.focus();
+  }, [bloqueado, hayModal]);
 
   // Bloque E: la pistola escribe donde esté el foco. Si quedó en un botón (un chip,
   // «Quitar», «Cobrar»), el código se perdería y el Enter final activaría ese botón.
   // Cualquier carácter suelto que llegue con el foco fuera de un campo de texto va al
-  // escáner — nunca con un modal abierto (tienen su propio foco) ni con la caja cerrada
-  // (el campo está deshabilitado). La regla de qué tecla cuenta está en `lib/`, con prueba.
-  const hayModal = manualAbierto || modalCaja !== null || ok !== null;
+  // escáner — nunca con un modal abierto ni con la caja cerrada (el campo está
+  // deshabilitado). La regla de qué tecla cuenta está en `lib/`, con prueba.
   useEffect(() => {
     if (bloqueado || hayModal) return;
     function alTeclaSuelta(e: KeyboardEvent) {
@@ -447,12 +455,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         </Modal>
       )}
 
-      {modalCaja === "abrir" && bloqueado && (
+      {modalAbrirVisible && (
         <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={buscador}>
           <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} />
         </Modal>
       )}
-      {modalCaja === "cerrar" && cajaId && (
+      {modalCerrarVisible && cajaId && (
         <CerrarCajaModalV2 cajaId={cajaId} onClose={() => setModalCaja(null)} />
       )}
 
