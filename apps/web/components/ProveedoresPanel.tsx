@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { validarDocumento } from "@cayla-retail/shared";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor } from "@/lib/proveedores";
@@ -14,10 +15,12 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
-// Proveedor · RUC · Facturas · Saldo · Última compra · Acciones
-// La última columna mide lo que miden "Editar" + "Desactivar" en una sola
-// línea (con 11rem el segundo botón caía debajo del primero).
-const PLANTILLA = "sm:grid-cols-[1fr_8rem_5rem_7rem_7rem_14rem]";
+// Proveedor · RUC · Facturas · Saldo · Última compra · (una acción)
+// Una sola acción por fila: Editar en los activos, Reactivar en los
+// desactivados. Desactivar vive dentro del modal de edición — es una acción
+// rara y semi-destructiva, y puesta al lado de Editar en cada fila la tabla
+// parecía un panel de administración en vez de un directorio.
+const PLANTILLA = "sm:grid-cols-[1fr_8rem_5rem_7rem_7rem_6rem]";
 
 type Borrador = {
   id: string | null;
@@ -64,47 +67,51 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
     router.refresh();
   }
 
+  // La fila entera lleva a las facturas del proveedor (mismo patrón que Por
+  // pagar: el enlace del nombre se estira con `after:`); el saldo, cuando lo
+  // hay, lleva a Por pagar ya filtrado; el botón queda por encima (`relative`)
+  // para no disparar el enlace.
   const Fila = ({ p }: { p: Proveedor }) => (
-    <div className={fila(PLANTILLA, p.activo ? "" : "opacity-60")}>
-      <span className={celda("izq", "min-w-0")}>
+    <div className={fila(PLANTILLA, `relative transition-colors hover:bg-tinta/[0.03] ${p.activo ? "" : "opacity-60"}`)}>
+      <Link href={`/compras?prov=${p.id}`} className={celda("izq", "min-w-0 after:absolute after:inset-0 after:content-['']")}>
         <span className="block truncate text-sm text-tinta">{p.nombre}</span>
-        <span className="block text-xs text-tinta/65">{p.contacto ?? "Sin contacto"}</span>
-      </span>
+        <span className="block truncate text-xs text-tinta/65">{p.contacto ?? "Sin contacto"}</span>
+      </Link>
       <span className={celda("izq", "font-mono text-xs tabular-nums text-tinta/75")}>{p.ruc ?? "Sin RUC"}</span>
-      <span className={celda("der", "text-sm tabular-nums text-tinta")}>{p.facturas}</span>
-      <span className={celda("der", `text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-tinta/45"}`)}>{soles(p.saldo)}</span>
+      <span className={celda("der", `text-sm ${p.facturas > 0 ? "text-tinta" : "text-tinta/45"}`)}>{p.facturas}</span>
+      <span className={celda("der", "text-sm")}>
+        {p.saldo > 0 ? (
+          <Link href={`/compras/por-pagar?prov=${p.id}`} className="relative text-tinta underline-offset-4 hover:text-rojo hover:underline">
+            {soles(p.saldo)}
+          </Link>
+        ) : (
+          <span className="text-tinta/45">{soles(p.saldo)}</span>
+        )}
+      </span>
       <span className={celda("der", "text-xs text-tinta/65")}>{p.ultima_compra ? fechaCorta(p.ultima_compra) : "Nunca"}</span>
       <span className={celda("der", "overflow-visible")}>
-        <span className="flex flex-nowrap justify-end gap-1.5">
-          {puedeEditar && (
-            <>
-              <Boton
-                type="button"
-                peso="discreto"
-                className="px-2.5 py-1.5 text-[11px]"
-                onClick={() =>
-                  setBorrador({
-                    id: p.id,
-                    nombre: p.nombre,
-                    ruc: p.ruc ?? "",
-                    contacto: p.contacto ?? "",
-                  })
-                }
-              >
-                Editar
-              </Boton>
-              <Boton
-                type="button"
-                peso="discreto"
-                cargando={cambiandoId === p.id}
-                onClick={() => onCambiarEstado(p)}
-                className={`px-2.5 py-1.5 text-[11px] ${p.activo ? "border-rojo/30 text-rojo hover:bg-rojo/8" : ""}`}
-              >
-                {cambiandoId === p.id ? "…" : p.activo ? "Desactivar" : "Reactivar"}
-              </Boton>
-            </>
-          )}
-        </span>
+        {puedeEditar &&
+          (p.activo ? (
+            <Boton
+              type="button"
+              peso="discreto"
+              className="relative px-2.5 py-1.5 text-[11px]"
+              onClick={() =>
+                setBorrador({
+                  id: p.id,
+                  nombre: p.nombre,
+                  ruc: p.ruc ?? "",
+                  contacto: p.contacto ?? "",
+                })
+              }
+            >
+              Editar
+            </Boton>
+          ) : (
+            <Boton type="button" peso="discreto" cargando={cambiandoId === p.id} onClick={() => onCambiarEstado(p)} className="relative px-2.5 py-1.5 text-[11px]">
+              {cambiandoId === p.id ? "…" : "Reactivar"}
+            </Boton>
+          ))}
       </span>
     </div>
   );
@@ -115,7 +122,7 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
     { titulo: "Facturas", alinear: "der" as const },
     { titulo: "Saldo", alinear: "der" as const },
     { titulo: "Última compra", alinear: "der" as const },
-    { titulo: "Acciones", alinear: "der" as const },
+    { titulo: "", alinear: "der" as const },
   ];
 
   return (
@@ -197,6 +204,16 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
             setBorrador(null);
             router.refresh();
           }}
+          onDesactivar={
+            borrador.id
+              ? async () => {
+                  const p = proveedores.find((x) => x.id === borrador.id);
+                  if (!p) return;
+                  await onCambiarEstado(p);
+                  setBorrador(null);
+                }
+              : undefined
+          }
         />
       )}
     </div>
@@ -212,7 +229,18 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
 // el nombre se escribe a mano y se guarda igual (principio 9): un proveedor no
 // se queda sin registrar por una API ajena.
 // ---------------------------------------------------------------------------
-function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; onClose: () => void; onGuardado: () => void }) {
+function ProveedorModal({
+  inicial,
+  onClose,
+  onGuardado,
+  onDesactivar,
+}: {
+  inicial: Borrador;
+  onClose: () => void;
+  onGuardado: () => void;
+  /** Solo al editar: desactivar vive acá y no en la fila (ver PLANTILLA). */
+  onDesactivar?: () => Promise<void>;
+}) {
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
   const [contacto, setContacto] = useState(inicial.contacto);
@@ -272,6 +300,15 @@ function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; o
               {loading ? "Guardando…" : editando ? "Guardar" : "Registrar"}
             </Boton>
           </div>
+          {onDesactivar && (
+            <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
+              ¿Ya no se le compra?{" "}
+              <button type="button" onClick={onDesactivar} disabled={loading} className="text-rojo hover:underline">
+                Desactivar proveedor
+              </button>
+              . Deja de aparecer al registrar facturas; su historial se conserva.
+            </p>
+          )}
         </form>
       )}
     </Modal>
