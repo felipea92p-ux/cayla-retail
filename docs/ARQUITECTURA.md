@@ -128,7 +128,8 @@ flowchart TB
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
-  hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar) →
+  hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
+  de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
   `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
   cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
   primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
