@@ -1,17 +1,23 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosCerradosRecientes } from "@/lib/conteos";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getSububicaciones } from "@/lib/sububicaciones";
 import { ConteoPanel } from "@/components/ConteoPanel";
 
 // Conteos físicos (Felipe, 2026-09-14): el backend (abrir_conteo,
 // conteo_contar, cerrar_conteo) ya existía — esta es la pantalla que le
 // faltaba. `InventarioNav.tsx` ya apuntaba acá; el enlace estaba muerto.
+// Piso/almacén (20260914210000_inventario_piso_almacen.sql): una ubicación
+// que los separa exige elegir cuál se cuenta — `sububicaciones` llega para
+// que `ConteoPanel` decida si ofrece ese selector o abre directo, igual
+// que antes, cuando la ubicación no los usa (Taller).
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
-  const [conteoAbierto, cerrados, catalogo] = await Promise.all([
+  const [conteoAbierto, cerrados, catalogo, sububicaciones] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosCerradosRecientes(persona.ubicacionId),
     getCatalogo(),
+    getSububicaciones(persona.ubicacionId),
   ]);
 
   return (
@@ -26,6 +32,7 @@ export default async function ConteoPage() {
         ubicacionId={persona.ubicacionId}
         esLider={persona.rol === "lider"}
         conteoAbierto={conteoAbierto}
+        sububicaciones={sububicaciones}
         catalogo={catalogo.map((v) => ({
           varianteId: v.varianteId,
           sku: v.sku,

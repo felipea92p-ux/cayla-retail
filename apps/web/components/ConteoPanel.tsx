@@ -7,6 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib/conteo-varianza";
 import type { ConteoAbierto } from "@/lib/conteos";
+import type { Sububicacion } from "@/lib/sububicaciones";
 
 type VarianteConteo = {
   varianteId: string;
@@ -27,22 +28,24 @@ export function ConteoPanel({
   esLider,
   conteoAbierto,
   catalogo,
+  sububicaciones,
 }: {
   ubicacionId: string;
   esLider: boolean;
   conteoAbierto: ConteoAbierto | null;
   catalogo: VarianteConteo[];
+  sububicaciones: Sububicacion[];
 }) {
   const router = useRouter();
-  const [abriendo, setAbriendo] = useState(false);
+  const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function abrir() {
-    setAbriendo(true);
+  async function abrir(sububicacionId: string | null) {
+    setAbriendo(sububicacionId ?? "todo");
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("abrir_conteo", { p_ubicacion_id: ubicacionId });
-    setAbriendo(false);
+    const { error } = await supabase.rpc("abrir_conteo", { p_ubicacion_id: ubicacionId, p_sububicacion_id: sububicacionId ?? undefined });
+    setAbriendo(null);
     if (error) {
       setError(traducirError(error, "abrir el conteo"));
       return;
@@ -51,13 +54,42 @@ export function ConteoPanel({
   }
 
   if (!conteoAbierto) {
+    // Con piso/almacén configurados, abrir_conteo ya no acepta "toda la
+    // ubicación" (20260914210000_inventario_piso_almacen.sql) — cerrar_conteo
+    // no tendría a cuál de las dos sububicaciones cargar el ajuste. Se elige
+    // acá, antes de abrir; Taller sigue con el botón único de siempre.
+    const piso = sububicaciones.find((s) => s.tipo === "piso_venta") ?? null;
+    const almacen = sububicaciones.find((s) => s.tipo === "almacen_tienda") ?? null;
+    const separaPisoAlmacen = Boolean(piso || almacen);
+
     return (
       <div className="card-cayla space-y-3 p-6 text-center">
         <p className="text-sm text-tinta/75">No hay ningún conteo abierto en esta ubicación.</p>
         {error && <p className="text-sm text-rojo">{error}</p>}
-        <button type="button" onClick={abrir} disabled={abriendo} className={`${botonPrimario} mx-auto w-fit px-6`}>
-          {abriendo ? "Abriendo…" : "Abrir conteo"}
-        </button>
+        {separaPisoAlmacen ? (
+          <div className="mx-auto flex w-fit flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => piso && abrir(piso.id)}
+              disabled={!piso || abriendo !== null}
+              className={`${botonPrimario} px-6`}
+            >
+              {abriendo === piso?.id ? "Abriendo…" : "Contar piso de venta"}
+            </button>
+            <button
+              type="button"
+              onClick={() => almacen && abrir(almacen.id)}
+              disabled={!almacen || abriendo !== null}
+              className={`${botonPrimario} px-6`}
+            >
+              {abriendo === almacen?.id ? "Abriendo…" : "Contar almacén de tienda"}
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className={`${botonPrimario} mx-auto w-fit px-6`}>
+            {abriendo === "todo" ? "Abriendo…" : "Abrir conteo"}
+          </button>
+        )}
       </div>
     );
   }
@@ -126,7 +158,8 @@ function ConteoEnCurso({
     <div className="space-y-5">
       <div className="card-cayla p-5">
         <p className="label-cayla text-[11px] text-tinta/65">
-          Conteo abierto · {conteo.abiertoPorNombre} · {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
+          Conteo abierto{conteo.sububicacionNombre ? ` · ${conteo.sububicacionNombre}` : ""} · {conteo.abiertoPorNombre} ·{" "}
+          {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
         </p>
 
         {!seleccionada ? (

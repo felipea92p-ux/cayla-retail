@@ -15,6 +15,23 @@ export default async function MoverMercaderiaPage() {
 
   const destinos = ubicaciones.filter((u) => u.id !== persona.ubicacionId);
 
+  // `transferir()` sale del almacén de tienda, nunca del piso (mandar
+  // mercadería a otra sede no debe tocar lo que la clienta ve hoy) —
+  // 20260914210000_inventario_piso_almacen.sql. El tope que ve el
+  // formulario tiene que ser ese mismo número, o dejaría pasar cantidades
+  // que el RPC va a rechazar. En una ubicación sin piso/almacén (Taller,
+  // `f.almacen === null`), el tope sigue siendo el total, como siempre.
+  const variantesMovibles = stockOrigen
+    .map((f) => ({
+      varianteId: f.varianteId,
+      sku: f.sku,
+      referencia: f.referencia,
+      talla: f.talla,
+      color: f.color,
+      cantidad: f.almacen ?? f.total,
+    }))
+    .filter((v) => v.cantidad > 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,14 +51,7 @@ export default async function MoverMercaderiaPage() {
           origenId={persona.ubicacionId}
           origenEtiqueta={persona.ubicacionEtiqueta}
           destinos={destinos}
-          variantes={stockOrigen.map((f) => ({
-            varianteId: f.varianteId,
-            sku: f.sku,
-            referencia: f.referencia,
-            talla: f.talla,
-            color: f.color,
-            cantidad: f.cantidad,
-          }))}
+          variantes={variantesMovibles}
         />
       )}
     </div>

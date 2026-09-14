@@ -885,11 +885,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "conteos_sububicacion_id_fkey"
-            columns: ["sububicacion_id"]
+            foreignKeyName: "conteos_sububicacion_pertenece_fk"
+            columns: ["sububicacion_id", "ubicacion_id"]
             isOneToOne: false
             referencedRelation: "sububicaciones"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "ubicacion_id"]
           },
           {
             foreignKeyName: "conteos_ubicacion_id_fkey"
@@ -1159,18 +1159,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_sububicacion_destino_id_fkey"
-            columns: ["sububicacion_destino_id"]
+            foreignKeyName: "movimientos_sububicacion_destino_pertenece_fk"
+            columns: ["sububicacion_destino_id", "ubicacion_destino_id"]
             isOneToOne: false
             referencedRelation: "sububicaciones"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "ubicacion_id"]
           },
           {
-            foreignKeyName: "movimientos_sububicacion_id_fkey"
-            columns: ["sububicacion_id"]
+            foreignKeyName: "movimientos_sububicacion_pertenece_fk"
+            columns: ["sububicacion_id", "ubicacion_id"]
             isOneToOne: false
             referencedRelation: "sububicaciones"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "ubicacion_id"]
           },
           {
             foreignKeyName: "movimientos_transferencia_item_fkey"
@@ -1372,23 +1372,33 @@ export type Database = {
       stock: {
         Row: {
           cantidad: number
+          sububicacion_id: string | null
           ubicacion_id: string
           updated_at: string
           variante_id: string
         }
         Insert: {
           cantidad?: number
+          sububicacion_id?: string | null
           ubicacion_id: string
           updated_at?: string
           variante_id: string
         }
         Update: {
           cantidad?: number
+          sububicacion_id?: string | null
           ubicacion_id?: string
           updated_at?: string
           variante_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_sububicacion_pertenece_fk"
+            columns: ["sububicacion_id", "ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "sububicaciones"
+            referencedColumns: ["id", "ubicacion_id"]
+          },
           {
             foreignKeyName: "stock_ubicacion_id_fkey"
             columns: ["ubicacion_id"]
@@ -2137,6 +2147,10 @@ export type Database = {
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      fn_sububicacion_por_defecto: {
+        Args: { p_ubicacion_id: string; p_uso: string }
+        Returns: string
+      }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
@@ -2208,6 +2222,17 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      mover_interno: {
+        Args: {
+          p_cantidad: number
+          p_nota?: string
+          p_sububicacion_destino_id: string
+          p_sububicacion_origen_id: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
       }
       previsualizar_cierre_conteo: {
         Args: { p_conteo_id: string }
@@ -2292,17 +2317,30 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimiento: {
-        Args: {
-          p_cantidad: number
-          p_motivo?: string
-          p_nota?: string
-          p_tipo: string
-          p_ubicacion_id: string
-          p_variante_id: string
-        }
-        Returns: string
-      }
+      registrar_movimiento:
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_nota?: string
+              p_tipo: string
+              p_ubicacion_id: string
+              p_variante_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_nota?: string
+              p_sububicacion_id?: string
+              p_tipo: string
+              p_ubicacion_id: string
+              p_variante_id: string
+            }
+            Returns: string
+          }
       registrar_movimiento_caja: {
         Args: {
           p_caja_id: string

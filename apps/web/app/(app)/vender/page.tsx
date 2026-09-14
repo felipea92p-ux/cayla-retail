@@ -2,8 +2,9 @@ import { Suspense } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
+import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, tolerar } from "@/lib/resultado";
+import { tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
 
 /**
@@ -25,14 +26,18 @@ export default async function VenderPage() {
 
 async function Caja() {
   const persona = await requirePersonaActualV2();
-  const supabase = await createClient();
-  const [variantes, caja, resStock] = await Promise.all([
+  const [variantes, caja, stock] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    supabase.from("stock").select("variante_id, cantidad").eq("ubicacion_id", persona.ubicacionId),
+    getStockPorUbicacion(persona.ubicacionId),
   ]);
-  const filasStock = exigir(resStock, "el stock de esta ubicación");
-  const stockPorVariante = new Map(filasStock.map((f) => [f.variante_id, f.cantidad]));
+  // Una venta descuenta el piso, nunca el almacén en silencio
+  // (20260914210000_inventario_piso_almacen.sql) — el tope que ve la
+  // cajera tiene que ser ESE número, no el total de la tienda, o dejaría
+  // armar un carrito que `registrar_venta` va a rechazar igual. En una
+  // ubicación sin piso/almacén (Taller, `f.piso === null`), sigue siendo
+  // el total, como siempre.
+  const stockPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
