@@ -145,3 +145,40 @@ raíz de 96 px a 48 px del borde inferior; escáner siempre visible; catálogo c
 407/2153 px (y 202 px en el viewport bajo); ticket con 8 líneas scrollea por dentro
 con el pie (total + botón) pegado abajo, también en el momento «cobrar».
 
+## Adenda (mismo día) — tercer momento «descuento», precio de solo lectura, íconos
+
+Felipe pidió (tarde del 2026-09-14) que el precio unitario no se edite en la caja, un
+apartado de descuento «por código o a mano con el % requerido, global o por prenda»,
+basurero en cantidad «1», sin flechitas en el campo, «Ticket actual» grande, íconos por
+apartado en los colores del sistema y las animaciones «de shadcn, tal vez ya
+existentes». Decisiones: **1-A** solo % manual ahora (los códigos necesitan una tabla
+que no existe — paso propio), **2-B** volver a traer shadcn/GSAP (ADR-0045), **3-A** el
+descuento vive en «armar», sobre el total.
+
+- **El descuento viaja como `descuento_unitario` por línea**, la columna que
+  `venta_items` ya tiene y `registrar_venta` ya recibe: un % se vuelve monto por unidad
+  con 2 decimales (`descuentoUnitarioPorPorcentaje`), «todo el ticket» o solo las
+  prendas marcadas (`aplicarDescuento`), y el chip «−10 %» se lee desde el monto
+  (`porcentajeDeLinea`). 18 pruebas en `vender-reglas.test.ts`. Verificado contra la
+  base local: Boleta B001-000005 con dos líneas `79.90 / 7.99 / 71.91` y total 143.82.
+- **Tercer momento «descuento»** del ticket, dentro del panel: atajos 5·10·15·20·25·50 o
+  un % a mano, «Aplicar a» con la lista de prendas marcables (`elegidas: null` es todo
+  el ticket; `[]` es "ninguna todavía" — sin esa distinción, desmarcar la última
+  volvería a significar "todas"), adelanto «Quedaría en», «Aplicar descuento» apagado
+  con su motivo y «Quitar descuento» cuando lo alcanzado ya tenía uno. Dos entradas: la
+  fila sobre el total y el «% Desc.» de cada línea.
+- **El precio lo fija el catálogo** — la línea lo muestra de solo lectura (tachado + el
+  que se cobra cuando hay descuento). Candado de pantalla: `registrar_venta` todavía
+  acepta el precio que manda el navegador; el candado real (comparar contra
+  `variantes.precio` en la RPC) sigue en el BACKLOG.
+- **Íconos en los colores del sistema**: `lucide-react` (de vuelta con ADR-0045) para lo
+  genérico y Yape/Plin dibujados a mano en monocromo. Todo hereda `currentColor` (tinta /
+  tinta-60 según el estado): el morado y el azul de las marcas no entran — tres colores,
+  y el rojo es acento, no logo.
+- **Movimiento**: el reflujo `Flip` de las líneas (ADR-0038, el mismo que tenía el POS V1)
+  vive en el padre con `useGSAP`; el ticket sigue sin hooks y solo recibe el ref. El
+  total se asienta al cambiar (`anim-asentar`, re-montado por `key`), el apartado y el
+  cobro se revelan (`anim-revelar`), el botón principal lleva `alza-cayla`.
+- Basurero en cantidad «1» (el «−» no tiene a dónde bajar), campo sin flechitas
+  (`appearance: textfield`), y un solo título grande por momento.
+

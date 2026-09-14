@@ -49,8 +49,9 @@ export type ItemCarrito = {
 };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % (texto tal
- *  cual lo escribe) y a qué líneas alcanza — vacío significa todo el ticket. */
-export type DescuentoForm = { pct: string; elegidas: string[] };
+ *  cual lo escribe) y a qué líneas alcanza — `null` es todo el ticket; `[]` es que
+ *  todavía no eligió ninguna (no se puede aplicar). */
+export type DescuentoForm = { pct: string; elegidas: string[] | null };
 
 type VentaOk = {
   total: number;
@@ -93,7 +94,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // Sin preselección a propósito: un «efectivo» que nadie eligió es un dato fantasma
   // en el cuadre de caja. `cobrar()` no sale con null — lo frena `motivoBloqueo`.
   const [metodoPago, setMetodoPago] = useState<MetodoPago | null>(null);
-  const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: [] });
+  const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -271,16 +272,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
   // entradas — la fila sobre el total (todo el ticket) y el «%» de cada línea (esa sola).
   // Se aplica como `descuentoUnitario` por línea, que es lo que `registrar_venta` guarda.
-  function abrirDescuento(claves: string[]) {
+  function abrirDescuento(claves: string[] | null) {
     setDescuento({ pct: "", elegidas: claves });
     setMomento("descuento");
   }
   function aplicarDescuentoAlTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), descuento.elegidas));
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), descuento.elegidas ?? []));
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas));
+    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas ?? []));
     setMomento("armar");
   }
 
