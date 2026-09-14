@@ -68,6 +68,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       método o el RUC, y el globo dice qué falta. Verificado en navegador con venta real
       (Boleta B001-000001 en la base local). **Solo en `main` local — falta pushear.**
 
+- [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
+      (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
+      y dominante, sin el título «Catálogo De Prendas», chips + grilla debajo, «Monto
+      manual» al lado del campo, sin stock atenuadas + chip «Solo con stock» (filtra la
+      grilla, no al escáner). El foco vuelve al escáner al abrir caja, al cerrar cualquier
+      modal (`Modal.alCerrarEnfocar` sobre Radix) y ante una tecla suelta con el foco en
+      un botón (`lib/escaner-tecla-suelta.ts`, 9 tests) — antes el Enter de la pistola
+      activaba ese botón. Verificado en navegador con ventas reales en local
+      (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
@@ -145,6 +155,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       deja el stock sin mover (P-05).
 
 **Higiene encontrada de paso:**
+
+- [ ] **El «Cargo especial» tiene stock 0 en la base local, en las tres ubicaciones**
+      (medido 2026-09-14: 0 filas en `stock` y 0 en `movimientos` para la variante
+      centinela). `20260912234726_cargo_especial_pos.sql` siembra 999 999 recorriendo
+      `retail.ubicaciones`, pero en un `db reset` esa tabla está vacía porque `seed.sql`
+      corre después de las migraciones. Efecto: «Monto manual» falla en local con «Stock
+      insuficiente: hay 0 y se pide sacar 1». Producción no lo sufre (las ubicaciones ya
+      existían). Arreglo probable: que `seed.sql` repita la siembra por movimiento.
+- [ ] **El buscador global del AppShell («Buscar o escanear prenda…») es un segundo campo
+      de escaneo en la pantalla de Vender**: con Enter navega a `/buscar` y abandona la
+      venta a medio ticket. Fuera del alcance de la sesión A (AppShell es navegación).
+      Opciones: ocultarlo en `/vender`, o que en `/vender` reenvíe al escáner de la caja.
 
 - [ ] **La base local está 4 migraciones atrás del repo**: `compras_desde_factura`,
       `compras_snapshot_y_paginado`, `vocabulario_cerrado` y `activos_fijos` están en
