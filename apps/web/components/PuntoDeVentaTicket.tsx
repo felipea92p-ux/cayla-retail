@@ -11,9 +11,11 @@ import { ID_CARGO_ESPECIAL, money, type ItemCarrito } from "@/components/PuntoDe
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
 const TASA_IGV = 0.18;
 
-/** El botón principal es el mismo en los dos momentos; cambian su texto y lo que hace. */
+/** El botón principal es el mismo en los dos momentos; cambian su texto y lo que hace.
+ *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
+ *  rojo a medias ahí se leía como "casi se puede". */
 const BOTON_PRINCIPAL =
-  "flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50";
+  "flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** Hay un solo ticket por pantalla, así que un id fijo alcanza para que el botón
  *  apagado apunte a su motivo (`aria-describedby`) sin hooks en este componente. */
@@ -166,7 +168,7 @@ export function PuntoDeVentaTicket({
                   <legend className="text-[11px] text-tinta/50">
                     <span className="flex items-center gap-1">
                       {facturaSinRuc && (
-                        <Ayuda tono="falta" titulo="Falta el RUC de la empresa">
+                        <Ayuda tono="falta" titulo="Escribe el RUC de la empresa">
                           La factura sale a nombre de una empresa y SUNAT exige su RUC. Si la clienta no lo tiene a
                           mano, cambia a boleta: admite DNI opcional o ningún documento.
                         </Ayuda>
