@@ -123,10 +123,20 @@ on conflict (auth_user_id) do nothing;
 -- de prueba locales puede entrar — fn_tiene_acceso_retail() exige estar en
 -- esta tabla, no solo activo en Dynamic. Producción tiene su propia lista
 -- real (Felipe la definió, 2026-09-13), completamente aparte de este seed.
-insert into retail.colaboradores (persona_id)
-select id from public.personas where auth_user_id in (
-  '22222222-2222-4222-8222-000000000001', '22222222-2222-4222-8222-000000000003'
-)
+--
+-- Roles (0016): Felipe queda Líder. Micaela queda Colaborador, fija a
+-- Tienda Trujillo — es justo el caso que el comentario de arriba ya pedía
+-- probar ("que RLS de verdad acota por ubicación y no solo funciona porque
+-- todo el mundo es líder"), y que "control total temporal" (0012) había
+-- vuelto imposible de probar hasta ahora.
+insert into retail.colaboradores (persona_id, rol)
+select id, 'lider' from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000001'
+on conflict (persona_id) do nothing;
+
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id)
+select p.id, 'colaborador', u.id
+from public.personas p, retail.ubicaciones u
+where p.auth_user_id = '22222222-2222-4222-8222-000000000003' and u.nombre = 'Tienda Trujillo'
 on conflict (persona_id) do nothing;
 
 insert into retail.proveedores (nombre, ruc, contacto) values

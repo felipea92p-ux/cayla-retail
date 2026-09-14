@@ -9,6 +9,8 @@ export type Colaborador = {
   nombre: string;
   correo: string;
   sede: string | null;
+  rol: "lider" | "colaborador";
+  ubicacion_asignada: string | null;
   agregado_en: string;
 };
 

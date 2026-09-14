@@ -335,18 +335,32 @@ export type Database = {
           agregado_por: string | null
           created_at: string
           persona_id: string
+          rol: string
+          ubicacion_asignada_id: string | null
         }
         Insert: {
           agregado_por?: string | null
           created_at?: string
           persona_id: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
         Update: {
           agregado_por?: string | null
           created_at?: string
           persona_id?: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_ubicacion_asignada_id_fkey"
+            columns: ["ubicacion_asignada_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colores: {
         Row: {
@@ -1851,7 +1865,7 @@ export type Database = {
         Returns: undefined
       }
       agregar_colaborador: {
-        Args: { p_persona_id: string }
+        Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
       anular_compra: {
@@ -1979,7 +1993,9 @@ export type Database = {
           correo: string
           nombre: string
           persona_id: string
+          rol: string
           sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_dynamic_disponibles: {

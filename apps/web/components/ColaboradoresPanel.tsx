@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Colaborador, DynamicDisponible } from "@/lib/colaboradores";
+import type { Ubicacion } from "@/lib/ubicaciones";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+
+const ETIQUETA_ROL: Record<Colaborador["rol"], string> = { lider: "Líder", colaborador: "Colaborador" };
 
 function formatearFecha(iso: string) {
   return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" }).format(
@@ -23,13 +26,16 @@ function formatearFecha(iso: string) {
 export function ColaboradoresPanel({
   colaboradores,
   disponibles,
+  ubicaciones,
 }: {
   colaboradores: Colaborador[];
   disponibles: DynamicDisponible[];
+  ubicaciones: Ubicacion[];
 }) {
   const router = useRouter();
   const [modalAbierto, setModalAbierto] = useState(false);
   const [seleccionado, setSeleccionado] = useState(disponibles[0]?.persona_id ?? "");
+  const [ubicacionElegida, setUbicacionElegida] = useState(ubicaciones[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quitandoId, setQuitandoId] = useState<string | null>(null);
@@ -37,11 +43,16 @@ export function ColaboradoresPanel({
 
   async function onAgregar(e: React.FormEvent) {
     e.preventDefault();
-    if (!seleccionado) return;
+    if (!seleccionado || !ubicacionElegida) return;
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("agregar_colaborador", { p_persona_id: seleccionado });
+    // Todo colaborador nuevo entra con rol Colaborador, fijo a esta sede —
+    // Líder es un nivel que hoy no se asigna desde acá (0016_roles_colaborador.sql).
+    const { error } = await supabase.rpc("agregar_colaborador", {
+      p_persona_id: seleccionado,
+      p_ubicacion_id: ubicacionElegida,
+    });
     setLoading(false);
     if (error) {
       setError(traducirError(error, "agregar el colaborador"));
@@ -72,7 +83,8 @@ export function ColaboradoresPanel({
           <h1 className="font-display mt-1 text-2xl text-tinta">Colaboradores</h1>
           <p className="mt-1 text-xs leading-relaxed text-tinta/65">
             Quién puede entrar a retail hoy. Las personas se dan de alta en Dynamic —
-            acá solo se decide a quién de Dynamic se le abre la puerta de retail.
+            acá solo se decide a quién de Dynamic se le abre la puerta de retail, y a
+            qué sede queda fijo si entra como Colaborador.
           </p>
         </div>
         <Boton peso="primario" onClick={() => setModalAbierto(true)} disabled={disponibles.length === 0}>
@@ -92,6 +104,8 @@ export function ColaboradoresPanel({
                 <tr>
                   <th className="label-cayla px-3 py-2 text-[11px]">Nombre</th>
                   <th className="label-cayla px-3 py-2 text-[11px]">Correo</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Rol</th>
+                  <th className="label-cayla px-3 py-2 text-[11px]">Ubicación asignada</th>
                   <th className="label-cayla px-3 py-2 text-[11px]">Sede en Dynamic</th>
                   <th className="label-cayla px-3 py-2 text-[11px]">Desde</th>
                   <th className="label-cayla px-3 py-2 text-[11px]" />
@@ -102,6 +116,10 @@ export function ColaboradoresPanel({
                   <tr key={c.persona_id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
                     <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">{c.nombre}</td>
                     <td className="px-3 py-3 text-tinta/75">{c.correo}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{ETIQUETA_ROL[c.rol]}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-tinta/75">
+                      {c.rol === "lider" ? <span className="text-tinta/45">cualquiera</span> : (c.ubicacion_asignada ?? "—")}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{c.sede ?? "—"}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/65">{formatearFecha(c.agregado_en)}</td>
                     <td className="px-3 py-3 text-right">
@@ -144,6 +162,18 @@ export function ColaboradoresPanel({
                 opciones={disponibles.map((d) => ({ valor: d.persona_id, texto: `${d.nombre} — ${d.correo}` }))}
               />
 
+              <div className="space-y-1.5">
+                <CampoSelect
+                  etiqueta="Ubicación asignada"
+                  valor={ubicacionElegida}
+                  onValor={setUbicacionElegida}
+                  opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+                />
+                <p className="text-[11px] leading-relaxed text-tinta/55">
+                  Entra como Colaborador, fijo a esta sede — no va a poder cambiarla él mismo.
+                </p>
+              </div>
+
               {error && (
                 <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
               )}
@@ -152,7 +182,7 @@ export function ColaboradoresPanel({
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!seleccionado}>
+                <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!seleccionado || !ubicacionElegida}>
                   {loading ? "Agregando…" : "Agregar"}
                 </Boton>
               </div>
