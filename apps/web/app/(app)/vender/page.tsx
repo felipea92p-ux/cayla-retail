@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
@@ -26,13 +28,18 @@ export default async function VenderPage() {
 async function Caja() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  const [variantes, caja, resStock] = await Promise.all([
+  // El stock se pide de TODAS las sedes que RLS deje ver, no solo de esta: «no hay tu
+  // talla aquí, pero sí en Trujillo» es la venta que se perdía. Una Líder ve todas; una
+  // colaboradora con sede fija solo la suya (`stock_select`), y entonces `otrasSedes`
+  // llega vacío sin que nada se rompa. Ver `lib/stock-por-sede.ts`.
+  const [variantes, caja, resStock, ubicaciones] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    supabase.from("stock").select("variante_id, cantidad").eq("ubicacion_id", persona.ubicacionId),
+    supabase.from("stock").select("variante_id, ubicacion_id, cantidad"),
+    getUbicaciones(),
   ]);
-  const filasStock = exigir(resStock, "el stock de esta ubicación");
-  const stockPorVariante = new Map(filasStock.map((f) => [f.variante_id, f.cantidad]));
+  const filasStock = exigir(resStock, "el stock de las sedes");
+  const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
@@ -45,7 +52,8 @@ async function Caja() {
       categoria: v.categoria,
       precio: v.precio,
       codigosBarras: v.codigosBarras,
-      stockAqui: stockPorVariante.get(v.varianteId) ?? 0,
+      stockAqui: stockPorVariante.get(v.varianteId)?.aqui ?? 0,
+      stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
   return (

@@ -3,6 +3,7 @@
 import type { ReactNode, RefObject } from "react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
+import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { Badge } from "@/components/ui/badge";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -185,8 +186,12 @@ export function PuntoDeVentaCatalogo({
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
                           <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                            {v.stockAqui <= 0 ? `sin stock` : `${v.stockAqui} en sede`}
+                            {v.stockAqui <= 0 ? `sin stock aquí` : `${v.stockAqui} aquí`}
                           </span>
+                          {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
+                          {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
+                            <span className="block text-[11px] text-tinta/55">{textoOtrasSedes(v.stockOtrasSedes ?? [])}</span>
+                          )}
                         </span>
                       </button>
                     </li>
@@ -288,17 +293,34 @@ export function PuntoDeVentaCatalogo({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent sideOffset={4}>
-                            {t.stockAqui} en sede{t.variante.precio !== g.precioMin ? ` · ${money(t.variante.precio)}` : ""}
+                            {[
+                              `${t.stockAqui} aquí`,
+                              textoOtrasSedes(t.variante.stockOtrasSedes ?? []),
+                              t.variante.precio !== g.precioMin ? money(t.variante.precio) : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </TooltipContent>
                         </Tooltip>
                       ) : (
-                        <span
-                          key={t.variante.varianteId}
-                          aria-label={`Talla ${t.talla} sin stock`}
-                          className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through"
-                        >
-                          {t.talla}
-                        </span>
+                        // Talla agotada aquí: el tooltip dice dónde sí hay. `tabIndex` para que
+                        // también se lea con teclado; no es un botón porque no agrega nada.
+                        <Tooltip key={t.variante.varianteId}>
+                          <TooltipTrigger asChild>
+                            <span
+                              tabIndex={0}
+                              aria-label={`Talla ${t.talla} sin stock aquí`}
+                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
+                            >
+                              {t.talla}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={4}>
+                            {textoOtrasSedes(t.variante.stockOtrasSedes ?? [])
+                              ? `Sin stock aquí · ${textoOtrasSedes(t.variante.stockOtrasSedes ?? [])}`
+                              : "Sin stock en ninguna sede"}
+                          </TooltipContent>
+                        </Tooltip>
                       )
                     )}
                   </div>
