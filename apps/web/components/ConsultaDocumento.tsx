@@ -155,6 +155,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
 
   const campoNumero = (
     <CampoTexto
+      id="documento-numero"
       etiqueta={
         <>
           {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
@@ -262,6 +263,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
           que SUNAT contrasta contra el documento. */}
       {!datos?.nombre && (
         <CampoTexto
+          id="documento-nombre"
           etiqueta={etiqueta.nombre}
           required={obligatorio}
           value={nombre}

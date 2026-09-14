@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
@@ -44,7 +45,6 @@ export function MoverMercaderiaFormV2({
   const [destinoId, setDestinoId] = useState(destinos[0]?.id ?? "");
   const [nota, setNota] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1 }]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
 
@@ -74,16 +74,15 @@ export function MoverMercaderiaFormV2({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!destinoId) {
-      setError("Elige a qué ubicación se mueve la mercadería.");
+      avisar.error("Elige a qué ubicación se mueve la mercadería.", { enfocar: "mover-destino" });
       return;
     }
     const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
     if (validas.length === 0) {
-      setError("Agrega al menos una línea con una prenda y una cantidad mayor que cero.");
+      avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "mover-linea-0" });
       return;
     }
     setLoading(true);
-    setError(null);
 
     const supabase = createClient();
     const { error } = await supabase.rpc("transferir", {
@@ -95,13 +94,13 @@ export function MoverMercaderiaFormV2({
 
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "mover la mercadería"));
+      avisar.error(traducirError(error, "mover la mercadería"));
       return;
     }
-    setOk({
-      unidades: validas.reduce((acc, l) => acc + l.cantidad, 0),
-      destino: destinos.find((d) => d.id === destinoId)?.nombre ?? "",
-    });
+    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
+    avisar.exito(`${unidades} ${unidades === 1 ? "unidad movida" : "unidades movidas"} a ${destino}`, { detalle: "El stock de las dos ubicaciones ya está actualizado." });
+    setOk({ unidades, destino });
     router.refresh();
   }
 
@@ -172,7 +171,7 @@ export function MoverMercaderiaFormV2({
         {lineas.map((l, i) => {
           const tope = stockDe(l.varianteId);
           return (
-            <div key={i} className="flex flex-wrap items-end gap-2">
+            <div key={i} id={`mover-linea-${i}`} className="flex flex-wrap items-end gap-2">
               <select
                 aria-label="Prenda"
                 value={l.varianteId}
@@ -208,7 +207,6 @@ export function MoverMercaderiaFormV2({
         </button>
       </div>
 
-      {error && <p className="text-sm text-rojo">{error}</p>}
 
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Moviendo…" : `Mover hacia ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}`}

@@ -183,6 +183,29 @@ importante que ha entrado a este archivo desde que existe.
       (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
       `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
 
+- [ ] **`20260914200000_compras_multipago` no está en producción.** Un pago
+      repartido en varios medios (5,000 transferencia + 3,000 efectivo) en un solo
+      acto, en las tres pantallas: registrar factura, detalle y Por pagar. RPC nueva
+      `registrar_pagos_compra(compra, [{monto, metodo, referencia}], fecha)` — todo o
+      nada; `registrar_pago_compra` pasa a ser su atajo; `registrar_compra` acepta en
+      `p_pago` objeto o arreglo (misma firma, sin DROP). Probada en local con 7 casos
+      por psql. **Va después de la `190000`** (redefine `registrar_compra` con
+      `p_total`). Hasta aplicarla, el modal de pago en producción falla con
+      "function registrar_pagos_compra does not exist" — la pantalla ya la llama.
+      Sin `retail.` en el archivo: pegar con `set search_path to retail, public;`.
+
+- [ ] **`20260914190000_compras_total_del_papel` no está en producción.** Aplicada y
+      probada solo en local (6 casos por psql: 1 × 8.47 con total 10.00 → igv 1.53;
+      3 líneas → 30.00; sin `p_total` sigue dando 9.99; dos rechazos; contado con
+      pago = total). `registrar_compra` gana `p_total` (el total del papel, solo
+      cuando "El precio incluye IGV") y la tabla el check `compras_total_cuadra`.
+      **Lleva `DROP FUNCTION`** (cambia la lista de parámetros): el SQL Editor va a
+      avisar "destructive"; es la función, se recrea en la línea siguiente. Antes
+      de pegar: `select count(*) from retail.compras where total <> subtotal + igv;`
+      debe dar 0. Hasta aplicarla, prender el interruptor en producción falla con
+      "function registrar_compra(... p_total) does not exist" — la pantalla ya
+      manda el parámetro.
+
 - [ ] **`20260914180000_compras_adjuntos` no está en producción.** Adjuntos de
       factura (ADR-0042): tabla `compra_adjuntos`, RPCs `registrar_adjunto_compra`
       / `archivar_adjunto_compra`, y el bucket privado `retail-compras-adjuntos`

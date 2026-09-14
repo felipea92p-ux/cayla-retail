@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 function money(n: number) {
@@ -27,7 +28,6 @@ export function CerrarCajaModalV2({
 }) {
   const router = useRouter();
   const [montoReal, setMontoReal] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<{
     sistema: number;
@@ -38,20 +38,23 @@ export function CerrarCajaModalV2({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { data, error } = await supabase
       .rpc("cerrar_caja", { p_caja_id: cajaId, p_monto_real: Number(montoReal) || 0 })
       .single();
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "cerrar la caja"));
+      avisar.error(traducirError(error, "cerrar la caja"));
       return;
     }
+    const diferencia = Number(data.diferencia);
+    avisar.exito("Caja cerrada", {
+      detalle: diferencia === 0 ? "Cuadró exacto." : `${diferencia > 0 ? "Sobran" : "Faltan"} S/ ${Math.abs(diferencia).toFixed(2)} contra el sistema.`,
+    });
     setResultado({
       sistema: Number(data.monto_sistema),
       contado: Number(data.monto_real),
-      diferencia: Number(data.diferencia),
+      diferencia,
     });
   }
 
@@ -127,7 +130,6 @@ export function CerrarCajaModalV2({
             className={campoTexto}
           />
         </div>
-        {error && <p className="text-sm text-rojo">{error}</p>}
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>
             Cancelar

@@ -35,6 +35,7 @@ export function ComboBuscable<T extends string>({
   etiquetaAccesible,
   autoFocus = false,
   className = "",
+  id: idPropio,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -43,8 +44,11 @@ export function ComboBuscable<T extends string>({
   etiquetaAccesible: string;
   autoFocus?: boolean;
   className?: string;
+  /** Id del input, para enfocarlo desde un aviso. */
+  id?: string;
 }) {
-  const id = useId();
+  const idGenerado = useId();
+  const id = idPropio ?? idGenerado;
   const elegida = opciones.find((o) => o.valor === valor) ?? null;
   const [texto, setTexto] = useState(elegida?.texto ?? "");
   const [abierto, setAbierto] = useState(false);

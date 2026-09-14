@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 
@@ -31,7 +32,6 @@ export function CambioFormV2({
   const [varianteNuevaId, setVarianteNuevaId] = useState(opciones[0]?.varianteId ?? "");
   const [cantidad, setCantidad] = useState(Math.min(1, disponible));
   const [metodoDiferencia, setMetodoDiferencia] = useState<(typeof METODOS)[number]>("efectivo");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
 
@@ -44,11 +44,10 @@ export function CambioFormV2({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (disponible <= 0) {
-      setError("Ya se cambió toda la cantidad comprada en esta línea.");
+      avisar.error("Ya se cambió toda la cantidad comprada en esta línea.", { enfocar: "cambio-cantidad" });
       return;
     }
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_cambio", {
       p_venta_item_id: linea.ventaItemId,
@@ -60,9 +59,10 @@ export function CambioFormV2({
     });
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "registrar el cambio"));
+      avisar.error(traducirError(error, "registrar el cambio"));
       return;
     }
+    avisar.exito("Cambio registrado", { detalle: "El stock ya refleja la prenda que salió y la que entró." });
     setOk(true);
     router.refresh();
   }
@@ -159,7 +159,6 @@ export function CambioFormV2({
           </>
         )}
 
-        {error && <p className="text-sm text-rojo">{error}</p>}
 
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>

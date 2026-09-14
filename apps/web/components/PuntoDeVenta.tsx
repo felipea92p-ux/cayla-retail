@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { Ayuda } from "@/components/Ayuda";
@@ -84,7 +85,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -229,15 +229,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     e.preventDefault();
     if (cajaId === null) return;
     if (carrito.length === 0) {
-      setError("Todavía no agregaste ninguna prenda. Escanea la etiqueta o busca en el catálogo.");
+      avisar.error("Todavía no agregaste ninguna prenda. Escanea la etiqueta o busca en el catálogo.", { enfocar: "venta-buscar" });
       return;
     }
     if (facturaSinRuc) {
-      setError("La factura necesita un RUC válido. Cambia a boleta o corrige el número.");
+      avisar.error("La factura necesita un RUC válido. Cambia a boleta o corrige el número.", { enfocar: "documento-numero" });
       return;
     }
     setLoading(true);
-    setError(null);
 
     const supabase = createClient();
     const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
@@ -258,7 +257,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
     if (error) {
       setLoading(false);
-      setError(traducirError(error, "registrar la venta"));
+      avisar.error(traducirError(error, "registrar la venta"));
       return;
     }
 
@@ -273,6 +272,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
     setLoading(false);
     token.current = crypto.randomUUID();
+    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: comprobante ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.texto}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setOk({ total, prendas, comprobante });
     setCarrito([]);
     limpiarComprobante();
@@ -627,7 +627,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
                 </fieldset>
               </div>
 
-              {error && <p className="mb-2 text-sm text-rojo">{error}</p>}
 
               <button
                 type="submit"

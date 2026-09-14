@@ -2224,6 +2224,7 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
+          p_total?: number
           p_ubicacion_destino_id: string
         }
         Returns: string
@@ -2253,6 +2254,14 @@ export type Database = {
         Returns: string
       }
       archivar_adjunto_compra: { Args: { p_adjunto_id: string }; Returns: undefined }
+      registrar_pagos_compra: {
+        Args: {
+          p_compra_id: string
+          p_fecha?: string
+          p_pagos: Json
+        }
+        Returns: string[]
+      }
       registrar_pago_compra: {
         Args: {
           p_compra_id: string

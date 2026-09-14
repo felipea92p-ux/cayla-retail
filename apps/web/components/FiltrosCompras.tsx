@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_ESTADO_PAGO, ETIQUETA_ESTADO_RECEPCION, fechaCorta, type EstadoPago, type EstadoRecepcion } from "@/lib/compras-reglas";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
@@ -163,8 +164,8 @@ export function FiltrosCompras({
         )}
         {ver("fechas") && (
           <>
-            <CampoTexto etiqueta="Emitida desde" type="date" value={params.get("desde") ?? ""} onChange={(e) => aplicar({ desde: e.target.value })} />
-            <CampoTexto etiqueta="Emitida hasta" type="date" value={params.get("hasta") ?? ""} onChange={(e) => aplicar({ hasta: e.target.value })} />
+            <CampoFecha etiqueta="Emitida desde" valor={params.get("desde") ?? ""} onValor={(v) => aplicar({ desde: v })} />
+            <CampoFecha etiqueta="Emitida hasta" valor={params.get("hasta") ?? ""} onValor={(v) => aplicar({ hasta: v })} />
           </>
         )}
       </div>

@@ -3048,6 +3048,30 @@ test) hacen la conversión redondeando a 2 decimales igual que `numeric(12,2)`, 
 resumen en pantalla y lo que guarda la RPC nunca difieran. Solo aparece en factura con IGV
 > 0: en boleta y nota de venta no hay nada que descontar.
 
+**Y a la primera prueba salió el centavo:** 1 × S/ 10.00 con IGV → base 8.47 → IGV 1.52 →
+total 9.99. La causa no era la pantalla sino la RPC, que derivaba el total desde la base.
+Con precios con IGV la lectura correcta es la inversa (la de SUNAT): el total del papel es
+el dato y el IGV es lo que falta. `20260914190000_compras_total_del_papel`: `registrar_
+compra` acepta `p_total`, exige que cuadre con las líneas (un centavo por línea más uno) y
+guarda `igv = total − subtotal`; check `compras_total_cuadra`. Se descartó subir el costo a
+4 decimales: empuja el redondeo un decimal más lejos en vez de resolverlo donde nace.
+
+**Multipago.** Felipe quiere pagar una factura con dos medios en el mismo acto. El modelo ya
+era "una fila de `compra_pagos` por medio"; lo que faltaba era escribirlas en una sola
+transacción: `registrar_pagos_compra` (`20260914200000_compras_multipago`) valida cada medio
+y la suma contra el saldo con la factura bloqueada, y escribe todo o nada — antes, dos pagos
+sueltos podían dejar el primero registrado y el segundo no. `LineasPago.tsx` es el bloque
+compartido por las tres pantallas.
+
+**Avisos (ADR-0043).** Felipe pidió que toda validación, error, éxito o proceso se vea arriba
+a la derecha, y que el cursor vaya al campo de la validación. `components/ui/Avisos.tsx`
+(estado fuera de React, sobrevive a la navegación; todos se van solos con una barra de tiempo al pie que se pausa con el mouse encima) y 22
+pantallas cableadas: desaparecieron 16 `useState` de error y todos los `<p>` rojos inline.
+Lo que es del campo ("Supera el saldo") se queda pegado al campo — eso no es notificación.
+También de hoy: `CampoFecha` (calendario propio, lunes a domingo, `dd/mm/aaaa` tipeable) en
+lugar del nativo del navegador, y el proveedor se elige con el mismo `ComboBuscable` que la
+prenda (busca por nombre o RUC).
+
 De paso salió que la anulación de facturas ya existía con la regla que Felipe proponía
 (sin recepción) más una (sin pagos) — y que un pago registrado por error no tiene reverso,
 lo que deja esa factura bloqueada para siempre. Decisión pendiente de Felipe (A: RPC

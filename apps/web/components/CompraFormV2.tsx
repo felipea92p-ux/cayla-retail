@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Boton, Campo, CampoSelectNativo, CampoTexto, Interruptor, Segmentado, SelectNativo } from "@/components/ui/campos";
+import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { SelectorAdjuntos } from "@/components/AdjuntosCompra";
+import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { campoEtiqueta } from "@/components/ui/Modal";
-import { ETIQUETA_METODO, costoBase, costoParaTipear, soles } from "@/lib/compras-reglas";
+import { avisar } from "@/components/ui/Avisos";
+import { costoBase, costoParaTipear, soles, totalesCompra } from "@/lib/compras-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -26,7 +29,6 @@ type Ubicacion = { id: string; nombre: string };
 
 type Linea = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string };
 
-const METODOS = Object.keys(ETIQUETA_METODO);
 // Producto · Talla y color · Cantidad · Costo unitario · Subtotal · Quitar.
 // Todo lo numérico con ancho fijo: cada línea es su propia grilla, y una
 // columna `auto` o `fr` en una cifra hacía que "S/ 300,000.00" ensanchara
@@ -106,12 +108,11 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   const [precioIncluyeIgv, setPrecioIncluyeIgv] = useState(false);
   const [lineas, setLineas] = useState<Linea[]>([lineaVacia()]);
   const [pagarAhora, setPagarAhora] = useState(false);
-  const [pagoMonto, setPagoMonto] = useState("");
-  const [pagoMetodo, setPagoMetodo] = useState(METODOS[0]);
-  const [pagoReferencia, setPagoReferencia] = useState("");
+  // Uno o varios medios de pago (LineasPago). Al contado la suma tiene que
+  // ser el total; al crédito, no pasarse. La RPC lo vuelve a exigir.
+  const [pagos, setPagos] = useState<LineaPago[]>([lineaPagoVacia()]);
   const [nota, setNota] = useState("");
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const igvEfectivo = discriminaIgv(tipo) ? Number(igvPorcentaje) || 0 : 0;
@@ -119,10 +120,25 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   // venta el precio del papel ya es el costo y el selector no aparece.
   const conIgv = igvEfectivo > 0 && precioIncluyeIgv;
   const baseDeLinea = (l: Linea) => costoBase(Number(l.costoUnitario), igvEfectivo, conIgv);
-  const subtotal = lineas.reduce((acc, l) => acc + l.cantidad * baseDeLinea(l), 0);
-  const igv = Math.round(subtotal * igvEfectivo) / 100;
-  const total = Math.round((subtotal + igv) * 100) / 100;
+  // Lo que se muestra en cada línea: con IGV incluido, lo que dice el papel
+  // (cantidad × precio tipeado); sin IGV, la base. El resumen sale de la
+  // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren.
+  const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (Number(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
+  const { subtotal, igv, total } = totalesCompra(
+    lineas.map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
+    igvEfectivo,
+    conIgv,
+  );
   const hayPago = condicion === "contado" || pagarAhora;
+  const sumaPagos = sumaLineasPago(pagos);
+  // Al contado con un solo medio, el monto ES el total: acompaña a las líneas
+  // mientras se tipean. Con dos o más medios, la persona reparte a mano.
+  // Ajustado en el render (estado derivado), no en un efecto.
+  const [totalPrevio, setTotalPrevio] = useState(total);
+  if (total !== totalPrevio) {
+    setTotalPrevio(total);
+    if (condicion === "contado" && pagos.length === 1) setPagos([{ ...pagos[0], monto: total > 0 ? total.toFixed(2) : "" }]);
+  }
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
     setLineas((actual) => actual.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
@@ -154,15 +170,22 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const validas = lineas.filter((l) => l.productoId && l.cantidad > 0);
-    if (!proveedorId) return setError("Elige un proveedor.");
-    if (!serie.trim() || !numero.trim()) return setError("La factura necesita serie y número, tal como figuran en el documento.");
-    if (validas.length === 0) return setError("Agrega al menos una línea con producto y cantidad.");
-    if (validas.some((l) => l.costoUnitario === "" || Number(l.costoUnitario) < 0)) return setError(`Cada línea necesita su costo unitario (${conIgv ? "con" : "sin"} IGV).`);
-    if (condicion === "credito" && !fechaVencimiento) return setError("Una compra al crédito necesita fecha de vencimiento.");
-    if (hayPago && condicion === "credito" && !(Number(pagoMonto) > 0)) return setError("Escribe el monto del pago o desmarca 'Registrar un pago ahora'.");
+    // Cada validación avisa arriba a la derecha Y deja el cursor en el campo.
+    if (!proveedorId) return void avisar.error("Elige un proveedor.", { enfocar: "compra-proveedor" });
+    if (!serie.trim()) return void avisar.error("La factura necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-serie" });
+    if (!numero.trim()) return void avisar.error("La factura necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-numero" });
+    if (validas.length === 0) return void avisar.error("Agrega al menos una línea con producto y cantidad.", { enfocar: "compra-linea-0-producto" });
+    const sinCosto = lineas.findIndex((l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || Number(l.costoUnitario) < 0));
+    if (sinCosto >= 0) return void avisar.error(`Cada línea necesita su costo unitario (${conIgv ? "con" : "sin"} IGV).`, { enfocar: `compra-linea-${sinCosto}-costo` });
+    if (condicion === "credito" && !fechaVencimiento) return void avisar.error("Una compra al crédito necesita fecha de vencimiento.", { enfocar: "compra-vence" });
+    const pagosRpc = hayPago ? lineasPagoParaRpc(pagos) : null;
+    const pagoSinMonto = pagos.findIndex((l) => !(Number(l.monto) > 0));
+    if (hayPago && !pagosRpc) return void avisar.error(condicion === "contado" ? "Cada medio de pago necesita su monto." : "Escribe el monto del pago o desmarca 'Registrar un pago ahora'.", { enfocar: `compra-pagos-monto-${Math.max(0, pagoSinMonto)}` });
+    if (hayPago && condicion === "contado" && Math.abs(sumaPagos - total) > 0.005) return void avisar.error(`Al contado el pago debe sumar el total (${soles(total)}); los medios suman ${soles(sumaPagos)}.`, { enfocar: "compra-pagos-monto-0" });
+    if (hayPago && sumaPagos > total + 0.005) return void avisar.error(`El pago (${soles(sumaPagos)}) supera el total de la factura (${soles(total)}).`, { enfocar: "compra-pagos-monto-0" });
 
     setLoading(true);
-    setError(null);
+    const cerrarProceso = avisar.proceso(`Registrando ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} ${serie.trim().toUpperCase()}-${numero.trim()}…`);
 
     const supabase = createClient();
     const { data, error } = await supabase.rpc("registrar_compra", {
@@ -182,21 +205,17 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       p_fecha_emision: fechaEmision,
       ...(condicion === "credito" ? { p_fecha_vencimiento: fechaVencimiento } : {}),
       p_igv_porcentaje: igvEfectivo,
-      ...(hayPago
-        ? {
-            p_pago: {
-              monto: condicion === "contado" ? total : Number(pagoMonto),
-              metodo: pagoMetodo,
-              ...(pagoReferencia.trim() ? { referencia: pagoReferencia.trim() } : {}),
-            },
-          }
-        : {}),
+      // Con precios con IGV, el total del papel manda y el IGV absorbe el
+      // redondeo (20260914190000_compras_total_del_papel.sql).
+      ...(conIgv ? { p_total: total } : {}),
+      ...(pagosRpc ? { p_pago: pagosRpc } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
     });
 
     if (error) {
+      cerrarProceso();
       setLoading(false);
-      setError(traducirError(error, "registrar la factura"));
+      avisar.error(traducirError(error, "registrar la factura"));
       return;
     }
 
@@ -208,7 +227,13 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       const r = await subirAdjuntosCompra(supabase, data, adjuntos);
       fallidos = r.fallidos.map((f) => f.nombre);
     }
+    cerrarProceso();
     setLoading(false);
+    const documento = `${serie.trim().toUpperCase()}-${numero.trim()}`;
+    avisar.exito(`${TIPOS.find((t) => t.valor === tipo)!.texto} ${documento} registrada`, {
+      detalle: condicion === "contado" ? `Pagada al contado · ${soles(total)}` : `Queda en Por pagar · ${soles(total - sumaPagos)}`,
+    });
+    if (fallidos.length) avisar.aviso(`${fallidos.length === 1 ? "1 adjunto no subió" : `${fallidos.length} adjuntos no subieron`}: ${fallidos.join(", ")}`, { detalle: "Puedes reintentarlo desde el detalle." });
     const aviso = fallidos.length ? `?adjuntos_fallidos=${encodeURIComponent(fallidos.join("|"))}` : "";
     router.push(`/compras/${data}${aviso}`);
     router.refresh();
@@ -241,7 +266,9 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
                 </>
               }
             >
-              <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId} onValor={setProveedorId} opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
+              <div id="compra-proveedor">
+                <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId} onValor={setProveedorId} opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
+              </div>
             </Campo>
             <CampoSelectNativo
               etiqueta="Tipo de documento"
@@ -261,21 +288,25 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
               ))}
             </CampoSelectNativo>
             <div className="grid grid-cols-[7rem_1fr] gap-3">
-              <CampoTexto etiqueta="Serie" mono value={serie} onChange={(e) => setSerie(e.target.value.toUpperCase())} placeholder="F001" maxLength={8} autoComplete="off" />
-              <CampoTexto etiqueta="Número" mono value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="000123" maxLength={12} autoComplete="off" inputMode="numeric" />
+              <CampoTexto etiqueta="Serie" id="compra-serie" mono value={serie} onChange={(e) => setSerie(e.target.value.toUpperCase())} placeholder="F001" maxLength={8} autoComplete="off" />
+              <CampoTexto etiqueta="Número" id="compra-numero" mono value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="000123" maxLength={12} autoComplete="off" inputMode="numeric" />
             </div>
-            <CampoTexto etiqueta="Fecha de emisión" type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
+            <CampoFecha etiqueta="Fecha de emisión" valor={fechaEmision} onValor={setFechaEmision} required />
             <Segmentado
               etiqueta="Condición de pago"
               valor={condicion}
-              onValor={setCondicion}
+              onValor={(c) => {
+                setCondicion(c);
+                // Al pasar a contado, el único medio arranca con el total.
+                if (c === "contado" && pagos.length === 1) setPagos([{ ...pagos[0], monto: total > 0 ? total.toFixed(2) : "" }]);
+              }}
               opciones={[
                 { valor: "contado", texto: "Al contado" },
                 { valor: "credito", texto: "Al crédito" },
               ]}
               pie={condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}
             />
-            {condicion === "credito" ? <CampoTexto etiqueta="Vence el" type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} required /> : <div />}
+            {condicion === "credito" ? <CampoFecha etiqueta="Vence el" id="compra-vence" valor={fechaVencimiento} onValor={setFechaVencimiento} required /> : <div />}
             <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
               {ubicaciones.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -309,14 +340,14 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
                 activo={precioIncluyeIgv}
                 onActivo={setPrecioIncluyeIgv}
                 etiqueta="El precio incluye IGV"
-                pie={conIgv ? `Se descuenta el ${igvEfectivo} % antes de guardar (a 2 decimales). Si el total difiere del papel por centavos, apaga esto y tipea el costo sin IGV.` : undefined}
+                pie={conIgv ? `El total es el que suma el papel; el ${igvEfectivo} % se descuenta al guardar el costo.` : undefined}
               />
             ) : (
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
             )}
           </div>
           <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA_LINEAS}`}>
-            {["Producto", "Talla y color", "Cantidad", conIgv ? "Costo c/IGV" : "Costo unit.", "Subtotal", ""].map((t, i) => (
+            {["Producto", "Talla y color", "Cantidad", conIgv ? "Precio c/IGV" : "Costo unit.", conIgv ? "Importe c/IGV" : "Subtotal", ""].map((t, i) => (
               <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i === 2 ? "text-center" : i >= 3 ? "text-right" : ""}`}>
                 {t}
               </span>
@@ -328,6 +359,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
               <div key={i} className={`grid gap-2 border-b border-tinta/10 pb-3 last:border-0 sm:items-end ${PLANTILLA_LINEAS}`}>
                 <ComboBuscable
                   etiquetaAccesible="Producto"
+                  id={`compra-linea-${i}-producto`}
                   valor={l.productoId}
                   onValor={(id) => elegirProducto(i, id)}
                   opciones={opcionesProducto}
@@ -355,6 +387,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
                   type="number"
                   min={0}
                   step="0.01"
+                  id={`compra-linea-${i}-costo`}
                   placeholder="Costo unit."
                   aria-label="Costo unitario"
                   value={l.costoUnitario}
@@ -362,8 +395,8 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
                   onKeyDown={(e) => enterEnCosto(e, i)}
                   className={`${NUMERO} border-b border-tinta/25 bg-transparent px-0.5 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo`}
                 />
-                <span className="min-w-0 truncate py-2 text-sm tabular-nums text-tinta/75 sm:text-right" title={soles(l.cantidad * baseDeLinea(l))}>
-                  {soles(l.cantidad * baseDeLinea(l))}
+                <span className="min-w-0 truncate py-2 text-sm tabular-nums text-tinta/75 sm:text-right" title={soles(importeDeLinea(l))}>
+                  {soles(importeDeLinea(l))}
                 </span>
                 <span className="py-2 sm:text-right">
                   {lineas.length > 1 && (
@@ -395,25 +428,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
             )}
           </div>
           {hayPago ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              {condicion === "contado" ? (
-                <div>
-                  <p className={campoEtiqueta}>Monto</p>
-                  <p className="font-display mt-1.5 text-2xl tabular-nums text-tinta">{soles(total)}</p>
-                  <p className="mt-1 text-xs text-tinta/55">Al contado se paga el total.</p>
-                </div>
-              ) : (
-                <CampoTexto etiqueta="Monto" mono type="number" min={0.01} step="0.01" value={pagoMonto} onChange={(e) => setPagoMonto(e.target.value)} placeholder="0.00" />
-              )}
-              <CampoSelectNativo etiqueta="Medio de pago" value={pagoMetodo} onChange={(e) => setPagoMetodo(e.target.value)}>
-                {METODOS.map((m) => (
-                  <option key={m} value={m}>
-                    {ETIQUETA_METODO[m]}
-                  </option>
-                ))}
-              </CampoSelectNativo>
-              <CampoTexto etiqueta="Referencia" mono value={pagoReferencia} onChange={(e) => setPagoReferencia(e.target.value)} placeholder="N° operación" autoComplete="off" />
-            </div>
+            <LineasPago id="compra-pagos" lineas={pagos} onLineas={setPagos} objetivo={total} exacto={condicion === "contado"} />
           ) : (
             <p className="text-sm text-tinta/65">Sin pago por ahora: la factura aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
@@ -453,7 +468,6 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
             botón (pedido de Felipe, 2026-09-14). */}
         <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
         <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
-        {error && <p className="text-sm text-rojo">{error}</p>}
         <div className="flex flex-col gap-2">
           <Boton type="submit" peso="primario" cargando={loading} className="w-full">
             {loading && adjuntos.length

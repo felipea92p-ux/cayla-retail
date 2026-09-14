@@ -158,11 +158,10 @@ export function fechaCorta(iso: string | null): string {
 // el costo viene con IGV, acá se descuenta ANTES de mandarlo.
 //
 // El redondeo a 2 decimales imita `numeric(12, 2)`: lo que la pantalla suma
-// es exactamente lo que la base va a guardar, así el total del resumen nunca
-// difiere del que la RPC calcula. Un precio con IGV de S/ 45.90 da una base
-// de 38.898… → 38.90, y 10 unidades suman S/ 459.02 contra los S/ 459.00 del
-// papel: esos centavos son inevitables con 2 decimales, y la pantalla lo
-// advierte para que se tipee sin IGV cuando el papel lo trae.
+// es exactamente lo que la base va a guardar. El centavo que se pierde al
+// redondear la base (10 / 1.18 = 8.4746 → 8.47) NO se traslada al total:
+// con precios con IGV, `totalesCompra` toma el total del papel y el IGV es
+// la diferencia — misma regla que `registrar_compra` con `p_total`.
 // ---------------------------------------------------------------------------
 function a2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -179,4 +178,26 @@ export function costoBase(costoTipeado: number, igvPorcentaje: number, conIgv: b
 export function costoParaTipear(costoSinIgv: number, igvPorcentaje: number, conIgv: boolean): number {
   if (!conIgv || !(igvPorcentaje > 0)) return a2(costoSinIgv);
   return a2(costoSinIgv * (1 + igvPorcentaje / 100));
+}
+
+/**
+ * Totales de la factura tal como los va a guardar `registrar_compra`
+ * (20260914190000_compras_total_del_papel.sql). Con precios sin IGV, el
+ * IGV se calcula sobre la base; con precios con IGV, el total es la suma de
+ * lo tipeado (lo que dice el papel) y el IGV es la diferencia con la base:
+ * el redondeo lo absorbe el IGV, nunca el total. 1 × S/ 10.00 con IGV da
+ * base 8.47, IGV 1.53, total 10.00 — no 9.99.
+ */
+export function totalesCompra(
+  lineas: readonly { cantidad: number; costoTipeado: number }[],
+  igvPorcentaje: number,
+  conIgv: boolean,
+): { subtotal: number; igv: number; total: number } {
+  const subtotal = a2(lineas.reduce((acc, l) => acc + l.cantidad * costoBase(l.costoTipeado, igvPorcentaje, conIgv), 0));
+  if (conIgv && igvPorcentaje > 0) {
+    const total = a2(lineas.reduce((acc, l) => acc + a2(l.cantidad * (Number.isFinite(l.costoTipeado) && l.costoTipeado > 0 ? l.costoTipeado : 0)), 0));
+    return { subtotal, igv: a2(total - subtotal), total };
+  }
+  const igv = a2((subtotal * igvPorcentaje) / 100);
+  return { subtotal, igv, total: a2(subtotal + igv) };
 }
