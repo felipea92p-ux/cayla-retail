@@ -240,6 +240,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Migración `20260914210000_compras_resumen_por_vencer` no está en producción.**
+      Agrega `por_vencer` y `por_vencer_monto` a `resumen_compras` (DROP + CREATE:
+      cambia el `returns table`). Pegar en el SQL Editor con el prefijo `retail.`
+      (ya lo lleva). Mientras tanto la tarjeta "Vence esta semana" de
+      `/compras/por-pagar` muestra S/ 0.00 (lee con `?? 0`), no rompe.
+
+- [ ] **Migración `20260914220000_compras_orden_por_creacion` no está en producción.**
+      Recrea `listar_compras` (DROP + CREATE: parámetro nuevo `p_cursor_creado_en`)
+      y los 4 índices de orden con `created_at` como desempate. Pegar con prefijo
+      `retail.` (ya lo lleva). Hasta entonces la primera página carga igual, pero
+      "Siguiente página →" en `/compras` y `/compras/recibir` falla con PGRST202
+      (la app manda un parámetro que producción no conoce). `pnpm datos:comparar`
+      lo avisa.
+
 - [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
       eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
       "Más filtros", tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
@@ -248,9 +262,14 @@ importante que ha entrado a este archivo desde que existe.
       en celular cae al final),
       `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
       la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
-      líneas con variante; barra fija con unidades y botón apagado si una línea
-      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (Vencidas arriba con línea roja, "Pagar" en la
-      fila abre el modal sin navegar). Si la barra fija de Recibir choca con las
+      líneas con variante; las líneas sin talla/color se reparten en una curva de
+      tallas —filas color, columnas talla, chip de avance por línea y por factura—,
+      esto sí se vio renderizado con Playwright el 2026-09-14 en escritorio y 375 px;
+      barra fija con unidades y botón apagado si una línea
+      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (una sola
+      tabla en tres tramos —Vencidas en rojo, Vencen esta semana en ámbar, Más
+      adelante—, proveedor en la fila, "Pagar" en la fila abre el modal sin navegar;
+      la tarjeta "Vence esta semana" sale de `resumen_compras`). Si la barra fija de Recibir choca con las
       pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
       `RecepcionCompraFormV2.tsx`.
 

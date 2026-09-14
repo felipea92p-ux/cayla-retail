@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (recibir por curva de tallas)
+
+Diego pasó una captura de Recibir mercadería: las líneas facturadas sin talla ni color
+("Blusa Emma x 24") se repartían en una hilera de chips con un `0` cada uno, y con 5 tallas ×
+3 colores era una pared donde no se veía qué estaba contado. Se cambió por la curva de tallas
+que taller y tiendas ya usan de cabeza: filas = color, columnas = talla (orden canónico nuevo en
+`lib/tallas.ts`), celda resaltada cuando tiene unidades, total por fila; el avance de cada línea
+y de cada factura es ahora un chip ámbar/verde/rojo, no texto gris; el encabezado de columnas
+solo sale cuando hay filas con variante, y "Vaciar" también sirve para las agrupadas. Verificado
+en navegador con Playwright contra el Supabase local (escritorio y 375 px, la tabla cabe sin
+scroll). No toca RPC ni esquema.
+
+Lo que se lleva: **la pantalla se dibuja con la forma en que la gente ya cuenta la mercadería**,
+no con la forma en que la base la guarda — la base sigue viendo variantes sueltas.
+
 ## 2026-09-14 (piso de venta y almacén de tienda: la extensión que el código ya anunciaba)
 
 Felipe pidió que Inventario distinga cuánto de una prenda está en el piso
@@ -3341,3 +3356,40 @@ De paso salió que la anulación de facturas ya existía con la regla que Felipe
 (sin recepción) más una (sin pagos) — y que un pago registrado por error no tiene reverso,
 lo que deja esa factura bloqueada para siempre. Decisión pendiente de Felipe (A: RPC
 `anular_pago_compra` append-only, recomendada).
+
+## 2026-09-14 (por pagar: una tabla, tres tramos)
+
+Se rehízo `/compras/por-pagar` porque no se entendía: el mismo monto aparecía en cuatro
+niveles (tarjeta, bloque "en esta página", proveedor, fila), cada proveedor tenía su propia
+tabla con su propio encabezado, y "Pagar" —la única acción de la pantalla— era el botón más
+discreto. Ahora es UNA tabla con tres tramos por urgencia (Vencidas en rojo, Vencen esta
+semana en ámbar, Más adelante), el proveedor va en la fila (agrupar por proveedor es trabajo
+del filtro, no de la estructura), el vencimiento se lee relativo ("Venció hace 15 días",
+"Vence en 3 días") con la fecha debajo, y "Pagar" sube a peso fantasma. La tarjeta "Vence
+esta semana" dejaba de mentir: se sumaba con las filas de la página; ahora la cuenta
+Postgres (`20260914210000_compras_resumen_por_vencer`, pendiente en producción).
+
+## 2026-09-14 (compras: mismo día, la registrada después va primera)
+
+La lista ordenaba por `fecha_emision desc, id desc`, y `id` es un uuid aleatorio: entre
+facturas del mismo día el orden era un sorteo. Ahora desempata por `created_at` (cuándo
+la registró el colaborador) y `id` queda al final solo para que el cursor sea único. El
+cursor del paginado pasa a tres partes (`fecha~creadoEn~id`) y los 4 índices de orden se
+recrean con `created_at`; verificado con 100k filas ficticias (rollback) que el plan sigue
+siendo `Index Scan using compras_orden_idx` sin `Sort`. Migración
+`20260914220000_compras_orden_por_creacion`, pendiente en producción.
+
+## 2026-09-14 (detalle de factura en modal)
+
+Abrir una factura desde la lista ya no cambia de pantalla: el detalle se abre como modal
+encima de la lista (rutas interceptadas de Next, slot `@modal/` en el layout de
+`/compras`), y al cerrarlo —Escape, velo, botón— se vuelve exactamente donde se estaba.
+La URL sigue siendo compartible: recargar o entrar por enlace muestra la página completa.
+El detalle se movió a `/compras/factura/<id>` porque `(.)[compraId]` directo bajo
+`/compras` interceptaba también `/compras/por-pagar` y `/compras/nueva` (apareció en la
+demo, no en el typecheck). De paso salió un bug latente de `ui/Modal.tsx`: el
+`setTimeout(onClose)` vivía dentro de un updater de `setState` y StrictMode lo disparaba
+dos veces — invisible con `setModal(null)`, fatal con `router.back()` (retrocedía dos
+páginas). Ahora el temporizador va en un `useEffect`. Verificado en Chrome headless: 10
+escenarios (lista, por pagar, pestañas hermanas, carga directa, `desde=nueva`, móvil, pago
+anidado) sin errores de consola.

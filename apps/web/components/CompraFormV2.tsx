@@ -215,7 +215,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
     if (error) {
       cerrarProceso();
       setLoading(false);
-      avisar.error(traducirError(error, "registrar la factura"));
+      // Serie-número repetidos para este proveedor (candado `unique` en
+      // `compras`): el cursor vuelve a la serie, como en las demás validaciones.
+      const duplicada = error.code === "P0001" && error.message.includes("ya está registrada");
+      avisar.error(traducirError(error, "registrar la factura"), duplicada ? { enfocar: "compra-serie" } : undefined);
       return;
     }
 
@@ -234,8 +237,20 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       detalle: condicion === "contado" ? `Pagada al contado · ${soles(total)}` : `Queda en Por pagar · ${soles(total - sumaPagos)}`,
     });
     if (fallidos.length) avisar.aviso(`${fallidos.length === 1 ? "1 adjunto no subió" : `${fallidos.length} adjuntos no subieron`}: ${fallidos.join(", ")}`, { detalle: "Puedes reintentarlo desde el detalle." });
-    const aviso = fallidos.length ? `?adjuntos_fallidos=${encodeURIComponent(fallidos.join("|"))}` : "";
-    router.push(`/compras/${data}${aviso}`);
+    // Registrada → de vuelta a la lista: el aviso de éxito ya dice qué quedó
+    // (pagada / por pagar) y la factura recién creada aparece primera. Se usa
+    // `replace` para que "atrás" no vuelva a este formulario ya enviado.
+    //
+    // Excepción: si algún adjunto no subió, se abre el detalle (como modal
+    // encima de esta pantalla, ruta interceptada) porque es el único lugar
+    // desde donde se reintenta. `desde=nueva` hace que al cerrarlo vaya a la
+    // lista y no "atrás".
+    if (fallidos.length) {
+      const aviso = new URLSearchParams({ desde: "nueva", adjuntos_fallidos: fallidos.join("|") });
+      router.push(`/compras/factura/${data}?${aviso}`);
+    } else {
+      router.replace("/compras");
+    }
     router.refresh();
   }
 
