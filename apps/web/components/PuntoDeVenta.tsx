@@ -7,6 +7,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { aplicarDescuento, motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
@@ -113,13 +114,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     return ["Todo", ...Array.from(vistas).sort((a, b) => a.localeCompare(b, "es"))];
   }, [variantesVisibles]);
 
-  // La grilla es el plan B (cuando la etiqueta no lee): filtra por categoría y, si se
-  // pidió, por stock. `resultados` (el escáner) NO se filtra: una prenda sin stock
-  // escaneada debe decir «sin stock en esta sede», no «no encontramos».
-  const catalogo = useMemo(() => {
-    const porCategoria = categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria);
-    return soloConStock ? porCategoria.filter((v) => v.stockAqui > 0) : porCategoria;
-  }, [variantesVisibles, categoria, soloConStock]);
+  // La grilla es el plan B (cuando la etiqueta no lee): filtra por categoría y agrupa
+  // una tarjeta por prenda + color con sus tallas adentro (`lib/catalogo-grupos.ts`).
+  // «Solo con stock» esconde la tarjeta entera cuando ninguna talla tiene stock — una
+  // talla agotada dentro de una prenda con stock sigue a la vista, tachada. `resultados`
+  // (el escáner) NO se filtra: una prenda sin stock escaneada debe decir «sin stock en
+  // esta sede», no «no encontramos».
+  const catalogo = useMemo(
+    () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
+    [variantesVisibles, categoria]
+  );
+  const grupos = useMemo(() => {
+    const todos = agruparCatalogo(catalogo);
+    return soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
+  }, [catalogo, soloConStock]);
 
   const term = q.trim();
   const resultados = useMemo(() => filtrarPrendasV2(q, variantesVisibles, MAX_RESULTADOS), [variantesVisibles, q]);
@@ -443,7 +451,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
             setSoloConStock(valor);
             buscador.current?.focus();
           }}
-          catalogo={catalogo}
+          grupos={grupos}
           carrito={carrito}
           mostrarVentasHoy={mostrarVentasHoy}
           onAlternarVentasHoy={() => setMostrarVentasHoy((v) => !v)}

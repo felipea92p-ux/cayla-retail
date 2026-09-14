@@ -37,6 +37,11 @@ export function RevelarAlScroll({
     () => {
       const nodo = ref.current;
       if (!nodo) return;
+      const contenedor = scroller ?? contenedorQueScrollea(nodo) ?? undefined;
+      // Regla de ADR-0011: nada se anima solo al entrar a la pantalla. Lo que ya está a
+      // la vista cuando se monta (la primera fila de la grilla, por ejemplo) se queda
+      // como está; el gesto es solo para lo que la persona trae con el scroll.
+      if (yaALaVista(nodo, contenedor)) return;
       gsap.matchMedia().add(
         {
           reducido: "(prefers-reduced-motion: reduce)",
@@ -57,7 +62,7 @@ export function RevelarAlScroll({
               ease: "caylaEase",
               scrollTrigger: {
                 trigger: nodo,
-                scroller: scroller ?? contenedorQueScrollea(nodo) ?? undefined,
+                scroller: contenedor,
                 start: "top 90%",
                 once: true,
               },
@@ -86,4 +91,16 @@ function contenedorQueScrollea(desde: Element): Element | null {
     el = el.parentElement;
   }
   return null;
+}
+
+/** ¿El nodo ya se ve dentro del área visible del contenedor (o de la ventana)? */
+function yaALaVista(nodo: Element, contenedor: string | Element | undefined): boolean {
+  const r = nodo.getBoundingClientRect();
+  const marco =
+    typeof contenedor === "string"
+      ? document.querySelector(contenedor)?.getBoundingClientRect()
+      : contenedor?.getBoundingClientRect();
+  const arriba = marco?.top ?? 0;
+  const abajo = marco?.bottom ?? window.innerHeight;
+  return r.top < abajo && r.bottom > arriba;
 }
