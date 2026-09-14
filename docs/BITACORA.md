@@ -225,6 +225,23 @@ pierde de infraestructura que otro ADR ya había decidido?". La huella era visib
 numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
 con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
 
+## 2026-09-14 (la venta aprende a llevar una nota)
+
+Sexta vuelta, corta: «lo recoge el sábado», «va con arreglo de bastilla» — la venta no
+tenía dónde guardarlo. Una migración con timestamp: `ventas.nota` (≤ 200), `registrar_venta`
+con `p_nota` (vacía → null) y `fn_ventas_del_dia` recreada con `nota` al final (drop +
+create: cambia el `returns table`). El campo va en «armar», bajo las líneas y solo con
+ticket no vacío: la nota nace con la clienta al frente y es parte del ticket, no del cobro
+— el ticket en espera la guardará con las líneas. Contador recién al pasar de 160; no va al
+comprobante. Mismo protocolo de base compartida (aviso a A, `migration up`, sin reset);
+probado en psql con rollback (recorte, vacío → null, 201 → `ventas_nota_corta`, ya
+traducido con test en rojo primero) y en navegador con venta real (B001-000008).
+
+Lo que Felipe se lleva: **cuándo una columna nueva obliga a recrear una función** —
+`create or replace` no puede cambiar el `returns table` de `fn_ventas_del_dia`, así que
+sumarle `nota` es drop + create, y por eso la migración lo dice en su cabecera: quien
+la vuelva a recrear sin `nota` deja «Ventas de hoy» muda sin que nada avise.
+
 ## 2026-09-14 (la base deja de confiar en el precio del navegador; el descuento pide código)
 
 Quinta vuelta sobre Vender, y la primera en la base. La caja ya no editaba el precio,

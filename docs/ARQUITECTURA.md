@@ -144,7 +144,7 @@ flowchart TB
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
-  tabla `codigos_descuento`). `lib/vender-reglas.ts`:
+  tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve). `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de

@@ -169,12 +169,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — dos migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql` y
-      `20260914215103_codigos_descuento.sql`, aplicadas solo en local el 2026-09-14. El
-      front ya manda `p_codigo_descuento`, que la RPC de producción no acepta: pegarlas
+- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
+      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
+      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
+      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
+      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
       (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
       «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
+      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
 - [ ] **Administrar códigos de descuento** (paso propio): hoy se crean en Studio
       (`retail.codigos_descuento`: código, %, vigencia, activo, sede o todas). Una pantalla
       para Líderes —crear, apagar, ver vigencia— y, si se quiere medir cuánto se regala
