@@ -10,6 +10,7 @@ import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/l
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
+import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 
 /**
@@ -22,7 +23,7 @@ import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 export const ID_CARGO_ESPECIAL = "22222222-2222-4222-8222-222222222222";
 const STOCK_CARGO_ESPECIAL = 999_999;
 
-type VarianteBusqueda = PrendaBuscableV2 & {
+export type VarianteBusqueda = PrendaBuscableV2 & {
   categoria: string | null;
   precio: number;
   stockAqui: number;
@@ -299,160 +300,34 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         aria-disabled={bloqueado}
         className={`grid lg:grid-cols-[minmax(0,1fr)_420px] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
-        <section className="flex min-w-0 flex-col border-b border-sand lg:border-r lg:border-b-0">
-          <div className="px-4 pt-2 sm:px-6 sm:pt-3">
-            <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-              <span aria-hidden />
-              <h1 className="font-display text-center text-3xl text-tinta sm:text-4xl">Catálogo De Prendas</h1>
-              <button
-                type="button"
-                onClick={() => setManualAbierto(true)}
-                disabled={bloqueado}
-                className="label-cayla flex h-10 items-center justify-self-end gap-1.5 rounded-md border border-sand bg-papel px-3 text-[11px] text-tinta transition-colors hover:bg-sand/40"
-              >
-                Monto manual
-              </button>
-            </div>
-
-            <div className="relative z-20">
-              <label className="flex h-12 items-center rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-                <input
-                  id="venta-buscar"
-                  ref={buscador}
-                  autoFocus
-                  disabled={bloqueado}
-                  value={q}
-                  onChange={(e) => {
-                    setQ(e.target.value);
-                    setActivo(0);
-                    setAviso(null);
-                  }}
-                  onKeyDown={alTeclado}
-                  placeholder="Escanea la etiqueta o busca la prenda"
-                  autoComplete="off"
-                  role="combobox"
-                  aria-expanded={resultados.length > 0}
-                  aria-controls="venta-resultados"
-                  aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-                  aria-autocomplete="list"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-                />
-                {q && (
-                  <button
-                    type="button"
-                    aria-label="Limpiar búsqueda"
-                    onClick={() => setQ("")}
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
-                  >
-                    ×
-                  </button>
-                )}
-              </label>
-              {q && (
-                <ul
-                  id="venta-resultados"
-                  role="listbox"
-                  aria-label="Prendas encontradas"
-                  className="card-cayla absolute top-14 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
-                >
-                  {resultados.length ? (
-                    resultados.map((v, i) => (
-                      <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo}>
-                        <button
-                          type="button"
-                          onMouseEnter={() => setActivo(i)}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => agregar(v)}
-                          className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${i === activo ? "bg-sand/60" : ""}`}
-                        >
-                          <span>
-                            <span className="block font-semibold text-tinta">{v.referencia}</span>
-                            <span className="text-xs text-tinta/60">
-                              {[v.talla, v.color].filter(Boolean).join("/")} · {v.sku}
-                            </span>
-                          </span>
-                          <span className="shrink-0 text-right">
-                            <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
-                            <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                              {v.stockAqui <= 0 ? `sin stock` : `${v.stockAqui} en sede`}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))
-                  ) : (
-                    <p className="px-4 py-5 text-sm text-tinta/65">
-                      No encontramos «{term}» en {ubicacionEtiqueta}.
-                    </p>
-                  )}
-                </ul>
-              )}
-            </div>
-            {aviso && <p className="mt-2 text-sm text-ambar-profundo">{aviso}</p>}
-
-            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-3">
-              {categorias.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCategoria(c)}
-                  disabled={bloqueado}
-                  className={`label-cayla h-8 shrink-0 rounded-lg border px-3 text-[11px] transition-colors ${
-                    categoria === c ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {catalogo.map((v) => {
-                const enCarrito = carrito.find((it) => it.claveLinea === v.varianteId)?.cantidad ?? 0;
-                const sinStock = v.stockAqui <= 0;
-                return (
-                  <button
-                    key={v.varianteId}
-                    type="button"
-                    onClick={() => agregar(v)}
-                    disabled={bloqueado}
-                    className="relative flex h-auto min-h-40 flex-col items-stretch justify-between rounded-xl border border-sand bg-papel p-3 text-left transition-colors hover:bg-sand/30"
-                  >
-                    <div>
-                      <p className="line-clamp-1 text-sm font-semibold text-tinta">{v.referencia}</p>
-                      <p className="mt-0.5 text-xs text-tinta/60">{[v.talla, v.color].filter(Boolean).join("/")}</p>
-                      <div className="mt-2 flex items-end justify-between">
-                        <span className="text-sm font-bold text-tinta">{money(v.precio)}</span>
-                        <span className={`text-[11px] ${sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                          {sinStock ? "Sin stock" : `${v.stockAqui} en sede`}
-                        </span>
-                      </div>
-                    </div>
-                    {enCarrito > 0 && (
-                      <span className="absolute top-2 right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-tinta px-1.5 text-xs text-crema">
-                        {enCarrito}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-7 border-t border-sand pt-5">
-              <button
-                type="button"
-                onClick={() => setMostrarVentasHoy((v) => !v)}
-                className="label-cayla flex w-full items-center justify-between py-2 text-[11px] text-tinta"
-              >
-                <span>Ventas de hoy</span>
-                <span className={`inline-block transition-transform ${mostrarVentasHoy ? "rotate-180" : ""}`}>⌄</span>
-              </button>
-              <div className={mostrarVentasHoy ? "mt-2" : "hidden"}>{ventasHoyNode}</div>
-            </div>
-          </div>
-        </section>
+        <PuntoDeVentaCatalogo
+          ubicacionEtiqueta={ubicacionEtiqueta}
+          bloqueado={bloqueado}
+          buscadorRef={buscador}
+          q={q}
+          term={term}
+          resultados={resultados}
+          activo={activo}
+          aviso={aviso}
+          onEscribir={(valor) => {
+            setQ(valor);
+            setActivo(0);
+            setAviso(null);
+          }}
+          onLimpiarBusqueda={() => setQ("")}
+          onTeclado={alTeclado}
+          onActivo={setActivo}
+          onAgregar={agregar}
+          onMontoManual={() => setManualAbierto(true)}
+          categorias={categorias}
+          categoria={categoria}
+          onCategoria={setCategoria}
+          catalogo={catalogo}
+          carrito={carrito}
+          mostrarVentasHoy={mostrarVentasHoy}
+          onAlternarVentasHoy={() => setMostrarVentasHoy((v) => !v)}
+          ventasHoyNode={ventasHoyNode}
+        />
 
         <PuntoDeVentaTicket
           ubicacionEtiqueta={ubicacionEtiqueta}
