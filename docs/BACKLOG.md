@@ -177,6 +177,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
       «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
       Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+- [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
+      en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
+      tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
+      nombre). Verificado en navegador de punta a punta, incluido el cierre de caja.
+      **La cola offline usa el mismo módulo** con `nombre = "cola"` — el primer ladrillo
+      del ítem de resiliencia sin internet ya está puesto.
 - [ ] **Administrar códigos de descuento** (paso propio): hoy se crean en Studio
       (`retail.codigos_descuento`: código, %, vigencia, activo, sede o todas). Una pantalla
       para Líderes —crear, apagar, ver vigencia— y, si se quiere medir cuánto se regala

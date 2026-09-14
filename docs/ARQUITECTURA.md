@@ -144,7 +144,10 @@ flowchart TB
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
-  tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve). `lib/vender-reglas.ts`:
+  tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
+  El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
+  → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
+  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de

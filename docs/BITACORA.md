@@ -225,6 +225,28 @@ pierde de infraestructura que otro ADR ya había decidido?". La huella era visib
 numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
 con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
 
+## 2026-09-14 (el ticket aprende a esperar: Park/Resume sin tabla)
+
+Séptima vuelta. Si una clienta iba a probarse otra talla, la caja quedaba tomada. Felipe
+pidió el «ticket en espera» sin tabla y «bien desde el inicio» porque la cola offline va a
+usar el mismo almacén: nació `lib/almacen-local.ts` (llave `cayla:vender:<sede>:<uso>`,
+puro, con 9 tests que fijan lo que importa — en el servidor es inerte y con el storage
+lleno, bloqueado o con JSON roto degrada a «no se guardó» / «no había nada», nunca a una
+excepción a mitad de un cobro). El padre carga la espera **después de montar** (el lint
+lo marca; el `eslint-disable` lleva el motivo, misma decisión del 10-sep), la vacía al
+cerrar caja con el patrón «previo + comparación» que documenta React, y el ticket suma
+el momento «espera» (chip, lista con hora/prendas/total/nota, Retomar) y «Dejar en
+espera». Decisiones de Felipe: tope 5 (el sexto avisa), retomar intercambia, al cerrar caja
+se vacía, sin reserva de stock. Verificado de punta a punta en navegador, con el cierre de
+caja real al final (avisado antes) — chip fuera y llave borrada.
+
+Lo que Felipe se lleva: **hay estado que es del mostrador, no del negocio.** Un ticket que
+todavía no se cobró no es una venta ni una reserva; meterlo en la base habría obligado a
+inventarle limpieza, permisos y sincronización para algo que vive en una caja y muere al
+cerrarla. Y el reverso: **lo que vive en el navegador se lee después de hidratar** — el
+servidor no tiene `localStorage`, y leerlo durante el render es la desincronización que
+React castiga; el efecto es el lugar correcto aunque el lint proteste.
+
 ## 2026-09-14 (la venta aprende a llevar una nota)
 
 Sexta vuelta, corta: «lo recoge el sábado», «va con arreglo de bastilla» — la venta no
