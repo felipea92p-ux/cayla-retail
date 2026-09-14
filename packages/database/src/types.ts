@@ -1701,6 +1701,20 @@ export type Database = {
           venta_id: string
         }[]
       }
+      previsualizar_cierre_conteo: {
+        Args: { p_conteo_id: string }
+        Returns: {
+          codigo: string
+          color: string
+          contada: number
+          diferencia: number
+          origen: string
+          referencia: string
+          sistema: number
+          talla: string
+          variante_id: string
+        }[]
+      }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {

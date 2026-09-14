@@ -206,6 +206,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
     { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a una ubicación" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
+    { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
 
   const [activo, setActivo] = useState(0);
