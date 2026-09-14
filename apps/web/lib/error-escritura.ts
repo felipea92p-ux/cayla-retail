@@ -102,6 +102,37 @@ const HUELLAS: { marca: string; frase: string }[] = [
     marca: "JWT expired",
     frase: "Tu sesión venció. Vuelve a entrar y repite la operación — no se guardó nada.",
   },
+  {
+    // 20260912235500_vocabulario_cerrado.sql — el código son 3 mayúsculas y
+    // es la clave primaria de retail.colores.
+    marca: "colores_pkey",
+    frase: "Ese código de 3 letras ya lo usa otro color. Prueba con otro.",
+  },
+  {
+    // 20260912235500_vocabulario_cerrado.sql — el candado real: "Azul
+    // marino" y "azul marino" son el mismo color para fn_clave_texto,
+    // aunque el texto no calce byte a byte.
+    marca: "colores_clave_unica",
+    frase:
+      "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
+  },
+  {
+    // 0002_esquema.sql — categorias.nombre es único GLOBAL en V2 (a
+    // diferencia de V1, que lo permitía repetido entre familias).
+    marca: "categorias_nombre_key",
+    frase: "Ya existe una categoría con ese nombre — en cualquier familia.",
+  },
+  {
+    // 20260912235500_vocabulario_cerrado.sql — el prefijo son exactamente 3 mayúsculas.
+    marca: "categorias_prefijo_formato",
+    frase: "El prefijo tiene que ser exactamente 3 letras mayúsculas (ej. BLU).",
+  },
+  {
+    // 20260912235500_vocabulario_cerrado.sql — dos categorías no pueden
+    // compartir prefijo, o el código de la prenda dejaría de ser único.
+    marca: "categorias_prefijo_unico",
+    frase: "Ese prefijo ya lo usa otra categoría. Prueba con otras 3 letras.",
+  },
 ];
 
 /** Textos que delatan que ni siquiera se llegó al servidor. */

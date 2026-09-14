@@ -57,6 +57,7 @@ const IC = {
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
+  compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
@@ -204,7 +205,8 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
 function MenuNuevo({ onClose }: { onClose: () => void }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a una ubicación" },
+    { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
+    { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
@@ -358,6 +360,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
+  const compras: Item = { href: "/compras", etiqueta: "Compras", icono: IC.compras };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
@@ -373,12 +376,16 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const grupos = [
     {
       titulo: null,
+      // Compras (ADR-0035) va después de Inventario: es de donde entra la
+      // mercadería. Líder-only como Facturación y Colaboradores — registra
+      // facturas y pagos.
       items: [
         inicio,
         vender,
         caja,
         productos,
         inventario,
+        ...(esLider ? [compras] : []),
         movimientos,
         ...(esLider ? [facturacion, colaboradores] : []),
       ],
@@ -498,8 +505,12 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
       </header>
 
       {/* ==================== Contenido ==================== */}
+      {/* Vender es la única pantalla sin el tope de max-w-5xl: el catálogo +
+          ticket necesita todo el ancho disponible, no el de una página de
+          lectura (pedido de Felipe, 2026-09-12). El resto de la app sigue
+          centrado en la columna angosta de siempre. */}
       <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className={pathname === "/vender" ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 
       {/* ==================== Pestañas (celular) ==================== */}

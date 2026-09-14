@@ -3,6 +3,132 @@
 > Lo mantiene Claude. Se actualiza al cierre de cada sesión/paso. Máx. 3 ítems por
 > cubo — un décimo ítem no es señal de ambición, es señal de que no se está cerrando.
 
+**⚠️ AVISO 2026-09-14 — gran parte de lo de abajo describe V1, reemplazada por V2 el
+2026-09-12 (`0af2f1b`, ver `docs/adr/0035-vocabulario-cerrado-portado-no-fusionado.md`
+y BITÁCORA de esa fecha).** Facturación electrónica (Lucode/SUNAT), Finanzas (EERR/
+Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más abajo,
+**ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
+y su data en `retail` era de prueba, no operación real). Lo que sí sigue vigente hoy:
+Vender/Caja (POS), Productos, Inventario, Compras, Movimientos, Colaboradores. Antes de
+actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
+el módulo todavía existe — este documento no se ha reescrito para reflejar V2 todavía
+(tarea propia, pendiente de agendar con Felipe, no improvisada acá).
+
+---
+
+## 🎯 POS (Vender + Caja) en V2 — diagnóstico del 2026-09-14
+
+> Sale de reconciliar `docs/datos/modulos/07-ventas-y-caja.md` y `01-INVARIANTES.md`
+> —que auditaron **producción** con código V1— contra el código y la base **V2**
+> reales. Lo que V2 ya arregló solo (venta↔comprobante en la misma transacción,
+> candados por línea en `venta_items`/`venta_pagos`, el bug del `NULL` en el candado
+> de sede, la caja sin policy de UPDATE) NO se repite acá: esto es lo que queda.
+
+**Cerrado el 2026-09-14 en esta sesión:**
+
+- [x] **`movimientos` es inmutable de verdad** — ADR-0042,
+      `20260914165703_movimientos_inmutables.sql`. Disparador `before update or
+      delete` + retiro de `UPDATE`/`DELETE`/`TRUNCATE` a `authenticated`/`anon`.
+      Probado en rojo: las dos operaciones fallan, las 105 filas quedan intactas.
+      **Aplicado solo en local.**
+- [x] **El modal de cierre de caja dejó de revelar el esperado antes de contar**
+      (`CerrarCajaModalV2.tsx`). Ahora el esperado sale de la respuesta de
+      `cerrar_caja` —calculado en el instante del cierre, no al cargar la página— y
+      se muestra DESPUÉS, junto a lo contado. De paso se arregló que el resultado se
+      desmontaba solo: `router.refresh()` corría junto al resultado, el servidor
+      respondía "ya no hay caja abierta" y el modal moría antes de que nadie leyera
+      la diferencia. Y se eliminó la consulta `getResumenCaja` de `vender/page.tsx`,
+      que corría fuera del `Promise.all` en cada carga solo para alimentar ese modal.
+
+- [x] **La tarjeta "Esperado en el cajón" se quitó del panel** (decisión de Felipe,
+      2026-09-14). El argumento a favor de dejarla era más débil de lo que parecía: para
+      saber si alcanza para dar vuelto se mira el cajón, no la pantalla — su utilidad
+      real era casi toda al cerrar, que es justo cuando no debe verse. En contra pesó el
+      precedente propio: los SINATRA traían cuadres de **−S/6,122 (TRU) y −S/7,675 (LIM)
+      sin fecha de origen**, que es lo que pasa cuando la diferencia diaria no se mide.
+      Se quitó también del tipo `ResumenCaja` y de `getResumenCaja`, así el número deja
+      de viajar al navegador durante el turno (no se puede leer ni inspeccionando props).
+      **No es un candado y no debe leerse como "conteo ciego resuelto"** — ver abajo.
+
+**Pendiente de decisión de Felipe:**
+
+- [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
+      de arriba es fricción, no imposibilidad: las otras cuatro tarjetas (apertura,
+      ventas en efectivo, ingresos, egresos) permiten sumar el total a mano, y
+      `ventas_select` deja a cualquiera con sesión consultar las ventas de su sede desde
+      la consola del navegador — un `GET` de una línea. El candado de verdad es que quien
+      opera la caja no pueda leer ese agregado, y eso necesita los cuatro niveles de
+      D-12, que hoy no existen en la base.
+- [ ] **"Control total temporal" (`0012`/`0013`) no tiene fecha de revisión.** Dentro de
+      la lista blanca `retail.colaboradores`, **cualquier colaborador puede operar
+      cualquier sede**: abrir/cerrar caja ajena, anular comprobantes SUNAT aceptados,
+      cerrar conteos, aprobar devoluciones. Es una decisión explícita y bien documentada
+      de Felipe (2026-09-12/13) para destrabar logins en pruebas — pero "temporal" sin
+      fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
+      de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
+      Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+
+**Pendiente de construir (no es un fix de una sesión):**
+
+- [ ] **El POS de V2 no tiene ninguna resiliencia sin internet — regresión contra V1.**
+      Cero rastro de cola offline, `localStorage` o `navigator.onLine` en `apps/web`.
+      V1 lo tenía resuelto (cola por sede, umbral de stock, reintento con el mismo
+      token). Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende nada.
+      Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
+      gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
+      `ventas.token_cliente` —la condición previa— **ya existe en V2**.
+- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.**
+      `registrar_venta` (`0011_venta_con_comprobante.sql:114-117`) inserta
+      `precio_unitario`/`descuento_unitario` tal cual llegan, sin compararlos con
+      `variantes.precio`. La columna `descuento_unitario` existe (diseño D-44) pero
+      `PuntoDeVenta.tsx:47,141` la deja fija en `0` y el campo "Precio unitario"
+      sobreescribe el precio directo. Nadie puede medir cuánto se regala en descuentos,
+      ni distinguir un descuento autorizado de un cero de más al tipear.
+- [ ] **Cero pruebas automatizadas sobre `registrar_venta`, `abrir_caja` y
+      `cerrar_caja`.** Es el núcleo del dinero y del stock. No hay `supabase/tests/`
+      ni un solo `*.test.ts` que las toque. Es D-25, y lo pide **antes** del censo.
+- [ ] **La caja no tiene día de negocio.** `cajas` (`0008_caja_y_pagos.sql:22-35`) no
+      tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
+      abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
+      aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
+- [ ] **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
+      contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
+      `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
+      `ubicacion_id`/`venta_item_id`/`compra_item_id`. Se desplegó el 12-sep con las
+      migraciones normales (`supabase_migrations.schema_migrations` las registra como
+      `retail_0007_cambios` … `retail_0016_colaboradores_iniciales`), así que
+      **`supabase/unificacion/` dejó de ser el riel de producción** y escribir un gemelo
+      ahí habría revivido la deuda de migraciones duales (ADR-0004/0006), que este
+      backlog llama "la que más caro ha salido".
+      Lo que corresponde: pegar `20260914165703_movimientos_inmutables.sql` **tal cual**
+      —ya usa el prefijo `retail.`— y registrarla con el mismo mecanismo que las otras.
+      **El pre-flight ya se corrió contra producción: 0 funciones editan o borran
+      `retail.movimientos`.** Único trigger presente: `movimientos_compra_foto`
+      (AFTER INSERT), que no choca con uno BEFORE UPDATE/DELETE. `authenticated` tiene
+      hoy UPDATE y DELETE (TRUNCATE ya no), y 108 filas de historial que proteger.
+- [ ] **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
+      producción.** Fue medido el 2026-09-12 contra el modelo viejo (45 tablas,
+      `sede_id`, `venta_id`, `registrar_gasto`, `supabase/unificacion/`). Verificado hoy:
+      `registrar_gasto` **no existe** en producción, así que el "Bloque 3" de
+      `SQL-PENDIENTE-PRODUCCION.sql` y todo `DIAGNOSTICO-PANTALLAS-ROTAS.md` quedaron sin
+      objeto. Es el mismo problema que el aviso del encabezado de este archivo, pero más
+      grave: esa carpeta se presenta como "la verdad medida contra la base". Necesita su
+      propia pasada de actualización antes de que alguien —o un agente— construya encima.
+- [ ] **Las otras dos piezas que le faltan a D-22**, además del disparador:
+      `force row level security` sobre `movimientos` (con prueba de que las RPC que
+      insertan siguen funcionando) y cerrar el `INSERT` directo que se salta la RPC y
+      deja el stock sin mover (P-05).
+
+**Higiene encontrada de paso:**
+
+- [ ] **La base local está 4 migraciones atrás del repo**: `compras_desde_factura`,
+      `compras_snapshot_y_paginado`, `vocabulario_cerrado` y `activos_fijos` están en
+      `supabase/migrations/` y no en `supabase_migrations.schema_migrations`. Lo que se
+      prueba en local no es lo que el repo describe. No se aplicaron en esta sesión a
+      propósito: el Postgres local lo comparten todos los worktrees y no era lo pedido.
+
+---
+
 **Auditoría completa 2026-09-03.** BITACORA.md y este archivo llevaban congelados
 desde el 19-20 de julio, pero el repo tiene commits reales hasta el 23 de julio —
 incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en
@@ -1078,6 +1204,27 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-12 — **Vocabulario cerrado (colores + categorías) y código corto
+      portados a V2, sin fusionar la rama V1 entera — más `activos_fijos`
+      rescatada.** El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` sin
+      el candado que evita "Azul marino" y "azul marino" como filas
+      distintas, y sin código corto de prenda. Se evaluó fusionar
+      `trix/catalogo-vocabulario` completa y se descartó: 350 archivos,
+      mayoría módulos que V2 ya había borrado a propósito (Producción,
+      Inventario V1, Finanzas), y `supabase/migrations/` habría quedado con
+      los dos núcleos a la vez sin que Git lo marcara como conflicto. Se
+      portó en cambio solo el vocabulario, como migraciones nuevas sobre el
+      esquema real de V2: `colores_clave_unica` (vía `fn_clave_texto`) + los
+      30 colores reales, `categorias.familia`/`prefijo` + las 37 reales, y el
+      código corto acuñado por un TRIGGER en `variantes` (no una RPC — V2 no
+      tiene una única función que cree variantes). De paso se rescató
+      `activos_fijos` (39 filas reales en producción, sin tabla en V2),
+      simplificada sin la FK a `cuentas_contables` (Contabilidad sigue sin
+      dato real). Verificado: `db reset` limpio, candado de duplicados
+      probado en vivo (rechaza "azul  MARINO"), catálogo del seed con código
+      corto real asignado solo por el trigger, `tsc`/`eslint` en verde.
+      **Pendiente:** ninguna pantalla lee `variantes.codigo` todavía — la
+      base está lista, falta conectar la UI.
 - [x] 2026-09-10 — **`registrar_venta` deja de duplicar una venta si la red se
       corta a mitad de un cobro (ADR-0032).** `registrar_venta` era atómica
       dentro de Postgres pero no idempotente hacia afuera: si la respuesta se

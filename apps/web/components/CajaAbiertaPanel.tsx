@@ -29,7 +29,6 @@ export function CajaAbiertaPanel({
         <TarjetaSimple etiqueta="Ventas con otro método" valor={money(resumen.ventasOtros)} />
         <TarjetaSimple etiqueta="Ingresos" valor={money(resumen.ingresos)} />
         <TarjetaSimple etiqueta="Egresos" valor={money(resumen.egresos)} />
-        <TarjetaSimple etiqueta="Esperado en el cajón" valor={money(resumen.esperadoEnCajon)} destacar />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -64,7 +63,7 @@ export function CajaAbiertaPanel({
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
       {modal === "cerrar" && (
-        <CerrarCajaModalV2 cajaId={caja.id} esperadoEnCajon={resumen.esperadoEnCajon} onClose={() => setModal(null)} />
+        <CerrarCajaModalV2 cajaId={caja.id} onClose={() => setModal(null)} />
       )}
     </div>
   );
