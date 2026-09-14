@@ -2321,6 +2321,7 @@ export type Database = {
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
           p_cliente_tipo_doc?: string
+          p_codigo_descuento?: string
           p_items: Json
           p_pagos: Json
           p_tipo_comprobante?: string

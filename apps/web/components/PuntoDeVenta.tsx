@@ -73,6 +73,8 @@ export const money = (n: number) => `S/${n.toFixed(2)}`;
 type Props = {
   ubicacionId: string;
   ubicacionEtiqueta: string;
+  /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
+  esLider: boolean;
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
@@ -82,7 +84,7 @@ type Props = {
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -104,6 +106,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
   const [pagos, setPagos] = useState<PagoAplicado[]>([]);
   const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
+  // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
+  const [codigoDescuento, setCodigoDescuento] = useState("");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -382,6 +386,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
+      p_codigo_descuento: codigoDescuento.trim() || undefined,
     });
 
     if (error) {
@@ -415,6 +420,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
     // anterior sería el mismo dato fantasma que la preselección que se quitó.
     setPagos([]);
+    setCodigoDescuento("");
     setMomento("armar");
   }
 
@@ -500,6 +506,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           onAbrirDescuento={abrirDescuento}
           onAplicarDescuento={aplicarDescuentoAlTicket}
           onQuitarDescuento={quitarDescuentoDelTicket}
+          esLider={esLider}
+          codigoDescuento={codigoDescuento}
+          onCodigoDescuento={setCodigoDescuento}
           total={total}
           prendas={prendas}
           pagos={pagos}

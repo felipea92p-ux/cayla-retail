@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { BadgePercent, Banknote, Check, CreditCard, FileText, Landmark, Percent, Receipt, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { BadgePercent, Banknote, Check, CreditCard, FileText, KeyRound, Landmark, Percent, Receipt, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
@@ -100,6 +100,10 @@ type Props = {
   onAbrirDescuento: (claves: string[] | null) => void;
   onAplicarDescuento: () => void;
   onQuitarDescuento: () => void;
+  /** Un Líder no ve el campo «Código»; una Colaboradora lo necesita para descontar. */
+  esLider: boolean;
+  codigoDescuento: string;
+  onCodigoDescuento: (v: string) => void;
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
@@ -156,6 +160,9 @@ export function PuntoDeVentaTicket({
   onAbrirDescuento,
   onAplicarDescuento,
   onQuitarDescuento,
+  esLider,
+  codigoDescuento,
+  onCodigoDescuento,
   total,
   prendas,
   momento,
@@ -297,6 +304,34 @@ export function PuntoDeVentaTicket({
                   <span className="text-sm text-tinta/60">%</span>
                 </label>
               </fieldset>
+
+              {/* Código: solo para quien no es Líder. La base (registrar_venta) es la que
+                  exige que exista, esté vigente y que el % no pase su tope — acá solo se
+                  escribe; el error, si lo hay, llega por avisar.error al confirmar el cobro. */}
+              {!esLider && (
+                <fieldset className="space-y-2 border-t border-sand pt-4">
+                  <legend className="text-[11px] text-tinta/50">
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound className={ICONO_CHICO} aria-hidden />
+                      Código de descuento
+                    </span>
+                  </legend>
+                  <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                    <input
+                      aria-label="Código de descuento"
+                      type="text"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      value={codigoDescuento}
+                      onChange={(e) => onCodigoDescuento(e.target.value.toUpperCase())}
+                      placeholder="Pídeselo a un Líder"
+                      disabled={bloqueado}
+                      className="min-w-0 flex-1 bg-transparent font-mono text-sm font-semibold tracking-wider text-tinta outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-tinta/40"
+                    />
+                  </label>
+                </fieldset>
+              )}
 
               {/* 2 · A qué: todo el ticket, o solo las prendas que se marquen. */}
               <fieldset className="space-y-2 border-t border-sand pt-4">

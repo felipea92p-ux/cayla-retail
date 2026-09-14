@@ -99,3 +99,42 @@ describe("los bordes de red y el fallback", () => {
     expect(traducirError(null, "cerrar la caja")).toBe("No se pudo cerrar la caja.");
   });
 });
+
+// ---- Candado de precio y códigos de descuento en `registrar_venta` (2026-09-14). La RPC
+// levanta un NOMBRE estable (como las restricciones) y pone el dato humano en `details`;
+// acá se arma la frase. Si el nombre cambia en la migración y no acá, la colaboradora vuelve
+// a leer `venta_precio_cambiado` crudo en el mostrador.
+
+describe("traduce los candados de la venta con el dato que trae el detalle", () => {
+  it("precio cambiado: nombra la prenda y dice qué hacer", () => {
+    const salida = traducirError(
+      { message: "venta_precio_cambiado", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
+  });
+
+  it("descuento sin código: dice a quién pedírselo", () => {
+    const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
+    expect(salida).not.toContain("venta_descuento_requiere_codigo");
+    expect(salida).toContain("código");
+    expect(salida).toContain("Líder");
+  });
+
+  it("código inválido: repite el código que se escribió", () => {
+    const salida = traducirError(
+      { message: "venta_codigo_descuento_invalido", details: "CAYLA10", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("CAYLA10");
+    expect(salida).toContain("no es válido");
+  });
+
+  it("descuento por encima del código: dice el tope", () => {
+    const salida = traducirError(
+      { message: "venta_descuento_supera_codigo", details: "15", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("hasta un 15 %");
+  });
+});
