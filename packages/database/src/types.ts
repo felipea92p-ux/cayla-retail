@@ -389,6 +389,60 @@ export type Database = {
         }
         Relationships: []
       }
+      compra_adjuntos: {
+        Row: {
+          archivado_en: string | null
+          archivado_por: string | null
+          bytes: number
+          compra_id: string
+          created_at: string
+          id: string
+          nombre: string
+          ruta: string
+          subido_por: string | null
+          tipo: string
+        }
+        Insert: {
+          archivado_en?: string | null
+          archivado_por?: string | null
+          bytes: number
+          compra_id: string
+          created_at?: string
+          id?: string
+          nombre: string
+          ruta: string
+          subido_por?: string | null
+          tipo: string
+        }
+        Update: {
+          archivado_en?: string | null
+          archivado_por?: string | null
+          bytes?: number
+          compra_id?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          ruta?: string
+          subido_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_adjuntos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_adjuntos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_items: {
         Row: {
           cantidad: number
@@ -447,53 +501,6 @@ export type Database = {
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      compra_adjuntos: {
-        Row: {
-          archivado_en: string | null
-          archivado_por: string | null
-          bytes: number
-          compra_id: string
-          created_at: string
-          id: string
-          nombre: string
-          ruta: string
-          subido_por: string | null
-          tipo: string
-        }
-        Insert: {
-          archivado_en?: string | null
-          archivado_por?: string | null
-          bytes: number
-          compra_id: string
-          created_at?: string
-          id?: string
-          nombre: string
-          ruta: string
-          subido_por?: string | null
-          tipo: string
-        }
-        Update: {
-          archivado_en?: string | null
-          archivado_por?: string | null
-          bytes?: number
-          compra_id?: string
-          created_at?: string
-          id?: string
-          nombre?: string
-          ruta?: string
-          subido_por?: string | null
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "compra_adjuntos_compra_id_fkey"
-            columns: ["compra_id"]
-            isOneToOne: false
-            referencedRelation: "compras"
             referencedColumns: ["id"]
           },
         ]
@@ -1901,6 +1908,15 @@ export type Database = {
         Args: { p_foto_url: string }
         Returns: undefined
       }
+      actualizar_proveedor: {
+        Args: {
+          p_contacto?: string
+          p_nombre: string
+          p_proveedor_id: string
+          p_ruc?: string
+        }
+        Returns: undefined
+      }
       actualizar_transmision_comprobante: {
         Args: {
           p_comprobante_id: string
@@ -1909,10 +1925,6 @@ export type Database = {
           p_motivo_rechazo?: string
           p_respuesta_sunat?: Json
         }
-        Returns: undefined
-      }
-      actualizar_proveedor: {
-        Args: { p_proveedor_id: string; p_nombre: string; p_ruc?: string | null; p_contacto?: string | null }
         Returns: undefined
       }
       agregar_colaborador: {
@@ -1938,6 +1950,10 @@ export type Database = {
           p_reembolso_metodo?: string
           p_reembolso_monto?: number
         }
+        Returns: undefined
+      }
+      archivar_adjunto_compra: {
+        Args: { p_adjunto_id: string }
         Returns: undefined
       }
       cerrar_caja: {
@@ -1997,7 +2013,10 @@ export type Database = {
         }
         Returns: string
       }
-      desactivar_proveedor: { Args: { p_proveedor_id: string }; Returns: undefined }
+      desactivar_proveedor: {
+        Args: { p_proveedor_id: string }
+        Returns: undefined
+      }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string
@@ -2096,13 +2115,13 @@ export type Database = {
         Args: never
         Returns: {
           activo: boolean
-          contacto: string | null
+          contacto: string
           facturas: number
           id: string
           nombre: string
-          ruc: string | null
+          ruc: string
           saldo: number
-          ultima_compra: string | null
+          ultima_compra: string
         }[]
       }
       fn_puede_operar_ubicacion: {
@@ -2118,6 +2137,7 @@ export type Database = {
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
@@ -2204,7 +2224,10 @@ export type Database = {
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
-      reactivar_proveedor: { Args: { p_proveedor_id: string }; Returns: undefined }
+      reactivar_proveedor: {
+        Args: { p_proveedor_id: string }
+        Returns: undefined
+      }
       recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {
@@ -2227,6 +2250,16 @@ export type Database = {
           p_numero_guia?: string
           p_proveedor_id: string
           p_ubicacion_id: string
+        }
+        Returns: string
+      }
+      registrar_adjunto_compra: {
+        Args: {
+          p_bytes: number
+          p_compra_id: string
+          p_nombre: string
+          p_ruta: string
+          p_tipo: string
         }
         Returns: string
       }
@@ -2278,11 +2311,6 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_adjunto_compra: {
-        Args: { p_compra_id: string; p_ruta: string; p_nombre: string; p_tipo: string; p_bytes: number }
-        Returns: string
-      }
-      archivar_adjunto_compra: { Args: { p_adjunto_id: string }; Returns: undefined }
       registrar_pago_compra: {
         Args: {
           p_compra_id: string
@@ -2294,7 +2322,7 @@ export type Database = {
         Returns: string
       }
       registrar_proveedor: {
-        Args: { p_nombre: string; p_ruc?: string | null; p_contacto?: string | null }
+        Args: { p_contacto?: string; p_nombre: string; p_ruc?: string }
         Returns: string
       }
       registrar_serie_comprobante: {
