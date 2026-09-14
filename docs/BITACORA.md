@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (poner al día el Postgres local de un colaborador sin reset)
+
+Al validar la base local contra `supabase/migrations/` faltaban 11 de 30 en el historial, pero
+el esquema real contaba otra historia: 7 de Compras (`150000`…`220000`) ya estaban pegadas a
+mano sin registrarse, `0014`-`0016` y `movimientos_inmutables` faltaban de verdad, y `0014`
+reventaba porque el stub `0000_local_stub_dynamic.sql` (fuera de git) era anterior a `f1dba0d` y
+no tenía `datos_personales`/`foto_url`/`fn_actualizar_foto_perfil`. Se aplicó el delta del stub a
+`public`, se copió la plantilla nueva sobre el stub, `migration repair --status applied` para las
+7 ya presentes y `migration up --include-all` para las 4 restantes. Sin `db reset`: se conservaron
+6 compras, 3 ventas y 105 movimientos de prueba. Verificado en Postgres, no por el registro: el
+trigger de inmutabilidad frena un `update` incluso como superusuario.
+
+Lo que se lleva: **después de un `git pull` con migraciones ajenas hay que mirar dos cosas, no
+una** — el historial de Supabase Y si la plantilla del stub cambió; y pegar SQL a mano en local
+sin registrarlo deja la base "adelantada" y el CLI mintiendo hasta que alguien repara el historial.
+
 ## 2026-09-14 (recibir por curva de tallas)
 
 Diego pasó una captura de Recibir mercadería: las líneas facturadas sin talla ni color
