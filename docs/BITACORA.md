@@ -3,6 +3,65 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-13 (la alarma de "producción rota" era un diccionario viejo — y por qué se pudo probar en 10 minutos)
+
+Felipe pidió retomar el repo sin más contexto ("por dónde puedo ir avanzando"). Antes
+de proponer nada, tocaba auditar: `git log` mostraba commits enteros sin bitácora
+(Compras, "vender emite comprobante al cobrar", allowlist de colaboradores, selector
+de ubicación) posteriores al 12-sep, última fecha documentada. Se lanzaron dos
+auditorías en paralelo para reconstruirlos contra el código real.
+
+La segunda auditoría corrió `pnpm datos:comparar` y encontró **23 de 27 llamadas de
+la app "rotas" contra producción** — incluyendo `registrar_venta`, el corazón de
+Vender. Antes de escribírselo a Felipe como incidente activo, se verificó **contra la
+base real** (Supabase MCP, proyecto `cayla-dynamic`, solo lectura): **falso.**
+`registrar_venta`, `abrir_caja`, `agregar_colaborador`, `anular_compra`,
+`registrar_compra`, `recibir_compras` ya existen en producción con la firma nueva de
+V2, y las tablas `compras`/`compra_items`/`compra_pagos`/`colaboradores` también.
+Alguien —no quedó registro de quién— ya pegó todo esto en producción la noche del
+12-sep, sin dejar archivo en `supabase/unificacion/` ni línea en esta bitácora.
+
+**La causa del susto:** `docs/datos/generado/funciones-produccion.txt` (la "verdad de
+producción" que usa `datos:comparar`) es un volcado pegado a mano, generado a las
+15:37 del 12-sep — **6 minutos antes** de que el corte V1→V2 aterrizara y horas antes
+de que esas migraciones se aplicaran. No es un bug del comparador: es exactamente el
+caso que su propio diseño anticipa ("de dónde saca la verdad" es un archivo, no una
+conexión) y que nadie había vuelto a refrescar. Se refrescaron los 7 volcados con las
+consultas de `docs/datos/generado/COMO-REFRESCAR.md` contra producción real (MCP,
+solo `select`), se regeneró el diccionario (`pnpm datos:generar:produccion` — pasa de
+28 a **35 tablas con columnas**, ninguna sobrecarga de función) y `datos:comparar`
+ahora sale limpio: **0 llamadas rotas.**
+
+**Dos deudas de documentación encontradas y corregidas, cosméticas pero reales:**
+`docs/adr/0035` estaba duplicado (dos decisiones distintas nacidas el mismo día con el
+mismo número — Compras y Vocabulario-V1-a-V2); se quedó con el número la de Compras
+(17 referencias en código) y la otra se renumeró a **ADR-0042**. Y
+`docs/adr/0041-taxonomia-captura-real.md` (renombrado de `0003` el 12-sep para
+resolver otra colisión) seguía titulado internamente "# ADR-0003" — el `git mv` nunca
+tocó el contenido. Los dos corregidos. **Sin corregir a propósito:** tres archivos de
+`docs/datos/` citan "ADR-0035" para una tercera decisión ("la IA compila el mapeo, no
+procesa las filas") que en realidad fue ADR-0031, borrado y con su número reutilizado
+dos veces — pero esa decisión describe el módulo de importación de catálogo por IA, y
+ese módulo **ya no existe en el código**: el corte V1→V2 lo quitó entero. Corregir la
+cita de un ADR sobre una función que ya no existe es pulir un espejo roto; queda
+anotado en el backlog como decisión de Felipe (¿se archiva esa documentación o se
+reescribe cuando el módulo vuelva?), no arreglado a ciegas.
+
+**Hallazgo aparte, sin decisión tomada:** `supabase/migrations/benja-migracion.sql`
+(2794 líneas, un `pg_dump` de referencia marcado "NO CORRER" en su propio encabezado,
+ya superado por las migraciones reales del mismo día) sigue en el árbol y puede
+confundir a quien mire la carpeta — el intento de borrarlo lo bloqueó el modo
+automático (acción destructiva), correctamente: queda pendiente de que Felipe lo
+confirme.
+
+Lo que Felipe se lleva: **un archivo generado que nadie refresca no es neutro, activamente
+miente** — y mintió en la dirección más cara posible, la de "esto está roto", no la de
+"esto funciona". La regla de oro de este repo (una migración no está terminada hasta que
+su tabla está en el diccionario) no es solo higiene: hoy fue lo que evitó escribir un
+incidente falso en el backlog. Y la lección operativa gemela: producción ya tiene Compras,
+la allowlist de colaboradores y el comprobante-al-cobrar funcionando — nadie se lo dijo a
+esta bitácora, así que nadie sabía que ya se podía probar en vivo.
+
 ## 2026-09-12 (vocabulario cerrado + activos fijos: lo rescatable de V1 se porta, no se fusiona)
 
 El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` de V2 sin el candado que evita

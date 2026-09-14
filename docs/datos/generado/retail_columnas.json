@@ -1,4771 +1,2898 @@
 {
- "activos_fijos": [
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "unidad_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "serie",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "descripcion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "cuenta_codigo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "costo",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "valor_residual",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "vida_util_meses",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "tasa_anual",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 6,
-   "numeric_scale": 4
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "fecha_adquisicion",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "depreciacion_apertura",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'activo'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "activos_fijos",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "ajustes_efectivo": [
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "fecha",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "monto",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "motivo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ajustes_efectivo",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "asiento_lineas": [
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "asiento_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "cuenta_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "debe",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 14,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "haber",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 14,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asiento_lineas",
-   "column_name": "glosa",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "asientos": [
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "fecha",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "unidad_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "glosa",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "origen",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'manual'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "referencia_tipo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "referencia_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "creado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "asientos",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "bom_items": [
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "producto_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "insumo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "cantidad_requerida",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 3
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "unidad",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "precio_unitario",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "bom_items",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "cajas": [
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "monto_apertura",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "abierta_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "abierta_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "monto_cierre_contado",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "monto_cierre_esperado",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "diferencia",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "cerrada_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "cerrada_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cajas",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'abierta'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "categorias": [
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "familia",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "tallas_sugeridas",
-   "data_type": "ARRAY",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "prefijo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "categorias",
-   "column_name": "taxonomia_categoria_id",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "codigos_barras": [
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "origen",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_barras",
-   "column_name": "creado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "codigos_correlativos": [
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_correlativos",
-   "column_name": "prefijo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_correlativos",
-   "column_name": "ultimo",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "codigos_correlativos",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "colores": [
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "familia_color",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "hex",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "activo",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "true",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "orden",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "100",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "colores",
-   "column_name": "taxonomia_valor_id",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "comprobantes": [
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "venta_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "serie",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "numero",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "cliente_tipo_doc",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'sin_documento'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "cliente_num_doc",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "cliente_nombre",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "moneda",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'PEN'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "subtotal",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "igv",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "total",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'pendiente'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "motivo_rechazo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "respuesta_sunat",
-   "data_type": "jsonb",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "enviado_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "comprobante_original_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "motivo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "items",
-   "data_type": "jsonb",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "entorno_transmision",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "motivo_anulacion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "anulacion_solicitada_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "anulado_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "respuesta_anulacion",
-   "data_type": "jsonb",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "comprobantes",
-   "column_name": "anulado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "configuracion_empresa": [
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "id",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "true",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "ruc",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "razon_social",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "nombre_comercial",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "email",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "web",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "telefono",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "resolucion_autorizacion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "configuracion_empresa",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "contenedores": [
-  {
-   "table_schema": "retail",
-   "table_name": "contenedores",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "contenedores",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "contenedores",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "contenedores",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "contenedores",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "conteo_lineas": [
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "conteo_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "cantidad_contada",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "cantidad_sistema",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "contenedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "contado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "contado_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "actualizado_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "diferencia",
-   "data_type": "integer",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "movimiento_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteo_lineas",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "conteos": [
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "ubicacion",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'piso'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "alcance",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'todo'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "alcance_familia",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "alcance_categoria_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "alcance_contenedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "tratar_no_contado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'ignorar'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'abierto'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "abierto_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "abierto_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "cerrado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "cerrado_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "lineas_ajustadas",
-   "data_type": "integer",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "unidades_diferencia",
-   "data_type": "integer",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "conteos",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "cuentas_contables": [
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "elemento",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "naturaleza",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "es_contra",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "false",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "explicacion",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "orden",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "activo",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "true",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "cuentas_contables",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "depositos_bancarios": [
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "fecha",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "monto",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "depositos_bancarios",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "gastos": [
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "categoria",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "subtotal",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "igv",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "total",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "especificacion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "gastos",
-   "column_name": "metodo_pago",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "importaciones": [
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "persona_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "origen",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "plan",
-   "data_type": "jsonb",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "productos_creados",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "variantes_creadas",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "colores_creados",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "categorias_creadas",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'aplicada'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "deshecha_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "importaciones",
-   "column_name": "token",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "lotes": [
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "origen",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "proveedor",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "numero_guia",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "fecha_recepcion",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "recibido_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "proveedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "lotes",
-   "column_name": "orden_compra_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "migraciones_aplicadas": [
-  {
-   "table_schema": "retail",
-   "table_name": "migraciones_aplicadas",
-   "column_name": "archivo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "migraciones_aplicadas",
-   "column_name": "aplicada_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "migraciones_aplicadas",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "movimientos": [
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "motivo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "canal",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "sede_destino_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "monto",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "venta_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "contenedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "movimientos",
-   "column_name": "lote_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "ordenes_compra": [
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "proveedor",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'pendiente'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "sede_destino_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "fecha",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "proveedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "monto_estimado",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "fecha_estimada",
-   "data_type": "date",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "ordenes_compra_items": [
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra_items",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra_items",
-   "column_name": "orden_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra_items",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra_items",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_compra_items",
-   "column_name": "costo_unitario",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  }
- ],
- "ordenes_produccion": [
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "cantidad_planeada",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "cantidad_producida",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'planeada'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "fecha_inicio",
-   "data_type": "date",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "fecha_fin",
-   "data_type": "date",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "etapa",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": "'corte'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "destino_sede_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ordenes_produccion",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "patrimonio_items": [
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "monto",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 14,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "patrimonio_items",
-   "column_name": "categoria",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "personas": [
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "auth_user_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "rol",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "email",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "personas",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "produccion_lineas": [
-  {
-   "table_schema": "retail",
-   "table_name": "produccion_lineas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "produccion_lineas",
-   "column_name": "produccion_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "produccion_lineas",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "produccion_lineas",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "produccion_lineas",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "producciones": [
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "unidad_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "producto_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "fecha",
-   "data_type": "date",
-   "is_nullable": "NO",
-   "column_default": "CURRENT_DATE",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "costo_tela",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "costo_avios",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "costo_maquila",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "precio_taller",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "costo_unitario",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "es_muestra",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "false",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'terminado'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "etapas",
-   "data_type": "jsonb",
-   "is_nullable": "NO",
-   "column_default": "'{}'::jsonb",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "detalle",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "fecha_entrega",
-   "data_type": "date",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "inventariado_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "creado_por",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producciones",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "producto_atributos": [
-  {
-   "table_schema": "retail",
-   "table_name": "producto_atributos",
-   "column_name": "producto_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producto_atributos",
-   "column_name": "atributo_id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producto_atributos",
-   "column_name": "valor_id",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "producto_atributos",
-   "column_name": "valor_texto",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "productos": [
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "sku_padre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "referencia",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "descripcion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "categoria_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "genero",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "marca",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "temporada",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'activa'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "foto_url",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "costo_mano_obra",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "material",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "proveedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "productos",
-   "column_name": "importacion_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "proformas": [
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "cliente_nombre",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "cliente_num_doc",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "items",
-   "data_type": "jsonb",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "subtotal",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "igv",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "total",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "estado",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": "'vigente'::text",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "comprobante_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proformas",
-   "column_name": "vence_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "proveedores": [
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "ruc",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "categoria",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "marca",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "score",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "contacto",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "telefono",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "banco",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "cuenta_bancaria",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "direccion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "activo",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "true",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "proveedores",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "sede_datos_fiscales": [
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "direccion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "ubigeo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "departamento",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "provincia",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "distrito",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "telefono",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_datos_fiscales",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "sede_meta": [
-  {
-   "table_schema": "retail",
-   "table_name": "sede_meta",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_meta",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_meta",
-   "column_name": "tienda_asociada_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sede_meta",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "sedes": [
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "tienda_asociada_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "sedes",
-   "column_name": "activo",
-   "data_type": "boolean",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "series_comprobantes": [
-  {
-   "table_schema": "retail",
-   "table_name": "series_comprobantes",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "series_comprobantes",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "series_comprobantes",
-   "column_name": "tipo",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "series_comprobantes",
-   "column_name": "serie",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "series_comprobantes",
-   "column_name": "siguiente_numero",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "1",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  }
- ],
- "stock": [
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "ultima_entrada",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "ultima_salida",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "ultima_venta",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "contenedor_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "stock_minimo",
-   "data_type": "integer",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "stock_almacen": [
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "variante_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "cantidad",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "ultima_entrada",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "ultima_salida",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "stock_almacen",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "taxonomia_atributos": [
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_atributos",
-   "column_name": "id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_atributos",
-   "column_name": "handle",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_atributos",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_atributos",
-   "column_name": "descripcion",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "taxonomia_categoria_atributos": [
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categoria_atributos",
-   "column_name": "categoria_id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categoria_atributos",
-   "column_name": "atributo_id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "taxonomia_categorias": [
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "ruta",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "padre_id",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "nivel",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_categorias",
-   "column_name": "vertical",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "taxonomia_valores": [
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_valores",
-   "column_name": "id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_valores",
-   "column_name": "atributo_id",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_valores",
-   "column_name": "handle",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_valores",
-   "column_name": "nombre",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "taxonomia_versiones": [
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_versiones",
-   "column_name": "version",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_versiones",
-   "column_name": "cargada_en",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "taxonomia_versiones",
-   "column_name": "es_activa",
-   "data_type": "boolean",
-   "is_nullable": "NO",
-   "column_default": "false",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "variantes": [
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "producto_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "sku",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "talla",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "color",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "costo",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "precio",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "precio_oferta",
-   "data_type": "numeric",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "foto_url",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "stock_minimo",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "precio_taller",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "updated_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "color_id",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "variantes",
-   "column_name": "codigo",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "ventas": [
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "caja_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "metodo_pago",
-   "data_type": "text",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "monto_total",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 12,
-   "numeric_scale": 2
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "usuario_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "nota",
-   "data_type": "text",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "created_at",
-   "data_type": "timestamp with time zone",
-   "is_nullable": "NO",
-   "column_default": "now()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas",
-   "column_name": "token_cliente",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  }
- ],
- "ventas_historicas_mensuales": [
-  {
-   "table_schema": "retail",
-   "table_name": "ventas_historicas_mensuales",
-   "column_name": "id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": "gen_random_uuid()",
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas_historicas_mensuales",
-   "column_name": "sede_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": null,
-   "numeric_scale": null
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas_historicas_mensuales",
-   "column_name": "anio",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas_historicas_mensuales",
-   "column_name": "mes",
-   "data_type": "integer",
-   "is_nullable": "NO",
-   "column_default": null,
-   "character_maximum_length": null,
-   "numeric_precision": 32,
-   "numeric_scale": 0
-  },
-  {
-   "table_schema": "retail",
-   "table_name": "ventas_historicas_mensuales",
-   "column_name": "monto",
-   "data_type": "numeric",
-   "is_nullable": "NO",
-   "column_default": "0",
-   "character_maximum_length": null,
-   "numeric_precision": 14,
-   "numeric_scale": 2
-  }
- ]
+  "cajas": [
+    {
+      "data_type": "uuid",
+      "table_name": "cajas",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cajas",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "cajas",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'abierta'::text",
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "cajas",
+      "column_name": "monto_apertura",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cajas",
+      "column_name": "abierta_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "cajas",
+      "column_name": "abierta_en",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "cajas",
+      "column_name": "monto_cierre_sistema",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "cajas",
+      "column_name": "monto_cierre_real",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "cajas",
+      "column_name": "diferencia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cajas",
+      "column_name": "cerrada_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "cajas",
+      "column_name": "cerrada_en",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "text",
+      "table_name": "cajas",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 12
+    }
+  ],
+  "lotes": [
+    {
+      "data_type": "uuid",
+      "table_name": "lotes",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "lotes",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "lotes",
+      "column_name": "proveedor_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "lotes",
+      "column_name": "numero_guia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "lotes",
+      "column_name": "fecha_recepcion",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "lotes",
+      "column_name": "recibido_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "text",
+      "table_name": "lotes",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    }
+  ],
+  "stock": [
+    {
+      "data_type": "uuid",
+      "table_name": "stock",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "stock",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "integer",
+      "table_name": "stock",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "stock",
+      "column_name": "updated_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 4
+    }
+  ],
+  "ventas": [
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "cliente_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "token_cliente",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "ventas",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ventas",
+      "column_name": "caja_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    }
+  ],
+  "cambios": [
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "venta_item_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "variante_nueva_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "integer",
+      "table_name": "cambios",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "cambios",
+      "column_name": "diferencia",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "cambios",
+      "column_name": "metodo_pago_diferencia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "cambios",
+      "column_name": "token_cliente",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "cambios",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 10
+    }
+  ],
+  "colores": [
+    {
+      "data_type": "text",
+      "table_name": "colores",
+      "column_name": "codigo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "colores",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "colores",
+      "column_name": "hex",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "colores",
+      "column_name": "activo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 4
+    }
+  ],
+  "compras": [
+    {
+      "data_type": "uuid",
+      "table_name": "compras",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compras",
+      "column_name": "proveedor_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'factura'::text",
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "serie",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "numero",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "date",
+      "table_name": "compras",
+      "column_name": "fecha_emision",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "CURRENT_DATE",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "condicion",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "date",
+      "table_name": "compras",
+      "column_name": "fecha_vencimiento",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compras",
+      "column_name": "ubicacion_destino_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras",
+      "column_name": "subtotal",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras",
+      "column_name": "igv",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras",
+      "column_name": "total",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'vigente'::text",
+      "ordinal_position": 13
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "motivo_anulacion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compras",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "compras",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 17
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras",
+      "column_name": "pagado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 18
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compras",
+      "column_name": "facturado_cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 19
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compras",
+      "column_name": "recibido_cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 20
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "documento",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 21
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras",
+      "column_name": "saldo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "estado_pago",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 23
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras",
+      "column_name": "estado_recepcion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 24
+    }
+  ],
+  "conteos": [
+    {
+      "data_type": "uuid",
+      "table_name": "conteos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteos",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteos",
+      "column_name": "sububicacion_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "conteos",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'abierto'::text",
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteos",
+      "column_name": "abierto_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteos",
+      "column_name": "cerrado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "conteos",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "conteos",
+      "column_name": "cerrado_en",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    }
+  ],
+  "clientes": [
+    {
+      "data_type": "uuid",
+      "table_name": "clientes",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "clientes",
+      "column_name": "tipo_doc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "clientes",
+      "column_name": "num_doc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "clientes",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "clientes",
+      "column_name": "telefono",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "clientes",
+      "column_name": "email",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "clientes",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 7
+    }
+  ],
+  "productos": [
+    {
+      "data_type": "uuid",
+      "table_name": "productos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "productos",
+      "column_name": "categoria_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "productos",
+      "column_name": "referencia",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "productos",
+      "column_name": "descripcion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "productos",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'activo'::text",
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "productos",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 6
+    }
+  ],
+  "proformas": [
+    {
+      "data_type": "uuid",
+      "table_name": "proformas",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "proformas",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "proformas",
+      "column_name": "cliente_nombre",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "proformas",
+      "column_name": "cliente_num_doc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "jsonb",
+      "table_name": "proformas",
+      "column_name": "items",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "proformas",
+      "column_name": "subtotal",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "proformas",
+      "column_name": "igv",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "proformas",
+      "column_name": "total",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "text",
+      "table_name": "proformas",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'vigente'::text",
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "proformas",
+      "column_name": "comprobante_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "proformas",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "proformas",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 12
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "proformas",
+      "column_name": "vence_at",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 13
+    }
+  ],
+  "variantes": [
+    {
+      "data_type": "uuid",
+      "table_name": "variantes",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "variantes",
+      "column_name": "producto_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "variantes",
+      "column_name": "color_codigo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "variantes",
+      "column_name": "talla",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "variantes",
+      "column_name": "sku",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "variantes",
+      "column_name": "precio",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "variantes",
+      "column_name": "costo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "variantes",
+      "column_name": "activo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "variantes",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 9
+    }
+  ],
+  "categorias": [
+    {
+      "data_type": "uuid",
+      "table_name": "categorias",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "categorias",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "categorias",
+      "column_name": "activo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 3
+    }
+  ],
+  "movimientos": [
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "ubicacion_destino_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "sububicacion_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "sububicacion_destino_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "movimientos",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "integer",
+      "table_name": "movimientos",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "text",
+      "table_name": "movimientos",
+      "column_name": "motivo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "venta_item_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "lote_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "devolucion_item_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "conteo_item_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "transferencia_item_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "data_type": "text",
+      "table_name": "movimientos",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "movimientos",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 17
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "cambio_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 18
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "movimientos",
+      "column_name": "compra_item_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 19
+    }
+  ],
+  "proveedores": [
+    {
+      "data_type": "uuid",
+      "table_name": "proveedores",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "proveedores",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "proveedores",
+      "column_name": "ruc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "proveedores",
+      "column_name": "contacto",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "proveedores",
+      "column_name": "activo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "proveedores",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 6
+    }
+  ],
+  "ubicaciones": [
+    {
+      "data_type": "uuid",
+      "table_name": "ubicaciones",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicaciones",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicaciones",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "ubicaciones",
+      "column_name": "activo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "ubicaciones",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "ubicaciones",
+      "column_name": "sede_dynamic_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    }
+  ],
+  "venta_items": [
+    {
+      "data_type": "uuid",
+      "table_name": "venta_items",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "venta_items",
+      "column_name": "venta_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "venta_items",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "integer",
+      "table_name": "venta_items",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "venta_items",
+      "column_name": "precio_unitario",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "venta_items",
+      "column_name": "descuento_unitario",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "venta_items",
+      "column_name": "costo_unitario",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "venta_items",
+      "column_name": "subtotal",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    }
+  ],
+  "venta_pagos": [
+    {
+      "data_type": "uuid",
+      "table_name": "venta_pagos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "venta_pagos",
+      "column_name": "venta_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "venta_pagos",
+      "column_name": "metodo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "venta_pagos",
+      "column_name": "monto",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    }
+  ],
+  "compra_items": [
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items",
+      "column_name": "compra_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items",
+      "column_name": "producto_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items",
+      "column_name": "variante_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "compra_items",
+      "column_name": "descripcion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compra_items",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compra_items",
+      "column_name": "costo_unitario",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compra_items",
+      "column_name": "subtotal",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    }
+  ],
+  "compra_pagos": [
+    {
+      "data_type": "uuid",
+      "table_name": "compra_pagos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_pagos",
+      "column_name": "compra_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "date",
+      "table_name": "compra_pagos",
+      "column_name": "fecha",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "CURRENT_DATE",
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compra_pagos",
+      "column_name": "monto",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "compra_pagos",
+      "column_name": "metodo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "compra_pagos",
+      "column_name": "referencia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_pagos",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "compra_pagos",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 8
+    }
+  ],
+  "comprobantes": [
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "venta_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "serie",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "integer",
+      "table_name": "comprobantes",
+      "column_name": "numero",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "cliente_tipo_doc",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'sin_documento'::text",
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "cliente_num_doc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "cliente_nombre",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "moneda",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'PEN'::text",
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "comprobantes",
+      "column_name": "subtotal",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "comprobantes",
+      "column_name": "igv",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "0",
+      "ordinal_position": 12
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "comprobantes",
+      "column_name": "total",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'pendiente'::text",
+      "ordinal_position": 14
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "motivo_rechazo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "data_type": "jsonb",
+      "table_name": "comprobantes",
+      "column_name": "respuesta_sunat",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "comprobantes",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 18
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "comprobantes",
+      "column_name": "enviado_at",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "comprobante_original_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "motivo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 21
+    },
+    {
+      "data_type": "jsonb",
+      "table_name": "comprobantes",
+      "column_name": "items",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "entorno_transmision",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 23
+    },
+    {
+      "data_type": "text",
+      "table_name": "comprobantes",
+      "column_name": "motivo_anulacion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 24
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "comprobantes",
+      "column_name": "anulacion_solicitada_at",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 25
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "comprobantes",
+      "column_name": "anulado_at",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 26
+    },
+    {
+      "data_type": "jsonb",
+      "table_name": "comprobantes",
+      "column_name": "respuesta_anulacion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 27
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "comprobantes",
+      "column_name": "anulado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 28
+    }
+  ],
+  "conteo_items": [
+    {
+      "data_type": "uuid",
+      "table_name": "conteo_items",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteo_items",
+      "column_name": "conteo_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteo_items",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "integer",
+      "table_name": "conteo_items",
+      "column_name": "cantidad_sistema",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "integer",
+      "table_name": "conteo_items",
+      "column_name": "cantidad_contada",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "integer",
+      "table_name": "conteo_items",
+      "column_name": "diferencia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "conteo_items",
+      "column_name": "movimiento_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    }
+  ],
+  "devoluciones": [
+    {
+      "data_type": "uuid",
+      "table_name": "devoluciones",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devoluciones",
+      "column_name": "venta_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devoluciones",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "devoluciones",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'pendiente'::text",
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "devoluciones",
+      "column_name": "motivo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "devoluciones",
+      "column_name": "reembolso_monto",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "devoluciones",
+      "column_name": "reembolso_metodo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devoluciones",
+      "column_name": "solicitado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devoluciones",
+      "column_name": "aprobado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "devoluciones",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "devoluciones",
+      "column_name": "aprobado_en",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    }
+  ],
+  "colaboradores": [
+    {
+      "data_type": "uuid",
+      "table_name": "colaboradores",
+      "column_name": "persona_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "colaboradores",
+      "column_name": "agregado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "colaboradores",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 3
+    }
+  ],
+  "codigos_barras": [
+    {
+      "data_type": "uuid",
+      "table_name": "codigos_barras",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "codigos_barras",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "codigos_barras",
+      "column_name": "codigo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "codigos_barras",
+      "column_name": "origen",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'propio'::text",
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "codigos_barras",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 5
+    }
+  ],
+  "sububicaciones": [
+    {
+      "data_type": "uuid",
+      "table_name": "sububicaciones",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "sububicaciones",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "sububicaciones",
+      "column_name": "nombre",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "sububicaciones",
+      "column_name": "tipo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "sububicaciones",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 5
+    }
+  ],
+  "transferencias": [
+    {
+      "data_type": "uuid",
+      "table_name": "transferencias",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencias",
+      "column_name": "ubicacion_origen_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencias",
+      "column_name": "ubicacion_destino_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "transferencias",
+      "column_name": "estado",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "'completada'::text",
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencias",
+      "column_name": "creado_por",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "transferencias",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "transferencias",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 7
+    }
+  ],
+  "compras_resumen": [
+    {
+      "data_type": "uuid",
+      "table_name": "compras_resumen",
+      "column_name": "id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compras_resumen",
+      "column_name": "proveedor_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "proveedor_nombre",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "proveedor_ruc",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "tipo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "serie",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "numero",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "documento",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "date",
+      "table_name": "compras_resumen",
+      "column_name": "fecha_emision",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "condicion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "data_type": "date",
+      "table_name": "compras_resumen",
+      "column_name": "fecha_vencimiento",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compras_resumen",
+      "column_name": "ubicacion_destino_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras_resumen",
+      "column_name": "subtotal",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras_resumen",
+      "column_name": "igv",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras_resumen",
+      "column_name": "total",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "estado",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "nota",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "compras_resumen",
+      "column_name": "created_at",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 18
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras_resumen",
+      "column_name": "pagado",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compras_resumen",
+      "column_name": "saldo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "estado_pago",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 21
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compras_resumen",
+      "column_name": "facturado_cantidad",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compras_resumen",
+      "column_name": "recibido_cantidad",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 23
+    },
+    {
+      "data_type": "text",
+      "table_name": "compras_resumen",
+      "column_name": "estado_recepcion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 24
+    },
+    {
+      "data_type": "boolean",
+      "table_name": "compras_resumen",
+      "column_name": "vencida",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 25
+    }
+  ],
+  "caja_movimientos": [
+    {
+      "data_type": "uuid",
+      "table_name": "caja_movimientos",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "caja_movimientos",
+      "column_name": "caja_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "caja_movimientos",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "caja_movimientos",
+      "column_name": "monto",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "caja_movimientos",
+      "column_name": "motivo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "caja_movimientos",
+      "column_name": "usuario_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "caja_movimientos",
+      "column_name": "created_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 7
+    }
+  ],
+  "devolucion_items": [
+    {
+      "data_type": "uuid",
+      "table_name": "devolucion_items",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devolucion_items",
+      "column_name": "devolucion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devolucion_items",
+      "column_name": "venta_item_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "integer",
+      "table_name": "devolucion_items",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "devolucion_items",
+      "column_name": "condicion",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "devolucion_items",
+      "column_name": "movimiento_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    }
+  ],
+  "series_comprobantes": [
+    {
+      "data_type": "uuid",
+      "table_name": "series_comprobantes",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "series_comprobantes",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "series_comprobantes",
+      "column_name": "tipo",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "series_comprobantes",
+      "column_name": "serie",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "integer",
+      "table_name": "series_comprobantes",
+      "column_name": "siguiente_numero",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "1",
+      "ordinal_position": 5
+    }
+  ],
+  "transferencia_items": [
+    {
+      "data_type": "uuid",
+      "table_name": "transferencia_items",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencia_items",
+      "column_name": "transferencia_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencia_items",
+      "column_name": "variante_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "integer",
+      "table_name": "transferencia_items",
+      "column_name": "cantidad",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "transferencia_items",
+      "column_name": "movimiento_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    }
+  ],
+  "compra_items_resumen": [
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items_resumen",
+      "column_name": "id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items_resumen",
+      "column_name": "compra_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items_resumen",
+      "column_name": "producto_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "uuid",
+      "table_name": "compra_items_resumen",
+      "column_name": "variante_id",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "compra_items_resumen",
+      "column_name": "descripcion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "integer",
+      "table_name": "compra_items_resumen",
+      "column_name": "cantidad",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compra_items_resumen",
+      "column_name": "costo_unitario",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "numeric",
+      "table_name": "compra_items_resumen",
+      "column_name": "subtotal",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "bigint",
+      "table_name": "compra_items_resumen",
+      "column_name": "recibido",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "data_type": "bigint",
+      "table_name": "compra_items_resumen",
+      "column_name": "pendiente",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 10
+    }
+  ],
+  "configuracion_empresa": [
+    {
+      "data_type": "boolean",
+      "table_name": "configuracion_empresa",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "true",
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "ruc",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "razon_social",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "nombre_comercial",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "email",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "web",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "telefono",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "text",
+      "table_name": "configuracion_empresa",
+      "column_name": "resolucion_autorizacion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "configuracion_empresa",
+      "column_name": "updated_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 9
+    }
+  ],
+  "ubicacion_datos_fiscales": [
+    {
+      "data_type": "uuid",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "ubicacion_id",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "direccion",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "ubigeo",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "departamento",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "provincia",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "distrito",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "data_type": "text",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "telefono",
+      "is_nullable": "YES",
+      "table_schema": "retail",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "table_name": "ubicacion_datos_fiscales",
+      "column_name": "updated_at",
+      "is_nullable": "NO",
+      "table_schema": "retail",
+      "column_default": "now()",
+      "ordinal_position": 8
+    }
+  ]
 }

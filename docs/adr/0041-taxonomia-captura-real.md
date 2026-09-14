@@ -1,4 +1,8 @@
-# ADR-0003 — 5 categorías nuevas antes de capturar el catálogo real
+# ADR-0041 — 5 categorías nuevas antes de capturar el catálogo real
+
+> Renombrado de ADR-0003 a ADR-0041 el 2026-09-12 (colisionaba con
+> `0003-modal-compartido-radix-sin-kit-visual.md`). El `git mv` no actualizó este
+> título hasta ahora (corregido 2026-09-13) — el contenido no cambió.
 
 **Fecha:** 2026-09-03
 **Estado:** Migración escrita (`0030`), pendiente de correr en Supabase

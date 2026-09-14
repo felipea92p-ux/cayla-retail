@@ -1,4 +1,9 @@
-# ADR-0035 — El vocabulario cerrado de V1 se porta a V2; la rama entera no se fusiona
+# ADR-0042 — El vocabulario cerrado de V1 se porta a V2; la rama entera no se fusiona
+
+> Renumerado de ADR-0035 a ADR-0042 el 2026-09-13: el número 0035 quedó duplicado
+> (dos ADRs distintos nacieron el mismo día con el mismo número — ver también
+> ADR-0035, que es el que domina en código con 17 referencias y se queda con el
+> número). Contenido sin cambios, solo el número y este aviso.
 
 **Fecha:** 2026-09-12
 **Estado:** Construido y verificado en local (navegador + consulta directa a Postgres).
