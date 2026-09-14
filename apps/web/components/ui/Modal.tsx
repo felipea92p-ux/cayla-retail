@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode, type RefObject } from "react";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -16,13 +16,17 @@ type Props = {
   children: ReactNode | ((cerrar: () => void) => ReactNode);
   /** Ancho del panel en escritorio (Tailwind max-w-*). Por defecto el tamaño estándar de formulario corto. */
   ancho?: string;
+  /** A qué elemento devolver el foco al cerrar. Sin esto, Radix intenta volver al
+      trigger del diálogo — que estos modales controlados no tienen — y el foco cae al
+      `body`. Vender lo usa para que el escáner vuelva a estar listo tras cada modal. */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
 };
 
 // Cascarón único para todos los modales del sistema. Antes cada uno reimplementaba
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm" }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar }: Props) {
   const [cerrando, setCerrando] = useState(false);
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
@@ -53,6 +57,16 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             className={`scroll-cayla pointer-events-auto max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand bg-crema p-6 shadow-xl outline-none sm:rounded-2xl ${
               cerrando ? "anim-salida" : "anim-entrada"
             } ${ancho}`}
+            // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
+            // su default (enfocar el trigger) pise el foco que se pone acá.
+            onCloseAutoFocus={
+              alCerrarEnfocar
+                ? (e) => {
+                    e.preventDefault();
+                    alCerrarEnfocar.current?.focus();
+                  }
+                : undefined
+            }
           >
           <Dialog.Title asChild>
             <h2 className="font-display text-lg text-tinta">{titulo}</h2>

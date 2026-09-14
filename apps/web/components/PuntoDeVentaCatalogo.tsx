@@ -29,7 +29,12 @@ type Props = {
   // Chips y grilla
   categorias: string[];
   categoria: string;
+  /** El padre, además de guardar la categoría, devuelve el foco al escáner. */
   onCategoria: (c: string) => void;
+  /** Filtro «Solo con stock» de la grilla; apagado, las sin stock se ven atenuadas. */
+  soloConStock: boolean;
+  onSoloConStock: (valor: boolean) => void;
+  /** Ya viene filtrado por categoría y por `soloConStock`. */
   catalogo: VarianteBusqueda[];
   /** Solo para el globito "N" de cada tarjeta. */
   carrito: ItemCarrito[];
