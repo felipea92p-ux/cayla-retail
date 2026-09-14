@@ -10,6 +10,13 @@
 -- Cada bloque va en su propia transacción y se registra solo en
 -- supabase_migrations.schema_migrations. Al final, la consulta de comprobación.
 --
+-- Desde la noche del 2026-09-14 TODOS los bloques son repetibles: pegar dos veces el
+-- mismo no falla ni deja nada duplicado (`if not exists`, `drop … if exists`, y cada
+-- versión de `registrar_venta` borra las firmas anteriores antes de crear la suya).
+-- Motivo: al pegar salieron 42723 en el bloque 2 y 42P07 en el 4 — ya habían entrado
+-- una vez. Los archivos de `supabase/migrations/` quedan como están (local los aplicó
+-- una sola vez); esta copia es la que se pega en producción.
+--
 -- Orden:
 --   1. 20260912234726_cargo_especial_pos  [bloqueante]
 --   2. 20260914200000_compras_multipago  [necesaria]
@@ -418,7 +425,11 @@ set local search_path = retail, public, extensions;
 
 set search_path = retail, public, extensions;
 
+-- Se borran las tres firmas conocidas antes de crear la de este bloque: así el bloque
+-- es repetible y nunca quedan dos `registrar_venta` conviviendo (ambigüedad en la API).
 drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text);
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text);
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text);
 
 create function retail.registrar_venta(
   p_ubicacion_id uuid, p_items jsonb, p_pagos jsonb,
@@ -603,7 +614,7 @@ set local search_path = retail, public, extensions;
 set search_path = retail, public, extensions;
 
 -- ---------- la tabla ----------
-create table retail.codigos_descuento (
+create table if not exists retail.codigos_descuento (
   codigo text primary key,
   porcentaje numeric(5, 2) not null,
   vigente_desde date,
@@ -623,6 +634,9 @@ comment on table retail.codigos_descuento is
 
 alter table retail.codigos_descuento enable row level security;
 
+drop policy if exists codigos_descuento_select on retail.codigos_descuento;
+drop policy if exists codigos_descuento_insert on retail.codigos_descuento;
+drop policy if exists codigos_descuento_update on retail.codigos_descuento;
 create policy codigos_descuento_select on retail.codigos_descuento
   for select using (auth.role() = 'authenticated');
 create policy codigos_descuento_insert on retail.codigos_descuento
@@ -635,7 +649,11 @@ grant select on retail.codigos_descuento to authenticated;
 grant insert, update on retail.codigos_descuento to authenticated;
 
 -- ---------- registrar_venta: aprende p_codigo_descuento ----------
+-- Se borran las tres firmas conocidas antes de crear la de este bloque: así el bloque
+-- es repetible y nunca quedan dos `registrar_venta` conviviendo (ambigüedad en la API).
 drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text);
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text);
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text);
 
 create function retail.registrar_venta(
   p_ubicacion_id uuid, p_items jsonb, p_pagos jsonb,
@@ -901,15 +919,23 @@ set local search_path = retail, public, extensions;
 
 set search_path = retail, public, extensions;
 
-alter table retail.ventas
-  add column nota text,
-  add constraint ventas_nota_corta check (char_length(nota) <= 200);
+alter table retail.ventas add column if not exists nota text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'ventas_nota_corta') then
+    alter table retail.ventas add constraint ventas_nota_corta check (char_length(nota) <= 200);
+  end if;
+end $$;
 
 comment on column retail.ventas.nota is
   'Nota libre de la colaboradora sobre esta venta (recojo, arreglo, aviso). Hasta 200 caracteres. No va al comprobante.';
 
 -- ---------- registrar_venta: aprende p_nota ----------
+-- Se borran las tres firmas conocidas antes de crear la de este bloque: así el bloque
+-- es repetible y nunca quedan dos `registrar_venta` conviviendo (ambigüedad en la API).
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text);
 drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text);
+drop function if exists retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text);
 
 create function retail.registrar_venta(
   p_ubicacion_id uuid, p_items jsonb, p_pagos jsonb,
@@ -1176,7 +1202,7 @@ set local search_path = retail, public, extensions;
 --   V2, esa migración agrega la FK real y valida lo que ya haya.
 -- ============================================================================
 
-create table retail.activos_fijos (
+create table if not exists retail.activos_fijos (
   id uuid primary key default gen_random_uuid(),
   ubicacion_id uuid not null references retail.ubicaciones (id),
   nombre text not null,
@@ -1194,7 +1220,7 @@ create table retail.activos_fijos (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index activos_fijos_ubicacion_idx on retail.activos_fijos (ubicacion_id);
+create index if not exists activos_fijos_ubicacion_idx on retail.activos_fijos (ubicacion_id);
 
 create or replace function retail.fn_activos_fijos_set_updated_at()
 returns trigger language plpgsql as $$
@@ -1203,10 +1229,13 @@ begin
   return new;
 end $$;
 
+drop trigger if exists activos_fijos_set_updated_at on retail.activos_fijos;
 create trigger activos_fijos_set_updated_at before update on retail.activos_fijos
   for each row execute function retail.fn_activos_fijos_set_updated_at();
 
 alter table retail.activos_fijos enable row level security;
+drop policy if exists activos_fijos_select on retail.activos_fijos;
+drop policy if exists activos_fijos_write_lider on retail.activos_fijos;
 create policy activos_fijos_select on retail.activos_fijos
   for select using (auth.role() = 'authenticated');
 create policy activos_fijos_write_lider on retail.activos_fijos
