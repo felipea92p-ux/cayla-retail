@@ -91,16 +91,29 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
-- [ ] **El gemelo de producción del candado está escrito y sin pegar:**
-      `supabase/unificacion/39_movimientos_inmutables.sql`. Lo pega Felipe (D-11). Va en
-      cuatro pasos y el **paso 1 es un pre-flight que decide si los otros tres se pueden
-      pegar**: pregunta si alguna función —de cualquier schema, no solo `retail`, porque
-      el proyecto es compartido con Dynamic— edita o borra movimientos. Si devuelve
-      aunque sea una fila, no se pega: un disparador frena también a las funciones
-      `security definer`, y rompería en vivo con las tiendas vendiendo. La sintaxis se
-      validó contra el Postgres local dentro de una transacción con `rollback`.
-      Se numeró **39** y no 36 a propósito: `docs/datos/` cita un `36`, `37` y `38` que
-      no están en esta rama (el corte V1→V2 se llevó parte de la carpeta).
+- [ ] **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
+      contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
+      `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
+      `ubicacion_id`/`venta_item_id`/`compra_item_id`. Se desplegó el 12-sep con las
+      migraciones normales (`supabase_migrations.schema_migrations` las registra como
+      `retail_0007_cambios` … `retail_0016_colaboradores_iniciales`), así que
+      **`supabase/unificacion/` dejó de ser el riel de producción** y escribir un gemelo
+      ahí habría revivido la deuda de migraciones duales (ADR-0004/0006), que este
+      backlog llama "la que más caro ha salido".
+      Lo que corresponde: pegar `20260914165703_movimientos_inmutables.sql` **tal cual**
+      —ya usa el prefijo `retail.`— y registrarla con el mismo mecanismo que las otras.
+      **El pre-flight ya se corrió contra producción: 0 funciones editan o borran
+      `retail.movimientos`.** Único trigger presente: `movimientos_compra_foto`
+      (AFTER INSERT), que no choca con uno BEFORE UPDATE/DELETE. `authenticated` tiene
+      hoy UPDATE y DELETE (TRUNCATE ya no), y 108 filas de historial que proteger.
+- [ ] **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
+      producción.** Fue medido el 2026-09-12 contra el modelo viejo (45 tablas,
+      `sede_id`, `venta_id`, `registrar_gasto`, `supabase/unificacion/`). Verificado hoy:
+      `registrar_gasto` **no existe** en producción, así que el "Bloque 3" de
+      `SQL-PENDIENTE-PRODUCCION.sql` y todo `DIAGNOSTICO-PANTALLAS-ROTAS.md` quedaron sin
+      objeto. Es el mismo problema que el aviso del encabezado de este archivo, pero más
+      grave: esa carpeta se presenta como "la verdad medida contra la base". Necesita su
+      propia pasada de actualización antes de que alguien —o un agente— construya encima.
 - [ ] **Las otras dos piezas que le faltan a D-22**, además del disparador:
       `force row level security` sobre `movimientos` (con prueba de que las RPC que
       insertan siguen funcionando) y cerrar el `INSERT` directo que se salta la RPC y
