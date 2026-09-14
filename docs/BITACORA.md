@@ -22,6 +22,33 @@ Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta*
 y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
 migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
 
+## 2026-09-14 (la cabecera de Vender enlaza a Caja, Cambios y Devoluciones)
+
+Paso chico en zona del padre. Desde la caja no había cómo llegar a ingreso/egreso y
+arqueo, cambio de talla ni devoluciones — `/cambios` ni siquiera está en el menú lateral.
+Tres enlaces discretos antes del botón de caja, vivos con la caja cerrada y sin gate de
+rol (AppShell ya decide). Lo que enseñó la medición: a 800 px de ancho, con el lateral
+abierto, la fila se partía y dejaba el botón suelto en la segunda línea; la salida no fue
+ocultar (el `sm:` que se pensó no cubre 800) sino agrupar enlaces y botón en un solo ítem
+del flex, que al partirse cae entero a la derecha. Bajo `sm` sí se ocultan.
+
+Lo que Felipe se lleva: **en un `flex-wrap`, lo que debe moverse junto tiene que ser un
+solo ítem** — agrupar es lo que decide cómo se parte una fila, no los márgenes.
+
+## 2026-09-14 («Ventas de hoy» firma cada venta con la integrante)
+
+Paso chico de la sesión A. `fn_ventas_del_dia` devolvía `vendedor` desde siempre y la
+lista de «Ventas de hoy» no lo pintaba; sin la firma, los objetivos por integrante se
+miden a mano. Ahora cada fila lleva a la integrante entre la hora y el comprobante:
+primer nombre, inicial del apellido solo si dos integrantes del día se llaman igual
+(`lib/nombre-integrante.ts`, 6 tests). Un detalle que importa: la RPC no devuelve `null`
+cuando no hay persona sino el relleno «—» — la UI lo trata como nada y no inventa «Sin
+integrante». Verificado con las 9 ventas de hoy en Lima. Queda esperando que la sesión
+derecha exponga `nota` en la RPC para pintarla en la misma fila.
+
+Lo que Felipe se lleva: **el dato ya estaba; lo que faltaba era leerlo.** Antes de pedir
+una migración para "saber quién vendió", mirar qué devuelve la RPC que ya se llama.
+
 ## 2026-09-14 (dos arreglos, y la talla agotada dice en qué sede sí hay)
 
 Tercera ola de la sesión A. Dos arreglos pedidos por Felipe: `catalogo-grupos.ts` llevaba

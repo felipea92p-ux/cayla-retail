@@ -4,6 +4,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { nombresCortos } from "@/lib/nombre-integrante";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
@@ -99,11 +100,21 @@ async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: st
     );
   }
 
+  // Cada venta lleva la firma de la integrante que la hizo (primer nombre; inicial del
+  // apellido solo si dos integrantes del día se llaman igual). `vendedor` vacío o el
+  // relleno «—» de la RPC no es una integrante: no se pinta nada, no se inventa.
+  const integrante = nombresCortos(ventas.map((v) => v.vendedor));
+
   return (
     <div className="card-cayla divide-y divide-sand !p-0">
       {ventas.map((v) => (
         <div key={v.venta_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
           <span className="text-tinta/60">{v.hora}</span>
+          {integrante.has(v.vendedor) && (
+            <span className="shrink-0 text-tinta" title={v.vendedor}>
+              {integrante.get(v.vendedor)}
+            </span>
+          )}
           <span className="min-w-0 flex-1 truncate text-tinta/60">
             {v.comprobante_texto ?? "Sin comprobante"} {v.metodos_pago ? `· ${v.metodos_pago}` : ""}
           </span>
