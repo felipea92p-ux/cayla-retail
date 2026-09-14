@@ -3,6 +3,45 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (los tres flujos de la sesión anterior, probados de verdad — y un segundo susto que tampoco era lo que parecía)
+
+Felipe pidió probar en vivo Vender-con-comprobante, Compras y Colaboradores — lo único
+que le faltaba al hallazgo del 13-sep para dejar de ser "creemos que funciona" y pasar
+a "lo vimos funcionar" (principio 7). Se levantó el entorno local completo (stub de
+Dynamic vía ADR-0033, `npx supabase start`, `pnpm dev`) y se navegó la app de verdad
+con el usuario semilla `felipe@cayla.local` (líder, Tienda Lima).
+
+**Los tres cerraron limpios, con evidencia en base, no solo en pantalla.** (1) Vender:
+una boleta B001-000001 nació en la MISMA transacción que la venta (`0011_venta_con_
+comprobante.sql`), confirmado con una consulta directa que cruza `ventas`/
+`comprobantes`. (2) Compras: se registró la factura F001-000123 (Confecciones del Sur,
+S/472.00, al contado), se pagó, y se recibió contra ella — el stock de Blusa Emma
+L/Beige en Tienda Lima quedó en **15** (6 inicial − 1 vendida + 10 recibidas), exacto.
+(3) Colaboradores: la pantalla lista a Felipe y Micaela con su sede REAL de Dynamic
+(vía el stub), y el candado "nadie se quita su propio acceso" respondió en pantalla
+tal cual lo describe el código: *"No puedes quitarte tu propio acceso — pide a otro
+colaborador que lo haga"*.
+
+**El susto de en medio, y por qué vale más que el resultado:** a mitad de probar
+Colaboradores la pantalla se quedó en "Cargando…" más de 50 segundos — la misma forma
+que toma un bug real. Antes de escribirlo como tal, los logs del servidor mostraron la
+causa exacta: `ECONNREFUSED 127.0.0.1:54421` — **Docker Desktop se cayó solo**, a mitad
+de sesión, matando los contenedores de Supabase. La app se comportó bien ante eso
+(redirigió a `/login` en vez de reventar, principio 9), solo que tardó medio minuto en
+notarlo porque ninguna llamada a Supabase tiene un timeout explícito — con la base
+caída, Node espera su timeout de socket por defecto antes de rendirse. Se reinició
+Docker (`open -a Docker`, contenedores restaurados con los mismos datos — nada se
+perdió) y, con la base sana, Colaboradores cargó normal. Quedan dos hallazgos menores
+en el backlog: el timeout ausente (una caída de base tarda medio minuto en avisar en
+vez de fallar rápido) y el botón "Agregar colaborador" se deshabilita sin decir por qué
+(local: nadie de Dynamic queda disponible porque los dos únicos ya son colaboradores).
+
+Lo que Felipe se lleva: **la segunda vez que algo parece roto en esta sesión, tampoco
+lo estaba** — dos sustos seguidos, dos causas de infraestructura (un diccionario viejo
+el 13-sep, Docker cayéndose hoy), cero bugs reales de la app. La disciplina que evitó
+escribir un incidente falso fue la misma las dos veces: mirar el log del servidor antes
+de creerle a la pantalla.
+
 ## 2026-09-13 (la alarma de "producción rota" era un diccionario viejo — y por qué se pudo probar en 10 minutos)
 
 Felipe pidió retomar el repo sin más contexto ("por dónde puedo ir avanzando"). Antes

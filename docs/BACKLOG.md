@@ -171,6 +171,22 @@ confirmado consultando la base directamente — ningún documento del repo lo de
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-14 — **Los tres flujos verificados en NAVEGADOR, no solo por consulta a
+      la base: Vender-con-comprobante, Compras y Colaboradores funcionan de punta a
+      punta.** Entorno local completo (stub de Dynamic, ADR-0033) + usuario semilla
+      `felipe@cayla.local`. Vender emitió boleta B001-000001 en la misma transacción
+      que la venta; Compras registró factura F001-000123, la pagó y recibió contra
+      ella (stock quedó en 15 = 6 − 1 + 10, exacto); Colaboradores listó a Felipe y
+      Micaela con su sede real de Dynamic y el candado "nadie se quita su propio
+      acceso" respondió en pantalla tal cual el código lo promete. Detalle completo,
+      incluido un segundo susto (Docker cayéndose a mitad de prueba, no un bug de la
+      app) en `docs/BITACORA.md` (2026-09-14). **Dos hallazgos menores, sin bloquear:**
+      (1) ninguna llamada a Supabase tiene timeout explícito — con la base caída, la
+      app tarda ~50s en degradarse a `/login` en vez de fallar rápido; (2) el botón
+      "Agregar colaborador" se deshabilita sin explicar por qué (no hay nadie de
+      Dynamic disponible) — un líder real, con todo su equipo ya autorizado, vería lo
+      mismo sin saber que es normal.
+
 - [x] 2026-09-13 — **Confirmado en producción por consulta directa (no por un
       documento): Compras, Colaboradores (allowlist) y Venta-con-comprobante ya
       están desplegados.** Nadie lo había anotado en ningún lado del repo. Se
