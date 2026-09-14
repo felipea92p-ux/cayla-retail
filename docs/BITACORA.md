@@ -3,6 +3,39 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (el ticket de Vender deja de pedir decisiones antes de que exista la venta)
+
+Sesión B sobre la costura del ADR-0043: con el ticket vacío el panel derecho ya mostraba
+los cinco métodos de pago, Boleta/Factura, el DNI y dos «(!)» encendidos. El diagnóstico
+midió tres causas y ninguna era la que parecía: no existía el concepto de momento (el pie
+se renderizaba entero siempre); los (!) **no eran advertencias sino `Ayuda`**, el botón
+de docencia del 19-jul, que usa el glifo «!» y por eso se lee como alerta; y nunca
+«faltaba» nada porque `efectivo` venía preseleccionado — la única condición de bloqueo
+real (`facturaSinRuc`) apagaba el botón en silencio. Felipe decidió las tres cosas que
+el diagnóstico dejó sobre la mesa: método sin preselección, los (!) del cobro pasan a
+significar «falta algo», y el cobro va dentro del panel, no en un modal (ADR-0044).
+
+Lo construido: el padre aprende `momento` («armar» / «cobrar») y un único
+`motivoBloqueoCobro` (`lib/vender-reglas.ts`, TDD, 7 tests) que alimenta a la vez el
+`disabled` del botón, la línea que lo explica debajo y el freno de `cobrar()`. El
+ticket sigue siendo render puro: en «armar» solo líneas y total; en «cobrar» primero
+cuánto y cómo pagó, después el comprobante con el documento adentro, «← Ticket» para
+volver sin perder lo elegido. `Ayuda` acepta `tono="falta"` con default byte a byte
+igual (probado con `renderToString` contra la versión anterior). Se respetó el protocolo
+del ADR-0043 al pie: el commit del padre entró a `main` local apenas compiló; la UI
+después, en su archivo. Verificado en navegador con sesión real y una venta de verdad en
+la base local (Boleta B001-000001, S/159.80, efectivo): vacío → prenda → Cobrar → método
+→ boleta → «Venta registrada» → vuelve a «armar», y escanear durante el cobro sigue
+sumando al ticket con el total en vivo.
+
+Lo que Felipe se lleva: **un mismo glifo no puede significar dos cosas en la misma
+pantalla.** El (!) de docencia y el (!) de alerta compartían forma, así que la ayuda se
+leía como reproche permanente; la salida no fue un tercer ícono sino darle al (!) del
+cobro una sola regla —aparece solo cuando falta algo y dice qué— y dejar la docencia
+dentro de ese mismo globo. Y el reverso: **un botón apagado que no explica por qué es
+una decisión escondida**; un solo motivo derivado una vez evita que el `disabled`, el
+mensaje y la validación digan cosas distintas.
+
 ## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
 
 Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket
