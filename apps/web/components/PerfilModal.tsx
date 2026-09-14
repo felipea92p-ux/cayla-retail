@@ -217,7 +217,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
             <div>
               <p className="label-cayla mb-3 text-[11px] text-tinta/65">Cuenta</p>
               <div className="card-cayla grid grid-cols-2 gap-4 p-4">
-                <Campo etiqueta="Rol" valor={perfil.rol === "lider" ? "Líder" : "Integrante"} />
+                <Campo etiqueta="Rol" valor={perfil.rol === "lider" ? "Líder" : "Colaborador"} />
                 <Campo etiqueta="Estado" valor={perfil.estado === "activo" ? "Activo" : "Inactivo"} />
                 <Campo etiqueta="Ubicación" valor={perfil.ubicacion_nombre ?? "Sin asignar"} />
                 <Campo etiqueta="Último acceso" valor={perfil.ultimo_acceso ? formatoFecha(perfil.ultimo_acceso) : "Sin registrar"} />

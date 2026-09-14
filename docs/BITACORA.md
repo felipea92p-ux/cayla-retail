@@ -196,6 +196,28 @@ worktrees pero los archivos ignorados (`.next`, el stub de Dynamic, a veces
 `node_modules`) no, y son justo los que rompen algo "sin razón aparente" al cambiar de
 worktree.
 
+## 2026-09-14 (Mi perfil: leer de Dynamic antes de crear tabla propia)
+
+Felipe pidió una ventana "Mi perfil" (foto, teléfono, contraseña) a partir de un
+mockup de referencia. El primer diseño proponía columnas nuevas en
+`retail.colaboradores` — Felipe lo frenó: "¿ya existen esos datos en Dynamic?".
+Sí: teléfono vive en `datos_personales.celular`, y la foto ya tenía autoservicio
+real construido en Dynamic (`personas.foto_url` + `fn_actualizar_foto_perfil`,
+bucket `fotos-perfil`). `retail.fn_mi_perfil()` extiende el mismo puente de
+solo-lectura que ya existía (0009, 0013) para nombre/rol/sede; la escritura de
+foto es un wrapper de una línea que delega en la función real de Dynamic, nunca
+la reimplementa. Cero columnas nuevas en retail. Ubicación quedó de solo lectura
+a propósito — "eso no representa ningún permiso, el tema de permisos se ve más
+adelante", corrigiendo el diseño original que la hacía editable por un líder.
+
+Aplicado a producción el mismo día: `0014_perfil.sql` (las dos funciones) y el
+rename de "Almacén Principal" a "Taller" en `retail.ubicaciones` (mismo id,
+pedido ya probado antes en local). Verificado campo por campo contra la base
+real antes de pegar nada — `docs/datos/` (generado 2026-09-12) ya estaba
+desactualizado en varios puntos para esa fecha, así que no se le creyó a ciegas.
+Con `execute_sql`, nunca `apply_migration` — ya se sabía por qué (deja un rastro
+fantasma en el historial de migraciones de Dynamic, no del nuestro).
+
 ## 2026-09-12 (vocabulario cerrado + activos fijos: lo rescatable de V1 se porta, no se fusiona)
 
 El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` de V2 sin el candado que evita

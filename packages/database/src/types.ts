@@ -335,18 +335,32 @@ export type Database = {
           agregado_por: string | null
           created_at: string
           persona_id: string
+          rol: string
+          ubicacion_asignada_id: string | null
         }
         Insert: {
           agregado_por?: string | null
           created_at?: string
           persona_id: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
         Update: {
           agregado_por?: string | null
           created_at?: string
           persona_id?: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_ubicacion_asignada_id_fkey"
+            columns: ["ubicacion_asignada_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colores: {
         Row: {
@@ -1902,7 +1916,7 @@ export type Database = {
         Returns: undefined
       }
       agregar_colaborador: {
-        Args: { p_persona_id: string }
+        Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
       anular_compra: {
@@ -2031,7 +2045,9 @@ export type Database = {
           correo: string
           nombre: string
           persona_id: string
+          rol: string
           sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_dynamic_disponibles: {
@@ -2172,6 +2188,20 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      previsualizar_cierre_conteo: {
+        Args: { p_conteo_id: string }
+        Returns: {
+          codigo: string
+          color: string
+          contada: number
+          diferencia: number
+          origen: string
+          referencia: string
+          sistema: number
+          talla: string
+          variante_id: string
+        }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       reactivar_proveedor: { Args: { p_proveedor_id: string }; Returns: undefined }
@@ -2338,12 +2368,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2367,11 +2397,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2392,11 +2422,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2417,11 +2447,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2434,11 +2464,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -208,6 +208,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
+    { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
 
   const [activo, setActivo] = useState(0);
@@ -469,7 +470,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                 <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                  {esLider ? "Líder" : "Integrante"} · {persona.ubicacionEtiqueta}
+                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
                 </p>
               </div>
             </button>
