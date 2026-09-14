@@ -10,7 +10,7 @@ import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { aplicarDescuento, motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
+import { aplicarDescuento, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -57,6 +57,9 @@ export type ItemCarrito = {
  *  cual lo escribe) y a qué líneas alcanza — `null` es todo el ticket; `[]` es que
  *  todavía no eligió ninguna (no se puede aplicar). */
 export type DescuentoForm = { pct: string; elegidas: string[] | null };
+/** Un medio con el que pagó la clienta (ver `lib/vender-reglas.ts`); compartido con el
+ *  ticket desde acá, como los otros tipos (ADR-0043). */
+export type { PagoAplicado } from "@/lib/vender-reglas";
 
 type VentaOk = {
   total: number;
@@ -96,9 +99,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
   const [momento, setMomento] = useState<MomentoTicket>("armar");
-  // Sin preselección a propósito: un «efectivo» que nadie eligió es un dato fantasma
-  // en el cuadre de caja. `cobrar()` no sale con null — lo frena `motivoBloqueo`.
-  const [metodoPago, setMetodoPago] = useState<MetodoPago | null>(null);
+  // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
+  // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
+  // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
+  const [pagos, setPagos] = useState<PagoAplicado[]>([]);
   const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
@@ -323,7 +327,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
-  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, metodoPago, facturaSinRuc });
+  const restante = restanteDePagos(total, pagos);
+  const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
+  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc });
+
+  // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
+  // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
+  function agregarPago(metodo: MetodoPago) {
+    if (pagos.some((p) => p.metodo === metodo)) return;
+    setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
+  }
+  function cambiarMontoPago(indice: number, monto: number) {
+    const limpio = Math.max(0, Math.round((monto || 0) * 100) / 100);
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, monto: limpio } : p)));
+  }
+  function quitarPago(indice: number) {
+    setPagos((actual) => actual.filter((_, i) => i !== indice));
+  }
+  // Lo que la clienta entregó en efectivo — solo para mostrar el vuelto; NUNCA viaja a
+  // la RPC (si viajara lo entregado en vez de lo que cubre, rechazaría por no cuadrar).
+  function cambiarRecibido(monto: number | null) {
+    setPagos((actual) => actual.map((p) => (p.metodo === "efectivo" ? { ...p, recibido: monto ?? undefined } : p)));
+  }
 
   function limpiarComprobante() {
     setTipoComprobante("boleta");
@@ -333,9 +358,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
-    // El mismo motivo que apaga el botón frena acá. El `metodoPago === null` de al
-    // lado es solo para que TypeScript lo sepa: `motivoBloqueo` ya lo cubre.
-    if (momento !== "cobrar" || motivoBloqueo !== null || metodoPago === null) {
+    // El mismo motivo que apaga el botón frena acá.
+    if (momento !== "cobrar" || motivoBloqueo !== null) {
       if (motivoBloqueo) avisar.error(motivoBloqueo);
       return;
     }
@@ -350,7 +374,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         precio_unitario: it.precioUnitario,
         descuento_unitario: it.descuentoUnitario,
       })),
-      p_pagos: [{ metodo: metodoPago, monto: total }],
+      // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
+      // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.
+      p_pagos: pagos.filter((p) => p.monto > 0).map(({ metodo, monto }) => ({ metodo, monto })),
       p_token: token.current,
       p_tipo_comprobante: tipoComprobante,
       p_cliente_tipo_doc: clienteTipoDoc,
@@ -379,9 +405,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     setOk({ total, prendas, comprobante });
     setCarrito([]);
     limpiarComprobante();
-    // Cada venta vuelve a preguntar cómo pagó la clienta: heredar el método de la
-    // anterior sería el mismo dato fantasma que la preselección que se quitó.
-    setMetodoPago(null);
     router.refresh();
   }
 
@@ -389,6 +412,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // arranca por las prendas, no por el cobro.
   function cerrarVentaRegistrada() {
     setOk(null);
+    // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
+    // anterior sería el mismo dato fantasma que la preselección que se quitó.
+    setPagos([]);
     setMomento("armar");
   }
 
@@ -476,8 +502,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           onQuitarDescuento={quitarDescuentoDelTicket}
           total={total}
           prendas={prendas}
-          metodoPago={metodoPago}
-          onMetodoPago={setMetodoPago}
+          pagos={pagos}
+          restante={restante}
+          vuelto={vuelto}
+          onAgregarPago={agregarPago}
+          onMontoPago={cambiarMontoPago}
+          onQuitarPago={quitarPago}
+          onRecibido={cambiarRecibido}
           tipoComprobante={tipoComprobante}
           onTipoComprobante={setTipoComprobante}
           clienteNumDoc={clienteNumDoc}
