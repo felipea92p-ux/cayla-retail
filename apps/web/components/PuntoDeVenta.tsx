@@ -63,16 +63,13 @@ type Props = {
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
-  /** Cuánto efectivo espera el sistema en el cajón — solo hace falta para el modal de
-   *  cierre; null mientras no hay caja abierta. */
-  esperadoEnCajon: number | null;
   /** Incluye la variante centinela de "Monto manual", que este componente filtra antes
    *  de mostrar nada. */
   variantes: VarianteBusqueda[];
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, esperadoEnCajon, variantes, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -676,7 +673,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, esperadoE
         </Modal>
       )}
       {modalCaja === "cerrar" && cajaId && (
-        <CerrarCajaModalV2 cajaId={cajaId} esperadoEnCajon={esperadoEnCajon ?? 0} onClose={() => setModalCaja(null)} />
+        <CerrarCajaModalV2 cajaId={cajaId} onClose={() => setModalCaja(null)} />
       )}
 
       {ok && (

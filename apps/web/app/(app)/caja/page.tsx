@@ -22,24 +22,20 @@ export default async function CajaPage() {
       {!caja ? (
         <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
       ) : (
-        <CajaConDatos cajaId={caja.id} montoApertura={caja.montoApertura} caja={caja} />
+        <CajaConDatos caja={caja} />
       )}
     </div>
   );
 }
 
 async function CajaConDatos({
-  cajaId,
-  montoApertura,
   caja,
 }: {
-  cajaId: string;
-  montoApertura: number;
   caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
 }) {
   const [resumen, movimientos] = await Promise.all([
-    getResumenCaja(cajaId, montoApertura),
-    getMovimientosCaja(cajaId),
+    getResumenCaja(caja.id),
+    getMovimientosCaja(caja.id),
   ]);
   return <CajaAbiertaPanel caja={caja} resumen={resumen} movimientos={movimientos} />;
 }
