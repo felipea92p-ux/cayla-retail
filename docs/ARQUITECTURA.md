@@ -140,7 +140,9 @@ flowchart TB
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
-  que emite el comprobante en la misma transacción). `lib/vender-reglas.ts`:
+  que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
+  distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
+  tabla `codigos_descuento`). `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de

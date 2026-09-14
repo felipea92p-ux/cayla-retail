@@ -198,6 +198,31 @@ pierde de infraestructura que otro ADR ya había decidido?". La huella era visib
 numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
 con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
 
+## 2026-09-14 (la base deja de confiar en el precio del navegador; el descuento pide código)
+
+Quinta vuelta sobre Vender, y la primera en la base. La caja ya no editaba el precio,
+pero `registrar_venta` (0011) seguía insertando `precio_unitario` y `descuento_unitario`
+tal cual llegaban — un candado de pantalla. Dos migraciones con timestamp
+(ADR-0048): la RPC compara cada precio con `variantes.precio` antes de escribir nada
+(salvo el Cargo especial, precio libre por diseño) y levanta un nombre estable con la
+prenda en `detail`; y la tabla `codigos_descuento` + `p_codigo_descuento`, con la regla
+que decidió Felipe: un Líder descuenta sin código, una Colaboradora necesita uno válido
+y su % es el tope por línea. `error-escritura.ts` aprendió a armar la frase con el
+detalle («El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve
+a agregarla»), con los tests en rojo primero. Protocolo de base compartida cumplido:
+aviso a la sesión del panel izquierdo, `migration up --include-all` (que aplicó también
+su `stock_por_sede`, pendiente), sin `db reset`. Siete casos probados en psql, cada uno
+en una transacción con `rollback`, y uno por HTTP contra PostgREST; el caso del tope
+destapó un `format('%')` inválido en un `hint`, corregido antes del commit.
+
+Lo que Felipe se lleva: **la regla vive donde no se puede esquivar.** Esconder el campo
+de precio en la pantalla no protege de una llamada hecha a mano; la comparación con el
+catálogo dentro de la RPC sí, y con el mismo mensaje para la pantalla y para la consola.
+Y el reverso: **el nombre del error es parte del contrato** — la RPC levanta un nombre
+estable y el traductor pone la frase; si mañana alguien cambia el nombre en la migración
+y no en el traductor, la colaboradora lee `venta_precio_cambiado` crudo en el mostrador,
+que es exactamente lo que los cuatro tests nuevos vigilan.
+
 ## 2026-09-14 (el cobro deja de ser de un solo medio: pago mixto y vuelto)
 
 Cuarta vuelta sobre el ticket. «Yape + efectivo» es la venta más común de la tienda y los
