@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { BadgePercent, Banknote, Check, CreditCard, FileText, KeyRound, Landmark, Percent, Receipt, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { BadgePercent, Banknote, Check, CreditCard, FileText, KeyRound, Landmark, Percent, Receipt, ShoppingBag, StickyNote, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
@@ -18,6 +18,11 @@ const ATAJOS_DESCUENTO = [5, 10, 15, 20, 25, 50] as const;
 
 /** Billetes de sol que se reciben en el mostrador — las teclas de «Recibido» los suman. */
 const BILLETES = [10, 20, 50, 100, 200] as const;
+
+/** La nota del ticket: el tope es el `check` de `ventas.nota`; el contador se muestra
+ *  recién cerca del tope, para no contar letras a quien escribe cuatro palabras. */
+const NOTA_MAX = 200;
+const NOTA_AVISO = 160;
 
 /** El botón principal es el mismo en los tres momentos; cambian su texto y lo que hace.
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
@@ -604,109 +609,139 @@ export function PuntoDeVentaTicket({
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
             </div>
           ) : (
-            // La entrada y el reflujo de cada línea los anima el padre con `Flip`
-            // (responde al escaneo que la creó); acá solo va el ref de la lista.
-            <div ref={listaRef} className="divide-y divide-sand">
-              {carrito.map((it) => {
-                const pctLinea = porcentajeDeLinea(it);
-                const precioNeto = it.precioUnitario - it.descuentoUnitario;
-                return (
-                  <article key={it.claveLinea} className="px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
-                        <p className="font-mono text-xs text-tinta/60">{it.sku}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onAbrirDescuento([it.claveLinea])}
-                          disabled={bloqueado}
-                          aria-label={`Descuento para ${it.referencia}`}
-                          className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
-                            pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
-                          }`}
-                        >
-                          <Percent className={ICONO_CHICO} aria-hidden />
-                          {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Quitar ${it.referencia}`}
-                          onClick={() => onQuitar(it.claveLinea)}
-                          className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
-                        >
-                          <Trash2 className={ICONO_CHICO} aria-hidden />
-                          Quitar
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-end justify-between gap-3">
-                      <label className="text-[10px] text-tinta/50 uppercase">
-                        Cantidad
-                        <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
-                          {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
-                              basurero de la línea, que es lo único que queda por hacer. */}
-                          {it.cantidad <= 1 ? (
-                            <button
-                              type="button"
-                              aria-label={`Quitar ${it.referencia}`}
-                              onClick={() => onQuitar(it.claveLinea)}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              aria-label="Reducir cantidad"
-                              onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
-                              className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
-                            >
-                              −
-                            </button>
-                          )}
-                          <input
-                            aria-label={`Cantidad de ${it.referencia}`}
-                            type="number"
-                            min={1}
-                            max={it.stockAqui}
-                            value={it.cantidad}
-                            onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
-                            className={`w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
-                          />
+            <>
+              {/* La entrada y el reflujo de cada línea los anima el padre con `Flip`
+                  (responde al escaneo que la creó); acá solo va el ref de la lista — las
+                  líneas tienen que seguir siendo sus hijas directas. */}
+              <div ref={listaRef} className="divide-y divide-sand">
+                {carrito.map((it) => {
+                  const pctLinea = porcentajeDeLinea(it);
+                  const precioNeto = it.precioUnitario - it.descuentoUnitario;
+                  return (
+                    <article key={it.claveLinea} className="px-5 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
+                          <p className="font-mono text-xs text-tinta/60">{it.sku}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
                           <button
                             type="button"
-                            aria-label="Aumentar cantidad"
-                            onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
-                            disabled={it.cantidad >= it.stockAqui}
-                            className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
+                            onClick={() => onAbrirDescuento([it.claveLinea])}
+                            disabled={bloqueado}
+                            aria-label={`Descuento para ${it.referencia}`}
+                            className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
+                              pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
+                            }`}
                           >
-                            +
+                            <Percent className={ICONO_CHICO} aria-hidden />
+                            {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Quitar ${it.referencia}`}
+                            onClick={() => onQuitar(it.claveLinea)}
+                            className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
+                          >
+                            <Trash2 className={ICONO_CHICO} aria-hidden />
+                            Quitar
                           </button>
                         </div>
-                      </label>
-                      {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Con
-                          descuento se ve el de lista tachado y el que se cobra. */}
-                      <div className="text-[10px] text-tinta/50 uppercase">
-                        Precio unitario
-                        <p className="mt-1 flex h-9 items-center gap-1.5 text-sm font-semibold text-tinta normal-case">
-                          {pctLinea > 0 && <s className="text-xs font-normal text-tinta/45">{money(it.precioUnitario)}</s>}
-                          <span>{money(precioNeto)}</span>
-                        </p>
                       </div>
-                      <div className="pb-2 text-right">
-                        <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
-                        <p className="text-sm font-bold text-tinta">{money(it.cantidad * precioNeto)}</p>
+                      <div className="mt-3 flex items-end justify-between gap-3">
+                        <label className="text-[10px] text-tinta/50 uppercase">
+                          Cantidad
+                          <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
+                            {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
+                                basurero de la línea, que es lo único que queda por hacer. */}
+                            {it.cantidad <= 1 ? (
+                              <button
+                                type="button"
+                                aria-label={`Quitar ${it.referencia}`}
+                                onClick={() => onQuitar(it.claveLinea)}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                aria-label="Reducir cantidad"
+                                onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
+                                className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
+                              >
+                                −
+                              </button>
+                            )}
+                            <input
+                              aria-label={`Cantidad de ${it.referencia}`}
+                              type="number"
+                              min={1}
+                              max={it.stockAqui}
+                              value={it.cantidad}
+                              onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
+                              className={`w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                            />
+                            <button
+                              type="button"
+                              aria-label="Aumentar cantidad"
+                              onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
+                              disabled={it.cantidad >= it.stockAqui}
+                              className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </label>
+                        {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Con
+                            descuento se ve el de lista tachado y el que se cobra. */}
+                        <div className="text-[10px] text-tinta/50 uppercase">
+                          Precio unitario
+                          <p className="mt-1 flex h-9 items-center gap-1.5 text-sm font-semibold text-tinta normal-case">
+                            {pctLinea > 0 && <s className="text-xs font-normal text-tinta/45">{money(it.precioUnitario)}</s>}
+                            <span>{money(precioNeto)}</span>
+                          </p>
+                        </div>
+                        <div className="pb-2 text-right">
+                          <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
+                          <p className="text-sm font-bold text-tinta">{money(it.cantidad * precioNeto)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <p className="mt-2 text-[11px] text-tinta/50">
-                      {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
+                      <p className="mt-2 text-[11px] text-tinta/50">
+                        {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* La nota vive con las líneas, no con el cobro: nace mientras se arma la
+                  venta y el ticket en espera la guarda junto con ellas. Una línea, hasta
+                  200; el contador aparece recién al pasar de 160. No va al comprobante. */}
+              <div className="border-t border-sand px-5 py-4">
+                <label className="block">
+                  <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
+                    <StickyNote className={ICONO_CHICO} aria-hidden />
+                    Nota para esta venta (opcional)
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={NOTA_MAX}
+                    value={nota}
+                    onChange={(e) => onNota(e.target.value)}
+                    placeholder="Lo recoge el sábado, va con arreglo de bastilla…"
+                    autoComplete="off"
+                    disabled={bloqueado}
+                    className="mt-1.5 h-10 w-full rounded-lg border border-sand bg-crema px-3 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/35 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
+                  />
+                </label>
+                {nota.length > NOTA_AVISO && (
+                  <p className={`mt-1 text-right text-[11px] tabular-nums ${nota.length >= NOTA_MAX ? "text-rojo-profundo" : "text-tinta/50"}`}>
+                    {nota.length}/{NOTA_MAX}
+                  </p>
+                )}
+              </div>
+            </>
           )}
         </div>
 
