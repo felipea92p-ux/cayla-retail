@@ -122,6 +122,11 @@ set local search_path = retail, public, extensions;
 -- ---------------------------------------------------------------------------
 -- 1. Varios medios contra una factura, todo o nada
 -- ---------------------------------------------------------------------------
+-- 2026-09-14, al pegar en producción: «function "registrar_pagos_compra" already exists
+-- with same argument types» (42723) — o el bloque ya se había pegado una vez, o la
+-- función existía de antes. Con el drop previo el bloque es repetible y deja la
+-- versión del repo, que es la verdad. Las otras dos funciones ya eran `create or replace`.
+drop function if exists retail.registrar_pagos_compra(uuid, jsonb, date);
 create function retail.registrar_pagos_compra(
   p_compra_id uuid,
   p_pagos jsonb,                       -- [{monto, metodo, referencia?}]
