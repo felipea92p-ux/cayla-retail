@@ -325,7 +325,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta">
+    // En escritorio (lg) el POS es una pantalla fija: la página no hace scroll, el
+    // catálogo y el ticket scrollean cada uno por dentro. La altura es lo que queda
+    // bajo la cabecera fija de AppShell: `100dvh` menos el `pt-24 + pb-12` de su
+    // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
+    // dos scrolls internos uno debajo del otro serían peores que uno solo.
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
       <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
         <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {ubicacionEtiqueta}</p>
         <button
@@ -345,9 +350,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           fuera de alcance del mouse. `disabled` real en cada control de abajo, no
           solo esto: `pointer-events-none` no le dice nada al teclado ni a un lector
           de pantalla. */}
+      {/* `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles
+          nunca encogen por debajo de su contenido y el scroll interno de cada uno no
+          se activa — la fila crece y la raíz lo recorta en silencio. */}
       <div
         aria-disabled={bloqueado}
-        className={`grid lg:grid-cols-[minmax(0,1fr)_420px] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+        className={`grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
         <PuntoDeVentaCatalogo
           ubicacionEtiqueta={ubicacionEtiqueta}
