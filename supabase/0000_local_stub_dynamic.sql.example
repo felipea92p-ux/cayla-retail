@@ -58,8 +58,22 @@ create table public.personas (
   sede_base_id uuid not null references public.sedes(id),
   rol public.rol_usuario not null default 'integrante',
   estado text not null default 'activo',
+  -- La lee `retail.fn_mi_perfil()` (0014_perfil.sql). En producción la escribe
+  -- el autoservicio de foto de Dynamic (su migración 0381/0399), no retail.
+  foto_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+-- Solo las dos columnas que retail toca de verdad: `retail.fn_mi_perfil()` hace
+-- `left join public.datos_personales dp on dp.persona_id = p.id` y lee
+-- `dp.celular`. La tabla real de Dynamic tiene 24 columnas (DNI, dirección,
+-- cuenta bancaria, CUSPP, discapacidad…) y NINGUNA le importa a retail —
+-- copiarlas acá solo invitaría a llenarlas con datos de prueba realistas, que es
+-- justo lo que `docs/datos/06-DATOS-PERSONALES.md` pide no hacer.
+create table public.datos_personales (
+  persona_id uuid primary key references public.personas(id),
+  celular text
 );
 
 -- Copia exacta del cuerpo real (cayla-dynamic, public.fn_rol_actual(), verificado 2026-09-12).
@@ -76,4 +90,19 @@ language sql stable security definer
 set search_path to 'public'
 as $$
   select sede_base_id from personas where auth_user_id = auth.uid();
+$$;
+
+-- La llama `retail.actualizar_mi_foto_perfil()` (0014_perfil.sql), que delega
+-- en ella en vez de escribir `personas.foto_url` por su cuenta.
+-- ⚠️ Esta NO es copia exacta del cuerpo real, a diferencia de las dos de arriba.
+-- La de Dynamic trae su propio permiso (uno mismo, o admin/lider_do) y valida la
+-- ruta del bucket; acá solo se imita el efecto para que la pantalla se pueda
+-- probar en local. La firma sí es la real, verificada contra producción el
+-- 2026-09-14: `fn_actualizar_foto_perfil(p_persona_id uuid, p_foto_url text)`.
+create or replace function public.fn_actualizar_foto_perfil(p_persona_id uuid, p_foto_url text)
+returns void
+language sql security definer
+set search_path to 'public'
+as $$
+  update personas set foto_url = p_foto_url, updated_at = now() where id = p_persona_id;
 $$;
