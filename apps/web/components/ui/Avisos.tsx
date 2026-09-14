@@ -42,6 +42,10 @@ export type Aviso = { id: number; tono: TonoAviso; texto: string; detalle?: stri
 const DURACION: Record<TonoAviso, number | null> = { exito: 4000, aviso: 6000, error: 8000, proceso: null };
 
 let avisos: Aviso[] = [];
+// Snapshot del servidor: SIEMPRE la misma referencia. `useSyncExternalStore` compara por
+// identidad y con `() => []` cada llamada devolvía un array nuevo — React lo avisa
+// («getServerSnapshot should be cached») y puede entrar en bucle al hidratar.
+const SIN_AVISOS: Aviso[] = [];
 let siguienteId = 1;
 const oyentes = new Set<() => void>();
 
@@ -108,7 +112,7 @@ const ESTILO: Record<TonoAviso, { barra: string; titulo: string; tiempo: string 
 };
 
 export function Avisos() {
-  const lista = useSyncExternalStore(suscribir, leer, () => []);
+  const lista = useSyncExternalStore(suscribir, leer, () => SIN_AVISOS);
   return (
     <div aria-live="polite" aria-relevant="additions" className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
       {/* El reloj de la barra vive acá, no en globals.css: es lo único que
