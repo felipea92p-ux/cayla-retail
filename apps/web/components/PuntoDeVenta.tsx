@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
+import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -74,6 +75,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   const [q, setQ] = useState("");
   const [activo, setActivo] = useState(0);
   const [categoria, setCategoria] = useState("Todo");
+  /** Filtro «Solo con stock» de la grilla. Apagado por defecto: las prendas sin stock se
+   *  ven atenuadas, no desaparecen — así la encargada de sede sabe que existen y que no
+   *  hay en su tienda. Solo afecta a `catalogo`; el escáner sigue reconociéndolas. */
+  const [soloConStock, setSoloConStock] = useState(false);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
@@ -96,13 +101,39 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     return ["Todo", ...Array.from(vistas).sort((a, b) => a.localeCompare(b, "es"))];
   }, [variantesVisibles]);
 
-  const catalogo = useMemo(
-    () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
-    [variantesVisibles, categoria]
-  );
+  // La grilla es el plan B (cuando la etiqueta no lee): filtra por categoría y, si se
+  // pidió, por stock. `resultados` (el escáner) NO se filtra: una prenda sin stock
+  // escaneada debe decir «sin stock en esta sede», no «no encontramos».
+  const catalogo = useMemo(() => {
+    const porCategoria = categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria);
+    return soloConStock ? porCategoria.filter((v) => v.stockAqui > 0) : porCategoria;
+  }, [variantesVisibles, categoria, soloConStock]);
 
   const term = q.trim();
   const resultados = useMemo(() => filtrarPrendasV2(q, variantesVisibles, MAX_RESULTADOS), [variantesVisibles, q]);
+
+  // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
+  // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
+  // cerrada, el campo se montó `disabled`. Al abrir caja, `router.refresh()` trae el
+  // `cajaId`, el campo se habilita y esto lo enfoca.
+  useEffect(() => {
+    if (!bloqueado) buscador.current?.focus();
+  }, [bloqueado]);
+
+  // Bloque E: la pistola escribe donde esté el foco. Si quedó en un botón (un chip,
+  // «Quitar», «Cobrar»), el código se perdería y el Enter final activaría ese botón.
+  // Cualquier carácter suelto que llegue con el foco fuera de un campo de texto va al
+  // escáner — nunca con un modal abierto (tienen su propio foco) ni con la caja cerrada
+  // (el campo está deshabilitado). La regla de qué tecla cuenta está en `lib/`, con prueba.
+  const hayModal = manualAbierto || modalCaja !== null || ok !== null;
+  useEffect(() => {
+    if (bloqueado || hayModal) return;
+    function alTeclaSuelta(e: KeyboardEvent) {
+      if (teclaSueltaVaAlEscaner(e, document.activeElement)) buscador.current?.focus();
+    }
+    window.addEventListener("keydown", alTeclaSuelta);
+    return () => window.removeEventListener("keydown", alTeclaSuelta);
+  }, [bloqueado, hayModal]);
 
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
@@ -321,7 +352,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           onMontoManual={() => setManualAbierto(true)}
           categorias={categorias}
           categoria={categoria}
-          onCategoria={setCategoria}
+          // Un chip es un desvío de un toque: elegida la categoría, el foco vuelve al escáner.
+          onCategoria={(c) => {
+            setCategoria(c);
+            buscador.current?.focus();
+          }}
+          soloConStock={soloConStock}
+          onSoloConStock={(valor) => {
+            setSoloConStock(valor);
+            buscador.current?.focus();
+          }}
           catalogo={catalogo}
           carrito={carrito}
           mostrarVentasHoy={mostrarVentasHoy}
@@ -353,7 +393,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
       </div>
 
       {manualAbierto && (
-        <Modal titulo="Monto manual" subtitulo="Para una prenda sin etiqueta, producto dañado o cargo especial." onClose={() => setManualAbierto(false)}>
+        <Modal
+          titulo="Monto manual"
+          subtitulo="Para una prenda sin etiqueta, producto dañado o cargo especial."
+          onClose={() => setManualAbierto(false)}
+          alCerrarEnfocar={buscador}
+        >
           <div className="space-y-3">
             <div className="card-cayla px-4 py-3 text-right">
               <span className="font-display text-4xl text-tinta">S/{montoManual || "0.00"}</span>
@@ -378,7 +423,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
       )}
 
       {modalCaja === "abrir" && bloqueado && (
-        <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)}>
+        <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={buscador}>
           <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} />
         </Modal>
       )}
@@ -387,7 +432,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
       )}
 
       {ok && (
-        <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={() => setOk(null)}>
+        <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={() => setOk(null)} alCerrarEnfocar={buscador}>
           <div className="space-y-5">
             <div className="card-cayla p-5 text-center">
               <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
