@@ -15,12 +15,28 @@ import { gsap, useGSAP } from "@/lib/motion-gsap";
  * Sigue la regla de ADR-0011 ("el movimiento responde a una acción de la
  * persona"): acá la acción es el scroll mismo, no la carga de la pantalla —
  * por eso `once: true`, se revela una vez y no se repite si se vuelve a pasar.
+ * Lo que ya está a la vista al montar no viaja: ScrollTrigger lo da por cruzado.
+ *
+ * El scroll puede ser el de la ventana o el de un contenedor interno (la grilla
+ * de Vender scrollea por dentro, ADR-0044): si no se pasa `scroller`, se busca el
+ * ancestro más cercano con `overflow-y: auto|scroll`; si no hay, es la ventana.
  */
-export function RevelarAlScroll({ children, className }: { children: ReactNode; className?: string }) {
+export function RevelarAlScroll({
+  children,
+  className,
+  scroller,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Elemento o selector del contenedor que scrollea. Opcional: se descubre solo. */
+  scroller?: string | Element;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
+      const nodo = ref.current;
+      if (!nodo) return;
       gsap.matchMedia().add(
         {
           reducido: "(prefers-reduced-motion: reduce)",
@@ -32,14 +48,19 @@ export function RevelarAlScroll({ children, className }: { children: ReactNode; 
           // resultado, no el viaje — se colapsa la duración, no se elimina
           // la animación (dejaría el elemento a medio revelar).
           const tween = gsap.fromTo(
-            ref.current,
+            nodo,
             { opacity: 0.35, y: 4 },
             {
               opacity: 1,
               y: 0,
               duration: reducido ? 0.001 : 0.32,
               ease: "caylaEase",
-              scrollTrigger: { trigger: ref.current, start: "top 85%", once: true },
+              scrollTrigger: {
+                trigger: nodo,
+                scroller: scroller ?? contenedorQueScrollea(nodo) ?? undefined,
+                start: "top 90%",
+                once: true,
+              },
             },
           );
           return () => tween.scrollTrigger?.kill();
@@ -54,4 +75,15 @@ export function RevelarAlScroll({ children, className }: { children: ReactNode; 
       {children}
     </div>
   );
+}
+
+/** El ancestro más cercano que scrollea verticalmente, o null si scrollea la ventana. */
+function contenedorQueScrollea(desde: Element): Element | null {
+  let el = desde.parentElement;
+  while (el && el !== document.body) {
+    const overflowY = getComputedStyle(el).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll") return el;
+    el = el.parentElement;
+  }
+  return null;
 }

@@ -59,3 +59,29 @@ Felipe eligió (2026-09-14, opción B) **traer de vuelta lo que había**, no reh
 
 - `tsc`, `eslint`, `vitest` y el pre-commit del repo en verde.
 - Reflujo `Flip` del ticket: verificado en navegador (ver BITÁCORA 2026-09-14).
+
+## Adenda — sesión A, mismo día: los primeros componentes y el scroll interno
+
+Las dos sesiones del 2026-09-14 recibieron la misma decisión (2-B) y la ejecutaron en
+paralelo; esta rama llegó segunda y se quedó con la restauración de arriba tal cual. Lo que
+suma, porque el catálogo de Vender lo necesita:
+
+- **Primeros componentes instalados: `tooltip`, `toggle`, `badge`** — con
+  `npx shadcn@latest add`, desde `apps/web`, contra el `components.json` restaurado. El CLI
+  de hoy no genera lo que V1 esperaba: importa `cn` desde el paquete **`cn`** (de
+  shadcn-ui, reemplazo compilado de `clsx + tailwind-merge`) y los primitivos desde el
+  paquete paraguas **`radix-ui`**. Pelear esa convención sería editar a mano cada componente
+  futuro, así que se adopta: `lib/utils.ts` pasa a **reexportar** `cn` del paquete, de modo
+  que `@/lib/utils` y `"cn"` son una sola implementación (dos `cn` distintos fusionarían
+  clases distinto); `clsx` y `tailwind-merge` salen porque nada los usa ya.
+- **`tw-animate-css`** entra: es lo que anima la entrada/salida de los componentes shadcn
+  (fundido + 95 % de escala, ~150 ms, sin rebote — compatible con ADR-0011). Regla de
+  convivencia: un componente shadcn conserva su animación de tw-animate; lo que no es
+  shadcn sigue con `anim-*` de `globals.css`; GSAP sigue siendo solo scroll y reflujo.
+- **`RevelarAlScroll` descubre el contenedor que scrollea.** En V1 miraba solo la ventana;
+  el POS es pantalla fija (ADR-0044) y la grilla scrollea por dentro, así que ahora busca el
+  ancestro con `overflow-y: auto|scroll` (o acepta `scroller`). Disparo en `top 90%`.
+- `TooltipProvider` se monta donde se usa (el catálogo), no en el layout raíz: aditivo.
+- Gotcha medido: instalar un paquete CSS con el dev server corriendo deja al proceso de
+  PostCSS con la resolución fallida cacheada («Can't resolve 'tw-animate-css'») hasta
+  reiniciarlo.

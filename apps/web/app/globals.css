@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Entradas/salidas propias de los componentes shadcn/ui (ADR-0045, adenda). */
+@import "tw-animate-css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
