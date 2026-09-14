@@ -166,9 +166,16 @@ y se escribe a mano. Mezclarlas es lo que mató a los intentos anteriores.
 diccionario. Al cerrar un cambio de esquema, correr:
 
 ```
-pnpm datos:generar     # reescribe el diccionario desde la base
-pnpm datos:comparar    # avisa si una pantalla llama a una función que producción no acepta
+pnpm datos:generar:produccion   # reescribe el diccionario desde el volcado de producción
+pnpm datos:comparar             # avisa si una pantalla llama a una función que producción no acepta
 ```
+
+**Cuidado (aprendido el 2026-09-14): `pnpm datos:generar` a secas lee el Postgres LOCAL y
+pisa los diccionarios con la foto de tu máquina** — DYNAMIC pasa de 63 tablas a las 2 del
+stub y RETAIL deja de describir producción. Sirve solo para mirar un diff y volver atrás
+(`git checkout -- docs/datos/generado/`), nunca para commitear. Una migración nueva entra
+al diccionario cuando se aplica en producción y se refresca el volcado
+(`generado/COMO-REFRESCAR.md`); mientras tanto vive en BACKLOG como "no está en producción".
 
 `datos:comparar` cierra un hueco que ni `typecheck` ni `migraciones:verificar`
 cubrían: el primero compara el código contra los tipos generados (que suelen estar

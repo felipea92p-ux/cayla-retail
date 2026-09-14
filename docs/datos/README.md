@@ -105,11 +105,17 @@ Si una decisión cambia, se corrige ahí primero y después se propaga.
 **La mitad generada** se regenera con un comando:
 
 ```bash
-pnpm datos:generar
+pnpm datos:generar:produccion
 ```
 
-Lee la base de datos que encuentre corriendo y reescribe los diccionarios y `RPCS.md`.
-Se corre cada vez que cambia el esquema.
+Lee el volcado de producción guardado en `generado/retail_*.json` y reescribe los
+diccionarios y `RPCS.md`. Se corre cada vez que cambia el esquema **de producción**, después
+de refrescar el volcado como explica [`generado/COMO-REFRESCAR.md`](generado/COMO-REFRESCAR.md).
+
+> `pnpm datos:generar` (sin `:produccion`) existe, pero lee el Postgres **local** por Docker y
+> pisa estos archivos con la foto de tu máquina — que es exactamente la mentira que este
+> directorio vino a matar. Úsalo solo para mirar un diff, y revierte con
+> `git checkout -- docs/datos/generado/` antes de commitear.
 
 **La comparación entre lo que las pantallas llaman y lo que producción acepta** — la que
 detecta que algo está roto en las tiendas sin que nada falle en tu máquina:

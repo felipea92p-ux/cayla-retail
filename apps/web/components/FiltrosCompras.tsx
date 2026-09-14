@@ -2,27 +2,64 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CampoSelectNativo, CampoTexto, Boton } from "@/components/ui/campos";
-import { ETIQUETA_ESTADO_PAGO, ETIQUETA_ESTADO_RECEPCION } from "@/lib/compras-reglas";
+import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { ETIQUETA_ESTADO_PAGO, ETIQUETA_ESTADO_RECEPCION, fechaCorta, type EstadoPago, type EstadoRecepcion } from "@/lib/compras-reglas";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
 // página es un Server Component que filtra en Postgres, el enlace se puede
 // compartir, y "atrás" del navegador vuelve al filtro anterior. Cambiar un
 // filtro borra el cursor de paginación — una página 3 de otro filtro no
 // significa nada.
+//
+// 2026-09-14: se partieron en dos niveles. Siete controles en dos filas
+// empujaban la tabla —lo que se vino a ver— debajo del pliegue, y la
+// mayoría de los días solo se usa la búsqueda y el proveedor. Los
+// `principales` van siempre a la vista; el resto se abre con "Más filtros"
+// (y se abre solo si alguno de ellos ya está aplicado, para que un filtro
+// activo nunca quede escondido). Lo aplicado se repite como chips con ×,
+// que es como se lee "por qué veo estas 3 facturas y no las 40".
 export type FiltroVisible = "busqueda" | "proveedor" | "pago" | "recepcion" | "condicion" | "fechas" | "vencidas";
 
 type Proveedor = { id: string; nombre: string };
 
-export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveedor[]; visibles: FiltroVisible[] }) {
+// Qué parámetro(s) de la URL usa cada filtro. `fechas` usa dos.
+const PARAMS: Record<FiltroVisible, string[]> = {
+  busqueda: ["q"],
+  proveedor: ["prov"],
+  pago: ["pago"],
+  recepcion: ["recep"],
+  condicion: ["cond"],
+  fechas: ["desde", "hasta"],
+  vencidas: ["vencidas"],
+};
+
+export function FiltrosCompras({
+  proveedores,
+  visibles,
+  principales = ["busqueda", "proveedor"],
+}: {
+  proveedores: Proveedor[];
+  visibles: FiltroVisible[];
+  /** Los que van siempre a la vista; el resto de `visibles` queda bajo "Más filtros". */
+  principales?: FiltroVisible[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const primera = useRef(true);
 
+  const secundarios = visibles.filter((f) => !principales.includes(f));
+  const activo = (f: FiltroVisible) => PARAMS[f].some((k) => params.get(k));
+  const haySecundarioActivo = secundarios.some(activo);
+  const [expandidoAMano, setExpandidoAMano] = useState(false);
+  // Si hay un filtro secundario aplicado (llegó por URL desde una tarjeta, o
+  // por el botón "atrás"), el panel está abierto sí o sí: nunca se filtra
+  // "a ciegas". Se deriva, no se sincroniza con un efecto.
+  const expandido = expandidoAMano || haySecundarioActivo;
+
   function ver(f: FiltroVisible) {
-    return visibles.includes(f);
+    return visibles.includes(f) && (principales.includes(f) || expandido);
   }
 
   function aplicar(cambios: Record<string, string>) {
@@ -50,7 +87,29 @@ export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveed
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda]);
 
-  const hayFiltros = ["q", "prov", "pago", "recep", "cond", "desde", "hasta", "vencidas"].some((k) => params.has(k));
+  // Los chips: un texto legible por cada filtro aplicado, con qué borrar al
+  // tocar la ×. La búsqueda se lee desde la URL (no del estado local) para
+  // que el chip aparezca cuando la consulta ya se hizo, no mientras se tipea.
+  const chips: { texto: string; quitar: Record<string, string> }[] = [];
+  const q = params.get("q");
+  if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
+  const prov = params.get("prov");
+  if (prov) chips.push({ texto: proveedores.find((p) => p.id === prov)?.nombre ?? "Proveedor", quitar: { prov: "" } });
+  const pago = params.get("pago") as EstadoPago | null;
+  if (pago && ETIQUETA_ESTADO_PAGO[pago]) chips.push({ texto: `Pago: ${ETIQUETA_ESTADO_PAGO[pago]}`, quitar: { pago: "" } });
+  const recep = params.get("recep") as EstadoRecepcion | null;
+  if (recep && ETIQUETA_ESTADO_RECEPCION[recep]) chips.push({ texto: `Recepción: ${ETIQUETA_ESTADO_RECEPCION[recep]}`, quitar: { recep: "" } });
+  const cond = params.get("cond");
+  if (cond) chips.push({ texto: cond === "contado" ? "Al contado" : "Al crédito", quitar: { cond: "" } });
+  if (params.get("vencidas")) chips.push({ texto: "Solo vencidas", quitar: { vencidas: "" } });
+  const desde = params.get("desde");
+  const hasta = params.get("hasta");
+  if (desde || hasta) {
+    chips.push({
+      texto: desde && hasta ? `Emitida ${fechaCorta(desde)} – ${fechaCorta(hasta)}` : desde ? `Emitida desde ${fechaCorta(desde)}` : `Emitida hasta ${fechaCorta(hasta)}`,
+      quitar: { desde: "", hasta: "" },
+    });
+  }
 
   return (
     <div className="card-cayla p-4">
@@ -89,17 +148,17 @@ export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveed
             ))}
           </CampoSelectNativo>
         )}
+        {ver("vencidas") && (
+          <CampoSelectNativo etiqueta="Vencimiento" value={params.get("vencidas") ?? ""} onChange={(e) => aplicar({ vencidas: e.target.value })}>
+            <option value="">Todas</option>
+            <option value="1">Solo vencidas</option>
+          </CampoSelectNativo>
+        )}
         {ver("condicion") && (
           <CampoSelectNativo etiqueta="Condición" value={params.get("cond") ?? ""} onChange={(e) => aplicar({ cond: e.target.value })}>
             <option value="">Todas</option>
             <option value="contado">Al contado</option>
             <option value="credito">Al crédito</option>
-          </CampoSelectNativo>
-        )}
-        {ver("vencidas") && (
-          <CampoSelectNativo etiqueta="Vencimiento" value={params.get("vencidas") ?? ""} onChange={(e) => aplicar({ vencidas: e.target.value })}>
-            <option value="">Todas</option>
-            <option value="1">Solo vencidas</option>
           </CampoSelectNativo>
         )}
         {ver("fechas") && (
@@ -109,20 +168,46 @@ export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveed
           </>
         )}
       </div>
-      {hayFiltros && (
-        <div className="mt-1 flex justify-end">
-          <Boton
-            peso="discreto"
-            className="px-3 py-2"
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {chips.map((c) => (
+          <button
+            key={c.texto}
+            type="button"
+            onClick={() => {
+              if ("q" in c.quitar) setBusqueda("");
+              aplicar(c.quitar);
+            }}
+            className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+            aria-label={`Quitar filtro ${c.texto}`}
+          >
+            {c.texto}
+            <span aria-hidden className="text-sm leading-none">×</span>
+          </button>
+        ))}
+        {chips.length > 0 && (
+          <button
+            type="button"
             onClick={() => {
               setBusqueda("");
               router.push(pathname);
             }}
+            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
-            Limpiar filtros
-          </Boton>
-        </div>
-      )}
+            Limpiar todo
+          </button>
+        )}
+        {secundarios.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpandidoAMano(!expandido)}
+            aria-expanded={expandido}
+            className="label-cayla ml-auto text-[11px] text-tinta/65 hover:text-rojo"
+          >
+            {expandido ? "Menos filtros ↑" : "Más filtros ↓"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
