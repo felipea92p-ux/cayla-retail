@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { BadgePercent, Banknote, Check, CreditCard, FileText, KeyRound, Landmark, Percent, Receipt, ShoppingBag, StickyNote, Trash2, Wallet } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, FileText, KeyRound, Landmark, Percent, Play, Receipt, ShoppingBag, StickyNote, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
@@ -207,6 +207,13 @@ export function PuntoDeVentaTicket({
 }: Props) {
   const cobrando = momento === "cobrar";
   const descontando = momento === "descuento";
+  const enLaEspera = momento === "espera";
+  // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
+  const resumenEspera = (t: TicketEnEspera) => ({
+    hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" }),
+    prendas: t.carrito.reduce((acc, it) => acc + it.cantidad, 0),
+    total: t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0),
+  });
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const apagado = bloqueado || motivoBloqueo !== null;
 
@@ -253,10 +260,24 @@ export function PuntoDeVentaTicket({
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
       <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
         {momento === "armar" ? (
-          <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
-            <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
-            Ticket actual
-          </h2>
+          <>
+            <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
+              <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
+              Ticket actual
+            </h2>
+            {/* Solo cuando hay algo esperando: el chip es la única puerta a esa lista. */}
+            {enEspera.length > 0 && (
+              <button
+                type="button"
+                onClick={onIrAEspera}
+                disabled={bloqueado}
+                className="label-cayla anim-revelar flex h-8 items-center gap-1.5 rounded-lg border border-tinta/25 bg-crema px-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+              >
+                <CirclePause className={ICONO_CHICO} aria-hidden />
+                En espera · {enEspera.length}
+              </button>
+            )}
+          </>
         ) : (
           <>
             <button
@@ -269,11 +290,23 @@ export function PuntoDeVentaTicket({
             </button>
             <div key={momento} className="anim-revelar text-right">
               <h2 className="flex items-center justify-end gap-2.5 font-display text-2xl leading-none text-tinta">
-                {cobrando ? <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> : <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />}
-                {cobrando ? "Cobro" : "Descuento"}
+                {cobrando ? (
+                  <Wallet className="h-6 w-6 text-tinta/70" aria-hidden />
+                ) : enLaEspera ? (
+                  <CirclePause className="h-6 w-6 text-tinta/70" aria-hidden />
+                ) : (
+                  <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />
+                )}
+                {cobrando ? "Cobro" : enLaEspera ? "En espera" : "Descuento"}
               </h2>
               <p className="mt-1 text-xs text-tinta/60">
-                {cobrando ? etiquetaPrendas : todoElTicket ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} prendas`}
+                {cobrando
+                  ? etiquetaPrendas
+                  : enLaEspera
+                    ? `${enEspera.length} ${enEspera.length === 1 ? "ticket" : "tickets"}`
+                    : todoElTicket
+                      ? "Todo el ticket"
+                      : `${elegidasCuenta} de ${carrito.length} prendas`}
               </p>
             </div>
           </>
@@ -282,7 +315,53 @@ export function PuntoDeVentaTicket({
 
       <form onSubmit={onCobrar} className="flex min-h-0 flex-1 flex-col">
         <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
-          {descontando ? (
+          {enLaEspera ? (
+            <div className="anim-revelar space-y-3 px-5 py-4">
+              {/* Si el actual tiene líneas, retomar lo intercambia: se dice antes de tocar. */}
+              {carrito.length > 0 && (
+                <p className="rounded-lg border border-sand bg-crema px-3 py-2 text-xs text-tinta/70">
+                  Tu ticket actual tiene {etiquetaPrendas}: al retomar uno, el actual pasa a espera.
+                </p>
+              )}
+              {enEspera.length === 0 ? (
+                <p className="py-6 text-center text-sm text-tinta/60">No hay tickets en espera.</p>
+              ) : (
+                <div className="divide-y divide-sand rounded-lg border border-sand bg-crema">
+                  {enEspera.map((t) => {
+                    const r = resumenEspera(t);
+                    return (
+                      <div key={t.id} className="flex items-center gap-3 px-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-tinta">
+                            <span className="font-mono text-xs text-tinta/60">{r.hora}</span>
+                            <span className="mx-1.5 text-tinta/30">·</span>
+                            {r.prendas} {r.prendas === 1 ? "prenda" : "prendas"}
+                            <span className="mx-1.5 text-tinta/30">·</span>
+                            <span className="font-semibold">{money(r.total)}</span>
+                          </p>
+                          {t.nota && (
+                            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-tinta/60">
+                              <StickyNote className="h-3 w-3 shrink-0" aria-hidden />
+                              {t.nota}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onRetomar(t.id)}
+                          disabled={bloqueado}
+                          className="label-cayla flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                        >
+                          <Play className={ICONO_CHICO} aria-hidden />
+                          Retomar
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : descontando ? (
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto: atajos de palabra o un número a mano. */}
               <fieldset className="space-y-2">
@@ -758,7 +837,7 @@ export function PuntoDeVentaTicket({
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
               se cobra, así que se decide antes de cobrar (decisión 3-A). */}
           {momento === "armar" && (
-            <div className="mb-3 flex items-center justify-between text-xs">
+            <div className="mb-3 flex items-center justify-between gap-2 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -787,6 +866,18 @@ export function PuntoDeVentaTicket({
                   </span>
                 </button>
               )}
+              {/* Park: guarda el ticket y libera la caja para la siguiente clienta. */}
+              {carrito.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onDejarEnEspera}
+                  disabled={bloqueado}
+                  className="label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
+                >
+                  <CirclePause className={ICONO_CHICO} aria-hidden />
+                  Dejar en espera
+                </button>
+              )}
             </div>
           )}
 
@@ -807,13 +898,13 @@ export function PuntoDeVentaTicket({
 
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él. */}
-          {(descontando ? motivoDescuento : motivoBloqueo) !== null && (
+          {!enLaEspera && (descontando ? motivoDescuento : motivoBloqueo) !== null && (
             <p id={ID_MOTIVO} className="mb-2 text-center text-[11px] text-tinta/60">
               {descontando ? motivoDescuento : motivoBloqueo}
             </p>
           )}
 
-          {descontando ? (
+          {enLaEspera ? null : descontando ? (
             <>
               <button
                 type="button"
