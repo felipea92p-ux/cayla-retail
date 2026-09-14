@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
@@ -35,7 +36,6 @@ export function CategoriasLista({
   const [porFamilia, setPorFamilia] = useState(porFamiliaInicial);
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [aviso, setAviso] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
 
   const [nombre, setNombre] = useState("");
   const [prefijo, setPrefijo] = useState("");
@@ -43,7 +43,6 @@ export function CategoriasLista({
 
   function abrir() {
     setAgregando(true);
-    setAviso(null);
     setNombre("");
     setPrefijo("");
     setFamilia("indumentaria");
@@ -51,7 +50,6 @@ export function CategoriasLista({
 
   async function guardar() {
     setGuardando(true);
-    setAviso(null);
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "POST",
@@ -60,7 +58,7 @@ export function CategoriasLista({
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso({ tono: "error", texto: datos.error ?? "No se pudo agregar la categoría." });
+        avisar.error(datos.error ?? "No se pudo agregar la categoría.");
         return;
       }
       setPorFamilia((actual) => ({
@@ -69,9 +67,10 @@ export function CategoriasLista({
           (a, b) => a.nombre.localeCompare(b.nombre)
         ),
       }));
+      avisar.exito(`Categoría ${datos.categoria?.nombre ?? nombre} agregada`);
       setAgregando(false);
     } catch {
-      setAviso({ tono: "error", texto: "No se pudo hablar con el servidor. Reintenta en un momento." });
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setGuardando(false);
     }
@@ -132,9 +131,6 @@ export function CategoriasLista({
               placeholder="CHA"
             />
           </div>
-          {aviso && (
-            <p className={`mt-3 text-xs ${aviso.tono === "error" ? "text-rojo-profundo" : "text-verde"}`}>{aviso.texto}</p>
-          )}
           <div className="mt-5 flex justify-end gap-2">
             <Boton peso="fantasma" onClick={() => setAgregando(false)} disabled={guardando}>
               Cancelar

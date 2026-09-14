@@ -10,6 +10,7 @@ import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
 
@@ -67,16 +68,14 @@ export function ComprobantesPanel({
   const router = useRouter();
   const [modal, setModal] = useState<"emitir" | "serie" | "anular" | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
   // global: transmitir la fila 3 no debe deshabilitar el botón de la fila 1.
   const [transmitiendoId, setTransmitiendoId] = useState<string | null>(null);
-  const [errorTransmision, setErrorTransmision] = useState<{ id: string; detalle: string } | null>(null);
 
   async function onTransmitir(comprobanteId: string) {
     setTransmitiendoId(comprobanteId);
-    setErrorTransmision(null);
+    const cerrarProceso = avisar.proceso("Transmitiendo a SUNAT…");
     try {
       const respuesta = await fetch("/api/lucode/emitir", {
         method: "POST",
@@ -85,13 +84,15 @@ export function ComprobantesPanel({
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        setErrorTransmision({ id: comprobanteId, detalle: datos.error ?? "No se pudo transmitir" });
+        avisar.error("No se pudo transmitir el comprobante", { detalle: datos.error ?? undefined });
         return;
       }
+      avisar.exito("Comprobante transmitido", { detalle: "SUNAT lo tiene; el estado se actualiza en la lista." });
       router.refresh();
     } catch {
-      setErrorTransmision({ id: comprobanteId, detalle: "No se pudo conectar con el servidor" });
+      avisar.error("No se pudo transmitir el comprobante", { detalle: "No se pudo conectar con el servidor." });
     } finally {
+      cerrarProceso();
       setTransmitiendoId(null);
     }
   }
@@ -100,14 +101,13 @@ export function ComprobantesPanel({
   // pero `anular_comprobante` lo vuelve a exigir en la base.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
-  const [errorAnulacion, setErrorAnulacion] = useState<string | null>(null);
   const [enviandoAnulacion, setEnviandoAnulacion] = useState(false);
 
   async function onAnular(e: React.FormEvent) {
     e.preventDefault();
     if (!anulando) return;
+    if (!motivoAnulacion.trim()) return void avisar.error("Escribe el motivo de la anulación.", { enfocar: "anulacion-motivo" });
     setEnviandoAnulacion(true);
-    setErrorAnulacion(null);
     try {
       const respuesta = await fetch("/api/lucode/anular", {
         method: "POST",
@@ -116,15 +116,16 @@ export function ComprobantesPanel({
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        setErrorAnulacion(datos.error ?? "No se pudo anular");
+        avisar.error("No se pudo anular el comprobante", { detalle: datos.error ?? undefined });
         return;
       }
+      avisar.exito("Anulación enviada a SUNAT", { detalle: "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila." });
       setModal(null);
       setAnulando(null);
       setMotivoAnulacion("");
       router.refresh();
     } catch {
-      setErrorAnulacion("No se pudo conectar con el servidor");
+      avisar.error("No se pudo anular el comprobante", { detalle: "No se pudo conectar con el servidor." });
     } finally {
       setEnviandoAnulacion(false);
     }
@@ -132,11 +133,10 @@ export function ComprobantesPanel({
 
   // Consultar una baja en trámite. Va por fila, igual que transmitir.
   const [consultandoId, setConsultandoId] = useState<string | null>(null);
-  const [avisoConsulta, setAvisoConsulta] = useState<{ id: string; texto: string } | null>(null);
 
   async function onConsultarAnulacion(comprobanteId: string) {
     setConsultandoId(comprobanteId);
-    setAvisoConsulta(null);
+    const cerrarProceso = avisar.proceso("Consultando a SUNAT…");
     try {
       const respuesta = await fetch("/api/lucode/consultar-anulacion", {
         method: "POST",
@@ -145,23 +145,22 @@ export function ComprobantesPanel({
       });
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        setAvisoConsulta({ id: comprobanteId, texto: datos.error ?? "No se pudo consultar" });
+        avisar.error("No se pudo consultar la anulación", { detalle: datos.error ?? undefined });
         return;
       }
       if (datos.anulacion === "confirmada") {
+        avisar.exito("SUNAT confirmó la anulación", { detalle: "El comprobante ya figura como anulado." });
         router.refresh();
         return;
       }
-      setAvisoConsulta({
-        id: comprobanteId,
-        texto:
-          datos.anulacion === "en_tramite"
-            ? "SUNAT todavía la está procesando. Vuelve a consultar en unos minutos."
-            : `SUNAT no la reporta como anulada (dice "${datos.estadoCrudo}"). Revisa el panel de Lucode.`,
-      });
+      avisar.aviso(
+        datos.anulacion === "en_tramite" ? "SUNAT todavía la está procesando" : "SUNAT no la reporta como anulada",
+        { detalle: datos.anulacion === "en_tramite" ? "Vuelve a consultar en unos minutos." : `Dice "${datos.estadoCrudo}". Revisa el panel de Lucode.` },
+      );
     } catch {
-      setAvisoConsulta({ id: comprobanteId, texto: "No se pudo conectar con el servidor" });
+      avisar.error("No se pudo consultar la anulación", { detalle: "No se pudo conectar con el servidor." });
     } finally {
+      cerrarProceso();
       setConsultandoId(null);
     }
   }
@@ -197,7 +196,6 @@ export function ComprobantesPanel({
 
   function cerrarModal() {
     setModal(null);
-    setError(null);
     setTotal(0);
     setClienteNumDoc("");
     setClienteNombre("");
@@ -208,7 +206,6 @@ export function ComprobantesPanel({
   async function onEmitir(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     // IGV incluido en el total (19.83% del total = IGV, práctica estándar
     // cuando el precio ya lo incluye) — la desagregación exacta por línea
@@ -226,11 +223,12 @@ export function ComprobantesPanel({
       p_cliente_nombre: clienteNombre || undefined,
     });
     if (error) {
-      setError(traducirError(error, "emitir el comprobante"));
+      avisar.error(traducirError(error, "emitir el comprobante"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito(`${ETIQUETA_TIPO[tipo]} emitida`, { detalle: "Aparece en la lista; transmítela a SUNAT desde la fila." });
     cerrarModal();
     router.refresh();
   }
@@ -238,7 +236,6 @@ export function ComprobantesPanel({
   async function onRegistrarSerie(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_serie_comprobante", {
       p_ubicacion_id: serieUbicacionId,
@@ -248,11 +245,12 @@ export function ComprobantesPanel({
       p_siguiente_numero: serieNumero ? Number(serieNumero) : undefined,
     });
     if (error) {
-      setError(traducirError(error, "registrar la serie"));
+      avisar.error(traducirError(error, "registrar la serie"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito(`Serie ${serieTexto} registrada`);
     cerrarModal();
     router.refresh();
   }
@@ -393,7 +391,6 @@ export function ComprobantesPanel({
                             onClick={() => {
                               setAnulando(c);
                               setMotivoAnulacion("");
-                              setErrorAnulacion(null);
                               setModal("anular");
                             }}
                             className="px-2.5 py-1.5 text-[11px]"
@@ -413,18 +410,10 @@ export function ComprobantesPanel({
                         ) : (
                           <span className="text-tinta/65">—</span>
                         )}
-                        {avisoConsulta?.id === c.id && (
-                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-ambar-profundo">
-                            {avisoConsulta.texto}
-                          </p>
-                        )}
                         {c.motivo_anulacion && (
                           <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-tinta/65">
                             {c.motivo_anulacion}
                           </p>
-                        )}
-                        {errorTransmision?.id === c.id && (
-                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo/80">{errorTransmision.detalle}</p>
                         )}
                       </td>
                     </tr>
@@ -521,10 +510,6 @@ export function ComprobantesPanel({
               &ldquo;Transmitir&rdquo; en la lista de abajo, que es lo que lo envía.
             </p>
 
-            {error && (
-              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
-            )}
-
             <div className="flex gap-2 pt-3">
               <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
                 Cancelar
@@ -587,9 +572,6 @@ export function ComprobantesPanel({
               onChange={(e) => setSerieNumero(e.target.value)}
               placeholder="1"
             />
-            {error && (
-              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
-            )}
             <div className="flex gap-2 pt-3">
               <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
                 Cancelar
@@ -624,6 +606,7 @@ export function ComprobantesPanel({
             </p>
 
             <CampoTexto
+              id="anulacion-motivo"
               etiqueta="Motivo"
               ayuda={
                 <Ayuda titulo="Por qué se pide el motivo">
@@ -640,9 +623,6 @@ export function ComprobantesPanel({
               placeholder="Se emitió por error, la venta no se hizo"
             />
 
-            {errorAnulacion && (
-              <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{errorAnulacion}</p>
-            )}
 
             <div className="flex gap-2 pt-3">
               <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>

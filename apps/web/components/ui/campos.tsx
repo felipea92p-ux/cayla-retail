@@ -120,7 +120,9 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
 export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, className = "", ...props }: CampoTextoProps) {
-  const id = useId();
+  // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
+  const idPropio = useId();
+  const id = props.id ?? idPropio;
   const [enfocado, setEnfocado] = useState(false);
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
@@ -206,7 +208,8 @@ export function CampoSelectNativo({
   tono,
   ...props
 }: SelectNativoProps & { etiqueta: ReactNode; ayuda?: ReactNode; pie?: ReactNode; tono?: CampoProps["tono"] }) {
-  const id = useId();
+  const idPropio = useId();
+  const id = props.id ?? idPropio;
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
       <SelectNativo id={id} {...props} />

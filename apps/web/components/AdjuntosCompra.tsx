@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { objecionArchivo, subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ADJUNTOS_MAX_POR_FACTURA, fechaCorta, tamanoLegible, type AdjuntoCompra } from "@/lib/compras-reglas";
 import { Boton } from "@/components/ui/campos";
@@ -65,8 +66,6 @@ function BotonElegir({ onArchivos, disabled = false, texto }: { onArchivos: (f: 
    En "Registrar factura": la cola de archivos por subir.
    ------------------------------------------------------------------ */
 export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; onArchivos: (f: File[]) => void }) {
-  const [objecion, setObjecion] = useState<string | null>(null);
-
   function agregar(nuevos: File[]) {
     const malos: string[] = [];
     const buenos = nuevos.filter((f) => {
@@ -76,7 +75,7 @@ export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; o
     });
     const cupo = ADJUNTOS_MAX_POR_FACTURA - archivos.length;
     if (buenos.length > cupo) malos.push(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por factura.`);
-    setObjecion(malos.length ? malos.join(" · ") : null);
+    if (malos.length) avisar.aviso(malos.length === 1 ? "Un archivo no se puede adjuntar" : `${malos.length} archivos no se pueden adjuntar`, { detalle: malos.join(" · ") });
     if (buenos.length) onArchivos([...archivos, ...buenos.slice(0, Math.max(0, cupo))]);
   }
 
@@ -109,7 +108,7 @@ export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; o
         texto={archivos.length ? "+ Otro archivo" : "Adjuntar factura o documentos"}
         disabled={archivos.length >= ADJUNTOS_MAX_POR_FACTURA}
       />
-      <p className={`text-xs ${objecion ? "text-rojo" : "text-tinta/45"}`}>{objecion ?? "PDF o foto, hasta 10 MB. Se suben al registrar."}</p>
+      <p className="text-xs text-tinta/45">PDF o foto, hasta 10 MB. Se suben al registrar.</p>
     </div>
   );
 }
@@ -131,23 +130,31 @@ export function AdjuntosDeFactura({
 }) {
   const router = useRouter();
   const [subiendo, setSubiendo] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(
-    avisoInicial?.length ? `Al registrar no se pudo subir: ${avisoInicial.join(", ")}. Puedes intentarlo de nuevo desde aquí.` : null,
-  );
   const [aQuitar, setAQuitar] = useState<AdjuntoCompra | null>(null);
+  // Lo que no subió al registrar viene por la URL; se avisa una sola vez.
+  const avisoDado = useRef(false);
+  useEffect(() => {
+    if (avisoDado.current || !avisoInicial?.length) return;
+    avisoDado.current = true;
+    avisar.aviso(`Al registrar no se pudo subir: ${avisoInicial.join(", ")}`, { detalle: "Puedes intentarlo de nuevo desde aquí." });
+  }, [avisoInicial]);
 
   async function agregar(nuevos: File[]) {
     if (!nuevos.length) return;
     if (adjuntos.length + nuevos.length > ADJUNTOS_MAX_POR_FACTURA) {
-      setAviso(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por factura.`);
+      avisar.error(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por factura.`);
       return;
     }
     setSubiendo(true);
-    setAviso(null);
+    const cerrarProceso = avisar.proceso(nuevos.length === 1 ? `Subiendo ${nuevos[0].name}…` : `Subiendo ${nuevos.length} archivos…`);
     const r = await subirAdjuntosCompra(createClient(), compraId, nuevos);
+    cerrarProceso();
     setSubiendo(false);
-    if (r.fallidos.length) setAviso(r.fallidos.map((f) => `${f.nombre}: ${f.motivo}`).join(" · "));
-    if (r.subidos.length) router.refresh();
+    if (r.fallidos.length) avisar.error(r.fallidos.length === 1 ? "Un archivo no subió" : `${r.fallidos.length} archivos no subieron`, { detalle: r.fallidos.map((f) => `${f.nombre}: ${f.motivo}`).join(" · ") });
+    if (r.subidos.length) {
+      avisar.exito(r.subidos.length === 1 ? "Adjunto subido" : `${r.subidos.length} adjuntos subidos`);
+      router.refresh();
+    }
   }
 
   return (
@@ -195,7 +202,6 @@ export function AdjuntosDeFactura({
           </div>
         )}
       </div>
-      {aviso && <p className="text-sm text-rojo">{aviso}</p>}
       {aQuitar && (
         <QuitarAdjuntoModal
           adjunto={aQuitar}
@@ -211,18 +217,17 @@ export function AdjuntosDeFactura({
 }
 
 function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoCompra; onClose: () => void; onQuitado: () => void }) {
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function confirmar() {
     setLoading(true);
-    setError(null);
     const { error } = await createClient().rpc("archivar_adjunto_compra", { p_adjunto_id: adjunto.id });
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "quitar el adjunto"));
+      avisar.error(traducirError(error, "quitar el adjunto"));
       return;
     }
+    avisar.exito(`${adjunto.nombre} quitado`, { detalle: "El archivo no se destruye: queda guardado." });
     onQuitado();
   }
 
@@ -231,7 +236,6 @@ function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoC
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-sm text-tinta/75">Deja de verse en esta factura. El archivo no se destruye: queda guardado por si hace falta recuperarlo.</p>
-          {error && <p className="text-sm text-rojo">{error}</p>}
           <div className="flex gap-3">
             <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
               Cancelar

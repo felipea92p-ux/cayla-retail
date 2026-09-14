@@ -147,9 +147,13 @@ flowchart TB
 - `/compras` (Facturas), `/compras/nueva`, `/compras/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
   `CompraFormV2`, `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
-  `registrar_compra`, `recibir_compras`, `registrar_pago_compra`,
+  `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
+- Avisos globales (ADR-0043): `components/ui/Avisos.tsx`, montado en
+  `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
+  (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`
+  de error en componentes.
 - Adjuntos de factura (ADR-0042, `20260914180000_compras_adjuntos.sql`):
   tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
   `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →

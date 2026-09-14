@@ -8,6 +8,7 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 
 const ETIQUETA_ROL: Record<Colaborador["rol"], string> = { lider: "Líder", colaborador: "Colaborador" };
 
@@ -37,15 +38,12 @@ export function ColaboradoresPanel({
   const [seleccionado, setSeleccionado] = useState(disponibles[0]?.persona_id ?? "");
   const [ubicacionElegida, setUbicacionElegida] = useState(ubicaciones[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [quitandoId, setQuitandoId] = useState<string | null>(null);
-  const [errorQuitar, setErrorQuitar] = useState<{ id: string; texto: string } | null>(null);
 
   async function onAgregar(e: React.FormEvent) {
     e.preventDefault();
     if (!seleccionado || !ubicacionElegida) return;
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     // Todo colaborador nuevo entra con rol Colaborador, fijo a esta sede —
     // Líder es un nivel que hoy no se asigna desde acá (0016_roles_colaborador.sql).
@@ -55,23 +53,24 @@ export function ColaboradoresPanel({
     });
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "agregar el colaborador"));
+      avisar.error(traducirError(error, "agregar el colaborador"));
       return;
     }
+    avisar.exito(`${disponibles.find((d) => d.persona_id === seleccionado)?.nombre ?? "Colaborador"} ya tiene acceso`);
     setModalAbierto(false);
     router.refresh();
   }
 
   async function onQuitar(persona_id: string) {
     setQuitandoId(persona_id);
-    setErrorQuitar(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("quitar_colaborador", { p_persona_id: persona_id });
     setQuitandoId(null);
     if (error) {
-      setErrorQuitar({ id: persona_id, texto: traducirError(error, "quitar el acceso") });
+      avisar.error(traducirError(error, "quitar el acceso"));
       return;
     }
+    avisar.exito("Acceso quitado", { detalle: "La persona ya no puede entrar al sistema de retail." });
     router.refresh();
   }
 
@@ -132,11 +131,6 @@ export function ColaboradoresPanel({
                       >
                         {quitandoId === c.persona_id ? "Quitando…" : "Quitar acceso"}
                       </Boton>
-                      {errorQuitar?.id === c.persona_id && (
-                        <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo/80">
-                          {errorQuitar.texto}
-                        </p>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -173,10 +167,6 @@ export function ColaboradoresPanel({
                   Entra como Colaborador, fijo a esta sede — no va a poder cambiarla él mismo.
                 </p>
               </div>
-
-              {error && (
-                <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>
-              )}
 
               <div className="flex gap-2 pt-3">
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>

@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 
 // Proveedor · RUC · Facturas · Saldo · Última compra · Acciones
 // La última columna mide lo que miden "Editar" + "Desactivar" en una sola
@@ -36,10 +37,6 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
   const router = useRouter();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
-  const [errorFila, setErrorFila] = useState<{
-    id: string;
-    texto: string;
-  } | null>(null);
 
   // Búsqueda en memoria: el directorio entero ya está en la página (son
   // decenas de proveedores, no miles), así que filtrar acá es instantáneo y
@@ -54,17 +51,16 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
 
   async function onCambiarEstado(p: Proveedor) {
     setCambiandoId(p.id);
-    setErrorFila(null);
     const supabase = createClient();
     const { error } = await supabase.rpc(p.activo ? "desactivar_proveedor" : "reactivar_proveedor", { p_proveedor_id: p.id });
     setCambiandoId(null);
     if (error) {
-      setErrorFila({
-        id: p.id,
-        texto: traducirError(error, p.activo ? "desactivar el proveedor" : "reactivar el proveedor"),
-      });
+      avisar.error(traducirError(error, p.activo ? "desactivar el proveedor" : "reactivar el proveedor"));
       return;
     }
+    avisar.exito(p.activo ? `${p.nombre} desactivado` : `${p.nombre} reactivado`, {
+      detalle: p.activo ? "Deja de aparecer al registrar facturas; su historial se conserva." : "Vuelve a aparecer al registrar facturas.",
+    });
     router.refresh();
   }
 
@@ -109,7 +105,6 @@ export function ProveedoresPanel({ proveedores, puedeEditar }: { proveedores: Pr
             </>
           )}
         </span>
-        {errorFila?.id === p.id && <span className="mt-1 block whitespace-normal text-right text-[11px] leading-snug text-rojo/80">{errorFila.texto}</span>}
       </span>
     </div>
   );
@@ -222,17 +217,15 @@ function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; o
   const [ruc, setRuc] = useState(inicial.ruc);
   const [contacto, setContacto] = useState(inicial.contacto);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const editando = inicial.id !== null;
   const rucValido = ruc.length === 0 || validarDocumento("ruc", ruc).valido;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nombre.trim()) return setError("El proveedor necesita un nombre.");
-    if (!rucValido) return setError("El RUC tiene que ser de 11 dígitos. Si no tiene, déjalo en blanco.");
+    if (!nombre.trim()) return void avisar.error("El proveedor necesita un nombre.", { enfocar: "documento-nombre" });
+    if (!rucValido) return void avisar.error("El RUC tiene que ser de 11 dígitos. Si no tiene, déjalo en blanco.", { enfocar: "documento-numero" });
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const args = {
       p_nombre: nombre.trim(),
@@ -247,9 +240,10 @@ function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; o
       : await supabase.rpc("registrar_proveedor", args);
     setLoading(false);
     if (error) {
-      setError(traducirError(error, editando ? "guardar el proveedor" : "registrar el proveedor"));
+      avisar.error(traducirError(error, editando ? "guardar el proveedor" : "registrar el proveedor"));
       return;
     }
+    avisar.exito(editando ? `${nombre.trim()} actualizado` : `Proveedor ${nombre.trim()} registrado`);
     onGuardado();
   }
 
@@ -269,8 +263,6 @@ function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; o
             value={contacto}
             onChange={(e) => setContacto(e.target.value)}
           />
-
-          {error && <p className="anim-revelar border-l-2 border-rojo pl-3 text-xs leading-relaxed text-rojo">{error}</p>}
 
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>

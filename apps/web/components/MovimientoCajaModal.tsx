@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 // "Retiro de efectivo" del roadmap es un egreso con motivo predefinido —
@@ -16,7 +17,6 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
   const [monto, setMonto] = useState("");
   const [motivoRapido, setMotivoRapido] = useState(MOTIVOS_EGRESO_RAPIDO[0]);
   const [motivoLibre, setMotivoLibre] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const motivo = motivoRapido === "Otro" ? motivoLibre : motivoRapido;
@@ -24,11 +24,10 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!motivo.trim()) {
-      setError("Escribe el motivo.");
+      avisar.error("Escribe el motivo.", { enfocar: "mov-motivo-libre" });
       return;
     }
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_movimiento_caja", {
       p_caja_id: cajaId,
@@ -38,9 +37,10 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
     });
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "registrar el movimiento de caja"));
+      avisar.error(traducirError(error, "registrar el movimiento de caja"));
       return;
     }
+    avisar.exito(`${tipo === "ingreso" ? "Ingreso" : "Egreso"} de caja registrado`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
@@ -102,6 +102,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           ) : null}
           {(tipo === "ingreso" || motivoRapido === "Otro") && (
             <input
+              id="mov-motivo-libre"
               placeholder="Describe el motivo"
               value={motivoLibre}
               onChange={(e) => setMotivoLibre(e.target.value)}
@@ -110,7 +111,6 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           )}
         </div>
 
-        {error && <p className="text-sm text-rojo">{error}</p>}
 
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>

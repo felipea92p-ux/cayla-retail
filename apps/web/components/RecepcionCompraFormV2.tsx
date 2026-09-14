@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -64,7 +65,6 @@ export function RecepcionCompraFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [nota, setNota] = useState("");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; facturas: number } | null>(null);
 
@@ -107,7 +107,6 @@ export function RecepcionCompraFormV2({
 
   // Tocar una factura arma una guía nueva con ella sola.
   function elegir(c: CompraResumen) {
-    setError(null);
     setSeleccionadas([c.id]);
     setReparto(precargar([c.id], lineas, {}));
     irAlPanel();
@@ -116,13 +115,11 @@ export function RecepcionCompraFormV2({
   // "+ Sumar": la agrega a la guía en curso (mismo proveedor, lo garantiza
   // quien muestra el botón).
   function sumar(c: CompraResumen) {
-    setError(null);
     setSeleccionadas((s) => [...s, c.id]);
     setReparto((r) => precargar([c.id], lineas, r));
   }
 
   function quitar(compraId: string) {
-    setError(null);
     setSeleccionadas((s) => s.filter((id) => id !== compraId));
     setReparto((r) => {
       const copia = { ...r };
@@ -165,14 +162,14 @@ export function RecepcionCompraFormV2({
           cantidad: n,
         })),
     );
-    if (seleccionadas.length === 0) return setError("Elige al menos una factura.");
-    if (items.length === 0) return setError("Indica cuántas unidades llegaron — al menos una línea con cantidad.");
+    if (seleccionadas.length === 0) return void avisar.error("Elige al menos una factura.", { enfocar: "recibir-buscar" });
+    if (items.length === 0) return void avisar.error("Indica cuántas unidades llegaron — al menos una línea con cantidad.", { enfocar: panel.current });
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
-    if (excedida) return setError(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`);
-    if (!ubicacionId) return setError("Elige a qué ubicación entra la mercadería.");
+    if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
+    if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
 
     setLoading(true);
-    setError(null);
+    const cerrarProceso = avisar.proceso("Recibiendo mercadería…");
     const supabase = createClient();
     const { error } = await supabase.rpc("recibir_compras", {
       p_ubicacion_id: ubicacionId,
@@ -180,13 +177,18 @@ export function RecepcionCompraFormV2({
       ...(numeroGuia.trim() ? { p_numero_guia: numeroGuia.trim() } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
     });
+    cerrarProceso();
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "recibir la mercadería"));
+      avisar.error(traducirError(error, "recibir la mercadería"));
       return;
     }
+    const unidades = items.reduce((a, i) => a + i.cantidad, 0);
+    avisar.exito(`${unidades} unidades recibidas en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la ubicación"}`, {
+      detalle: seleccionadas.length === 1 ? "Contra una factura." : `Contra ${seleccionadas.length} facturas.`,
+    });
     setOk({
-      unidades: items.reduce((a, i) => a + i.cantidad, 0),
+      unidades,
       facturas: seleccionadas.length,
     });
     router.refresh();
@@ -316,7 +318,7 @@ export function RecepcionCompraFormV2({
                   autoComplete="off"
                 />
                 {ubicaciones.length > 1 ? (
-                  <CampoSelectNativo etiqueta="Entra a" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
+                  <CampoSelectNativo etiqueta="Entra a" id="recibir-ubicacion" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
                     {ubicaciones.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.nombre}
@@ -385,6 +387,7 @@ export function RecepcionCompraFormV2({
                       return (
                         <div
                           key={l.id}
+                          id={`recibir-linea-${l.id}`}
                           className={`grid gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[1fr_9rem_6rem_6rem] sm:items-center ${completa ? "bg-verde/[0.04]" : ""}`}
                         >
                           <span className="min-w-0 truncate text-sm text-tinta">
@@ -412,7 +415,7 @@ export function RecepcionCompraFormV2({
                     // talla ni color, y se reparte acá mirando lo que llegó.
                     const opciones = variantesPorProducto.get(l.productoId) ?? [];
                     return (
-                      <div key={l.id} className="space-y-2 px-5 py-3">
+                      <div key={l.id} id={`recibir-linea-${l.id}`} className="space-y-2 px-5 py-3">
                         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                           <span className="min-w-0 text-sm text-tinta">
                             {l.referencia} <span className="text-xs text-tinta/55">· sin desglose, reparte por talla y color</span>
@@ -470,7 +473,6 @@ export function RecepcionCompraFormV2({
               )}
             </div>
             <div className="flex flex-col items-end gap-1">
-              {error && <p className="text-sm text-rojo">{error}</p>}
               <Boton type="submit" peso="primario" cargando={loading} disabled={unidadesRecibiendo === 0 || lineasExcedidas > 0}>
                 Recibir en {ubicacionNombre}
               </Boton>
