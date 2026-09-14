@@ -208,6 +208,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
+    { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
 
   const [activo, setActivo] = useState(0);
@@ -330,6 +331,9 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
+// Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras"];
 
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
@@ -466,7 +470,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                 <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                  {esLider ? "Líder" : "Integrante"} · {persona.ubicacionEtiqueta}
+                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
                 </p>
               </div>
             </button>
@@ -504,12 +508,14 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
       </header>
 
       {/* ==================== Contenido ==================== */}
-      {/* Vender es la única pantalla sin el tope de max-w-5xl: el catálogo +
-          ticket necesita todo el ancho disponible, no el de una página de
-          lectura (pedido de Felipe, 2026-09-12). El resto de la app sigue
-          centrado en la columna angosta de siempre. */}
+      {/* Vender y Compras van sin el tope de max-w-5xl: el catálogo + ticket
+          necesita todo el ancho (pedido de Felipe, 2026-09-12), y las tablas
+          de Compras —seis columnas con documento, proveedor, estados y
+          cifras— se apretaban en la columna de lectura (pedido de Felipe,
+          2026-09-14). El resto de la app sigue centrado en la columna
+          angosta de siempre. */}
       <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        <div className={pathname === "/vender" ? "" : "mx-auto max-w-5xl"}>{children}</div>
+        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 
       {/* ==================== Pestañas (celular) ==================== */}

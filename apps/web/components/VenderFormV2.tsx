@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoSelect, botonPrimario } from "@/components/ui/Modal";
 import { Segmentado } from "@/components/ui/campos";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
@@ -47,7 +48,6 @@ export function VenderFormV2({
   const [tipoComprobante, setTipoComprobante] = useState<TipoComprobante>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ total: number; comprobante: ComprobanteEmitido } | null>(null);
   const tokenVenta = useRef<string>(crypto.randomUUID());
@@ -101,15 +101,14 @@ export function VenderFormV2({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (lineas.length === 0) {
-      setError("Agrega al menos una prenda.");
+      avisar.error("Agrega al menos una prenda.", { enfocar: "venta-agregar" });
       return;
     }
     if (Math.abs(total - totalPagos) > 0.001) {
-      setError(`Los pagos (S/${totalPagos.toFixed(2)}) no cuadran con el total (S/${total.toFixed(2)}).`);
+      avisar.error(`Los pagos (S/${totalPagos.toFixed(2)}) no cuadran con el total (S/${total.toFixed(2)}).`, { enfocar: "venta-pago-0" });
       return;
     }
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
       p_ubicacion_id: ubicacionId,
@@ -128,7 +127,7 @@ export function VenderFormV2({
     });
     if (error) {
       setLoading(false);
-      setError(traducirError(error, "registrar la venta"));
+      avisar.error(traducirError(error, "registrar la venta"));
       return;
     }
     // El comprobante ya quedó creado en la misma transacción de arriba —
@@ -146,6 +145,7 @@ export function VenderFormV2({
     }
     setLoading(false);
     tokenVenta.current = crypto.randomUUID();
+    avisar.exito(`Venta de S/${total.toFixed(2)} registrada`, { detalle: comprobante ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.texto}` : undefined });
     setOk({ total, comprobante });
     router.refresh();
   }
@@ -186,7 +186,7 @@ export function VenderFormV2({
       <div className="space-y-3">
         <p className={campoEtiqueta}>Prendas</p>
         {lineas.map((l, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
+          <div key={i} id={`venta-linea-${i}`} className="flex flex-wrap items-end gap-2">
             <select
               aria-label="Prenda"
               value={l.varianteId}
@@ -223,7 +223,7 @@ export function VenderFormV2({
             )}
           </div>
         ))}
-        <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+        <button type="button" id="venta-agregar" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
           + Agregar línea
         </button>
       </div>
@@ -260,7 +260,7 @@ export function VenderFormV2({
       <div className="space-y-3">
         <p className={campoEtiqueta}>Cómo paga — {ubicacionEtiqueta}</p>
         {pagos.map((p, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
+          <div key={i} id={`venta-pago-${i}`} className="flex flex-wrap items-end gap-2">
             <select
               aria-label="Método de pago"
               value={p.metodo}
@@ -298,7 +298,6 @@ export function VenderFormV2({
         </p>
       </div>
 
-      {error && <p className="text-sm text-rojo">{error}</p>}
 
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Registrando…" : "Registrar venta"}

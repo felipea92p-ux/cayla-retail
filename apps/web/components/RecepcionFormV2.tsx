@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
 
 // Fase UI 1 (2026-09-11): pantalla nueva sobre la RPC `recibir_lote` de V2
@@ -32,7 +33,6 @@ export function RecepcionFormV2({
   const [proveedorId, setProveedorId] = useState(proveedores[0]?.id ?? "");
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number } | null>(null);
   // Un token no aplica acá: `recibir_lote` no tiene idempotencia propia (a
@@ -57,15 +57,14 @@ export function RecepcionFormV2({
     e.preventDefault();
     const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
     if (validas.length === 0) {
-      setError("Agrega al menos una línea con una prenda y una cantidad mayor que cero.");
+      avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "recepcion-linea-0" });
       return;
     }
     if (!proveedorId) {
-      setError("Elige un proveedor.");
+      avisar.error("Elige un proveedor.", { enfocar: "recepcion-proveedor" });
       return;
     }
     setLoading(true);
-    setError(null);
 
     const supabase = createClient();
     const { error } = await supabase.rpc("recibir_lote", {
@@ -81,10 +80,12 @@ export function RecepcionFormV2({
 
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "recibir el lote"));
+      avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
-    setOk({ unidades: validas.reduce((acc, l) => acc + l.cantidad, 0) });
+    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
+    setOk({ unidades });
     router.refresh();
   }
 
@@ -145,7 +146,7 @@ export function RecepcionFormV2({
       <div className="space-y-3">
         <p className={campoEtiqueta}>Prendas recibidas</p>
         {lineas.map((l, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
+          <div key={i} id={`recepcion-linea-${i}`} className="flex flex-wrap items-end gap-2">
             <select
               aria-label="Prenda"
               value={l.varianteId}
@@ -188,7 +189,6 @@ export function RecepcionFormV2({
         </button>
       </div>
 
-      {error && <p className="text-sm text-rojo">{error}</p>}
 
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}

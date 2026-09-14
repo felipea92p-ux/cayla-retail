@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
@@ -67,7 +68,6 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [claveAbierta, setClaveAbierta] = useState(false);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
       .maybeSingle()
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
-        if (errCarga) setError(traducirError(errCarga, "cargar tu perfil"));
+        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
         else setPerfil(data as MiPerfil);
         setCargando(false);
       });
@@ -91,7 +91,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
   // subida a medias.
   function alCerrar() {
     if (subiendo) {
-      setError("Espera a que termine de subirse la foto antes de cerrar.");
+      avisar.aviso("Espera a que termine de subirse la foto antes de cerrar.");
       return;
     }
     onClose();
@@ -103,16 +103,15 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
     if (!archivo || !perfil) return;
 
     if (archivo.type !== "image/jpeg") {
-      setError("La foto debe ser JPEG (.jpg) — es el único formato que acepta el sistema hoy.");
+      avisar.error("La foto debe ser JPEG (.jpg) — es el único formato que acepta el sistema hoy.");
       return;
     }
     if (archivo.size > LIMITE_BYTES) {
-      setError("La foto pesa más de 3 MB — usa una más liviana.");
+      avisar.error("La foto pesa más de 3 MB — usa una más liviana.");
       return;
     }
 
     setSubiendo(true);
-    setError(null);
     const supabase = createClient();
     // Mismo objetivo que el precedente histórico de fotos de producto:
     // nombre nuevo por subida para que el navegador no siga mostrando la
@@ -126,7 +125,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
       contentType: "image/jpeg",
     });
     if (errSubida) {
-      setError(traducirError(errSubida, "subir la foto"));
+      avisar.error(traducirError(errSubida, "subir la foto"));
       setSubiendo(false);
       return;
     }
@@ -137,7 +136,6 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
 
   async function onEliminarFoto() {
     setSubiendo(true);
-    setError(null);
     await guardarFoto(null);
   }
 
@@ -149,9 +147,10 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
     const { error: errGuardar } = await supabase.rpc("actualizar_mi_foto_perfil", { p_foto_url: url as string });
     setSubiendo(false);
     if (errGuardar) {
-      setError(traducirError(errGuardar, "guardar la foto en tu perfil"));
+      avisar.error(traducirError(errGuardar, "guardar la foto en tu perfil"));
       return;
     }
+    avisar.exito(url ? "Foto de perfil actualizada" : "Foto de perfil quitada");
     setPerfil((p) => (p ? { ...p, foto_url: url } : p));
     router.refresh(); // así el avatar del sidebar recoge la foto nueva sin recargar la página
   }
@@ -161,7 +160,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
       {(cerrar) => {
         void cerrar; // el cierre animado de Modal no distingue "en vuelo" — se controla acá, con alCerrar
         if (cargando) return <p className="py-8 text-center text-sm text-tinta/65">Cargando…</p>;
-        if (!perfil) return <p className="py-8 text-center text-sm text-rojo">{error ?? "No se pudo cargar tu perfil."}</p>;
+        if (!perfil) return <p className="py-8 text-center text-sm text-rojo">{"No se pudo cargar tu perfil."}</p>;
 
         const nombreCompleto = `${perfil.nombres} ${perfil.apellidos}`;
 
@@ -199,7 +198,6 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
-            {error && <p className="text-xs text-rojo">{error}</p>}
 
             {/* ---------- información personal (solo lectura) ---------- */}
             <div>
@@ -219,7 +217,7 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
             <div>
               <p className="label-cayla mb-3 text-[11px] text-tinta/65">Cuenta</p>
               <div className="card-cayla grid grid-cols-2 gap-4 p-4">
-                <Campo etiqueta="Rol" valor={perfil.rol === "lider" ? "Líder" : "Integrante"} />
+                <Campo etiqueta="Rol" valor={perfil.rol === "lider" ? "Líder" : "Colaborador"} />
                 <Campo etiqueta="Estado" valor={perfil.estado === "activo" ? "Activo" : "Inactivo"} />
                 <Campo etiqueta="Ubicación" valor={perfil.ubicacion_nombre ?? "Sin asignar"} />
                 <Campo etiqueta="Último acceso" valor={perfil.ultimo_acceso ? formatoFecha(perfil.ultimo_acceso) : "Sin registrar"} />
@@ -257,27 +255,26 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
   const [nueva, setNueva] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (nueva.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+      avisar.error("La contraseña debe tener al menos 8 caracteres.", { enfocar: "clave-nueva" });
       return;
     }
     if (nueva !== confirmar) {
-      setError("Las dos contraseñas no coinciden.");
+      avisar.error("Las dos contraseñas no coinciden.", { enfocar: "clave-confirmar" });
       return;
     }
     setGuardando(true);
-    setError(null);
     const { error: errClave } = await createClient().auth.updateUser({ password: nueva });
     setGuardando(false);
     if (errClave) {
-      setError(traducirError(errClave, "cambiar tu contraseña"));
+      avisar.error(traducirError(errClave, "cambiar tu contraseña"));
       return;
     }
+    avisar.exito("Contraseña actualizada");
     setExito(true);
     setTimeout(onListo, 1200);
   }
@@ -312,7 +309,6 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
         />
       </div>
-      {error && <p className="text-xs text-rojo">{error}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={onListo} className={botonCancelar}>
           Cancelar

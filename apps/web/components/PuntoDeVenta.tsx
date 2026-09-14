@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
@@ -99,7 +100,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -332,11 +332,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     // El mismo motivo que apaga el botón frena acá. El `metodoPago === null` de al
     // lado es solo para que TypeScript lo sepa: `motivoBloqueo` ya lo cubre.
     if (momento !== "cobrar" || motivoBloqueo !== null || metodoPago === null) {
-      setError(motivoBloqueo);
+      if (motivoBloqueo) avisar.error(motivoBloqueo);
       return;
     }
     setLoading(true);
-    setError(null);
 
     const supabase = createClient();
     const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
@@ -357,7 +356,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
     if (error) {
       setLoading(false);
-      setError(traducirError(error, "registrar la venta"));
+      avisar.error(traducirError(error, "registrar la venta"));
       return;
     }
 
@@ -372,6 +371,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
     setLoading(false);
     token.current = crypto.randomUUID();
+    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: comprobante ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.texto}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setOk({ total, prendas, comprobante });
     setCarrito([]);
     limpiarComprobante();
@@ -481,14 +481,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           clienteNombre={clienteNombre}
           onClienteNombre={setClienteNombre}
           facturaSinRuc={facturaSinRuc}
-          error={error}
           loading={loading}
           onCobrar={cobrar}
           momento={momento}
-          onIrACobrar={() => {
-            setMomento("cobrar");
-            setError(null);
-          }}
+          onIrACobrar={() => setMomento("cobrar")}
           onVolverATicket={() => setMomento("armar")}
           motivoBloqueo={motivoBloqueo}
         />

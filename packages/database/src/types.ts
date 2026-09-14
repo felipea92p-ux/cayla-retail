@@ -335,18 +335,32 @@ export type Database = {
           agregado_por: string | null
           created_at: string
           persona_id: string
+          rol: string
+          ubicacion_asignada_id: string | null
         }
         Insert: {
           agregado_por?: string | null
           created_at?: string
           persona_id: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
         Update: {
           agregado_por?: string | null
           created_at?: string
           persona_id?: string
+          rol?: string
+          ubicacion_asignada_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_ubicacion_asignada_id_fkey"
+            columns: ["ubicacion_asignada_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colores: {
         Row: {
@@ -433,6 +447,53 @@ export type Database = {
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_adjuntos: {
+        Row: {
+          archivado_en: string | null
+          archivado_por: string | null
+          bytes: number
+          compra_id: string
+          created_at: string
+          id: string
+          nombre: string
+          ruta: string
+          subido_por: string | null
+          tipo: string
+        }
+        Insert: {
+          archivado_en?: string | null
+          archivado_por?: string | null
+          bytes: number
+          compra_id: string
+          created_at?: string
+          id?: string
+          nombre: string
+          ruta: string
+          subido_por?: string | null
+          tipo: string
+        }
+        Update: {
+          archivado_en?: string | null
+          archivado_por?: string | null
+          bytes?: number
+          compra_id?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          ruta?: string
+          subido_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_adjuntos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
             referencedColumns: ["id"]
           },
         ]
@@ -1850,8 +1911,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      actualizar_proveedor: {
+        Args: { p_proveedor_id: string; p_nombre: string; p_ruc?: string | null; p_contacto?: string | null }
+        Returns: undefined
+      }
       agregar_colaborador: {
-        Args: { p_persona_id: string }
+        Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
       anular_compra: {
@@ -1932,6 +1997,7 @@ export type Database = {
         }
         Returns: string
       }
+      desactivar_proveedor: { Args: { p_proveedor_id: string }; Returns: undefined }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string
@@ -1979,7 +2045,9 @@ export type Database = {
           correo: string
           nombre: string
           persona_id: string
+          rol: string
           sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_dynamic_disponibles: {
@@ -2022,6 +2090,19 @@ export type Database = {
           ubicacion_id: string
           ubicacion_nombre: string
           ubicacion_tipo: string
+        }[]
+      }
+      fn_proveedores: {
+        Args: never
+        Returns: {
+          activo: boolean
+          contacto: string | null
+          facturas: number
+          id: string
+          nombre: string
+          ruc: string | null
+          saldo: number
+          ultima_compra: string | null
         }[]
       }
       fn_puede_operar_ubicacion: {
@@ -2108,7 +2189,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      previsualizar_cierre_conteo: {
+        Args: { p_conteo_id: string }
+        Returns: {
+          codigo: string
+          color: string
+          contada: number
+          diferencia: number
+          origen: string
+          referencia: string
+          sistema: number
+          talla: string
+          variante_id: string
+        }[]
+      }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_proveedor: { Args: { p_proveedor_id: string }; Returns: undefined }
       recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
       rechazar_devolucion: {
@@ -2158,6 +2254,7 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
+          p_total?: number
           p_ubicacion_destino_id: string
         }
         Returns: string
@@ -2182,6 +2279,19 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_adjunto_compra: {
+        Args: { p_compra_id: string; p_ruta: string; p_nombre: string; p_tipo: string; p_bytes: number }
+        Returns: string
+      }
+      archivar_adjunto_compra: { Args: { p_adjunto_id: string }; Returns: undefined }
+      registrar_pagos_compra: {
+        Args: {
+          p_compra_id: string
+          p_fecha?: string
+          p_pagos: Json
+        }
+        Returns: string[]
+      }
       registrar_pago_compra: {
         Args: {
           p_compra_id: string
@@ -2190,6 +2300,10 @@ export type Database = {
           p_monto: number
           p_referencia?: string
         }
+        Returns: string
+      }
+      registrar_proveedor: {
+        Args: { p_nombre: string; p_ruc?: string | null; p_contacto?: string | null }
         Returns: string
       }
       registrar_serie_comprobante: {
@@ -2254,12 +2368,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2283,11 +2397,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2308,11 +2422,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2333,11 +2447,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2350,11 +2464,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

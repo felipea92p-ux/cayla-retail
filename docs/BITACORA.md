@@ -160,6 +160,122 @@ De paso, dos detalles del arnés: el panel del navegador oculto deja las cargas 
 «Cargando…» (ya estaba en memoria) y **dos `next dev` en `localhost` comparten la cookie de
 Supabase** — al pisarse el refresh token, la sesión de uno cierra la del otro.
 
+## 2026-09-14 (la primera vez que el sistema guarda un archivo)
+
+Felipe pidió adjuntar la factura del proveedor y sus documentos. Antes de escribir se
+verificó que el ERP no guardaba ningún archivo todavía — así que las decisiones son las que
+van a heredar las fotos de producto y lo que venga (ADR-0046): bucket privado con prefijo
+`retail-` (el proyecto es compartido con Dynamic) y URL firmada de una hora; la tabla
+`compra_adjuntos` es la verdad y se escribe solo por RPC, que exige que la ruta viva en la
+carpeta de esa compra; el archivo sube del navegador al bucket sin pasar por Next; nunca se
+borra, se archiva. En local Storage está apagado y el Postgres ni tiene el schema, así que la
+migración crea el bucket solo si existe `storage.buckets`; las 5 reglas de la RPC se probaron
+con psql como persona autenticada. La subida real queda para producción.
+
+Lo que Felipe se lleva: **cuando algo se hace por primera vez en el sistema, el costo de
+decidirlo bien se paga una vez y el de decidirlo mal se paga en cada copia** — por eso un
+"botón para subir un PDF" terminó en un ADR.
+
+## 2026-09-14 (Compras se rediseña sin tocar una regla)
+
+Felipe pidió un prompt para que Lovable rediseñara Compras "más amigable e intuitivo", y
+después que los ajustes los hiciera yo. Se hicieron sobre el módulo real, sin migración ni
+RPC nueva: filtros en dos niveles (principales a la vista, el resto bajo "Más filtros", lo
+aplicado como chips con ×), chips de estado con tono (`ui/Chip.tsx`, misma receta de
+Facturación), tarjetas de cifras que llevan a donde se actúa ("1 vencida" → Por pagar
+filtrado), detalle con dos barras (pago y recepción) en vez de cuatro cajas iguales, "Por
+pagar" partido en Vencidas / Al día con botón Pagar en la fila (mismo modal del detalle: un
+pago sigue siendo contra UNA factura), combobox con búsqueda para el producto de cada línea
+(`ui/ComboBuscable.tsx` — el `<select>` con 300 referencias no se aguantaba), pie fijo con
+el total y el botón en Registrar factura, barra fija con "N unidades de M facturas → sede"
+en Recibir, esqueleto de carga propio, y Compras a todo el ancho como Vender (pedido de
+Felipe). Verificado con tsc y eslint; el paseo en navegador queda para Felipe.
+
+Después, sobre lo mismo: Proveedores ganó buscador en memoria (una línea a todo el ancho) y
+la columna Acciones dejó de apilar los botones; la tarjeta de SUNAT quedó sin relleno porque
+`bg-papel` se veía blanco sobre el crema del modal; y Recibir mercadería se rehízo como
+**lista + panel** (Felipe eligió entre lista+panel, recibir desde el detalle, y asistente de
+3 pasos): pendientes a la izquierda con buscador, la guía a la derecha con "Todo llegó" /
+"Nada" por factura y "+ Sumar" para las del mismo proveedor. Misma RPC `recibir_compras`,
+mismo reparto por variante.
+
+Lo que Felipe se lleva: **rediseñar una pantalla y cambiar una regla son dos trabajos
+distintos** — todo lo de arriba cambió cómo se ve y cómo se llega, y ninguna RPC ni `check`
+se movió. Si un rediseño obliga a tocar la base, es que no era un rediseño.
+
+## 2026-09-14 (el IGV solo existe en la factura)
+
+Felipe preguntó si al elegir "nota de venta" el IGV no debería irse a cero, porque ese
+documento no se informa. Sí — y el hueco era mayor: el "IGV %" era un campo libre en 18
+para cualquier tipo, y `registrar_compra` aceptaba lo que le mandaran. Una nota de venta
+registrada con 18% encima hacía que "Por pagar" le debiera al proveedor un 18% más de lo
+que dice el papel. La regla no es de CAYLA, es de SUNAT: solo la factura discrimina IGV y
+da crédito fiscal; en boleta y nota de venta el precio del papel ya es el costo. Se puso
+como `check` en `compras` (frena a la RPC, a la importación futura y al SQL pegado a
+mano), la pantalla acomoda el IGV sola al cambiar de tipo y bloquea el campo con la razón,
+y `error-escritura.ts` traduce el candado por si algún camino lo esquiva.
+
+Lo que Felipe se lleva: **cuando una pregunta de negocio se responde con "sí, la pantalla
+debería…", la respuesta completa es "sí, y la base también"** — la pantalla es cortesía; el
+candado es lo que evita que el próximo camino de escritura repita el error.
+
+## 2026-09-14 (Proveedores: la puerta del módulo de Compras que faltaba)
+
+Felipe miró las tres pestañas de Compras y preguntó dónde se administraban los
+proveedores. En ningún lado: `CompraFormV2` pintaba un `<select>` con lo que hubiera en
+`retail.proveedores`, y el único camino para meter uno era el SQL Editor — o sea que el
+día que llegara un proveedor nuevo no se podía registrar su factura. Se construyó
+`/compras/proveedores` como primera pestaña, con alta (RUC → razón social desde SUNAT por
+`/api/padron`, el mismo camino que Facturación), edición y desactivar/reactivar —
+"desactivar", no "archivar", corrección de Felipe: la columna es `activo` y el par tiene
+que decir lo mismo que la columna. Todo por RPC, como el resto del repo, y con los dos
+candados que faltaban: RUC único y nombre normalizado único sobre `fn_clave_texto`, el
+mismo normalizador que cerró `colores` el 12-sep.
+
+En el cierre pasó algo que vale más que la pantalla: al correr `pnpm datos:generar` como
+manda la regla de oro de CLAUDE.md, el diccionario de producción (45 tablas, 63 de Dynamic)
+quedó pisado con la foto local (37 y 2). El repo tenía dos instrucciones contradictorias
+—`datos:generar` en CLAUDE.md y README, `datos:generar:produccion` en COMO-REFRESCAR— y
+obedecer la primera rompía la promesa de la segunda. Se revirtió con `git checkout` y se
+corrigieron las dos fuentes para que digan lo mismo.
+
+Lo que Felipe se lleva: **una tabla que existe pero que ninguna pantalla escribe es un
+cuello de botella con nombre propio**, y aparece justo cuando el negocio lo necesita (un
+proveedor nuevo, un viernes). Y la segunda: cuando dos documentos del repo dan
+instrucciones distintas para lo mismo, no es un detalle de redacción — uno de los dos va a
+destruir el trabajo del otro, y el que lo ejecuta no se entera hasta ver el diff.
+
+## 2026-09-14 (la base local atrasada no se arregla bajando producción)
+
+Felipe pidió "tener la base de producción en local otra vez": el equipo había subido
+código y migraciones a `main` y corrido esas migraciones en el servidor, así que su
+local ya no servía. El diagnóstico salió más barato que el pedido: el repo tenía 19
+migraciones y el Postgres local solo 15 aplicadas — faltaban `0013_colaboradores_
+autorizados`, `cargo_especial_pos`, `vocabulario_cerrado` y `activos_fijos`, justo las
+del 12-sep. `npx supabase db reset` las corrió todas (35 tablas en `retail`, 30 colores,
+38 categorías, el candado `colores_clave_unica` puesto). Cero credenciales de producción,
+cero datos personales de clientas en la laptop.
+
+Quedó sin responder lo que sí necesitaría producción: **si el servidor tiene lo mismo
+que el repo**. La única foto que existe de producción es del 2026-09-12 y es de forma
+V1 (`funciones-produccion.txt` lista `abrir_conteo(p_alcance_familia …)`), así que
+`pnpm datos:comparar` reporta 23 pantallas rotas contra ella — puede ser drift real o
+puede ser que la foto esté vieja, y con lo que hay en el repo no se distingue. Para
+resolverlo se dejó `scripts/local/traer-produccion.sh`, que reemplaza al viejo
+`restore-cayla-v1.sh` (su dump en `backups/` ya no existe): pide la foto a producción
+en el momento, solo lee de allá, y por defecto restaura en el stack local de
+`cayla-dynamic` para no pisar el V2 en construcción. Falta la contraseña de la base de
+producción para poder correrlo.
+
+Lo que Felipe se lleva: **"mi base está desactualizada" casi nunca significa "necesito
+producción"** — significa que faltan correr las migraciones que ya están en el repo. Bajar
+producción es la herramienta para otra pregunta distinta (¿el servidor tiene lo mismo que
+el repo?), y trae consigo datos reales de clientas a una laptop, que no es gratis. También:
+cuatro archivos de `supabase/migrations/` (`benja-migracion.sql`, `colaboradores-iniciales-
+produccion.sql`, `datos-prueba-catalogo-produccion.sql`, `datos-reales-produccion.sql`)
+**nunca corren en local** — el CLI los salta por no tener nombre `<timestamp>_nombre.sql`,
+y lo dice en una línea que se pierde entre las otras veinte.
+
 ## 2026-09-14 (el candado que faltaba sobre el pasado, y el conteo ciego que no era ciego)
 
 Con el entorno ya verificado, Felipe pidió leer `docs/datos/` para ver qué falta desde
@@ -236,6 +352,28 @@ antes" no significa que funcione en ESTE checkout — Docker/Postgres se compart
 worktrees pero los archivos ignorados (`.next`, el stub de Dynamic, a veces
 `node_modules`) no, y son justo los que rompen algo "sin razón aparente" al cambiar de
 worktree.
+
+## 2026-09-14 (Mi perfil: leer de Dynamic antes de crear tabla propia)
+
+Felipe pidió una ventana "Mi perfil" (foto, teléfono, contraseña) a partir de un
+mockup de referencia. El primer diseño proponía columnas nuevas en
+`retail.colaboradores` — Felipe lo frenó: "¿ya existen esos datos en Dynamic?".
+Sí: teléfono vive en `datos_personales.celular`, y la foto ya tenía autoservicio
+real construido en Dynamic (`personas.foto_url` + `fn_actualizar_foto_perfil`,
+bucket `fotos-perfil`). `retail.fn_mi_perfil()` extiende el mismo puente de
+solo-lectura que ya existía (0009, 0013) para nombre/rol/sede; la escritura de
+foto es un wrapper de una línea que delega en la función real de Dynamic, nunca
+la reimplementa. Cero columnas nuevas en retail. Ubicación quedó de solo lectura
+a propósito — "eso no representa ningún permiso, el tema de permisos se ve más
+adelante", corrigiendo el diseño original que la hacía editable por un líder.
+
+Aplicado a producción el mismo día: `0014_perfil.sql` (las dos funciones) y el
+rename de "Almacén Principal" a "Taller" en `retail.ubicaciones` (mismo id,
+pedido ya probado antes en local). Verificado campo por campo contra la base
+real antes de pegar nada — `docs/datos/` (generado 2026-09-12) ya estaba
+desactualizado en varios puntos para esa fecha, así que no se le creyó a ciegas.
+Con `execute_sql`, nunca `apply_migration` — ya se sabía por qué (deja un rastro
+fantasma en el historial de migraciones de Dynamic, no del nuestro).
 
 ## 2026-09-12 (vocabulario cerrado + activos fijos: lo rescatable de V1 se porta, no se fusiona)
 
@@ -3077,3 +3215,43 @@ Mismo patrón que el stub de arriba: un corte de núcleo grande (`0af2f1b`) se l
 una pieza de infraestructura que no tenía nada que ver con el motivo del corte, y como el
 fallo es silencioso (git no avisa, el commit simplemente pasa) pudo haber quedado así
 indefinidamente si nadie preguntaba "¿y esto de verdad sigue haciendo lo que dice?".
+
+## 2026-09-14 (compras: el costo del papel puede venir con IGV)
+
+Felipe pidió un switch para tipear el costo unitario tal como lo lista el proveedor —muchos
+lo dan con IGV— en vez de dividir entre 1.18 a mano. La base no se tocó: `compra_items.
+costo_unitario` sigue sin IGV y `registrar_compra` sigue armando el total desde ahí; el
+selector "Sin IGV / Con IGV" (`CompraFormV2.tsx`, sección de líneas) solo cambia cómo se
+interpreta lo tipeado, y `costoBase` / `costoParaTipear` (`lib/compras-reglas.ts`, con
+test) hacen la conversión redondeando a 2 decimales igual que `numeric(12,2)`, para que el
+resumen en pantalla y lo que guarda la RPC nunca difieran. Solo aparece en factura con IGV
+> 0: en boleta y nota de venta no hay nada que descontar.
+
+**Y a la primera prueba salió el centavo:** 1 × S/ 10.00 con IGV → base 8.47 → IGV 1.52 →
+total 9.99. La causa no era la pantalla sino la RPC, que derivaba el total desde la base.
+Con precios con IGV la lectura correcta es la inversa (la de SUNAT): el total del papel es
+el dato y el IGV es lo que falta. `20260914190000_compras_total_del_papel`: `registrar_
+compra` acepta `p_total`, exige que cuadre con las líneas (un centavo por línea más uno) y
+guarda `igv = total − subtotal`; check `compras_total_cuadra`. Se descartó subir el costo a
+4 decimales: empuja el redondeo un decimal más lejos en vez de resolverlo donde nace.
+
+**Multipago.** Felipe quiere pagar una factura con dos medios en el mismo acto. El modelo ya
+era "una fila de `compra_pagos` por medio"; lo que faltaba era escribirlas en una sola
+transacción: `registrar_pagos_compra` (`20260914200000_compras_multipago`) valida cada medio
+y la suma contra el saldo con la factura bloqueada, y escribe todo o nada — antes, dos pagos
+sueltos podían dejar el primero registrado y el segundo no. `LineasPago.tsx` es el bloque
+compartido por las tres pantallas.
+
+**Avisos (ADR-0047).** Felipe pidió que toda validación, error, éxito o proceso se vea arriba
+a la derecha, y que el cursor vaya al campo de la validación. `components/ui/Avisos.tsx`
+(estado fuera de React, sobrevive a la navegación; todos se van solos con una barra de tiempo al pie que se pausa con el mouse encima) y 22
+pantallas cableadas: desaparecieron 16 `useState` de error y todos los `<p>` rojos inline.
+Lo que es del campo ("Supera el saldo") se queda pegado al campo — eso no es notificación.
+También de hoy: `CampoFecha` (calendario propio, lunes a domingo, `dd/mm/aaaa` tipeable) en
+lugar del nativo del navegador, y el proveedor se elige con el mismo `ComboBuscable` que la
+prenda (busca por nombre o RUC).
+
+De paso salió que la anulación de facturas ya existía con la regla que Felipe proponía
+(sin recepción) más una (sin pagos) — y que un pago registrado por error no tiene reverso,
+lo que deja esa factura bloqueada para siempre. Decisión pendiente de Felipe (A: RPC
+`anular_pago_compra` append-only, recomendada).

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 
 /**
@@ -32,7 +33,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [colores, setColores] = useState(coloresIniciales);
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [aviso, setAviso] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -41,7 +41,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   function abrir() {
     setAgregando(true);
-    setAviso(null);
     setNombre("");
     setCodigo("");
     setFamiliaColor("neutro");
@@ -50,7 +49,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   async function guardar() {
     setGuardando(true);
-    setAviso(null);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "POST",
@@ -59,7 +57,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso({ tono: "error", texto: datos.error ?? "No se pudo agregar el color." });
+        avisar.error(datos.error ?? "No se pudo agregar el color.");
         return;
       }
       setColores((actual) =>
@@ -68,9 +66,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           { codigo: datos.color.codigo, nombre: datos.color.nombre, familiaColor: datos.color.familia_color, hex: datos.color.hex },
         ].sort((a, b) => a.nombre.localeCompare(b.nombre))
       );
+      avisar.exito(`Color ${datos.color.nombre} agregado`);
       setAgregando(false);
     } catch {
-      setAviso({ tono: "error", texto: "No se pudo hablar con el servidor. Reintenta en un momento." });
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setGuardando(false);
     }
@@ -139,9 +138,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               className="h-9 w-14 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
             />
           </div>
-          {aviso && (
-            <p className={`mt-3 text-xs ${aviso.tono === "error" ? "text-rojo-profundo" : "text-verde"}`}>{aviso.texto}</p>
-          )}
           <div className="mt-5 flex justify-end gap-2">
             <Boton peso="fantasma" onClick={() => setAgregando(false)} disabled={guardando}>
               Cancelar

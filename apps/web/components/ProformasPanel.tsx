@@ -11,6 +11,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
 
@@ -59,7 +60,6 @@ export function ProformasPanel({
   const router = useRouter();
   const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Formulario de creación
   const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
@@ -79,7 +79,6 @@ export function ProformasPanel({
 
   function cerrarModal() {
     setModal(null);
-    setError(null);
     setTotal(0);
     setClienteNombre("");
     setVenceEnDias(7);
@@ -91,7 +90,6 @@ export function ProformasPanel({
   async function onCrear(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
@@ -112,11 +110,12 @@ export function ProformasPanel({
       p_vence_at: venceAt,
     });
     if (error) {
-      setError(traducirError(error, "crear la proforma"));
+      avisar.error(traducirError(error, "crear la proforma"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito(`Proforma de S/ ${total.toFixed(2)} creada`, { detalle: `Vence en ${venceEnDias} ${venceEnDias === 1 ? "día" : "días"}.` });
     cerrarModal();
     router.refresh();
   }
@@ -124,7 +123,6 @@ export function ProformasPanel({
   async function onConvertir(e: React.FormEvent, proforma: Proforma) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("convertir_proforma_a_comprobante", {
       p_proforma_id: proforma.id,
@@ -134,11 +132,12 @@ export function ProformasPanel({
       p_cliente_nombre: convertirNombre || proforma.cliente_nombre || undefined,
     });
     if (error) {
-      setError(traducirError(error, "convertir la proforma en comprobante"));
+      avisar.error(traducirError(error, "convertir la proforma en comprobante"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito("Proforma convertida en comprobante", { detalle: "Búscalo en Comprobantes para transmitirlo." });
     cerrarModal();
     router.refresh();
   }
@@ -279,7 +278,6 @@ export function ProformasPanel({
                 className={campoTexto}
               />
             </div>
-            {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar
@@ -331,7 +329,6 @@ export function ProformasPanel({
               onNombre={setConvertirNombre}
             />
 
-            {error && <p className="text-xs text-rojo">{error}</p>}
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={cerrarModal} className={botonCancelar}>
                 Cancelar

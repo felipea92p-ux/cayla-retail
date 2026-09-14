@@ -4,18 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 
 export function AbrirCajaFormV2({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: string; ubicacionEtiqueta: string }) {
   const router = useRouter();
   const [monto, setMonto] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("abrir_caja", {
       p_ubicacion_id: ubicacionId,
@@ -23,9 +22,10 @@ export function AbrirCajaFormV2({ ubicacionId, ubicacionEtiqueta }: { ubicacionI
     });
     setLoading(false);
     if (error) {
-      setError(traducirError(error, "abrir la caja"));
+      avisar.error(traducirError(error, "abrir la caja"));
       return;
     }
+    avisar.exito("Caja abierta", { detalle: `Con S/ ${(Number(monto) || 0).toFixed(2)} de apertura.` });
     router.refresh();
   }
 
@@ -47,7 +47,6 @@ export function AbrirCajaFormV2({ ubicacionId, ubicacionEtiqueta }: { ubicacionI
           className={campoTexto}
         />
       </div>
-      {error && <p className="text-sm text-rojo">{error}</p>}
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Abriendo…" : "Abrir caja"}
       </button>

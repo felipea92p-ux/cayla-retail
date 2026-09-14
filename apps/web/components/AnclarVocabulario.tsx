@@ -1,5 +1,6 @@
 "use client";
 
+import { avisar } from "@/components/ui/Avisos";
 import { useState } from "react";
 
 /**
@@ -52,7 +53,6 @@ export function AnclarVocabulario({
 }) {
   const [propuestas, setPropuestas] = useState<Propuesta[] | null>(null);
   const [cargando, setCargando] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
   const [guardadas, setGuardadas] = useState(0);
 
   const anclados = terminos.filter((t) => t.ancladoA !== null).length;
@@ -61,7 +61,6 @@ export function AnclarVocabulario({
 
   async function proponer() {
     setCargando(true);
-    setAviso(null);
     try {
       const res = await fetch("/api/taxonomia/anclar", {
         method: "POST",
@@ -70,16 +69,16 @@ export function AnclarVocabulario({
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso(datos.error ?? "No se pudo consultar el anclaje.");
+        avisar.error(datos.error ?? "No se pudo consultar el anclaje.");
         return;
       }
       if ((datos.anclajes ?? []).length === 0) {
-        setAviso(datos.mensaje ?? "No quedó nada por anclar.");
+        avisar.aviso(datos.mensaje ?? "No quedó nada por anclar.");
         return;
       }
       setPropuestas(datos.anclajes);
     } catch {
-      setAviso("No se pudo hablar con el servidor. Reintenta en un momento.");
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setCargando(false);
     }
@@ -88,7 +87,6 @@ export function AnclarVocabulario({
   async function guardar() {
     if (!propuestas) return;
     setCargando(true);
-    setAviso(null);
     try {
       const res = await fetch("/api/taxonomia/anclar", {
         method: "PUT",
@@ -100,14 +98,14 @@ export function AnclarVocabulario({
       });
       const datos = await res.json();
       if (!res.ok) {
-        setAviso(datos.error ?? "No se pudieron guardar los anclajes.");
+        avisar.error(datos.error ?? "No se pudieron guardar los anclajes.");
         return;
       }
       setGuardadas(datos.guardados ?? 0);
       setPropuestas(null);
-      setAviso(`Se anclaron ${datos.guardados} términos.`);
+      avisar.exito(`Se anclaron ${datos.guardados} términos`);
     } catch {
-      setAviso("No se pudo hablar con el servidor. Reintenta en un momento.");
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setCargando(false);
     }
@@ -145,7 +143,6 @@ export function AnclarVocabulario({
         )}
       </div>
 
-      {aviso && <p className="text-xs text-rojo">{aviso}</p>}
 
       {propuestas && (
         <>

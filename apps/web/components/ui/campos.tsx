@@ -120,7 +120,9 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
 export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, className = "", ...props }: CampoTextoProps) {
-  const id = useId();
+  // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
+  const idPropio = useId();
+  const id = props.id ?? idPropio;
   const [enfocado, setEnfocado] = useState(false);
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
@@ -206,7 +208,8 @@ export function CampoSelectNativo({
   tono,
   ...props
 }: SelectNativoProps & { etiqueta: ReactNode; ayuda?: ReactNode; pie?: ReactNode; tono?: CampoProps["tono"] }) {
-  const id = useId();
+  const idPropio = useId();
+  const id = props.id ?? idPropio;
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
       <SelectNativo id={id} {...props} />
@@ -265,6 +268,36 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", classNam
    que se desliza en vez de aparecer — el deslizamiento es lo que
    dice "es el mismo control, cambió la selección".
    ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+   Interruptor (switch). Para UNA opción que se prende o se apaga y cuyo
+   texto ya dice qué pasa al prenderla ("El precio incluye IGV"). Distinto
+   del Segmentado, que es para elegir entre dos o más opciones con nombre
+   propio. `role="switch"` + `aria-checked`: lector de pantalla y teclado
+   (Espacio/Enter) lo tratan como interruptor, no como botón.
+   ------------------------------------------------------------------ */
+export function Interruptor({ activo, onActivo, etiqueta, pie, disabled = false }: { activo: boolean; onActivo: (v: boolean) => void; etiqueta: ReactNode; pie?: ReactNode; disabled?: boolean }) {
+  const id = useId();
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className={`flex items-center gap-3 text-sm text-tinta/80 ${disabled ? "opacity-50" : "cursor-pointer"}`}>
+        <button
+          id={id}
+          type="button"
+          role="switch"
+          aria-checked={activo}
+          disabled={disabled}
+          onClick={() => onActivo(!activo)}
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ease-cayla ${activo ? "bg-rojo" : "bg-tinta/25"}`}
+        >
+          <span aria-hidden className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-crema shadow-sm transition-transform duration-300 ease-cayla ${activo ? "translate-x-4" : "translate-x-0"}`} />
+        </button>
+        <span>{etiqueta}</span>
+      </label>
+      {pie && <p className="text-xs text-tinta/55">{pie}</p>}
+    </div>
+  );
+}
+
 type Opcion<T extends string> = { valor: T; texto: string };
 
 export function Segmentado<T extends string>({

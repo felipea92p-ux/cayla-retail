@@ -1,7 +1,8 @@
 "use client";
 
+import { avisar } from "@/components/ui/Avisos";
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,20 +26,22 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    errorInicial ? MENSAJES_ERROR[errorInicial] ?? null : null
-  );
   const [loading, setLoading] = useState(false);
+  // El motivo por el que te mandaron al login (sesión vencida, sin acceso)
+  // viene por la URL: se avisa una vez al entrar.
+  useEffect(() => {
+    const texto = errorInicial ? MENSAJES_ERROR[errorInicial] : null;
+    if (texto) avisar.aviso(texto);
+  }, [errorInicial]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError("Correo o contraseña incorrectos.");
+      avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
     router.push("/");
@@ -60,6 +63,7 @@ function LoginForm() {
           <div className="space-y-2">
             <label className="label-cayla text-[11px] text-tinta/70">Correo</label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
@@ -98,7 +102,6 @@ function LoginForm() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-rojo">{error}</p>}
 
           <button
             type="submit"

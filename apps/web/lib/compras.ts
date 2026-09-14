@@ -1,6 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
-import type { CompraResumen, Condicion, EstadoPago, EstadoRecepcion, LineaCompra, PagoCompra, RecepcionCompra, ProveedorResumen } from "@/lib/compras-reglas";
+import {
+  ADJUNTOS_BUCKET,
+  type AdjuntoCompra,
+  type CompraResumen,
+  type Condicion,
+  type EstadoPago,
+  type EstadoRecepcion,
+  type LineaCompra,
+  type PagoCompra,
+  type RecepcionCompra,
+  type ProveedorResumen,
+} from "@/lib/compras-reglas";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `compras-reglas.ts`.
@@ -246,6 +257,35 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
       pendiente: Number(f.pendiente ?? 0),
     };
   });
+}
+
+// Adjuntos visibles de una factura, con su URL firmada de una hora. Si
+// Storage no responde (en local está apagado; en producción, un mal día) la
+// lista igual se muestra, solo que sin enlace — principio 9: se degrada, no
+// se rompe la página entera por un PDF.
+export async function getAdjuntosCompra(compraId: string): Promise<AdjuntoCompra[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase
+      .from("compra_adjuntos")
+      .select("id, ruta, nombre, tipo, bytes, created_at")
+      .eq("compra_id", compraId)
+      .is("archivado_en", null)
+      .order("created_at", { ascending: true }),
+    "los adjuntos de la factura"
+  );
+  if (filas.length === 0) return [];
+  let urls = new Map<string, string>();
+  try {
+    const { data } = await supabase.storage.from(ADJUNTOS_BUCKET).createSignedUrls(
+      filas.map((f) => f.ruta),
+      60 * 60
+    );
+    urls = new Map((data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl] as const] : [])));
+  } catch {
+    // Sin Storage no hay enlaces; la lista igual sale.
+  }
+  return filas.map((f) => ({ id: f.id, nombre: f.nombre, tipo: f.tipo, bytes: f.bytes, creadoEn: f.created_at, url: urls.get(f.ruta) ?? null }));
 }
 
 export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {

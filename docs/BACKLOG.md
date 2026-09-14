@@ -211,6 +211,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
+      eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
+      "Más filtros", tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
+      panel abierto solo), `/compras/nueva` (tipear "lino" en Producto, Enter en
+      el costo agrega línea, el resumen a la derecha se queda fijo al bajar y
+      en celular cae al final),
+      `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
+      la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
+      líneas con variante; barra fija con unidades y botón apagado si una línea
+      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (Vencidas arriba con línea roja, "Pagar" en la
+      fila abre el modal sin navegar). Si la barra fija de Recibir choca con las
+      pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
+      `RecepcionCompraFormV2.tsx`.
+
 - [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
       puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
       migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
@@ -242,6 +256,54 @@ importante que ha entrado a este archivo desde que existe.
       esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
       (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
       `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+
+- [ ] **`20260914200000_compras_multipago` no está en producción.** Un pago
+      repartido en varios medios (5,000 transferencia + 3,000 efectivo) en un solo
+      acto, en las tres pantallas: registrar factura, detalle y Por pagar. RPC nueva
+      `registrar_pagos_compra(compra, [{monto, metodo, referencia}], fecha)` — todo o
+      nada; `registrar_pago_compra` pasa a ser su atajo; `registrar_compra` acepta en
+      `p_pago` objeto o arreglo (misma firma, sin DROP). Probada en local con 7 casos
+      por psql. **Va después de la `190000`** (redefine `registrar_compra` con
+      `p_total`). Hasta aplicarla, el modal de pago en producción falla con
+      "function registrar_pagos_compra does not exist" — la pantalla ya la llama.
+      Sin `retail.` en el archivo: pegar con `set search_path to retail, public;`.
+
+- [ ] **`20260914190000_compras_total_del_papel` no está en producción.** Aplicada y
+      probada solo en local (6 casos por psql: 1 × 8.47 con total 10.00 → igv 1.53;
+      3 líneas → 30.00; sin `p_total` sigue dando 9.99; dos rechazos; contado con
+      pago = total). `registrar_compra` gana `p_total` (el total del papel, solo
+      cuando "El precio incluye IGV") y la tabla el check `compras_total_cuadra`.
+      **Lleva `DROP FUNCTION`** (cambia la lista de parámetros): el SQL Editor va a
+      avisar "destructive"; es la función, se recrea en la línea siguiente. Antes
+      de pegar: `select count(*) from retail.compras where total <> subtotal + igv;`
+      debe dar 0. Hasta aplicarla, prender el interruptor en producción falla con
+      "function registrar_compra(... p_total) does not exist" — la pantalla ya
+      manda el parámetro.
+
+- [ ] **`20260914180000_compras_adjuntos` no está en producción.** Adjuntos de
+      factura (ADR-0046): tabla `compra_adjuntos`, RPCs `registrar_adjunto_compra`
+      / `archivar_adjunto_compra`, y el bucket privado `retail-compras-adjuntos`
+      con sus políticas — todo en el mismo archivo; el bloque del bucket corre
+      solo donde existe `storage.buckets` (producción). Pegar con `retail.`
+      como siempre. **La subida real no se probó**: Storage local está apagado.
+      Primera prueba en producción: registrar una factura con un PDF, abrirlo
+      desde el detalle, quitarlo, y anularla después. Si prefieres probar antes,
+      `config.toml › [storage] enabled = true` con el stack de Dynamic apagado.
+
+- [ ] **`20260914150000_proveedores_administrables` no está en producción.**
+      Pantalla `/compras/proveedores` (alta/edición/desactivar, razón social
+      desde SUNAT) verificada solo en local. Antes de pegarla con prefijo
+      `retail.` en el SQL Editor hay que mirar si producción ya tiene
+      proveedores duplicados, porque los dos índices únicos revientan si los
+      hay (la consulta está en la cabecera de la migración). Hasta que se
+      aplique, el diccionario de `docs/datos/generado/` no la conoce — y **no
+      se regenera desde local** (ver CLAUDE.md §regla de oro, corregido hoy).
+
+- [ ] **`20260914160000_igv_solo_en_factura` no está en producción.** Check
+      `compras_igv_solo_factura`: boleta y nota de venta van con `igv = 0`. Antes
+      de pegarla, correr la consulta de la cabecera para ver si producción ya
+      tiene boletas/notas con IGV > 0 — si las hay, se corrigen fila por fila con
+      el papel a la vista (decisión de Felipe), nunca se relaja el candado.
 
 - [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
       medido.** `packages/database/package.json` usa `--project-id

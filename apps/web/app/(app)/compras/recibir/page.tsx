@@ -2,15 +2,19 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { listarPorRecibir, getLineasCompra, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
+import { listarPorRecibir, getLineasCompra, filtrosDesdeParams, type ParamsCompras } from "@/lib/compras";
 import { RecepcionCompraFormV2 } from "@/components/RecepcionCompraFormV2";
-import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 
 // Recibir mercadería contra facturas (ADR-0035). Reemplaza como camino
 // principal a /inventario/recibir, que queda para mercadería SIN factura
 // (producción propia, ajustes). Un líder puede recibir en cualquier
 // ubicación; una integrante solo en la suya (lo valida la RPC).
+//
+// Los filtros de URL (`filtrosDesdeParams`) se siguen aceptando por si un
+// enlace llega con ?prov=…, pero la pantalla ya no dibuja el panel de
+// filtros: el buscador vive dentro de la lista de pendientes del
+// componente (2026-09-14, lista + panel), que filtra en memoria la página.
 export default async function RecibirComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras & { compra?: string }> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
@@ -19,12 +23,7 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
   const cursor = leerCursor(params.cursor);
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: compras, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
-    listarPorRecibir(filtros, cursor),
-    getUbicaciones(),
-    getCatalogo(),
-    getProveedoresActivos(),
-  ]);
+  const [{ filas: compras, siguiente }, ubicaciones, catalogo] = await Promise.all([listarPorRecibir(filtros, cursor), getUbicaciones(), getCatalogo()]);
   // Las líneas se traen solo para las facturas de ESTA página (≤ 50).
   const lineas = await getLineasCompra(compras.map((c) => c.id));
   const ubicacionesPermitidas = persona.rol === "lider" ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -35,11 +34,9 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
         <p className="label-cayla text-[11px] text-tinta/65">Compras · {persona.ubicacionEtiqueta}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
         <p className="mt-1 text-sm text-tinta/65">
-          Elige las facturas que cubre la guía y confirma lo que llegó. Cada prenda entra como movimiento — el stock no se edita a mano.
+          Toca la factura que cubre la guía, confirma lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano.
         </p>
       </div>
-
-      <FiltrosCompras proveedores={proveedores} visibles={["busqueda", "proveedor"]} />
 
       {compras.length === 0 && !cursor ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
@@ -49,7 +46,10 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
           </Link>
           <span className="mt-2 block text-xs text-tinta/55">
             ¿Llegó algo sin factura (producción propia, ajuste)?{" "}
-            <Link href="/inventario/recibir" className="hover:text-rojo">Recibir sin factura</Link>.
+            <Link href="/inventario/recibir" className="hover:text-rojo">
+              Recibir sin factura
+            </Link>
+            .
           </span>
         </p>
       ) : (
@@ -58,8 +58,17 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
           lineas={lineas}
           variantes={catalogo
             .filter((v) => v.activo)
-            .map((v) => ({ varianteId: v.varianteId, sku: v.sku, talla: v.talla, color: v.color, productoId: v.productoId }))}
-          ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
+            .map((v) => ({
+              varianteId: v.varianteId,
+              sku: v.sku,
+              talla: v.talla,
+              color: v.color,
+              productoId: v.productoId,
+            }))}
+          ubicaciones={ubicacionesPermitidas.map((u) => ({
+            id: u.id,
+            nombre: u.nombre,
+          }))}
           ubicacionInicialId={persona.ubicacionId}
           compraInicialId={compra ?? null}
         />

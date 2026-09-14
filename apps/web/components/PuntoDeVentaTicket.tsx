@@ -120,7 +120,6 @@ type Props = {
   /** Derivado en el padre: lo usa `cobrar()` para frenar y acá para encender el (!). */
   facturaSinRuc: boolean;
   // Cobrar
-  error: string | null;
   loading: boolean;
   onCobrar: (e: React.FormEvent) => void;
 };
@@ -163,7 +162,6 @@ export function PuntoDeVentaTicket({
   clienteNombre,
   onClienteNombre,
   facturaSinRuc,
-  error,
   loading,
   onCobrar,
 }: Props) {
@@ -577,7 +575,6 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
-          {error && <p className="mb-2 text-sm text-rojo">{error}</p>}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él. */}
           {(descontando ? motivoDescuento : motivoBloqueo) !== null && (
