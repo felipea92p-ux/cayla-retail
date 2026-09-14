@@ -51,16 +51,16 @@ insert into public.sedes (codigo, nombre, tipo, ciudad) values
   ('TRU', 'Tienda TRU', 'tienda', 'Trujillo');
 
 insert into retail.ubicaciones (nombre, tipo, sede_dynamic_id)
-select 'Almacén Principal', 'almacen', null
+select 'Taller', 'almacen', null
 union all
 select 'Tienda Lima', 'tienda', id from public.sedes where codigo = 'LIM'
 union all
 select 'Tienda Trujillo', 'tienda', id from public.sedes where codigo = 'TRU';
 
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
-select id, 'Rack A', 'rack' from retail.ubicaciones where nombre = 'Almacén Principal'
+select id, 'Rack A', 'rack' from retail.ubicaciones where nombre = 'Taller'
 union all
-select id, 'Rack B', 'rack' from retail.ubicaciones where nombre = 'Almacén Principal';
+select id, 'Rack B', 'rack' from retail.ubicaciones where nombre = 'Taller';
 
 -- Series de boleta/factura por tienda — sin esto, `registrar_venta` revienta la
 -- venta ENTERA en cuanto se pide un comprobante ("No hay una serie registrada
@@ -255,7 +255,7 @@ declare
   sku_fal_rena_bei_m uuid; sku_cas_luci_bei_m uuid;
   cli_valeria uuid; cli_camila uuid;
 begin
-  select id into ubic_almacen from retail.ubicaciones where nombre = 'Almacén Principal';
+  select id into ubic_almacen from retail.ubicaciones where nombre = 'Taller';
   select id into ubic_lima from retail.ubicaciones where nombre = 'Tienda Lima';
   select id into ubic_trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo';
   select id into prov_andina from retail.proveedores where nombre = 'Textiles Andina SAC';

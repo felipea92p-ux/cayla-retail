@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Boton, Hilo } from "@/components/ui/campos";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
+import { PerfilModal } from "@/components/PerfilModal";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -333,6 +334,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
+  const [perfilAbierto, setPerfilAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
 
@@ -448,22 +450,32 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
 
         <div className="border-t border-tinta/10 px-7 py-5">
           <div className="flex items-center gap-3">
-            <span
-              aria-hidden
-              className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta"
+            {/* Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
+                botón, como hermano — un clic ahí nunca dispara el perfil. */}
+            <button
+              type="button"
+              onClick={() => setPerfilAbierto(true)}
+              className="group flex min-w-0 flex-1 items-center gap-3 text-left"
             >
-              {iniciales}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-tinta">{persona.nombre}</p>
-              <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                {esLider ? "Líder" : "Integrante"} · {persona.ubicacionEtiqueta}
-              </p>
-            </div>
+              <span
+                aria-hidden
+                className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
+              >
+                {iniciales}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
+                <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
+                  {esLider ? "Líder" : "Integrante"} · {persona.ubicacionEtiqueta}
+                </p>
+              </div>
+            </button>
             <LogoutButton />
           </div>
         </div>
       </aside>
+
+      {perfilAbierto && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
 
       {/* ==================== Cabecera ==================== */}
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
