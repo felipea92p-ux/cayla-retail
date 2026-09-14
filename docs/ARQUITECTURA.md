@@ -131,8 +131,10 @@ flowchart TB
   cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo,
   chips, grilla, y «Ventas de hoy», que llega ya renderizado desde `page.tsx` vía RPC
   `fn_ventas_del_dia`) y `PuntoDeVentaTicket.tsx`
-  (ticket, totales, método de pago, boleta/factura, Cobrar → RPC `registrar_venta`,
-  que emite el comprobante en la misma transacción). Modales del padre:
+  (dos momentos, ADR-0044: «armar» = líneas + total; «cobrar» = método de pago,
+  boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
+  que emite el comprobante en la misma transacción). `lib/vender-reglas.ts:
+  motivoBloqueoCobro` deriva una sola vez por qué el botón está apagado. Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
 

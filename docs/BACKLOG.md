@@ -58,6 +58,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       cada sesión es dueña de UN panel; el padre (estado + handlers) se toca en commits
       chicos separados de la UI y entran a `main` apenas compilan.
 
+- [x] **El ticket de Vender tiene dos momentos: armar y cobrar** (sesión B del mismo
+      día, ADR-0044, rama `feat/pos-ticket-progresivo`). Con el ticket vacío ya no se
+      despliega el cobro: en «armar» solo líneas y total; pago y comprobante aparecen
+      recién al tocar «Cobrar», con el DNI adentro del bloque de comprobante. Un solo
+      `motivoBloqueoCobro` (`lib/vender-reglas.ts`, 7 tests) apaga el botón, lo explica
+      debajo y frena `cobrar()`. El método de pago ya no viene preseleccionado (decisión
+      de Felipe) y los (!) del cobro son `Ayuda tono="falta"`: solo cuando falta el
+      método o el RUC, y el globo dice qué falta. Verificado en navegador con venta real
+      (Boleta B001-000001 en la base local). **Solo en `main` local — falta pushear.**
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
@@ -75,6 +85,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
       de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
       Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+- [ ] **¿Dónde vive la docencia del cobro ahora que los (!) solo se encienden cuando
+      falta algo?** (ADR-0044). La explicación de «acá se registra, no se cobra» y de
+      «boleta admite DNI opcional; factura exige RUC» quedó dentro de los globos de
+      alerta — se lee solo mientras falte el método o el RUC. Y el tercer (!) del bloque
+      (el de «Consulta de DNI», dentro de `ConsultaDocumento`, compartido con
+      Facturación) sigue siempre encendido. Opciones: dejarlo así, un «?» permanente en
+      la cabecera del cobro, o un prop en `ConsultaDocumento` para apagarlo en el POS.
 
 **Pendiente de construir (no es un fix de una sesión):**
 

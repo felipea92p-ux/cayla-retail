@@ -11,6 +11,16 @@ import { ID_CARGO_ESPECIAL, money, type ItemCarrito } from "@/components/PuntoDe
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
 const TASA_IGV = 0.18;
 
+/** El botón principal es el mismo en los dos momentos; cambian su texto y lo que hace.
+ *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
+ *  rojo a medias ahí se leía como "casi se puede". */
+const BOTON_PRINCIPAL =
+  "flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+
+/** Hay un solo ticket por pantalla, así que un id fijo alcanza para que el botón
+ *  apagado apunte a su motivo (`aria-describedby`) sin hooks en este componente. */
+const ID_MOTIVO = "ticket-motivo-bloqueo";
+
 type Props = {
   ubicacionEtiqueta: string;
   bloqueado: boolean;
@@ -38,7 +48,7 @@ type Props = {
   onClienteNumDoc: (v: string) => void;
   clienteNombre: string;
   onClienteNombre: (v: string) => void;
-  /** Derivado en el padre: lo usa `cobrar()` para frenar y acá para apagar el botón. */
+  /** Derivado en el padre: lo usa `cobrar()` para frenar y acá para encender el (!). */
   facturaSinRuc: boolean;
   // Cobrar
   error: string | null;
@@ -47,7 +57,12 @@ type Props = {
 };
 
 /**
- * Panel derecho de Vender: ticket, totales, método de pago, comprobante y Cobrar.
+ * Panel derecho de Vender, en dos momentos (decidido con Felipe el 2026-09-14):
+ * «armar» muestra solo las líneas del ticket y el total; «cobrar» —recién al tocar
+ * Cobrar— muestra cuánto y cómo pagó la clienta y, debajo, el comprobante con el
+ * documento adentro. Escanear durante «cobrar» sigue agregando al ticket: el conteo
+ * de la cabecera y el total se actualizan en vivo.
+ *
  * Sin estado propio ni hooks — todo llega por props desde `PuntoDeVenta`, que sigue
  * siendo el único dueño del carrito y de `cobrar()`. Es la costura para trabajar el
  * ticket sin tocar el catálogo (y viceversa).
@@ -60,6 +75,10 @@ export function PuntoDeVentaTicket({
   onActualizar,
   total,
   prendas,
+  momento,
+  onIrACobrar,
+  onVolverATicket,
+  motivoBloqueo,
   metodoPago,
   onMetodoPago,
   tipoComprobante,
@@ -73,18 +92,120 @@ export function PuntoDeVentaTicket({
   loading,
   onCobrar,
 }: Props) {
+  const cobrando = momento === "cobrar";
+  const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
+  const apagado = bloqueado || motivoBloqueo !== null;
+
   return (
     <aside className="flex min-h-[45vh] flex-col bg-papel lg:max-h-[42rem]">
+      {/* En «armar» la cabecera dice dónde estamos; en «cobrar» ofrece la vuelta al
+          ticket y el conteo vivo de prendas. */}
       <div className="flex items-center justify-between border-b border-sand px-5 py-4">
-        <div>
-          <p className="text-xs text-tinta/60">Ticket actual</p>
-          <h2 className="font-display text-base text-tinta">{ubicacionEtiqueta}</h2>
-        </div>
+        {cobrando ? (
+          <>
+            <button
+              type="button"
+              onClick={onVolverATicket}
+              disabled={bloqueado}
+              className="label-cayla -ml-2 h-8 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
+            >
+              ← Ticket
+            </button>
+            <div className="text-right">
+              <p className="text-xs text-tinta/60">Cobro</p>
+              <h2 className="font-display text-base text-tinta">{etiquetaPrendas}</h2>
+            </div>
+          </>
+        ) : (
+          <div>
+            <p className="text-xs text-tinta/60">Ticket actual</p>
+            <h2 className="font-display text-base text-tinta">{ubicacionEtiqueta}</h2>
+          </div>
+        )}
       </div>
 
       <form onSubmit={onCobrar} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-40 flex-1 overflow-y-auto">
-          {!carrito.length ? (
+          {cobrando ? (
+            <div className="anim-revelar space-y-5 px-5 py-4">
+              {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
+                  aunque la clienta no pida nada. El (!) solo aparece mientras falte. */}
+              <fieldset className="space-y-2">
+                <legend className="text-[11px] text-tinta/50">
+                  <span className="flex items-center gap-1">
+                    {metodoPago === null && (
+                      <Ayuda tono="falta" titulo="Elige cómo pagó la clienta">
+                        Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su
+                        propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre,
+                        donde solo se cuenta el efectivo.
+                      </Ayuda>
+                    )}
+                    Cómo pagó la clienta
+                  </span>
+                </legend>
+                <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
+                  {METODOS_PAGO.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => onMetodoPago(m)}
+                      disabled={bloqueado}
+                      aria-pressed={metodoPago === m}
+                      className={`flex h-12 items-center justify-center rounded-lg px-1 text-center text-[10px] leading-tight capitalize transition-colors ${
+                        metodoPago === m ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
+                  solo tienen sentido para la boleta o la factura que se va a emitir. */}
+              <div className="border-t border-sand pt-4">
+                <fieldset className="space-y-2">
+                  <legend className="text-[11px] text-tinta/50">
+                    <span className="flex items-center gap-1">
+                      {facturaSinRuc && (
+                        <Ayuda tono="falta" titulo="Escribe el RUC de la empresa">
+                          La factura sale a nombre de una empresa y SUNAT exige su RUC. Si la clienta no lo tiene a
+                          mano, cambia a boleta: admite DNI opcional o ningún documento.
+                        </Ayuda>
+                      )}
+                      Comprobante
+                    </span>
+                  </legend>
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
+                    {(["boleta", "factura"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => onTipoComprobante(t)}
+                        disabled={bloqueado}
+                        aria-pressed={tipoComprobante === t}
+                        className={`label-cayla h-8 rounded-md text-[11px] transition-colors ${
+                          tipoComprobante === t ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
+                        }`}
+                      >
+                        {ETIQUETA_TIPO[t]}
+                      </button>
+                    ))}
+                  </div>
+                  <fieldset disabled={bloqueado}>
+                    <ConsultaDocumento
+                      tipo={tipoComprobante === "factura" ? "ruc" : "dni"}
+                      obligatorio={tipoComprobante === "factura"}
+                      numero={clienteNumDoc}
+                      onNumero={onClienteNumDoc}
+                      nombre={clienteNombre}
+                      onNombre={onClienteNombre}
+                    />
+                  </fieldset>
+                </fieldset>
+              </div>
+            </div>
+          ) : !carrito.length ? (
             <div className="flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
               <p className="font-medium text-tinta">El ticket está vacío</p>
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
@@ -171,9 +292,7 @@ export function PuntoDeVentaTicket({
         <div className="border-t border-sand bg-papel px-5 pt-4 pb-5">
           <div className="mb-4 flex items-end justify-between">
             <div>
-              <p className="text-xs text-tinta/60">
-                {prendas} {prendas === 1 ? "prenda" : "prendas"}
-              </p>
+              <p className="text-xs text-tinta/60">{etiquetaPrendas}</p>
               <p className="text-xs text-tinta/60">Incluye IGV ({(TASA_IGV * 100).toFixed(0)}%)</p>
             </div>
             <div className="text-right">
@@ -182,76 +301,37 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
-          <div className="mb-3 grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
-            {METODOS_PAGO.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onMetodoPago(m)}
-                disabled={bloqueado}
-                className={`flex h-12 items-center justify-center rounded-lg px-1 text-center text-[10px] leading-tight capitalize transition-colors ${
-                  metodoPago === m ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          <span className="mb-4 flex items-center gap-1 text-[11px] text-tinta/50">
-            Cómo pagó la clienta
-            <Ayuda titulo="Método de pago">
-              Cómo pagó la clienta. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio
-              aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se
-              cuenta el efectivo.
-            </Ayuda>
-          </span>
-
-          <div className="mb-4 space-y-2 border-t border-sand pt-3">
-            <span className="flex items-center gap-1 text-[11px] text-tinta/50">
-              Comprobante
-              <Ayuda titulo="Boleta o factura">
-                Se emite junto con la venta, con serie y número oficial. Boleta admite DNI opcional o ningún
-                documento; factura exige el RUC de la empresa. Si la clienta no pide nada, deja «Boleta» con el
-                documento en blanco.
-              </Ayuda>
-            </span>
-            <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
-              {(["boleta", "factura"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => onTipoComprobante(t)}
-                  disabled={bloqueado}
-                  className={`label-cayla h-8 rounded-md text-[11px] transition-colors ${
-                    tipoComprobante === t ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:bg-papel/60"
-                  }`}
-                >
-                  {ETIQUETA_TIPO[t]}
-                </button>
-              ))}
-            </div>
-            <fieldset disabled={bloqueado}>
-              <ConsultaDocumento
-                tipo={tipoComprobante === "factura" ? "ruc" : "dni"}
-                obligatorio={tipoComprobante === "factura"}
-                numero={clienteNumDoc}
-                onNumero={onClienteNumDoc}
-                nombre={clienteNombre}
-                onNombre={onClienteNombre}
-              />
-            </fieldset>
-          </div>
-
           {error && <p className="mb-2 text-sm text-rojo">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={bloqueado || loading || carrito.length === 0 || facturaSinRuc}
-            className="flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50"
-          >
-            <span className="label-cayla text-[11px]">{loading ? "Procesando…" : "Cobrar"}</span>
-            <strong className="font-display text-lg">{money(total)}</strong>
-          </button>
+          {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él. */}
+          {motivoBloqueo !== null && (
+            <p id={ID_MOTIVO} className="mb-2 text-center text-[11px] text-tinta/60">
+              {motivoBloqueo}
+            </p>
+          )}
+
+          {cobrando ? (
+            <button
+              type="submit"
+              disabled={apagado || loading}
+              aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
+              className={BOTON_PRINCIPAL}
+            >
+              <span className="label-cayla text-[11px]">{loading ? "Procesando…" : "Confirmar cobro"}</span>
+              <strong className="font-display text-lg">{money(total)}</strong>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onIrACobrar}
+              disabled={apagado}
+              aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
+              className={BOTON_PRINCIPAL}
+            >
+              <span className="label-cayla text-[11px]">Cobrar</span>
+              <strong className="font-display text-lg">{money(total)}</strong>
+            </button>
+          )}
         </div>
       </form>
     </aside>
