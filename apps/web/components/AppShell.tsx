@@ -332,6 +332,9 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras"];
+
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
@@ -505,12 +508,14 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
       </header>
 
       {/* ==================== Contenido ==================== */}
-      {/* Vender es la única pantalla sin el tope de max-w-5xl: el catálogo +
-          ticket necesita todo el ancho disponible, no el de una página de
-          lectura (pedido de Felipe, 2026-09-12). El resto de la app sigue
-          centrado en la columna angosta de siempre. */}
+      {/* Vender y Compras van sin el tope de max-w-5xl: el catálogo + ticket
+          necesita todo el ancho (pedido de Felipe, 2026-09-12), y las tablas
+          de Compras —seis columnas con documento, proveedor, estados y
+          cifras— se apretaban en la columna de lectura (pedido de Felipe,
+          2026-09-14). El resto de la app sigue centrado en la columna
+          angosta de siempre. */}
       <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        <div className={pathname === "/vender" ? "" : "mx-auto max-w-5xl"}>{children}</div>
+        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 
       {/* ==================== Pestañas (celular) ==================== */}
