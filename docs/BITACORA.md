@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (control total temporal termina — Líder y Colaborador, de verdad)
+
+Auditoría de accesos (pedida por Felipe) encontró que `fn_es_lider()` decía
+que sí a cualquiera con acceso a retail desde 0012 — sin fecha de
+vencimiento. `0016_roles_colaborador.sql` lo cierra: las 9 personas ya
+registradas quedan Líder (backfill explícito, "eso no cambia"); un
+Colaborador nuevo entra fijo a la sede que se le asigna al darlo de alta
+(nunca la de Dynamic) y sin acceso a Compras/Facturación/Colaboradores.
+Sorpresa real al revisar: el frontend ya gateaba esas tres pantallas con
+`esLider` desde que se escribieron — corrigiendo una sola función en la
+base, las tres quedan cerradas sin tocar React.
+
+Encontrado y corregido de paso: a Compras le faltaba el guard de servidor
+que Facturación y Colaboradores ya tenían — probado en vivo, una cuenta
+Colaborador cargaba `/compras` completo por URL directa aunque el menú lo
+escondiera (las escrituras sí estaban bien cerradas, la lectura no).
+
+Aplicado a producción el mismo día junto con `0015_previsualizar_conteo.sql`
+(la RPC que le faltaba a la pantalla de Conteo). Verificado después de
+pegar, no solo antes: las 9 personas quedaron en `lider`, `agregar_colaborador`
+con una sola firma viva, y `public.personas`/`datos_personales`/
+`fn_actualizar_foto_perfil` de Dynamic exactamente iguales a como estaban.
+
 ## 2026-09-14 (el candado que faltaba sobre el pasado, y el conteo ciego que no era ciego)
 
 Con el entorno ya verificado, Felipe pidió leer `docs/datos/` para ver qué falta desde
