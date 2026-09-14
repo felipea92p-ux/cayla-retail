@@ -182,3 +182,38 @@ descuento vive en «armar», sobre el total.
 - Basurero en cantidad «1» (el «−» no tiene a dónde bajar), campo sin flechitas
   (`appearance: textfield`), y un solo título grande por momento.
 
+## Adenda (mismo día) — pago mixto y vuelto
+
+«Yape + efectivo» es la venta más común de la tienda y los métodos eran excluyentes. La
+base ya lo soportaba: `registrar_venta` recibe `p_pagos` como lista, exige que sume igual
+que los ítems al centavo y graba una fila por medio en `venta_pagos` (`monto > 0`);
+`fn_ventas_del_dia` ya mostraba «efectivo + yape». Faltaba la pantalla.
+
+- **`PagoAplicado = { metodo, monto, recibido? }`** (lib, reexportado desde el padre).
+  `recibido` es solo del efectivo y solo de pantalla: lo que la clienta entregó, para
+  calcular el vuelto. A la RPC viaja únicamente `filter(monto > 0).map({ metodo, monto })`
+  — si viajara lo entregado en vez de lo que cubre, `registrar_venta` rechazaría por no
+  cuadrar; y una fila bajada a cero mientras se combinaba reventaría el `monto > 0`.
+- **Reglas con tests (30/30):** `restanteDePagos` a 2 decimales (negativo si se pasan),
+  `vueltoDe` solo en efectivo y nunca negativo, y `motivoBloqueoCobro` con dos escalones
+  nuevos en el orden del recorrido: caja cerrada → ticket vacío → sin pagos («Elige cómo
+  pagó la clienta.») → «Falta cubrir S/X.» → «Los pagos superan el total.» → factura sin
+  RUC. Primero la plata, después el papel.
+- **Ticket:** tocar un ícono AGREGA su fila con lo que falta cubrir (una por medio; el
+  ícono queda marcado y apagado); combinar es bajar un monto y tocar otro medio. Cada
+  fila: ícono, monto editable, quitar. En la de efectivo, «Recibido» con teclas que
+  **suman** billetes (+10 +20 +50 +100 +200), «Exacto», campo para corregir y «Vuelto»
+  grande. Debajo, «Cubierto ✓» / «Falta cubrir S/X» / «Se pasa por S/X». «Confirmar cobro»
+  solo se enciende con restante 0; si escanean durante el cobro, total y restante
+  cambian en vivo. `pagos` vuelve a `[]` al cerrar «Venta registrada».
+- **`LineasPago` (Compras) no se reutilizó**, a propósito: es un formulario contable
+  (monto en texto, medio en `<select>`, campo «Referencia», copy de facturas); el POS es
+  táctil. Hacerlo calzar habría sido cambiarle la forma, no sumarle un prop. Se le copió
+  lo bueno: reglas puras aparte y el copy «Falta … / Se pasa por …».
+
+Verificado en navegador con venta real: 2 prendas (S/159.80) → Yape bajado a 50 → Efectivo
+toma 109.80 → +100 +20 recibidos → «Vuelto S/10.20» → Boleta **B001-000006** → en
+`venta_pagos` dos filas (`efectivo 109.80`, `yape 50.00`) → «Ventas de hoy» dice
+«efectivo + yape». Nota chica: el campo numérico muestra `109.8`, no `109.80` — es cómo
+pinta un `<input type="number">`; el monto guardado es 109.80.
+

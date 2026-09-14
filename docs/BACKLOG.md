@@ -73,7 +73,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `descuento_unitario` por línea — verificado en la base, Boleta B001-000005),
       precio de solo lectura, basurero en «1», íconos en los colores del sistema y
       **vuelven shadcn + GSAP** (ADR-0045: el corte V1→V2 los había borrado sin
-      registro). **Solo en `main` local — falta pushear.**
+      registro). Tercera adenda: **pago mixto y vuelto** — filas por medio, recibido en
+      efectivo con teclas que suman billetes, «Cubierto / Falta cubrir / Se pasa»;
+      verificado con Boleta B001-000006 (yape 50 + efectivo 109.80, «efectivo + yape»
+      en Ventas de hoy). **Solo en `main` local — falta pushear.**
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero

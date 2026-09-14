@@ -140,8 +140,11 @@ flowchart TB
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción). `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
-  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`. El
-  reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`, ADR-0045). Modales del padre:
+  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
+  `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de
+  `{ metodo, monto }`, una fila por medio en `venta_pagos`; el `recibido` del efectivo es
+  solo de pantalla). El reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`,
+  ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
 

@@ -162,6 +162,27 @@ pierde de infraestructura que otro ADR ya había decidido?". La huella era visib
 numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
 con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
 
+## 2026-09-14 (el cobro deja de ser de un solo medio: pago mixto y vuelto)
+
+Cuarta vuelta sobre el ticket. «Yape + efectivo» es la venta más común de la tienda y los
+métodos eran excluyentes — y la base ya lo soportaba entera (`p_pagos` como lista, cuadre
+al centavo, una fila por medio en `venta_pagos`): faltaba la pantalla. Antes de dibujar se
+miró `LineasPago` (llegó de Compras el mismo día) y se decidió NO reusarlo: es un
+formulario contable y el POS es táctil; se le copió la separación de reglas puras y el
+copy. Reglas con TDD (30/30: restante a 2 decimales, vuelto solo en efectivo y nunca
+negativo, `motivoBloqueoCobro` con «Falta cubrir S/X» y «Los pagos superan el total»),
+padre en un commit chico a `main`, y el bloque en el ticket: tocar un ícono agrega su
+fila con lo que falta, «Recibido» con teclas que suman billetes y «Vuelto» grande que se
+muestra y no se graba. Verificado con venta real: Boleta B001-000006, `venta_pagos` con
+`efectivo 109.80` + `yape 50.00`, «efectivo + yape» en Ventas de hoy.
+
+Lo que Felipe se lleva: **lo recibido y lo que cubre son dos números distintos, y solo uno
+viaja.** Mandar los S/120 que entregó la clienta en vez de los S/109.80 que cubre habría
+hecho que `registrar_venta` rechace la venta por no cuadrar — el vuelto es una resta de
+mostrador, no un dato de la venta. Y el reverso, otra vez: **la base ya sabía hacerlo**; la
+pregunta antes de construir fue «¿qué falta de verdad?», y la respuesta era solo la
+pantalla.
+
 ## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
 
 Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket
