@@ -37,11 +37,19 @@ export function agruparStockPorSede(
       s = { aqui: 0, otrasSedes: [] };
       porVariante.set(f.variante_id, s);
     }
-    if (f.ubicacion_id === ubicacionActualId) s.aqui = f.cantidad;
-    else if (f.cantidad > 0) s.otrasSedes.push({ sede: nombre, cantidad: f.cantidad });
+    // Desde piso/almacén (`inventario_piso_almacen.sql`) una sede puede tener VARIAS
+    // filas por prenda: se suman, no se pisan. Para un traslado cuenta el total de la
+    // otra tienda, piso más almacén.
+    if (f.ubicacion_id === ubicacionActualId) s.aqui += f.cantidad;
+    else {
+      const otra = s.otrasSedes.find((o) => o.sede === nombre);
+      if (otra) otra.cantidad += f.cantidad;
+      else s.otrasSedes.push({ sede: nombre, cantidad: f.cantidad });
+    }
   }
-  // De más a menos: lo primero que se lee es donde más hay.
+  // Una sede que suma cero no se nombra; de más a menos: lo primero que se lee es donde más hay.
   for (const s of porVariante.values()) {
+    s.otrasSedes = s.otrasSedes.filter((o) => o.cantidad > 0);
     s.otrasSedes.sort((a, b) => b.cantidad - a.cantidad || a.sede.localeCompare(b.sede, "es"));
   }
   return porVariante;

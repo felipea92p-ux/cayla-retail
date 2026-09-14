@@ -59,6 +59,25 @@ describe("agruparStockPorSede — cuánto hay aquí y dónde más", () => {
     ]);
   });
 
+  it("varias filas de la misma sede (piso y almacén) se suman, aquí y en las otras", () => {
+    const r = agruparStockPorSede(
+      [
+        { variante_id: "v1", ubicacion_id: "lima", cantidad: 2 }, // piso
+        { variante_id: "v1", ubicacion_id: "lima", cantidad: 5 }, // almacén
+        { variante_id: "v1", ubicacion_id: "tru", cantidad: 1 },
+        { variante_id: "v1", ubicacion_id: "tru", cantidad: 3 },
+        { variante_id: "v1", ubicacion_id: "aqp", cantidad: 0 },
+      ],
+      [
+        { id: "lima", nombre: "Tienda Lima" },
+        { id: "tru", nombre: "Tienda Trujillo" },
+        { id: "aqp", nombre: "Tienda Arequipa" },
+      ],
+      "lima",
+    );
+    expect(r.get("v1")).toEqual({ aqui: 7, otrasSedes: [{ sede: "Trujillo", cantidad: 4 }] });
+  });
+
   it("una fila de una ubicación que no está en la lista (inactiva) se ignora del todo", () => {
     const m = agruparStockPorSede([{ variante_id: "v1", ubicacion_id: "u-cerrada", cantidad: 9 }], ubicaciones, LIMA);
     expect(m.has("v1")).toBe(false);

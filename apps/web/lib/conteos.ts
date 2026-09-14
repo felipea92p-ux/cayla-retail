@@ -22,6 +22,12 @@ export type ItemConteoAbierto = {
 export type ConteoAbierto = {
   id: string;
   ubicacionId: string;
+  // null: conteo de toda la ubicación (Taller, o una tienda antes de
+  // 20260914210000_inventario_piso_almacen.sql). Con piso/almacén
+  // configurado, abrir_conteo ya no deja abrir uno así — siempre viene con
+  // sububicación.
+  sububicacionId: string | null;
+  sububicacionNombre: string | null;
   creadoEn: string;
   abiertoPorNombre: string;
   items: ItemConteoAbierto[];
@@ -31,7 +37,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
   const supabase = await createClient();
   const res = await supabase
     .from("conteos")
-    .select("id, ubicacion_id, created_at, abierto_por")
+    .select("id, ubicacion_id, created_at, abierto_por, sububicacion:sububicaciones ( id, nombre )")
     .eq("ubicacion_id", ubicacionId)
     .eq("estado", "abierto")
     .maybeSingle();
@@ -57,6 +63,8 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
   return {
     id: conteo.id,
     ubicacionId: conteo.ubicacion_id,
+    sububicacionId: conteo.sububicacion?.id ?? null,
+    sububicacionNombre: conteo.sububicacion?.nombre ?? null,
     creadoEn: conteo.created_at,
     abiertoPorNombre: nombres[0]?.nombre ?? "—",
     items: items.map((i) => ({

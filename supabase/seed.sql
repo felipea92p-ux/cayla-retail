@@ -62,6 +62,13 @@ select id, 'Rack A', 'rack' from retail.ubicaciones where nombre = 'Taller'
 union all
 select id, 'Rack B', 'rack' from retail.ubicaciones where nombre = 'Taller';
 
+-- Piso/almacén (20260914210000_inventario_piso_almacen.sql): solo las
+-- tiendas los usan — Taller sigue con sus racks, sin esta distinción.
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+select id, 'Piso de venta', 'piso_venta' from retail.ubicaciones where tipo = 'tienda'
+union all
+select id, 'Almacén de tienda', 'almacen_tienda' from retail.ubicaciones where tipo = 'tienda';
+
 -- Series de boleta/factura por tienda — sin esto, `registrar_venta` revienta la
 -- venta ENTERA en cuanto se pide un comprobante ("No hay una serie registrada
 -- para boleta en esta ubicación"), porque emite el comprobante en la misma
@@ -264,12 +271,17 @@ declare
   sku_blu_emma_neg_m uuid; sku_blu_emma_neg_l uuid; sku_ves_sofi_neg_m uuid; sku_pan_carl_neg_30 uuid;
   sku_fal_rena_bei_m uuid; sku_cas_luci_bei_m uuid;
   cli_valeria uuid; cli_camila uuid;
+  sub_piso_lima uuid; sub_almacen_lima uuid; sub_piso_trujillo uuid; sub_almacen_trujillo uuid;
 begin
   select id into ubic_almacen from retail.ubicaciones where nombre = 'Taller';
   select id into ubic_lima from retail.ubicaciones where nombre = 'Tienda Lima';
   select id into ubic_trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo';
   select id into prov_andina from retail.proveedores where nombre = 'Textiles Andina SAC';
   select id into prov_sur from retail.proveedores where nombre = 'Confecciones del Sur EIRL';
+  select id into sub_piso_lima from retail.sububicaciones where ubicacion_id = ubic_lima and tipo = 'piso_venta';
+  select id into sub_almacen_lima from retail.sububicaciones where ubicacion_id = ubic_lima and tipo = 'almacen_tienda';
+  select id into sub_piso_trujillo from retail.sububicaciones where ubicacion_id = ubic_trujillo and tipo = 'piso_venta';
+  select id into sub_almacen_trujillo from retail.sububicaciones where ubicacion_id = ubic_trujillo and tipo = 'almacen_tienda';
 
   -- ---------- compras: la factura es el eje (migración compras_desde_factura) ----------
   -- Factura 1 (Textiles Andina, AL CONTADO, líneas DETALLADAS por variante):
@@ -349,6 +361,25 @@ begin
        where p.referencia in ('Blusa Valentina', 'Vestido Antonella', 'Pantalón Mía', 'Falda Ariana', 'Casaca Luciana')),
     'Primer envío Tienda Trujillo');
 
+  -- ---------- reposición de piso (20260914210000_inventario_piso_almacen.sql):
+  -- transferir() entrega al almacén de tienda, nunca directo al piso — una
+  -- venta necesita reposición explícita primero, igual que en la operación
+  -- real. Deja 2 en piso / 4 en almacén por SKU (Trujillo: 2/3) para que la
+  -- pantalla de Inventario tenga algo real que mostrar en ambas columnas.
+  select id into sku_blu_emma_neg_m from retail.variantes where sku = 'BLU-EMMA-NEG-M';
+  select id into sku_blu_emma_neg_l from retail.variantes where sku = 'BLU-EMMA-NEG-L';
+  select id into sku_ves_sofi_neg_m from retail.variantes where sku = 'VES-SOFI-NEG-M';
+  select id into sku_pan_carl_neg_30 from retail.variantes where sku = 'PAN-CARL-NEG-30';
+  select id into sku_fal_rena_bei_m from retail.variantes where sku = 'FAL-RENA-BEI-M';
+  select id into sku_cas_luci_bei_m from retail.variantes where sku = 'CAS-LUCI-BEI-M';
+
+  perform retail.mover_interno(ubic_lima, sku_blu_emma_neg_m, 2, sub_almacen_lima, sub_piso_lima, 'Reposición de apertura');
+  perform retail.mover_interno(ubic_lima, sku_blu_emma_neg_l, 2, sub_almacen_lima, sub_piso_lima, 'Reposición de apertura');
+  perform retail.mover_interno(ubic_lima, sku_ves_sofi_neg_m, 2, sub_almacen_lima, sub_piso_lima, 'Reposición de apertura');
+  perform retail.mover_interno(ubic_lima, sku_pan_carl_neg_30, 2, sub_almacen_lima, sub_piso_lima, 'Reposición de apertura');
+  perform retail.mover_interno(ubic_lima, sku_fal_rena_bei_m, 2, sub_almacen_lima, sub_piso_lima, 'Reposición de apertura');
+  perform retail.mover_interno(ubic_trujillo, sku_cas_luci_bei_m, 2, sub_almacen_trujillo, sub_piso_trujillo, 'Reposición de apertura');
+
   -- ---------- caja: se abre ANTES de vender (0008_caja_y_pagos.sql exige
   -- caja abierta) — Lima queda abierta a propósito (para probar "ver
   -- resumen"/"cerrar caja" con datos reales), Trujillo se cierra más abajo
@@ -356,13 +387,7 @@ begin
   caja_lima := retail.abrir_caja(ubic_lima, 100.00);
   caja_trujillo := retail.abrir_caja(ubic_trujillo, 80.00);
 
-  -- ---------- ventas ----------
-  select id into sku_blu_emma_neg_m from retail.variantes where sku = 'BLU-EMMA-NEG-M';
-  select id into sku_blu_emma_neg_l from retail.variantes where sku = 'BLU-EMMA-NEG-L';
-  select id into sku_ves_sofi_neg_m from retail.variantes where sku = 'VES-SOFI-NEG-M';
-  select id into sku_pan_carl_neg_30 from retail.variantes where sku = 'PAN-CARL-NEG-30';
-  select id into sku_fal_rena_bei_m from retail.variantes where sku = 'FAL-RENA-BEI-M';
-  select id into sku_cas_luci_bei_m from retail.variantes where sku = 'CAS-LUCI-BEI-M';
+  -- ---------- ventas (los sku_* ya se resolvieron arriba, para la reposición) ----------
   select id into cli_valeria from retail.clientes where nombre = 'Valeria Chávez';
   select id into cli_camila from retail.clientes where nombre = 'Camila Torres';
 
@@ -411,12 +436,16 @@ begin
     ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta');
   perform retail.aprobar_devolucion(devolucion1_id, 149.90 - 15.00, 'yape');
 
-  -- ---------- conteo con diferencia real ----------
-  conteo1_id := retail.abrir_conteo(ubic_lima, null);
+  -- ---------- conteo con diferencia real, acotado al piso (Lima separa
+  -- piso/almacén desde 20260914210000_inventario_piso_almacen.sql — un
+  -- conteo de "toda la ubicación" ya no es válido ahí, hay que elegir) ----------
+  conteo1_id := retail.abrir_conteo(ubic_lima, sub_piso_lima);
   perform retail.conteo_contar(conteo1_id, s.variante_id, s.cantidad)
-    from retail.stock s where s.ubicacion_id = ubic_lima and s.variante_id <> sku_blu_emma_neg_m;
+    from retail.stock s
+    where s.ubicacion_id = ubic_lima and s.sububicacion_id = sub_piso_lima and s.variante_id <> sku_blu_emma_neg_m;
   perform retail.conteo_contar(conteo1_id, sku_blu_emma_neg_m,
-    (select cantidad - 1 from retail.stock where ubicacion_id = ubic_lima and variante_id = sku_blu_emma_neg_m));
+    (select cantidad - 1 from retail.stock
+       where ubicacion_id = ubic_lima and sububicacion_id = sub_piso_lima and variante_id = sku_blu_emma_neg_m));
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
 

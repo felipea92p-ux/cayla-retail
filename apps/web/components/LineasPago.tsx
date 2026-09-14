@@ -1,6 +1,6 @@
 "use client";
 
-import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 
 /* ====================================================================
@@ -64,10 +64,15 @@ export function LineasPago({
     onLineas([...lineas, lineaPagoVacia(diferencia > 0 ? diferencia.toFixed(2) : "")]);
   }
 
+  // La columna "Quitar" existe solo cuando hay más de una línea: con una
+  // sola, un `auto` vacío igual cobraba su hueco + separación y apretaba
+  // el medio y la referencia dentro de un modal.
+  const plantilla = lineas.length > 1 ? "sm:grid-cols-[7rem_1fr_1fr_auto]" : "sm:grid-cols-[7rem_1fr_1fr]";
+
   return (
     <div id={id} className="space-y-3">
       {lineas.map((l, i) => (
-        <div key={i} className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr_auto] sm:items-end">
+        <div key={i} className={`grid gap-3 sm:items-end ${plantilla}`}>
           <CampoTexto
             etiqueta={i === 0 ? "Monto" : `Monto ${i + 1}`}
             id={`${id}-monto-${i}`}
@@ -80,7 +85,7 @@ export function LineasPago({
             placeholder="0.00"
             autoFocus={autoFocus && i === lineas.length - 1}
           />
-          <CampoSelectNativo etiqueta="Medio de pago" value={l.metodo} onChange={(e) => actualizar(i, { metodo: e.target.value })}>
+          <CampoSelectNativo etiqueta="Medio" value={l.metodo} onChange={(e) => actualizar(i, { metodo: e.target.value })}>
             {METODOS.map((m) => (
               <option key={m} value={m}>
                 {ETIQUETA_METODO[m]}
@@ -88,20 +93,23 @@ export function LineasPago({
             ))}
           </CampoSelectNativo>
           <CampoTexto etiqueta="Referencia" mono value={l.referencia} onChange={(e) => actualizar(i, { referencia: e.target.value })} placeholder="N° operación" autoComplete="off" />
-          <div className="pb-[1.15rem] sm:justify-self-end">
-            {lineas.length > 1 && (
+          {lineas.length > 1 && (
+            <div className="pb-[1.15rem] sm:justify-self-end">
               <button type="button" onClick={() => onLineas(lineas.filter((_, n) => n !== i))} className="text-xs text-rojo">
                 Quitar
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <button type="button" onClick={agregar} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
-          + Agregar otro medio
-        </button>
+      {/* "Agregar otro medio" es un botón con borde, no un enlace chico: que
+          un pago pueda repartirse (transferencia + efectivo) es justo lo que
+          este bloque existe para permitir, y como texto suelto nadie lo veía. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Boton type="button" peso="fantasma" onClick={agregar} className="px-3 py-1.5 text-[11px]">
+          + Agregar otro medio de pago
+        </Boton>
         {lineas.length > 1 || suma !== objetivo ? (
           <p className={`text-xs tabular-nums ${excede ? "text-rojo" : "text-tinta/65"}`}>
             {lineas.length > 1 && <>Suman {soles(suma)} · </>}

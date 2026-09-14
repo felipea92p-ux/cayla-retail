@@ -5,6 +5,7 @@ import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { nombresCortos } from "@/lib/nombre-integrante";
+import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
@@ -29,18 +30,26 @@ export default async function VenderPage() {
 async function Caja() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  // El stock se pide de TODAS las sedes que RLS deje ver, no solo de esta: «no hay tu
-  // talla aquí, pero sí en Trujillo» es la venta que se perdía. Una Líder ve todas; una
-  // colaboradora con sede fija solo la suya (`stock_select`), y entonces `otrasSedes`
-  // llega vacío sin que nada se rompa. Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones] = await Promise.all([
+  // Dos lecturas de stock con dos preguntas distintas:
+  // · «¿cuánto puedo cobrar AQUÍ ya?» → `getStockPorUbicacion`, la misma regla que la
+  //   pantalla de Inventario: una venta descuenta el PISO, nunca el almacén en silencio
+  //   (`inventario_piso_almacen.sql`), así que el tope que ve la cajera es el piso; en una
+  //   ubicación sin piso/almacén (Taller, `piso === null`) sigue siendo el total.
+  // · «¿dónde más hay?» → las filas crudas de TODAS las sedes que RLS deje ver, sumadas
+  //   por sede (piso + almacén: para un traslado importa lo que la otra tienda tiene, no
+  //   lo que exhibe — decisión de Felipe, 2026-09-14). Una Líder ve todas; una
+  //   colaboradora con sede fija solo la suya, y `otrasSedes` llega vacío sin romperse.
+  //   Ver `lib/stock-por-sede.ts`.
+  const [variantes, caja, resStock, ubicaciones, stockAqui] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     supabase.from("stock").select("variante_id, ubicacion_id, cantidad"),
     getUbicaciones(),
+    getStockPorUbicacion(persona.ubicacionId),
   ]);
   const filasStock = exigir(resStock, "el stock de las sedes");
   const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
+  const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.piso ?? f.total]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
@@ -53,7 +62,7 @@ async function Caja() {
       categoria: v.categoria,
       precio: v.precio,
       codigosBarras: v.codigosBarras,
-      stockAqui: stockPorVariante.get(v.varianteId)?.aqui ?? 0,
+      stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 

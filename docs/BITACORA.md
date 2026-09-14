@@ -3,6 +3,104 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (poner al día el Postgres local de un colaborador sin reset)
+
+Al validar la base local contra `supabase/migrations/` faltaban 11 de 30 en el historial, pero
+el esquema real contaba otra historia: 7 de Compras (`150000`…`220000`) ya estaban pegadas a
+mano sin registrarse, `0014`-`0016` y `movimientos_inmutables` faltaban de verdad, y `0014`
+reventaba porque el stub `0000_local_stub_dynamic.sql` (fuera de git) era anterior a `f1dba0d` y
+no tenía `datos_personales`/`foto_url`/`fn_actualizar_foto_perfil`. Se aplicó el delta del stub a
+`public`, se copió la plantilla nueva sobre el stub, `migration repair --status applied` para las
+7 ya presentes y `migration up --include-all` para las 4 restantes. Sin `db reset`: se conservaron
+6 compras, 3 ventas y 105 movimientos de prueba. Verificado en Postgres, no por el registro: el
+trigger de inmutabilidad frena un `update` incluso como superusuario.
+
+Lo que se lleva: **después de un `git pull` con migraciones ajenas hay que mirar dos cosas, no
+una** — el historial de Supabase Y si la plantilla del stub cambió; y pegar SQL a mano en local
+sin registrarlo deja la base "adelantada" y el CLI mintiendo hasta que alguien repara el historial.
+
+## 2026-09-14 (recibir por curva de tallas)
+
+Diego pasó una captura de Recibir mercadería: las líneas facturadas sin talla ni color
+("Blusa Emma x 24") se repartían en una hilera de chips con un `0` cada uno, y con 5 tallas ×
+3 colores era una pared donde no se veía qué estaba contado. Se cambió por la curva de tallas
+que taller y tiendas ya usan de cabeza: filas = color, columnas = talla (orden canónico nuevo en
+`lib/tallas.ts`), celda resaltada cuando tiene unidades, total por fila; el avance de cada línea
+y de cada factura es ahora un chip ámbar/verde/rojo, no texto gris; el encabezado de columnas
+solo sale cuando hay filas con variante, y "Vaciar" también sirve para las agrupadas. Verificado
+en navegador con Playwright contra el Supabase local (escritorio y 375 px, la tabla cabe sin
+scroll). No toca RPC ni esquema.
+
+Lo que se lleva: **la pantalla se dibuja con la forma en que la gente ya cuenta la mercadería**,
+no con la forma en que la base la guarda — la base sigue viendo variantes sueltas.
+
+## 2026-09-14 (piso de venta y almacén de tienda: la extensión que el código ya anunciaba)
+
+Felipe pidió que Inventario distinga cuánto de una prenda está en el piso
+(vendible) y cuánto en el almacén interno de la tienda — una venta nunca
+debe descontar del almacén en silencio, y tiene que existir una reposición
+explícita y auditable entre los dos. No era una idea nueva para el repo:
+`sububicaciones` ya existía (Taller usa "Rack A"/"Rack B"), y `movimientos`/
+`conteos` ya tenían `sububicacion_id` opcional desde el primer diseño de
+V2 — pero `stock`, la tabla que de verdad importa, nunca ganó esa columna,
+y `fn_aplicar_movimiento` la ignoraba. `20260914210000_inventario_piso_
+almacen.sql` es ese "después" que el propio comentario de
+`inventario-v2.ts` dejaba anunciado.
+
+V1 tuvo esta misma feature (`stock_almacen`, `contenedores`) y tuvo bugs
+reales documentados en ADR-0031: una reconstrucción de stock que "olvidó"
+el almacén y duplicó mercadería, y un traslado que restó del piso sin sumar
+en ningún lado. Por eso cada función que toca `stock` (8 en total —
+`fn_aplicar_movimiento`, `recalcular_stock`, `registrar_movimiento`,
+`recibir_lote`, `recibir_compras`, `registrar_venta`, `registrar_cambio`,
+`aprobar_devolucion`, `transferir`, más `abrir_conteo`/`conteo_contar`/
+`cerrar_conteo`/`previsualizar_cierre_conteo`) se revisó una por una, no
+solo la que aplica el movimiento. El hallazgo más caro de esa revisión:
+`transferir()` — el mecanismo real por el que el Taller abastece a las
+tiendas, ejercitado por el seed desde el primer `db reset` — no resolvía
+sububicación en ninguna punta; sin el fix habría creado una tercera fila de
+stock invisible en la pantalla nueva, o rechazado un traslado con "stock
+insuficiente" mostrando stock en pantalla. `traslado` se generalizó para
+cubrir movimientos dentro de la misma ubicación (reutiliza el `tipo`,
+diferencia con `motivo='movimiento_interno'`) en vez de sumar un tipo
+nuevo — un tipo nuevo hubiera duplicado la rama en dos funciones, la clase
+exacta de bug que rompió V1.
+
+Verificado en navegador con datos reales, no solo en SQL: reposición de
+piso conserva el total (1→5 piso / 9→5 almacén), el POS muestra "Sin
+stock" en una prenda con 6 unidades en almacén pero 0 en piso, y un conteo
+de piso no confunde el stock de almacén con "nunca contado". `recalcular_
+stock()` reconstruye a los mismos saldos, byte a byte, después de una
+docena de movimientos reales.
+
+Lo que Felipe se lleva: **una columna que existe pero que ningún motor usa
+es una promesa a medias** — `sububicacion_id` llevaba desde el primer
+diseño de V2 esperando este día, y encontrarla ya ahí cambió el trabajo de
+"diseñar algo nuevo" a "terminar de conectar algo que ya empezó bien”.
+
+## 2026-09-14 (control total temporal termina — Líder y Colaborador, de verdad)
+
+Auditoría de accesos (pedida por Felipe) encontró que `fn_es_lider()` decía
+que sí a cualquiera con acceso a retail desde 0012 — sin fecha de
+vencimiento. `0016_roles_colaborador.sql` lo cierra: las 9 personas ya
+registradas quedan Líder (backfill explícito, "eso no cambia"); un
+Colaborador nuevo entra fijo a la sede que se le asigna al darlo de alta
+(nunca la de Dynamic) y sin acceso a Compras/Facturación/Colaboradores.
+Sorpresa real al revisar: el frontend ya gateaba esas tres pantallas con
+`esLider` desde que se escribieron — corrigiendo una sola función en la
+base, las tres quedan cerradas sin tocar React.
+
+Encontrado y corregido de paso: a Compras le faltaba el guard de servidor
+que Facturación y Colaboradores ya tenían — probado en vivo, una cuenta
+Colaborador cargaba `/compras` completo por URL directa aunque el menú lo
+escondiera (las escrituras sí estaban bien cerradas, la lectura no).
+
+Aplicado a producción el mismo día junto con `0015_previsualizar_conteo.sql`
+(la RPC que le faltaba a la pantalla de Conteo). Verificado después de
+pegar, no solo antes: las 9 personas quedaron en `lider`, `agregar_colaborador`
+con una sola firma viva, y `public.personas`/`datos_personales`/
+`fn_actualizar_foto_perfil` de Dynamic exactamente iguales a como estaban.
+
 ## 2026-09-14 (fusionar 13 commits ajenos sobre 34 de Vender: el conflicto de fondo no salía en el diff)
 
 Mientras las dos sesiones de Vender trabajaban, `origin/main` recibió 13 commits de tres
@@ -3436,3 +3534,40 @@ De paso salió que la anulación de facturas ya existía con la regla que Felipe
 (sin recepción) más una (sin pagos) — y que un pago registrado por error no tiene reverso,
 lo que deja esa factura bloqueada para siempre. Decisión pendiente de Felipe (A: RPC
 `anular_pago_compra` append-only, recomendada).
+
+## 2026-09-14 (por pagar: una tabla, tres tramos)
+
+Se rehízo `/compras/por-pagar` porque no se entendía: el mismo monto aparecía en cuatro
+niveles (tarjeta, bloque "en esta página", proveedor, fila), cada proveedor tenía su propia
+tabla con su propio encabezado, y "Pagar" —la única acción de la pantalla— era el botón más
+discreto. Ahora es UNA tabla con tres tramos por urgencia (Vencidas en rojo, Vencen esta
+semana en ámbar, Más adelante), el proveedor va en la fila (agrupar por proveedor es trabajo
+del filtro, no de la estructura), el vencimiento se lee relativo ("Venció hace 15 días",
+"Vence en 3 días") con la fecha debajo, y "Pagar" sube a peso fantasma. La tarjeta "Vence
+esta semana" dejaba de mentir: se sumaba con las filas de la página; ahora la cuenta
+Postgres (`20260914210000_compras_resumen_por_vencer`, pendiente en producción).
+
+## 2026-09-14 (compras: mismo día, la registrada después va primera)
+
+La lista ordenaba por `fecha_emision desc, id desc`, y `id` es un uuid aleatorio: entre
+facturas del mismo día el orden era un sorteo. Ahora desempata por `created_at` (cuándo
+la registró el colaborador) y `id` queda al final solo para que el cursor sea único. El
+cursor del paginado pasa a tres partes (`fecha~creadoEn~id`) y los 4 índices de orden se
+recrean con `created_at`; verificado con 100k filas ficticias (rollback) que el plan sigue
+siendo `Index Scan using compras_orden_idx` sin `Sort`. Migración
+`20260914220000_compras_orden_por_creacion`, pendiente en producción.
+
+## 2026-09-14 (detalle de factura en modal)
+
+Abrir una factura desde la lista ya no cambia de pantalla: el detalle se abre como modal
+encima de la lista (rutas interceptadas de Next, slot `@modal/` en el layout de
+`/compras`), y al cerrarlo —Escape, velo, botón— se vuelve exactamente donde se estaba.
+La URL sigue siendo compartible: recargar o entrar por enlace muestra la página completa.
+El detalle se movió a `/compras/factura/<id>` porque `(.)[compraId]` directo bajo
+`/compras` interceptaba también `/compras/por-pagar` y `/compras/nueva` (apareció en la
+demo, no en el typecheck). De paso salió un bug latente de `ui/Modal.tsx`: el
+`setTimeout(onClose)` vivía dentro de un updater de `setState` y StrictMode lo disparaba
+dos veces — invisible con `setModal(null)`, fatal con `router.back()` (retrocedía dos
+páginas). Ahora el temporizador va en un `useEffect`. Verificado en Chrome headless: 10
+escenarios (lista, por pagar, pestañas hermanas, carga directa, `desde=nueva`, móvil, pago
+anidado) sin errores de consola.

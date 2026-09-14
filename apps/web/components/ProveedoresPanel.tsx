@@ -229,8 +229,8 @@ function ProveedorModal({ inicial, onClose, onGuardado }: { inicial: Borrador; o
     const supabase = createClient();
     const args = {
       p_nombre: nombre.trim(),
-      p_ruc: ruc || null,
-      p_contacto: contacto.trim() || null,
+      p_ruc: ruc || undefined,
+      p_contacto: contacto.trim() || undefined,
     };
     const { error } = editando
       ? await supabase.rpc("actualizar_proveedor", {

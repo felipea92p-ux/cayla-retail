@@ -110,7 +110,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
 - [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
       texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
-- [ ] **Aplicar `20260914220000_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
+- [ ] **Aplicar `20260914220001_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
       migración está escrita y NO aplicada (esquema en la base compartida: la aplica
       Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
       porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
@@ -254,6 +254,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
+
+**Cerrado esta sesión, solo local** — `20260914210000_inventario_piso_almacen.sql`,
+ver BITACORA de esa fecha para el diseño completo. `retail.stock` gana
+`sububicacion_id`; las 12 funciones que tocan stock/conteos quedaron revisadas
+una por una; `mover_interno()` es la reposición, reutilizable para cualquier
+par de sububicaciones. Pantalla de Inventario rediseñada con tarjetas de
+resumen, tabla piso/almacén/total/estado, buscador y filtros; POS y "Mover
+mercadería" corregidos para no ofrecer stock que el RPC va a rechazar.
+
+**Pendiente de decisión de Felipe:**
+
+- [ ] **"Otras ubicaciones" al revisar una variante** (visibilidad de piso/total
+      en las demás sedes) quedó fuera — el pedido lo marcó como "cuando sea
+      útil", no como parte de esta fase. Es una consulta adicional sobre
+      `getStockPorUbicacion`/`stock`, no un cambio de esquema.
+- [ ] **Concurrencia de `mover_interno` verificada por diseño, no por prueba
+      real con dos sesiones simultáneas**: el orden determinístico de lock
+      (mismo criterio en las dos direcciones) se revisó en el motor
+      (`fn_aplicar_movimiento`), pero no se forzó una carrera real de dos
+      `psql` en paralelo. Si alguna vez aparece un deadlock real en reposición
+      de piso, empezar por ahí.
+- [ ] **El gap de RLS "débil" encontrado en la auditoría de accesos del
+      2026-09-14** (catálogo/Compras con `auth.role() = 'authenticated'`, sin
+      candado de ubicación) sigue sin tocar — no es nuevo de esta sesión, y
+      Felipe no lo ha pedido todavía.
+
+---
+
 **Auditoría completa 2026-09-03.** BITACORA.md y este archivo llevaban congelados
 desde el 19-20 de julio, pero el repo tiene commits reales hasta el 23 de julio —
 incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en
@@ -261,6 +290,20 @@ ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el 
 importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
+
+- [ ] **Migración `20260914210000_compras_resumen_por_vencer` no está en producción.**
+      Agrega `por_vencer` y `por_vencer_monto` a `resumen_compras` (DROP + CREATE:
+      cambia el `returns table`). Pegar en el SQL Editor con el prefijo `retail.`
+      (ya lo lleva). Mientras tanto la tarjeta "Vence esta semana" de
+      `/compras/por-pagar` muestra S/ 0.00 (lee con `?? 0`), no rompe.
+
+- [ ] **Migración `20260914220000_compras_orden_por_creacion` no está en producción.**
+      Recrea `listar_compras` (DROP + CREATE: parámetro nuevo `p_cursor_creado_en`)
+      y los 4 índices de orden con `created_at` como desempate. Pegar con prefijo
+      `retail.` (ya lo lleva). Hasta entonces la primera página carga igual, pero
+      "Siguiente página →" en `/compras` y `/compras/recibir` falla con PGRST202
+      (la app manda un parámetro que producción no conoce). `pnpm datos:comparar`
+      lo avisa.
 
 - [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
       eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
@@ -270,9 +313,14 @@ importante que ha entrado a este archivo desde que existe.
       en celular cae al final),
       `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
       la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
-      líneas con variante; barra fija con unidades y botón apagado si una línea
-      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (Vencidas arriba con línea roja, "Pagar" en la
-      fila abre el modal sin navegar). Si la barra fija de Recibir choca con las
+      líneas con variante; las líneas sin talla/color se reparten en una curva de
+      tallas —filas color, columnas talla, chip de avance por línea y por factura—,
+      esto sí se vio renderizado con Playwright el 2026-09-14 en escritorio y 375 px;
+      barra fija con unidades y botón apagado si una línea
+      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (una sola
+      tabla en tres tramos —Vencidas en rojo, Vencen esta semana en ámbar, Más
+      adelante—, proveedor en la fila, "Pagar" en la fila abre el modal sin navegar;
+      la tarjeta "Vence esta semana" sale de `resumen_compras`). Si la barra fija de Recibir choca con las
       pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
       `RecepcionCompraFormV2.tsx`.
 

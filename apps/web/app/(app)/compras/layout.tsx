@@ -12,7 +12,19 @@ import { ComprasNav } from "@/components/ComprasNav";
 // redirect — un Colaborador que entrara por URL directa veía la pantalla
 // entera (aunque no pudiera escribir nada, eso sí lo bloqueaban las RPC).
 // Puesto acá, en el layout, protege las 5 de una sola vez.
-export default async function ComprasLayout({ children }: { children: React.ReactNode }) {
+//
+// `modal` es un slot paralelo (`@modal/`): ahí Next dibuja el detalle de una
+// factura como modal cuando se abre desde una lista del módulo (ruta
+// interceptada `@modal/(.)factura/[compraId]`), sin desmontar la lista de
+// `children`. El resto del tiempo el slot está vacío (`@modal/default.tsx`).
+//
+// El detalle vive en `/compras/factura/<id>` y NO en `/compras/<id>` a
+// propósito: la intercepción se aplica como reescritura ANTES de resolver
+// rutas, y un `(.)[compraId]` directo bajo /compras se tragaba también
+// `/compras/por-pagar`, `/compras/nueva`, etc. en navegación suave (Next
+// intentaba abrir el modal con id "por-pagar"). Con el prefijo `factura/`
+// el patrón interceptado ya no se solapa con las pantallas hermanas.
+export default async function ComprasLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
 
@@ -20,6 +32,7 @@ export default async function ComprasLayout({ children }: { children: React.Reac
     <div className="space-y-6">
       <ComprasNav />
       {children}
+      {modal}
     </div>
   );
 }
