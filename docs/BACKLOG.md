@@ -66,7 +66,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       debajo y frena `cobrar()`. El método de pago ya no viene preseleccionado (decisión
       de Felipe) y los (!) del cobro son `Ayuda tono="falta"`: solo cuando falta el
       método o el RUC, y el globo dice qué falta. Verificado en navegador con venta real
-      (Boleta B001-000001 en la base local). **Solo en `main` local — falta pushear.**
+      (Boleta B001-000001 en la base local). Adenda del mismo día: en escritorio el
+      POS es pantalla fija — la página no scrollea, catálogo y ticket scrollean por
+      dentro y el ticket llena toda la altura visible. **Solo en `main` local — falta
+      pushear.**
 
 **Pendiente de decisión de Felipe:**
 
