@@ -93,6 +93,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
       `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
       tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+- [x] **La talla agotada dice en qué sede sí hay** (sesión A, tercera ola). Tooltip por
+      talla y línea en el desplegable del escáner; `lib/stock-por-sede.ts` (9 tests);
+      `page.tsx` lee el stock de todas las sedes que RLS deje ver. Funciona para Líderes;
+      para colaboradoras de sede fija llega vacío (ver pendiente siguiente). De paso: fuera
+      el reveal al scroll del POS (dos atenuados no conviven) y `catalogo-grupos.ts` dejó
+      de ser binario para git (byte NUL → escape). **Solo en `main` local — falta pushear.**
+- [ ] **Aplicar `20260914220000_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
+      migración está escrita y NO aplicada (esquema en la base compartida: la aplica
+      Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
+      porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
+      Después de aplicarla: `supabase.rpc("fn_stock_por_sede")` en `vender/page.tsx` (un
+      commit chico) y verificar como Micaela (ya es colaboradora de Trujillo en local).
+- [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
+      `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
+      («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
+      pantalla, es una columna `codigo` en `ubicaciones` (migración); si no, borrar la
+      función y su test para que nadie la reviva por error.
 - [ ] **Foto por prenda en el catálogo.** La tarjeta ya tiene el hueco (4:5, iniciales en
       serif), pero `productos`/`variantes` no tienen columna de foto ni bucket de Storage.
       Es cambio de modelo de datos: decidir dónde vive (una por producto o por color),

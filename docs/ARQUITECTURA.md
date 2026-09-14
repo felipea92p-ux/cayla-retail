@@ -127,14 +127,16 @@ flowchart TB
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
-  `stock` de la ubicación → `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
+  `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
+  hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar) →
+  `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
   cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
   primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
   adentro —`lib/catalogo-grupos.ts`, memo del padre— filtro «Solo con stock», y «Ventas
   de hoy», que llega ya renderizado desde `page.tsx` vía RPC `fn_ventas_del_dia`; el
   escáner recibe el foco al abrir caja, al cerrar cualquier modal —`Modal.alCerrarEnfocar`—
   y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
-  `Toggle`/`Badge` y `RevelarAlScroll` de GSAP, ADR-0045) y `PuntoDeVentaTicket.tsx`
+  `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,

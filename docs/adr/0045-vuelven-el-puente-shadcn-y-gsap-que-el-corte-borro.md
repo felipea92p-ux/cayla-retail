@@ -82,6 +82,10 @@ suma, porque el catálogo de Vender lo necesita:
   el POS es pantalla fija (ADR-0044) y la grilla scrollea por dentro, así que ahora busca el
   ancestro con `overflow-y: auto|scroll` (o acepta `scroller`). Disparo en `top 90%`.
 - `TooltipProvider` se monta donde se usa (el catálogo), no en el layout raíz: aditivo.
+- Mismo día, más tarde: **el POS dejó de usar `RevelarAlScroll`** (decisión de Felipe). El
+  reveal dejaba tarjetas en opacidad 0.35 mientras las sin stock van en 0.55 — dos
+  atenuados con significados distintos en la misma grilla. El componente sigue en `ui/`
+  para tableros con scroll largo, que es donde nació (ADR-0038).
 - Gotcha medido, en dos tiempos: instalar un paquete CSS con el dev server corriendo deja
   al proceso de PostCSS con la resolución fallida cacheada («Can't resolve
   'tw-animate-css'») hasta reiniciarlo; y aun reiniciado, **la caché persistente de

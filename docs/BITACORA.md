@@ -22,6 +22,42 @@ Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta*
 y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
 migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
 
+## 2026-09-14 (dos arreglos, y la talla agotada dice en qué sede sí hay)
+
+Tercera ola de la sesión A. Dos arreglos pedidos por Felipe: `catalogo-grupos.ts` llevaba
+un byte NUL literal dentro del template string de la clave del grupo y git trataba el
+archivo como **binario** (sin diff, sin blame) — ahora es el escape `\u001f` en seis
+caracteres, y la prueba correcta no es `numstat main~1 main` (marca binario si cualquiera
+de los dos lados lo es) sino el archivo entero contra un punto donde no existía: `91 0`,
+cero NUL en el blob, `blame` línea a línea. Y el reveal al scroll salió del POS (opción A
+de Felipe): dejaba tarjetas en 0.35 mientras las sin stock van en 0.55 — dos atenuados con
+significados distintos en la misma grilla; `RevelarAlScroll` sigue en `ui/` para tableros.
+
+Lo nuevo: la talla tachada ya dice **dónde sí hay**. `vender/page.tsx` pide el stock de
+todas las sedes y `lib/stock-por-sede.ts` (TDD, 9 tests) lo parte en `aqui` + `otrasSedes`
+(solo > 0, sin la actual, de más a menos); el catálogo lo pinta en el tooltip de cada talla
+(«3 aquí · 14 en Taller», «Sin stock aquí · 15 en Taller · 5 en Trujillo») y en el
+desplegable del escáner. Un hallazgo de paso: `etiquetaSede` (V1) **no tiene ningún uso en
+V2** y con las filas de hoy daría «TND» para «Tienda Trujillo» (`ubicaciones` no tiene
+`codigo`), así que la sede se nombra por su nombre sin el «Tienda» delante — sin inventar
+códigos. Y el freno que pidió Felipe: **RLS**. `stock_select` deja ver solo las sedes que la
+persona puede operar; medido con el JWT de Micaela como colaboradora de Trujillo (en una
+transacción con rollback): Taller 0 filas, Lima 0, Trujillo 16 — la encargada de sede, que
+es justo quien vende «sí hay en Trujillo», recibe `otrasSedes` vacío y la pantalla se queda
+en «Sin stock aquí» sin romperse. La salida es una RPC `security definer` de solo cantidades
+(`fn_stock_por_sede`), escrita en `20260914220000_stock_por_sede.sql` y **no aplicada**:
+esquema en la base compartida no era de esta sesión. Micaela quedó como colaboradora de
+Trujillo con un `update` de datos (el `insert` del seed no hacía nada: ya existía como líder
+por el backfill de `0016`).
+
+Lo que Felipe se lleva: **una policy de "quién puede operar" no es una policy de "quién
+puede saber".** `stock_select` mezcla las dos preguntas, y por eso abrirla para que una
+colaboradora vea Trujillo abriría también que opere Trujillo. La RPC separa las preguntas:
+expone cantidades y nada más. Y sobre las pruebas: simular la sesión de una colaboradora
+con `set local role authenticated` + `request.jwt.claims` dentro de un `begin … rollback`
+mide RLS de verdad sin contraseñas ni tocar la base — es la forma de verificar cualquier
+policy antes de prometer una pantalla.
+
 ## 2026-09-14 (el catálogo se mira por prenda, no por variante — y vuelven shadcn y GSAP)
 
 Segunda ola de la sesión A, sobre lo mismo. Felipe pidió cuatro cosas mirando la grilla
