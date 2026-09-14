@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
@@ -68,6 +69,13 @@ type VentaOk = {
 };
 
 const MAX_RESULTADOS = 6;
+
+/** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
+const ATAJOS = [
+  { href: "/caja", texto: "Caja" },
+  { href: "/cambios", texto: "Cambios" },
+  { href: "/devoluciones", texto: "Devoluciones" },
+] as const;
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
 type Props = {
@@ -427,17 +435,38 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
       <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
         <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {ubicacionEtiqueta}</p>
-        <button
-          type="button"
-          onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
-          className={
-            bloqueado
-              ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-              : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          }
-        >
-          {bloqueado ? "Abrir caja" : "Cerrar caja"}
-        </button>
+        {/* Lo que ya existe en otras pantallas y desde la caja no se alcanzaba: ingreso/
+            egreso y arqueo, cambio de talla, devoluciones. Enlaces discretos, no menú;
+            siguen vivos con la caja cerrada (cerrarla es justo lo que se hace en /caja)
+            y sin gate de rol: AppShell ya decide quién entra a qué. */}
+        {/* Enlaces y botón van juntos en un solo ítem del flex: si la fila se parte
+            (menos de ~900 px con el lateral abierto), el grupo cae entero a la derecha en
+            la segunda línea, no un botón suelto. Bajo `sm` (celular) los enlaces se
+            ocultan: ahí el lateral ya da Caja y Devoluciones. */}
+        <div className="ml-auto flex items-center gap-3">
+          <nav aria-label="Otras operaciones de la tienda" className="hidden items-center gap-1 sm:flex">
+            {ATAJOS.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+              >
+                {a.texto}
+              </Link>
+            ))}
+          </nav>
+          <button
+            type="button"
+            onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
+            className={
+              bloqueado
+                ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            }
+          >
+            {bloqueado ? "Abrir caja" : "Cerrar caja"}
+          </button>
+        </div>
       </div>
 
       {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
