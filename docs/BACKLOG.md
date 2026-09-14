@@ -91,11 +91,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
-- [ ] **Las tres piezas que le faltan a D-22**, además del disparador ya puesto:
+- [ ] **El gemelo de producción del candado está escrito y sin pegar:**
+      `supabase/unificacion/39_movimientos_inmutables.sql`. Lo pega Felipe (D-11). Va en
+      cuatro pasos y el **paso 1 es un pre-flight que decide si los otros tres se pueden
+      pegar**: pregunta si alguna función —de cualquier schema, no solo `retail`, porque
+      el proyecto es compartido con Dynamic— edita o borra movimientos. Si devuelve
+      aunque sea una fila, no se pega: un disparador frena también a las funciones
+      `security definer`, y rompería en vivo con las tiendas vendiendo. La sintaxis se
+      validó contra el Postgres local dentro de una transacción con `rollback`.
+      Se numeró **39** y no 36 a propósito: `docs/datos/` cita un `36`, `37` y `38` que
+      no están en esta rama (el corte V1→V2 se llevó parte de la carpeta).
+- [ ] **Las otras dos piezas que le faltan a D-22**, además del disparador:
       `force row level security` sobre `movimientos` (con prueba de que las RPC que
-      insertan siguen funcionando), cerrar el `INSERT` directo que se salta la RPC y
-      deja el stock sin mover (P-05), y el **gemelo de producción** del candado de
-      ADR-0042, con prefijo `retail.`, que pega Felipe (D-11).
+      insertan siguen funcionando) y cerrar el `INSERT` directo que se salta la RPC y
+      deja el stock sin mover (P-05).
 
 **Higiene encontrada de paso:**
 
