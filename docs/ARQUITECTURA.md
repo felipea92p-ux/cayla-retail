@@ -130,7 +130,8 @@ flowchart TB
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
   hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
   de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
-  `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
+  `PuntoDeVenta.tsx` (padre: TODO el estado, handlers, cabecera con atajos a /caja,
+  /cambios y /devoluciones,
   cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
   primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
   adentro —`lib/catalogo-grupos.ts`, memo del padre— filtro «Solo con stock», y «Ventas

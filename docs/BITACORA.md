@@ -22,6 +22,19 @@ Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta*
 y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
 migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
 
+## 2026-09-14 (la cabecera de Vender enlaza a Caja, Cambios y Devoluciones)
+
+Paso chico en zona del padre. Desde la caja no había cómo llegar a ingreso/egreso y
+arqueo, cambio de talla ni devoluciones — `/cambios` ni siquiera está en el menú lateral.
+Tres enlaces discretos antes del botón de caja, vivos con la caja cerrada y sin gate de
+rol (AppShell ya decide). Lo que enseñó la medición: a 800 px de ancho, con el lateral
+abierto, la fila se partía y dejaba el botón suelto en la segunda línea; la salida no fue
+ocultar (el `sm:` que se pensó no cubre 800) sino agrupar enlaces y botón en un solo ítem
+del flex, que al partirse cae entero a la derecha. Bajo `sm` sí se ocultan.
+
+Lo que Felipe se lleva: **en un `flex-wrap`, lo que debe moverse junto tiene que ser un
+solo ítem** — agrupar es lo que decide cómo se parte una fila, no los márgenes.
+
 ## 2026-09-14 («Ventas de hoy» firma cada venta con la integrante)
 
 Paso chico de la sesión A. `fn_ventas_del_dia` devolvía `vendedor` desde siempre y la

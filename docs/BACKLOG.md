@@ -105,6 +105,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] **«Ventas de hoy» firma cada venta con la integrante** (sesión A). Primer nombre,
       inicial del apellido solo si hay dos con el mismo (`lib/nombre-integrante.ts`, 6
       tests); el relleno «—» de la RPC no se pinta. **Solo en `main` local — falta pushear.**
+- [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
+      enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
+      limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
 - [ ] **Pintar `nota` en «Ventas de hoy»** cuando la sesión derecha la exponga en
       `fn_ventas_del_dia`: misma fila, truncada, texto completo en `title`.
 - [ ] **Aplicar `20260914220000_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
