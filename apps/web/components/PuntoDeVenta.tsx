@@ -32,6 +32,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   categoria: string | null;
   precio: number;
   stockAqui: number;
+  /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
+   *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
+   *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
+  stockOtrasSedes?: { sede: string; cantidad: number }[];
 };
 
 export type ItemCarrito = {
