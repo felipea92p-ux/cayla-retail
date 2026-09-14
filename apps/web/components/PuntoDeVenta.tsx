@@ -8,7 +8,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
+import { aplicarDescuento, motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
+import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
@@ -45,6 +46,10 @@ export type ItemCarrito = {
   descuentoUnitario: number;
   stockAqui: number;
 };
+
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % (texto tal
+ *  cual lo escribe) y a qué líneas alcanza — vacío significa todo el ticket. */
+export type DescuentoForm = { pct: string; elegidas: string[] };
 
 type VentaOk = {
   total: number;
@@ -87,6 +92,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // Sin preselección a propósito: un «efectivo» que nadie eligió es un dato fantasma
   // en el cuadre de caja. `cobrar()` no sale con null — lo frena `motivoBloqueo`.
   const [metodoPago, setMetodoPago] = useState<MetodoPago | null>(null);
+  const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: [] });
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -149,6 +155,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     return () => window.removeEventListener("keydown", alTeclaSuelta);
   }, [bloqueado, hayModal]);
 
+  // Reflujo suave de las líneas del ticket al agregar/quitar una prenda (Flip, ADR-0038
+  // — vuelve de V1 por ADR-0045): se captura la posición ANTES de que cambie la lista y
+  // GSAP anima desde ahí hacia la nueva, en vez de que las filas salten. Solo se captura
+  // cuando la lista cambia de largo — subir la cantidad no reordena nada. El ref vive acá
+  // y el ticket solo lo recibe: sigue sin hooks (ADR-0043).
+  const listaTicket = useRef<HTMLDivElement>(null);
+  const flipState = useRef<Flip.FlipState | null>(null);
+  function capturarFlip() {
+    if (listaTicket.current) flipState.current = Flip.getState(listaTicket.current.children);
+  }
+  useGSAP(() => {
+    if (!flipState.current) return;
+    Flip.from(flipState.current, {
+      duration: 0.32,
+      ease: "caylaEase",
+      absolute: true,
+      onEnter: (elementos) => gsap.fromTo(elementos, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "caylaEase" }),
+      onLeave: (elementos) => gsap.to(elementos, { opacity: 0, duration: 0.18 }),
+    });
+    flipState.current = null;
+  }, [carrito.length]);
+
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
@@ -164,6 +192,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
     const tope = existente !== undefined && existente.cantidad >= v.stockAqui;
     if (!tope) {
+      // Solo si va a entrar una fila nueva — subir la cantidad de una que ya estaba no
+      // reordena nada.
+      if (!existente) capturarFlip();
       setCarrito((actual) => {
         const ya = actual.find((it) => it.claveLinea === v.varianteId);
         if (!ya) {
@@ -195,6 +226,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     if (bloqueado) return;
     const valor = Number(montoManual);
     if (!valor) return;
+    capturarFlip();
     setCarrito((actual) => [
       ...actual,
       {
@@ -213,20 +245,35 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   }
 
   function quitar(claveLinea: string) {
+    capturarFlip();
     setCarrito((actual) => actual.filter((it) => it.claveLinea !== claveLinea));
     setAviso(null);
   }
 
-  function actualizar(claveLinea: string, campo: "cantidad" | "precioUnitario", valor: number) {
-    if (campo === "precioUnitario") {
-      setCarrito((actual) => actual.map((it) => (it.claveLinea === claveLinea ? { ...it, precioUnitario: Math.max(0, valor || 0) } : it)));
-      return;
-    }
+  // El precio lo fija el catálogo: en la caja solo se decide la cantidad (y aparte, un
+  // descuento). El «Monto manual» sigue trayendo su propio precio al crear la línea.
+  function cambiarCantidad(claveLinea: string, valor: number) {
     const item = carrito.find((it) => it.claveLinea === claveLinea);
     if (!item) return;
     const cantidad = Math.max(1, Math.min(valor || 1, item.stockAqui));
     setAviso(valor > item.stockAqui ? `En ${ubicacionEtiqueta} quedan ${item.stockAqui} de ${item.referencia}.` : null);
     setCarrito((actual) => actual.map((it) => (it.claveLinea === claveLinea ? { ...it, cantidad } : it)));
+  }
+
+  // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
+  // entradas — la fila sobre el total (todo el ticket) y el «%» de cada línea (esa sola).
+  // Se aplica como `descuentoUnitario` por línea, que es lo que `registrar_venta` guarda.
+  function abrirDescuento(claves: string[]) {
+    setDescuento({ pct: "", elegidas: claves });
+    setMomento("descuento");
+  }
+  function aplicarDescuentoAlTicket() {
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), descuento.elegidas));
+    setMomento("armar");
+  }
+  function quitarDescuentoDelTicket() {
+    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas));
+    setMomento("armar");
   }
 
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -406,8 +453,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         <PuntoDeVentaTicket
           bloqueado={bloqueado}
           carrito={carrito}
+          listaRef={listaTicket}
           onQuitar={quitar}
-          onActualizar={actualizar}
+          onCantidad={cambiarCantidad}
+          descuento={descuento}
+          onDescuento={(cambio) => setDescuento((d) => ({ ...d, ...cambio }))}
+          onAbrirDescuento={abrirDescuento}
+          onAplicarDescuento={aplicarDescuentoAlTicket}
+          onQuitarDescuento={quitarDescuentoDelTicket}
           total={total}
           prendas={prendas}
           metodoPago={metodoPago}

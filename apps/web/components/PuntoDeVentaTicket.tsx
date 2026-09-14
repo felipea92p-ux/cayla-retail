@@ -5,7 +5,8 @@ import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import type { MomentoTicket } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { ID_CARGO_ESPECIAL, money, type ItemCarrito } from "@/components/PuntoDeVenta";
+import type { RefObject } from "react";
+import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -35,8 +36,17 @@ type Props = {
   bloqueado: boolean;
   // Ticket
   carrito: ItemCarrito[];
+  /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
+  listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
-  onActualizar: (claveLinea: string, campo: "cantidad" | "precioUnitario", valor: number) => void;
+  onCantidad: (claveLinea: string, valor: number) => void;
+  // Descuento — un solo apartado (momento «descuento»), dos entradas
+  descuento: DescuentoForm;
+  onDescuento: (cambio: Partial<DescuentoForm>) => void;
+  /** Abre el apartado para esas líneas; vacío = todo el ticket. */
+  onAbrirDescuento: (claves: string[]) => void;
+  onAplicarDescuento: () => void;
+  onQuitarDescuento: () => void;
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
@@ -79,8 +89,14 @@ type Props = {
 export function PuntoDeVentaTicket({
   bloqueado,
   carrito,
+  listaRef,
   onQuitar,
-  onActualizar,
+  onCantidad,
+  descuento,
+  onDescuento,
+  onAbrirDescuento,
+  onAplicarDescuento,
+  onQuitarDescuento,
   total,
   prendas,
   momento,
@@ -257,7 +273,7 @@ export function PuntoDeVentaTicket({
                           <button
                             type="button"
                             aria-label="Reducir cantidad"
-                            onClick={() => onActualizar(it.claveLinea, "cantidad", it.cantidad - 1)}
+                            onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
                             className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
                           >
                             −
@@ -269,13 +285,13 @@ export function PuntoDeVentaTicket({
                           min={1}
                           max={it.stockAqui}
                           value={it.cantidad}
-                          onChange={(e) => onActualizar(it.claveLinea, "cantidad", Number(e.target.value))}
+                          onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
                           className="w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none"
                         />
                         <button
                           type="button"
                           aria-label="Aumentar cantidad"
-                          onClick={() => onActualizar(it.claveLinea, "cantidad", it.cantidad + 1)}
+                          onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
                           disabled={it.cantidad >= it.stockAqui}
                           className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
                         >
