@@ -108,8 +108,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
       enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
       limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
-- [ ] **Pintar `nota` en «Ventas de hoy»** cuando la sesión derecha la exponga en
-      `fn_ventas_del_dia`: misma fila, truncada, texto completo en `title`.
+- [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
+      texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
 - [ ] **Aplicar `20260914220000_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
       migración está escrita y NO aplicada (esquema en la base compartida: la aplica
       Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes

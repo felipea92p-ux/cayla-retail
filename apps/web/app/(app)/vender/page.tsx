@@ -118,7 +118,15 @@ async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: st
           <span className="min-w-0 flex-1 truncate text-tinta/60">
             {v.comprobante_texto ?? "Sin comprobante"} {v.metodos_pago ? `· ${v.metodos_pago}` : ""}
           </span>
-          <span className="font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
+          {/* La nota de la venta («lo recoge el sábado…»), en la misma fila, truncada;
+              el texto completo queda en `title`. Si la RPC no la trae —o producción aún no
+              tiene la columna— no se pinta nada. */}
+          {v.nota && (
+            <span className="min-w-0 max-w-[16rem] truncate text-tinta/60 italic" title={v.nota}>
+              {v.nota}
+            </span>
+          )}
+          <span className="shrink-0 font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
         </div>
       ))}
     </div>
