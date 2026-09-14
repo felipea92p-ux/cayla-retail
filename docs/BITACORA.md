@@ -3,6 +3,83 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (el candado que faltaba sobre el pasado, y el conteo ciego que no era ciego)
+
+Con el entorno ya verificado, Felipe pidió leer `docs/datos/` para ver qué falta desde
+la base. Primer hallazgo de método: esa carpeta audita **producción** (45 tablas, el
+proyecto de Dynamic) con referencias de código **V1**, y el corte V1→V2 las dejó
+apuntando a archivos que ya no existen — pero lo que dice de producción sigue siendo
+cierto, porque producción no cambia sola. Reconciliar los 15 huecos del módulo de
+ventas contra el código y la base V2 reales mostró tres grupos distintos: los que V2
+arregló solo al reconstruir (venta↔comprobante en la misma transacción, candados por
+línea en `venta_items`/`venta_pagos`, el bug del `NULL` neutralizado dentro de
+`fn_puede_operar_ubicacion`, la caja sin policy de UPDATE), los que heredó intactos, y
+uno que **empeoró**.
+
+Se cerraron dos. **ADR-0042:** `movimientos` —la única fuente desde la que se
+reconstruye el stock— pasó de "nadie lo edita por costumbre" a no poder editarse:
+disparador `before update or delete` más el retiro de `UPDATE`/`DELETE`/`TRUNCATE` a
+`authenticated`. Se verificó antes de escribirlo que ninguna función del schema toca el
+pasado (cero filas), y se probó en rojo después: las dos operaciones fallan con mensaje
+en castellano y las 105 filas quedan intactas. **Y el conteo ciego:** el modal de cierre
+mostraba el esperado en su propio subtítulo, así que contar era confirmar, no medir.
+Ahora el número sale de la respuesta de `cerrar_caja` —calculado en el instante del
+cierre, no al cargar la pantalla— y se muestra después, al lado de lo contado. Probando
+eso apareció un defecto que nadie había visto: `router.refresh()` corría junto con el
+resultado, el servidor respondía "ya no hay caja abierta", y el modal se desmontaba
+antes de que nadie leyera la diferencia — el número por el que se pregunta al día
+siguiente, invisible. Se movió el refresco al botón "Listo".
+
+Felipe probó los dos y preguntó qué hacer con la tarjeta "Esperado en el cajón" del
+panel, que era la otra mitad del mismo control. Se recomendó quitarla y la decidió así.
+El argumento a favor de dejarla resultó más débil de lo que parecía —para saber si
+alcanza para dar vuelto se mira el cajón, no la pantalla—, y en contra pesó el
+precedente propio de CAYLA: los SINATRA traían cuadres de **−S/6,122 (TRU) y −S/7,675
+(LIM) sin fecha de origen**, que es exactamente lo que pasa cuando la diferencia diaria
+no se mide. Se quitó también del tipo y de `getResumenCaja`, para que el número ni
+siquiera viaje al navegador durante el turno.
+
+Lo que Felipe se lleva: **la pregunta que separa un candado de una costumbre es "¿si
+alguien pega un `insert` a mano, entra?"** — `movimientos` se salvaba por omisión (nadie
+había escrito la policy), no por decisión, y una omisión no protege contra el dueño de
+la tabla ni contra las funciones `security definer`. Y el reverso, que se dijo con todas
+las letras al recomendar lo de la tarjeta: **quitarla es fricción, no un candado.** Las
+otras cuatro tarjetas permiten sumar el total a mano y `ventas_select` deja consultarlo
+desde la consola; el candado real necesita los roles de D-12, que no existen. Quedó
+escrito así en el BACKLOG para que nadie lo lea como "conteo ciego resuelto", junto con
+la cola offline que V2 perdió respecto de V1 y el "control total temporal" sin fecha.
+
+## 2026-09-14 (preparar el entorno local para POS destapó que el backlog describe un sistema que ya no existe)
+
+Felipe pidió retomar el trabajo local en Vender/Caja (POS) y verificar el entorno antes
+de tocar código (rama `claude/local-pos-setup-2bab48`, sin commits propios todavía). La
+auditoría de apertura de sesión (BACKLOG.md + BITACORA.md) mostró un hallazgo que cambia
+cómo leer ambos documentos: el corte V1→V2 (`0af2f1b`, 2026-09-12, ADR-0035) borró
+Finanzas, Producción y buena parte de Inventario V1 — así que casi todo lo que
+BACKLOG.md describe en detalle (Facturación con Lucode/SUNAT, EERR, Producción del
+Taller) es sobre un V1 que ya no está en el código; solo la entrada de BITÁCORA del
+12-sep hablaba de V2. Se agregó un aviso al inicio de BACKLOG.md para que ninguna
+sesión futura pierda tiempo con eso — falta la reescritura completa, que es tarea aparte.
+
+Entorno verificado contra el V2 real, no contra los docs: Docker con ambos stacks de
+Supabase sanos y sin cruzarse (`cayla-retail` :54421, `cayla-dynamic` :54321 —
+confirmado con `pnpm local:donde`), dependencias reinstaladas (lockfile había cambiado,
+`node_modules` de este worktree estaba desalineado), y el stub gitignored de Dynamic
+(`supabase/migrations/0000_local_stub_dynamic.sql`) copiado de su `.example` — no
+existía en este worktree porque cada worktree tiene su propio working directory para
+archivos ignorados, aunque todos comparten el mismo Postgres de Docker. `pnpm typecheck`
+fallaba con 28 errores `Cannot find module` sobre rutas que V1 ya no tiene — no era
+código roto, era `apps/web/.next/types/` cacheado de antes del corte; se borró `.next`
+y quedó limpio. Verificado en navegador con sesión real (Felipe Alvarez · Líder ·
+Tienda Lima): `/vender` carga catálogo con stock y precios reales, caja abierta,
+escaneo listo — sin errores de consola ni de red.
+
+Lo que Felipe se lleva: en un repo con worktrees en paralelo, "el entorno ya funcionó
+antes" no significa que funcione en ESTE checkout — Docker/Postgres se comparte entre
+worktrees pero los archivos ignorados (`.next`, el stub de Dynamic, a veces
+`node_modules`) no, y son justo los que rompen algo "sin razón aparente" al cambiar de
+worktree.
+
 ## 2026-09-12 (vocabulario cerrado + activos fijos: lo rescatable de V1 se porta, no se fusiona)
 
 El corte V1→V2 (`0af2f1b`) dejó `colores`/`categorias` de V2 sin el candado que evita

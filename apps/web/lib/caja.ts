@@ -18,12 +18,18 @@ export type CajaAbierta = {
   abiertaPorNombre: string | null;
 };
 
+/**
+ * Conteo ciego (ADR-0042): a propósito NO trae el total esperado en el cajón.
+ * Quien cuenta no debe saber cuánto debería haber — si lo sabe, contar deja de
+ * ser una medición y pasa a ser una confirmación, y la diferencia real nunca
+ * aparece. El esperado lo calcula `cerrar_caja` en el servidor, en el instante
+ * del cierre, y se muestra recién ahí junto a lo contado.
+ */
 export type ResumenCaja = {
   ventasEfectivo: number;
   ventasOtros: number;
   ingresos: number;
   egresos: number;
-  esperadoEnCajon: number;
 };
 
 export type MovimientoCaja = {
@@ -66,7 +72,7 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
   };
 }
 
-export async function getResumenCaja(cajaId: string, montoApertura: number): Promise<ResumenCaja> {
+export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
   const supabase = await createClient();
   const [ventasRes, movimientos] = await Promise.all([
     supabase.from("ventas").select("id").eq("caja_id", cajaId),
@@ -87,13 +93,7 @@ export async function getResumenCaja(cajaId: string, montoApertura: number): Pro
   const ingresos = filasMovs.filter((m) => m.tipo === "ingreso").reduce((a, m) => a + Number(m.monto), 0);
   const egresos = filasMovs.filter((m) => m.tipo === "egreso").reduce((a, m) => a + Number(m.monto), 0);
 
-  return {
-    ventasEfectivo,
-    ventasOtros,
-    ingresos,
-    egresos,
-    esperadoEnCajon: montoApertura + ventasEfectivo + ingresos - egresos,
-  };
+  return { ventasEfectivo, ventasOtros, ingresos, egresos };
 }
 
 export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja[]> {

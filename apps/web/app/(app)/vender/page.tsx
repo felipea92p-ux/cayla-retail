@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getCajaAbierta, getResumenCaja } from "@/lib/caja";
+import { getCajaAbierta } from "@/lib/caja";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
@@ -48,14 +48,11 @@ async function Caja() {
       stockAqui: stockPorVariante.get(v.varianteId) ?? 0,
     }));
 
-  const esperadoEnCajon = caja ? (await getResumenCaja(caja.id, caja.montoApertura)).esperadoEnCajon : null;
-
   return (
     <PuntoDeVenta
       ubicacionId={persona.ubicacionId}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}
-      esperadoEnCajon={esperadoEnCajon}
       variantes={variantesParaVenta}
       ventasHoyNode={
         <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
