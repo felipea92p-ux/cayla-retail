@@ -18,6 +18,73 @@ scroll). No toca RPC ni esquema.
 Lo que se lleva: **la pantalla se dibuja con la forma en que la gente ya cuenta la mercadería**,
 no con la forma en que la base la guarda — la base sigue viendo variantes sueltas.
 
+## 2026-09-14 (piso de venta y almacén de tienda: la extensión que el código ya anunciaba)
+
+Felipe pidió que Inventario distinga cuánto de una prenda está en el piso
+(vendible) y cuánto en el almacén interno de la tienda — una venta nunca
+debe descontar del almacén en silencio, y tiene que existir una reposición
+explícita y auditable entre los dos. No era una idea nueva para el repo:
+`sububicaciones` ya existía (Taller usa "Rack A"/"Rack B"), y `movimientos`/
+`conteos` ya tenían `sububicacion_id` opcional desde el primer diseño de
+V2 — pero `stock`, la tabla que de verdad importa, nunca ganó esa columna,
+y `fn_aplicar_movimiento` la ignoraba. `20260914210000_inventario_piso_
+almacen.sql` es ese "después" que el propio comentario de
+`inventario-v2.ts` dejaba anunciado.
+
+V1 tuvo esta misma feature (`stock_almacen`, `contenedores`) y tuvo bugs
+reales documentados en ADR-0031: una reconstrucción de stock que "olvidó"
+el almacén y duplicó mercadería, y un traslado que restó del piso sin sumar
+en ningún lado. Por eso cada función que toca `stock` (8 en total —
+`fn_aplicar_movimiento`, `recalcular_stock`, `registrar_movimiento`,
+`recibir_lote`, `recibir_compras`, `registrar_venta`, `registrar_cambio`,
+`aprobar_devolucion`, `transferir`, más `abrir_conteo`/`conteo_contar`/
+`cerrar_conteo`/`previsualizar_cierre_conteo`) se revisó una por una, no
+solo la que aplica el movimiento. El hallazgo más caro de esa revisión:
+`transferir()` — el mecanismo real por el que el Taller abastece a las
+tiendas, ejercitado por el seed desde el primer `db reset` — no resolvía
+sububicación en ninguna punta; sin el fix habría creado una tercera fila de
+stock invisible en la pantalla nueva, o rechazado un traslado con "stock
+insuficiente" mostrando stock en pantalla. `traslado` se generalizó para
+cubrir movimientos dentro de la misma ubicación (reutiliza el `tipo`,
+diferencia con `motivo='movimiento_interno'`) en vez de sumar un tipo
+nuevo — un tipo nuevo hubiera duplicado la rama en dos funciones, la clase
+exacta de bug que rompió V1.
+
+Verificado en navegador con datos reales, no solo en SQL: reposición de
+piso conserva el total (1→5 piso / 9→5 almacén), el POS muestra "Sin
+stock" en una prenda con 6 unidades en almacén pero 0 en piso, y un conteo
+de piso no confunde el stock de almacén con "nunca contado". `recalcular_
+stock()` reconstruye a los mismos saldos, byte a byte, después de una
+docena de movimientos reales.
+
+Lo que Felipe se lleva: **una columna que existe pero que ningún motor usa
+es una promesa a medias** — `sububicacion_id` llevaba desde el primer
+diseño de V2 esperando este día, y encontrarla ya ahí cambió el trabajo de
+"diseñar algo nuevo" a "terminar de conectar algo que ya empezó bien”.
+
+## 2026-09-14 (control total temporal termina — Líder y Colaborador, de verdad)
+
+Auditoría de accesos (pedida por Felipe) encontró que `fn_es_lider()` decía
+que sí a cualquiera con acceso a retail desde 0012 — sin fecha de
+vencimiento. `0016_roles_colaborador.sql` lo cierra: las 9 personas ya
+registradas quedan Líder (backfill explícito, "eso no cambia"); un
+Colaborador nuevo entra fijo a la sede que se le asigna al darlo de alta
+(nunca la de Dynamic) y sin acceso a Compras/Facturación/Colaboradores.
+Sorpresa real al revisar: el frontend ya gateaba esas tres pantallas con
+`esLider` desde que se escribieron — corrigiendo una sola función en la
+base, las tres quedan cerradas sin tocar React.
+
+Encontrado y corregido de paso: a Compras le faltaba el guard de servidor
+que Facturación y Colaboradores ya tenían — probado en vivo, una cuenta
+Colaborador cargaba `/compras` completo por URL directa aunque el menú lo
+escondiera (las escrituras sí estaban bien cerradas, la lectura no).
+
+Aplicado a producción el mismo día junto con `0015_previsualizar_conteo.sql`
+(la RPC que le faltaba a la pantalla de Conteo). Verificado después de
+pegar, no solo antes: las 9 personas quedaron en `lider`, `agregar_colaborador`
+con una sola firma viva, y `public.personas`/`datos_personales`/
+`fn_actualizar_foto_perfil` de Dynamic exactamente iguales a como estaban.
+
 ## 2026-09-14 (fusionar 13 commits ajenos sobre 34 de Vender: el conflicto de fondo no salía en el diff)
 
 Mientras las dos sesiones de Vender trabajaban, `origin/main` recibió 13 commits de tres

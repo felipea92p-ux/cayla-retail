@@ -1,15 +1,17 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getStockPorUbicacion, resumirInventario } from "@/lib/inventario-v2";
+import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
+import { InventarioPanel } from "@/components/InventarioPanel";
 
-// Fase UI 1 (2026-09-11): rediseño completo, no una adaptación de
-// `app/(app)/inventario/page.tsx` (V1) — ese archivo separa piso de venta y
-// `stock_almacen` como dos tablas distintas por sede. V2 unificó eso en una
-// sola tabla `stock` por `ubicacion_id` (más simple a propósito, ver
-// `supabase/migrations/0002_esquema.sql`): una integrante ve directamente su
-// ubicación; un Líder puede elegir cualquiera porque `fn_puede_operar_ubicacion`
-// se lo permite (RLS lo vuelve a validar, esto es solo la UI).
+// Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
+// (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
+// `stock` — la separación es una columna más (`sububicacion_id`), no dos
+// tablas como en V1 — pero ahora una ubicación puede tener más de una fila
+// por variante, así que la pantalla necesita saber agregar antes de
+// mostrar. Esa agregación vive en `getStockPorUbicacion`, no acá: esta
+// página sigue siendo solo "traer los datos y elegir el layout".
 export default async function InventarioPage({
   searchParams,
 }: {
@@ -25,8 +27,13 @@ export default async function InventarioPage({
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  const stock = await getStockPorUbicacion(ubicacionActivaId);
-  const totalUnidades = stock.reduce((acc, f) => acc + f.cantidad, 0);
+  const [stock, sububicaciones] = await Promise.all([
+    getStockPorUbicacion(ubicacionActivaId),
+    getSububicaciones(ubicacionActivaId),
+  ]);
+  const resumen = resumirInventario(stock);
+  const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
+  const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
   return (
     <div className="space-y-6">
@@ -40,39 +47,13 @@ export default async function InventarioPage({
         )}
       </div>
 
-      <p className="text-sm text-tinta/65">
-        {stock.length} referencia{stock.length === 1 ? "" : "s"} con stock · {totalUnidades} unidad
-        {totalUnidades === 1 ? "" : "es"} en total
-      </p>
-
-      {stock.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Esta ubicación no tiene stock todavía.</p>
-      ) : (
-        <div className="card-cayla overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-tinta/10 text-left">
-                <th className="label-cayla px-5 py-3 text-[11px] text-tinta/65">Referencia</th>
-                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">SKU</th>
-                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">Talla</th>
-                <th className="label-cayla px-3 py-3 text-[11px] text-tinta/65">Color</th>
-                <th className="label-cayla px-5 py-3 text-right text-[11px] text-tinta/65">Cantidad</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-tinta/10">
-              {stock.map((f) => (
-                <tr key={f.varianteId}>
-                  <td className="px-5 py-2.5 text-tinta">{f.referencia}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-tinta/75">{f.sku}</td>
-                  <td className="px-3 py-2.5 text-tinta/75">{f.talla ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-tinta/75">{f.color ?? "—"}</td>
-                  <td className="px-5 py-2.5 text-right tabular-nums text-tinta">{f.cantidad}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <InventarioPanel
+        ubicacionId={ubicacionActivaId}
+        stock={stock}
+        resumen={resumen}
+        sububicacionPiso={sububicacionPiso}
+        sububicacionAlmacen={sububicacionAlmacen}
+      />
     </div>
   );
 }

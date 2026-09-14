@@ -203,6 +203,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
+
+**Cerrado esta sesión, solo local** — `20260914210000_inventario_piso_almacen.sql`,
+ver BITACORA de esa fecha para el diseño completo. `retail.stock` gana
+`sububicacion_id`; las 12 funciones que tocan stock/conteos quedaron revisadas
+una por una; `mover_interno()` es la reposición, reutilizable para cualquier
+par de sububicaciones. Pantalla de Inventario rediseñada con tarjetas de
+resumen, tabla piso/almacén/total/estado, buscador y filtros; POS y "Mover
+mercadería" corregidos para no ofrecer stock que el RPC va a rechazar.
+
+**Pendiente de decisión de Felipe:**
+
+- [ ] **"Otras ubicaciones" al revisar una variante** (visibilidad de piso/total
+      en las demás sedes) quedó fuera — el pedido lo marcó como "cuando sea
+      útil", no como parte de esta fase. Es una consulta adicional sobre
+      `getStockPorUbicacion`/`stock`, no un cambio de esquema.
+- [ ] **Concurrencia de `mover_interno` verificada por diseño, no por prueba
+      real con dos sesiones simultáneas**: el orden determinístico de lock
+      (mismo criterio en las dos direcciones) se revisó en el motor
+      (`fn_aplicar_movimiento`), pero no se forzó una carrera real de dos
+      `psql` en paralelo. Si alguna vez aparece un deadlock real en reposición
+      de piso, empezar por ahí.
+- [ ] **El gap de RLS "débil" encontrado en la auditoría de accesos del
+      2026-09-14** (catálogo/Compras con `auth.role() = 'authenticated'`, sin
+      candado de ubicación) sigue sin tocar — no es nuevo de esta sesión, y
+      Felipe no lo ha pedido todavía.
+
+---
+
 **Auditoría completa 2026-09-03.** BITACORA.md y este archivo llevaban congelados
 desde el 19-20 de julio, pero el repo tiene commits reales hasta el 23 de julio —
 incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en

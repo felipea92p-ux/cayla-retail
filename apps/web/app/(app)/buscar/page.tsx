@@ -79,11 +79,16 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
     "el stock de estos resultados"
   );
 
-  const stockPorVariante = new Map<string, { ubicacion: string; cantidad: number }[]>();
+  // Una ubicación con piso y almacén trae 2 filas para la misma variante
+  // (20260914210000_inventario_piso_almacen.sql) — acá solo importa el
+  // total por ubicación, así que se suman antes de listar; sin esto, Tienda
+  // Lima aparecería dos veces por la misma prenda.
+  const stockPorVariante = new Map<string, Map<string, number>>();
   stockRows.forEach((r) => {
-    const lista = stockPorVariante.get(r.variante_id) ?? [];
-    lista.push({ ubicacion: r.ubicacion?.nombre ?? "—", cantidad: r.cantidad });
-    stockPorVariante.set(r.variante_id, lista);
+    const porUbicacion = stockPorVariante.get(r.variante_id) ?? new Map<string, number>();
+    const nombre = r.ubicacion?.nombre ?? "—";
+    porUbicacion.set(nombre, (porUbicacion.get(nombre) ?? 0) + r.cantidad);
+    stockPorVariante.set(r.variante_id, porUbicacion);
   });
 
   return (
@@ -94,7 +99,10 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
 
       <div className="space-y-3">
         {resultados.map((v) => {
-          const detalles = stockPorVariante.get(v.varianteId) ?? [];
+          const detalles = Array.from(stockPorVariante.get(v.varianteId) ?? new Map<string, number>(), ([ubicacion, cantidad]) => ({
+            ubicacion,
+            cantidad,
+          }));
           const stockTotal = detalles.reduce((acc, d) => acc + d.cantidad, 0);
           const hayStock = stockTotal > 0;
           return (
