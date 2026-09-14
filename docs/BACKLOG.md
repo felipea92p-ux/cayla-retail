@@ -99,6 +99,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
       la pinta sin rediseñar.
 
+- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`).**
+      Verificar en local que la caja opera sobre *su* sede y no sobre la del Líder: el
+      selector «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de
+      la persona, y que el escáner solo reconozca stock de esa sede. El `seed.sql` nuevo
+      pone a Micaela como colaboradora de Trujillo, pero la base local no se reseteó
+      (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
+      `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
