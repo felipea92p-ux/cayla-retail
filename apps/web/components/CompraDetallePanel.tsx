@@ -42,7 +42,29 @@ export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraRes
   );
 }
 
-function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen; onClose: () => void }) {
+// Desde "Por pagar" se paga sin entrar al detalle: el botón de la fila abre
+// EL MISMO modal (un pago sigue siendo contra una sola factura — solo se
+// ahorra el clic de ir a verla). `compacto` es la versión que cabe en una
+// celda de tabla.
+export function BotonPagar({ compra, compacto = false }: { compra: CompraResumen; compacto?: boolean }) {
+  const [abierto, setAbierto] = useState(false);
+  if (compra.estado !== "vigente" || compra.saldo <= 0) return null;
+  return (
+    <>
+      <Boton
+        type="button"
+        peso={compacto ? "discreto" : "primario"}
+        className={compacto ? "px-2.5 py-1.5 text-[11px]" : ""}
+        onClick={() => setAbierto(true)}
+      >
+        {compacto ? "Pagar" : `Registrar pago · saldo ${soles(compra.saldo)}`}
+      </Boton>
+      {abierto && <RegistrarPagoModal compra={compra} onClose={() => setAbierto(false)} />}
+    </>
+  );
+}
+
+export function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen; onClose: () => void }) {
   const router = useRouter();
   const [monto, setMonto] = useState(compra.saldo.toFixed(2));
   const [metodo, setMetodo] = useState(METODOS[0]);

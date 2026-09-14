@@ -132,6 +132,31 @@ flowchart TB
   `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
   servidor).
 
+**Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
+- `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
+  `fn_proveedores`: directorio + facturas vigentes + saldo + última compra) →
+  `ProveedoresPanel.tsx` → RPCs `registrar_proveedor`, `actualizar_proveedor`,
+  `desactivar_proveedor`, `reactivar_proveedor`
+  (`20260914150000_proveedores_administrables.sql`). Es la puerta del módulo:
+  `compras.proveedor_id` es FK dura, sin proveedor no hay factura. El alta
+  consulta `GET /api/padron?tipo=ruc` para traer la razón social de SUNAT;
+  si el padrón no responde, se escribe a mano y se guarda igual. Nunca borra:
+  `activo=false`. Candados: `proveedores_ruc_unico` y
+  `proveedores_nombre_clave_unica` (sobre `fn_clave_texto`, el mismo
+  normalizador de `colores`/`categorias`).
+- `/compras` (Facturas), `/compras/nueva`, `/compras/[compraId]`,
+  `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
+  `CompraFormV2`, `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
+  `registrar_compra`, `recibir_compras`, `registrar_pago_compra`,
+  `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
+  `ComprasNav.tsx` (layout de `/compras`).
+- Adjuntos de factura (ADR-0042, `20260914180000_compras_adjuntos.sql`):
+  tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
+  `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →
+  `lib/adjuntos-compra.ts` sube del navegador al bucket y registra la fila
+  con `registrar_adjunto_compra`; `archivar_adjunto_compra` quita de la
+  vista (nunca borra). URL firmada de 1 h en `lib/compras.ts`.
+
 **Producción (Taller)**
 - `/produccion` → `OrdenesProduccion.tsx` → RPCs `registrar_produccion`,
   `set_etapa_produccion`, `cerrar_produccion`, `revertir_produccion_inventario`,

@@ -87,6 +87,22 @@ const HUELLAS: { marca: string; frase: string }[] = [
       "Ese número de comprobante ya está usado. Vuelve a Facturación y emite de nuevo: el sistema tomará el siguiente correlativo.",
   },
   {
+    // 20260914160000_igv_solo_en_factura.sql — boleta y nota de venta no discriminan IGV.
+    marca: "compras_igv_solo_factura",
+    frase:
+      "Una boleta o una nota de venta no lleva IGV aparte: el precio del documento ya es el costo. Pon el IGV en 0 o cambia el tipo a factura.",
+  },
+  {
+    // 20260914150000_proveedores_administrables.sql — dos proveedores no pueden compartir RUC.
+    marca: "proveedores_ruc_unico",
+    frase: "Ese RUC ya está registrado en otro proveedor. Búscalo en Compras → Proveedores en vez de crear uno nuevo.",
+  },
+  {
+    // 20260914150000_proveedores_administrables.sql — ni el mismo nombre con distinta forma.
+    marca: "proveedores_nombre_clave_unica",
+    frase: "Ya existe un proveedor con ese nombre (aunque esté escrito distinto). Búscalo en Compras → Proveedores.",
+  },
+  {
     // RLS: la política rechazó la fila. Pasa cuando se opera sobre una ubicación que no es la tuya.
     marca: "row-level security",
     frase:
