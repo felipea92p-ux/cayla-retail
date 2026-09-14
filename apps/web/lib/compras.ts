@@ -85,8 +85,10 @@ function aResumen(f: FilaResumen): CompraResumen {
 // ---------- listar con filtros y cursor (migración compras_snapshot_y_paginado) ----------
 // Todo el filtrado y el paginado ocurren en Postgres, vía `listar_compras`,
 // sobre índices: la app nunca trae más de una página. El cursor es la
-// (fecha, id) de la última fila vista — "dame las siguientes a esta" — en
-// vez de OFFSET, que a un millón de filas lee y descarta un millón.
+// (fecha, creadoEn, id) de la última fila vista — "dame las siguientes a
+// esta" — en vez de OFFSET, que a un millón de filas lee y descarta un millón.
+// `creadoEn` desempata entre facturas del mismo día (la registrada más
+// recientemente va primera); `id` solo garantiza que el cursor sea único.
 export type OrdenCompras = "emision" | "vencimiento";
 
 export type FiltrosCompras = {
@@ -103,7 +105,7 @@ export type FiltrosCompras = {
   hasta?: string;
 };
 
-export type Cursor = { fecha: string; id: string };
+export type Cursor = { fecha: string; creadoEn: string; id: string };
 
 export type PaginaCompras = {
   filas: CompraResumen[];
@@ -114,7 +116,8 @@ export type PaginaCompras = {
 export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string };
+/** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
@@ -145,7 +148,9 @@ export async function listarCompras(
     await supabase.rpc("listar_compras", {
       p_limite: limite,
       p_orden: orden,
-      ...(opciones.cursor ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_id: opciones.cursor.id } : {}),
+      ...(opciones.cursor
+        ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
+        : {}),
       ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
       ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
       ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
@@ -166,7 +171,7 @@ export async function listarCompras(
   const ultima = pagina[pagina.length - 1];
   const siguiente =
     hayMas && ultima
-      ? { fecha: orden === "vencimiento" ? (ultima.fechaVencimiento ?? "") : ultima.fechaEmision, id: ultima.id }
+      ? { fecha: orden === "vencimiento" ? (ultima.fechaVencimiento ?? "") : ultima.fechaEmision, creadoEn: ultima.creadoEn, id: ultima.id }
       : null;
   return { filas: pagina, siguiente };
 }
@@ -182,7 +187,18 @@ export function listarPorRecibir(filtros: FiltrosCompras = {}, cursor: Cursor | 
 }
 
 /** Cifras de cabecera (conteos y sumas), calculadas en Postgres en una sola llamada. */
-export type ResumenCompras = { registradas: number; vigentes: number; porRecibir: number; deuda: number; conSaldo: number; vencido: number; vencidas: number };
+export type ResumenCompras = {
+  registradas: number;
+  vigentes: number;
+  porRecibir: number;
+  deuda: number;
+  conSaldo: number;
+  vencido: number;
+  vencidas: number;
+  /** Con vencimiento de hoy a 7 días (migración compras_resumen_por_vencer). */
+  porVencer: number;
+  porVencerMonto: number;
+};
 
 export async function getResumenCompras(): Promise<ResumenCompras> {
   const supabase = await createClient();
@@ -197,6 +213,10 @@ export async function getResumenCompras(): Promise<ResumenCompras> {
     conSaldo: Number(r.con_saldo ?? 0),
     vencido: Number(r.vencido ?? 0),
     vencidas: Number(r.vencidas ?? 0),
+    // `?? 0`: si producción todavía no tiene la migración, la tarjeta dice 0
+    // en vez de tumbar la página.
+    porVencer: Number(r.por_vencer ?? 0),
+    porVencerMonto: Number(r.por_vencer_monto ?? 0),
   };
 }
 
