@@ -68,8 +68,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       método o el RUC, y el globo dice qué falta. Verificado en navegador con venta real
       (Boleta B001-000001 en la base local). Adenda del mismo día: en escritorio el
       POS es pantalla fija — la página no scrollea, catálogo y ticket scrollean por
-      dentro y el ticket llena toda la altura visible. **Solo en `main` local — falta
-      pushear.**
+      dentro y el ticket llena toda la altura visible. Segunda adenda: **descuento
+      manual** (tercer momento del ticket; % global o por prenda; viaja como
+      `descuento_unitario` por línea — verificado en la base, Boleta B001-000005),
+      precio de solo lectura, basurero en «1», íconos en los colores del sistema y
+      **vuelven shadcn + GSAP** (ADR-0045: el corte V1→V2 los había borrado sin
+      registro). **Solo en `main` local — falta pushear.**
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
@@ -115,7 +119,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.**
+- [ ] **Códigos de descuento** (decisión 1-A, 2026-09-14): el % manual ya existe; los
+      códigos necesitan esquema nuevo — `codigos_descuento` (código, %, vigencia,
+      activo, ¿sede?) + RLS + validación en RPC — y su gemelo `retail.` en producción.
+      Paso propio, no improvisado dentro del ticket.
+- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.** *(Desde el
+      2026-09-14 el descuento ya NO es fantasma: viaja en `descuento_unitario` por línea y
+      la caja no edita el precio. Lo que sigue pendiente es el candado en la RPC.)*
       `registrar_venta` (`0011_venta_con_comprobante.sql:114-117`) inserta
       `precio_unitario`/`descuento_unitario` tal cual llegan, sin compararlos con
       `variantes.precio`. La columna `descuento_unitario` existe (diseño D-44) pero

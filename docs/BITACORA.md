@@ -84,6 +84,24 @@ los paneles puedan encoger. Lo que Felipe se lleva: **un `overflow-y-auto` no sc
 solo — necesita que algo por encima le ponga tope**; sin la cadena de `min-h-0` hasta la
 raíz, el contenedor crece y el `overflow-hidden` de arriba recorta en silencio.
 
+Tercera vuelta del día sobre el ticket: precio de solo lectura, basurero en «1», campo sin
+flechitas, «Ticket actual» grande, íconos por apartado y un **apartado de descuento** (%
+global o por prenda) que viaja como `descuento_unitario` por línea — la columna que
+`venta_items` ya tenía. Al pedir «los componentes animados de shadcn, tal vez ya
+existentes» se midió que **no existían**: el corte V1→V2 (`0af2f1b`) se había llevado el
+puente shadcn (ADR-0037), GSAP con el `Flip` del carrito (ADR-0038) y los tres ADR, sin
+dejarlo escrito en ningún documento vivo — `docs/adr/` saltaba de 0036 a 0041 y nadie lo
+había notado. Felipe decidió traerlos de vuelta tal cual (ADR-0045), y el `Flip` volvió al
+lugar que tenía en V1: el reflujo de las líneas del ticket. Los códigos de descuento
+quedaron como paso propio (no hay tabla). Verificado en navegador con venta real: Boleta
+B001-000005, dos líneas `79.90 / 7.99 / 71.91`, total 143.82.
+
+Lo que Felipe se lleva: **un corte grande borra cosas que nadie decidió borrar** — la
+pregunta al reemplazar un núcleo no es solo "¿qué se pierde de negocio?" sino "¿qué se
+pierde de infraestructura que otro ADR ya había decidido?". La huella era visible en la
+numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
+con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
+
 ## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
 
 Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket
