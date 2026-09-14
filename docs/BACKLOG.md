@@ -135,6 +135,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
       `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
 
+- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
+      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
+      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
+      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
+      prenda (es una decisión operativa por tienda, no un script ciego).
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo

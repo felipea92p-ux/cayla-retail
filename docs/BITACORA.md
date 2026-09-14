@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
+
+Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el
+conflicto que ningún diff mostraba: Inventario (`inventario_piso_almacen.sql`) recreó
+`registrar_venta` con 9 parámetros y el cuerpo que descuenta del piso; las tres migraciones
+de Vender la llevaron a 11 con `drop` de la firma anterior — y al pegarlas en producción se
+borró justo la versión piso. Quedó una función que valida precio, código y nota pero
+descuenta por (variante, ubicación) sobre una `stock` que ya admite varias filas por prenda.
+No rompió nada porque ninguna tienda tiene sububicaciones todavía. `…231015_registrar_venta_
+piso_con_nota.sql` deja UNA función con todo (son literalmente dos líneas de diferencia:
+`v_sub` y la columna en el `insert into movimientos`), y `fn_stock_por_sede` pasa a sumar
+piso+almacén por sede (D12). Probado en local dentro de una transacción con rollback: la venta
+bajó el piso 4→3, el almacén siguió en 2, la nota quedó guardada. De paso: la migración de la
+izquierda chocaba de versión (`220000`) con una de Compras ya pública → renombrada a `220001`.
+
+Lo que Felipe se lleva: **dos migraciones que redefinen la misma función son un conflicto
+aunque git no lo vea** — y el orden en que se pegan en producción decide cuál sobrevive.
+Cualquier cambio futuro de `registrar_venta` empieza por `drop function` con la firma de 11.
+Y antes de crear piso/almacén en una tienda real, el stock «sin sububicación» se lleva al piso
+con `mover_interno(…, null, piso, …)`; si no, la primera venta falla por «sin stock».
+
 ## 2026-09-14 (poner al día el Postgres local de un colaborador sin reset)
 
 Al validar la base local contra `supabase/migrations/` faltaban 11 de 30 en el historial, pero
