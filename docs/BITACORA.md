@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
+
+Refactor puro de `PuntoDeVenta.tsx` (705 → 415 líneas) en dos commits: primero el ticket
+(`PuntoDeVentaTicket.tsx`), después el catálogo (`PuntoDeVentaCatalogo.tsx`). El padre se
+queda con TODO el estado, los handlers, la cabecera y los modales; los hijos son render puro
+sobre props `valor`/`onValor`. Cero cambios medidos, no supuestos: `renderToString` de la
+versión original y la final es byte a byte idéntico (ids de `useId` incluidos), el HTML del
+servidor para `/vender` da el mismo sha256, y las interacciones responden igual. ADR-0043
+deja el contrato y las cinco reglas de convivencia para las dos ramas que salen de acá.
+
+Lo que Felipe se lleva: **la costura vale más que el corte**. Partir un archivo no evita
+conflictos por sí solo — lo que los evita es que cada sesión sea dueña de un archivo y que
+lo compartido (el padre) se toque en commits chicos que entran a `main` apenas compilan.
+De paso, dos detalles del arnés: el panel del navegador oculto deja las cargas duras en
+«Cargando…» (ya estaba en memoria) y **dos `next dev` en `localhost` comparten la cookie de
+Supabase** — al pisarse el refresh token, la sesión de uno cierra la del otro.
+
 ## 2026-09-14 (el candado que faltaba sobre el pasado, y el conteo ciego que no era ciego)
 
 Con el entorno ya verificado, Felipe pidió leer `docs/datos/` para ver qué falta desde

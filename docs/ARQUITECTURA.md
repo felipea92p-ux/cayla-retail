@@ -126,11 +126,15 @@ flowchart TB
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` →
-  `CajaPanel.tsx` → `AbrirCajaModal` (RPC `abrir_caja`),
-  `RegistrarVentaModal` (RPC `registrar_venta`), `CerrarCajaModal` (RPC
-  `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
-  servidor).
+- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+  `stock` de la ubicación → `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
+  cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo,
+  chips, grilla, y «Ventas de hoy», que llega ya renderizado desde `page.tsx` vía RPC
+  `fn_ventas_del_dia`) y `PuntoDeVentaTicket.tsx`
+  (ticket, totales, método de pago, boleta/factura, Cobrar → RPC `registrar_venta`,
+  que emite el comprobante en la misma transacción). Modales del padre:
+  `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
+  conteo ciego: el esperado sale de la respuesta del cierre, no antes).
 
 **Producción (Taller)**
 - `/produccion` → `OrdenesProduccion.tsx` → RPCs `registrar_produccion`,

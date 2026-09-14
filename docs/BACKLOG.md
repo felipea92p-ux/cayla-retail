@@ -50,6 +50,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       de viajar al navegador durante el turno (no se puede leer ni inspeccionando props).
       **No es un candado y no debe leerse como "conteo ciego resuelto"** — ver abajo.
 
+- [x] **Vender partido en padre + dos paneles sin estado, para trabajar en dos ramas
+      a la vez** (sesión aparte del mismo día, ADR-0043). `PuntoDeVenta.tsx` 705 → 415
+      líneas; `PuntoDeVentaTicket.tsx` y `PuntoDeVentaCatalogo.tsx` nuevos, render puro
+      sobre props. Refactor sin un solo byte de diferencia en el HTML (medido con
+      `renderToString` y con el SSR real). **Regla para las dos ramas que salen de acá:**
+      cada sesión es dueña de UN panel; el padre (estado + handlers) se toca en commits
+      chicos separados de la UI y entran a `main` apenas compilan.
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo
