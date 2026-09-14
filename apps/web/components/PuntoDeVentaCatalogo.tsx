@@ -88,11 +88,12 @@ export function PuntoDeVentaCatalogo({
   ventasHoyNode,
 }: Props) {
   return (
-    // El mismo tope de alto que el ticket de al lado: así la grilla scrollea por dentro y
-    // el campo de escaneo nunca sale de la vista, por larga que sea la categoría.
+    // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
+    // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
+    // campo de escaneo nunca sale de la vista, por larga que sea la categoría.
     <section
       aria-label="Escanear o buscar prendas"
-      className="flex min-w-0 flex-col border-b border-sand lg:max-h-[42rem] lg:border-r lg:border-b-0"
+      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
     >
       <div className="px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Monto manual» es la tercera vía de
