@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { BadgePercent, Banknote, Check, CreditCard, FileText, Landmark, Percent, Receipt, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
@@ -33,14 +34,44 @@ const ID_MOTIVO = "ticket-motivo-bloqueo";
 /** El campo numérico sin las flechitas del navegador: «−» y «+» ya son eso. */
 const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
-/** Basurero en trazo — mismo lenguaje que los íconos a mano de AppShell. */
-function IconoBasurero() {
+/** Íconos de cada apartado y método (pedido de Felipe, 2026-09-14): `lucide` para lo
+ *  genérico y, para Yape y Plin, sus marcas dibujadas a mano en MONOCROMO — heredan
+ *  `currentColor` (tinta / tinta-60 según el estado del botón), nunca el morado ni el
+ *  azul de las marcas: el sistema tiene tres colores y el rojo es acento, no logo. */
+const ICONO = "h-5 w-5 shrink-0";
+const ICONO_CHICO = "h-3.5 w-3.5 shrink-0";
+
+/** Yape: la burbuja rellena con «S/» adentro, como su isotipo. */
+function IconoYape({ className }: { className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M12 2.5a8.5 8.5 0 0 0-6.3 14.2l-.6 4.1a.6.6 0 0 0 .9.6l3.5-2.1A8.5 8.5 0 1 0 12 2.5Z" />
+      <text x="12" y="14.4" textAnchor="middle" fontSize="8" fontWeight="700" fontFamily="ui-sans-serif, system-ui, sans-serif" className="fill-papel">
+        S/
+      </text>
     </svg>
   );
 }
+
+/** Plin: la burbuja en trazo con la palabra adentro, como su isotipo. */
+function IconoPlin({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round">
+      <path d="M12 3a8.8 8.8 0 0 1 0 17.6c-1.4 0-2.7-.3-3.9-.9L4 21l.8-3.6A8.8 8.8 0 0 1 12 3Z" />
+      <text x="12" y="14.3" textAnchor="middle" fontSize="6.5" fontWeight="700" fontFamily="ui-sans-serif, system-ui, sans-serif" fill="currentColor" stroke="none">
+        plin
+      </text>
+    </svg>
+  );
+}
+
+const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+  efectivo: <Banknote className={ICONO} aria-hidden />,
+  tarjeta: <CreditCard className={ICONO} aria-hidden />,
+  yape: <IconoYape className={ICONO} />,
+  plin: <IconoPlin className={ICONO} />,
+  transferencia: <Landmark className={ICONO} aria-hidden />,
+};
 
 /** Marca de «elegida» en la lista del apartado de descuento. */
 function IconoCheck() {
@@ -173,7 +204,10 @@ export function PuntoDeVentaTicket({
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
       <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
         {momento === "armar" ? (
-          <h2 className="font-display text-2xl leading-none text-tinta">Ticket actual</h2>
+          <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
+            <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
+            Ticket actual
+          </h2>
         ) : (
           <>
             <button
@@ -185,7 +219,10 @@ export function PuntoDeVentaTicket({
               ← Ticket
             </button>
             <div key={momento} className="anim-revelar text-right">
-              <h2 className="font-display text-2xl leading-none text-tinta">{cobrando ? "Cobro" : "Descuento"}</h2>
+              <h2 className="flex items-center justify-end gap-2.5 font-display text-2xl leading-none text-tinta">
+                {cobrando ? <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> : <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />}
+                {cobrando ? "Cobro" : "Descuento"}
+              </h2>
               <p className="mt-1 text-xs text-tinta/60">
                 {cobrando ? etiquetaPrendas : todoElTicket ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} prendas`}
               </p>
@@ -200,7 +237,12 @@ export function PuntoDeVentaTicket({
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto: atajos de palabra o un número a mano. */}
               <fieldset className="space-y-2">
-                <legend className="text-[11px] text-tinta/50">Porcentaje</legend>
+                <legend className="text-[11px] text-tinta/50">
+                  <span className="flex items-center gap-1.5">
+                    <Percent className={ICONO_CHICO} aria-hidden />
+                    Porcentaje
+                  </span>
+                </legend>
                 <div className="grid grid-cols-6 gap-1 rounded-xl bg-sand/50 p-1">
                   {ATAJOS_DESCUENTO.map((p) => (
                     <button
@@ -235,7 +277,12 @@ export function PuntoDeVentaTicket({
 
               {/* 2 · A qué: todo el ticket, o solo las prendas que se marquen. */}
               <fieldset className="space-y-2 border-t border-sand pt-4">
-                <legend className="text-[11px] text-tinta/50">Aplicar a</legend>
+                <legend className="text-[11px] text-tinta/50">
+                  <span className="flex items-center gap-1.5">
+                    <ShoppingBag className={ICONO_CHICO} aria-hidden />
+                    Aplicar a
+                  </span>
+                </legend>
                 <button
                   type="button"
                   onClick={() => onDescuento({ elegidas: null })}
@@ -298,6 +345,7 @@ export function PuntoDeVentaTicket({
                         donde solo se cuenta el efectivo.
                       </Ayuda>
                     )}
+                    <Wallet className={ICONO_CHICO} aria-hidden />
                     Cómo pagó la clienta
                   </span>
                 </legend>
@@ -309,10 +357,11 @@ export function PuntoDeVentaTicket({
                       onClick={() => onMetodoPago(m)}
                       disabled={bloqueado}
                       aria-pressed={metodoPago === m}
-                      className={`${OPCION} flex h-12 items-center justify-center px-1 text-center text-[10px] leading-tight capitalize ${
+                      className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
                         metodoPago === m ? OPCION_ACTIVA : OPCION_INACTIVA
                       }`}
                     >
+                      {ICONO_METODO[m]}
                       {m}
                     </button>
                   ))}
@@ -331,6 +380,7 @@ export function PuntoDeVentaTicket({
                           mano, cambia a boleta: admite DNI opcional o ningún documento.
                         </Ayuda>
                       )}
+                      <Receipt className={ICONO_CHICO} aria-hidden />
                       Comprobante
                     </span>
                   </legend>
@@ -342,8 +392,11 @@ export function PuntoDeVentaTicket({
                         onClick={() => onTipoComprobante(t)}
                         disabled={bloqueado}
                         aria-pressed={tipoComprobante === t}
-                        className={`${OPCION} label-cayla h-8 rounded-md text-[11px] ${tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                        className={`${OPCION} label-cayla flex h-9 items-center justify-center gap-1.5 rounded-md text-[11px] ${
+                          tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
+                        }`}
                       >
+                        {t === "boleta" ? <Receipt className={ICONO_CHICO} aria-hidden /> : <FileText className={ICONO_CHICO} aria-hidden />}
                         {ETIQUETA_TIPO[t]}
                       </button>
                     ))}
@@ -386,18 +439,20 @@ export function PuntoDeVentaTicket({
                           onClick={() => onAbrirDescuento([it.claveLinea])}
                           disabled={bloqueado}
                           aria-label={`Descuento para ${it.referencia}`}
-                          className={`label-cayla h-8 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
+                          className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
                             pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
                           }`}
                         >
-                          {pctLinea > 0 ? `−${pctLinea} %` : "% Desc."}
+                          <Percent className={ICONO_CHICO} aria-hidden />
+                          {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
                         </button>
                         <button
                           type="button"
                           aria-label={`Quitar ${it.referencia}`}
                           onClick={() => onQuitar(it.claveLinea)}
-                          className="label-cayla h-8 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
+                          className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
                         >
+                          <Trash2 className={ICONO_CHICO} aria-hidden />
                           Quitar
                         </button>
                       </div>
@@ -415,7 +470,7 @@ export function PuntoDeVentaTicket({
                               onClick={() => onQuitar(it.claveLinea)}
                               className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
                             >
-                              <IconoBasurero />
+                              <Trash2 className="h-4 w-4" aria-hidden />
                             </button>
                           ) : (
                             <button
@@ -498,7 +553,10 @@ export function PuntoDeVentaTicket({
                   disabled={bloqueado || carrito.length === 0}
                   className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
-                  % Aplicar descuento
+                  <span className="flex items-center gap-1.5">
+                    <Percent className={ICONO_CHICO} aria-hidden />
+                    Aplicar descuento
+                  </span>
                 </button>
               )}
             </div>
@@ -537,7 +595,10 @@ export function PuntoDeVentaTicket({
                 aria-describedby={motivoDescuento !== null ? ID_MOTIVO : undefined}
                 className={BOTON_PRINCIPAL}
               >
-                <span className="label-cayla text-[11px]">Aplicar descuento</span>
+                <span className="label-cayla flex items-center gap-2 text-[11px]">
+                  <BadgePercent className={ICONO} aria-hidden />
+                  Aplicar descuento
+                </span>
                 <strong className="font-display text-lg">{pctValido ? `−${pct}%` : "—"}</strong>
               </button>
               {hayDescuentoEnAlcance && (
@@ -558,7 +619,10 @@ export function PuntoDeVentaTicket({
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={BOTON_PRINCIPAL}
             >
-              <span className="label-cayla text-[11px]">{loading ? "Procesando…" : "Confirmar cobro"}</span>
+              <span className="label-cayla flex items-center gap-2 text-[11px]">
+                <Check className={ICONO} aria-hidden />
+                {loading ? "Procesando…" : "Confirmar cobro"}
+              </span>
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           ) : (
@@ -569,7 +633,10 @@ export function PuntoDeVentaTicket({
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={BOTON_PRINCIPAL}
             >
-              <span className="label-cayla text-[11px]">Cobrar</span>
+              <span className="label-cayla flex items-center gap-2 text-[11px]">
+                <Wallet className={ICONO} aria-hidden />
+                Cobrar
+              </span>
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           )}
