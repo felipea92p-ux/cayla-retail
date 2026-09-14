@@ -81,6 +81,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       activaba ese botón. Verificado en navegador con ventas reales en local
       (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
 
+- [x] **El catálogo de Vender se mira por prenda + color, con las tallas adentro**
+      (sesión A, segunda ola del mismo día, decisión 1A de Felipe). `lib/catalogo-grupos.ts`
+      (10 tests) agrupa y ordena tallas; la tarjeta tiene hueco de foto 4:5, chips de talla
+      (tocar «M» agrega esa variante; agotada queda tachada), `Tooltip` «N en sede»,
+      borde rojo suave sin stock (pedido explícito; rompe el "máx. 2 rojos" del brandbook),
+      `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
+      `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
+      tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+- [ ] **Foto por prenda en el catálogo.** La tarjeta ya tiene el hueco (4:5, iniciales en
+      serif), pero `productos`/`variantes` no tienen columna de foto ni bucket de Storage.
+      Es cambio de modelo de datos: decidir dónde vive (una por producto o por color),
+      quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
+      la pinta sin rediseñar.
+
 **Pendiente de decisión de Felipe:**
 
 - [ ] **El candado real del conteo ciego sigue pendiente, y depende de los roles.** Lo

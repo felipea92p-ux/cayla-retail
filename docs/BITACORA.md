@@ -3,6 +3,47 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (el catálogo se mira por prenda, no por variante — y vuelven shadcn y GSAP)
+
+Segunda ola de la sesión A, sobre lo mismo. Felipe pidió cuatro cosas mirando la grilla
+nueva: la barra de scroll del sistema (no la nativa), un borde rojo suave en lo que no
+tiene stock, **una tarjeta por prenda + color con las tallas adentro** («cada ítem va a
+tener foto, no hace falta ver seis Blusa Emma; la pistola ya trae talla, color y precio»),
+y las animaciones "con los componentes de shadcn, para que el sistema tenga un mismo
+orden" más el reveal suave al bajar. Dos decisiones fueron suyas: la talla a mano se
+elige **en la tarjeta** (chips por talla; el ticket nunca ve una línea sin variante) y no en
+el ticket; y shadcn + GSAP **vuelven a V2** — el corte `0af2f1b` los había borrado con sus
+ADR (0037/0038) sin que nadie lo decidiera.
+
+El revival chocó de frente: la sesión B lo hizo en paralelo y llegó primera a `main`
+(V1 literal, ADR-0045). Esta rama descartó la suya y portó solo lo que faltaba como
+adenda: `tooltip`/`toggle`/`badge` instalados con el CLI, que hoy importa `cn` del paquete
+`cn` y los primitivos de `radix-ui` — se adopta y `lib/utils.ts` reexporta ese `cn` para
+que no haya dos implementaciones; `tw-animate-css` para las entradas/salidas propias de
+shadcn; `RevelarAlScroll` que descubre el contenedor que scrollea y no anima lo que ya se
+ve al montar (ADR-0011). Lo construido en Vender: `lib/catalogo-grupos.ts` (TDD, 10 tests:
+agrupa en el orden del catálogo, tallas XS<S<M<L y 28<30<32, stock total, rango de
+precio); tarjeta con hueco de foto 4:5 (iniciales en serif mientras no haya columna de
+foto), chips de talla con `Tooltip` «N en sede», talla agotada tachada, sin stock con
+`border-rojo-profundo/40`, `Toggle` para «Solo con stock» (esconde la tarjeta solo si
+ninguna talla tiene), `Badge` con `anim-asentar` en el globito, `alza-cayla`,
+`scroll-cayla` y `RevelarAlScroll` por tarjeta. Medido en navegador a 1440×900: 48 → 16
+tarjetas; al montar, las 8 a la vista en opacidad 1 y las de abajo en 0.35 hasta que el
+scroll las trae; tocar «M» agrega `BLU-EMMA-BEI-M` y devuelve el foco; tooltip animado
+(`enter`, 150 ms); toggle 16 → 10; abrir caja deja el foco en el escáner y la tecla suelta
+sigue viva después (el defecto de `hayModal` quedó cerrado de verdad).
+
+Lo que Felipe se lleva: **el revival no era "instalar shadcn", era decidir quién anima
+qué.** Tres capas con una responsabilidad cada una — shadcn conserva su `tw-animate` en
+sus componentes, todo lo que no es shadcn sigue con `anim-*` de `globals.css`, y GSAP es
+solo scroll y reflujo — es lo que hace que "un mismo orden" sea una regla y no un deseo.
+Y una trampa del entorno que costó media hora: **`tw-animate-css` no llegaba al CSS
+servido** aunque el import, el paquete y el CLI de Tailwind estaban bien; era la caché
+persistente de Turbopack (`apps/web/.next`), que sobrevive a reiniciar el servidor. Con
+la caché borrada, `.animate-in` y `@keyframes enter` aparecieron a la primera. Aviso:
+el borde rojo de las tarjetas sin stock rompe a propósito el "máximo 2 rojos por
+pantalla" del brandbook — lo pidió Felipe; queda escrito para que nadie lo "arregle".
+
 ## 2026-09-14 (el escaneo manda en Vender; el catálogo pasa a plan B)
 
 Sesión A sobre la costura del ADR-0043, rama `feat/pos-escaneo-primero`. La encargada de

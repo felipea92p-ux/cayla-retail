@@ -82,6 +82,9 @@ suma, porque el catálogo de Vender lo necesita:
   el POS es pantalla fija (ADR-0044) y la grilla scrollea por dentro, así que ahora busca el
   ancestro con `overflow-y: auto|scroll` (o acepta `scroller`). Disparo en `top 90%`.
 - `TooltipProvider` se monta donde se usa (el catálogo), no en el layout raíz: aditivo.
-- Gotcha medido: instalar un paquete CSS con el dev server corriendo deja al proceso de
-  PostCSS con la resolución fallida cacheada («Can't resolve 'tw-animate-css'») hasta
-  reiniciarlo.
+- Gotcha medido, en dos tiempos: instalar un paquete CSS con el dev server corriendo deja
+  al proceso de PostCSS con la resolución fallida cacheada («Can't resolve
+  'tw-animate-css'») hasta reiniciarlo; y aun reiniciado, **la caché persistente de
+  Turbopack (`apps/web/.next`) puede seguir sirviendo el CSS compilado sin el import** —
+  el CLI de Tailwind lo compilaba bien y el navegador no veía `.animate-in` ni
+  `@keyframes enter`. La cura es borrar `apps/web/.next` y volver a levantar.
