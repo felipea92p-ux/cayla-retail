@@ -4096,3 +4096,18 @@ dos veces — invisible con `setModal(null)`, fatal con `router.back()` (retroce
 páginas). Ahora el temporizador va en un `useEffect`. Verificado en Chrome headless: 10
 escenarios (lista, por pagar, pestañas hermanas, carga directa, `desde=nueva`, móvil, pago
 anidado) sin errores de consola.
+
+## 2026-09-15 (el lateral agrupa Venta — ADR-0057)
+
+Felipe pidió agrupar Punto de Venta ("Vender", renombrado), Caja, Cambios, Devoluciones y
+Facturación bajo una cabecera colapsable "Venta" en el lateral, arrancando expandida
+(Cambios/Devoluciones se habían hecho visibles esa misma mañana — colapsarlas de entrada
+las hubiera vuelto a esconder). Preguntado y descartado sumar "Códigos de descuento" como
+6to ítem — Felipe prefirió dejarlo donde está. Lo único delicado: el riel rojo de ADR-0014
+se posiciona por índice de array sin medir el DOM, así que `GrupoLateral` ahora aplana
+cabecera+hijas (solo si está abierta) en las filas REALMENTE visibles antes de calcular esa
+posición — nunca se desalinea con el grupo abierto o cerrado. Auto-abre si la ruta activa es
+una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya exige el
+linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
+Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
+— sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
