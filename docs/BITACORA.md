@@ -22,7 +22,11 @@ de activación piso/almacén que corrió ayer en producción queda versionado
 (`activacion-piso-almacen-produccion.sql`). Probado en local: los 7 procesos en el
 navegador, filtros, búsqueda por SKU y código de barras, cursor 50+46 en Taller, Micaela
 fija en Trujillo y rechazada por la base al pedir Lima; 165.000 filas sintéticas → ~30 ms.
-**Solo local: nada en producción ni en Supabase remoto.**
+**Solo local hasta el merge.** Mismo día, más tarde: PR #33 mergeado (`9a23290`), Vercel
+en verde, y la migración aplicada en producción con `execute_sql` — verificada como
+Benjamin en Tienda AQP con rollback (288 entradas de carga inicial, 288 internas de la
+activación, centinela excluida). Las tres migraciones aplicadas a mano (`…230000`,
+`…231015`, `…090000`) quedaron registradas en `schema_migrations`.
 
 Lo que Felipe se lleva: **cuando el enunciado pide «un tipo nuevo», primero hay que mirar
 si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de origen y destino

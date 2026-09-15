@@ -50,8 +50,12 @@
 -- también están en `false` y su historial SÍ debe verse. Decisión de Felipe
 -- (2026-09-15): «contamina el ledger, excluye todo registro innecesario».
 --
--- ESTADO: aplicada en la base local el 2026-09-15. NO en producción — la pega
--- Felipe (D-11); ya lleva el prefijo `retail.`.
+-- ESTADO: aplicada en la base local el 2026-09-15 y en producción el mismo día
+-- (execute_sql sobre el proyecto de Dynamic, schema `retail`, tras el merge del
+-- PR #33; registrada en supabase_migrations.schema_migrations). Verificada en
+-- producción como Benjamin en Tienda AQP dentro de una transacción revertida:
+-- resumen 288 entradas (carga inicial) + 288 internas (activación), centinela
+-- con 1 fila en el ledger y 0 devueltas.
 -- ============================================================================
 
 set search_path = retail, public, extensions;

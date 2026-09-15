@@ -272,11 +272,17 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 
 **Pendiente de Felipe (producción):**
 
-- [ ] **Pegar `20260915090000_movimientos_lectura.sql` en producción** (ya lleva
-      `retail.`). Sin eso, Vercel con este código mostrará «No se pudieron cargar los
-      movimientos» — la pantalla llama a una función que producción no tiene. Orden:
-      merge a `main` → pegar la migración → recién ahí se ve. Después,
-      `pnpm datos:generar:produccion` para que el diccionario la conozca.
+- [x] **`20260915090000_movimientos_lectura.sql` aplicada en producción el 2026-09-15**,
+      después del merge del PR #33 (Vercel en verde). Verificada como Benjamin en
+      Tienda AQP con rollback. De paso quedaron registradas en
+      `supabase_migrations.schema_migrations` las tres que se aplicaron con
+      `execute_sql` (`…230000`, `…231015`, `…090000`): el historial de producción
+      vuelve a contar lo mismo que `supabase/migrations/`.
+- [ ] **Refrescar la foto de producción del diccionario** (`docs/datos/generado/`,
+      volcado del 2026-09-12): le faltan piso/almacén de ayer y `fn_movimientos` de
+      hoy. Son 7 consultas en el SQL Editor → 7 archivos → `pnpm datos:generar:produccion`
+      y `pnpm datos:comparar` (`generado/COMO-REFRESCAR.md`). No se puede hacer desde
+      el MCP: los volcados pesan >100 KB y hay que guardarlos tal cual.
 - [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
