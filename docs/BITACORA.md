@@ -18,8 +18,11 @@ en rojo/verde en local: como `authenticated`, un insert directo ahora sale `perm
 denied`; probando que la RPC seguía viva se encontró un hallazgo aparte — `registrar_movimiento`
 tiene dos firmas vivas (6 y 7 parámetros) y con la vieja `select` sale `is not unique`, mismo
 patrón que `recibir_lote` en ADR-0004. No rompe nada hoy porque `apps/web` no llama a esa
-función (solo a `registrar_movimiento_caja`, que es otra). Rama `fix/movimientos-insert-solo-rpc`
-lista para PR — **falta aplicar en producción, con el ok puntual de Felipe** (igual que D-22).
+función (solo a `registrar_movimiento_caja`, que es otra). PR #37 abierto, CI en verde.
+Felipe dio el ok puntual el mismo día — aplicada en producción con `apply_migration`
+(proyecto `vovjyyiafkxteijimpuy`) y verificado después contra la base real (no contra el
+`success` de la llamada): `authenticated` quedó con solo `SELECT`, el comentario de la
+policy se guardó, y `get_advisors` no sumó ninguna advertencia nueva sobre `movimientos`.
 
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 

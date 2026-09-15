@@ -1,8 +1,9 @@
 # ADR-0051 — El INSERT directo a `movimientos` ya no pasa
 
 **Fecha:** 2026-09-15
-**Estado:** Aplicado y verificado en la base local. **No aplicado en producción** — falta
-el ok puntual de Felipe antes de pegarlo (mismo protocolo que ADR-0042/D-11).
+**Estado:** Aplicado y verificado en local, y aplicado y verificado en producción el mismo
+día (con el ok puntual de Felipe, vía `apply_migration` del MCP de Supabase — mismo
+mecanismo que `20260915090000_movimientos_lectura.sql`).
 **Afecta:** `retail.movimientos` en `supabase/migrations/20260915150000_movimientos_insert_solo_rpc.sql`.
 
 ## Contexto
@@ -85,16 +86,28 @@ función `security definer` — sale `permission denied for table movimientos`. 
 correcta no es devolver el privilegio: es escribir esa operación como RPC (o reusar
 `registrar_movimiento`, una vez resuelta su firma duplicada).
 
+## Aplicado en producción (2026-09-15, mismo día)
+
+Con el ok puntual de Felipe, aplicado contra el proyecto `vovjyyiafkxteijimpuy` con
+`apply_migration` (nombre `movimientos_insert_solo_rpc`). Verificado después, no solo por
+el `success: true` de la llamada:
+
+- `information_schema.role_table_grants` sobre `retail.movimientos`: `authenticated` quedó
+  solo con `SELECT` (antes tenía también `INSERT`); `anon` sigue sin nada.
+- El comentario de `movimientos_insert` quedó guardado tal cual (`pg_policy` +
+  `obj_description`).
+- `get_advisors` (security) después del cambio: cero advertencias nuevas sobre
+  `retail.movimientos` o la policy `movimientos_insert`. Las únicas menciones de
+  "movimientos" en el reporte son las funciones `security definer` expuestas por
+  PostgREST —esperadas, son el diseño, no algo que este cambio introdujo.
+
 ## Lo que falta
 
-1. **Aplicar en producción** — falta el ok puntual de Felipe antes de pegar
-   `20260915150000_movimientos_insert_solo_rpc.sql` (ya escrita con `retail.` inline, no
-   necesita un gemelo aparte).
-2. **`force row level security`**, con su propia prueba de que venta/transferencia/conteo
+1. **`force row level security`**, con su propia prueba de que venta/transferencia/conteo
    siguen insertando — sigue en BACKLOG desde ADR-0042.
-3. **Las dos firmas de `registrar_movimiento`** — `drop function` de la que sobra, igual que
+2. **Las dos firmas de `registrar_movimiento`** — `drop function` de la que sobra, igual que
    se hizo con `recibir_lote` (ADR-0004). Anotado en BACKLOG, no bloquea nada hoy.
-4. **`retail.transferencias`** tiene la misma forma de policy de INSERT
+3. **`retail.transferencias`** tiene la misma forma de policy de INSERT
    (`transferencias_insert`, `0004_rls.sql`) sin verificar si tiene el mismo problema.
 
-Los cuatro quedan anotados en `docs/BACKLOG.md`.
+Los tres quedan anotados en `docs/BACKLOG.md`.

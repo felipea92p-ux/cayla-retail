@@ -257,9 +257,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
       vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
       — y hoy nada en `apps/web` la llama (solo se usa `registrar_movimiento_caja`, que es
-      otra función). **Pendiente aparte, sin tocar hoy:** aplicar este mismo archivo a
-      producción (falta el ok puntual) y `retail.transferencias` tiene la misma forma de
-      policy de INSERT sin verificar.
+      otra función). **Aplicado en producción el mismo día** (ok puntual de Felipe,
+      `apply_migration`): `authenticated` verificado ahí también con solo `SELECT`, comentario
+      de la policy guardado, cero advertencias nuevas en `get_advisors`. **Pendiente aparte:**
+      `retail.transferencias` tiene la misma forma de policy de INSERT sin verificar.
 - [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
       `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
       siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
