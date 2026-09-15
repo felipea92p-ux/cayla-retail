@@ -1509,6 +1509,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-15 — **Categorías: editar y desactivar/reactivar** (Sesión C1,
+      `feat/categorias-crud`). `/productos/categorias` solo tenía listado + alta;
+      se agregó PUT/PATCH en `route.ts` con RPC `actualizar_categoria` /
+      `desactivar_categoria` / `reactivar_categoria` (security definer, mismo
+      patrón que `proveedores_administrables`). Decidido con Felipe: prefijo fijo
+      una vez que hay productos con esa categoría; desactivar se bloquea (no solo
+      avisa) si hay productos activos, con el conteo en el mensaje. De paso se
+      cerró un candado que faltaba: `categorias.nombre` era `unique` plano
+      (no bloqueaba "Blusas" vs "BLUSAS"); ahora usa `categorias_nombre_clave_unica`
+      (`fn_clave_texto`, igual que colores/proveedores) — reemplaza
+      `categorias_nombre_key`. Verificado en navegador contra Supabase local.
+      **No está en producción** (`20260915160000_categorias_editar_desactivar.sql`
+      pendiente de aplicar, junto con las demás migraciones del 2026-09-15).
+
 - [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
       verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
