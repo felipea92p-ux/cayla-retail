@@ -51,12 +51,44 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 Verificado: `tsc`, `eslint`, `vitest` (184/184); ambas pantallas probadas en
 navegador con escritura real (un código creado y apagado/prendido, el historial
 mostrando las 4 cajas cerradas reales de esta sesión con la sede correcta cada
-una). **Solo en local — falta pushear.** Quedan del mismo diagnóstico, pendientes
-de una conversación de diseño con Felipe antes de construir nada: **ficha de
-clienta** (decisión: ¿Vender debe empezar a enlazar `clientes` durante el cobro,
-o es una pantalla de consulta aparte?) y **anular una venta** (necesita una
-migración de esquema en producción — `ventas` no tiene ninguna columna de estado
-— más las reglas de negocio sobre stock/caja/comprobante SUNAT ya aceptado).
+una). **Solo en local — falta pushear.**
+
+**Pendiente de decisión de Felipe — las 2 pantallas grandes del mismo
+diagnóstico (2026-09-15).** Clasificadas con `superpowers:brainstorming`, no
+construidas: cada una necesita una respuesta suya antes de que una sesión
+futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
+2026-09-15 — sigue valiendo mientras nadie migre `ventas` o `clientes`.
+
+- [ ] **Ficha de clienta.** La tabla `clientes` existe completa (nombre, doc,
+      teléfono, email — `0002_esquema.sql`) y `registrar_venta` **ya acepta
+      `p_cliente_id`** desde que existe (`0011_venta_con_comprobante.sql:98`) —
+      pero Vender nunca lo manda: el DNI/nombre que se tipean en el cobro solo
+      llegan al comprobante, ninguna venta queda enlazada a una fila real de
+      `clientes`. La pregunta que decide todo el diseño: **¿Vender debe empezar
+      a buscar/crear la clienta en `clientes` durante el cobro** (cambia el
+      flujo de venta — nueva búsqueda, decidir qué pasa si no se encuentra) **o
+      la ficha es, para empezar, una pantalla de consulta aparte que no toca
+      Vender todavía** (lee `clientes` + su historial de compras vía
+      `ventas.cliente_id`, sin cambiar cómo se cobra hoy)? La segunda opción es
+      bounded (sin tocar Vender); la primera es arquitectónica (cambia un flujo
+      que ya está muy afinado — ADR-0043/0044). Sin RPC nueva en cualquier caso:
+      `registrar_venta` ya sabe qué hacer con `p_cliente_id`.
+- [ ] **Anular una venta.** No existe ni pantalla ni RPC `anular_venta` (grep
+      vacío en todo el repo, verificado 2026-09-15). Bloqueante real: `ventas`
+      **no tiene ninguna columna de estado** (`0002_esquema.sql:220-228`) —
+      cualquier diseño empieza con una migración de esquema en producción, el
+      gatillo explícito de "detente y confirma" de `CLAUDE.md`. Antes de que
+      una sesión futura la diseñe, necesita de Felipe: (1) ¿el stock **siempre**
+      vuelve al piso al anular, o depende de la condición de la prenda (mismo
+      menú que ya usa Devoluciones: vendible / dañada / a proveedor)? (2) si el
+      comprobante ya fue **aceptado por SUNAT**, ¿anular exige una nota de
+      crédito (otra integración con Lucode) o la venta puede quedar "anulada"
+      en el sistema mientras el comprobante legal sigue vivo, con el desfase
+      documentado? (3) ¿hay un límite de tiempo (¿mismo día? ¿mientras la caja
+      sigue abierta?) o cualquier venta histórica se puede anular? (4) ¿quién
+      puede hacerlo — Líder únicamente, o también la Colaboradora que la
+      vendió? Sin estas cuatro respuestas, cualquier RPC que se escriba
+      adivinaría reglas de negocio que le corresponden a Felipe, no al código.
 
 **Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
 uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
@@ -183,9 +215,10 @@ Verificado igual que la primera vuelta: `tsc`, `eslint`, `vitest` (184/184), y u
 sesión de navegador completa (ingreso de caja real, «Ventas de hoy» expandido y
 colapsado dos veces con capturas). **Solo en local — falta pushear.**
 
-Queda del mismo diagnóstico, para una tanda aparte: las pantallas más grandes
-(historial de cierres de caja, anular una venta, ficha de clienta, códigos de
-descuento administrables) — ver la sección de abajo, que sigue vigente.
+Del mismo diagnóstico: historial de cierres de caja y códigos de descuento
+administrables se cerraron en la Tanda 3 (2026-09-15, más arriba). Ficha de
+clienta y anular una venta siguen pendientes de una decisión de Felipe —
+ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
 
 **Cerrado el 2026-09-14 en esta sesión:**
 

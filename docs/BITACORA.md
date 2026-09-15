@@ -3,6 +3,24 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (ficha de clienta y anular venta quedan anotadas, no diseñadas)
+
+Felipe pidió dejar las dos pantallas arquitectónicas de la Tanda 3 (ficha de
+clienta, anular una venta) para otra sesión, sin avanzar el diseño ahora. Se
+llevó la nota de "queda pendiente" a un bloque propio en BACKLOG.md ("Pendiente
+de decisión de Felipe", dentro del cierre de Tanda 3) con las preguntas exactas
+que una sesión futura va a necesitar — de negocio para anular venta (¿el stock
+siempre vuelve? ¿nota de crédito si SUNAT ya aceptó? ¿límite de tiempo? ¿quién
+puede?), de alcance para ficha de clienta (¿Vender empieza a enlazar `clientes`
+durante el cobro, o es pantalla de consulta aparte primero?) — y se corrigió una
+referencia vieja en BACKLOG que todavía listaba las 4 pantallas del diagnóstico
+como pendientes cuando 2 ya se habían cerrado esa misma tarde.
+
+Lo que Felipe se lleva: **"dejarlo anotado" no es una línea suelta** — sin las
+preguntas concretas escritas ahora (mientras la exploración del esquema está
+fresca), la próxima sesión repetiría el mismo `grep` y la misma lectura de
+`0002_esquema.sql` para llegar a las mismas cuatro preguntas.
+
 ## 2026-09-15 (Tanda 3: las dos pantallas sin cambio de esquema — historial de cierres y códigos de descuento)
 
 Tanda 3 (pantallas nuevas) se clasificó primero con `superpowers:brainstorming`
