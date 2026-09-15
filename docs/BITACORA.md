@@ -3,6 +3,59 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Tanda 3: las dos pantallas sin cambio de esquema — historial de cierres y códigos de descuento)
+
+Tanda 3 (pantallas nuevas) se clasificó primero con `superpowers:brainstorming`
+en vez de construir directo, como sí se hizo en las Tandas 1 y 2: a diferencia de
+un arreglo o una animación, "pantallas nuevas" es trabajo creativo y una de las
+cuatro (anular una venta) toca dinero + SUNAT + inventario a la vez — justo lo
+que `CLAUDE.md` pide frenar y confirmar. Se exploraron las 4 tablas antes de
+clasificar (no de memoria): `cajas` y `codigos_descuento` ya tenían todo lo
+necesario sin tocar el esquema; `ventas` no tiene NINGUNA columna de estado
+(anular necesita migración) y `clientes` existe pero Vender nunca la usa (ficha
+de clienta necesita una decisión de negocio: ¿enlazar durante el cobro o pantalla
+aparte?). Felipe aprobó empezar por las dos sin cambio de esquema.
+
+**Historial de cierres de caja** (`/caja/historial`): pura lectura de `cajas`, sin
+RPC — mismo criterio que Facturación para multi-sede (sin filtro, la sede va en
+cada fila). Verificado con las 4 cajas reales cerradas en esta misma sesión,
+incluida una de Tienda Trujillo (confirma que el criterio "sin filtro, RLS ya
+decide" trae datos de más de una sede de verdad, no solo en la lectura del
+código). En celular, `Tabla.tsx` apila las celdas sin encabezado (mismo
+comportamiento que ya tiene en Inventario) — para cuatro cifras seguidas de un
+cuadre de caja eso es ambiguo, así que se agregó una etiqueta visible SOLO en
+celular junto a cada valor (`sm:hidden`), sin tocar el componente compartido.
+
+**Códigos de descuento administrables** (`/vender/descuentos`, Líder-only): la
+migración del 14-sep (`20260914215103_codigos_descuento.sql`) ya había dejado la
+RLS lista para que un Líder escriba directo (`codigos_descuento_insert`/`_update`
+con `fn_es_lider()`) — es la primera pantalla del sistema que escribe una tabla
+sin pasar por una RPC. Se decidió a propósito, no por descuido: todas las reglas
+de negocio de esa tabla (formato del código, rango del %, vigencia coherente) ya
+son `check` de Postgres, así que una RPC solo habría envuelto un `insert` sin
+agregar ninguna validación real — la RLS + los `check` YA SON la lógica de
+negocio acá. Construyéndola salió a la luz que `packages/database/src/types.ts`
+no conocía la tabla (no se había regenerado desde antes del 12-sep): se
+regeneró con `--local` (el script correcto, sin el riesgo de perder tablas de
+producción que sí tiene `pnpm datos:generar`) y se contaron las tablas
+conocidas antes/después para confirmar que no se perdió ninguna.
+
+Verificado de punta a punta: un código creado (`PRUEBA15`, 15%, sin fecha
+límite, todas las sedes) y apagado/prendido con escritura real contra Postgres
+local, sin ningún error de consola nuevo. `tsc`, `eslint`, `vitest` (184/184).
+**Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **no todo lo nuevo es "pantalla nueva" del mismo
+tamaño** — de las cuatro que pidió, dos eran tan bounded como un arreglo de las
+Tandas 1-2 (cero esquema, cero RPC) y dos son arquitectónicas de verdad (una
+necesita una migración de producción, la otra una decisión de negocio antes de
+poder diseñarse). Clasificar primero evitó tratar las cuatro con la misma
+ceremonia — ni de más para las chicas, ni de menos para las grandes. Y el
+reverso: **escribir sin RPC es una decisión, no un atajo** — se justifica
+cuando la RLS y los `check` de la tabla ya cubren todo lo que una función
+tendría que validar, y se explica en el código para que no se lea como
+descuido la próxima vez que alguien toque este archivo.
+
 ## 2026-09-15 (Tanda 2, segunda vuelta: el resto de instancias, y una falsa alarma de metodología)
 
 Felipe preguntó «¿queda algo más de la Tanda 2?» — al revisar el mapeo original con

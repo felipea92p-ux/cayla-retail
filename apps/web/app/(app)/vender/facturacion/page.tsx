@@ -72,6 +72,13 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
         </div>
       </div>
 
+      <Link
+        href="/vender/descuentos"
+        className="label-cayla -mt-4 inline-block text-[11px] text-tinta/60 transition-colors hover:text-rojo"
+      >
+        Códigos de descuento →
+      </Link>
+
       {/* Ventas de hoy primero: es lo más inmediato — qué pasó en el mostrador
           en las últimas horas, antes que el trabajo pendiente (proformas) o el
           historial administrativo del mes (comprobantes). */}

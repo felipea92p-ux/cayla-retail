@@ -24,6 +24,40 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > candados por línea en `venta_items`/`venta_pagos`, el bug del `NULL` en el candado
 > de sede, la caja sin policy de UPDATE) NO se repite acá: esto es lo que queda.
 
+**Cerrado el 2026-09-15 — Tanda 3 del diagnóstico, las dos pantallas nuevas
+"bounded" (sin cambio de esquema; ver BITÁCORA de esa fecha):**
+
+- [x] **Historial de cierres de caja** (`/caja/historial`, link desde `/caja`).
+      `cajas` ya tenía todo (`estado`, `monto_cierre_sistema/real`, `diferencia`,
+      `cerrada_por`, `nota`) — sin RPC, sin filtro de ubicación (mismo criterio que
+      Facturación: mientras "control total temporal" siga vigente, se ve todo, con
+      la sede en cada fila). `lib/caja.ts` gana `getHistorialCierres()`. Etiquetas
+      de celular agregadas a mano (Tabla.tsx apila sin encabezado bajo `sm`, y
+      cuatro cifras seguidas sin etiqueta no se leen en una pantalla de cuadre).
+- [x] **Códigos de descuento administrables** (`/vender/descuentos`, Líder-only,
+      link desde Facturación). `codigos_descuento_insert`/`_update`
+      (20260914215103) ya dejaban la RLS lista para que un Líder escriba directo
+      — es la única tabla del sistema sin RPC de por medio: sus reglas de negocio
+      (código 3-20 mayúsculas, 0<%≤100, vigencia coherente) ya son `check` de la
+      tabla, no queda nada que una RPC tuviera que validar encima. Crear, apagar/
+      prender (nunca `DELETE`, la tabla no tiene esa policy).
+      **De paso:** `packages/database/src/types.ts` no conocía `codigos_descuento`
+      (el archivo llevaba desde antes del 12-sep sin regenerar) — regenerado con
+      `pnpm --filter @cayla-retail/database gen-types` (ya apunta a `--local`, sin
+      el riesgo de drift de producción que describe la regla de oro de `datos:generar`).
+      355 líneas nuevas, 0 tablas perdidas (verificado contando `ventas`/`cajas`/
+      `clientes`/etc. antes y después).
+
+Verificado: `tsc`, `eslint`, `vitest` (184/184); ambas pantallas probadas en
+navegador con escritura real (un código creado y apagado/prendido, el historial
+mostrando las 4 cajas cerradas reales de esta sesión con la sede correcta cada
+una). **Solo en local — falta pushear.** Quedan del mismo diagnóstico, pendientes
+de una conversación de diseño con Felipe antes de construir nada: **ficha de
+clienta** (decisión: ¿Vender debe empezar a enlazar `clientes` durante el cobro,
+o es una pantalla de consulta aparte?) y **anular una venta** (necesita una
+migración de esquema en producción — `ventas` no tiene ninguna columna de estado
+— más las reglas de negocio sobre stock/caja/comprobante SUNAT ya aceptado).
+
 **Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
 uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
 
