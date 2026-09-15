@@ -3,9 +3,11 @@ import { exigir } from "@/lib/resultado";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
-// depende de `stock_almacen`, `marca`, `foto_url` y `stock_minimo`, ninguno
-// de los cuales existe en el esquema V2 (más simple a propósito, ver
-// `supabase/migrations/0002_esquema.sql`).
+// depende de `stock_almacen`, `marca` y `foto_url`, ninguno de los cuales
+// existe en el esquema V2 (más simple a propósito, ver
+// `supabase/migrations/0002_esquema.sql`). `productos.stock_minimo` sí se
+// sumó (20260915160000_productos_listado_filtros.sql) como umbral de
+// "stock bajo" en /productos — se edita desde `ProductoForm.tsx`.
 export type VarianteCatalogo = {
   varianteId: string;
   sku: string;
@@ -76,6 +78,8 @@ export type ProductoDetalle = {
   descripcion: string | null;
   estado: "activo" | "descontinuado";
   codigo: string | null;
+  /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
+  stockMinimo: number | null;
   variantes: VarianteDetalle[];
 };
 
@@ -85,7 +89,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   const { data, error } = await supabase
     .from("productos")
     .select(
-      `id, categoria_id, referencia, descripcion, estado, codigo,
+      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo,
        variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
          codigos_barras ( codigo ) )`
@@ -103,6 +107,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     descripcion: data.descripcion,
     estado: data.estado as ProductoDetalle["estado"],
     codigo: data.codigo,
+    stockMinimo: data.stock_minimo,
     variantes: (data.variantes ?? []).map((v) => ({
       id: v.id,
       colorCodigo: v.color_codigo,

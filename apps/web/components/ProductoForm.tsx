@@ -109,6 +109,7 @@ export function ProductoForm({
   const [referencia, setReferencia] = useState(producto?.referencia ?? "");
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
+  const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
     if (!producto) return [filaVacia("")];
     return [...producto.variantes]
@@ -169,6 +170,9 @@ export function ProductoForm({
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
     const sinSku = variantes.findIndex((v) => !v.sku.trim());
     if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
+    if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
+      return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
+    }
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(editando ? `Guardando ${referencia.trim()}…` : `Creando ${referencia.trim()}…`);
@@ -192,12 +196,14 @@ export function ProductoForm({
           p_variantes: payloadVariantes,
           ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
+          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
         })
       : await supabase.rpc("catalogo_crear_producto", {
           p_referencia: referencia.trim(),
           p_variantes: payloadVariantes,
           ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
+          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
         });
 
     cerrarProceso();
@@ -237,6 +243,18 @@ export function ProductoForm({
             {editando && (
               <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
             )}
+            <CampoTexto
+              etiqueta="Stock mínimo (opcional)"
+              id="producto-stock-minimo"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={stockMinimo}
+              onChange={(e) => setStockMinimo(e.target.value)}
+              placeholder="Ej. 5"
+              pie="Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."
+            />
           </div>
         </section>
 

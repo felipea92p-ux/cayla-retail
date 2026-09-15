@@ -2178,6 +2178,7 @@ export type Database = {
           p_estado: string
           p_producto_id: string
           p_referencia: string
+          p_stock_minimo?: number
           p_variantes: Json
         }
         Returns: undefined
@@ -2187,6 +2188,7 @@ export type Database = {
           p_categoria_id?: string
           p_descripcion?: string
           p_referencia: string
+          p_stock_minimo?: number
           p_variantes: Json
         }
         Returns: string
