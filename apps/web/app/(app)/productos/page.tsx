@@ -23,9 +23,6 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 // (SKU/talla/color/precio/costo) y sus códigos de barra. Alta de producto
 // queda para Fase 2 (requiere decidir con Felipe el flujo, no solo el CRUD).
 //
-// Fase UI 2 (2026-09-14): la tabla plana (una fila por variante) se vuelve
-// ilegible con más de ~20 filas. `ProductosAgrupados` la reemplaza por el
-// patrón de `trix/catalogo-vocabulario` (V1) — un producto, expandible a sus
 // variantes.
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
@@ -55,9 +52,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
+        </div>
+        {persona.rol === "lider" && (
+          <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+            + Nuevo producto
+          </Link>
+        )}
       </div>
 
       <ProductosNav />

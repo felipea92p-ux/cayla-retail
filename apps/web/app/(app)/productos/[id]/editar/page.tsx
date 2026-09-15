@@ -1,0 +1,69 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
+import { getProducto } from "@/lib/catalogo-v2";
+import { ProductosNav } from "@/components/ProductosNav";
+import { ProductoForm } from "@/components/ProductoForm";
+
+// Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
+// — la policy `productos_write_lider`/`variantes_write_lider` es la que de
+// verdad decide.
+export default async function EditarProductoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const persona = await requirePersonaActualV2();
+  if (persona.rol !== "lider") redirect("/productos");
+
+  const supabase = await createClient();
+  const [producto, categorias, colores] = await Promise.all([
+    getProducto(id),
+    exigir(
+      await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true).order("familia").order("nombre"),
+      "las categorías del catálogo"
+    ),
+    exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
+  ]);
+
+  if (!producto) notFound();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">
+          <Link href="/productos" className="hover:text-rojo">
+            Productos
+          </Link>{" "}
+          · {producto.referencia}
+        </p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          {producto.referencia}
+          {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
+        </h1>
+      </div>
+
+      <ProductosNav />
+
+      <ProductoForm categorias={categorias} colores={colores} producto={producto} />
+
+      {/* TODO(Sesión A2): acá va "Ajustar inventario" — modal standalone que
+          recibe productoId (y, para preseleccionar la fila, varianteId) y
+          escribe en `stock`/`movimientos`. Este form NO toca esas tablas
+          (principio 6: separa lo esencial de lo incidental — "qué existe"
+          vive acá, "cuánto hay" es Inventario). */}
+      {/* TODO(Sesión A3): acá va "Ver historial del producto" — panel
+          standalone de solo lectura sobre `movimientos` filtrado por las
+          variantes de este producto. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="card-cayla space-y-1 border-dashed p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
+          <p className="text-sm text-tinta/55">TODO(Sesión A2): acá va &quot;Ajustar inventario&quot;.</p>
+        </div>
+        <div className="card-cayla space-y-1 border-dashed p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Historial</p>
+          <p className="text-sm text-tinta/55">TODO(Sesión A3): acá va &quot;Ver historial&quot;.</p>
+        </div>
+      </div>
+    </div>
+  );
+}

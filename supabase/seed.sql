@@ -155,9 +155,12 @@ insert into retail.proveedores (nombre, ruc, contacto) values
 -- `on conflict do nothing`: el vocabulario cerrado real (20260912235500_vocabulario_cerrado.sql)
 -- ya trae "Blusas", "Vestidos", "Pantalones", "Faldas" y los 5 colores de abajo con su
 -- código real — este seed es solo demo local, no pisa esas filas si ya existen.
+-- ON CONFLICT apunta al índice normalizado (20260915160000_categorias_editar_desactivar.sql):
+-- el viejo `categorias_nombre_key` (unique plano) se eliminó porque no bloqueaba
+-- duplicados por acento/mayúscula.
 insert into retail.categorias (nombre) values
   ('Blusas'), ('Vestidos'), ('Pantalones'), ('Faldas'), ('Casacas')
-  on conflict (nombre) do nothing;
+  on conflict (retail.fn_clave_texto(nombre)) do nothing;
 
 insert into retail.colores (codigo, nombre, hex) values
   ('NEG', 'Negro', '#1a1a18'),

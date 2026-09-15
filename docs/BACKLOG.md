@@ -423,6 +423,39 @@ incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en
 ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el más
 importante que ha entrado a este archivo desde que existe.
 
+## 🎯 Productos en V2 — alta y edición de producto+variantes (2026-09-15)
+
+**Cerrado esta sesión, solo local** — `20260915150000_catalogo_alta_edicion.sql`
+(`catalogo_crear_producto`/`catalogo_actualizar_producto`), `/productos/nuevo`,
+`/productos/[id]/editar`, `ProductoForm.tsx`. Ver BITACORA de esta fecha para el
+diseño completo (por qué no reusa `crear_producto_con_variantes` de V1/producción,
+por qué sin `security definer`, por qué el SKU se sugiere y no se le pide a la
+persona).
+
+**Pendiente — para que enchufen las sesiones en paralelo:**
+
+- [ ] **Ajustar inventario (Sesión A2)** y **Ver historial (Sesión A3)**: la ficha
+      de edición (`app/(app)/productos/[id]/editar/page.tsx`) deja dos huecos con
+      `TODO(Sesión A2)`/`TODO(Sesión A3)` explícitos, debajo del form. Grep por esos
+      literales para encontrarlos.
+- [ ] **No hay pantalla para agregar un color desde el form de producto** — si
+      falta un color durante el alta, hay que ir a Productos → Colores aparte
+      (`/productos/colores`, ya existe) y volver. Aceptable por ahora (no lo pidió
+      Felipe), pero es la fricción más probable en uso real.
+- [ ] **Aplicar en producción** — sigue el patrón de siempre: prefijo `retail.` al
+      pegar en el SQL Editor (nunca en el archivo), y correr
+      `pnpm datos:generar:produccion` + `pnpm datos:comparar` después.
+
+**Hallazgo de infraestructura, no de este módulo — para la próxima sesión de
+planificación:** las 7 sesiones paralelas de esta tanda comparten un solo working
+directory y un solo `git HEAD` (no worktrees aislados). Un `git checkout` de una
+sesión mueve la rama activa para las otras seis, y un archivo generado compartido
+(`packages/database/src/types.ts`) se truncó a 0 bytes a mitad de sesión por dos
+`supabase gen types ... > src/types.ts` corriendo a la vez. Se resolvió sin perder
+trabajo (rama nueva desde el commit vivo + commit acotado + `git branch -f`), pero
+el próximo reparto de sesiones en paralelo debería usar worktrees separados
+(`EnterWorktree`/`isolation: "worktree"`) en vez de un directorio compartido.
+
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
 - [x] **(Cerrado 2026-09-15: la migración `20260915120000_produccion_del_taller` YA está en

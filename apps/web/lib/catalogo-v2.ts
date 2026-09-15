@@ -7,8 +7,8 @@ import { exigir } from "@/lib/resultado";
 // existe en el esquema V2 (más simple a propósito, ver
 // `supabase/migrations/0002_esquema.sql`). `productos.stock_minimo` sí se
 // sumó (20260915160000_productos_listado_filtros.sql, decisión de Felipe)
-// pero solo lo usa `listarProductos`/`getResumenProductos` más abajo — es
-// un umbral para "stock bajo" en /productos, no parte de este catálogo base.
+// como umbral de "stock bajo" en /productos — lo usan `listarProductos`/
+// `getResumenProductos` más abajo, y se edita desde `ProductoForm.tsx`.
 export type VarianteCatalogo = {
   varianteId: string;
   sku: string;
@@ -225,5 +225,73 @@ export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock
     totalVariantes: Number(r?.total_variantes ?? 0),
     stockBajo: Number(r?.stock_bajo ?? 0),
     sinStock: Number(r?.sin_stock ?? 0),
+  };
+}
+
+/** Una variante dentro de la ficha de edición — a diferencia de
+ *  `VarianteCatalogo`, trae `colorCodigo`/`codigo` (hacen falta para
+ *  precargar el form) y no aplana el nombre del producto. */
+export type VarianteDetalle = {
+  id: string;
+  colorCodigo: string | null;
+  color: string | null;
+  talla: string | null;
+  sku: string;
+  precio: number;
+  costo: number;
+  activo: boolean;
+  codigo: string | null;
+  codigosBarras: string[];
+};
+
+export type ProductoDetalle = {
+  id: string;
+  categoriaId: string | null;
+  referencia: string;
+  descripcion: string | null;
+  estado: "activo" | "descontinuado";
+  codigo: string | null;
+  /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
+  stockMinimo: number | null;
+  variantes: VarianteDetalle[];
+};
+
+/** El producto y sus variantes, para `/productos/[id]/editar`. `null` si no existe. */
+export async function getProducto(id: string): Promise<ProductoDetalle | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("productos")
+    .select(
+      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo,
+       variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
+         color:colores ( nombre ),
+         codigos_barras ( codigo ) )`
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    categoriaId: data.categoria_id,
+    referencia: data.referencia,
+    descripcion: data.descripcion,
+    estado: data.estado as ProductoDetalle["estado"],
+    codigo: data.codigo,
+    stockMinimo: data.stock_minimo,
+    variantes: (data.variantes ?? []).map((v) => ({
+      id: v.id,
+      colorCodigo: v.color_codigo,
+      color: v.color?.nombre ?? null,
+      talla: v.talla,
+      sku: v.sku,
+      precio: Number(v.precio),
+      costo: Number(v.costo),
+      activo: v.activo,
+      codigo: v.codigo,
+      codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
+    })),
   };
 }

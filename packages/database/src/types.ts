@@ -2106,6 +2106,15 @@ export type Database = {
         }
         Returns: string
       }
+      actualizar_categoria: {
+        Args: {
+          p_categoria_id: string
+          p_familia: string
+          p_nombre: string
+          p_prefijo: string
+        }
+        Returns: undefined
+      }
       actualizar_mi_foto_perfil: {
         Args: { p_foto_url: string }
         Returns: undefined
@@ -2161,6 +2170,28 @@ export type Database = {
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
         Returns: undefined
+      }
+      catalogo_actualizar_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_estado: string
+          p_producto_id: string
+          p_referencia: string
+          p_stock_minimo?: number
+          p_variantes: Json
+        }
+        Returns: undefined
+      }
+      catalogo_crear_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_referencia: string
+          p_stock_minimo?: number
+          p_variantes: Json
+        }
+        Returns: string
       }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
@@ -2228,6 +2259,10 @@ export type Database = {
           p_vence_at?: string
         }
         Returns: string
+      }
+      desactivar_categoria: {
+        Args: { p_categoria_id: string }
+        Returns: undefined
       }
       desactivar_proveedor: {
         Args: { p_proveedor_id: string }
@@ -2630,6 +2665,10 @@ export type Database = {
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_categoria: {
+        Args: { p_categoria_id: string }
+        Returns: undefined
+      }
       reactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
