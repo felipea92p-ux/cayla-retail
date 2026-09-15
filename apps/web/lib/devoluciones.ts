@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { parsearComprobante } from "@/lib/comprobantes-reglas";
+import { buscarVentaIdsPorComprobante } from "@/lib/ventas-v2";
 
 // Devoluciones (Felipe, 2026-09-14): el backend (crear_devolucion,
 // aprobar_devolucion, rechazar_devolucion) ya existía y sigue probado
@@ -20,23 +22,39 @@ export type LineaVentaParaDevolucion = {
   yaDevuelto: number;
 };
 
-export async function getLineasVentaParaDevolucion(ubicacionId: string, limite = 30): Promise<LineaVentaParaDevolucion[]> {
+export async function getLineasVentaParaDevolucion(
+  ubicacionId: string,
+  opts: { busqueda?: string; limite?: number } = {}
+): Promise<LineaVentaParaDevolucion[]> {
+  const { busqueda, limite = 30 } = opts;
   const supabase = await createClient();
-  const todas = exigir(
-    await supabase
-      .from("venta_items")
-      .select(
-        `id, venta_id, cantidad, precio_unitario,
-         venta:ventas!inner ( ubicacion_id, created_at ),
-         variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
-      )
-      .eq("venta.ubicacion_id", ubicacionId),
-    "las ventas recientes"
-  );
-  const filas = todas
-    .slice()
-    .sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
-    .slice(0, limite);
+
+  // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
+  // hace meses. Sin ella: las últimas `limite`, el comportamiento de siempre.
+  let ventaIdsBuscados: string[] | null = null;
+  if (busqueda && busqueda.trim()) {
+    const { serie, numero } = parsearComprobante(busqueda);
+    if (numero === null) return [];
+    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero);
+    if (ventaIdsBuscados.length === 0) return [];
+  }
+
+  let query = supabase
+    .from("venta_items")
+    .select(
+      `id, venta_id, cantidad, precio_unitario,
+       venta:ventas!inner ( ubicacion_id, created_at ),
+       variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+    )
+    .eq("venta.ubicacion_id", ubicacionId);
+  if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
+  const todas = exigir(await query, "las ventas recientes");
+  const filas = ventaIdsBuscados
+    ? todas.slice().sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
+    : todas
+        .slice()
+        .sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
+        .slice(0, limite);
 
   const ids = filas.map((f) => f.id);
   // Solo cuenta contra devoluciones que no fueron rechazadas — mismo filtro

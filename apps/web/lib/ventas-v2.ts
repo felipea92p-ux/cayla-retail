@@ -1,10 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { parsearComprobante } from "@/lib/comprobantes-reglas";
 
 // Prioridad 1 (2026-09-12) — historial mínimo de ventas, necesario para que
 // la pantalla de Cambios pueda encontrar QUÉ línea de QUÉ venta se está
 // cambiando. No es la pantalla de "historial de ventas" completa (esa sigue
 // diferida) — solo lo suficiente para elegir una línea.
+
+/**
+ * Encuentra la(s) venta(s) de una boleta o factura escrita a mano (2026-09-15) — lo que
+ * Devoluciones y Cambios necesitan cuando la venta ya no está entre las últimas 30 de la
+ * sede. Sin `serie`, el número puede calzar con boleta, factura o nota — cada tipo tiene
+ * su propio correlativo (`series_comprobantes`, único por `ubicacion_id, tipo`), así que
+ * se devuelven TODAS las que calcen: rara vez es más de una, y si lo es, la Encargada ve
+ * las prendas de cada una y elige.
+ */
+export async function buscarVentaIdsPorComprobante(ubicacionId: string, serie: string | null, numero: number): Promise<string[]> {
+  const supabase = await createClient();
+  let query = supabase.from("comprobantes").select("venta_id").eq("ubicacion_id", ubicacionId).eq("numero", numero).not("venta_id", "is", null);
+  if (serie) query = query.eq("serie", serie);
+  const filas = exigir(await query, "el comprobante buscado");
+  return [...new Set(filas.map((f) => f.venta_id as string))];
+}
+
 export type LineaVentaReciente = {
   ventaItemId: string;
   ventaId: string;
@@ -18,28 +36,44 @@ export type LineaVentaReciente = {
   yaCambiado: number;
 };
 
-export async function getLineasVentaRecientes(ubicacionId: string, limite = 30): Promise<LineaVentaReciente[]> {
+export async function getLineasVentaRecientes(
+  ubicacionId: string,
+  opts: { busqueda?: string; limite?: number } = {}
+): Promise<LineaVentaReciente[]> {
+  const { busqueda, limite = 30 } = opts;
   const supabase = await createClient();
+
+  // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
+  // hace meses. Sin ella: las últimas `limite`, el comportamiento de siempre.
+  let ventaIdsBuscados: string[] | null = null;
+  if (busqueda && busqueda.trim()) {
+    const { serie, numero } = parsearComprobante(busqueda);
+    if (numero === null) return [];
+    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero);
+    if (ventaIdsBuscados.length === 0) return [];
+  }
+
   // Sin `.order()`/`.limit()` de PostgREST sobre la columna de la relación
   // embebida (venta.created_at): no vale la pena apostar a que esa sintaxis
   // se comporte igual en todas las versiones cuando el volumen acá es de
   // decenas de filas, no miles — se ordena y se recorta en JS, simple y
   // correcto siempre.
-  const todas = exigir(
-    await supabase
-      .from("venta_items")
-      .select(
-        `id, venta_id, cantidad, precio_unitario,
-         venta:ventas!inner ( ubicacion_id, created_at ),
-         variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
-      )
-      .eq("venta.ubicacion_id", ubicacionId),
-    "las ventas recientes"
-  );
-  const filas = todas
-    .slice()
-    .sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
-    .slice(0, limite);
+  let query = supabase
+    .from("venta_items")
+    .select(
+      `id, venta_id, cantidad, precio_unitario,
+       venta:ventas!inner ( ubicacion_id, created_at ),
+       variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+    )
+    .eq("venta.ubicacion_id", ubicacionId);
+  if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
+  const todas = exigir(await query, "las ventas recientes");
+  const filas = ventaIdsBuscados
+    ? todas.slice().sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
+    : todas
+        .slice()
+        .sort((a, b) => (b.venta?.created_at ?? "").localeCompare(a.venta?.created_at ?? ""))
+        .slice(0, limite);
 
   const ids = filas.map((f) => f.id);
   const cambiosRes =

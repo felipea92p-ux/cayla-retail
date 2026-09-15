@@ -18,6 +18,46 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔀 Consolidación Vender + Caja — 2026-09-15 (tarde)
+
+Dos ramas cerradas y verificadas por separado que nunca habían llegado a `main` se
+unieron en un solo PR (`claude/caja-punto-venta-cambios-f4edbd`): **A**
+`claude/venta-caja-screens-animations-7923b9` (Tandas 1-3 del diagnóstico: arreglos,
+animaciones, `/caja/historial`, `/vender/descuentos`) y **B**
+`claude/sales-implementation-analysis-676b89` (ADR-0052/0053/0054: reembolso y
+diferencia de cambio en el arqueo, descuento con motivo y escalonado). 7 bloques de
+conflicto, todos mecánicos (`AppShell`, `cambios/page`, `CambiosLista`,
+`PuntoDeVentaTicket`, BITÁCORA ×2); `tsc`/`eslint`/`vitest` 239/239 sobre el resultado
+y las 3 pantallas con conflicto probadas en navegador. **Las 3 migraciones de B se
+aplicaron a producción ANTES del push** (ver cada ítem abajo) — sin eso, Vercel habría
+desplegado un front que lee `venta_items.motivo_descuento` y `*.caja_id` contra una base
+que no las tenía (42703).
+
+- [ ] **Cuatro sesiones eligieron ADR-0051 el mismo día.** Quedó: 0051 producción del
+      Taller (main), 0054 descuento con motivo (B, renumerado), 0055 insert directo a
+      `movimientos` (PR #37, renumerado). **`cuervo-colibri` (depósito bancario y ajuste
+      de efectivo, sin commitear al cierre de esta sesión) tiene que entrar como 0056**
+      y descartar su rename `20260915120000_reparar_fk…` → `120001`: la colisión de
+      timestamp ya la resolvió `origin/benja-ramanexo` moviendo producción del Taller a
+      `20260915130000`. Al mergear sobre `main` va a chocar en `MovimientoCajaModal.tsx`,
+      `lib/caja.ts` y `types.ts` con lo de A — conflictos chicos, mismo patrón que acá.
+- [ ] **Dos worktrees con trabajo V1 sin commitear que ya no aplica** — no se tocaron,
+      solo se anotan para que nadie los rescate por error: `pos-systems-comparison-c2472c`
+      (`CajaPanel`, `CerrarCajaModal`, `RegistrarVentaModal`, `ventas-offline`,
+      `0060_cerrar_caja_desglose_metodos.sql`; 180 commits atrás, ninguno de esos archivos
+      existe en `main`) y `motion-dev-analysis-3adc35` (`VenderFormV2.tsx`, que B borra).
+      Si Felipe confirma, se limpian con `git worktree remove --force`.
+- [ ] **`packages/database/src/types.ts` se regeneró en 3 sesiones desde 3 Postgres
+      locales distintos** y se auto-mergeó sin conflicto (tsc en verde). No se volvió a
+      regenerar en la consolidación — la próxima vez que se toque, regenerar UNA vez con
+      `--local` sobre una base con todas las migraciones de `main` aplicadas.
+- [ ] **El historial de producción registra las migraciones con timestamp UTC del momento
+      de aplicarlas, no con el del archivo** (`20260915211024` ≠ `20260915140000`, igual
+      que `movimientos_insert_solo_rpc` → `20260915205618`). `supabase migration list`
+      contra producción va a marcar estas como "remotas sin archivo" — es cosmético, el
+      nombre coincide; se anota para que nadie las vuelva a aplicar.
+
+---
 ## 🎯 POS (Vender + Caja) en V2 — diagnóstico del 2026-09-14
 
 > Sale de reconciliar `docs/datos/modulos/07-ventas-y-caja.md` y `01-INVARIANTES.md`
@@ -26,13 +66,210 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > candados por línea en `venta_items`/`venta_pagos`, el bug del `NULL` en el candado
 > de sede, la caja sin policy de UPDATE) NO se repite acá: esto es lo que queda.
 
+**Cerrado el 2026-09-15 — Tanda 3 del diagnóstico, las dos pantallas nuevas
+"bounded" (sin cambio de esquema; ver BITÁCORA de esa fecha):**
+
+- [x] **Historial de cierres de caja** (`/caja/historial`, link desde `/caja`).
+      `cajas` ya tenía todo (`estado`, `monto_cierre_sistema/real`, `diferencia`,
+      `cerrada_por`, `nota`) — sin RPC, sin filtro de ubicación (mismo criterio que
+      Facturación: mientras "control total temporal" siga vigente, se ve todo, con
+      la sede en cada fila). `lib/caja.ts` gana `getHistorialCierres()`. Etiquetas
+      de celular agregadas a mano (Tabla.tsx apila sin encabezado bajo `sm`, y
+      cuatro cifras seguidas sin etiqueta no se leen en una pantalla de cuadre).
+- [x] **Códigos de descuento administrables** (`/vender/descuentos`, Líder-only,
+      link desde Facturación). `codigos_descuento_insert`/`_update`
+      (20260914215103) ya dejaban la RLS lista para que un Líder escriba directo
+      — es la única tabla del sistema sin RPC de por medio: sus reglas de negocio
+      (código 3-20 mayúsculas, 0<%≤100, vigencia coherente) ya son `check` de la
+      tabla, no queda nada que una RPC tuviera que validar encima. Crear, apagar/
+      prender (nunca `DELETE`, la tabla no tiene esa policy).
+      **De paso:** `packages/database/src/types.ts` no conocía `codigos_descuento`
+      (el archivo llevaba desde antes del 12-sep sin regenerar) — regenerado con
+      `pnpm --filter @cayla-retail/database gen-types` (ya apunta a `--local`, sin
+      el riesgo de drift de producción que describe la regla de oro de `datos:generar`).
+      355 líneas nuevas, 0 tablas perdidas (verificado contando `ventas`/`cajas`/
+      `clientes`/etc. antes y después).
+
+Verificado: `tsc`, `eslint`, `vitest` (184/184); ambas pantallas probadas en
+navegador con escritura real (un código creado y apagado/prendido, el historial
+mostrando las 4 cajas cerradas reales de esta sesión con la sede correcta cada
+una). **Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
+
+**Pendiente de decisión de Felipe — las 2 pantallas grandes del mismo
+diagnóstico (2026-09-15).** Clasificadas con `superpowers:brainstorming`, no
+construidas: cada una necesita una respuesta suya antes de que una sesión
+futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
+2026-09-15 — sigue valiendo mientras nadie migre `ventas` o `clientes`.
+
+- [ ] **Ficha de clienta.** La tabla `clientes` existe completa (nombre, doc,
+      teléfono, email — `0002_esquema.sql`) y `registrar_venta` **ya acepta
+      `p_cliente_id`** desde que existe (`0011_venta_con_comprobante.sql:98`) —
+      pero Vender nunca lo manda: el DNI/nombre que se tipean en el cobro solo
+      llegan al comprobante, ninguna venta queda enlazada a una fila real de
+      `clientes`. La pregunta que decide todo el diseño: **¿Vender debe empezar
+      a buscar/crear la clienta en `clientes` durante el cobro** (cambia el
+      flujo de venta — nueva búsqueda, decidir qué pasa si no se encuentra) **o
+      la ficha es, para empezar, una pantalla de consulta aparte que no toca
+      Vender todavía** (lee `clientes` + su historial de compras vía
+      `ventas.cliente_id`, sin cambiar cómo se cobra hoy)? La segunda opción es
+      bounded (sin tocar Vender); la primera es arquitectónica (cambia un flujo
+      que ya está muy afinado — ADR-0043/0044). Sin RPC nueva en cualquier caso:
+      `registrar_venta` ya sabe qué hacer con `p_cliente_id`.
+- [ ] **Anular una venta.** No existe ni pantalla ni RPC `anular_venta` (grep
+      vacío en todo el repo, verificado 2026-09-15). Bloqueante real: `ventas`
+      **no tiene ninguna columna de estado** (`0002_esquema.sql:220-228`) —
+      cualquier diseño empieza con una migración de esquema en producción, el
+      gatillo explícito de "detente y confirma" de `CLAUDE.md`. Antes de que
+      una sesión futura la diseñe, necesita de Felipe: (1) ¿el stock **siempre**
+      vuelve al piso al anular, o depende de la condición de la prenda (mismo
+      menú que ya usa Devoluciones: vendible / dañada / a proveedor)? (2) si el
+      comprobante ya fue **aceptado por SUNAT**, ¿anular exige una nota de
+      crédito (otra integración con Lucode) o la venta puede quedar "anulada"
+      en el sistema mientras el comprobante legal sigue vivo, con el desfase
+      documentado? (3) ¿hay un límite de tiempo (¿mismo día? ¿mientras la caja
+      sigue abierta?) o cualquier venta histórica se puede anular? (4) ¿quién
+      puede hacerlo — Líder únicamente, o también la Colaboradora que la
+      vendió? Sin estas cuatro respuestas, cualquier RPC que se escriba
+      adivinaría reglas de negocio que le corresponden a Felipe, no al código.
+
+**Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
+uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
+
+- [x] **`MovimientoCajaModal.tsx` guardaba un ingreso con el motivo del `<select>` de
+      egresos** («Retiro de efectivo») aunque la colaboradora escribiera otro en el
+      campo libre que sí veía — el `motivo` calculado nunca miraba `tipo === "ingreso"`.
+      De paso, `step="0.10"` + `min={0.01}` rechazaba montos redondos («35») por
+      validación nativa del navegador; ahora `step="0.01"`.
+- [x] **La pistola con el foco en el cobro podía confirmar la venta sola.** El
+      `<form>` del ticket (momento «cobrar») no tenía guarda contra el submit nativo
+      de un `<input>` al recibir Enter — bypasseaba el botón «Cobrar» sin que nadie lo
+      tocara (`cobrar()` revalida `motivoBloqueoCobro`, así que no colaba una venta a
+      medias, pero sí una ya completa). `PuntoDeVentaTicket.tsx` ganó un `onKeyDown`
+      que bloquea Enter salvo que venga del botón.
+- [x] **Cambios y Devoluciones no mostraban cuándo se vendió la prenda** —`creadoEn`
+      ya viajaba desde `ventas-v2.ts`/`devoluciones.ts` y no se pintaba. Agregado con
+      el mismo patrón (`Intl.DateTimeFormat` es-PE) de `ComprobantesPanel`/`ProformasPanel`.
+- [x] **`/cambios` y `/devoluciones` no estaban en ningún menú** — solo vivían en la
+      cabecera de Vender, oculta en celular. Agregadas al lateral de escritorio (íconos
+      propios, distintos del de Movimientos) y «Registrar cambio» al menú «+ Nuevo»
+      (paridad con «Registrar devolución», que ya estaba ahí y sí llega a celular).
+- [x] **`CambioFormV2.tsx` elegía la prenda nueva en un `<select>` con TODO el
+      catálogo activo, sin stock ni búsqueda** (48+ opciones sin agrupar). Reemplazado
+      por `ComboBuscable` (el mismo componente que Compras ya usa para «elegir 1 de
+      muchos tipeando») con stock por opción — `cambios/page.tsx` ahora trae
+      `getStockPorUbicacion` igual que `vender/page.tsx`, y ya no se ofrece una talla
+      sin stock aquí. Sin preselección (mismo criterio que el método de pago del POS,
+      ADR-0044): la «Diferencia» y el método de pago solo aparecen con una prenda
+      elegida.
+- [x] **Vender a 375px: el ticket quedaba debajo de TODO el catálogo.** Apilado
+      (bajo `lg`, decisión a propósito — «dos scrolls internos serían peores que uno
+      solo») no había forma de ver el total o llegar a «Cobrar» sin pasar antes por
+      cada producto de la grilla. Agregada una barra fija (`lg:hidden`, mismo offset
+      que la de `RecepcionCompraFormV2.tsx` para despejar las pestañas del celular)
+      con «N prenda(s) · total · Ver ticket ↓» que salta directo al ticket — visible
+      solo con el carrito no vacío y la caja abierta.
+
+Verificado: `npx tsc --noEmit`, `eslint` y `vitest` (184/184) en verde; cada ítem
+probado en navegador contra la base local (venta/cambio/ingreso reales, confirmados
+también por consulta directa a Postgres donde aplicaba). **Subido el 2026-09-15 en el
+PR de consolidación Vender+Caja.**
+
+**Cerrado el 2026-09-15 — Tanda 2 del diagnóstico (movimiento; ver BITÁCORA de esa
+fecha para el detalle de cada uno):**
+
+- [x] **7 de los 8 modales del módulo cerraban en seco** desde sus propios botones
+      (Cancelar/Listo/Nueva venta) — `Modal.tsx` ya ofrecía el cierre animado por
+      render-prop (`children={(cerrar) => …}`), pero solo `ComprobantesPanel.tsx` lo
+      usaba. Corregido en `CambioFormV2`, `DevolucionFormV2`, `CerrarCajaModalV2` (×2),
+      `MovimientoCajaModal` y «Venta registrada» en `PuntoDeVenta.tsx` (un octavo modal
+      que el diagnóstico original no había contado). El cierre automático tras un
+      guardado exitoso se dejó **sin** animar a propósito, mismo criterio que
+      `ComprobantesPanel.tsx` ya tenía.
+- [x] **La curva de transición por defecto de Tailwind no era `--ease-cayla`** —
+      afecta a los ~260 `transition-colors`/hover del sistema. Era una aproximación a
+      mano sin comentario que la justifique; ahora es el número literal.
+- [x] **El ticket de Vender cambiaba de un momento a otro (armar↔cobrar↔descuento) sin
+      salida.** `PuntoDeVentaTicket.tsx` gana su única excepción a "sin estado, sin
+      hooks": un búfer de ANIMACIÓN (no de negocio — `momento` sigue siendo del padre,
+      `cobrar()` allá revalida contra el valor real) que retiene el contenido saliente
+      con `.anim-revelar-salida` (nueva, en `globals.css`) los 160ms que tarda en
+      desvanecerse. El `setState` que arranca la salida vive en el render, no en el
+      efecto (el propio linter del repo marca ese patrón — `react-hooks/set-state-in-effect`).
+- [x] **Nada animaba el despliegue de un bloque** — el motivo bajo el botón del ticket
+      (`PuntoDeVentaTicket.tsx`) y el swap select↔input del motivo en
+      `MovimientoCajaModal.tsx`, con el truco `grid-template-rows` (0fr↔1fr). Costó una
+      segunda vuelta: `min-h-0` solo no basta para 0px real en un campo con
+      padding/borde fijo (queda un piso de ~17-23px medido con `getComputedStyle`) —
+      hace falta forzar `padding`/`border` a 0 con `!` SOLO mientras está oculto, y el
+      `<select>` nativo además necesita `appearance-none` + `text-[0px]` (su cromado de
+      sistema operativo no se mueve con padding/borde solos). Verificado con
+      `getComputedStyle` en el navegador real, no solo a ojo.
+- [x] **Lo que llega por `router.refresh()` se reemplazaba en seco** — `anim-entrada`
+      en el swap `AbrirCajaFormV2`↔`CajaAbiertaPanel` de `/caja` (React ya lo remonta
+      solo, son componentes distintos); `transition-opacity` en el atenuado de
+      `bloqueado` del POS (no tenía ninguna transición); `anim-revelar` en las filas de
+      «Ventas de hoy» y de devoluciones pendientes — sin `key` extra: React ya reusa el
+      nodo de lo que sigue igual tras el refresh (no reanima) y solo monta —y por lo
+      tanto anima— lo genuinamente nuevo.
+
+Verificado igual que la Tanda 1, más una vuelta extra con `getComputedStyle` para los
+colapsos de altura (no alcanza con mirar la pantalla: un colapso a 17px en vez de 0
+se ve casi igual a ojo). Sesión completa de principio a fin en navegador: agregar
+prenda → cobrar → pagar → confirmar → «Venta registrada» con cierre animado → nueva
+venta con ticket limpio, y un ingreso de caja real con «Otro» motivo (ambos campos
+del swap). Cero errores de consola en una pestaña nueva (la pestaña vieja arrastraba
+un error de una ventana intermedia de la propia edición — no representativo).
+**Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
+
+**Cerrado el 2026-09-15 (mismo día, segunda vuelta) — el resto de Tanda 2**: al
+revisar contra el mapeo original, la técnica se había aplicado en 1-2 lugares por
+categoría, no en todos los identificados. Completado con la misma técnica, mismo
+riesgo bajo:
+
+- [x] `CajaAbiertaPanel.tsx` — las 5 tarjetas de resumen (`key={valor}` +
+      `anim-asentar`) y las filas de «Movimientos de esta caja» (`anim-revelar`),
+      que se habían quedado fuera del barrido de `router.refresh()`.
+- [x] El contador «160/200» bajo la nota del ticket, con el mismo truco de
+      `grid-template-rows` — antes aparecía de golpe.
+- [x] El bloque «Recibido» del pago en efectivo **no necesitó arreglo propio**:
+      `p.metodo` de una fila de pago nunca cambia una vez agregada (`agregarPago`
+      bloquea duplicados, nada muta el campo), así que animar la fila entera
+      (`anim-revelar`, agregado también a cada fila de `pagos.map`) cubre el bloque.
+- [x] Los formularios inline «Aprobar»/«Rechazar» de devoluciones pendientes —
+      `anim-revelar` simple (no el búfer de dos tiempos del ticket: es una acción de
+      Líder, poco frecuente, no justifica la complejidad extra).
+- [x] El desplegable «Ventas de hoy» del catálogo — el más visible de los siete,
+      usaba `hidden` (display:none), que ni con CSS se puede animar. Ahora
+      `grid-template-rows`. Sin controles enfocables adentro (solo filas de texto),
+      así que no necesitó los `disabled` condicionales del swap de
+      `MovimientoCajaModal`.
+
+Casi se reescribe este último a una técnica distinta (`max-height`) por una falsa
+alarma: medido con `getComputedStyle` justo después de un `.click()` disparado por
+JS y de un `navigate()`, el colapso parecía atascado en 133px. Era el Suspense de
+«Ventas de hoy» (`Cargando ventas de hoy…`) resolviendo en paralelo con el propio
+toggle, más que `element.click()` no siempre dispara el handler de React de forma
+confiable en sucesión rápida — dos problemas de METODOLOGÍA de prueba, no del
+código. Se confirmó con capturas reales (clic real + pantallazo, no JS) que colapsa
+y expande limpio, ida y vuelta. **Lo que ya estaba construido funcionaba.**
+
+Verificado igual que la primera vuelta: `tsc`, `eslint`, `vitest` (184/184), y una
+sesión de navegador completa (ingreso de caja real, «Ventas de hoy» expandido y
+colapsado dos veces con capturas). **Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
+
+Del mismo diagnóstico: historial de cierres de caja y códigos de descuento
+administrables se cerraron en la Tanda 3 (2026-09-15, más arriba). Ficha de
+clienta y anular una venta siguen pendientes de una decisión de Felipe —
+ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
+
 **Cerrado el 2026-09-14 en esta sesión:**
 
 - [x] **`movimientos` es inmutable de verdad** — ADR-0042,
       `20260914165703_movimientos_inmutables.sql`. Disparador `before update or
       delete` + retiro de `UPDATE`/`DELETE`/`TRUNCATE` a `authenticated`/`anon`.
       Probado en rojo: las dos operaciones fallan, las 105 filas quedan intactas.
-      **Aplicado solo en local.**
+      **Ya está también en producción** — ver el detalle y la higiene pendiente
+      (migración sin registrar) en «Pendiente de construir» más abajo.
 - [x] **El modal de cierre de caja dejó de revelar el esperado antes de contar**
       (`CerrarCajaModalV2.tsx`). Ahora el esperado sale de la respuesta de
       `cerrar_caja` —calculado en el instante del cierre, no al cargar la página— y
@@ -78,7 +315,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       registro). Tercera adenda: **pago mixto y vuelto** — filas por medio, recibido en
       efectivo con teclas que suman billetes, «Cubierto / Falta cubrir / Se pasa»;
       verificado con Boleta B001-000006 (yape 50 + efectivo 109.80, «efectivo + yape»
-      en Ventas de hoy). **Solo en `main` local — falta pushear.**
+      en Ventas de hoy). **En `origin/main`** (verificado 2026-09-15: `git merge-base
+      --is-ancestor` confirma los commits del 14-sep en el HEAD de esta rama).
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
@@ -88,7 +326,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       modal (`Modal.alCerrarEnfocar` sobre Radix) y ante una tecla suelta con el foco en
       un botón (`lib/escaner-tecla-suelta.ts`, 9 tests) — antes el Enter de la pistola
       activaba ese botón. Verificado en navegador con ventas reales en local
-      (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
+      (B001-000002 a 000004). **En `origin/main`.**
 
 - [x] **El catálogo de Vender se mira por prenda + color, con las tallas adentro**
       (sesión A, segunda ola del mismo día, decisión 1A de Felipe). `lib/catalogo-grupos.ts`
@@ -97,27 +335,56 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       borde rojo suave sin stock (pedido explícito; rompe el "máx. 2 rojos" del brandbook),
       `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
       `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
-      tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+      tarjetas medidas a 1440×900. **En `origin/main`.**
 - [x] **La talla agotada dice en qué sede sí hay** (sesión A, tercera ola). Tooltip por
       talla y línea en el desplegable del escáner; `lib/stock-por-sede.ts` (9 tests);
       `page.tsx` lee el stock de todas las sedes que RLS deje ver. Funciona para Líderes;
       para colaboradoras de sede fija llega vacío (ver pendiente siguiente). De paso: fuera
       el reveal al scroll del POS (dos atenuados no conviven) y `catalogo-grupos.ts` dejó
-      de ser binario para git (byte NUL → escape). **Solo en `main` local — falta pushear.**
+      de ser binario para git (byte NUL → escape). **En `origin/main`.**
 - [x] **«Ventas de hoy» firma cada venta con la integrante** (sesión A). Primer nombre,
       inicial del apellido solo si hay dos con el mismo (`lib/nombre-integrante.ts`, 6
-      tests); el relleno «—» de la RPC no se pinta. **Solo en `main` local — falta pushear.**
+      tests); el relleno «—» de la RPC no se pinta. **En `origin/main`.**
 - [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
       enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
-      limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
+      limpia; ocultos bajo `sm`. **En `origin/main`.**
 - [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
-      texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
-- [ ] **Aplicar `20260914220001_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
-      migración está escrita y NO aplicada (esquema en la base compartida: la aplica
-      Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
-      porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
-      Después de aplicarla: `supabase.rpc("fn_stock_por_sede")` en `vender/page.tsx` (un
-      commit chico) y verificar como Micaela (ya es colaboradora de Trujillo en local).
+      texto completo en `title`; nada si viene null. **En `origin/main`.**
+- [x] **El reembolso en efectivo ya resta del arqueo, y se busca una venta por su
+      boleta** (ADR-0052, `20260915180000_reembolso_en_el_arqueo.sql`). Antes: aprobar
+      una devolución con reembolso en efectivo dejaba el cajón "sobrando" exactamente
+      ese monto en `cerrar_caja` — un faltante disfrazado de sobrante. Ahora
+      `devoluciones.caja_id` (fijado solo, al aprobar) liga el reembolso a la caja que
+      lo absorbe, y `cerrar_caja` lo resta — solo efectivo, Yape/Plin/transferencia/
+      tarjeta no tocan el cajón. Tarjeta "Reembolsos en efectivo" nueva en `/caja`. De
+      paso: Devoluciones y Cambios solo mostraban las últimas 30 ventas de la sede —
+      ahora se puede escribir "B001-10" (o solo "10") y encontrar una venta de hace
+      meses (`parsearComprobante`, `BuscarPorComprobante.tsx`, compartido por las dos
+      pantallas). Verificado en psql (3 escenarios con rollback) y de punta a punta en
+      navegador: `cerrar_caja` con un reembolso real de S/25.90 dio el esperado exacto
+      (S/586.82) contra lo contado. **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
+- [x] **Cambios ya no tiene la misma fuga que Devoluciones tenía** (ADR-0053,
+      `20260915200000_diferencia_de_cambio_en_el_arqueo.sql`) — cerrado el mismo día
+      que se encontró. Mismo mecanismo que ADR-0052: `cambios.caja_id` (fijado solo, al
+      registrar) liga la diferencia a la caja que la absorbe; `cerrar_caja` la suma con
+      signo — positiva (paga de más) suma, negativa (se le devuelve) resta, un solo
+      `sum()` cubre los dos sentidos porque el dato ya trae el signo. Tarjeta "Cambios
+      en efectivo" nueva en `/caja` (con signo). Encontrado de paso: `cerrar_caja`
+      retorna una columna que también se llama `diferencia` — sin calificar
+      `cambios.diferencia`, la función ni compilaba en la prueba. Verificado en psql (3
+      escenarios) y de punta a punta en navegador: cambio real con diferencia de
+      +S/100 en efectivo, `cerrar_caja` dio el esperado exacto (S/194.99).
+      **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
+- [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
+      **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
+      schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,
+      `…231015_registrar_venta_piso_con_nota`, aunque su propia migración
+      `20260914220001` no quedó registrada en `schema_migrations`). `vender/page.tsx:43`
+      todavía lee `stock` directo (`supabase.from("stock").select(...)`), así que
+      `stock_select` = «puede operar la sede» sigue filtrando y una colaboradora de sede
+      fija recibe `otrasSedes` vacío. Cambio: `supabase.rpc("fn_stock_por_sede")` en vez de
+      la lectura directa (un commit chico) y verificar como Micaela (colaboradora de
+      Trujillo — su fila ya existe en local, ver ítem siguiente).
 - [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
       `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
       («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
@@ -129,19 +396,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
       la pinta sin rediseñar.
 
-- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`).**
-      Verificar en local que la caja opera sobre *su* sede y no sobre la del Líder: el
-      selector «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de
-      la persona, y que el escáner solo reconozca stock de esa sede. El `seed.sql` nuevo
-      pone a Micaela como colaboradora de Trujillo, pero la base local no se reseteó
-      (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
-      `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
+- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`)
+      — falta VERIFICAR, ya no falta la data.** Micaela existe en local como colaboradora
+      de Tienda Trujillo (confirmado 2026-09-15: `retail.colaboradores` tiene su fila con
+      `ubicacion_asignada_id` = Trujillo). Falta entrar como ella y verificar en
+      navegador que la caja opera sobre *su* sede y no sobre la de un Líder: el selector
+      «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de la persona,
+      y que el escáner solo reconozca stock de esa sede. Sin dueño ni fecha; no bloquea
+      nada de Vender.
 
-- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
-      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
-      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
-      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
-      prenda (es una decisión operativa por tienda, no un script ciego).
+- [x] **El bloque 8 (`…231015_registrar_venta_piso_con_nota`) ya está en producción** —
+      cerrado, no es más un bloqueante. Verificado 2026-09-15 contra `pg_proc` en
+      `cayla-dynamic`: `registrar_venta` tiene una sola sobrecarga de 11 parámetros con
+      `fn_sububicacion_por_defecto` en el cuerpo, y `20260914231015` SÍ está registrada en
+      `supabase_migrations.schema_migrations` (a diferencia de lo que decía este ítem
+      hasta hoy). Sigue vigente la regla operativa: al activar piso/almacén en una tienda,
+      llevar antes el stock «sin sububicación» al piso con `mover_interno(…, null, piso,
+      …)`, prenda por prenda (decisión por tienda, no un script ciego).
 
 **Pendiente de decisión de Felipe:**
 
@@ -152,14 +423,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       la consola del navegador — un `GET` de una línea. El candado de verdad es que quien
       opera la caja no pueda leer ese agregado, y eso necesita los cuatro niveles de
       D-12, que hoy no existen en la base.
-- [ ] **"Control total temporal" (`0012`/`0013`) no tiene fecha de revisión.** Dentro de
-      la lista blanca `retail.colaboradores`, **cualquier colaborador puede operar
-      cualquier sede**: abrir/cerrar caja ajena, anular comprobantes SUNAT aceptados,
-      cerrar conteos, aprobar devoluciones. Es una decisión explícita y bien documentada
-      de Felipe (2026-09-12/13) para destrabar logins en pruebas — pero "temporal" sin
-      fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
-      de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
-      Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+- [x] **"Control total temporal" (`0012`/`0013`) — cerrado por `0016_roles_colaborador`.**
+      El hueco que este ítem denunciaba (cualquier colaborador podía operar cualquier
+      sede) ya no existe: verificado 2026-09-15 contra `cayla-dynamic` en vivo,
+      `fn_puede_operar_ubicacion` compone sobre el `fn_es_lider()` y
+      `fn_ubicacion_actual_persona()` reales de `0016` (Líder = todo; Colaborador = solo
+      su `ubicacion_asignada_id`), no sobre el bypass de `0012` ("cualquier persona activa
+      de Dynamic"). Sigue pendiente, aparte, el candado del **conteo ciego** (ítem
+      siguiente), que depende de los cuatro niveles de D-12 y no de este.
 - [ ] **¿Dónde vive la docencia del cobro ahora que los (!) solo se encienden cuando
       falta algo?** (ADR-0044). La explicación de «acá se registra, no se cobra» y de
       «boleta admite DNI opcional; factura exige RUC» quedó dentro de los globos de
@@ -171,20 +442,66 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 **Pendiente de construir (no es un fix de una sesión):**
 
 - [ ] **El POS de V2 no tiene ninguna resiliencia sin internet — regresión contra V1.**
-      Cero rastro de cola offline, `localStorage` o `navigator.onLine` en `apps/web`.
-      V1 lo tenía resuelto (cola por sede, umbral de stock, reintento con el mismo
-      token). Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende nada.
-      Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
-      gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
-      `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
-      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
-      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
-      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
-      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
-      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
-      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+      **TRASPASO 2026-09-15 (sesión de Vender): siguiente paso de esta lista, empezar
+      por acá.** Cero rastro de cola offline, `localStorage` o `navigator.onLine` en
+      `apps/web` hoy. Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende
+      nada. Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada
+      con gracia, nunca pierde datos") y D-49.
+
+      **V1 ya lo construyó completo, verificado y con addendums — se borró en el corte
+      V1→V2 (`0af2f1b`, 2026-09-12), no se descartó por estar mal.** Recuperar con:
+      `git show 0af2f1b^:apps/web/lib/ventas-offline.ts` (194 líneas, puro, 11
+      pruebas — `git show 0af2f1b^:apps/web/lib/ventas-offline.test.ts`),
+      `git show 0af2f1b^:apps/web/lib/sin-red.ts` (104 líneas — `esFalloDeRed()`),
+      y sobre todo `git show 0af2f1b^:docs/adr/0036-cola-de-ventas-offline.md` (226
+      líneas: el diseño completo, con dos addendums del mismo día que ya resolvieron
+      los huecos no obvios — venta huérfana si la caja cierra antes de subir, botón
+      "Descartar" para un rechazo que no se va a resolver solo). Deriva de ADR-0013
+      §C (decisión de Felipe: vender offline solo con stock de sobra) y depende del
+      mismo contrato de `p_token`/`unique_violation` en `registrar_venta` que
+      ADR-0032/0033 fijaron — sigue vigente en la versión de hoy
+      (`20260915140000_descuento_motivo_y_escalonado.sql`, líneas ~104-108).
+
+      **Qué cambió desde que se escribió ese ADR, y hay que adaptar, no copiar tal
+      cual:** (1) `registrar_venta` pasó de 5 a 11 parámetros (piso/almacén, motivo y
+      escalonado de descuento, código, nota) — el payload que se encola tiene que
+      llevar los campos de hoy. (2) el stock ahora es piso+almacén por sububicación
+      (`lib/stock-por-sede.ts`, `getStockPorUbicacion` en `lib/inventario-v2.ts`), no
+      la columna plana que V1 leía — el umbral `stockAqui - cantidad >= 1` debe
+      evaluarse sobre el PISO, que es lo que una venta descuenta (nunca el almacén en
+      silencio, principio 4). (3) `lib/almacen-local.ts` (ADR-0049, 2026-09-14) ya es
+      el módulo reutilizable que iba a reemplazar el `localStorage` a mano de V1 —
+      `claveLocal(ubicacionId, "cola")` está reservado en su propio comentario de
+      cabecera exactamente para esto; seguir el patrón de `TOPE_ESPERA`/`enEspera` en
+      `PuntoDeVenta.tsx` (líneas ~101, 171, 413) para la cola por sede. (4) `SIN_RED`
+      ya existe en `apps/web/lib/error-escritura.ts:217` (5 huellas de red) — es lo
+      que `esFalloDeRed()` de V1 reusaba; en V2 puede importarse directo en vez de
+      duplicar la lista. (5) `cobrar()` en `PuntoDeVenta.tsx:509` es donde hoy se
+      llama a `registrar_venta` y se traduce el error — ahí bifurca V1 entre subir
+      normal y encolar. (6) El "esperado" de `cerrar_caja` HOY YA suma/resta
+      reembolsos y diferencias de cambio en efectivo (ADR-0052/0053, 2026-09-15) —
+      sumarle "efectivo encolado sin subir" (`totalEfectivoEncolado()` de V1) es una
+      cuarta pieza sobre el mismo patrón, no una nueva.
+
+      **Cuidado con `docs/datos/`: dice que esto YA ESTÁ HECHO, y no lo está — es la
+      documentación desactualizada, no el código.** `docs/datos/10-ROADMAP-DATOS.md:
+      801` ("D-49 · HECHA") y `docs/datos/09-CONTRATOS.md:115-118` describen
+      `lib/ventas-offline.ts`/`lib/sin-red.ts` como si existieran hoy en el repo — es
+      la foto de V1 sin actualizar tras el corte, el mismo problema que ya delató
+      `docs-datos-generado-es-foto-v1-del-12-sep` en otra parte de este archivo. No
+      confiar en esa carpeta para saber si esto está construido: confiar en
+      `apps/web/lib/` (vacío de esto hoy) y en este ítem del BACKLOG.
+
+      La idempotencia por `ventas.token_cliente` —la condición previa que todo esto
+      pide— **ya existe en V2** desde 2026-09-10, sin tocar.
+- [x] **Las tres migraciones de ADR-0048 ya están en producción — ya no bloquean el
+      deploy.** `20260914215059_candado_precio_venta.sql`,
+      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`.
+      Verificado 2026-09-15: las tres versiones están en
+      `supabase_migrations.schema_migrations` de `cayla-dynamic` y `registrar_venta` en
+      vivo acepta `p_codigo_descuento` y `p_nota`. Pendiente de higiene, no de deploy:
+      correr `pnpm datos:generar:produccion` (el diccionario sigue describiendo la RPC de
+      5 parámetros de V1). «Ventas de hoy» ya pinta `nota` (ítem cerrado arriba).
 - [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
       en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
       tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
@@ -205,6 +522,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `PuntoDeVenta.tsx:47,141` la deja fija en `0` y el campo "Precio unitario"
       sobreescribe el precio directo. Nadie puede medir cuánto se regala en descuentos,
       ni distinguir un descuento autorizado de un cero de más al tipear.
+- [x] **El Líder también tiene tope, y el descuento pide motivo — cierra R-45 y D-44**
+      (ADR-0054, `20260915140000_descuento_motivo_y_escalonado.sql`). Desde el 09-14 la
+      Colaboradora ya tenía tope (el código); el Líder podía descontar cualquier % sin
+      dejar rastro. Ahora, para cualquier descuento > 0 (Líder o Colaboradora): motivo
+      de lista cerrada obligatorio, y nunca por debajo del costo, sin revelar el número.
+      Solo para el Líder: hasta 20 % sola, 20-35 % con argumento escrito, más de 35 %
+      nadie — sin excepción (decisión de Felipe, 2026-09-15: la base no puede distinguir
+      "Felipe" de las otras 8 personas registradas; ver ADR-0054 «Se descartó»). De
+      paso: descuento en S/ por unidad, no solo en %. Verificado en 10 escenarios psql
+      y de punta a punta en navegador (Boletas B001-000010 y B001-000011, local).
+      **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
+- [ ] **Reporte de "cuánto margen se fue por cada motivo"** (R-45, punto 2) — el dato ya
+      se guarda (`venta_items.motivo_descuento`), pero no hay pantalla que lo sume por
+      motivo ni por período. Paso propio, sobre ADR-0054.
 - [ ] **Cero pruebas automatizadas sobre `registrar_venta`, `abrir_caja` y
       `cerrar_caja`.** Es el núcleo del dinero y del stock. No hay `supabase/tests/`
       ni un solo `*.test.ts` que las toque. Es D-25, y lo pide **antes** del censo.
@@ -213,8 +544,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
 - [x] **(Cerrado 2026-09-15: el disparador `movimientos_inmutables` YA está en producción** —
-      verificado tabla por tabla al refrescar el volcado; producción y local tienen los
-      mismos 7 disparadores. Queda el texto original como historia.)
+      verificado en vivo dos veces por dos sesiones distintas: primero contra `pg_proc`
+      (trigger presente, `authenticated` sin `UPDATE`/`DELETE`/`TRUNCATE`), después tabla
+      por tabla al refrescar el volcado — producción y local tienen los mismos 7
+      disparadores. Queda una sola higiene: `20260914165703` no aparece en
+      `supabase_migrations.schema_migrations` — el candado corre, pero su migración no
+      quedó registrada. Registrarla es cosa de Felipe (D-11), no bloquea nada. Queda el
+      texto original como historia.)
       **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
       contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
       `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
@@ -252,7 +588,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `authenticated` tenía `INSERT`+`SELECT` (UPDATE/DELETE ya los sacó ayer D-22); queda
       solo con `SELECT`. Cero pantallas dependían del insert directo (`grep` sobre
       `apps/web`: un solo `.from("movimientos")`, en `lib/compras.ts:330`, y es un
-      `.select`). Probado en rojo/verde en local (ver ADR-0051): el insert directo como
+      `.select`). Probado en rojo/verde en local (ver ADR-0055): el insert directo como
       `authenticated` ahora falla con `permission denied`; las funciones siguen sin tocar
       RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
       vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
@@ -262,7 +598,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       policy de INSERT sin verificar.
 - [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
       `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
-      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
+      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0055.
 - [ ] **Dos firmas vivas de `registrar_movimiento` en producción** (6 y 7 parámetros,
       `p_sububicacion_id` de más en la segunda) — un `select registrar_movimiento(...)`
       con los 6 parámetros históricos sale `is not unique`, reproducido en local
@@ -310,7 +646,10 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 
 **Pendiente de Felipe (producción):**
 
-- [x] **`20260915090000_movimientos_lectura.sql` aplicada en producción el 2026-09-15**,
+- [x] **`20260915090000_movimientos_lectura.sql` ya está en producción — este ítem
+      quedó viejo apenas se escribió.** Verificado 2026-09-15, dos veces: primero en
+      vivo contra `pg_proc`/`schema_migrations` de `cayla-dynamic` (la migración estaba
+      registrada y `fn_movimientos`/`fn_movimientos_resumen` existían), después
       después del merge del PR #33 (Vercel en verde). Verificada como Benjamin en
       Tienda AQP con rollback. De paso quedaron registradas en
       `supabase_migrations.schema_migrations` las tres que se aplicaron con

@@ -19,7 +19,14 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
   const [motivoLibre, setMotivoLibre] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const motivo = motivoRapido === "Otro" ? motivoLibre : motivoRapido;
+  const mostrarSelect = tipo === "egreso";
+  const mostrarLibre = tipo === "ingreso" || motivoRapido === "Otro";
+  // Mismo criterio que decide qué campo se muestra (abajo): un ingreso siempre
+  // se explica a mano, un egreso usa el atajo salvo que sea "Otro". Antes esta
+  // condición solo miraba `motivoRapido === "Otro"`, así que un ingreso se
+  // guardaba con el motivo del <select> de egresos ("Retiro de efectivo") aunque
+  // la colaboradora hubiera escrito otra cosa en el campo libre que sí veía.
+  const motivo = mostrarLibre ? motivoLibre : motivoRapido;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +54,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
 
   return (
     <Modal titulo="Ingreso o egreso de caja" onClose={onClose}>
+      {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <span className={campoEtiqueta}>Tipo</span>
@@ -74,7 +82,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
             id="mov-monto"
             type="number"
             min={0.01}
-            step="0.10"
+            step="0.01"
             required
             value={monto}
             onChange={(e) => setMonto(e.target.value)}
@@ -86,12 +94,30 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           <label className={campoEtiqueta} htmlFor="mov-motivo-rapido">
             Motivo
           </label>
-          {tipo === "egreso" ? (
+          {/* Truco de `grid-template-rows` (0fr↔1fr, igual que el motivo del botón en
+              PuntoDeVentaTicket.tsx): tanto el select como el campo libre quedan siempre
+              montados, y es la altura de su propia fila la que anima — antes el salto
+              entre "egreso" (1 campo), "egreso · Otro" (2) e "ingreso" (1, distinto) era
+              de golpe en las tres direcciones. El `0fr` de la fila no basta para llegar a
+              0px real: el padding/borde del campo (`card-cayla`, `border-b`) le pone un
+              piso de ~17px. Se fuerzan a 0 con `!` SOLO mientras está oculto — puesto fijo,
+              `min-h-0` deflacionaba también el alto NATURAL del estado abierto (el propio
+              alto automático del contenedor ya salía chico, y `1fr` solo repartía el 100%
+              de ESE espacio ya achicado — nunca llegaba al alto real con interlineado). */}
+          <div className={`grid overflow-hidden transition-[grid-template-rows] ${mostrarSelect ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
             <select
               id="mov-motivo-rapido"
               value={motivoRapido}
               onChange={(e) => setMotivoRapido(e.target.value)}
-              className={campoSelect}
+              disabled={!mostrarSelect}
+              className={
+                mostrarSelect
+                  ? `overflow-hidden ${campoSelect}`
+                  // `<select>` nativo (`appearance: auto`) trae un mínimo propio del
+                  // cromado del sistema operativo que ni `padding:0`/`border:0` mueven
+                  // — `appearance-none` lo saca, solo mientras está oculto.
+                  : `min-h-0 overflow-hidden appearance-none !border-0 !py-0 !text-[0px] !leading-none ${campoSelect}`
+              }
             >
               {MOTIVOS_EGRESO_RAPIDO.map((m) => (
                 <option key={m} value={m}>
@@ -99,21 +125,22 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
                 </option>
               ))}
             </select>
-          ) : null}
-          {(tipo === "ingreso" || motivoRapido === "Otro") && (
+          </div>
+          <div className={`grid overflow-hidden transition-[grid-template-rows] ${mostrarLibre ? "mt-1.5 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
             <input
               id="mov-motivo-libre"
               placeholder="Describe el motivo"
               value={motivoLibre}
               onChange={(e) => setMotivoLibre(e.target.value)}
-              className={campoTexto}
+              disabled={!mostrarLibre}
+              className={mostrarLibre ? `min-w-0 overflow-hidden ${campoTexto}` : `min-h-0 min-w-0 overflow-hidden !border-0 !py-0 ${campoTexto}`}
             />
-          )}
+          </div>
         </div>
 
 
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+          <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
           <button type="submit" disabled={loading} className={botonPrimario}>
@@ -121,6 +148,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           </button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

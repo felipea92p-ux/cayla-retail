@@ -98,3 +98,20 @@ export function tipoDocumentoDeCliente(
 ): "dni" | "ruc" | "sin_documento" {
   return tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
 }
+
+/** Lo que se puede leer de "B001-000010" (o "B001-10", o solo "10") escrito a mano en
+ *  Devoluciones o Cambios para encontrar una venta que ya no está entre las últimas 30.
+ *  `numero` viene sin ceros a la izquierda — así vive en `comprobantes.numero`. `null`
+ *  en los dos significa que no se pudo leer ningún número: no hay nada que buscar. */
+export function parsearComprobante(texto: string): { serie: string | null; numero: number | null } {
+  const limpio = texto.trim().toUpperCase();
+  if (!limpio) return { serie: null, numero: null };
+
+  const conSerie = limpio.match(/^([A-Z]+\d*)[\s-]+(\d+)$/);
+  if (conSerie) return { serie: conSerie[1], numero: Number(conSerie[2]) };
+
+  const soloNumero = limpio.match(/^(\d+)$/);
+  if (soloNumero) return { serie: null, numero: Number(soloNumero[1]) };
+
+  return { serie: null, numero: null };
+}

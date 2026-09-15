@@ -82,9 +82,15 @@
      Subió de 14rem a 17rem el 2026-09-09 (ADR-0014). */
   --spacing-lateral: 17rem;
 
-  /* Movimiento estándar del sistema */
+  /* Movimiento estándar del sistema — todo `transition-colors`/`transition-transform`
+     sin `ease-*` explícito (la inmensa mayoría de los ~260 hover del sistema) usa esto.
+     Antes tenía una curva propia, aproximada a mano y distinta de `--ease-cayla`
+     (0.22,0.61,0.28,1 contra 0.32,0.72,0.24,1) — el mismo error que ADR-0038 evitó a
+     propósito para GSAP ("aproximar --ease-cayla a ojo"), colado acá en CSS puro. Mismo
+     valor que usa `.alza-cayla` de forma explícita más abajo (260ms + var(--ease-cayla)):
+     ahora es literal el mismo número, no una aproximación. */
   --default-transition-duration: 260ms;
-  --default-transition-timing-function: cubic-bezier(0.22, 0.61, 0.28, 1);
+  --default-transition-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1);
 
   /* Sombras — antes desactivadas por brandbook. Reactivadas 2026-09-08 (ADR-0012)
      SOLO para lo que flota (modal, desplegable, popover): un panel sin sombra
@@ -259,6 +265,15 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* Salida de `cayla-revelar` (2026-09-15): un momento del ticket (cobro, descuento,
+   espera) que se deja atrás se iba de un corte — la única entrada sin su salida. Más
+   corta que `cayla-salida` (160 vs 220ms) porque es contenido DENTRO de un panel que
+   no se mueve, no un panel que se va: alcanza con que se borre, no con que retroceda. */
+@keyframes cayla-revelar-salida {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, -3px, 0); }
+}
+
 @keyframes cayla-asentar {
   from { opacity: 0.35; transform: translate3d(0, 4px, 0); }
   to { opacity: 1; transform: none; }
@@ -337,6 +352,7 @@ body {
 .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
 .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
 .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+.anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
 .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
 @media (min-width: 640px) {
@@ -350,6 +366,7 @@ body {
   .anim-velo,
   .anim-entrada,
   .anim-revelar,
+  .anim-revelar-salida,
   .anim-asentar,
   .anim-globo,
   .anim-salida,

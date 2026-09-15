@@ -2,10 +2,11 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getLineasVentaParaDevolucion, getDevolucionesPendientes } from "@/lib/devoluciones";
 import { DevolucionesLista } from "@/components/DevolucionesLista";
 
-export default async function DevolucionesPage() {
+export default async function DevolucionesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const persona = await requirePersonaActualV2();
+  const { q } = await searchParams;
   const [lineas, pendientes] = await Promise.all([
-    getLineasVentaParaDevolucion(persona.ubicacionId),
+    getLineasVentaParaDevolucion(persona.ubicacionId, { busqueda: q }),
     getDevolucionesPendientes(persona.ubicacionId),
   ]);
 
@@ -17,7 +18,7 @@ export default async function DevolucionesPage() {
         <p className="mt-1 text-sm text-tinta/65">Elige la prenda vendida que la clienta quiere devolver.</p>
       </div>
 
-      {lineas.length === 0 && pendientes.length === 0 ? (
+      {lineas.length === 0 && pendientes.length === 0 && !q ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay ventas recientes en esta ubicación.</p>
       ) : (
         <DevolucionesLista
@@ -25,6 +26,7 @@ export default async function DevolucionesPage() {
           pendientes={pendientes}
           ubicacionId={persona.ubicacionId}
           esLider={persona.rol === "lider"}
+          busqueda={q ?? ""}
         />
       )}
     </div>

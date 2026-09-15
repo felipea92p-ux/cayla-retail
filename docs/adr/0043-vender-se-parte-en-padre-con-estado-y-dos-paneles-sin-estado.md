@@ -75,3 +75,27 @@ que 4 objetos cuando lo que importa es ver el contrato completo de un vistazo).
 - **Interacciones por las props nuevas**: agregar prenda, ±cantidad, método de pago,
   Factura apaga Cobrar, Boleta lo enciende, Quitar vacía — idénticas al original.
 - `tsc` y `eslint` limpios; 95/95 tests; pre-commit en verde en ambos commits.
+
+## Adenda — primera (y única) excepción a "sin hooks" (2026-09-15)
+
+`PuntoDeVentaTicket.tsx` gana un `useState`+`useEffect` — el primer hook del
+componente desde que existe. Motivo: el ticket cambiaba de un momento a otro
+(armar↔cobrar↔descuento) sin salida, solo entraba (Tanda 2 del diagnóstico de
+animación, ver BITÁCORA 2026-09-15). Una salida real necesita retener el contenido
+saliente un instante mientras se desvanece — imposible sin algún estado que viva
+DONDE se pinta ese contenido.
+
+**Por qué no rompe la razón original de la regla:** el motivo de "sin hooks" era que
+dos sesiones trabajaran en paralelo sin pisarse (punto 1 de Consecuencias, arriba) —
+eso ya no aplica, esta es una sola sesión. Y el estado nuevo es explícitamente
+**de animación, no de negocio**: `momento` sigue siendo 100% del padre (prop, fuente
+de verdad); lo único que el ticket guarda es CUÁNTO tarda en reflejar visualmente un
+cambio que el padre ya decidió. `cobrar()` en el padre revalida contra el `momento`
+real, nunca contra el búfer — un clic durante la transición no puede colar una venta
+a medias. Mismo criterio que ya usa `ui/Modal.tsx` (`cerrando` + `setTimeout`) para
+lo mismo, un nivel más abajo en la jerarquía de componentes.
+
+**La regla que sigue en pie:** ningún hook de ESTADO DE NEGOCIO (carrito, pagos,
+descuento, cliente…) entra al ticket. Si aparece la tentación de mover algo de eso acá
+"para simplificar props", es la señal de que la costura se está rompiendo — no una
+extensión de este precedente.

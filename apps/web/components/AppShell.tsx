@@ -63,6 +63,11 @@ const IC = {
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  // Flechas verticales (no las horizontales de "movimientos", para no leerse
+  // como el mismo ícono con otro nombre): cambiar una talla por otra.
+  cambios: "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
+  // Flecha en U: la prenda vuelve.
+  devoluciones: "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
 };
@@ -212,6 +217,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
+    { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
 
@@ -363,6 +369,8 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
   const vender: Item = { href: "/vender", etiqueta: "Vender", icono: IC.vender };
   const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
+  const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
+  const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
   const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
@@ -396,6 +404,8 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
         inicio,
         vender,
         caja,
+        cambios,
+        devoluciones,
         productos,
         inventario,
         ...(esLider ? [compras] : []),

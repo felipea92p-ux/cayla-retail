@@ -78,27 +78,33 @@ export type Database = {
         Row: {
           caja_id: string
           created_at: string
+          es_ajuste: boolean
           id: string
           monto: number
           motivo: string
+          nota: string | null
           tipo: string
           usuario_id: string | null
         }
         Insert: {
           caja_id: string
           created_at?: string
+          es_ajuste?: boolean
           id?: string
           monto: number
           motivo: string
+          nota?: string | null
           tipo: string
           usuario_id?: string | null
         }
         Update: {
           caja_id?: string
           created_at?: string
+          es_ajuste?: boolean
           id?: string
           monto?: number
           motivo?: string
+          nota?: string | null
           tipo?: string
           usuario_id?: string | null
         }
@@ -167,6 +173,7 @@ export type Database = {
       }
       cambios: {
         Row: {
+          caja_id: string | null
           cantidad: number
           created_at: string
           diferencia: number
@@ -179,6 +186,7 @@ export type Database = {
           venta_item_id: string
         }
         Insert: {
+          caja_id?: string | null
           cantidad: number
           created_at?: string
           diferencia?: number
@@ -191,6 +199,7 @@ export type Database = {
           venta_item_id: string
         }
         Update: {
+          caja_id?: string | null
           cantidad?: number
           created_at?: string
           diferencia?: number
@@ -203,6 +212,13 @@ export type Database = {
           venta_item_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cambios_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cambios_ubicacion_id_fkey"
             columns: ["ubicacion_id"]
@@ -994,6 +1010,7 @@ export type Database = {
         Row: {
           aprobado_en: string | null
           aprobado_por: string | null
+          caja_id: string | null
           created_at: string
           estado: string
           id: string
@@ -1007,6 +1024,7 @@ export type Database = {
         Insert: {
           aprobado_en?: string | null
           aprobado_por?: string | null
+          caja_id?: string | null
           created_at?: string
           estado?: string
           id?: string
@@ -1020,6 +1038,7 @@ export type Database = {
         Update: {
           aprobado_en?: string | null
           aprobado_por?: string | null
+          caja_id?: string | null
           created_at?: string
           estado?: string
           id?: string
@@ -1031,6 +1050,13 @@ export type Database = {
           venta_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "devoluciones_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "devoluciones_ubicacion_id_fkey"
             columns: ["ubicacion_id"]
@@ -1833,30 +1859,39 @@ export type Database = {
       }
       venta_items: {
         Row: {
+          argumento_descuento: string | null
           cantidad: number
           costo_unitario: number
           descuento_unitario: number
           id: string
+          motivo_descuento: string | null
+          motivo_descuento_detalle: string | null
           precio_unitario: number
           subtotal: number | null
           variante_id: string
           venta_id: string
         }
         Insert: {
+          argumento_descuento?: string | null
           cantidad: number
           costo_unitario: number
           descuento_unitario?: number
           id?: string
+          motivo_descuento?: string | null
+          motivo_descuento_detalle?: string | null
           precio_unitario: number
           subtotal?: number | null
           variante_id: string
           venta_id: string
         }
         Update: {
+          argumento_descuento?: string | null
           cantidad?: number
           costo_unitario?: number
           descuento_unitario?: number
           id?: string
+          motivo_descuento?: string | null
+          motivo_descuento_detalle?: string | null
           precio_unitario?: number
           subtotal?: number | null
           variante_id?: string
@@ -2645,8 +2680,10 @@ export type Database = {
       registrar_movimiento_caja: {
         Args: {
           p_caja_id: string
+          p_es_ajuste?: boolean
           p_monto: number
           p_motivo: string
+          p_nota?: string
           p_tipo: string
         }
         Returns: string
