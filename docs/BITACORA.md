@@ -3,6 +3,47 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Productos: filtros y paginado server-side — Sesión B1)
+
+Felipe pidió migrar `/productos` del filtrado-en-memoria a filtros en la URL +
+Postgres, con tarjetas de resumen y stock bajo/sin stock — cruzando a
+propósito la separación documentada "Productos = qué existe, Inventario =
+cuánto hay". Confirmado con Felipe antes de construir (protocolo de
+pregunta): paginado por NÚMERO de página, no cursor (el catálogo no crece
+como un ledger — decisión documentada en la migración), y "stock bajo" se
+mide contra un `stock_minimo` NUEVO por producto (no un umbral hardcodeado),
+a agregar al mantenedor de ficha por la sesión A1. `fn_productos`/
+`fn_productos_resumen` (`20260915160000_productos_listado_filtros.sql`)
+agregan y paginan por PRODUCTO, no por fila de variante, para que una prenda
+de 12 variantes no corte a la mitad entre dos páginas. Dos bugs reales de
+Postgres atrapados recién al probar contra datos (no en el diseño en papel):
+`stock_total`/`stock_minimo`/`codigo` son también OUT params de la función,
+así que referenciarlos sin calificar dentro del CTE es ambiguo — Postgres no
+avisa hasta ejecutar. Y la variante centinela "Cargo especial" (POS, no es
+mercadería) aparecía en el catálogo y en "sin stock": se excluye por id,
+mismo criterio que ya usa `fn_movimientos`.
+
+Verificado dos veces: con psql directo contra `retail` local (búsqueda,
+categoría, color, precio, estado, sin_stock, stock bajo con umbral real,
+paginado, exclusión del centinela) y con una petición HTTP real al `next dev`
+del propio worktree, autenticado reconstruyendo a mano la cookie
+`sb-127-auth-token` de `@supabase/ssr` (no hay navegador disponible en esta
+sesión) — los filtros por querystring cambiaron el HTML servido, no solo la
+consulta SQL aislada. `tsc --noEmit` y `eslint` limpios; tipos de
+`fn_productos`/`fn_productos_resumen`/`productos.stock_minimo` agregados a
+mano en `packages/database/src/types.ts` (no regenerados: la migración no
+está en producción, y regenerar desde local pisaría tipos de producción que
+sí lo están — mismo cuidado que ya deja escrito CLAUDE.md).
+
+Lo que Felipe se lleva: **el Postgres local no tiene worktree propio por
+sesión — lo comparten las 7 sesiones de Productos y el checkout principal.**
+Esta sesión encontró el contenedor reiniciado dos veces en minutos (otra
+sesión corriendo `db reset`/`stop`/`start`), perdiendo migraciones recién
+probadas sin ningún aviso. No bloqueó el trabajo (se reaplicó y se
+reverificó cada vez) pero es una fuente real de confusión mientras dure este
+nivel de paralelismo — queda anotado en BACKLOG para que Felipe decida si
+vale la pena un Postgres local por sesión.
+
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
@@ -56,6 +97,25 @@ si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de or
 coinciden; guardarlo como quinto tipo obligaría al motor de stock a aprender una rama más
 para un hecho que ya sabe. Y un centinela que vive en el ledger no se borra: se excluye al
 leer, por su id, en todos los lugares que cuentan unidades.
+
+## 2026-09-15 (Ajustar inventario: un modal, ninguna vía de escritura nueva)
+
+Sesión A2, en paralelo a otras seis sobre Productos. `AjustarInventarioModal.tsx` no
+inventa cómo escribir stock: reusa `retail.registrar_movimiento` (tipo='ajuste'), la misma
+RPC que ya existía desde `20260914230000_inventario_piso_almacen.sql` — la guarda de
+negativos (ADR-0023) sigue viviendo solo en `fn_aplicar_movimiento`. Motivos nuevos
+(`reposicion`/`merma`/`conteo_fisico`/`otro`) sumados a `ETIQUETA_PROCESO` en
+`movimientos-reglas.ts`, deliberadamente distintos de `conteo` — ese lo escribe solo
+`cerrar_conteo`, con `conteo_item_id` enlazado al conteo formal. La pantalla valida el
+negativo con el stock ya cargado (sin viaje a la base) y la RPC queda como red real; probado
+en Chrome headless con Tienda Lima (separa piso/almacén): 6 variantes de Blusa Valentina
+cargadas, un `-2` sobre stock 0 bloqueado en pantalla sin llamar a la RPC, dos ajustes
+positivos confirmados y visibles en `/movimientos` como AJUSTE · Conteo físico (manual).
+Como la ficha de producto real no existe aún (la arma la Sesión A1), quedó una ruta demo en
+`/productos/dev-ajustar-inventario` — nació como `_dev/` según el enunciado, pero Next.js
+excluye del ruteo cualquier carpeta con prefijo `_` (404 real, no hipotético); se renombró
+sin el guion bajo. **TODO(B2):** borrar esa ruta al conectar el modal al menú de acciones
+de la lista real.
 
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 
@@ -3664,3 +3724,41 @@ Productos), y no crea variantes al vuelo como V1 (ADR-0050 §5). Verificado en C
 headless: 4 S + 6 M → `producciones` en_proceso con `S=4, M=6`. Quedan dos decisiones
 abiertas en BACKLOG (atajo «Nuevo modelo», tercerizado al abrir).
 
+## 2026-09-15 (historial de producto: movimientos por producto + ledger de precio/categoría)
+
+`fn_movimientos` gana `p_producto_id` (resuelve a sus variantes, sede sigue obligatoria —
+mismo permiso que `/movimientos`, ADR-0051) y nace `historial_producto_cambios`, un
+ledger append-only que un trigger en `productos`/`variantes` llena solo, sin que ninguna
+pantalla tenga que acordarse (decisión de Felipe: precio/categoría entran al historial
+aunque no sean movimientos de stock). Verificado en Chrome headless contra datos reales:
+`HistorialProductoPanel` muestra los 10 movimientos de Pantalón Carla en Tienda Lima
+(signo y categoría idénticos a `/movimientos` para las mismas filas), cambia a 16 en
+Taller con el signo invertido en las transferencias, y un cambio real de precio
+(S/99.90 → S/104.90) aparece en la sección "Precio y categoría" al instante. De paso:
+`_dev/` como carpeta de ruta de demo NO funciona (Next.js la excluye del ruteo por
+completo, "private folder") — la demo quedó en `productos/dev/historial/[id]`; si otra
+sesión usó `_dev` para la suya, tiene el mismo 404 silencioso.
+
+## 2026-09-15 (productos: integración final del menú "..." y acciones masivas)
+
+Cierre del bloque (Sesión B2): mergeadas A2+A3+B1 en `feat/productos-acciones-masivas`
+(un solo conflicto trivial, en BITÁCORA). "Ajustar inventario" e "Historial" del menú
+"..." no calzaban como decía la consigna — ninguna era un simple `productoId`:
+la primera también pedía `ubicacionId`/`sububicaciones` (resuelto con
+`persona.ubicacionId`, dato ya disponible), la segunda no era un componente liviano
+sino una página entera con paginado por cursor y selector de sede. Para "Ver historial"
+Felipe eligió copiar el patrón de Compras: `/productos/@modal/(.)[id]/historial`
+(ruta interceptada) + `/productos/[id]/historial` (página real), en vez del camino
+más corto (navegación simple sin overlay). Acciones masivas Activar/Desactivar:
+un solo `UPDATE productos SET estado=... WHERE id IN (...)` desde el cliente —ninguna
+RPC nueva, alcanza con la RLS `productos_write_lider`— pero el trigger de historial de
+A3 solo miraba `categoria_id`/`precio`; se extendió
+(`20260915223000_historial_producto_estado.sql`) para no perder justo el cambio que
+esta sesión agrega. De paso: dos migraciones de otra sesión (anteriores a esta,
+ya en `main`) compartían el mismo timestamp `20260915120000` y rompían
+`supabase db reset` para cualquiera — renombrado el archivo (no el contenido) a
+`...120001`. Verificado con Playwright headless contra datos reales: login,
+ambos modales, recarga directa de `/productos/<id>/historial` sin overlay, "Estado
+Activo → Descontinuado" apareciendo en el historial tras desactivar en bloque, y las
+tres rutas de demo (`dev-ajustar-inventario`, `dev/historial`, `_dev`) ya sin el
+contenido viejo. Borradas `productos/dev-ajustar-inventario/` y `productos/dev/`.

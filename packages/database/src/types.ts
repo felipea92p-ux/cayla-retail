@@ -1389,6 +1389,7 @@ export type Database = {
           estado: string
           id: string
           referencia: string
+          stock_minimo: number | null
         }
         Insert: {
           categoria_id?: string | null
@@ -1398,6 +1399,7 @@ export type Database = {
           estado?: string
           id?: string
           referencia: string
+          stock_minimo?: number | null
         }
         Update: {
           categoria_id?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           estado?: string
           id?: string
           referencia?: string
+          stock_minimo?: number | null
         }
         Relationships: [
           {
@@ -2292,6 +2295,27 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_historial_producto_cambios: {
+        Args: {
+          p_producto_id: string
+        }
+        Returns: {
+          campo: string
+          categoria_anterior_nombre: string
+          categoria_nueva_nombre: string
+          created_at: string
+          entidad: string
+          id: string
+          usuario_id: string
+          usuario_nombre: string
+          valor_anterior: string
+          valor_nuevo: string
+          variante_color: string
+          variante_id: string
+          variante_sku: string
+          variante_talla: string
+        }[]
+      }
       fn_mi_perfil: {
         Args: never
         Returns: {
@@ -2317,6 +2341,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
           p_usuario_id?: string
@@ -2410,6 +2435,61 @@ export type Database = {
           ubicacion_id: string
           ubicacion_nombre: string
           ubicacion_tipo: string
+        }[]
+      }
+      fn_productos: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_color_codigo?: string
+          p_estado?: string
+          p_pagina?: number
+          p_por_pagina?: number
+          p_precio_max?: number
+          p_precio_min?: number
+          p_stock?: string
+        }
+        Returns: {
+          activo: boolean
+          categoria_id: string
+          categoria_nombre: string
+          codigo: string
+          codigos_barras: string[]
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          costo: number
+          estado: string
+          precio: number
+          producto_id: string
+          referencia: string
+          sku: string
+          stock_minimo: number
+          stock_total: number
+          talla: string
+          total_productos: number
+          variante_codigo: string
+          variante_id: string
+        }[]
+      }
+      fn_productos_buscar: {
+        Args: { p_busqueda: string }
+        Returns: string[]
+      }
+      fn_productos_resumen: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_color_codigo?: string
+          p_estado?: string
+          p_precio_max?: number
+          p_precio_min?: number
+        }
+        Returns: {
+          sin_stock: number
+          stock_bajo: number
+          total_productos: number
+          total_variantes: number
         }[]
       }
       fn_proveedores: {

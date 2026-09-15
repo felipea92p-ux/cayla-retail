@@ -75,6 +75,95 @@ export function PaginacionCursor({
   );
 }
 
+/** Los números de página a dibujar: siempre 1 y la última, la actual con un
+ *  vecino a cada lado, y `null` donde hay que cortar con "…". Ej. con 36
+ *  páginas y la 20 activa: 1 … 19 20 21 … 36. */
+function numerosDePagina(total: number, actual: number): (number | null)[] {
+  const nums = new Set([1, total, actual - 1, actual, actual + 1]);
+  const ordenados = [...nums].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  const salida: (number | null)[] = [];
+  for (let i = 0; i < ordenados.length; i++) {
+    if (i > 0 && ordenados[i] - ordenados[i - 1] > 1) salida.push(null);
+    salida.push(ordenados[i]);
+  }
+  return salida;
+}
+
+/** Paginación por número de página — "1 2 3…36". A diferencia de
+ *  `PaginacionCursor`, exige saber el total de antemano (un `count(*)`), así
+ *  que solo se usa donde ese costo es chico: ver la nota de decisión en
+ *  `20260915160000_productos_listado_filtros.sql` (Productos, no Movimientos). */
+export function PaginacionPaginas({
+  pagina,
+  totalPaginas,
+  totalItems,
+  params,
+  pathname,
+  sustantivo,
+}: {
+  pagina: number;
+  totalPaginas: number;
+  totalItems: number;
+  params: Record<string, string | undefined>;
+  pathname: string;
+  sustantivo: [singular: string, plural: string];
+}) {
+  if (totalItems === 0) return null;
+
+  function enlace(p: number) {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v && k !== "pagina") q.set(k, v);
+    if (p > 1) q.set("pagina", String(p));
+    const qs = q.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-tinta/65">
+      <span>
+        {totalItems.toLocaleString("es-PE")} {totalItems === 1 ? sustantivo[0] : sustantivo[1]}
+        {totalPaginas > 1 && ` · página ${pagina} de ${totalPaginas}`}
+      </span>
+      {totalPaginas > 1 && (
+        <nav className="flex items-center gap-1" aria-label="Paginación">
+          <Link
+            href={enlace(Math.max(1, pagina - 1))}
+            aria-disabled={pagina === 1}
+            className={`label-cayla px-1.5 py-1 text-[11px] ${pagina === 1 ? "pointer-events-none text-tinta/30" : "hover:text-rojo"}`}
+          >
+            ‹
+          </Link>
+          {numerosDePagina(totalPaginas, pagina).map((n, i) =>
+            n === null ? (
+              <span key={`gap-${i}`} className="px-1 text-tinta/40">
+                …
+              </span>
+            ) : (
+              <Link
+                key={n}
+                href={enlace(n)}
+                aria-current={n === pagina ? "page" : undefined}
+                className={`label-cayla min-w-[1.5rem] rounded-md px-1.5 py-1 text-center text-[11px] ${
+                  n === pagina ? "bg-tinta text-crema" : "text-tinta/75 hover:text-rojo"
+                }`}
+              >
+                {n}
+              </Link>
+            )
+          )}
+          <Link
+            href={enlace(Math.min(totalPaginas, pagina + 1))}
+            aria-disabled={pagina === totalPaginas}
+            className={`label-cayla px-1.5 py-1 text-[11px] ${pagina === totalPaginas ? "pointer-events-none text-tinta/30" : "hover:text-rojo"}`}
+          >
+            ›
+          </Link>
+        </nav>
+      )}
+    </div>
+  );
+}
+
 /** La paginación de Compras: mismo comportamiento de siempre, sobre `PaginacionCursor`. */
 export function Paginacion({
   mostradas,

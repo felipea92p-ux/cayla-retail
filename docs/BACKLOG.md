@@ -18,6 +18,51 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos: listado y filtros server-side (2026-09-15, Sesión B1)
+
+`/productos` pasó de filtrar/agrupar TODO el catálogo en memoria del cliente a
+filtros en la URL + Postgres (`fn_productos`/`fn_productos_resumen`,
+`20260915160000_productos_listado_filtros.sql`), mismo patrón que Movimientos.
+Paginado por NÚMERO DE PÁGINA (no cursor, decisión de Felipe — el catálogo no
+crece como un ledger) y por PRODUCTO (no por fila de variante). Filtros reales:
+categoría, color, estado, rango de precio, sin stock/stock bajo. Tarjetas de
+resumen (productos, variantes, stock bajo, sin stock) de una sola consulta
+agregada. Tabla con checkboxes de selección y menú "..." por fila (Editar
+enlaza a `/productos/[id]/editar` de la sesión A1, ruta todavía sin
+construir; Ajustar inventario/Ver historial cableados por la Sesión B2 el
+mismo día — ver el ítem de integración final más abajo; Duplicar/Archivar
+siguen como placeholder). Verificado con psql contra datos reales y con
+HTTP real (sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
+
+**Pendiente:**
+
+- [ ] **`20260915160000_productos_listado_filtros.sql` no está en producción.**
+      Aplicada y probada solo en local. Sin `retail.` en el archivo: pegar en
+      el SQL Editor con `set search_path to retail, public;` (CLAUDE.md).
+      Antes de pegar: nada que preverificar, es aditiva (una columna nullable
+      + tres funciones nuevas, ningún `drop`/cambio de firma existente).
+- [ ] **El campo `stock_minimo` no tiene UI todavía.** La columna existe
+      (`retail.productos.stock_minimo`, nullable — sin valor, ese producto
+      nunca entra en "stock bajo") pero el mantenedor de ficha
+      (`ProductoForm.tsx`, sesión A1) no tiene el campo para escribirla. Sin
+      eso, "stock bajo" en /productos queda siempre en 0 salvo que alguien
+      lo cargue por Studio/SQL.
+- [ ] **"Duplicar" y "Archivar" del menú "..." siguen sin RPC ni diseño**
+      (Archivar probablemente sea `productos.estado = 'descontinuado'` —
+      igual que ya hace la acción masiva "Desactivar" de la Sesión B2, pero
+      por fila; Duplicar no tiene diseño — decisión de Felipe antes de
+      construirla).
+
+**Hallazgo de coordinación, no de este módulo:** el Postgres local
+(`supabase_db_cayla-retail`, puerto 54422) lo comparte el checkout principal
+y las 7 sesiones en paralelo de Productos — no hay worktree con su propia
+base. Durante esta sesión el contenedor se reinició al menos dos veces en
+minutos (otra sesión corriendo `supabase db reset`/`stop`/`start`), borrando
+migraciones recién probadas y datos de prueba de otras sesiones sin aviso.
+No es un problema de esta migración — es un riesgo del momento (7 sesiones
+tocando `/productos` a la vez): vale la pena que Felipe decida si conviene
+un Postgres local por sesión mientras dure este tipo de paralelismo.
+
 ## 🎯 POS (Vender + Caja) en V2 — diagnóstico del 2026-09-14
 
 > Sale de reconciliar `docs/datos/modulos/07-ventas-y-caja.md` y `01-INVARIANTES.md`
@@ -137,11 +182,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
       `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
 
-- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
-      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
-      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
-      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
-      prenda (es una decisión operativa por tienda, no un script ciego).
+- [x] **(Cerrado 2026-09-15: `…231015_registrar_venta_piso_con_nota` YA está en producción**
+      — verificado contra la base: una sola `registrar_venta`, cuyo cuerpo llama a
+      `fn_sububicacion_por_defecto`; `fn_stock_por_sede` ya suma por sede; y ya hay
+      sububicaciones creadas. Sigue vigente lo operativo: al activar piso/almacén en una
+      tienda, llevar antes el stock «sin sububicación» al piso con
+      `mover_interno(…, null, piso, …)`, prenda por prenda, no con un script ciego.)
 
 **Pendiente de decisión de Felipe:**
 
@@ -177,14 +223,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
-      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
-      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
-      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
-      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
-      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
-      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+- [x] **(Cerrado 2026-09-15: las tres migraciones de ADR-0048 YA están en producción** —
+      `registrar_venta` acepta `p_codigo_descuento` y `p_nota`, verificado contra la base.
+      Al 2026-09-15 por la tarde **no hay ninguna migración del repo pendiente**: las 22
+      de `supabase/migrations/` están aplicadas, comprobadas por efecto (función/trigger/
+      tabla/constraint presente), no por `schema_migrations`, que no registra lo pegado a
+      mano. Queda: pintar `nota` en «Ventas de hoy».)
 - [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
       en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
       tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
@@ -308,6 +352,41 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
       la búsqueda de prendas.
+
+## 🎯 Historial de Producto en V2 — movimientos por producto + precio/categoría (2026-09-15)
+
+**Cerrado esta sesión (Sesión A3), solo local** —
+`20260915204457_movimientos_por_producto.sql` (`fn_movimientos` gana `p_producto_id`,
+resuelve a las variantes del producto; `p_ubicacion_id` sigue obligatorio) +
+`20260915204541_historial_producto_cambios.sql` (tabla `historial_producto_cambios`,
+trigger en `productos`/`variantes` que la llena solo, `fn_historial_producto_cambios`
+para leerla) + `HistorialProductoPanel.tsx` (standalone, agrupable por fecha o por
+variante). ADR-0051. Ninguna tabla existente cambia de forma; ninguna escritura
+existente cambia de comportamiento. Verificado en Chrome headless contra datos
+reales (ver BITÁCORA 2026-09-15).
+
+**Integrado por la Sesión B2 (mismo día):** `HistorialProductoPanel` ya no vive
+en una ruta de demo — se monta en `/productos/[id]/historial` (página completa)
+y, desde el menú "..." de la lista, como modal con ruta interceptada
+`@modal/(.)[id]/historial` (mismo mecanismo que el detalle de factura de
+Compras). La ruta de demo `productos/dev/historial/[id]` se borró. De paso,
+`20260915223000_historial_producto_estado.sql` extiende el trigger para
+auditar también `estado` (ver la sección de Acciones masivas más abajo) — sin
+eso, activar/desactivar en bloque quedaba fuera del historial.
+
+**Pendiente de Felipe (producción):**
+
+- [ ] **Aplicar las tres migraciones en producción** (las dos de A3 más
+      `20260915223000_historial_producto_estado.sql` de B2, con el prefijo
+      `retail.`, ver CLAUDE.md) y correr `pnpm datos:generar:produccion` +
+      `pnpm datos:comparar` después. Hasta entonces el diccionario de
+      `docs/datos/` no describe `historial_producto_cambios` ni el
+      `p_producto_id` nuevo de `fn_movimientos`.
+- [ ] **`packages/database/src/types.ts` se editó a mano** (el Postgres local es un
+      checkout compartido entre 7 sesiones y no era seguro correr `db reset` para
+      regenerar tipos). Cuando alguien corra `generate_typescript_types` contra una base
+      estable con estas migraciones aplicadas, confirmar que coincide con lo escrito a
+      mano y no queda una edición manual suelta.
 
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
@@ -1510,6 +1589,43 @@ importante que ha entrado a este archivo desde que existe.
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-15 — **`AjustarInventarioModal.tsx`: ajuste manual de stock por
+      variante, con signo** (Sesión A2, `feat/productos-ajustar-inventario`).
+      Reusa `retail.registrar_movimiento` (tipo='ajuste', ya existente desde
+      `20260914230000_inventario_piso_almacen.sql`) — cero vías nuevas de
+      escritura a `stock`. Motivos `reposicion`/`merma`/`conteo_fisico`/`otro`
+      agregados a `ETIQUETA_PROCESO`/`PROCESOS_FILTRO` en `movimientos-reglas.ts`.
+      Valida el stock negativo en pantalla (ADR-0023) antes de llamar a la RPC.
+      Selector Piso de venta/Almacén de tienda cuando la ubicación los separa.
+      Probado en navegador contra Tienda Lima / Blusa Valentina, verificado en
+      `/movimientos`. Conectado al menú real de `/productos` por la Sesión B2
+      el mismo día (ver ítem de integración final abajo).
+
+- [x] 2026-09-15 — **Productos: integración final del bloque (Sesión B2,
+      `feat/productos-acciones-masivas`)** — cierra A2+A3+B1. Menú "..." de
+      cada fila: "Ajustar inventario" abre `AjustarInventarioModal` (modal de
+      `useState`, con `ubicacionId`/`sububicaciones` de la sede del
+      colaborador vía `persona.ubicacionId`); "Ver historial" navega a
+      `/productos/[id]/historial`, que se abre como modal con ruta
+      interceptada (`@modal/(.)[id]/historial`, mismo mecanismo que el
+      detalle de factura de Compras) o como página completa por enlace
+      directo/recarga. Acciones masivas sobre la selección: Activar/
+      Desactivar (solo líder) hacen un solo `UPDATE ... WHERE id IN (...)` de
+      `productos.estado` — sin RPC propia, ya alcanza con la RLS
+      `productos_write_lider`; el trigger de historial se extendió
+      (`20260915223000_historial_producto_estado.sql`) para no perderse esos
+      cambios (el propio comentario de A3 avisaba de este hueco). Borradas
+      las rutas de demo `productos/dev-ajustar-inventario` y
+      `productos/dev/historial/[id]`. De paso: arreglada una colisión de
+      timestamp entre dos migraciones de otra sesión anterior
+      (`20260915120000_produccion_del_taller.sql` /
+      `..._reparar_fk_transferencia_items.sql`, ambas ya en `main`) que
+      rompía `supabase db reset` para cualquiera — se renombró la segunda a
+      `20260915120001` (solo el archivo, sin tocar contenido). Verificado en
+      Chrome headless con Playwright (login real, ambos modales, recarga
+      directa del historial, acción masiva reflejada en el historial, las
+      tres rutas dev ya no sirven el demo).
 
 - [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
