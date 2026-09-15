@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { calcularEstado, type EstadoStock } from "@/lib/inventario-reglas";
+
+// Las páginas (server) importan todo desde acá; los componentes cliente
+// importan SOLO `inventario-reglas.ts`.
+export * from "@/lib/inventario-reglas";
 
 // Stock por ubicación para la pantalla de Inventario. `retail.stock` es un
 // snapshot derivado de `movimientos` (nunca se edita a mano) — acá solo se
@@ -9,13 +14,14 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 // venta y almacén de tienda (las 2 tiendas) — Taller sigue con una sola
 // fila por variante (`sububicacion_id` null), y `piso`/`almacen`/`estado`
 // quedan en `null` para esa ubicación: "no aplica" nunca se disfraza de 0.
-export type EstadoStock = "normal" | "reponer_piso" | "sin_stock";
-
 export type FilaStock = {
   varianteId: string;
   sku: string;
   talla: string | null;
   color: string | null;
+  /** `#rrggbb` de `colores.hex`; null en los colores que no son un color
+   *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
+  colorHex: string | null;
   referencia: string;
   categoria: string | null;
   codigosBarras: string[];
@@ -33,12 +39,6 @@ export type ResumenInventario = {
   separaPisoAlmacen: boolean;
 };
 
-function calcularEstado(piso: number, almacen: number): EstadoStock {
-  if (piso > 0) return "normal";
-  if (almacen > 0) return "reponer_piso";
-  return "sin_stock";
-}
-
 export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaStock[]> {
   const supabase = await createClient();
   const filas = exigir(
@@ -49,7 +49,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
          sububicacion:sububicaciones ( tipo ),
          variante:variantes (
            sku, talla,
-           color:colores ( nombre ),
+           color:colores ( nombre, hex ),
            producto:productos ( referencia, categoria:categorias ( nombre ) ),
            codigos_barras ( codigo )
          )`
@@ -80,6 +80,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         sku: f.variante?.sku ?? "",
         talla: f.variante?.talla ?? null,
         color: f.variante?.color?.nombre ?? null,
+        colorHex: f.variante?.color?.hex ?? null,
         referencia: f.variante?.producto?.referencia ?? "",
         categoria: f.variante?.producto?.categoria?.nombre ?? null,
         codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),

@@ -1,4 +1,4 @@
-# ADR-0050 — Producción del Taller vuelve sobre V2: el Taller es un tipo de ubicación propio y la migración se reconstruyó desde la base local
+# ADR-0052 — Producción del Taller vuelve sobre V2: el Taller es un tipo de ubicación propio y la migración se reconstruyó desde la base local
 
 **Fecha:** 2026-09-15
 **Estado:** Aplicado en local y **en producción** (verificado contra la base el
