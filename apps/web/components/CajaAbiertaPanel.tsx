@@ -60,7 +60,10 @@ export function CajaAbiertaPanel({
                   {new Date(m.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span className="label-cayla w-16 shrink-0 text-[11px] text-tinta/65">{m.tipo}</span>
-                <span className="min-w-0 flex-1 text-sm text-tinta">{m.motivo}</span>
+                <span className="min-w-0 flex-1 text-sm text-tinta">
+                  {m.motivo}
+                  {m.nota && <span className="block text-xs text-tinta/55">{m.nota}</span>}
+                </span>
                 <span className={`shrink-0 text-sm tabular-nums ${m.tipo === "egreso" ? "text-rojo" : "text-tinta"}`}>
                   {m.tipo === "egreso" ? "−" : "+"}
                   {money(m.monto)}
