@@ -2,9 +2,9 @@
 
 **Fecha:** 2026-09-15
 **Estado:** Aplicado en local (`diegoN`). **NO en producción** — la migración
-`20260915120000_produccion_del_taller.sql` la pega Felipe (D-11); `pnpm datos:comparar`
+`20260915130000_produccion_del_taller.sql` la pega Felipe (D-11); `pnpm datos:comparar`
 lo avisa hasta entonces.
-**Afecta:** `supabase/migrations/20260915120000_produccion_del_taller.sql` (nueva),
+**Afecta:** `supabase/migrations/20260915130000_produccion_del_taller.sql` (nueva),
 `supabase/seed.sql` (Taller nace `taller`), `apps/web/lib/produccion.ts` + `produccion-reglas.ts`
 (nuevos), `app/(app)/produccion/page.tsx`, `components/OrdenesProduccionV2.tsx` +
 `NuevaOrdenProduccionForm.tsx` (nuevos), `lib/persona-actual.ts` y `lib/ubicaciones.ts`
@@ -18,7 +18,7 @@ ellos 8 migraciones (`0018`…`0031`) y tres componentes (`OrdenesProduccion.tsx
 `RecibirLoteForm.tsx`, `lib/taller.ts`). Felipe pidió restaurarla el 2026-09-15.
 
 Al auditar el repo apareció algo que no estaba en ningún documento: el Postgres local ya
-tenía aplicada una migración `20260915120000 produccion_del_taller` —V2-nativa, con
+tenía aplicada una migración `20260915120000 produccion_del_taller` (renombrada a `20260915130000` el mismo día por un choque de timestamp con otra migración, ver el encabezado del archivo) —V2-nativa, con
 `ubicacion_id`, `fn_aplicar_movimiento`, token de idempotencia, comentarios en el estilo
 del repo— **pero el archivo `.sql` no existía en ningún branch, worktree, stash ni objeto
 suelto de git**. Alguien (una sesión anterior de hoy) la escribió, la aplicó y el archivo
