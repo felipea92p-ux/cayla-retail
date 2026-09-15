@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { ProductosNav } from "@/components/ProductosNav";
@@ -16,14 +17,21 @@ import { ProductosAgrupados } from "@/components/ProductosAgrupados";
 // variantes — sin traer con él el stock que V1 mostraba ahí: en V2 eso es
 // `/inventario`, a propósito separado de "qué existe".
 export default async function ProductosPage() {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
   const catalogo = await getCatalogo();
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
+        </div>
+        {persona.rol === "lider" && (
+          <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+            + Nuevo producto
+          </Link>
+        )}
       </div>
 
       <ProductosNav />

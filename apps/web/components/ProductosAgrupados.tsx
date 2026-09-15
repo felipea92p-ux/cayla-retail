@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { VarianteCatalogo } from "@/lib/catalogo-v2";
 
@@ -105,28 +106,33 @@ export function ProductosAgrupados({ catalogo }: { catalogo: VarianteCatalogo[] 
             const abierto = abiertos.has(p.productoId);
             return (
               <div key={p.productoId} className="card-cayla overflow-hidden">
-                <button
-                  onClick={() => toggle(p.productoId)}
-                  className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-sand/30"
-                  aria-expanded={abierto}
-                >
-                  <span className="flex-1 text-sm text-tinta">{p.referencia}</span>
-                  <span className="text-xs text-tinta/65">{p.categoria ?? "—"}</span>
-                  <span className="label-cayla text-[11px] text-tinta/55">
-                    {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
-                  </span>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`h-4 w-4 shrink-0 text-tinta/50 transition-transform ${abierto ? "rotate-180" : ""}`}
+                <div className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-sand/30">
+                  <button
+                    onClick={() => toggle(p.productoId)}
+                    className="flex flex-1 items-center gap-4 text-left"
+                    aria-expanded={abierto}
                   >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
+                    <span className="flex-1 text-sm text-tinta">{p.referencia}</span>
+                    <span className="text-xs text-tinta/65">{p.categoria ?? "—"}</span>
+                    <span className="label-cayla text-[11px] text-tinta/55">
+                      {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
+                    </span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`h-4 w-4 shrink-0 text-tinta/50 transition-transform ${abierto ? "rotate-180" : ""}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  <Link href={`/productos/${p.productoId}/editar`} className="label-cayla shrink-0 text-[11px] text-tinta/65 hover:text-rojo">
+                    Editar
+                  </Link>
+                </div>
                 {abierto && (
                   <div className="border-t border-tinta/10 overflow-x-auto">
                     <table className="w-full text-sm">
