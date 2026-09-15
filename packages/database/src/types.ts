@@ -330,6 +330,47 @@ export type Database = {
         }
         Relationships: []
       }
+      codigos_descuento: {
+        Row: {
+          activo: boolean
+          codigo: string
+          creado_por: string | null
+          created_at: string
+          porcentaje: number
+          ubicacion_id: string | null
+          vigente_desde: string | null
+          vigente_hasta: string | null
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          creado_por?: string | null
+          created_at?: string
+          porcentaje: number
+          ubicacion_id?: string | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          creado_por?: string | null
+          created_at?: string
+          porcentaje?: number
+          ubicacion_id?: string | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codigos_descuento_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaboradores: {
         Row: {
           agregado_por: string | null
@@ -1743,6 +1784,7 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           id: string
+          nota: string | null
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
@@ -1752,6 +1794,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           id?: string
+          nota?: string | null
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
@@ -1761,6 +1804,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           id?: string
+          nota?: string | null
           token_cliente?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
@@ -2147,6 +2191,14 @@ export type Database = {
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      fn_stock_por_sede: {
+        Args: never
+        Returns: {
+          cantidad: number
+          ubicacion_id: string
+          variante_id: string
+        }[]
+      }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
@@ -2165,11 +2217,11 @@ export type Database = {
           hora: string
           items: Json
           metodos_pago: string
+          nota: string
           total: number
           ubicacion_nombre: string
           vendedor: string
           venta_id: string
-          nota: string | null
         }[]
       }
       listar_compras: {
