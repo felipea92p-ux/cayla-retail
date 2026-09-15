@@ -36,11 +36,16 @@ export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): To
   return "neutro";
 }
 
-/** El proceso que originó el movimiento (`movimientos.motivo`). Los siete de
+/** El proceso que originó el movimiento (`movimientos.motivo`). Los de
  *  operación los escriben las RPC; los de «sistema» son cargas hechas por
  *  script, sin persona (`usuario_id` null): existen en producción y se
- *  muestran con nombre propio, no se inventan. Un motivo que no esté acá se
- *  muestra tal cual — nunca rompe la pantalla. */
+ *  muestran con nombre propio, no se inventan. `reposicion`/`merma`/
+ *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` — un ajuste
+ *  suelto vía `registrar_movimiento`, tipo='ajuste' — y se distinguen a
+ *  propósito de `conteo` (ADR-0023): ese lo escribe SOLO `cerrar_conteo`, con
+ *  `conteo_item_id` enlazado al conteo formal; `conteo_fisico` es el mismo
+ *  gesto (contar y corregir) pero sin abrir un conteo de verdad. Un motivo
+ *  que no esté acá se muestra tal cual — nunca rompe la pantalla. */
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
   venta: "Venta",
@@ -49,6 +54,10 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   devolucion: "Devolución",
   cambio: "Cambio",
   conteo: "Ajuste por conteo",
+  reposicion: "Reposición",
+  merma: "Merma",
+  conteo_fisico: "Conteo físico (manual)",
+  otro: "Otro ajuste",
   carga_inicial: "Carga inicial",
   activacion_piso_almacen: "Activación piso/almacén",
   siembra_cargo_especial: "Cargo especial",
@@ -63,6 +72,10 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "devolucion",
   "cambio",
   "conteo",
+  "reposicion",
+  "merma",
+  "conteo_fisico",
+  "otro",
   "carga_inicial",
   "activacion_piso_almacen",
 ].map((valor) => ({ valor, etiqueta: ETIQUETA_PROCESO[valor] }));

@@ -125,6 +125,25 @@ coinciden; guardarlo como quinto tipo obligaría al motor de stock a aprender un
 para un hecho que ya sabe. Y un centinela que vive en el ledger no se borra: se excluye al
 leer, por su id, en todos los lugares que cuentan unidades.
 
+## 2026-09-15 (Ajustar inventario: un modal, ninguna vía de escritura nueva)
+
+Sesión A2, en paralelo a otras seis sobre Productos. `AjustarInventarioModal.tsx` no
+inventa cómo escribir stock: reusa `retail.registrar_movimiento` (tipo='ajuste'), la misma
+RPC que ya existía desde `20260914230000_inventario_piso_almacen.sql` — la guarda de
+negativos (ADR-0023) sigue viviendo solo en `fn_aplicar_movimiento`. Motivos nuevos
+(`reposicion`/`merma`/`conteo_fisico`/`otro`) sumados a `ETIQUETA_PROCESO` en
+`movimientos-reglas.ts`, deliberadamente distintos de `conteo` — ese lo escribe solo
+`cerrar_conteo`, con `conteo_item_id` enlazado al conteo formal. La pantalla valida el
+negativo con el stock ya cargado (sin viaje a la base) y la RPC queda como red real; probado
+en Chrome headless con Tienda Lima (separa piso/almacén): 6 variantes de Blusa Valentina
+cargadas, un `-2` sobre stock 0 bloqueado en pantalla sin llamar a la RPC, dos ajustes
+positivos confirmados y visibles en `/movimientos` como AJUSTE · Conteo físico (manual).
+Como la ficha de producto real no existe aún (la arma la Sesión A1), quedó una ruta demo en
+`/productos/dev-ajustar-inventario` — nació como `_dev/` según el enunciado, pero Next.js
+excluye del ruteo cualquier carpeta con prefijo `_` (404 real, no hipotético); se renombró
+sin el guion bajo. **TODO(B2):** borrar esa ruta al conectar el modal al menú de acciones
+de la lista real.
+
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 
 Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el
