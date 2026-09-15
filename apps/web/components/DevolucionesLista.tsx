@@ -10,6 +10,15 @@ import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devolu
 
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
 
+// Mismo patrón que ComprobantesPanel/ProformasPanel: la integrante necesita saber
+// CUÁNDO se vendió para reconocer la línea de la clienta que tiene enfrente —
+// `creadoEn` ya viajaba en `LineaVentaParaDevolucion` y no se pintaba.
+function formatearFecha(iso: string) {
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
+
 const ETIQUETA_CONDICION: Record<string, string> = {
   vendible: "Vendible",
   danada_reparacion: "Dañada · reparar",
@@ -60,6 +69,7 @@ export function DevolucionesLista({
                     {l.sku} · vendida × {l.cantidad}
                     {l.yaDevuelto > 0 && ` · ya devuelta × ${l.yaDevuelto}`}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
                 </div>
                 <button
                   type="button"

@@ -19,7 +19,12 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
   const [motivoLibre, setMotivoLibre] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const motivo = motivoRapido === "Otro" ? motivoLibre : motivoRapido;
+  // Mismo criterio que decide qué campo se muestra (abajo): un ingreso siempre
+  // se explica a mano, un egreso usa el atajo salvo que sea "Otro". Antes esta
+  // condición solo miraba `motivoRapido === "Otro"`, así que un ingreso se
+  // guardaba con el motivo del <select> de egresos ("Retiro de efectivo") aunque
+  // la colaboradora hubiera escrito otra cosa en el campo libre que sí veía.
+  const motivo = tipo === "ingreso" || motivoRapido === "Otro" ? motivoLibre : motivoRapido;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,7 +79,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
             id="mov-monto"
             type="number"
             min={0.01}
-            step="0.10"
+            step="0.01"
             required
             value={monto}
             onChange={(e) => setMonto(e.target.value)}

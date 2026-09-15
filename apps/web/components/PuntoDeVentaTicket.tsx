@@ -148,6 +148,9 @@ type Props = {
   // Cobrar
   loading: boolean;
   onCobrar: (e: React.FormEvent) => void;
+  /** Apilado (celular/tablet, bajo `lg`) el ticket queda debajo de todo el catálogo —
+   *  la barra-resumen fija del padre lo usa para saltar acá con `scrollIntoView`. */
+  id?: string;
 };
 
 /**
@@ -163,6 +166,7 @@ type Props = {
  * ticket sin tocar el catálogo (y viceversa).
  */
 export function PuntoDeVentaTicket({
+  id,
   bloqueado,
   carrito,
   listaRef,
@@ -313,7 +317,20 @@ export function PuntoDeVentaTicket({
         )}
       </div>
 
-      <form onSubmit={onCobrar} className="flex min-h-0 flex-1 flex-col">
+      <form
+        id={id}
+        onSubmit={onCobrar}
+        // La pistola es un teclado: si el foco quedó en un campo de este formulario
+        // (Recibido, el % de descuento, una cantidad de línea) y alguien escanea por
+        // costumbre, los dígitos caen ahí y el Enter final del código dispara el submit
+        // nativo del <input> — cobra o corrompe el monto sin que nadie tocara «Cobrar».
+        // `cobrar()` ya revalida `motivoBloqueoCobro`, así que una venta a medias no pasa,
+        // pero una ya completa sí se confirmaría de golpe. Enter solo cobra desde el botón.
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
+        }}
+        className="flex min-h-0 flex-1 flex-col"
+      >
         <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
           {enLaEspera ? (
             <div className="anim-revelar space-y-3 px-5 py-4">

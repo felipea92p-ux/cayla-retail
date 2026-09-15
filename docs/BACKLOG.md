@@ -24,6 +24,52 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > candados por línea en `venta_items`/`venta_pagos`, el bug del `NULL` en el candado
 > de sede, la caja sin policy de UPDATE) NO se repite acá: esto es lo que queda.
 
+**Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
+uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
+
+- [x] **`MovimientoCajaModal.tsx` guardaba un ingreso con el motivo del `<select>` de
+      egresos** («Retiro de efectivo») aunque la colaboradora escribiera otro en el
+      campo libre que sí veía — el `motivo` calculado nunca miraba `tipo === "ingreso"`.
+      De paso, `step="0.10"` + `min={0.01}` rechazaba montos redondos («35») por
+      validación nativa del navegador; ahora `step="0.01"`.
+- [x] **La pistola con el foco en el cobro podía confirmar la venta sola.** El
+      `<form>` del ticket (momento «cobrar») no tenía guarda contra el submit nativo
+      de un `<input>` al recibir Enter — bypasseaba el botón «Cobrar» sin que nadie lo
+      tocara (`cobrar()` revalida `motivoBloqueoCobro`, así que no colaba una venta a
+      medias, pero sí una ya completa). `PuntoDeVentaTicket.tsx` ganó un `onKeyDown`
+      que bloquea Enter salvo que venga del botón.
+- [x] **Cambios y Devoluciones no mostraban cuándo se vendió la prenda** —`creadoEn`
+      ya viajaba desde `ventas-v2.ts`/`devoluciones.ts` y no se pintaba. Agregado con
+      el mismo patrón (`Intl.DateTimeFormat` es-PE) de `ComprobantesPanel`/`ProformasPanel`.
+- [x] **`/cambios` y `/devoluciones` no estaban en ningún menú** — solo vivían en la
+      cabecera de Vender, oculta en celular. Agregadas al lateral de escritorio (íconos
+      propios, distintos del de Movimientos) y «Registrar cambio» al menú «+ Nuevo»
+      (paridad con «Registrar devolución», que ya estaba ahí y sí llega a celular).
+- [x] **`CambioFormV2.tsx` elegía la prenda nueva en un `<select>` con TODO el
+      catálogo activo, sin stock ni búsqueda** (48+ opciones sin agrupar). Reemplazado
+      por `ComboBuscable` (el mismo componente que Compras ya usa para «elegir 1 de
+      muchos tipeando») con stock por opción — `cambios/page.tsx` ahora trae
+      `getStockPorUbicacion` igual que `vender/page.tsx`, y ya no se ofrece una talla
+      sin stock aquí. Sin preselección (mismo criterio que el método de pago del POS,
+      ADR-0044): la «Diferencia» y el método de pago solo aparecen con una prenda
+      elegida.
+- [x] **Vender a 375px: el ticket quedaba debajo de TODO el catálogo.** Apilado
+      (bajo `lg`, decisión a propósito — «dos scrolls internos serían peores que uno
+      solo») no había forma de ver el total o llegar a «Cobrar» sin pasar antes por
+      cada producto de la grilla. Agregada una barra fija (`lg:hidden`, mismo offset
+      que la de `RecepcionCompraFormV2.tsx` para despejar las pestañas del celular)
+      con «N prenda(s) · total · Ver ticket ↓» que salta directo al ticket — visible
+      solo con el carrito no vacío y la caja abierta.
+
+Verificado: `npx tsc --noEmit`, `eslint` y `vitest` (184/184) en verde; cada ítem
+probado en navegador contra la base local (venta/cambio/ingreso reales, confirmados
+también por consulta directa a Postgres donde aplicaba). **Solo en local — falta
+pushear.** Quedan del mismo diagnóstico, para una tanda aparte: el resto de defectos
+de movimiento/consistencia de animación (modales que cierran en seco, reflujo del
+Flip al quitar una línea, cifras sin asentar) y las pantallas más grandes (historial
+de cierres de caja, anular una venta, ficha de clienta) — ver la sección de abajo,
+que sigue vigente.
+
 **Cerrado el 2026-09-14 en esta sesión:**
 
 - [x] **`movimientos` es inmutable de verdad** — ADR-0042,

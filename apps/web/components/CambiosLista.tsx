@@ -4,7 +4,24 @@ import { useState } from "react";
 import { CambioFormV2 } from "@/components/CambioFormV2";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 
-type VarianteCatalogo = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; precio: number };
+type VarianteCatalogo = {
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  precio: number;
+  stockAqui: number;
+};
+
+// Mismo patrón que ComprobantesPanel/ProformasPanel: la integrante necesita saber
+// CUÁNDO se vendió para reconocer la línea de la clienta que tiene enfrente —
+// `creadoEn` ya viajaba en `LineaVentaReciente` y no se pintaba.
+function formatearFecha(iso: string) {
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
 
 export function CambiosLista({
   lineas,
@@ -31,6 +48,7 @@ export function CambiosLista({
                 {l.sku} · comprada × {l.cantidad}
                 {l.yaCambiado > 0 && ` · ya cambiada × ${l.yaCambiado}`}
               </p>
+              <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
             </div>
             <button
               type="button"

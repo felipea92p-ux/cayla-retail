@@ -3,6 +3,37 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (diagnóstico de Venta y Caja + Tanda 1: seis arreglos verificados en navegador)
+
+Felipe pidió analizar el módulo de Venta y Caja completo (Vender/Caja/Cambios/
+Devoluciones/Facturación) para ver qué pantallas faltan y mejorar la animación. El
+análisis salió de un workflow de lectores + lentes + verificación adversarial que se
+cortó por el límite semanal a medio verificar (98 hallazgos brutos, 150/310 agentes) —
+se retomó con `resumeFromRunId` pero volvió a cortarse; los hallazgos ya recolectados
+(cacheados en el journal) alcanzaron igual para armar el diagnóstico y ordenarlo en
+tandas. Se implementó la Tanda 1 (defectos chicos, sin tocar modelo de datos): el bug
+de `MovimientoCajaModal` (un ingreso se guardaba con motivo de egreso — `motivo` nunca
+miraba `tipo === "ingreso"`, más `step="0.10"` que rechazaba montos redondos); la
+pistola podía confirmar el cobro sola con un Enter perdido en un campo del formulario
+(guardado con un `onKeyDown` en el `<form>` del ticket); fecha visible en Cambios y
+Devoluciones (`creadoEn` ya viajaba, no se pintaba); `/cambios` y `/devoluciones` al
+lateral y al menú «+ Nuevo»; el `<select>` de todo el catálogo en `CambioFormV2`
+reemplazado por `ComboBuscable` con stock por sede (mismo componente que ya usa
+Compras); y una barra fija en Vender a menos de `lg` que salta directo al ticket —
+antes había que scrollear TODO el catálogo para llegar a «Cobrar». Cada uno se probó
+en navegador contra la base local (algunos también por consulta directa a Postgres).
+`tsc`, `eslint` y `vitest` (184/184) en verde. **Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **un workflow que se corta por límite no pierde lo ya hecho** —
+`resumeFromRunId` retoma desde el último agente cacheado, y cuando ni el segundo
+intento alcanza a terminar la fase de síntesis, los hallazgos brutos del journal
+igual sirven (verificados a mano según se iban implementando, no en bloque al final).
+Y un patrón que se repitió tres veces en la Tanda 1: un valor que nace con un default
+que nadie eligió (el motivo del `<select>`, la primera opción del catálogo
+preseleccionada) es la misma familia de bug que el método de pago sin preselección
+que ya se había decidido en el POS (ADR-0044) — el criterio, una vez encontrado, se
+repite solo.
+
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 
 Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el

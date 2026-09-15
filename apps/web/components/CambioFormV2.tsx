@@ -6,9 +6,18 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 
-type VarianteCatalogo = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; precio: number };
+type VarianteCatalogo = {
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  precio: number;
+  stockAqui: number;
+};
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
 
 function money(n: number) {
@@ -28,8 +37,21 @@ export function CambioFormV2({
 }) {
   const router = useRouter();
   const disponible = linea.cantidad - linea.yaCambiado;
-  const opciones = catalogo.filter((v) => v.varianteId !== catalogo.find((c) => c.sku === linea.sku)?.varianteId);
-  const [varianteNuevaId, setVarianteNuevaId] = useState(opciones[0]?.varianteId ?? "");
+  // Ni la variante que se vendió (cambiarla "por sí misma" no tiene sentido) ni una sin
+  // stock aquí — no se ofrece lo que registrar_cambio() va a rechazar por falta de stock,
+  // mismo criterio que el POS y "Mover mercadería" (2026-09-14).
+  const opciones = catalogo.filter(
+    (v) => v.varianteId !== catalogo.find((c) => c.sku === linea.sku)?.varianteId && v.stockAqui > 0
+  );
+  const opcionesCombo: OpcionCombo<string>[] = opciones.map((v) => ({
+    valor: v.varianteId,
+    texto: `${v.referencia} ${[v.talla, v.color].filter(Boolean).join("/")}`,
+    detalle: `${v.sku} · S/${v.precio.toFixed(2)} · ${v.stockAqui} en sede`,
+  }));
+  // Sin preselección (mismo criterio que el método de pago del POS, ADR-0044): el primer
+  // resultado del catálogo no es una elección de nadie, y antes eso era exactamente lo que
+  // salía por defecto del <select> viejo.
+  const [varianteNuevaId, setVarianteNuevaId] = useState("");
   const [cantidad, setCantidad] = useState(Math.min(1, disponible));
   const [metodoDiferencia, setMetodoDiferencia] = useState<(typeof METODOS)[number]>("efectivo");
   const [loading, setLoading] = useState(false);
@@ -45,6 +67,10 @@ export function CambioFormV2({
     e.preventDefault();
     if (disponible <= 0) {
       avisar.error("Ya se cambió toda la cantidad comprada en esta línea.", { enfocar: "cambio-cantidad" });
+      return;
+    }
+    if (!varianteNuevaId) {
+      avisar.error("Elige qué prenda se le entrega en su lugar.", { enfocar: "cambio-variante" });
       return;
     }
     setLoading(true);
@@ -98,18 +124,18 @@ export function CambioFormV2({
               <label className={campoEtiqueta} htmlFor="cambio-variante">
                 Entregar en su lugar
               </label>
-              <select
-                id="cambio-variante"
-                value={varianteNuevaId}
-                onChange={(e) => setVarianteNuevaId(e.target.value)}
-                className={campoSelect}
-              >
-                {opciones.map((v) => (
-                  <option key={v.varianteId} value={v.varianteId}>
-                    {v.referencia} · {v.sku} {[v.talla, v.color].filter(Boolean).join("/")} — S/{v.precio.toFixed(2)}
-                  </option>
-                ))}
-              </select>
+              {opciones.length === 0 ? (
+                <p className="text-sm text-tinta/65">No hay otra talla o color con stock en esta sede para ofrecer.</p>
+              ) : (
+                <ComboBuscable
+                  id="cambio-variante"
+                  etiquetaAccesible="Entregar en su lugar"
+                  marcador="Busca por prenda, talla o color…"
+                  valor={varianteNuevaId}
+                  onValor={setVarianteNuevaId}
+                  opciones={opcionesCombo}
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -127,17 +153,22 @@ export function CambioFormV2({
               />
             </div>
 
-            <div className="card-cayla p-4 text-center">
-              <p className="label-cayla text-[11px] text-tinta/65">Diferencia</p>
-              <p className={`font-display text-2xl ${diferencia === 0 ? "text-tinta" : diferencia > 0 ? "text-rojo" : "text-verde-profundo"}`}>
-                {money(diferencia)}
-              </p>
-              <p className="mt-1 text-xs text-tinta/65">
-                {diferencia === 0 ? "Sin diferencia de precio" : diferencia > 0 ? "Se cobra a la clienta" : "Se devuelve a la clienta"}
-              </p>
-            </div>
+            {/* Antes de elegir la prenda nueva, "Diferencia S/0.00" no es un dato —
+                es el mismo hueco que ADR-0044 ya cerró en el cobro del POS: no se
+                muestra una decisión de pago hasta que hay algo real que decidir. */}
+            {varianteNuevaId && (
+              <div className="card-cayla p-4 text-center">
+                <p className="label-cayla text-[11px] text-tinta/65">Diferencia</p>
+                <p className={`font-display text-2xl ${diferencia === 0 ? "text-tinta" : diferencia > 0 ? "text-rojo" : "text-verde-profundo"}`}>
+                  {money(diferencia)}
+                </p>
+                <p className="mt-1 text-xs text-tinta/65">
+                  {diferencia === 0 ? "Sin diferencia de precio" : diferencia > 0 ? "Se cobra a la clienta" : "Se devuelve a la clienta"}
+                </p>
+              </div>
+            )}
 
-            {diferencia !== 0 && (
+            {varianteNuevaId && diferencia !== 0 && (
               <div className="space-y-1.5">
                 <label className={campoEtiqueta} htmlFor="cambio-metodo">
                   Cómo se {diferencia > 0 ? "cobra" : "devuelve"}
@@ -164,7 +195,7 @@ export function CambioFormV2({
           <button type="button" onClick={onClose} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={loading || disponible <= 0} className={botonPrimario}>
+          <button type="submit" disabled={loading || disponible <= 0 || !varianteNuevaId} className={botonPrimario}>
             {loading ? "Guardando…" : "Confirmar cambio"}
           </button>
         </div>

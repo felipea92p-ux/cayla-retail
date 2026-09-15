@@ -629,6 +629,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         />
 
         <PuntoDeVentaTicket
+          id="ticket-pos"
           bloqueado={bloqueado}
           carrito={carrito}
           listaRef={listaTicket}
@@ -672,6 +673,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           motivoBloqueo={motivoBloqueo}
         />
       </div>
+
+      {/* Apilado (bajo `lg`) el ticket queda debajo de TODO el catálogo — con el
+          catálogo real (300-900 SKUs) son muchas pantallas de scroll antes de ver el
+          total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
+          siempre a la vista en su columna fija. Mismo offset que la barra de
+          "Recibir mercadería" (`RecepcionCompraFormV2.tsx`) para despejar la barra de
+          pestañas del celular; en tablet (`sm:`) el lateral reemplaza esa barra. */}
+      {!bloqueado && carrito.length > 0 && (
+        <button
+          type="button"
+          onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral lg:hidden"
+        >
+          <span className="label-cayla text-[11px]">
+            {prendas} {prendas === 1 ? "prenda" : "prendas"} · {money(total)}
+          </span>
+          <span className="label-cayla flex items-center gap-1 text-[11px]">
+            Ver ticket
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+            </svg>
+          </span>
+        </button>
+      )}
 
       {manualAbierto && (
         <Modal
