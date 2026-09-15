@@ -9,6 +9,7 @@ import { Boton, Campo, CampoTexto, Interruptor, Segmentado } from "@/components/
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { ProductoDetalle } from "@/lib/catalogo-v2";
+import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
 /* ====================================================================
    ProductoForm · alta y edición de producto+variantes (V2, 2026-09-15)
@@ -53,7 +54,7 @@ type FilaVariante = {
 const NUMERO =
   "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
-const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_4rem_2.5rem]";
+const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_3.5rem_4rem_2.5rem]";
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
@@ -88,6 +89,16 @@ function sugerirSku(referencia: string, colorCodigo: string, talla: string): str
   return [tokenReferencia(referencia), tokenTalla(talla), colorCodigo || null].filter(Boolean).join("-");
 }
 
+/** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
+ *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
+ *  para lo que sale de dos que ya existen). */
+function margenPorcentaje(precio: string, costo: string): number | null {
+  const p = Number(precio);
+  const c = costo === "" ? 0 : Number(costo);
+  if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(c)) return null;
+  return ((p - c) / p) * 100;
+}
+
 function filaVacia(referencia: string): FilaVariante {
   return { id: null, colorCodigo: "", talla: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true };
 }
@@ -110,6 +121,11 @@ export function ProductoForm({
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
+  const [temporada, setTemporada] = useState(producto?.temporada ?? "");
+  const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
+  const [fotos, setFotos] = useState<FotoLocal[]>(
+    () => producto?.fotos.map((f) => ({ clientKey: f.id ?? `${f.url}-${Math.random()}`, id: f.id, url: f.url, esPrincipal: f.esPrincipal })) ?? []
+  );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
     if (!producto) return [filaVacia("")];
     return [...producto.variantes]
@@ -187,6 +203,12 @@ export function ProductoForm({
       activo: v.activo,
     }));
 
+    const payloadFotos = fotos.map((f) => ({
+      ...(f.id ? { id: f.id } : {}),
+      url: f.url,
+      es_principal: f.esPrincipal,
+    }));
+
     const supabase = createClient();
     const { error } = editando
       ? await supabase.rpc("catalogo_actualizar_producto", {
@@ -194,16 +216,22 @@ export function ProductoForm({
           p_referencia: referencia.trim(),
           p_estado: estado,
           p_variantes: payloadVariantes,
+          p_permitir_venta_sin_stock: permitirVentaSinStock,
+          p_fotos: payloadFotos,
           ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
+          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
         })
       : await supabase.rpc("catalogo_crear_producto", {
           p_referencia: referencia.trim(),
           p_variantes: payloadVariantes,
+          p_permitir_venta_sin_stock: permitirVentaSinStock,
+          p_fotos: payloadFotos,
           ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
+          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
         });
 
     cerrarProceso();
@@ -255,15 +283,35 @@ export function ProductoForm({
               placeholder="Ej. 5"
               pie="Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."
             />
+            <CampoTexto
+              etiqueta="Temporada (opcional)"
+              id="producto-temporada"
+              value={temporada}
+              onChange={(e) => setTemporada(e.target.value)}
+              placeholder="Verano 26"
+            />
+            <div className="flex items-end pb-2">
+              <Interruptor
+                activo={permitirVentaSinStock}
+                onActivo={setPermitirVentaSinStock}
+                etiqueta="Permitir venta sin stock"
+                pie="Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."
+              />
+            </div>
           </div>
+        </section>
+
+        {/* ---------- fotos ---------- */}
+        <section className="card-cayla p-5">
+          <FotosProducto fotos={fotos} onFotos={setFotos} disabled={loading} />
         </section>
 
         {/* ---------- variantes ---------- */}
         <section className="card-cayla space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
           <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
-            {["Color", "Talla", "SKU", "Precio", "Costo", "Activa", ""].map((t, i) => (
-              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 4 ? "text-right" : ""}`}>
+            {["Color", "Talla", "SKU", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
+              <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
                 {t}
               </span>
             ))}
@@ -312,6 +360,12 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { costo: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
+              <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
+                {(() => {
+                  const m = margenPorcentaje(v.precio, v.costo);
+                  return m === null ? "—" : `${m.toFixed(0)}%`;
+                })()}
+              </span>
               <span className="flex justify-center py-2">
                 {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
               </span>

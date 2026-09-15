@@ -244,6 +244,14 @@ export type VarianteDetalle = {
   codigosBarras: string[];
 };
 
+/** Una foto de la galería del producto (20260915224500). `id` ausente =
+ *  recién subida en esta sesión de edición, todavía no tiene fila. */
+export type FotoProducto = {
+  id: string | null;
+  url: string;
+  esPrincipal: boolean;
+};
+
 export type ProductoDetalle = {
   id: string;
   categoriaId: string | null;
@@ -253,6 +261,12 @@ export type ProductoDetalle = {
   codigo: string | null;
   /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
   stockMinimo: number | null;
+  /** Texto libre ("Verano 26"). Null = sin temporada (20260915224500). */
+  temporada: string | null;
+  /** Si es true, el producto puede venderse aunque el stock marque 0 (20260915224500). */
+  permitirVentaSinStock: boolean;
+  /** Ya en el orden de la galería (`orden` ascendente). */
+  fotos: FotoProducto[];
   variantes: VarianteDetalle[];
 };
 
@@ -262,10 +276,11 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   const { data, error } = await supabase
     .from("productos")
     .select(
-      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo,
+      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
        variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
-         codigos_barras ( codigo ) )`
+         codigos_barras ( codigo ) ),
+       producto_fotos ( id, url, orden, es_principal )`
     )
     .eq("id", id)
     .maybeSingle();
@@ -281,6 +296,11 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     estado: data.estado as ProductoDetalle["estado"],
     codigo: data.codigo,
     stockMinimo: data.stock_minimo,
+    temporada: data.temporada,
+    permitirVentaSinStock: data.permitir_venta_sin_stock,
+    fotos: [...(data.producto_fotos ?? [])]
+      .sort((a, b) => a.orden - b.orden)
+      .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal })),
     variantes: (data.variantes ?? []).map((v) => ({
       id: v.id,
       colorCodigo: v.color_codigo,

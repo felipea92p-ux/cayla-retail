@@ -3915,3 +3915,22 @@ ambos modales, recarga directa de `/productos/<id>/historial` sin overlay, "Esta
 Activo → Descontinuado" apareciendo en el historial tras desactivar en bloque, y las
 tres rutas de demo (`dev-ajustar-inventario`, `dev/historial`, `_dev`) ya sin el
 contenido viejo. Borradas `productos/dev-ajustar-inventario/` y `productos/dev/`.
+
+## 2026-09-15 (productos: fotos, temporada y venta sin stock — y el diccionario le gana a la consigna)
+
+Sesión F1: `producto_fotos` (varias por producto, reordenables, una principal por
+índice único parcial) + bucket público `retail-productos-fotos` + `temporada`/
+`permitir_venta_sin_stock` en `productos`, todo servido desde las mismas
+`catalogo_crear_producto`/`catalogo_actualizar_producto` vía `p_fotos` (reemplazo
+completo de la galería, mismo patrón que `p_variantes`). La consigna asumía
+`foto_url`/`temporada` como columnas V1 muertas en producción; el diccionario
+generado (no el módulo escrito a mano) dice que la tabla real tiene 7 columnas y
+ninguna de las dos — se agregan de cero, no se resucitan (ADR-0053).
+
+Sin Docker para levantar Supabase local en este entorno (pulls de imagen 403 contra
+la política de red del sandbox, no arreglable desde acá), la migración completa se
+probó con RPC reales contra un schema `f1_dryrun` aislado dentro del proyecto de
+producción — nunca contra `retail.*` — y se borró al terminar: alta con 3 fotos,
+reorden + recambio de principal + foto nueva en edición, borrado con reasignación,
+`p_fotos = null` sin tocar la galería. `typecheck`/`lint`/215 tests en verde. Sin
+verificación en navegador real — queda en BACKLOG para quien tenga Docker a mano.
