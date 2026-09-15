@@ -38,7 +38,9 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
     // pantalla entera es líder-only, ver el redirect de arriba).
     getVentasDeHoy(),
   ]);
-  const ubicacionesOperativas = ubicaciones.filter((u) => u.tipo !== "almacen");
+  // Solo las tiendas emiten comprobantes: ni un almacén ni el Taller (tipo
+  // 'taller' desde 2026-09-15) tienen serie ni mostrador.
+  const ubicacionesOperativas = ubicaciones.filter((u) => u.tipo === "tienda");
   const ubicacionActual = ubicacionesOperativas.find((u) => u.id === persona.ubicacionId) ?? ubicacionesOperativas[0];
 
   const mesPrevio = mes === 1 ? `${anio - 1}-12` : `${anio}-${mes - 1}`;
