@@ -124,6 +124,193 @@ si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de or
 coinciden; guardarlo como quinto tipo obligaría al motor de stock a aprender una rama más
 para un hecho que ya sabe. Y un centinela que vive en el ledger no se borra: se excluye al
 leer, por su id, en todos los lugares que cuentan unidades.
+## 2026-09-15 (ficha de clienta y anular venta quedan anotadas, no diseñadas)
+
+Felipe pidió dejar las dos pantallas arquitectónicas de la Tanda 3 (ficha de
+clienta, anular una venta) para otra sesión, sin avanzar el diseño ahora. Se
+llevó la nota de "queda pendiente" a un bloque propio en BACKLOG.md ("Pendiente
+de decisión de Felipe", dentro del cierre de Tanda 3) con las preguntas exactas
+que una sesión futura va a necesitar — de negocio para anular venta (¿el stock
+siempre vuelve? ¿nota de crédito si SUNAT ya aceptó? ¿límite de tiempo? ¿quién
+puede?), de alcance para ficha de clienta (¿Vender empieza a enlazar `clientes`
+durante el cobro, o es pantalla de consulta aparte primero?) — y se corrigió una
+referencia vieja en BACKLOG que todavía listaba las 4 pantallas del diagnóstico
+como pendientes cuando 2 ya se habían cerrado esa misma tarde.
+
+Lo que Felipe se lleva: **"dejarlo anotado" no es una línea suelta** — sin las
+preguntas concretas escritas ahora (mientras la exploración del esquema está
+fresca), la próxima sesión repetiría el mismo `grep` y la misma lectura de
+`0002_esquema.sql` para llegar a las mismas cuatro preguntas.
+
+## 2026-09-15 (Tanda 3: las dos pantallas sin cambio de esquema — historial de cierres y códigos de descuento)
+
+Tanda 3 (pantallas nuevas) se clasificó primero con `superpowers:brainstorming`
+en vez de construir directo, como sí se hizo en las Tandas 1 y 2: a diferencia de
+un arreglo o una animación, "pantallas nuevas" es trabajo creativo y una de las
+cuatro (anular una venta) toca dinero + SUNAT + inventario a la vez — justo lo
+que `CLAUDE.md` pide frenar y confirmar. Se exploraron las 4 tablas antes de
+clasificar (no de memoria): `cajas` y `codigos_descuento` ya tenían todo lo
+necesario sin tocar el esquema; `ventas` no tiene NINGUNA columna de estado
+(anular necesita migración) y `clientes` existe pero Vender nunca la usa (ficha
+de clienta necesita una decisión de negocio: ¿enlazar durante el cobro o pantalla
+aparte?). Felipe aprobó empezar por las dos sin cambio de esquema.
+
+**Historial de cierres de caja** (`/caja/historial`): pura lectura de `cajas`, sin
+RPC — mismo criterio que Facturación para multi-sede (sin filtro, la sede va en
+cada fila). Verificado con las 4 cajas reales cerradas en esta misma sesión,
+incluida una de Tienda Trujillo (confirma que el criterio "sin filtro, RLS ya
+decide" trae datos de más de una sede de verdad, no solo en la lectura del
+código). En celular, `Tabla.tsx` apila las celdas sin encabezado (mismo
+comportamiento que ya tiene en Inventario) — para cuatro cifras seguidas de un
+cuadre de caja eso es ambiguo, así que se agregó una etiqueta visible SOLO en
+celular junto a cada valor (`sm:hidden`), sin tocar el componente compartido.
+
+**Códigos de descuento administrables** (`/vender/descuentos`, Líder-only): la
+migración del 14-sep (`20260914215103_codigos_descuento.sql`) ya había dejado la
+RLS lista para que un Líder escriba directo (`codigos_descuento_insert`/`_update`
+con `fn_es_lider()`) — es la primera pantalla del sistema que escribe una tabla
+sin pasar por una RPC. Se decidió a propósito, no por descuido: todas las reglas
+de negocio de esa tabla (formato del código, rango del %, vigencia coherente) ya
+son `check` de Postgres, así que una RPC solo habría envuelto un `insert` sin
+agregar ninguna validación real — la RLS + los `check` YA SON la lógica de
+negocio acá. Construyéndola salió a la luz que `packages/database/src/types.ts`
+no conocía la tabla (no se había regenerado desde antes del 12-sep): se
+regeneró con `--local` (el script correcto, sin el riesgo de perder tablas de
+producción que sí tiene `pnpm datos:generar`) y se contaron las tablas
+conocidas antes/después para confirmar que no se perdió ninguna.
+
+Verificado de punta a punta: un código creado (`PRUEBA15`, 15%, sin fecha
+límite, todas las sedes) y apagado/prendido con escritura real contra Postgres
+local, sin ningún error de consola nuevo. `tsc`, `eslint`, `vitest` (184/184).
+**Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **no todo lo nuevo es "pantalla nueva" del mismo
+tamaño** — de las cuatro que pidió, dos eran tan bounded como un arreglo de las
+Tandas 1-2 (cero esquema, cero RPC) y dos son arquitectónicas de verdad (una
+necesita una migración de producción, la otra una decisión de negocio antes de
+poder diseñarse). Clasificar primero evitó tratar las cuatro con la misma
+ceremonia — ni de más para las chicas, ni de menos para las grandes. Y el
+reverso: **escribir sin RPC es una decisión, no un atajo** — se justifica
+cuando la RLS y los `check` de la tabla ya cubren todo lo que una función
+tendría que validar, y se explica en el código para que no se lea como
+descuido la próxima vez que alguien toque este archivo.
+
+## 2026-09-15 (Tanda 2, segunda vuelta: el resto de instancias, y una falsa alarma de metodología)
+
+Felipe preguntó «¿queda algo más de la Tanda 2?» — al revisar el mapeo original con
+calma, sí: la técnica de cada categoría se había aplicado en 1-2 lugares, no en
+todos los que se habían identificado el mismo día. Cerrado con la misma técnica,
+mismo riesgo bajo: las 5 tarjetas de `CajaAbiertaPanel` (`anim-asentar`) y sus filas
+de movimientos (`anim-revelar`); el contador de la nota del ticket
+(`grid-template-rows`); los formularios inline de Aprobar/Rechazar en devoluciones
+(`anim-revelar` simple, no el búfer completo — es acción de Líder, poco frecuente);
+y el desplegable «Ventas de hoy», que usaba `hidden` y no se podía animar con CSS de
+ninguna forma. El bloque «Recibido» del pago en efectivo, que parecía necesitar su
+propio arreglo, resultó no necesitarlo: `p.metodo` de una fila de pago no cambia
+nunca una vez agregada (`agregarPago` bloquea duplicados), así que animar la fila
+entera ya lo cubre — un hallazgo por leer el código antes de tocarlo, no por
+asumir.
+
+El susto del día: verificando «Ventas de hoy» con `getComputedStyle` después de un
+`.click()` disparado por JS y justo tras un `navigate()`, el colapso parecía
+atascado en 133px — a punto de reescribirlo entero a `max-height` en vez de
+`grid-template-rows`. Eran dos problemas de LA PRUEBA, no del código: el Suspense de
+esa sección (`Cargando ventas de hoy…`) todavía estaba resolviendo en paralelo con
+el propio toggle que se estaba midiendo, y `element.click()` disparado por JS no
+siempre dispara el `onClick` de React de forma confiable en sucesión rápida (a
+diferencia de un clic real de la herramienta). Con clics reales y capturas de
+pantalla en vez de lecturas de JS apuradas, colapsó y expandió limpio, dos veces
+seguidas. Se estuvo cerca de reescribir código que ya funcionaba.
+
+Verificado: `tsc`, `eslint`, `vitest` (184/184); sesión de navegador completa
+(ingreso de caja real, ida y vuelta del desplegable con capturas). **Solo en
+local — falta pushear.**
+
+Lo que Felipe se lleva: **cuando una medición contradice lo que se ve en pantalla,
+sospechar primero de la medición** — sobre todo si mezcla clics simulados,
+`Suspense` y lecturas justo después de navegar. Un pantallazo real, con un clic
+real, sigue siendo la prueba más difícil de engañar.
+
+## 2026-09-15 (Tanda 2 del diagnóstico: movimiento — 8 modales, momentos del ticket, alturas y router.refresh())
+
+Felipe pidió construir la Tanda 2 (los tres puntos que necesitaban técnica nueva, no
+reuso directo). Se hizo sin sesión de navegador al principio —el panel había perdido
+el login al reiniciarse el dev server, y no se escribe una contraseña ni de un seed
+local (regla de seguridad)— así que se avanzó a nivel de código con `tsc`/`eslint`/
+`vitest` como único freno, y Felipe entró solo mientras tanto: al notarlo, se hizo una
+sesión completa de verificación real. Dos hallazgos del diagnóstico original NO
+resultaron ser bugs al leerlos con calma: el `onLeave` del Flip al quitar una línea es
+el patrón documentado de GSAP para nodos que React ya desmontó (no se tocó), y
+animar la cifra del teclado numérico de «Monto manual» con `anim-asentar` habría sido
+peor —320ms de remontaje por cada dígito tecleado es parpadeo, no suavidad— así que
+se decidió no hacerlo. Lo que sí se construyó: los 8 modales con cierre animado
+(7 contados + «Venta registrada», que el diagnóstico no había visto); la curva por
+defecto de Tailwind corregida para que coincida con `--ease-cayla` byte a byte, no
+aproximada a mano (el mismo error que ADR-0038 evitó a propósito para GSAP, colado en
+CSS puro); el ticket de Vender con salida real al cambiar de momento, con la única
+excepción documentada a "sin estado, sin hooks" del componente (es búfer de
+animación, `momento` real sigue en el padre); dos bloques con altura animada
+(`grid-template-rows` 0fr↔1fr); y cinco lugares donde `router.refresh()` reemplazaba
+contenido en seco, ahora con entrada.
+
+El hallazgo técnico del día: **`min-h-0` con `grid-template-rows: 0fr` no basta para
+0px real.** Medido con `getComputedStyle` en `MovimientoCajaModal.tsx` (no a ojo):
+quedaba un piso de ~17px en el `<input>` (su `padding`/`border` fijos) y ~23-39px en
+el `<select>` (encima, `appearance: auto` — el cromado del sistema operativo — no se
+mueve ni con padding/borde en cero). Costó tres vueltas: `!border-0 !py-0` cerró el
+input; el select necesitó además `appearance-none` y, recién con eso, seguía en 23px
+hasta sumarle `!text-[0px] !leading-none` (el line-height nativo del control seguía
+vivo). Y un defecto propio, encontrado a mitad de la refactorización: `min-h-0` fijo
+(no condicional) deflacionaba también el alto NATURAL del estado ABIERTO —el
+contenedor `1fr` reparte el 100% de un espacio que `min-h-0` ya había achicado de
+más—, así que el campo abierto se veía tan chico como el cerrado. Se corrigió
+aplicando `min-h-0`/`!border-0`/`!py-0`/`appearance-none` SOLO en la rama colapsada,
+nunca en la expandida.
+
+Verificado de punta a punta en navegador (una vez con sesión): venta real completa
+con el cierre animado del modal «Venta registrada»; ingreso real de caja con motivo
+«Otro» (ambos campos del swap, medidos en 0px y en altura natural con
+`getComputedStyle`); ida y vuelta armar↔cobrar del ticket sin errores de consola en
+una pestaña nueva (limpia — la vieja arrastraba un error de una ventana intermedia de
+la propia edición, no representativo del código final). `tsc`, `eslint` y `vitest`
+(184/184) en verde. **Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **medir con `getComputedStyle`, no mirar la pantalla** — un
+colapso a 17px se ve casi idéntico a 0px en una captura, y el defecto real (el campo
+abierto deflacionado) tampoco saltaba a la vista sin comparar números. Y el reverso
+del principio de esta sesión: **no todo lo que "podría animarse" debe animarse** — el
+teclado numérico fue el caso donde la técnica correcta era no tocar nada.
+
+## 2026-09-15 (diagnóstico de Venta y Caja + Tanda 1: seis arreglos verificados en navegador)
+
+Felipe pidió analizar el módulo de Venta y Caja completo (Vender/Caja/Cambios/
+Devoluciones/Facturación) para ver qué pantallas faltan y mejorar la animación. El
+análisis salió de un workflow de lectores + lentes + verificación adversarial que se
+cortó por el límite semanal a medio verificar (98 hallazgos brutos, 150/310 agentes) —
+se retomó con `resumeFromRunId` pero volvió a cortarse; los hallazgos ya recolectados
+(cacheados en el journal) alcanzaron igual para armar el diagnóstico y ordenarlo en
+tandas. Se implementó la Tanda 1 (defectos chicos, sin tocar modelo de datos): el bug
+de `MovimientoCajaModal` (un ingreso se guardaba con motivo de egreso — `motivo` nunca
+miraba `tipo === "ingreso"`, más `step="0.10"` que rechazaba montos redondos); la
+pistola podía confirmar el cobro sola con un Enter perdido en un campo del formulario
+(guardado con un `onKeyDown` en el `<form>` del ticket); fecha visible en Cambios y
+Devoluciones (`creadoEn` ya viajaba, no se pintaba); `/cambios` y `/devoluciones` al
+lateral y al menú «+ Nuevo»; el `<select>` de todo el catálogo en `CambioFormV2`
+reemplazado por `ComboBuscable` con stock por sede (mismo componente que ya usa
+Compras); y una barra fija en Vender a menos de `lg` que salta directo al ticket —
+antes había que scrollear TODO el catálogo para llegar a «Cobrar». Cada uno se probó
+en navegador contra la base local (algunos también por consulta directa a Postgres).
+`tsc`, `eslint` y `vitest` (184/184) en verde. **Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **un workflow que se corta por límite no pierde lo ya hecho** —
+`resumeFromRunId` retoma desde el último agente cacheado, y cuando ni el segundo
+intento alcanza a terminar la fase de síntesis, los hallazgos brutos del journal
+igual sirven (verificados a mano según se iban implementando, no en bloque al final).
+Y un patrón que se repitió tres veces en la Tanda 1: un valor que nace con un default
+que nadie eligió (el motivo del `<select>`, la primera opción del catálogo
+preseleccionada) es la misma familia de bug que el método de pago sin preselección
+que ya se había decidido en el POS (ADR-0044) — el criterio, una vez encontrado, se
+repite solo.
 
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 

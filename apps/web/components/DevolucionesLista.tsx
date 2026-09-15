@@ -10,6 +10,15 @@ import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devolu
 
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
 
+// Mismo patrón que ComprobantesPanel/ProformasPanel: la integrante necesita saber
+// CUÁNDO se vendió para reconocer la línea de la clienta que tiene enfrente —
+// `creadoEn` ya viajaba en `LineaVentaParaDevolucion` y no se pintaba.
+function formatearFecha(iso: string) {
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
+
 const ETIQUETA_CONDICION: Record<string, string> = {
   vendible: "Vendible",
   danada_reparacion: "Dañada · reparar",
@@ -60,6 +69,7 @@ export function DevolucionesLista({
                     {l.sku} · vendida × {l.cantidad}
                     {l.yaDevuelto > 0 && ` · ya devuelta × ${l.yaDevuelto}`}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
                 </div>
                 <button
                   type="button"
@@ -129,7 +139,11 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
   }
 
   return (
-    <div className="px-5 py-3">
+    // `anim-revelar` sin `key` extra: `key={d.id}` en el `.map` de arriba ya hace que
+    // React reutilice la fila de una devolución que sigue pendiente tras un
+    // `router.refresh()` (no reanima) y solo monte —y por lo tanto anime— la que
+    // recién se registró.
+    <div className="anim-revelar px-5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {d.items.map((i, n) => (
@@ -157,7 +171,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       </div>
 
       {resolviendo === "aprobar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="flex gap-3">
             <div className="flex-1 space-y-1.5">
               <label className={campoEtiqueta}>Reembolso (opcional)</label>
@@ -197,7 +211,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       )}
 
       {resolviendo === "rechazar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Motivo del rechazo</label>
             <input

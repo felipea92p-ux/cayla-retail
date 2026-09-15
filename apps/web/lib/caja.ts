@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigirOpcional, exigir } from "@/lib/resultado";
+import { getUbicaciones } from "@/lib/ubicaciones";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
 // `resumen` se calcula acá con las MISMAS reglas que cerrar_caja() en SQL
@@ -94,6 +95,73 @@ export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
   const egresos = filasMovs.filter((m) => m.tipo === "egreso").reduce((a, m) => a + Number(m.monto), 0);
 
   return { ventasEfectivo, ventasOtros, ingresos, egresos };
+}
+
+export type CierreCaja = {
+  id: string;
+  ubicacionId: string;
+  ubicacionNombre: string;
+  montoApertura: number;
+  abiertaEn: string;
+  abiertaPorNombre: string | null;
+  montoCierreSistema: number;
+  montoCierreReal: number;
+  diferencia: number;
+  cerradaEn: string;
+  cerradaPorNombre: string | null;
+  nota: string | null;
+};
+
+/**
+ * Historial de cajas ya cerradas, más recientes primero. Sin filtro de ubicación a
+ * propósito — mismo criterio que Facturación (`getVentasDeHoy`): mientras "control
+ * total temporal" (0012_control_total_temporal.sql) siga vigente, cualquiera puede
+ * operar cualquier sede y `cajas_select` ya deja ver todas; filtrar acá sería una
+ * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para
+ * que se lea igual de claro.
+ */
+export async function getHistorialCierres(limite = 60): Promise<CierreCaja[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase
+      .from("cajas")
+      .select(
+        "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota"
+      )
+      .eq("estado", "cerrada")
+      .order("cerrada_en", { ascending: false })
+      .limit(limite),
+    "el historial de cierres de caja"
+  );
+
+  const ubicaciones = await getUbicaciones();
+  const nombreUbicacion = new Map(ubicaciones.map((u) => [u.id, u.nombre]));
+
+  // `abierta_por`/`cerrada_por` referencian public.personas (Dynamic) — mismo motivo
+  // que en getCajaAbierta(): PostgREST no embebe entre schemas, se resuelve aparte.
+  const idsPersonas = Array.from(
+    new Set(filas.flatMap((f) => [f.abierta_por, f.cerrada_por]).filter((v): v is string => v !== null))
+  );
+  const nombresPersonas =
+    idsPersonas.length === 0
+      ? []
+      : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: idsPersonas }), "quién abrió o cerró cada caja");
+  const nombrePersona = new Map(nombresPersonas.map((n) => [n.id, n.nombre]));
+
+  return filas.map((f) => ({
+    id: f.id,
+    ubicacionId: f.ubicacion_id,
+    ubicacionNombre: nombreUbicacion.get(f.ubicacion_id) ?? "—",
+    montoApertura: Number(f.monto_apertura),
+    abiertaEn: f.abierta_en,
+    abiertaPorNombre: f.abierta_por ? (nombrePersona.get(f.abierta_por) ?? null) : null,
+    montoCierreSistema: Number(f.monto_cierre_sistema),
+    montoCierreReal: Number(f.monto_cierre_real),
+    diferencia: Number(f.diferencia),
+    cerradaEn: f.cerrada_en ?? "",
+    cerradaPorNombre: f.cerrada_por ? (nombrePersona.get(f.cerrada_por) ?? null) : null,
+    nota: f.nota,
+  }));
 }
 
 export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja[]> {

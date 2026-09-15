@@ -26,6 +26,202 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > candados por línea en `venta_items`/`venta_pagos`, el bug del `NULL` en el candado
 > de sede, la caja sin policy de UPDATE) NO se repite acá: esto es lo que queda.
 
+**Cerrado el 2026-09-15 — Tanda 3 del diagnóstico, las dos pantallas nuevas
+"bounded" (sin cambio de esquema; ver BITÁCORA de esa fecha):**
+
+- [x] **Historial de cierres de caja** (`/caja/historial`, link desde `/caja`).
+      `cajas` ya tenía todo (`estado`, `monto_cierre_sistema/real`, `diferencia`,
+      `cerrada_por`, `nota`) — sin RPC, sin filtro de ubicación (mismo criterio que
+      Facturación: mientras "control total temporal" siga vigente, se ve todo, con
+      la sede en cada fila). `lib/caja.ts` gana `getHistorialCierres()`. Etiquetas
+      de celular agregadas a mano (Tabla.tsx apila sin encabezado bajo `sm`, y
+      cuatro cifras seguidas sin etiqueta no se leen en una pantalla de cuadre).
+- [x] **Códigos de descuento administrables** (`/vender/descuentos`, Líder-only,
+      link desde Facturación). `codigos_descuento_insert`/`_update`
+      (20260914215103) ya dejaban la RLS lista para que un Líder escriba directo
+      — es la única tabla del sistema sin RPC de por medio: sus reglas de negocio
+      (código 3-20 mayúsculas, 0<%≤100, vigencia coherente) ya son `check` de la
+      tabla, no queda nada que una RPC tuviera que validar encima. Crear, apagar/
+      prender (nunca `DELETE`, la tabla no tiene esa policy).
+      **De paso:** `packages/database/src/types.ts` no conocía `codigos_descuento`
+      (el archivo llevaba desde antes del 12-sep sin regenerar) — regenerado con
+      `pnpm --filter @cayla-retail/database gen-types` (ya apunta a `--local`, sin
+      el riesgo de drift de producción que describe la regla de oro de `datos:generar`).
+      355 líneas nuevas, 0 tablas perdidas (verificado contando `ventas`/`cajas`/
+      `clientes`/etc. antes y después).
+
+Verificado: `tsc`, `eslint`, `vitest` (184/184); ambas pantallas probadas en
+navegador con escritura real (un código creado y apagado/prendido, el historial
+mostrando las 4 cajas cerradas reales de esta sesión con la sede correcta cada
+una). **Solo en local — falta pushear.**
+
+**Pendiente de decisión de Felipe — las 2 pantallas grandes del mismo
+diagnóstico (2026-09-15).** Clasificadas con `superpowers:brainstorming`, no
+construidas: cada una necesita una respuesta suya antes de que una sesión
+futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
+2026-09-15 — sigue valiendo mientras nadie migre `ventas` o `clientes`.
+
+- [ ] **Ficha de clienta.** La tabla `clientes` existe completa (nombre, doc,
+      teléfono, email — `0002_esquema.sql`) y `registrar_venta` **ya acepta
+      `p_cliente_id`** desde que existe (`0011_venta_con_comprobante.sql:98`) —
+      pero Vender nunca lo manda: el DNI/nombre que se tipean en el cobro solo
+      llegan al comprobante, ninguna venta queda enlazada a una fila real de
+      `clientes`. La pregunta que decide todo el diseño: **¿Vender debe empezar
+      a buscar/crear la clienta en `clientes` durante el cobro** (cambia el
+      flujo de venta — nueva búsqueda, decidir qué pasa si no se encuentra) **o
+      la ficha es, para empezar, una pantalla de consulta aparte que no toca
+      Vender todavía** (lee `clientes` + su historial de compras vía
+      `ventas.cliente_id`, sin cambiar cómo se cobra hoy)? La segunda opción es
+      bounded (sin tocar Vender); la primera es arquitectónica (cambia un flujo
+      que ya está muy afinado — ADR-0043/0044). Sin RPC nueva en cualquier caso:
+      `registrar_venta` ya sabe qué hacer con `p_cliente_id`.
+- [ ] **Anular una venta.** No existe ni pantalla ni RPC `anular_venta` (grep
+      vacío en todo el repo, verificado 2026-09-15). Bloqueante real: `ventas`
+      **no tiene ninguna columna de estado** (`0002_esquema.sql:220-228`) —
+      cualquier diseño empieza con una migración de esquema en producción, el
+      gatillo explícito de "detente y confirma" de `CLAUDE.md`. Antes de que
+      una sesión futura la diseñe, necesita de Felipe: (1) ¿el stock **siempre**
+      vuelve al piso al anular, o depende de la condición de la prenda (mismo
+      menú que ya usa Devoluciones: vendible / dañada / a proveedor)? (2) si el
+      comprobante ya fue **aceptado por SUNAT**, ¿anular exige una nota de
+      crédito (otra integración con Lucode) o la venta puede quedar "anulada"
+      en el sistema mientras el comprobante legal sigue vivo, con el desfase
+      documentado? (3) ¿hay un límite de tiempo (¿mismo día? ¿mientras la caja
+      sigue abierta?) o cualquier venta histórica se puede anular? (4) ¿quién
+      puede hacerlo — Líder únicamente, o también la Colaboradora que la
+      vendió? Sin estas cuatro respuestas, cualquier RPC que se escriba
+      adivinaría reglas de negocio que le corresponden a Felipe, no al código.
+
+**Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
+uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
+
+- [x] **`MovimientoCajaModal.tsx` guardaba un ingreso con el motivo del `<select>` de
+      egresos** («Retiro de efectivo») aunque la colaboradora escribiera otro en el
+      campo libre que sí veía — el `motivo` calculado nunca miraba `tipo === "ingreso"`.
+      De paso, `step="0.10"` + `min={0.01}` rechazaba montos redondos («35») por
+      validación nativa del navegador; ahora `step="0.01"`.
+- [x] **La pistola con el foco en el cobro podía confirmar la venta sola.** El
+      `<form>` del ticket (momento «cobrar») no tenía guarda contra el submit nativo
+      de un `<input>` al recibir Enter — bypasseaba el botón «Cobrar» sin que nadie lo
+      tocara (`cobrar()` revalida `motivoBloqueoCobro`, así que no colaba una venta a
+      medias, pero sí una ya completa). `PuntoDeVentaTicket.tsx` ganó un `onKeyDown`
+      que bloquea Enter salvo que venga del botón.
+- [x] **Cambios y Devoluciones no mostraban cuándo se vendió la prenda** —`creadoEn`
+      ya viajaba desde `ventas-v2.ts`/`devoluciones.ts` y no se pintaba. Agregado con
+      el mismo patrón (`Intl.DateTimeFormat` es-PE) de `ComprobantesPanel`/`ProformasPanel`.
+- [x] **`/cambios` y `/devoluciones` no estaban en ningún menú** — solo vivían en la
+      cabecera de Vender, oculta en celular. Agregadas al lateral de escritorio (íconos
+      propios, distintos del de Movimientos) y «Registrar cambio» al menú «+ Nuevo»
+      (paridad con «Registrar devolución», que ya estaba ahí y sí llega a celular).
+- [x] **`CambioFormV2.tsx` elegía la prenda nueva en un `<select>` con TODO el
+      catálogo activo, sin stock ni búsqueda** (48+ opciones sin agrupar). Reemplazado
+      por `ComboBuscable` (el mismo componente que Compras ya usa para «elegir 1 de
+      muchos tipeando») con stock por opción — `cambios/page.tsx` ahora trae
+      `getStockPorUbicacion` igual que `vender/page.tsx`, y ya no se ofrece una talla
+      sin stock aquí. Sin preselección (mismo criterio que el método de pago del POS,
+      ADR-0044): la «Diferencia» y el método de pago solo aparecen con una prenda
+      elegida.
+- [x] **Vender a 375px: el ticket quedaba debajo de TODO el catálogo.** Apilado
+      (bajo `lg`, decisión a propósito — «dos scrolls internos serían peores que uno
+      solo») no había forma de ver el total o llegar a «Cobrar» sin pasar antes por
+      cada producto de la grilla. Agregada una barra fija (`lg:hidden`, mismo offset
+      que la de `RecepcionCompraFormV2.tsx` para despejar las pestañas del celular)
+      con «N prenda(s) · total · Ver ticket ↓» que salta directo al ticket — visible
+      solo con el carrito no vacío y la caja abierta.
+
+Verificado: `npx tsc --noEmit`, `eslint` y `vitest` (184/184) en verde; cada ítem
+probado en navegador contra la base local (venta/cambio/ingreso reales, confirmados
+también por consulta directa a Postgres donde aplicaba). **Solo en local — falta
+pushear.**
+
+**Cerrado el 2026-09-15 — Tanda 2 del diagnóstico (movimiento; ver BITÁCORA de esa
+fecha para el detalle de cada uno):**
+
+- [x] **7 de los 8 modales del módulo cerraban en seco** desde sus propios botones
+      (Cancelar/Listo/Nueva venta) — `Modal.tsx` ya ofrecía el cierre animado por
+      render-prop (`children={(cerrar) => …}`), pero solo `ComprobantesPanel.tsx` lo
+      usaba. Corregido en `CambioFormV2`, `DevolucionFormV2`, `CerrarCajaModalV2` (×2),
+      `MovimientoCajaModal` y «Venta registrada» en `PuntoDeVenta.tsx` (un octavo modal
+      que el diagnóstico original no había contado). El cierre automático tras un
+      guardado exitoso se dejó **sin** animar a propósito, mismo criterio que
+      `ComprobantesPanel.tsx` ya tenía.
+- [x] **La curva de transición por defecto de Tailwind no era `--ease-cayla`** —
+      afecta a los ~260 `transition-colors`/hover del sistema. Era una aproximación a
+      mano sin comentario que la justifique; ahora es el número literal.
+- [x] **El ticket de Vender cambiaba de un momento a otro (armar↔cobrar↔descuento) sin
+      salida.** `PuntoDeVentaTicket.tsx` gana su única excepción a "sin estado, sin
+      hooks": un búfer de ANIMACIÓN (no de negocio — `momento` sigue siendo del padre,
+      `cobrar()` allá revalida contra el valor real) que retiene el contenido saliente
+      con `.anim-revelar-salida` (nueva, en `globals.css`) los 160ms que tarda en
+      desvanecerse. El `setState` que arranca la salida vive en el render, no en el
+      efecto (el propio linter del repo marca ese patrón — `react-hooks/set-state-in-effect`).
+- [x] **Nada animaba el despliegue de un bloque** — el motivo bajo el botón del ticket
+      (`PuntoDeVentaTicket.tsx`) y el swap select↔input del motivo en
+      `MovimientoCajaModal.tsx`, con el truco `grid-template-rows` (0fr↔1fr). Costó una
+      segunda vuelta: `min-h-0` solo no basta para 0px real en un campo con
+      padding/borde fijo (queda un piso de ~17-23px medido con `getComputedStyle`) —
+      hace falta forzar `padding`/`border` a 0 con `!` SOLO mientras está oculto, y el
+      `<select>` nativo además necesita `appearance-none` + `text-[0px]` (su cromado de
+      sistema operativo no se mueve con padding/borde solos). Verificado con
+      `getComputedStyle` en el navegador real, no solo a ojo.
+- [x] **Lo que llega por `router.refresh()` se reemplazaba en seco** — `anim-entrada`
+      en el swap `AbrirCajaFormV2`↔`CajaAbiertaPanel` de `/caja` (React ya lo remonta
+      solo, son componentes distintos); `transition-opacity` en el atenuado de
+      `bloqueado` del POS (no tenía ninguna transición); `anim-revelar` en las filas de
+      «Ventas de hoy» y de devoluciones pendientes — sin `key` extra: React ya reusa el
+      nodo de lo que sigue igual tras el refresh (no reanima) y solo monta —y por lo
+      tanto anima— lo genuinamente nuevo.
+
+Verificado igual que la Tanda 1, más una vuelta extra con `getComputedStyle` para los
+colapsos de altura (no alcanza con mirar la pantalla: un colapso a 17px en vez de 0
+se ve casi igual a ojo). Sesión completa de principio a fin en navegador: agregar
+prenda → cobrar → pagar → confirmar → «Venta registrada» con cierre animado → nueva
+venta con ticket limpio, y un ingreso de caja real con «Otro» motivo (ambos campos
+del swap). Cero errores de consola en una pestaña nueva (la pestaña vieja arrastraba
+un error de una ventana intermedia de la propia edición — no representativo).
+**Solo en local — falta pushear.**
+
+**Cerrado el 2026-09-15 (mismo día, segunda vuelta) — el resto de Tanda 2**: al
+revisar contra el mapeo original, la técnica se había aplicado en 1-2 lugares por
+categoría, no en todos los identificados. Completado con la misma técnica, mismo
+riesgo bajo:
+
+- [x] `CajaAbiertaPanel.tsx` — las 5 tarjetas de resumen (`key={valor}` +
+      `anim-asentar`) y las filas de «Movimientos de esta caja» (`anim-revelar`),
+      que se habían quedado fuera del barrido de `router.refresh()`.
+- [x] El contador «160/200» bajo la nota del ticket, con el mismo truco de
+      `grid-template-rows` — antes aparecía de golpe.
+- [x] El bloque «Recibido» del pago en efectivo **no necesitó arreglo propio**:
+      `p.metodo` de una fila de pago nunca cambia una vez agregada (`agregarPago`
+      bloquea duplicados, nada muta el campo), así que animar la fila entera
+      (`anim-revelar`, agregado también a cada fila de `pagos.map`) cubre el bloque.
+- [x] Los formularios inline «Aprobar»/«Rechazar» de devoluciones pendientes —
+      `anim-revelar` simple (no el búfer de dos tiempos del ticket: es una acción de
+      Líder, poco frecuente, no justifica la complejidad extra).
+- [x] El desplegable «Ventas de hoy» del catálogo — el más visible de los siete,
+      usaba `hidden` (display:none), que ni con CSS se puede animar. Ahora
+      `grid-template-rows`. Sin controles enfocables adentro (solo filas de texto),
+      así que no necesitó los `disabled` condicionales del swap de
+      `MovimientoCajaModal`.
+
+Casi se reescribe este último a una técnica distinta (`max-height`) por una falsa
+alarma: medido con `getComputedStyle` justo después de un `.click()` disparado por
+JS y de un `navigate()`, el colapso parecía atascado en 133px. Era el Suspense de
+«Ventas de hoy» (`Cargando ventas de hoy…`) resolviendo en paralelo con el propio
+toggle, más que `element.click()` no siempre dispara el handler de React de forma
+confiable en sucesión rápida — dos problemas de METODOLOGÍA de prueba, no del
+código. Se confirmó con capturas reales (clic real + pantallazo, no JS) que colapsa
+y expande limpio, ida y vuelta. **Lo que ya estaba construido funcionaba.**
+
+Verificado igual que la primera vuelta: `tsc`, `eslint`, `vitest` (184/184), y una
+sesión de navegador completa (ingreso de caja real, «Ventas de hoy» expandido y
+colapsado dos veces con capturas). **Solo en local — falta pushear.**
+
+Del mismo diagnóstico: historial de cierres de caja y códigos de descuento
+administrables se cerraron en la Tanda 3 (2026-09-15, más arriba). Ficha de
+clienta y anular una venta siguen pendientes de una decisión de Felipe —
+ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
+
 **Cerrado el 2026-09-14 en esta sesión:**
 
 - [x] **`movimientos` es inmutable de verdad** — ADR-0042,

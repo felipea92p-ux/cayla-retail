@@ -116,8 +116,12 @@ async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: st
 
   return (
     <div className="card-cayla divide-y divide-sand !p-0">
+      {/* `anim-revelar` sin `key` extra: React ya reutiliza el nodo de cada venta que
+          repite `key={v.venta_id}` tras el `router.refresh()` (no vuelve a animarse),
+          y monta uno nuevo —y por lo tanto SÍ anima— solo para la venta que se acaba
+          de registrar. */}
       {ventas.map((v) => (
-        <div key={v.venta_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+        <div key={v.venta_id} className="anim-revelar flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
           <span className="text-tinta/60">{v.hora}</span>
           {integrante.has(v.vendedor) && (
             <span className="shrink-0 text-tinta" title={v.vendedor}>

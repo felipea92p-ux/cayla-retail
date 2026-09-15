@@ -1,16 +1,22 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getLineasVentaRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { CambiosLista } from "@/components/CambiosLista";
 
 // Prioridad 1 (2026-09-12): cambio de talla/color. Ver
 // supabase/migrations/0007_cambios.sql y CambioFormV2.tsx para el modelo.
 export default async function CambiosPage() {
   const persona = await requirePersonaActualV2();
-  const [lineas, catalogo] = await Promise.all([
+  // Mismo par de lecturas que Vender (vender/page.tsx): el catálogo entero más el piso
+  // de ESTA ubicación, para que el selector de "entregar en su lugar" no ofrezca una
+  // talla que `registrar_cambio` va a rechazar por falta de stock.
+  const [lineas, catalogo, stock] = await Promise.all([
     getLineasVentaRecientes(persona.ubicacionId),
     getCatalogo(),
+    getStockPorUbicacion(persona.ubicacionId),
   ]);
+  const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
 
   return (
     <div className="space-y-6">
@@ -26,14 +32,17 @@ export default async function CambiosPage() {
         <CambiosLista
           lineas={lineas}
           ubicacionId={persona.ubicacionId}
-          catalogo={catalogo.map((v) => ({
-            varianteId: v.varianteId,
-            sku: v.sku,
-            referencia: v.referencia,
-            talla: v.talla,
-            color: v.color,
-            precio: v.precio,
-          }))}
+          catalogo={catalogo
+            .filter((v) => v.activo)
+            .map((v) => ({
+              varianteId: v.varianteId,
+              sku: v.sku,
+              referencia: v.referencia,
+              talla: v.talla,
+              color: v.color,
+              precio: v.precio,
+              stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+            }))}
         />
       )}
     </div>

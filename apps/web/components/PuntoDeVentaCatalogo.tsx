@@ -356,7 +356,13 @@ export function PuntoDeVentaCatalogo({
             <span>Ventas de hoy</span>
             <span className={`inline-block transition-transform ${mostrarVentasHoy ? "rotate-180" : ""}`}>⌄</span>
           </button>
-          <div className={mostrarVentasHoy ? "mt-2" : "hidden"}>{ventasHoyNode}</div>
+          {/* Antes `hidden` (display:none): ni con CSS se puede animar un despliegue así
+              — truco de `grid-template-rows` (0fr↔1fr) en su lugar. `ventasHoyNode` no
+              trae ningún control enfocable (solo filas de texto), así que a diferencia
+              del swap de MovimientoCajaModal no hace falta `disabled` acá adentro. */}
+          <div className={`grid overflow-hidden transition-[grid-template-rows] ${mostrarVentasHoy ? "mt-2 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+            <div className="min-h-0 overflow-hidden">{ventasHoyNode}</div>
+          </div>
         </div>
       </div>
     </section>
