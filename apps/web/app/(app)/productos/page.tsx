@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { getSububicaciones } from "@/lib/sububicaciones";
 import {
   filtrosProductosDesdeParams,
   paginaProductosDesdeParams,
@@ -35,17 +36,18 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 // `getCatalogo()` sigue existiendo para quien necesite el catálogo entero
 // sin filtrar (el escáner de Vender).
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
   const params = await searchParams;
   const filtros = filtrosProductosDesdeParams(params);
   const pagina = paginaProductosDesdeParams(params);
   const supabase = await createClient();
 
-  const [resultado, resumen, categorias, colores] = await Promise.all([
+  const [resultado, resumen, categorias, colores, sububicaciones] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre").eq("activo", true).order("nombre"),
+    getSububicaciones(persona.ubicacionId),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -64,7 +66,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
       <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} />
 
-      <ProductosAgrupados productos={resultado.productos} />
+      <ProductosAgrupados
+        productos={resultado.productos}
+        ubicacionId={persona.ubicacionId}
+        sububicaciones={sububicaciones}
+        esLider={persona.rol === "lider"}
+      />
 
       <PaginacionPaginas
         pagina={resultado.pagina}

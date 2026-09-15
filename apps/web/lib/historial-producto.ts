@@ -13,7 +13,7 @@ export type CambioProducto = {
   id: string;
   creadoEn: string;
   entidad: "producto" | "variante";
-  campo: "categoria_id" | "precio";
+  campo: "categoria_id" | "precio" | "estado";
   valorAnterior: string | null;
   valorNuevo: string | null;
   /** Solo cuando `campo === "categoria_id"`: el nombre, no el uuid crudo. */

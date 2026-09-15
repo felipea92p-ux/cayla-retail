@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
+import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 
 /**
@@ -21,15 +27,29 @@ import type { ProductoListado } from "@/lib/catalogo-v2";
  * /inventario.
  *
  * La selección (checkboxes) vive ACÁ, no en `page.tsx` — es un Server
- * Component y no puede tener estado. Queda lista para que la sesión de
- * integración final (B2) le agregue una barra de acciones masivas sobre
- * `seleccionados`; este componente solo la levanta y la togglea, ninguna
- * acción real está cableada todavía.
+ * Component y no puede tener estado. La barra de acciones masivas
+ * (activar/desactivar, `productos.estado`) escribe directo por RLS
+ * (`productos_write_lider`, 0004_rls.sql) — sin RPC nueva, un UPDATE
+ * normal ya dispara el trigger de historial (20260915223000). Solo
+ * líderes la ven: un integrante que fuerce el botón se topa con el
+ * mismo RLS, sin distinto mensaje que un error cualquiera.
  */
 
-export function ProductosAgrupados({ productos }: { productos: ProductoListado[] }) {
+export function ProductosAgrupados({
+  productos,
+  ubicacionId,
+  sububicaciones,
+  esLider,
+}: {
+  productos: ProductoListado[];
+  ubicacionId: string;
+  sububicaciones: Sububicacion[];
+  esLider: boolean;
+}) {
+  const router = useRouter();
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [aplicando, setAplicando] = useState(false);
 
   function toggleAbierto(productoId: string) {
     setAbiertos((prev) => {
@@ -58,6 +78,25 @@ export function ProductosAgrupados({ productos }: { productos: ProductoListado[]
     setSeleccionados(next);
   }
 
+  // Un solo UPDATE para toda la selección — `productos.estado` no tiene RPC
+  // propia, el trigger de historial (20260915223000) escucha cualquier
+  // UPDATE sobre `productos`, no una llamada explícita.
+  async function aplicarEstadoMasivo(estado: "activo" | "descontinuado") {
+    const ids = Array.from(seleccionados);
+    setAplicando(true);
+    const { error } = await createClient().from("productos").update({ estado }).in("id", ids);
+    setAplicando(false);
+    if (error) {
+      avisar.error(traducirError(error, estado === "activo" ? "activar los productos" : "desactivar los productos"));
+      return;
+    }
+    const sustantivo = ids.length === 1 ? "producto" : "productos";
+    const participio = estado === "activo" ? "activado" : "desactivado";
+    avisar.exito(`${ids.length} ${sustantivo} ${participio}${ids.length === 1 ? "" : "s"}`);
+    setSeleccionados(new Set());
+    router.refresh();
+  }
+
   if (productos.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto calza con esos filtros.</p>;
   }
@@ -69,6 +108,26 @@ export function ProductosAgrupados({ productos }: { productos: ProductoListado[]
         {seleccionados.size > 0 ? (
           <>
             {seleccionados.size} seleccionado{seleccionados.size === 1 ? "" : "s"}
+            {esLider && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => aplicarEstadoMasivo("activo")}
+                  disabled={aplicando}
+                  className="ml-2 text-tinta/55 hover:text-rojo disabled:opacity-50"
+                >
+                  Activar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => aplicarEstadoMasivo("descontinuado")}
+                  disabled={aplicando}
+                  className="ml-2 text-tinta/55 hover:text-rojo disabled:opacity-50"
+                >
+                  Desactivar
+                </button>
+              </>
+            )}
             <button type="button" onClick={() => setSeleccionados(new Set())} className="ml-2 text-tinta/55 hover:text-rojo">
               Limpiar selección
             </button>
@@ -133,7 +192,7 @@ export function ProductosAgrupados({ productos }: { productos: ProductoListado[]
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
-              <MenuFila productoId={p.productoId} />
+              <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} />
             </div>
             {abierto && (
               <div className="border-t border-tinta/10 overflow-x-auto">
@@ -189,8 +248,17 @@ export function ProductosAgrupados({ productos }: { productos: ProductoListado[]
  *  `Desplegable` en `ui/campos.tsx`: el repo solo trae `@radix-ui/react-dialog`
  *  instalado con intención, y esto es más chico que ese control (sin
  *  teclado tipo combobox, solo Escape/click-afuera). */
-function MenuFila({ productoId }: { productoId: string }) {
+function MenuFila({
+  productoId,
+  ubicacionId,
+  sububicaciones,
+}: {
+  productoId: string;
+  ubicacionId: string;
+  sububicaciones: Sububicacion[];
+}) {
   const [abierto, setAbierto] = useState(false);
+  const [ajustando, setAjustando] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -209,11 +277,13 @@ function MenuFila({ productoId }: { productoId: string }) {
     };
   }, [abierto]);
 
-  // TODO(B2): cablear con AjustarInventarioModal / HistorialProductoPanel.
+  // TODO: Duplicar/Archivar quedan fuera del alcance de esta integración
+  // (B2 solo cablea Ajustar inventario, Ver historial y las acciones
+  // masivas) — siguen como placeholder para quien las tome después.
   function accionPendiente(nombre: string) {
     return () => {
       setAbierto(false);
-      window.alert(`"${nombre}" todavía no está conectado — llega con la integración final.`);
+      window.alert(`"${nombre}" todavía no está conectado.`);
     };
   }
 
@@ -251,20 +321,24 @@ function MenuFila({ productoId }: { productoId: string }) {
           <li role="none">
             <button
               role="menuitem"
-              onClick={accionPendiente("Ajustar inventario")}
+              onClick={() => {
+                setAbierto(false);
+                setAjustando(true);
+              }}
               className="block w-full px-3 py-2 text-left text-sm text-tinta/75 hover:bg-rojo/10"
             >
               Ajustar inventario
             </button>
           </li>
           <li role="none">
-            <button
+            <Link
               role="menuitem"
-              onClick={accionPendiente("Ver historial")}
-              className="block w-full px-3 py-2 text-left text-sm text-tinta/75 hover:bg-rojo/10"
+              href={`/productos/${productoId}/historial`}
+              className="block px-3 py-2 text-sm text-tinta/75 hover:bg-rojo/10"
+              onClick={() => setAbierto(false)}
             >
               Ver historial
-            </button>
+            </Link>
           </li>
           <li role="none">
             <button
@@ -285,6 +359,14 @@ function MenuFila({ productoId }: { productoId: string }) {
             </button>
           </li>
         </ul>
+      )}
+      {ajustando && (
+        <AjustarInventarioModal
+          productoId={productoId}
+          ubicacionId={ubicacionId}
+          sububicaciones={sububicaciones}
+          onClose={() => setAjustando(false)}
+        />
       )}
     </div>
   );

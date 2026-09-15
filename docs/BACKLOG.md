@@ -27,11 +27,12 @@ Paginado por NÚMERO DE PÁGINA (no cursor, decisión de Felipe — el catálogo
 crece como un ledger) y por PRODUCTO (no por fila de variante). Filtros reales:
 categoría, color, estado, rango de precio, sin stock/stock bajo. Tarjetas de
 resumen (productos, variantes, stock bajo, sin stock) de una sola consulta
-agregada. Tabla con checkboxes de selección (sin acciones todavía) y menú
-"..." por fila (Editar enlaza a `/productos/[id]/editar` de la sesión A1;
-Ajustar inventario/Ver historial/Duplicar/Archivar son placeholders con
-`TODO(B2)`). Verificado con psql contra datos reales y con HTTP real
-(sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
+agregada. Tabla con checkboxes de selección y menú "..." por fila (Editar
+enlaza a `/productos/[id]/editar` de la sesión A1, ruta todavía sin
+construir; Ajustar inventario/Ver historial cableados por la Sesión B2 el
+mismo día — ver el ítem de integración final más abajo; Duplicar/Archivar
+siguen como placeholder). Verificado con psql contra datos reales y con
+HTTP real (sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
 
 **Pendiente:**
 
@@ -46,15 +47,11 @@ Ajustar inventario/Ver historial/Duplicar/Archivar son placeholders con
       (`ProductoForm.tsx`, sesión A1) no tiene el campo para escribirla. Sin
       eso, "stock bajo" en /productos queda siempre en 0 salvo que alguien
       lo cargue por Studio/SQL.
-- [ ] **El menú "..." de cada fila solo tiene el placeholder — B2 lo cablea.**
-      "Ajustar inventario" → `AjustarInventarioModal`, "Ver historial" → un
-      panel/filtro hacia `/movimientos`, "Duplicar" y "Archivar" no tienen
-      RPC todavía (Archivar probablemente sea `productos.estado =
-      'descontinuado'`, ya soportado por el filtro de estado; Duplicar no
-      tiene diseño ni RPC — decisión de Felipe antes de construirla).
-- [ ] **La selección de checkboxes vive en `ProductosAgrupados.tsx` sin
-      ninguna acción masiva cableada** — lista para que B2 le agregue una
-      barra de acciones sobre el estado `seleccionados` que ya expone.
+- [ ] **"Duplicar" y "Archivar" del menú "..." siguen sin RPC ni diseño**
+      (Archivar probablemente sea `productos.estado = 'descontinuado'` —
+      igual que ya hace la acción masiva "Desactivar" de la Sesión B2, pero
+      por fila; Duplicar no tiene diseño — decisión de Felipe antes de
+      construirla).
 
 **Hallazgo de coordinación, no de este módulo:** el Postgres local
 (`supabase_db_cayla-retail`, puerto 54422) lo comparte el checkout principal
@@ -364,28 +361,32 @@ resuelve a las variantes del producto; `p_ubicacion_id` sigue obligatorio) +
 `20260915204541_historial_producto_cambios.sql` (tabla `historial_producto_cambios`,
 trigger en `productos`/`variantes` que la llena solo, `fn_historial_producto_cambios`
 para leerla) + `HistorialProductoPanel.tsx` (standalone, agrupable por fecha o por
-variante) + ruta de demo `productos/dev/historial/[id]`. ADR-0051. Ninguna tabla
-existente cambia de forma; ninguna escritura existente cambia de comportamiento.
-Verificado en Chrome headless contra datos reales (ver BITÁCORA 2026-09-15).
+variante). ADR-0051. Ninguna tabla existente cambia de forma; ninguna escritura
+existente cambia de comportamiento. Verificado en Chrome headless contra datos
+reales (ver BITÁCORA 2026-09-15).
+
+**Integrado por la Sesión B2 (mismo día):** `HistorialProductoPanel` ya no vive
+en una ruta de demo — se monta en `/productos/[id]/historial` (página completa)
+y, desde el menú "..." de la lista, como modal con ruta interceptada
+`@modal/(.)[id]/historial` (mismo mecanismo que el detalle de factura de
+Compras). La ruta de demo `productos/dev/historial/[id]` se borró. De paso,
+`20260915223000_historial_producto_estado.sql` extiende el trigger para
+auditar también `estado` (ver la sección de Acciones masivas más abajo) — sin
+eso, activar/desactivar en bloque quedaba fuera del historial.
 
 **Pendiente de Felipe (producción):**
 
-- [ ] **Aplicar las dos migraciones en producción** (con el prefijo `retail.`, ver
-      CLAUDE.md) y correr `pnpm datos:generar:produccion` + `pnpm datos:comparar`
-      después. Hasta entonces el diccionario de `docs/datos/` no describe
-      `historial_producto_cambios` ni el `p_producto_id` nuevo de `fn_movimientos`.
+- [ ] **Aplicar las tres migraciones en producción** (las dos de A3 más
+      `20260915223000_historial_producto_estado.sql` de B2, con el prefijo
+      `retail.`, ver CLAUDE.md) y correr `pnpm datos:generar:produccion` +
+      `pnpm datos:comparar` después. Hasta entonces el diccionario de
+      `docs/datos/` no describe `historial_producto_cambios` ni el
+      `p_producto_id` nuevo de `fn_movimientos`.
 - [ ] **`packages/database/src/types.ts` se editó a mano** (el Postgres local es un
       checkout compartido entre 7 sesiones y no era seguro correr `db reset` para
       regenerar tipos). Cuando alguien corra `generate_typescript_types` contra una base
       estable con estas migraciones aplicadas, confirmar que coincide con lo escrito a
       mano y no queda una edición manual suelta.
-- [ ] **Integrar `HistorialProductoPanel` en la ficha/lista real de producto** (Sesión
-      B2) — hoy solo vive en la ruta de demo, con el TODO marcado en el archivo.
-- [ ] **`_dev/` como carpeta de ruta de demo no funciona** (Next.js la excluye del ruteo
-      por completo — "private folder", 404 directo sin compilar la página). Si la
-      ruta de demo de A2 (u otra sesión) usó ese mismo criterio, probablemente tiene el
-      mismo 404 silencioso — vale la pena que se revise en el navegador antes de cerrar
-      esa sesión, no solo con build/lint.
 
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
@@ -1598,9 +1599,33 @@ importante que ha entrado a este archivo desde que existe.
       Valida el stock negativo en pantalla (ADR-0023) antes de llamar a la RPC.
       Selector Piso de venta/Almacén de tienda cuando la ubicación los separa.
       Probado en navegador contra Tienda Lima / Blusa Valentina, verificado en
-      `/movimientos`. **Pendiente (Sesión B2):** conectarlo al menú de acciones
-      de la lista real de productos y borrar la ruta demo
-      `/productos/dev-ajustar-inventario` (`ClienteDemo.tsx` + `page.tsx`).
+      `/movimientos`. Conectado al menú real de `/productos` por la Sesión B2
+      el mismo día (ver ítem de integración final abajo).
+
+- [x] 2026-09-15 — **Productos: integración final del bloque (Sesión B2,
+      `feat/productos-acciones-masivas`)** — cierra A2+A3+B1. Menú "..." de
+      cada fila: "Ajustar inventario" abre `AjustarInventarioModal` (modal de
+      `useState`, con `ubicacionId`/`sububicaciones` de la sede del
+      colaborador vía `persona.ubicacionId`); "Ver historial" navega a
+      `/productos/[id]/historial`, que se abre como modal con ruta
+      interceptada (`@modal/(.)[id]/historial`, mismo mecanismo que el
+      detalle de factura de Compras) o como página completa por enlace
+      directo/recarga. Acciones masivas sobre la selección: Activar/
+      Desactivar (solo líder) hacen un solo `UPDATE ... WHERE id IN (...)` de
+      `productos.estado` — sin RPC propia, ya alcanza con la RLS
+      `productos_write_lider`; el trigger de historial se extendió
+      (`20260915223000_historial_producto_estado.sql`) para no perderse esos
+      cambios (el propio comentario de A3 avisaba de este hueco). Borradas
+      las rutas de demo `productos/dev-ajustar-inventario` y
+      `productos/dev/historial/[id]`. De paso: arreglada una colisión de
+      timestamp entre dos migraciones de otra sesión anterior
+      (`20260915120000_produccion_del_taller.sql` /
+      `..._reparar_fk_transferencia_items.sql`, ambas ya en `main`) que
+      rompía `supabase db reset` para cualquiera — se renombró la segunda a
+      `20260915120001` (solo el archivo, sin tocar contenido). Verificado en
+      Chrome headless con Playwright (login real, ambos modales, recarga
+      directa del historial, acción masiva reflejada en el historial, las
+      tres rutas dev ya no sirven el demo).
 
 - [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC

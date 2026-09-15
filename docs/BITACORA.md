@@ -3738,3 +3738,27 @@ Taller con el signo invertido en las transferencias, y un cambio real de precio
 `_dev/` como carpeta de ruta de demo NO funciona (Next.js la excluye del ruteo por
 completo, "private folder") — la demo quedó en `productos/dev/historial/[id]`; si otra
 sesión usó `_dev` para la suya, tiene el mismo 404 silencioso.
+
+## 2026-09-15 (productos: integración final del menú "..." y acciones masivas)
+
+Cierre del bloque (Sesión B2): mergeadas A2+A3+B1 en `feat/productos-acciones-masivas`
+(un solo conflicto trivial, en BITÁCORA). "Ajustar inventario" e "Historial" del menú
+"..." no calzaban como decía la consigna — ninguna era un simple `productoId`:
+la primera también pedía `ubicacionId`/`sububicaciones` (resuelto con
+`persona.ubicacionId`, dato ya disponible), la segunda no era un componente liviano
+sino una página entera con paginado por cursor y selector de sede. Para "Ver historial"
+Felipe eligió copiar el patrón de Compras: `/productos/@modal/(.)[id]/historial`
+(ruta interceptada) + `/productos/[id]/historial` (página real), en vez del camino
+más corto (navegación simple sin overlay). Acciones masivas Activar/Desactivar:
+un solo `UPDATE productos SET estado=... WHERE id IN (...)` desde el cliente —ninguna
+RPC nueva, alcanza con la RLS `productos_write_lider`— pero el trigger de historial de
+A3 solo miraba `categoria_id`/`precio`; se extendió
+(`20260915223000_historial_producto_estado.sql`) para no perder justo el cambio que
+esta sesión agrega. De paso: dos migraciones de otra sesión (anteriores a esta,
+ya en `main`) compartían el mismo timestamp `20260915120000` y rompían
+`supabase db reset` para cualquiera — renombrado el archivo (no el contenido) a
+`...120001`. Verificado con Playwright headless contra datos reales: login,
+ambos modales, recarga directa de `/productos/<id>/historial` sin overlay, "Estado
+Activo → Descontinuado" apareciendo en el historial tras desactivar en bloque, y las
+tres rutas de demo (`dev-ajustar-inventario`, `dev/historial`, `_dev`) ya sin el
+contenido viejo. Borradas `productos/dev-ajustar-inventario/` y `productos/dev/`.

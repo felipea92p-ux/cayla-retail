@@ -69,13 +69,15 @@ export function HistorialProductoPanel({
   );
 }
 
-const ETIQUETA_CAMPO: Record<CambioProducto["campo"], string> = { categoria_id: "Categoría", precio: "Precio" };
+const ETIQUETA_CAMPO: Record<CambioProducto["campo"], string> = { categoria_id: "Categoría", precio: "Precio", estado: "Estado" };
+const ETIQUETA_ESTADO: Record<string, string> = { activo: "Activo", descontinuado: "Descontinuado" };
 
 function textoValorCambio(c: CambioProducto, cual: "anterior" | "nuevo"): string {
   if (c.campo === "categoria_id") {
     return (cual === "anterior" ? c.categoriaAnteriorNombre : c.categoriaNuevaNombre) ?? "Sin categoría";
   }
   const valor = cual === "anterior" ? c.valorAnterior : c.valorNuevo;
+  if (c.campo === "estado") return valor ? (ETIQUETA_ESTADO[valor] ?? valor) : "—";
   return valor ? `S/${Number(valor).toFixed(2)}` : "—";
 }
 
