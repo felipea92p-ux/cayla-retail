@@ -70,7 +70,7 @@ reasignación de principal, `p_fotos = null` sin tocar la galería. `typecheck`/
 ## 🎯 Categorías: subcategoría opcional de un solo nivel (2026-09-15, Sesión F3)
 
 `categorias.categoria_padre_id` (self-FK, nullable) + `categorias.notas`
-(`20260915224500_categorias_subcategoria.sql`, ADR-0053). Candado real en un
+(`20260915224501_categorias_subcategoria.sql`, ADR-0055). Candado real en un
 trigger (`retail.fn_valida_categoria_subcategoria`): un solo nivel (el padre
 no puede a su vez tener padre; quien ya tiene hijas no puede convertirse en
 hija) y familia siempre heredada del padre. `CategoriasLista.tsx`: "Nueva
@@ -88,7 +88,7 @@ antes. `retail.actualizar_categoria` pasó de 4 a 5 argumentos (se agregó
       esto por cerrado: crear "Vestidos largos" con padre "Vestidos" en un
       entorno con Supabase local y confirmar que aparece anidada, y que una
       categoría sin hijas (ej. "Pantalones") se sigue viendo igual.
-- [ ] **`20260915224500_categorias_subcategoria.sql` no está en producción.**
+- [ ] **`20260915224501_categorias_subcategoria.sql` no está en producción.**
       Aplicada solo en el archivo del repo (ni siquiera probada en local por
       lo de arriba). Al pegar en el SQL Editor de producción: prefijo
       `retail.` en cada tabla o `set search_path to retail, public;`
@@ -1741,7 +1741,7 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       `colores.notas` internas (`20260915230000_colores_tipo_y_muestra.sql`).
       Bucket propio `retail-colores-muestras`, PÚBLICO a diferencia de
       `retail-compras-adjuntos` (privado) — decisión justificada en
-      ADR-0053: una muestra de tela no tiene el problema de confidencialidad
+      ADR-0054: una muestra de tela no tiene el problema de confidencialidad
       de una factura (RUC, montos), y público evita pedir URL firmada por
       cada una de las ~30+ muestras en cada render de la grilla. Columna
       simple en vez de tabla-aparte-con-RPC (como adjuntos de factura)

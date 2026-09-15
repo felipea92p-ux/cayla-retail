@@ -1,9 +1,10 @@
-# 0053 — Subcategoría opcional, un solo nivel, familia heredada del padre
+# 0055 — Subcategoría opcional, un solo nivel, familia heredada del padre
 
 **Fecha:** 2026-09-15
 **Estado:** aceptado
-**Numeración:** puede chocar con otras sesiones paralelas de Productos (F1/F2/F4)
-trabajando el mismo día — resuelto por la sesión de integración (F5).
+**Numeración:** nació como 0053; chocaba con F1 (fotos/temporada, se quedó con 0053) y
+F2 (colores, pasó a 0054) — renumerado a 0055 al integrar (F5, 2026-09-15), mismo patrón
+que el choque de ADR-0051 de la ronda anterior.
 
 ## Contexto
 
@@ -44,6 +45,8 @@ resuelve (un agrupador de primer nivel fijo y cerrado).
 
 ## Consecuencia
 
-Migración `20260915224500_categorias_subcategoria.sql`. `retail.actualizar_categoria`
+Migración `20260915224501_categorias_subcategoria.sql` (renombrada de `...224500` al
+integrar — chocaba con la migración de F1, mismo timestamp exacto; contenido intacto).
+`retail.actualizar_categoria`
 pasó de 4 a 5 argumentos (se agregó `p_notas`) — la firma vieja se dropea
 explícitamente en la misma migración para no dejar dos overloads ambiguos.

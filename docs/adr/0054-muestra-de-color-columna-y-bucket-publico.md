@@ -1,4 +1,4 @@
-# ADR-0053 — Muestra de color: columna simple y bucket público (no el patrón de adjuntos)
+# ADR-0054 — Muestra de color: columna simple y bucket público (no el patrón de adjuntos)
 
 **Fecha:** 2026-09-15
 **Estado:** Migración escrita (`20260915230000_colores_tipo_y_muestra.sql`), pendiente de

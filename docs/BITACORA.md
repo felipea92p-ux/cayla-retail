@@ -3939,7 +3939,7 @@ verificación en navegador real — queda en BACKLOG para quien tenga Docker a m
 
 Sesión F2 (`feat/colores-tipo-muestra`, sobre `DiegoN`): `colores.tipo` (sólido/textura/
 estampado, ortogonal a `familia_color`), `colores.imagen_muestra_url` (bucket público
-`retail-colores-muestras` — ADR-0053 justifica público sobre el precedente privado de
+`retail-colores-muestras` — ADR-0054 justifica público sobre el precedente privado de
 adjuntos de factura) y `colores.notas`. `ColoresLista.tsx` con selector de tipo, subida de
 muestra y notas en alta/edición; el listado cae al cuadradito de HEX cuando no hay foto.
 Verificado con `typecheck`/`lint`/`build`/`vitest` (215/215) limpios; sin Docker/Supabase
@@ -3949,7 +3949,7 @@ Storage encendido (local o producción) — documentado en BACKLOG.
 ## 2026-09-15 (categorías: subcategoría opcional de un solo nivel — Sesión F3)
 
 `categorias.categoria_padre_id` (self-FK, nullable) + `notas`, con el candado real en
-`retail.fn_valida_categoria_subcategoria` (trigger, ADR-0053): un solo nivel, y la
+`retail.fn_valida_categoria_subcategoria` (trigger, ADR-0055): un solo nivel, y la
 familia de una hija siempre se re-deriva de su padre, nunca queda desincronizada.
 `CategoriasLista.tsx` agrupa hijas en un clúster junto a su padre (una categoría sin
 hijas queda `display:contents`, pixel-idéntica a antes); "Nueva categoría" suma un
@@ -3960,7 +3960,7 @@ Docker/Supabase CLI para levantar el stack local; sí quedaron en verde `pnpm ty
 y `pnpm lint` sobre `apps/web` (hubo que actualizar a mano `packages/database/src/types.ts`,
 que normalmente sale de `supabase gen types` contra una base viva). Pendiente en
 BACKLOG: correr `/productos/categorias` en un entorno con Supabase local antes de
-integrar, y aplicar `20260915224500_categorias_subcategoria.sql` en producción
+integrar, y aplicar `20260915224501_categorias_subcategoria.sql` en producción
 (con `set search_path to retail, public;`, CLAUDE.md).
 
 ## 2026-09-15 (Productos: densidad visual del listado — Sesión F4)
