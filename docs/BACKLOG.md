@@ -9,7 +9,7 @@ y BITÁCORA de esa fecha).** Facturación electrónica (Lucode/SUNAT), Finanzas 
 Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más abajo,
 **ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
 y su data en `retail` era de prueba, no operación real). **Producción volvió el 2026-09-15
-sobre V2 (ADR-0050)** — lo que diga de ella más abajo describe la versión V1, no la actual.
+sobre V2 (ADR-0051)** — lo que diga de ella más abajo describe la versión V1, no la actual.
 Lo que sí sigue vigente hoy: Vender/Caja (POS), Productos, Inventario, Compras, Movimientos,
 Colaboradores, Producción. Antes de
 actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
@@ -252,7 +252,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `authenticated` tenía `INSERT`+`SELECT` (UPDATE/DELETE ya los sacó ayer D-22); queda
       solo con `SELECT`. Cero pantallas dependían del insert directo (`grep` sobre
       `apps/web`: un solo `.from("movimientos")`, en `lib/compras.ts:330`, y es un
-      `.select`). Probado en rojo/verde en local (ver ADR-0051): el insert directo como
+      `.select`). Probado en rojo/verde en local (ver ADR-0052): el insert directo como
       `authenticated` ahora falla con `permission denied`; las funciones siguen sin tocar
       RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
       vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
@@ -263,7 +263,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `retail.transferencias` tiene la misma forma de policy de INSERT sin verificar.
 - [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
       `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
-      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
+      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0052.
 - [ ] **Dos firmas vivas de `registrar_movimiento` en producción** (6 y 7 parámetros,
       `p_sububicacion_id` de más en la segunda) — un `select registrar_movimiento(...)`
       con los 6 parámetros históricos sale `is not unique`, reproducido en local
@@ -325,8 +325,9 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 - [x] **Detalle compartible por URL** (`?mov=<id>`, 2026-09-15): abrir una fila escribe
       el id con `history.replaceState` (sin consulta al servidor); cambiar un filtro o
       pasar de página lo borra. Y `buscar/page.tsx` ya excluye la centinela.
-- [ ] **Aplicar `20260915120000_reparar_fk_transferencia_items.sql` en producción (con
-      ok de Felipe).** Hallazgo del refresco: la ÚNICA diferencia entre producción y
+- [x] **`20260915120000_reparar_fk_transferencia_items.sql` aplicada en producción el
+      2026-09-15 con ok de Felipe**, verificada con una transferencia real revertida
+      (`transferir()` pasa, la línea queda enlazada a su movimiento). Hallazgo del refresco: la ÚNICA diferencia entre producción y
       local es que `transferencia_items.movimiento_id` apunta a `transferencia_items(id)`
       en vez de `movimientos(id)`. Comprobado con rollback: la primera «Mover
       mercadería» entre sedes fallaría entera con «violates foreign key constraint».
@@ -375,7 +376,7 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Migración `20260915120000_produccion_del_taller` no está en producción** (ADR-0050).
+- [ ] **Migración `20260915130000_produccion_del_taller` no está en producción** (ADR-0051).
       Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
       (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
       `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,
@@ -1538,7 +1539,7 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
-- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
+- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0051). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
       verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
       cerrar al inventario / anular / revertir, `lib/produccion-reglas.ts` con 8 tests,

@@ -1,4 +1,4 @@
-# ADR-0051 — El INSERT directo a `movimientos` ya no pasa
+# ADR-0052 — El INSERT directo a `movimientos` ya no pasa
 
 **Fecha:** 2026-09-15
 **Estado:** Aplicado y verificado en local, y aplicado y verificado en producción el mismo

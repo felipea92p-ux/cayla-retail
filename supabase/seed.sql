@@ -50,7 +50,7 @@ insert into public.sedes (codigo, nombre, tipo, ciudad) values
   ('LIM', 'Tienda LIM', 'tienda', 'Lima'),
   ('TRU', 'Tienda TRU', 'tienda', 'Trujillo');
 
--- El Taller es tipo 'taller' desde 20260915120000_produccion_del_taller.sql:
+-- El Taller es tipo 'taller' desde 20260915130000_produccion_del_taller.sql:
 -- es la única ubicación donde se abren órdenes de producción.
 insert into retail.ubicaciones (nombre, tipo, sede_dynamic_id)
 select 'Taller', 'taller', null
