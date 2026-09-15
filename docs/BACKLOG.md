@@ -30,7 +30,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `20260914165703_movimientos_inmutables.sql`. Disparador `before update or
       delete` + retiro de `UPDATE`/`DELETE`/`TRUNCATE` a `authenticated`/`anon`.
       Probado en rojo: las dos operaciones fallan, las 105 filas quedan intactas.
-      **Aplicado solo en local.**
+      **Ya está también en producción** — ver el detalle y la higiene pendiente
+      (migración sin registrar) en «Pendiente de construir» más abajo.
 - [x] **El modal de cierre de caja dejó de revelar el esperado antes de contar**
       (`CerrarCajaModalV2.tsx`). Ahora el esperado sale de la respuesta de
       `cerrar_caja` —calculado en el instante del cierre, no al cargar la página— y
@@ -76,7 +77,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       registro). Tercera adenda: **pago mixto y vuelto** — filas por medio, recibido en
       efectivo con teclas que suman billetes, «Cubierto / Falta cubrir / Se pasa»;
       verificado con Boleta B001-000006 (yape 50 + efectivo 109.80, «efectivo + yape»
-      en Ventas de hoy). **Solo en `main` local — falta pushear.**
+      en Ventas de hoy). **En `origin/main`** (verificado 2026-09-15: `git merge-base
+      --is-ancestor` confirma los commits del 14-sep en el HEAD de esta rama).
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
@@ -86,7 +88,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       modal (`Modal.alCerrarEnfocar` sobre Radix) y ante una tecla suelta con el foco en
       un botón (`lib/escaner-tecla-suelta.ts`, 9 tests) — antes el Enter de la pistola
       activaba ese botón. Verificado en navegador con ventas reales en local
-      (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
+      (B001-000002 a 000004). **En `origin/main`.**
 
 - [x] **El catálogo de Vender se mira por prenda + color, con las tallas adentro**
       (sesión A, segunda ola del mismo día, decisión 1A de Felipe). `lib/catalogo-grupos.ts`
@@ -95,27 +97,31 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       borde rojo suave sin stock (pedido explícito; rompe el "máx. 2 rojos" del brandbook),
       `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
       `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
-      tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+      tarjetas medidas a 1440×900. **En `origin/main`.**
 - [x] **La talla agotada dice en qué sede sí hay** (sesión A, tercera ola). Tooltip por
       talla y línea en el desplegable del escáner; `lib/stock-por-sede.ts` (9 tests);
       `page.tsx` lee el stock de todas las sedes que RLS deje ver. Funciona para Líderes;
       para colaboradoras de sede fija llega vacío (ver pendiente siguiente). De paso: fuera
       el reveal al scroll del POS (dos atenuados no conviven) y `catalogo-grupos.ts` dejó
-      de ser binario para git (byte NUL → escape). **Solo en `main` local — falta pushear.**
+      de ser binario para git (byte NUL → escape). **En `origin/main`.**
 - [x] **«Ventas de hoy» firma cada venta con la integrante** (sesión A). Primer nombre,
       inicial del apellido solo si hay dos con el mismo (`lib/nombre-integrante.ts`, 6
-      tests); el relleno «—» de la RPC no se pinta. **Solo en `main` local — falta pushear.**
+      tests); el relleno «—» de la RPC no se pinta. **En `origin/main`.**
 - [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
       enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
-      limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
+      limpia; ocultos bajo `sm`. **En `origin/main`.**
 - [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
-      texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
-- [ ] **Aplicar `20260914220001_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
-      migración está escrita y NO aplicada (esquema en la base compartida: la aplica
-      Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
-      porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
-      Después de aplicarla: `supabase.rpc("fn_stock_por_sede")` en `vender/page.tsx` (un
-      commit chico) y verificar como Micaela (ya es colaboradora de Trujillo en local).
+      texto completo en `title`; nada si viene null. **En `origin/main`.**
+- [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
+      **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
+      schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,
+      `…231015_registrar_venta_piso_con_nota`, aunque su propia migración
+      `20260914220001` no quedó registrada en `schema_migrations`). `vender/page.tsx:43`
+      todavía lee `stock` directo (`supabase.from("stock").select(...)`), así que
+      `stock_select` = «puede operar la sede» sigue filtrando y una colaboradora de sede
+      fija recibe `otrasSedes` vacío. Cambio: `supabase.rpc("fn_stock_por_sede")` en vez de
+      la lectura directa (un commit chico) y verificar como Micaela (colaboradora de
+      Trujillo — su fila ya existe en local, ver ítem siguiente).
 - [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
       `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
       («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
@@ -127,19 +133,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
       la pinta sin rediseñar.
 
-- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`).**
-      Verificar en local que la caja opera sobre *su* sede y no sobre la del Líder: el
-      selector «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de
-      la persona, y que el escáner solo reconozca stock de esa sede. El `seed.sql` nuevo
-      pone a Micaela como colaboradora de Trujillo, pero la base local no se reseteó
-      (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
-      `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
+- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`)
+      — falta VERIFICAR, ya no falta la data.** Micaela existe en local como colaboradora
+      de Tienda Trujillo (confirmado 2026-09-15: `retail.colaboradores` tiene su fila con
+      `ubicacion_asignada_id` = Trujillo). Falta entrar como ella y verificar en
+      navegador que la caja opera sobre *su* sede y no sobre la de un Líder: el selector
+      «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de la persona,
+      y que el escáner solo reconozca stock de esa sede. Sin dueño ni fecha; no bloquea
+      nada de Vender.
 
-- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
-      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
-      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
-      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
-      prenda (es una decisión operativa por tienda, no un script ciego).
+- [x] **El bloque 8 (`…231015_registrar_venta_piso_con_nota`) ya está en producción** —
+      cerrado, no es más un bloqueante. Verificado 2026-09-15 contra `pg_proc` en
+      `cayla-dynamic`: `registrar_venta` tiene una sola sobrecarga de 11 parámetros con
+      `fn_sububicacion_por_defecto` en el cuerpo, y `20260914231015` SÍ está registrada en
+      `supabase_migrations.schema_migrations` (a diferencia de lo que decía este ítem
+      hasta hoy). Sigue vigente la regla operativa: al activar piso/almacén en una tienda,
+      llevar antes el stock «sin sububicación» al piso con `mover_interno(…, null, piso,
+      …)`, prenda por prenda (decisión por tienda, no un script ciego).
 
 **Pendiente de decisión de Felipe:**
 
@@ -150,14 +160,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       la consola del navegador — un `GET` de una línea. El candado de verdad es que quien
       opera la caja no pueda leer ese agregado, y eso necesita los cuatro niveles de
       D-12, que hoy no existen en la base.
-- [ ] **"Control total temporal" (`0012`/`0013`) no tiene fecha de revisión.** Dentro de
-      la lista blanca `retail.colaboradores`, **cualquier colaborador puede operar
-      cualquier sede**: abrir/cerrar caja ajena, anular comprobantes SUNAT aceptados,
-      cerrar conteos, aprobar devoluciones. Es una decisión explícita y bien documentada
-      de Felipe (2026-09-12/13) para destrabar logins en pruebas — pero "temporal" sin
-      fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
-      de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
-      Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+- [x] **"Control total temporal" (`0012`/`0013`) — cerrado por `0016_roles_colaborador`.**
+      El hueco que este ítem denunciaba (cualquier colaborador podía operar cualquier
+      sede) ya no existe: verificado 2026-09-15 contra `cayla-dynamic` en vivo,
+      `fn_puede_operar_ubicacion` compone sobre el `fn_es_lider()` y
+      `fn_ubicacion_actual_persona()` reales de `0016` (Líder = todo; Colaborador = solo
+      su `ubicacion_asignada_id`), no sobre el bypass de `0012` ("cualquier persona activa
+      de Dynamic"). Sigue pendiente, aparte, el candado del **conteo ciego** (ítem
+      siguiente), que depende de los cuatro niveles de D-12 y no de este.
 - [ ] **¿Dónde vive la docencia del cobro ahora que los (!) solo se encienden cuando
       falta algo?** (ADR-0044). La explicación de «acá se registra, no se cobra» y de
       «boleta admite DNI opcional; factura exige RUC» quedó dentro de los globos de
@@ -175,14 +185,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
-      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
-      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
-      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
-      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
-      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
-      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+- [x] **Las tres migraciones de ADR-0048 ya están en producción — ya no bloquean el
+      deploy.** `20260914215059_candado_precio_venta.sql`,
+      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`.
+      Verificado 2026-09-15: las tres versiones están en
+      `supabase_migrations.schema_migrations` de `cayla-dynamic` y `registrar_venta` en
+      vivo acepta `p_codigo_descuento` y `p_nota`. Pendiente de higiene, no de deploy:
+      correr `pnpm datos:generar:produccion` (el diccionario sigue describiendo la RPC de
+      5 parámetros de V1). «Ventas de hoy» ya pinta `nota` (ítem cerrado arriba).
 - [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
       en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
       tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
@@ -210,21 +220,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
-- [ ] **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
-      contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
-      `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
-      `ubicacion_id`/`venta_item_id`/`compra_item_id`. Se desplegó el 12-sep con las
-      migraciones normales (`supabase_migrations.schema_migrations` las registra como
-      `retail_0007_cambios` … `retail_0016_colaboradores_iniciales`), así que
-      **`supabase/unificacion/` dejó de ser el riel de producción** y escribir un gemelo
-      ahí habría revivido la deuda de migraciones duales (ADR-0004/0006), que este
-      backlog llama "la que más caro ha salido".
-      Lo que corresponde: pegar `20260914165703_movimientos_inmutables.sql` **tal cual**
-      —ya usa el prefijo `retail.`— y registrarla con el mismo mecanismo que las otras.
-      **El pre-flight ya se corrió contra producción: 0 funciones editan o borran
-      `retail.movimientos`.** Único trigger presente: `movimientos_compra_foto`
-      (AFTER INSERT), que no choca con uno BEFORE UPDATE/DELETE. `authenticated` tiene
-      hoy UPDATE y DELETE (TRUNCATE ya no), y 108 filas de historial que proteger.
+- [x] **El candado de `movimientos` (ADR-0042) ya está en producción.** Verificado
+      2026-09-15 en vivo contra `cayla-dynamic`: el trigger `movimientos_inmutables`
+      existe sobre `retail.movimientos` junto al `movimientos_compra_foto` de siempre, y
+      `authenticated` ya solo tiene `INSERT`/`SELECT` (sin `UPDATE`/`DELETE`/`TRUNCATE`).
+      Queda una sola higiene: `20260914165703` no aparece en
+      `supabase_migrations.schema_migrations` — el candado corre, pero su migración no
+      quedó registrada (mismo patrón que el bloque 8 tuvo hasta ayer). Registrarla es
+      cosa de Felipe (D-11), no bloquea nada.
 - [ ] **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
       producción.** Fue medido el 2026-09-12 contra el modelo viejo (45 tablas,
       `sede_id`, `venta_id`, `registrar_gasto`, `supabase/unificacion/`). Verificado hoy:
@@ -272,11 +275,11 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 
 **Pendiente de Felipe (producción):**
 
-- [ ] **Pegar `20260915090000_movimientos_lectura.sql` en producción** (ya lleva
-      `retail.`). Sin eso, Vercel con este código mostrará «No se pudieron cargar los
-      movimientos» — la pantalla llama a una función que producción no tiene. Orden:
-      merge a `main` → pegar la migración → recién ahí se ve. Después,
-      `pnpm datos:generar:produccion` para que el diccionario la conozca.
+- [x] **`20260915090000_movimientos_lectura.sql` ya está en producción — este ítem
+      quedó viejo apenas se escribió.** Verificado 2026-09-15: la migración está
+      registrada en `supabase_migrations.schema_migrations` de `cayla-dynamic` y
+      `fn_movimientos`/`fn_movimientos_resumen` existen ahí. Pendiente de higiene, no de
+      deploy: `pnpm datos:generar:produccion` para que el diccionario la conozca.
 - [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de

@@ -3,6 +3,39 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (el BACKLOG decía "no en producción" seis veces, y ya estaba)
+
+Felipe pidió analizar una comparativa externa del POS contra siete ERP/POS (SAP, Xstore,
+Odoo, Dynamics 365, NetSuite, Epicor, Acumatica) y decir qué falta en Vender. La verificación
+encontró un bug real de paso: con la caja cerrada desde ayer, `PuntoDeVenta.tsx` cargaba los
+tickets en espera de `localStorage` en el mismo efecto que los debía dejar vacíos —el chip
+«En espera · N» mostraba tickets de un día anterior a la caja de hoy. `esperaAlCargar()`
+(`lib/vender-reglas.ts`, 2 tests) decide qué vuelve al montar; reproducido y verificado en
+navegador antes y después del fix. De paso, `VenderFormV2.tsx` —sin importadores desde el
+corte V2, pero que igual llamaba a `registrar_venta`— salió del repo.
+
+Al limpiar el BACKLOG con esos hallazgos, la sospecha de "¿y esto sigue así?" llevó a
+consultar `pg_proc`/`information_schema` en vivo contra `cayla-dynamic` (schema `retail`,
+solo lectura) para cada ítem marcado "no en producción" en la sección de Vender+Caja.
+Seis resultaron viejos: el bloque 8 (`…231015_registrar_venta_piso_con_nota`, con
+`fn_sububicacion_por_defecto` en el cuerpo), las tres migraciones de ADR-0048 (candado de
+precio, códigos de descuento, nota), el candado de `movimientos` (ADR-0042: trigger presente,
+`authenticated` sin UPDATE/DELETE/TRUNCATE), `0016_roles_colaborador` (`fn_puede_operar_
+ubicacion` ya compone sobre el candado real, no sobre el bypass de `0012`) y —de la sesión de
+Movimientos de más arriba, escrita horas antes— `20260915090000_movimientos_lectura`, que
+esa misma entrada da por "solo local" y ya estaba pegada. De los ítems de Vender solo quedó
+uno realmente pendiente: `fn_stock_por_sede` ya está en producción (la trajo el bloque 8),
+pero `vender/page.tsx:43` sigue leyendo la tabla `stock` directo en vez de llamarla —así que
+una colaboradora de sede fija sigue sin ver otras sedes.
+
+Lo que Felipe se lleva: **`schema_migrations` registra qué se pegó, no qué existe** —al
+menos tres de estas migraciones (el bloque 8 hasta ayer, el candado de `movimientos`, y
+`20260914220001_stock_por_sede`) corren en producción sin una fila que las respalde, porque
+se pegaron sin el `insert` de registro. Un BACKLOG que se escribe leyendo el repo o el
+historial de migraciones, sin preguntarle a la base, se desactualiza en horas mientras Felipe
+sigue pegando SQL directo (D-11). La única fuente confiable es `pg_proc`/`information_schema`
+en vivo — igual que ya advertía `docs/BACKLOG.md` sobre `docs/datos/generado/`.
+
 ## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
 
 Felipe pidió cinco tipos, búsqueda, filtros, detalle y trazabilidad de proceso en
