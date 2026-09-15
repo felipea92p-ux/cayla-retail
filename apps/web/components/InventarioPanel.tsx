@@ -5,6 +5,7 @@ import { clave } from "@/lib/buscar-prenda-v2";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
+import { MuestraColor } from "@/components/ui/MuestraColor";
 import type { EstadoStock, FilaStock, ResumenInventario } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -161,7 +162,10 @@ export function InventarioPanel({
               <span className={celda("izq")}>{f.referencia}</span>
               <span className={celda("izq", "font-mono text-xs text-tinta/75")}>{f.sku}</span>
               <span className={celda("izq", "text-tinta/75")}>{f.talla ?? "—"}</span>
-              <span className={celda("izq", "text-tinta/75")}>{f.color ?? "—"}</span>
+              {/* `overflow-visible`: la pastilla con el nombre flota fuera de la celda al pasar el mouse. */}
+              <span className={celda("izq", "overflow-visible")}>
+                <MuestraColor nombre={f.color} hex={f.colorHex} />
+              </span>
               {resumen.separaPisoAlmacen ? (
                 <>
                   <span className={celda("der")}>{f.piso}</span>

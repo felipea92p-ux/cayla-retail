@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Inventario: el color se ve, y «Reponer piso» avisa antes de que el piso quede vacío)
+
+Dos pedidos puntuales de Felipe sobre la tabla de Inventario. (1) La columna Color deja de
+decir «Blanco» y muestra el color: un círculo con el `hex` de `retail.colores` (borde tenue
+para que Blanco y Crudo se vean sobre crema); al pasar el mouse el nombre se desliza desde el
+círculo hacia la derecha en una pastilla que flota sobre la fila, sin mover nada; en celular
+el nombre va siempre al lado. Estampado, Multicolor y Animal print no tienen hex y se dibujan
+con una rueda de varios tonos. Pieza nueva y reutilizable: `ui/MuestraColor.tsx`. (2) El
+estado «Reponer piso» salta con **4 unidades o menos** en el piso (antes solo con 0), siempre
+que haya algo en el almacén para bajar; con el almacén vacío no hay qué reponer y sigue en
+«Normal». La regla vive en `lib/inventario-reglas.ts` (`UMBRAL_REPOSICION_PISO = 4`,
+`calcularEstado`) con pruebas; la tarjeta «Requieren reposición» y el filtro usan la misma.
+
+Lo que Felipe se lleva: **un umbral es una decisión de negocio y vive en UNA constante con
+nombre** — el día que las tiendas pidan 6 en vez de 4, es un número en un archivo, no una
+cacería por la pantalla, el filtro y la tarjeta.
+
 ## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
 
 Felipe pidió cinco tipos, búsqueda, filtros, detalle y trazabilidad de proceso en
