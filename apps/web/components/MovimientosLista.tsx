@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
@@ -19,13 +20,38 @@ import {
 // el detalle en un modal — la fila ya trae todo (fn_movimientos resolvió las
 // referencias), así que abrir el detalle no consulta nada.
 //
+// El movimiento abierto vive en la URL (`?mov=<id>`) para que «mirá este
+// movimiento» sea un enlace que se manda por WhatsApp y abre exactamente eso.
+// Se escribe con `history.replaceState`, no con `router.push`: la página es un
+// Server Component y un push volvería a consultar Postgres solo por abrir un
+// modal. Si el id no está en la página cargada (otros filtros, otra página del
+// cursor), no se abre nada — nunca se inventa una consulta extra.
+//
 // Hora · Tipo · Prenda · Proceso y referencia · Cantidad · Persona
 // La persona solo entra desde lg: en una pantalla mediana las dos columnas de
 // texto (prenda y proceso) valen más que quién lo hizo, que sigue en el detalle.
 const PLANTILLA = "sm:grid-cols-[3rem_6.75rem_1.1fr_1fr_3.5rem] lg:grid-cols-[3rem_6.75rem_1.1fr_1fr_3.5rem_7rem]";
 
 export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimiento[]; hoyLima: string }) {
-  const [abierto, setAbierto] = useState<Movimiento | null>(null);
+  const params = useSearchParams();
+  const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
+  const abierto = abiertoId ? (movimientos.find((m) => m.id === abiertoId) ?? null) : null;
+
+  function sincronizarUrl(id: string | null) {
+    const p = new URLSearchParams(window.location.search);
+    if (id) p.set("mov", id);
+    else p.delete("mov");
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }
+  function abrir(m: Movimiento) {
+    setAbiertoId(m.id);
+    sincronizarUrl(m.id);
+  }
+  function cerrar() {
+    setAbiertoId(null);
+    sincronizarUrl(null);
+  }
 
   // Agrupar por día de Lima (`fecha` ya viene calculada en SQL): la lista
   // llega ordenada por fecha desc, así que los grupos salen en orden solos.
@@ -66,7 +92,7 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setAbierto(m)}
+                  onClick={() => abrir(m)}
                   className={fila(PLANTILLA, "w-full text-left transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}
                 >
                   <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{m.hora}</span>
@@ -110,7 +136,7 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
         ))}
       </Tabla>
 
-      {abierto && <MovimientoDetalle movimiento={abierto} onClose={() => setAbierto(null)} />}
+      {abierto && <MovimientoDetalle movimiento={abierto} onClose={cerrar} />}
     </>
   );
 }

@@ -60,6 +60,8 @@ export type ParamsMovimientos = {
   usuario?: string;
   cursor?: string;
   ubicacion?: string;
+  /** Id del movimiento abierto en el detalle (lo escribe `MovimientosLista`). */
+  mov?: string;
 };
 
 const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
