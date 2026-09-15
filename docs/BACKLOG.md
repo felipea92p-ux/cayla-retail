@@ -215,6 +215,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `PuntoDeVenta.tsx:47,141` la deja fija en `0` y el campo "Precio unitario"
       sobreescribe el precio directo. Nadie puede medir cuánto se regala en descuentos,
       ni distinguir un descuento autorizado de un cero de más al tipear.
+- [x] **El Líder también tiene tope, y el descuento pide motivo — cierra R-45 y D-44**
+      (ADR-0051, `20260915140000_descuento_motivo_y_escalonado.sql`). Desde el 09-14 la
+      Colaboradora ya tenía tope (el código); el Líder podía descontar cualquier % sin
+      dejar rastro. Ahora, para cualquier descuento > 0 (Líder o Colaboradora): motivo
+      de lista cerrada obligatorio, y nunca por debajo del costo, sin revelar el número.
+      Solo para el Líder: hasta 20 % sola, 20-35 % con argumento escrito, más de 35 %
+      nadie — sin excepción (decisión de Felipe, 2026-09-15: la base no puede distinguir
+      "Felipe" de las otras 8 personas registradas; ver ADR-0051 «Se descartó»). De
+      paso: descuento en S/ por unidad, no solo en %. Verificado en 10 escenarios psql
+      y de punta a punta en navegador (Boletas B001-000010 y B001-000011, local).
+      **No aplicado en producción** — la pega Felipe (D-11).
+- [ ] **Reporte de "cuánto margen se fue por cada motivo"** (R-45, punto 2) — el dato ya
+      se guarda (`venta_items.motivo_descuento`), pero no hay pantalla que lo sume por
+      motivo ni por período. Paso propio, sobre ADR-0051.
 - [ ] **Cero pruebas automatizadas sobre `registrar_venta`, `abrir_caja` y
       `cerrar_caja`.** Es el núcleo del dinero y del stock. No hay `supabase/tests/`
       ni un solo `*.test.ts` que las toque. Es D-25, y lo pide **antes** del censo.

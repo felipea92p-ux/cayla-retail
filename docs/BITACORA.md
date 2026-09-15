@@ -3,6 +3,37 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (el Líder también tiene tope — R-45 y D-44, saltados desde el 09-12)
+
+Tercer paso de la misma sesión: la comparativa externa señalaba "descuento sin motivo,
+solo en %". Al volver sobre R-45/D-44 (decididos 2026-09-12) apareció el hueco real:
+desde el 09-14 (ADR-0048) la Colaboradora ya tenía tope — el código —, pero el Líder
+podía descontar cualquier % sin dejar rastro de por qué ni mirar el costo.
+`20260915140000_descuento_motivo_y_escalonado.sql` (ADR-0051) cierra los tres candados
+de R-45 — motivo de lista cerrada y nunca bajo el costo, para cualquiera; el escalonado
+20 %/35 % con argumento, solo el Líder — sin cambiar la firma de `registrar_venta` (los
+campos viajan dentro de cada `p_items[]`, igual que `descuento_unitario` siempre lo
+hizo). De paso, la otra entrada que pedía la comparativa: descuento en S/, no solo en %
+(`aplicarDescuentoMonto()`, mismo camino que la versión en % con otra conversión).
+
+El único punto sin resolver solo con código: R-45 dice "más de 35 % lo autoriza
+Felipe", pero la base hoy no distingue a Felipe de cualquiera de las otras 8 personas
+registradas como Líder — D-12 (los cuatro niveles de rol) no existe todavía. Se le
+preguntó a Felipe en vez de asumir un mecanismo: eligió bloquear sin excepción por
+ahora ("el día que haga falta de verdad, se sube a mano en Studio") en vez de agregar
+una bandera nueva al modelo de personas por una regla que producción nunca ha usado (0
+ventas con descuento > 35 % medido ese mismo día). Verificado con 10 escenarios en
+psql (impersonando Líder y Colaboradora con `set local role` + JWT simulado) y de
+punta a punta en navegador: 25 % con argumento pasa (Boleta B001-000010), 40 % con
+argumento igual se rechaza (nadie deja fila en `venta_items`), S/20 sin argumento pasa
+por no llegar al 20 % (Boleta B001-000011).
+
+Lo que Felipe se lleva: **cuando la letra de una decisión pide algo que el modelo de
+datos todavía no puede distinguir** (aquí, "Felipe" separado de "cualquier Líder"), la
+salida más segura no es inventar el mecanismo que falta a mitad de otra tarea — es
+preguntar y, si la respuesta es "bloquéalo por ahora", dejarlo bloqueado sin excepción
+y anotar la razón (ADR-0051 «Se descartó») para el día que sí haga falta.
+
 ## 2026-09-15 (el BACKLOG decía "no en producción" seis veces, y ya estaba)
 
 Felipe pidió analizar una comparativa externa del POS contra siete ERP/POS (SAP, Xstore,
