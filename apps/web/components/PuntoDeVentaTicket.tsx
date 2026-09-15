@@ -1,13 +1,13 @@
 "use client";
 
 import type { RefObject } from "react";
-import { BadgePercent, Banknote, Check, CreditCard, FileText, Landmark, Percent, Receipt, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, FileText, KeyRound, Landmark, Percent, Play, Receipt, ShoppingBag, StickyNote, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { descuentoUnitarioPorPorcentaje, porcentajeDeLinea, type MomentoTicket } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito } from "@/components/PuntoDeVenta";
+import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -15,6 +15,14 @@ const TASA_IGV = 0.18;
 
 /** Atajos de % del apartado de descuento — los que se dan de palabra en el mostrador. */
 const ATAJOS_DESCUENTO = [5, 10, 15, 20, 25, 50] as const;
+
+/** Billetes de sol que se reciben en el mostrador — las teclas de «Recibido» los suman. */
+const BILLETES = [10, 20, 50, 100, 200] as const;
+
+/** La nota del ticket: el tope es el `check` de `ventas.nota`; el contador se muestra
+ *  recién cerca del tope, para no contar letras a quien escribe cuatro palabras. */
+const NOTA_MAX = 200;
+const NOTA_AVISO = 160;
 
 /** El botón principal es el mismo en los tres momentos; cambian su texto y lo que hace.
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
@@ -97,6 +105,18 @@ type Props = {
   onAbrirDescuento: (claves: string[] | null) => void;
   onAplicarDescuento: () => void;
   onQuitarDescuento: () => void;
+  /** Un Líder no ve el campo «Código»; una Colaboradora lo necesita para descontar. */
+  esLider: boolean;
+  codigoDescuento: string;
+  onCodigoDescuento: (v: string) => void;
+  // Nota del ticket — una línea, hasta 200; vive con las líneas (momento «armar»)
+  nota: string;
+  onNota: (v: string) => void;
+  // Tickets en espera de la sede (Park/Resume) — momento «espera»
+  enEspera: TicketEnEspera[];
+  onDejarEnEspera: () => void;
+  onRetomar: (id: string) => void;
+  onIrAEspera: () => void;
   // Totales — ya calculados en el padre
   total: number;
   prendas: number;
@@ -107,9 +127,15 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
-  // Método de pago — null hasta que la colaboradora elija uno
-  metodoPago: MetodoPago | null;
-  onMetodoPago: (m: MetodoPago) => void;
+  // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
+  pagos: PagoAplicado[];
+  restante: number;
+  vuelto: number;
+  onAgregarPago: (metodo: MetodoPago) => void;
+  onMontoPago: (indice: number, monto: number) => void;
+  onQuitarPago: (indice: number) => void;
+  /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
+  onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
   onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
@@ -147,14 +173,28 @@ export function PuntoDeVentaTicket({
   onAbrirDescuento,
   onAplicarDescuento,
   onQuitarDescuento,
+  esLider,
+  codigoDescuento,
+  onCodigoDescuento,
+  nota,
+  onNota,
+  enEspera,
+  onDejarEnEspera,
+  onRetomar,
+  onIrAEspera,
   total,
   prendas,
   momento,
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
-  metodoPago,
-  onMetodoPago,
+  pagos,
+  restante,
+  vuelto,
+  onAgregarPago,
+  onMontoPago,
+  onQuitarPago,
+  onRecibido,
   tipoComprobante,
   onTipoComprobante,
   clienteNumDoc,
@@ -167,8 +207,26 @@ export function PuntoDeVentaTicket({
 }: Props) {
   const cobrando = momento === "cobrar";
   const descontando = momento === "descuento";
+  const enLaEspera = momento === "espera";
+  // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
+  const resumenEspera = (t: TicketEnEspera) => ({
+    hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
+    prendas: t.carrito.reduce((acc, it) => acc + it.cantidad, 0),
+    total: t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0),
+  });
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const apagado = bloqueado || motivoBloqueo !== null;
+
+  // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
+  const faltaPago = !cobrando
+    ? null
+    : pagos.length === 0
+      ? "Elige cómo pagó la clienta"
+      : restante > 0
+        ? `Falta cubrir ${money(restante)}`
+        : restante < 0
+          ? "Los pagos superan el total"
+          : null;
 
   // Lo que ya se descontó (suma de todas las líneas), para la fila sobre el total.
   const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
@@ -202,10 +260,24 @@ export function PuntoDeVentaTicket({
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
       <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
         {momento === "armar" ? (
-          <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
-            <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
-            Ticket actual
-          </h2>
+          <>
+            <h2 className="flex items-center gap-2.5 font-display text-2xl leading-none text-tinta">
+              <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
+              Ticket actual
+            </h2>
+            {/* Solo cuando hay algo esperando: el chip es la única puerta a esa lista. */}
+            {enEspera.length > 0 && (
+              <button
+                type="button"
+                onClick={onIrAEspera}
+                disabled={bloqueado}
+                className="label-cayla anim-revelar flex h-8 items-center gap-1.5 rounded-lg border border-tinta/25 bg-crema px-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+              >
+                <CirclePause className={ICONO_CHICO} aria-hidden />
+                En espera · {enEspera.length}
+              </button>
+            )}
+          </>
         ) : (
           <>
             <button
@@ -218,11 +290,23 @@ export function PuntoDeVentaTicket({
             </button>
             <div key={momento} className="anim-revelar text-right">
               <h2 className="flex items-center justify-end gap-2.5 font-display text-2xl leading-none text-tinta">
-                {cobrando ? <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> : <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />}
-                {cobrando ? "Cobro" : "Descuento"}
+                {cobrando ? (
+                  <Wallet className="h-6 w-6 text-tinta/70" aria-hidden />
+                ) : enLaEspera ? (
+                  <CirclePause className="h-6 w-6 text-tinta/70" aria-hidden />
+                ) : (
+                  <BadgePercent className="h-6 w-6 text-tinta/70" aria-hidden />
+                )}
+                {cobrando ? "Cobro" : enLaEspera ? "En espera" : "Descuento"}
               </h2>
               <p className="mt-1 text-xs text-tinta/60">
-                {cobrando ? etiquetaPrendas : todoElTicket ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} prendas`}
+                {cobrando
+                  ? etiquetaPrendas
+                  : enLaEspera
+                    ? `${enEspera.length} ${enEspera.length === 1 ? "ticket" : "tickets"}`
+                    : todoElTicket
+                      ? "Todo el ticket"
+                      : `${elegidasCuenta} de ${carrito.length} prendas`}
               </p>
             </div>
           </>
@@ -231,7 +315,53 @@ export function PuntoDeVentaTicket({
 
       <form onSubmit={onCobrar} className="flex min-h-0 flex-1 flex-col">
         <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
-          {descontando ? (
+          {enLaEspera ? (
+            <div className="anim-revelar space-y-3 px-5 py-4">
+              {/* Si el actual tiene líneas, retomar lo intercambia: se dice antes de tocar. */}
+              {carrito.length > 0 && (
+                <p className="rounded-lg border border-sand bg-crema px-3 py-2 text-xs text-tinta/70">
+                  Tu ticket actual tiene {etiquetaPrendas}: al retomar uno, el actual pasa a espera.
+                </p>
+              )}
+              {enEspera.length === 0 ? (
+                <p className="py-6 text-center text-sm text-tinta/60">No hay tickets en espera.</p>
+              ) : (
+                <div className="divide-y divide-sand rounded-lg border border-sand bg-crema">
+                  {enEspera.map((t) => {
+                    const r = resumenEspera(t);
+                    return (
+                      <div key={t.id} className="flex items-center gap-3 px-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-tinta">
+                            <span className="font-mono text-xs text-tinta/60">{r.hora}</span>
+                            <span className="mx-1.5 text-tinta/30">·</span>
+                            {r.prendas} {r.prendas === 1 ? "prenda" : "prendas"}
+                            <span className="mx-1.5 text-tinta/30">·</span>
+                            <span className="font-semibold">{money(r.total)}</span>
+                          </p>
+                          {t.nota && (
+                            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-tinta/60">
+                              <StickyNote className="h-3 w-3 shrink-0" aria-hidden />
+                              {t.nota}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onRetomar(t.id)}
+                          disabled={bloqueado}
+                          className="label-cayla flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                        >
+                          <Play className={ICONO_CHICO} aria-hidden />
+                          Retomar
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : descontando ? (
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto: atajos de palabra o un número a mano. */}
               <fieldset className="space-y-2">
@@ -272,6 +402,34 @@ export function PuntoDeVentaTicket({
                   <span className="text-sm text-tinta/60">%</span>
                 </label>
               </fieldset>
+
+              {/* Código: solo para quien no es Líder. La base (registrar_venta) es la que
+                  exige que exista, esté vigente y que el % no pase su tope — acá solo se
+                  escribe; el error, si lo hay, llega por avisar.error al confirmar el cobro. */}
+              {!esLider && (
+                <fieldset className="space-y-2 border-t border-sand pt-4">
+                  <legend className="text-[11px] text-tinta/50">
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound className={ICONO_CHICO} aria-hidden />
+                      Código de descuento
+                    </span>
+                  </legend>
+                  <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                    <input
+                      aria-label="Código de descuento"
+                      type="text"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      value={codigoDescuento}
+                      onChange={(e) => onCodigoDescuento(e.target.value.toUpperCase())}
+                      placeholder="Pídeselo a un Líder"
+                      disabled={bloqueado}
+                      className="min-w-0 flex-1 bg-transparent font-mono text-sm font-semibold tracking-wider text-tinta outline-none placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-tinta/40"
+                    />
+                  </label>
+                </fieldset>
+              )}
 
               {/* 2 · A qué: todo el ticket, o solo las prendas que se marquen. */}
               <fieldset className="space-y-2 border-t border-sand pt-4">
@@ -332,15 +490,19 @@ export function PuntoDeVentaTicket({
           ) : cobrando ? (
             <div className="anim-revelar space-y-5 px-5 py-4">
               {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
-                  aunque la clienta no pida nada. El (!) solo aparece mientras falte. */}
+                  aunque la clienta no pida nada. Tocar un medio agrega su fila con lo que
+                  falta; combinar («Yape + efectivo», la venta más común de la tienda) es bajar
+                  un monto y tocar otro. El (!) solo aparece mientras no esté cubierto. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1">
-                    {metodoPago === null && (
-                      <Ayuda tono="falta" titulo="Elige cómo pagó la clienta">
-                        Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su
-                        propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre,
-                        donde solo se cuenta el efectivo.
+                    {faltaPago !== null && (
+                      <Ayuda tono="falta" titulo={faltaPago}>
+                        {pagos.length === 0
+                          ? "Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se cuenta el efectivo."
+                          : restante > 0
+                            ? "Los medios puestos no llegan al total. Sube un monto o toca otro medio para el resto."
+                            : "La suma de los medios pasa el total y la venta no cuadraría. Baja un monto o quita un medio."}
                       </Ayuda>
                     )}
                     <Wallet className={ICONO_CHICO} aria-hidden />
@@ -348,22 +510,139 @@ export function PuntoDeVentaTicket({
                   </span>
                 </legend>
                 <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
-                  {METODOS_PAGO.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => onMetodoPago(m)}
-                      disabled={bloqueado}
-                      aria-pressed={metodoPago === m}
-                      className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                        metodoPago === m ? OPCION_ACTIVA : OPCION_INACTIVA
-                      }`}
-                    >
-                      {ICONO_METODO[m]}
-                      {m}
-                    </button>
-                  ))}
+                  {METODOS_PAGO.map((m) => {
+                    const puesto = pagos.some((p) => p.metodo === m);
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => onAgregarPago(m)}
+                        disabled={bloqueado || puesto}
+                        aria-pressed={puesto}
+                        className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                          puesto ? OPCION_ACTIVA : OPCION_INACTIVA
+                        }`}
+                      >
+                        {ICONO_METODO[m]}
+                        {m}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {pagos.length > 0 && (
+                  <div className="anim-revelar divide-y divide-sand rounded-lg border border-sand bg-crema">
+                    {pagos.map((p, i) => (
+                      <div key={p.metodo} className="space-y-2 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-tinta/70">{ICONO_METODO[p.metodo]}</span>
+                          <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
+                          <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                            <span className="text-xs text-tinta/60">S/</span>
+                            <input
+                              aria-label={`Monto en ${p.metodo}`}
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={p.monto}
+                              onChange={(e) => onMontoPago(i, Number(e.target.value))}
+                              disabled={bloqueado}
+                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            aria-label={`Quitar pago en ${p.metodo}`}
+                            onClick={() => onQuitarPago(i)}
+                            disabled={bloqueado}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                          </button>
+                        </div>
+
+                        {/* Solo el efectivo da vuelto: lo entregado se anota para calcularlo y
+                            mostrarlo grande — nunca viaja a la venta. Las teclas SUMAN billetes
+                            (S/100 + S/50 = 150); «Exacto» pone lo justo; el campo corrige. */}
+                        {p.metodo === "efectivo" && (
+                          <div className="space-y-2 rounded-md bg-sand/40 p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] text-tinta/50">Recibido</span>
+                              <span className="flex items-center gap-1">
+                                <label className="flex h-8 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                                  <span className="text-xs text-tinta/60">S/</span>
+                                  <input
+                                    aria-label="Efectivo recibido"
+                                    type="number"
+                                    inputMode="decimal"
+                                    min={0}
+                                    step="0.01"
+                                    value={p.recibido ?? ""}
+                                    onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
+                                    placeholder="0.00"
+                                    disabled={bloqueado}
+                                    className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
+                                  />
+                                </label>
+                                {p.recibido !== undefined && (
+                                  <button
+                                    type="button"
+                                    aria-label="Borrar lo recibido"
+                                    onClick={() => onRecibido(null)}
+                                    disabled={bloqueado}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-sand/60 hover:text-tinta"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                              {BILLETES.map((b) => (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  onClick={() => onRecibido((p.recibido ?? 0) + b)}
+                                  disabled={bloqueado}
+                                  className="h-8 rounded-md border border-sand bg-papel text-xs font-semibold text-tinta transition-colors hover:bg-sand/40"
+                                >
+                                  +{b}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => onRecibido(p.monto)}
+                                disabled={bloqueado}
+                                className="label-cayla h-8 rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
+                              >
+                                Exacto
+                              </button>
+                            </div>
+                            {vuelto > 0 && (
+                              <p key={vuelto} className="anim-asentar flex items-baseline justify-between pt-1">
+                                <span className="label-cayla text-[11px] text-tinta/60">Vuelto</span>
+                                <span className="font-display text-3xl leading-none text-tinta">{money(vuelto)}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {pagos.length > 0 && (
+                  <p
+                    key={restante}
+                    className={`anim-asentar flex items-baseline justify-between text-xs ${
+                      restante === 0 ? "text-verde-profundo" : restante > 0 ? "text-tinta/70" : "text-rojo-profundo"
+                    }`}
+                  >
+                    <span>{restante === 0 ? "Cubierto" : restante > 0 ? "Falta cubrir" : "Se pasa por"}</span>
+                    <span className="font-semibold">{restante === 0 ? "✓" : money(Math.abs(restante))}</span>
+                  </p>
+                )}
               </fieldset>
 
               {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
@@ -418,109 +697,139 @@ export function PuntoDeVentaTicket({
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
             </div>
           ) : (
-            // La entrada y el reflujo de cada línea los anima el padre con `Flip`
-            // (responde al escaneo que la creó); acá solo va el ref de la lista.
-            <div ref={listaRef} className="divide-y divide-sand">
-              {carrito.map((it) => {
-                const pctLinea = porcentajeDeLinea(it);
-                const precioNeto = it.precioUnitario - it.descuentoUnitario;
-                return (
-                  <article key={it.claveLinea} className="px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
-                        <p className="font-mono text-xs text-tinta/60">{it.sku}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onAbrirDescuento([it.claveLinea])}
-                          disabled={bloqueado}
-                          aria-label={`Descuento para ${it.referencia}`}
-                          className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
-                            pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
-                          }`}
-                        >
-                          <Percent className={ICONO_CHICO} aria-hidden />
-                          {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Quitar ${it.referencia}`}
-                          onClick={() => onQuitar(it.claveLinea)}
-                          className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
-                        >
-                          <Trash2 className={ICONO_CHICO} aria-hidden />
-                          Quitar
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-end justify-between gap-3">
-                      <label className="text-[10px] text-tinta/50 uppercase">
-                        Cantidad
-                        <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
-                          {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
-                              basurero de la línea, que es lo único que queda por hacer. */}
-                          {it.cantidad <= 1 ? (
-                            <button
-                              type="button"
-                              aria-label={`Quitar ${it.referencia}`}
-                              onClick={() => onQuitar(it.claveLinea)}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              aria-label="Reducir cantidad"
-                              onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
-                              className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
-                            >
-                              −
-                            </button>
-                          )}
-                          <input
-                            aria-label={`Cantidad de ${it.referencia}`}
-                            type="number"
-                            min={1}
-                            max={it.stockAqui}
-                            value={it.cantidad}
-                            onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
-                            className={`w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
-                          />
+            <>
+              {/* La entrada y el reflujo de cada línea los anima el padre con `Flip`
+                  (responde al escaneo que la creó); acá solo va el ref de la lista — las
+                  líneas tienen que seguir siendo sus hijas directas. */}
+              <div ref={listaRef} className="divide-y divide-sand">
+                {carrito.map((it) => {
+                  const pctLinea = porcentajeDeLinea(it);
+                  const precioNeto = it.precioUnitario - it.descuentoUnitario;
+                  return (
+                    <article key={it.claveLinea} className="px-5 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
+                          <p className="font-mono text-xs text-tinta/60">{it.sku}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
                           <button
                             type="button"
-                            aria-label="Aumentar cantidad"
-                            onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
-                            disabled={it.cantidad >= it.stockAqui}
-                            className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
+                            onClick={() => onAbrirDescuento([it.claveLinea])}
+                            disabled={bloqueado}
+                            aria-label={`Descuento para ${it.referencia}`}
+                            className={`label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] transition-colors hover:bg-sand/40 ${
+                              pctLinea > 0 ? "text-rojo-profundo" : "text-tinta/70 hover:text-tinta"
+                            }`}
                           >
-                            +
+                            <Percent className={ICONO_CHICO} aria-hidden />
+                            {pctLinea > 0 ? `−${pctLinea} %` : "Desc."}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Quitar ${it.referencia}`}
+                            onClick={() => onQuitar(it.claveLinea)}
+                            className="label-cayla flex h-8 items-center gap-1 rounded-md px-2 text-[11px] text-rojo-profundo hover:bg-sand/40"
+                          >
+                            <Trash2 className={ICONO_CHICO} aria-hidden />
+                            Quitar
                           </button>
                         </div>
-                      </label>
-                      {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Con
-                          descuento se ve el de lista tachado y el que se cobra. */}
-                      <div className="text-[10px] text-tinta/50 uppercase">
-                        Precio unitario
-                        <p className="mt-1 flex h-9 items-center gap-1.5 text-sm font-semibold text-tinta normal-case">
-                          {pctLinea > 0 && <s className="text-xs font-normal text-tinta/45">{money(it.precioUnitario)}</s>}
-                          <span>{money(precioNeto)}</span>
-                        </p>
                       </div>
-                      <div className="pb-2 text-right">
-                        <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
-                        <p className="text-sm font-bold text-tinta">{money(it.cantidad * precioNeto)}</p>
+                      <div className="mt-3 flex items-end justify-between gap-3">
+                        <label className="text-[10px] text-tinta/50 uppercase">
+                          Cantidad
+                          <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
+                            {/* En «1» el menos ya no tiene a dónde bajar: pasa a ser el
+                                basurero de la línea, que es lo único que queda por hacer. */}
+                            {it.cantidad <= 1 ? (
+                              <button
+                                type="button"
+                                aria-label={`Quitar ${it.referencia}`}
+                                onClick={() => onQuitar(it.claveLinea)}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/8 hover:text-rojo"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                aria-label="Reducir cantidad"
+                                onClick={() => onCantidad(it.claveLinea, it.cantidad - 1)}
+                                className="h-8 w-8 rounded-md text-base hover:bg-sand/40"
+                              >
+                                −
+                              </button>
+                            )}
+                            <input
+                              aria-label={`Cantidad de ${it.referencia}`}
+                              type="number"
+                              min={1}
+                              max={it.stockAqui}
+                              value={it.cantidad}
+                              onChange={(e) => onCantidad(it.claveLinea, Number(e.target.value))}
+                              className={`w-8 bg-transparent text-center text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                            />
+                            <button
+                              type="button"
+                              aria-label="Aumentar cantidad"
+                              onClick={() => onCantidad(it.claveLinea, it.cantidad + 1)}
+                              disabled={it.cantidad >= it.stockAqui}
+                              className="h-8 w-8 rounded-md text-base hover:bg-sand/40 disabled:opacity-40"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </label>
+                        {/* El precio lo fija el catálogo, no la caja: ya no se edita acá. Con
+                            descuento se ve el de lista tachado y el que se cobra. */}
+                        <div className="text-[10px] text-tinta/50 uppercase">
+                          Precio unitario
+                          <p className="mt-1 flex h-9 items-center gap-1.5 text-sm font-semibold text-tinta normal-case">
+                            {pctLinea > 0 && <s className="text-xs font-normal text-tinta/45">{money(it.precioUnitario)}</s>}
+                            <span>{money(precioNeto)}</span>
+                          </p>
+                        </div>
+                        <div className="pb-2 text-right">
+                          <p className="text-[10px] text-tinta/50 uppercase">Importe</p>
+                          <p className="text-sm font-bold text-tinta">{money(it.cantidad * precioNeto)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <p className="mt-2 text-[11px] text-tinta/50">
-                      {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
+                      <p className="mt-2 text-[11px] text-tinta/50">
+                        {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* La nota vive con las líneas, no con el cobro: nace mientras se arma la
+                  venta y el ticket en espera la guarda junto con ellas. Una línea, hasta
+                  200; el contador aparece recién al pasar de 160. No va al comprobante. */}
+              <div className="border-t border-sand px-5 py-4">
+                <label className="block">
+                  <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
+                    <StickyNote className={ICONO_CHICO} aria-hidden />
+                    Nota para esta venta (opcional)
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={NOTA_MAX}
+                    value={nota}
+                    onChange={(e) => onNota(e.target.value)}
+                    placeholder="Lo recoge el sábado, va con arreglo de bastilla…"
+                    autoComplete="off"
+                    disabled={bloqueado}
+                    className="mt-1.5 h-10 w-full rounded-lg border border-sand bg-crema px-3 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/35 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
+                  />
+                </label>
+                {nota.length > NOTA_AVISO && (
+                  <p className={`mt-1 text-right text-[11px] tabular-nums ${nota.length >= NOTA_MAX ? "text-rojo-profundo" : "text-tinta/50"}`}>
+                    {nota.length}/{NOTA_MAX}
+                  </p>
+                )}
+              </div>
+            </>
           )}
         </div>
 
@@ -528,7 +837,7 @@ export function PuntoDeVentaTicket({
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
               se cobra, así que se decide antes de cobrar (decisión 3-A). */}
           {momento === "armar" && (
-            <div className="mb-3 flex items-center justify-between text-xs">
+            <div className="mb-3 flex items-center justify-between gap-2 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -557,6 +866,18 @@ export function PuntoDeVentaTicket({
                   </span>
                 </button>
               )}
+              {/* Park: guarda el ticket y libera la caja para la siguiente clienta. */}
+              {carrito.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onDejarEnEspera}
+                  disabled={bloqueado}
+                  className="label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
+                >
+                  <CirclePause className={ICONO_CHICO} aria-hidden />
+                  Dejar en espera
+                </button>
+              )}
             </div>
           )}
 
@@ -577,13 +898,13 @@ export function PuntoDeVentaTicket({
 
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él. */}
-          {(descontando ? motivoDescuento : motivoBloqueo) !== null && (
+          {!enLaEspera && (descontando ? motivoDescuento : motivoBloqueo) !== null && (
             <p id={ID_MOTIVO} className="mb-2 text-center text-[11px] text-tinta/60">
               {descontando ? motivoDescuento : motivoBloqueo}
             </p>
           )}
 
-          {descontando ? (
+          {enLaEspera ? null : descontando ? (
             <>
               <button
                 type="button"

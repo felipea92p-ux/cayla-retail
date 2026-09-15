@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
+
+Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el
+conflicto que ningún diff mostraba: Inventario (`inventario_piso_almacen.sql`) recreó
+`registrar_venta` con 9 parámetros y el cuerpo que descuenta del piso; las tres migraciones
+de Vender la llevaron a 11 con `drop` de la firma anterior — y al pegarlas en producción se
+borró justo la versión piso. Quedó una función que valida precio, código y nota pero
+descuenta por (variante, ubicación) sobre una `stock` que ya admite varias filas por prenda.
+No rompió nada porque ninguna tienda tiene sububicaciones todavía. `…231015_registrar_venta_
+piso_con_nota.sql` deja UNA función con todo (son literalmente dos líneas de diferencia:
+`v_sub` y la columna en el `insert into movimientos`), y `fn_stock_por_sede` pasa a sumar
+piso+almacén por sede (D12). Probado en local dentro de una transacción con rollback: la venta
+bajó el piso 4→3, el almacén siguió en 2, la nota quedó guardada. De paso: la migración de la
+izquierda chocaba de versión (`220000`) con una de Compras ya pública → renombrada a `220001`.
+
+Lo que Felipe se lleva: **dos migraciones que redefinen la misma función son un conflicto
+aunque git no lo vea** — y el orden en que se pegan en producción decide cuál sobrevive.
+Cualquier cambio futuro de `registrar_venta` empieza por `drop function` con la firma de 11.
+Y antes de crear piso/almacén en una tienda real, el stock «sin sububicación» se lleva al piso
+con `mover_interno(…, null, piso, …)`; si no, la primera venta falla por «sin stock».
+
 ## 2026-09-14 (poner al día el Postgres local de un colaborador sin reset)
 
 Al validar la base local contra `supabase/migrations/` faltaban 11 de 30 en el historial, pero
@@ -124,6 +145,83 @@ frenó porque el worktree no tenía el stub `0000` (fuera de git a propósito) �
 Lo que Felipe se lleva: **una fusión sin conflictos no es una fusión correcta** — se compila
 y se prueba antes de mover `main`. Y los números de ADR chocan igual que chocaban las
 migraciones antes del ADR-0034: cinco personas con push directo a `main` lo garantizan.
+
+## 2026-09-14 («Ventas de hoy» muestra la nota, y el SQL pendiente de producción está medido)
+
+Dos cierres chicos de la sesión A. La nota que B guardó en `ventas.nota` ya se lee en la
+fila de «Ventas de hoy» (truncada, completa en `title`, nada si es null). Y el paquete
+`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-14.sql`: se midió contra el catálogo de
+producción con una consulta de solo lectura por migración —no contra el registro, porque
+lo pegado a mano no siempre se registra— y faltan 7 de 18. Dos sorpresas: `registrar_venta`
+allá tiene 9 parámetros y el front ya manda 11 (no desplegar antes de pegar), y la variante
+centinela del «Cargo especial» no existe en producción — «Monto manual» está roto allá hoy.
+
+Lo que Felipe se lleva: **el registro de migraciones dice qué se registró, no qué existe.**
+Para saber qué le falta a producción se le pregunta al catálogo (`to_regclass`,
+`to_regprocedure`, `information_schema`), un booleano por migración.
+
+## 2026-09-14 (la cabecera de Vender enlaza a Caja, Cambios y Devoluciones)
+
+Paso chico en zona del padre. Desde la caja no había cómo llegar a ingreso/egreso y
+arqueo, cambio de talla ni devoluciones — `/cambios` ni siquiera está en el menú lateral.
+Tres enlaces discretos antes del botón de caja, vivos con la caja cerrada y sin gate de
+rol (AppShell ya decide). Lo que enseñó la medición: a 800 px de ancho, con el lateral
+abierto, la fila se partía y dejaba el botón suelto en la segunda línea; la salida no fue
+ocultar (el `sm:` que se pensó no cubre 800) sino agrupar enlaces y botón en un solo ítem
+del flex, que al partirse cae entero a la derecha. Bajo `sm` sí se ocultan.
+
+Lo que Felipe se lleva: **en un `flex-wrap`, lo que debe moverse junto tiene que ser un
+solo ítem** — agrupar es lo que decide cómo se parte una fila, no los márgenes.
+
+## 2026-09-14 («Ventas de hoy» firma cada venta con la integrante)
+
+Paso chico de la sesión A. `fn_ventas_del_dia` devolvía `vendedor` desde siempre y la
+lista de «Ventas de hoy» no lo pintaba; sin la firma, los objetivos por integrante se
+miden a mano. Ahora cada fila lleva a la integrante entre la hora y el comprobante:
+primer nombre, inicial del apellido solo si dos integrantes del día se llaman igual
+(`lib/nombre-integrante.ts`, 6 tests). Un detalle que importa: la RPC no devuelve `null`
+cuando no hay persona sino el relleno «—» — la UI lo trata como nada y no inventa «Sin
+integrante». Verificado con las 9 ventas de hoy en Lima. Queda esperando que la sesión
+derecha exponga `nota` en la RPC para pintarla en la misma fila.
+
+Lo que Felipe se lleva: **el dato ya estaba; lo que faltaba era leerlo.** Antes de pedir
+una migración para "saber quién vendió", mirar qué devuelve la RPC que ya se llama.
+
+## 2026-09-14 (dos arreglos, y la talla agotada dice en qué sede sí hay)
+
+Tercera ola de la sesión A. Dos arreglos pedidos por Felipe: `catalogo-grupos.ts` llevaba
+un byte NUL literal dentro del template string de la clave del grupo y git trataba el
+archivo como **binario** (sin diff, sin blame) — ahora es el escape `\u001f` en seis
+caracteres, y la prueba correcta no es `numstat main~1 main` (marca binario si cualquiera
+de los dos lados lo es) sino el archivo entero contra un punto donde no existía: `91 0`,
+cero NUL en el blob, `blame` línea a línea. Y el reveal al scroll salió del POS (opción A
+de Felipe): dejaba tarjetas en 0.35 mientras las sin stock van en 0.55 — dos atenuados con
+significados distintos en la misma grilla; `RevelarAlScroll` sigue en `ui/` para tableros.
+
+Lo nuevo: la talla tachada ya dice **dónde sí hay**. `vender/page.tsx` pide el stock de
+todas las sedes y `lib/stock-por-sede.ts` (TDD, 9 tests) lo parte en `aqui` + `otrasSedes`
+(solo > 0, sin la actual, de más a menos); el catálogo lo pinta en el tooltip de cada talla
+(«3 aquí · 14 en Taller», «Sin stock aquí · 15 en Taller · 5 en Trujillo») y en el
+desplegable del escáner. Un hallazgo de paso: `etiquetaSede` (V1) **no tiene ningún uso en
+V2** y con las filas de hoy daría «TND» para «Tienda Trujillo» (`ubicaciones` no tiene
+`codigo`), así que la sede se nombra por su nombre sin el «Tienda» delante — sin inventar
+códigos. Y el freno que pidió Felipe: **RLS**. `stock_select` deja ver solo las sedes que la
+persona puede operar; medido con el JWT de Micaela como colaboradora de Trujillo (en una
+transacción con rollback): Taller 0 filas, Lima 0, Trujillo 16 — la encargada de sede, que
+es justo quien vende «sí hay en Trujillo», recibe `otrasSedes` vacío y la pantalla se queda
+en «Sin stock aquí» sin romperse. La salida es una RPC `security definer` de solo cantidades
+(`fn_stock_por_sede`), escrita en `20260914220000_stock_por_sede.sql` y **no aplicada**:
+esquema en la base compartida no era de esta sesión. Micaela quedó como colaboradora de
+Trujillo con un `update` de datos (el `insert` del seed no hacía nada: ya existía como líder
+por el backfill de `0016`).
+
+Lo que Felipe se lleva: **una policy de "quién puede operar" no es una policy de "quién
+puede saber".** `stock_select` mezcla las dos preguntas, y por eso abrirla para que una
+colaboradora vea Trujillo abriría también que opere Trujillo. La RPC separa las preguntas:
+expone cantidades y nada más. Y sobre las pruebas: simular la sesión de una colaboradora
+con `set local role authenticated` + `request.jwt.claims` dentro de un `begin … rollback`
+mide RLS de verdad sin contraseñas ni tocar la base — es la forma de verificar cualquier
+policy antes de prometer una pantalla.
 
 ## 2026-09-14 (el catálogo se mira por prenda, no por variante — y vuelven shadcn y GSAP)
 
@@ -264,6 +362,91 @@ pregunta al reemplazar un núcleo no es solo "¿qué se pierde de negocio?" sino
 pierde de infraestructura que otro ADR ya había decidido?". La huella era visible en la
 numeración de los ADR. Y el reverso: **restaurar no es rehacer** — se trajo lo que había,
 con las mismas versiones y el mismo texto, y lo de Finanzas V1 se dejó ir a propósito.
+
+## 2026-09-14 (el ticket aprende a esperar: Park/Resume sin tabla)
+
+Séptima vuelta. Si una clienta iba a probarse otra talla, la caja quedaba tomada. Felipe
+pidió el «ticket en espera» sin tabla y «bien desde el inicio» porque la cola offline va a
+usar el mismo almacén: nació `lib/almacen-local.ts` (llave `cayla:vender:<sede>:<uso>`,
+puro, con 9 tests que fijan lo que importa — en el servidor es inerte y con el storage
+lleno, bloqueado o con JSON roto degrada a «no se guardó» / «no había nada», nunca a una
+excepción a mitad de un cobro). El padre carga la espera **después de montar** (el lint
+lo marca; el `eslint-disable` lleva el motivo, misma decisión del 10-sep), la vacía al
+cerrar caja con el patrón «previo + comparación» que documenta React, y el ticket suma
+el momento «espera» (chip, lista con hora/prendas/total/nota, Retomar) y «Dejar en
+espera». Decisiones de Felipe: tope 5 (el sexto avisa), retomar intercambia, al cerrar caja
+se vacía, sin reserva de stock. Verificado de punta a punta en navegador, con el cierre de
+caja real al final (avisado antes) — chip fuera y llave borrada.
+
+Lo que Felipe se lleva: **hay estado que es del mostrador, no del negocio.** Un ticket que
+todavía no se cobró no es una venta ni una reserva; meterlo en la base habría obligado a
+inventarle limpieza, permisos y sincronización para algo que vive en una caja y muere al
+cerrarla. Y el reverso: **lo que vive en el navegador se lee después de hidratar** — el
+servidor no tiene `localStorage`, y leerlo durante el render es la desincronización que
+React castiga; el efecto es el lugar correcto aunque el lint proteste.
+
+## 2026-09-14 (la venta aprende a llevar una nota)
+
+Sexta vuelta, corta: «lo recoge el sábado», «va con arreglo de bastilla» — la venta no
+tenía dónde guardarlo. Una migración con timestamp: `ventas.nota` (≤ 200), `registrar_venta`
+con `p_nota` (vacía → null) y `fn_ventas_del_dia` recreada con `nota` al final (drop +
+create: cambia el `returns table`). El campo va en «armar», bajo las líneas y solo con
+ticket no vacío: la nota nace con la clienta al frente y es parte del ticket, no del cobro
+— el ticket en espera la guardará con las líneas. Contador recién al pasar de 160; no va al
+comprobante. Mismo protocolo de base compartida (aviso a A, `migration up`, sin reset);
+probado en psql con rollback (recorte, vacío → null, 201 → `ventas_nota_corta`, ya
+traducido con test en rojo primero) y en navegador con venta real (B001-000008).
+
+Lo que Felipe se lleva: **cuándo una columna nueva obliga a recrear una función** —
+`create or replace` no puede cambiar el `returns table` de `fn_ventas_del_dia`, así que
+sumarle `nota` es drop + create, y por eso la migración lo dice en su cabecera: quien
+la vuelva a recrear sin `nota` deja «Ventas de hoy» muda sin que nada avise.
+
+## 2026-09-14 (la base deja de confiar en el precio del navegador; el descuento pide código)
+
+Quinta vuelta sobre Vender, y la primera en la base. La caja ya no editaba el precio,
+pero `registrar_venta` (0011) seguía insertando `precio_unitario` y `descuento_unitario`
+tal cual llegaban — un candado de pantalla. Dos migraciones con timestamp
+(ADR-0048): la RPC compara cada precio con `variantes.precio` antes de escribir nada
+(salvo el Cargo especial, precio libre por diseño) y levanta un nombre estable con la
+prenda en `detail`; y la tabla `codigos_descuento` + `p_codigo_descuento`, con la regla
+que decidió Felipe: un Líder descuenta sin código, una Colaboradora necesita uno válido
+y su % es el tope por línea. `error-escritura.ts` aprendió a armar la frase con el
+detalle («El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve
+a agregarla»), con los tests en rojo primero. Protocolo de base compartida cumplido:
+aviso a la sesión del panel izquierdo, `migration up --include-all` (que aplicó también
+su `stock_por_sede`, pendiente), sin `db reset`. Siete casos probados en psql, cada uno
+en una transacción con `rollback`, y uno por HTTP contra PostgREST; el caso del tope
+destapó un `format('%')` inválido en un `hint`, corregido antes del commit.
+
+Lo que Felipe se lleva: **la regla vive donde no se puede esquivar.** Esconder el campo
+de precio en la pantalla no protege de una llamada hecha a mano; la comparación con el
+catálogo dentro de la RPC sí, y con el mismo mensaje para la pantalla y para la consola.
+Y el reverso: **el nombre del error es parte del contrato** — la RPC levanta un nombre
+estable y el traductor pone la frase; si mañana alguien cambia el nombre en la migración
+y no en el traductor, la colaboradora lee `venta_precio_cambiado` crudo en el mostrador,
+que es exactamente lo que los cuatro tests nuevos vigilan.
+
+## 2026-09-14 (el cobro deja de ser de un solo medio: pago mixto y vuelto)
+
+Cuarta vuelta sobre el ticket. «Yape + efectivo» es la venta más común de la tienda y los
+métodos eran excluyentes — y la base ya lo soportaba entera (`p_pagos` como lista, cuadre
+al centavo, una fila por medio en `venta_pagos`): faltaba la pantalla. Antes de dibujar se
+miró `LineasPago` (llegó de Compras el mismo día) y se decidió NO reusarlo: es un
+formulario contable y el POS es táctil; se le copió la separación de reglas puras y el
+copy. Reglas con TDD (30/30: restante a 2 decimales, vuelto solo en efectivo y nunca
+negativo, `motivoBloqueoCobro` con «Falta cubrir S/X» y «Los pagos superan el total»),
+padre en un commit chico a `main`, y el bloque en el ticket: tocar un ícono agrega su
+fila con lo que falta, «Recibido» con teclas que suman billetes y «Vuelto» grande que se
+muestra y no se graba. Verificado con venta real: Boleta B001-000006, `venta_pagos` con
+`efectivo 109.80` + `yape 50.00`, «efectivo + yape» en Ventas de hoy.
+
+Lo que Felipe se lleva: **lo recibido y lo que cubre son dos números distintos, y solo uno
+viaja.** Mandar los S/120 que entregó la clienta en vez de los S/109.80 que cubre habría
+hecho que `registrar_venta` rechace la venta por no cuadrar — el vuelto es una resta de
+mostrador, no un dato de la venta. Y el reverso, otra vez: **la base ya sabía hacerlo**; la
+pregunta antes de construir fue «¿qué falta de verdad?», y la respuesta era solo la
+pantalla.
 
 ## 2026-09-14 (Vender se parte en tres para que dos sesiones trabajen a la vez)
 

@@ -127,21 +127,33 @@ flowchart TB
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
-  `stock` de la ubicación → `PuntoDeVenta.tsx` (padre: TODO el estado, handlers,
+  `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
+  hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
+  de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
+  `PuntoDeVenta.tsx` (padre: TODO el estado, handlers, cabecera con atajos a /caja,
+  /cambios y /devoluciones,
   cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
   primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
   adentro —`lib/catalogo-grupos.ts`, memo del padre— filtro «Solo con stock», y «Ventas
   de hoy», que llega ya renderizado desde `page.tsx` vía RPC `fn_ventas_del_dia`; el
   escáner recibe el foco al abrir caja, al cerrar cualquier modal —`Modal.alCerrarEnfocar`—
   y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
-  `Toggle`/`Badge` y `RevelarAlScroll` de GSAP, ADR-0045) y `PuntoDeVentaTicket.tsx`
+  `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
   (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
   boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
-  que emite el comprobante en la misma transacción). `lib/vender-reglas.ts`:
+  que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
+  distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
+  tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
+  El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
+  → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
+  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
-  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`. El
-  reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`, ADR-0045). Modales del padre:
+  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
+  `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de
+  `{ metodo, monto }`, una fila por medio en `venta_pagos`; el `recibido` del efectivo es
+  solo de pantalla). El reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`,
+  ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
 

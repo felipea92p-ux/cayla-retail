@@ -1,12 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { aplicarDescuento, descuentoUnitarioPorPorcentaje, motivoBloqueoCobro, porcentajeDeLinea } from "./vender-reglas";
+import {
+  aplicarDescuento,
+  descuentoUnitarioPorPorcentaje,
+  motivoBloqueoCobro,
+  porcentajeDeLinea,
+  restanteDePagos,
+  vueltoDe,
+} from "./vender-reglas";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
 // principal, la línea que lo explica debajo, y el freno dentro de `cobrar()`. Si el
 // orden de las reglas cambia sin querer, la pantalla pediría el método de pago con
 // el ticket vacío — justo la decisión antes de tiempo que este cambio elimina.
 
-const listo = { cajaAbierta: true, prendas: 2, momento: "cobrar", metodoPago: "efectivo", facturaSinRuc: false } as const;
+const listo = {
+  cajaAbierta: true,
+  prendas: 2,
+  momento: "cobrar",
+  total: 143.82,
+  pagos: [{ metodo: "efectivo", monto: 143.82 }],
+  facturaSinRuc: false,
+} as const;
 
 describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
   it("con la caja cerrada pide abrirla, aunque todo lo demás esté completo", () => {
@@ -18,11 +32,33 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
   });
 
   it("mientras se arma la venta no exige método de pago: eso se decide al cobrar", () => {
-    expect(motivoBloqueoCobro({ ...listo, momento: "armar", metodoPago: null })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [] })).toBeNull();
   });
 
-  it("al cobrar sin método elegido dice exactamente qué falta", () => {
-    expect(motivoBloqueoCobro({ ...listo, metodoPago: null })).toBe("Elige cómo pagó la clienta.");
+  it("al cobrar sin ningún pago dice exactamente qué falta", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [] })).toBe("Elige cómo pagó la clienta.");
+  });
+
+  it("con pagos que no llegan al total dice cuánto falta cubrir", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "yape", monto: 50 }] })).toBe("Falta cubrir S/93.82.");
+  });
+
+  it("con pagos que se pasan del total lo dice — la RPC los rechazaría por no cuadrar", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "yape", monto: 50 }, { metodo: "efectivo", monto: 100 }] })).toBe(
+      "Los pagos superan el total."
+    );
+  });
+
+  it("dos métodos que cubren justo el total no bloquean", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "yape", monto: 50 }, { metodo: "efectivo", monto: 93.82 }] })).toBeNull();
+  });
+
+  it("el recibido en efectivo no cuenta para cubrir: cubre el monto, no lo entregado", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 100, recibido: 200 }] })).toBe("Falta cubrir S/43.82.");
+  });
+
+  it("cubrir manda sobre la factura sin RUC: primero la plata, después el papel", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "yape", monto: 50 }], facturaSinRuc: true })).toBe("Falta cubrir S/93.82.");
   });
 
   it("al cobrar una factura sin RUC pide el RUC", () => {
@@ -34,7 +70,7 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
   });
 
   it("el ticket vacío manda sobre el método: no se pide cómo pagó cuando no hay nada que pagar", () => {
-    expect(motivoBloqueoCobro({ ...listo, prendas: 0, metodoPago: null })).toBe("Agrega una prenda para cobrar.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 0, pagos: [] })).toBe("Agrega una prenda para cobrar.");
   });
 });
 
@@ -89,6 +125,41 @@ describe("porcentajeDeLinea — el chip «−10 %» se lee desde el monto guarda
 
 describe("motivoBloqueoCobro — el momento «descuento» tampoco exige método", () => {
   it("mientras se decide un descuento no se pide cómo pagó", () => {
-    expect(motivoBloqueoCobro({ ...listo, momento: "descuento", metodoPago: null })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, momento: "descuento", pagos: [] })).toBeNull();
+  });
+  it("mirando los tickets en espera tampoco", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "espera", pagos: [] })).toBeNull();
   });
 });
+
+// ---- Pago mixto y vuelto (2026-09-14): la base ya recibe `p_pagos` como lista y exige
+// que sume igual que los ítems al centavo. El `recibido` es solo de pantalla.
+
+describe("restanteDePagos — lo que falta cubrir, a 2 decimales", () => {
+  it("sin pagos falta todo", () => {
+    expect(restanteDePagos(143.82, [])).toBe(143.82);
+  });
+  it("resta lo pagado, sin arrastrar decimales de coma flotante", () => {
+    expect(restanteDePagos(143.82, [{ metodo: "yape", monto: 50 }, { metodo: "efectivo", monto: 93.82 }])).toBe(0);
+    expect(restanteDePagos(0.3, [{ metodo: "yape", monto: 0.1 }, { metodo: "plin", monto: 0.1 }])).toBe(0.1);
+  });
+  it("es negativo cuando los pagos se pasan", () => {
+    expect(restanteDePagos(100, [{ metodo: "tarjeta", monto: 120 }])).toBe(-20);
+  });
+});
+
+describe("vueltoDe — recibido menos monto, solo en efectivo", () => {
+  it("S/100 recibidos por S/93.82 devuelven S/6.18", () => {
+    expect(vueltoDe({ metodo: "efectivo", monto: 93.82, recibido: 100 })).toBe(6.18);
+  });
+  it("sin recibido no hay vuelto que mostrar", () => {
+    expect(vueltoDe({ metodo: "efectivo", monto: 93.82 })).toBe(0);
+  });
+  it("si lo recibido no llega al monto, el vuelto es 0 — nunca negativo", () => {
+    expect(vueltoDe({ metodo: "efectivo", monto: 93.82, recibido: 50 })).toBe(0);
+  });
+  it("Yape, Plin, tarjeta y transferencia no dan vuelto aunque traigan recibido", () => {
+    expect(vueltoDe({ metodo: "yape", monto: 50, recibido: 100 })).toBe(0);
+  });
+});
+

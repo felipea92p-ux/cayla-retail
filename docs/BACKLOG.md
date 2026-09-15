@@ -73,7 +73,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `descuento_unitario` por línea — verificado en la base, Boleta B001-000005),
       precio de solo lectura, basurero en «1», íconos en los colores del sistema y
       **vuelven shadcn + GSAP** (ADR-0045: el corte V1→V2 los había borrado sin
-      registro). **Solo en `main` local — falta pushear.**
+      registro). Tercera adenda: **pago mixto y vuelto** — filas por medio, recibido en
+      efectivo con teclas que suman billetes, «Cubierto / Falta cubrir / Se pasa»;
+      verificado con Boleta B001-000006 (yape 50 + efectivo 109.80, «efectivo + yape»
+      en Ventas de hoy). **Solo en `main` local — falta pushear.**
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
@@ -93,11 +96,50 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
       `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
       tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+- [x] **La talla agotada dice en qué sede sí hay** (sesión A, tercera ola). Tooltip por
+      talla y línea en el desplegable del escáner; `lib/stock-por-sede.ts` (9 tests);
+      `page.tsx` lee el stock de todas las sedes que RLS deje ver. Funciona para Líderes;
+      para colaboradoras de sede fija llega vacío (ver pendiente siguiente). De paso: fuera
+      el reveal al scroll del POS (dos atenuados no conviven) y `catalogo-grupos.ts` dejó
+      de ser binario para git (byte NUL → escape). **Solo en `main` local — falta pushear.**
+- [x] **«Ventas de hoy» firma cada venta con la integrante** (sesión A). Primer nombre,
+      inicial del apellido solo si hay dos con el mismo (`lib/nombre-integrante.ts`, 6
+      tests); el relleno «—» de la RPC no se pinta. **Solo en `main` local — falta pushear.**
+- [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
+      enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
+      limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
+- [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
+      texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
+- [ ] **Aplicar `20260914220001_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
+      migración está escrita y NO aplicada (esquema en la base compartida: la aplica
+      Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
+      porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
+      Después de aplicarla: `supabase.rpc("fn_stock_por_sede")` en `vender/page.tsx` (un
+      commit chico) y verificar como Micaela (ya es colaboradora de Trujillo en local).
+- [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
+      `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
+      («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
+      pantalla, es una columna `codigo` en `ubicaciones` (migración); si no, borrar la
+      función y su test para que nadie la reviva por error.
 - [ ] **Foto por prenda en el catálogo.** La tarjeta ya tiene el hueco (4:5, iniciales en
       serif), pero `productos`/`variantes` no tienen columna de foto ni bucket de Storage.
       Es cambio de modelo de datos: decidir dónde vive (una por producto o por color),
       quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
       la pinta sin rediseñar.
+
+- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`).**
+      Verificar en local que la caja opera sobre *su* sede y no sobre la del Líder: el
+      selector «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de
+      la persona, y que el escáner solo reconozca stock de esa sede. El `seed.sql` nuevo
+      pone a Micaela como colaboradora de Trujillo, pero la base local no se reseteó
+      (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
+      `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
+
+- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
+      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
+      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
+      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
+      prenda (es una decisión operativa por tienda, no un script ciego).
 
 **Pendiente de decisión de Felipe:**
 
@@ -133,13 +175,28 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **Códigos de descuento** (decisión 1-A, 2026-09-14): el % manual ya existe; los
-      códigos necesitan esquema nuevo — `codigos_descuento` (código, %, vigencia,
-      activo, ¿sede?) + RLS + validación en RPC — y su gemelo `retail.` en producción.
-      Paso propio, no improvisado dentro del ticket.
-- [ ] **El precio lo pone el navegador y el descuento es un dato fantasma.** *(Desde el
-      2026-09-14 el descuento ya NO es fantasma: viaja en `descuento_unitario` por línea y
-      la caja no edita el precio. Lo que sigue pendiente es el candado en la RPC.)*
+- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
+      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
+      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
+      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
+      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
+      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
+      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
+      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+- [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
+      en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
+      tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
+      nombre). Verificado en navegador de punta a punta, incluido el cierre de caja.
+      **La cola offline usa el mismo módulo** con `nombre = "cola"` — el primer ladrillo
+      del ítem de resiliencia sin internet ya está puesto.
+- [ ] **Administrar códigos de descuento** (paso propio): hoy se crean en Studio
+      (`retail.codigos_descuento`: código, %, vigencia, activo, sede o todas). Una pantalla
+      para Líderes —crear, apagar, ver vigencia— y, si se quiere medir cuánto se regala
+      por código, una columna en `ventas` con el código usado.
+- [x] **El precio lo pone el navegador y el descuento es un dato fantasma** — cerrado el
+      2026-09-14 (ADR-0048): `registrar_venta` rechaza precios distintos a
+      `variantes.precio` (salvo Cargo especial) y, para una Colaboradora, descuentos sin
+      código válido o por encima de su %. Probado en psql con rollback y por HTTP.
       `registrar_venta` (`0011_venta_con_comprobante.sql:114-117`) inserta
       `precio_unitario`/`descuento_unitario` tal cual llegan, sin compararlos con
       `variantes.precio`. La columna `descuento_unitario` existe (diseño D-44) pero

@@ -45,8 +45,42 @@ export type ErrorEscritura = {
  *
  * La marca es el nombre real de la restricción en `supabase/migrations/*.sql`, no una palabra
  * suelta del mensaje: los nombres los elegimos nosotros y no cambian con la versión de Postgres.
+ *
+ * Desde 2026-09-14 también valen para los `raise exception` de las RPC que necesitan meter un
+ * DATO en la frase (qué prenda, qué código, qué tope): la RPC levanta el nombre estable como
+ * mensaje y pone el dato en `detail`; acá `frase` puede ser una función que lo recibe.
  */
-const HUELLAS: { marca: string; frase: string }[] = [
+type Huella = { marca: string; frase: string | ((detalle: string) => string) };
+
+const HUELLAS: Huella[] = [
+  {
+    // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
+    // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
+    // navegador. El detalle es «referencia (sku)».
+    marca: "venta_precio_cambiado",
+    frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
+  },
+  {
+    // 20260914220804_nota_en_ventas.sql — la nota del ticket tiene tope; la pantalla ya
+    // corta en 200, esto es por si llega por otro camino.
+    marca: "ventas_nota_corta",
+    frase: "La nota es muy larga: hasta 200 caracteres. Acórtala y vuelve a cobrar.",
+  },
+  {
+    // 20260914215103_codigos_descuento.sql — una Colaboradora solo descuenta con código.
+    marca: "venta_descuento_requiere_codigo",
+    frase: "Para aplicar un descuento necesitas un código válido. Pídeselo a un Líder, o quita el descuento.",
+  },
+  {
+    // Misma migración — el código no existe, está inactivo, venció o es de otra sede.
+    marca: "venta_codigo_descuento_invalido",
+    frase: (codigo) => `El código ${codigo} no es válido o ya venció. Revísalo o pídele otro a un Líder.`,
+  },
+  {
+    // Misma migración — el % del código es el tope de cada línea.
+    marca: "venta_descuento_supera_codigo",
+    frase: (tope) => `Ese código permite hasta un ${tope} % de descuento. Baja el descuento o usa otro código.`,
+  },
   {
     // 0010_stock_concurrencia.sql:14 — la red que impide dejar el stock en negativo.
     marca: "stock_cantidad_no_negativa",
@@ -171,7 +205,7 @@ export function traducirError(error: ErrorEscritura, contexto: string): string {
   }
 
   const huella = HUELLAS.find((h) => enMinusculas.includes(h.marca.toLowerCase()));
-  if (huella) return huella.frase;
+  if (huella) return typeof huella.frase === "function" ? huella.frase(error.details ?? "") : huella.frase;
 
   // `P0001` es un `raise exception` de nuestras propias RPC: ya viene en idioma CAYLA.
   if (error.code === "P0001" && error.message) return error.message;

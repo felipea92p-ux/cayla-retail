@@ -3,7 +3,7 @@
 import type { ReactNode, RefObject } from "react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
-import { RevelarAlScroll } from "@/components/ui/RevelarAlScroll";
+import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { Badge } from "@/components/ui/badge";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -186,8 +186,12 @@ export function PuntoDeVentaCatalogo({
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
                           <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                            {v.stockAqui <= 0 ? `sin stock` : `${v.stockAqui} en sede`}
+                            {v.stockAqui <= 0 ? `sin stock aquí` : `${v.stockAqui} aquí`}
                           </span>
+                          {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
+                          {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
+                            <span className="block text-[11px] text-tinta/55">{textoOtrasSedes(v.stockOtrasSedes ?? [])}</span>
+                          )}
                         </span>
                       </button>
                     </li>
@@ -252,75 +256,92 @@ export function PuntoDeVentaCatalogo({
               );
               const nombre = [g.referencia, g.color].filter(Boolean).join(" ");
               return (
-                // Cada tarjeta se asienta al entrar en la vista con el scroll (GSAP, ADR-0038);
-                // las que ya se ven al cargar no viajan (ADR-0011).
-                <RevelarAlScroll key={g.clave} className="min-h-0">
-                  <article
-                    aria-label={nombre}
-                    className={`relative flex h-full flex-col rounded-xl border p-3 ${
-                      sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
-                    }`}
-                  >
-                    {/* Hueco de la foto: `productos` no tiene foto todavía; cuando la tenga,
-                        cae acá sin rediseñar la tarjeta. */}
-                    <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
-                      <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
-                    </div>
-                    <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
-                    <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
+                // Sin reveal al scroll a propósito (decisión de Felipe, 2026-09-14): la
+                // atenuación de "sin stock" es la única de la grilla y no puede confundirse
+                // con una tarjeta a medio entrar. `RevelarAlScroll` sigue en ui/ para tableros.
+                <article
+                  key={g.clave}
+                  aria-label={nombre}
+                  className={`relative flex h-full flex-col rounded-xl border p-3 ${
+                    sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
+                  }`}
+                >
+                  {/* Hueco de la foto: `productos` no tiene foto todavía; cuando la tenga,
+                      cae acá sin rediseñar la tarjeta. */}
+                  <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
+                    <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
+                  </div>
+                  <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
+                  <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
 
-                    {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
-                        tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
-                        «no hay M» que «no existe M». */}
-                    <div className="mt-2 flex flex-wrap gap-1" aria-label="Tallas">
-                      {g.tallas.map((t) =>
-                        t.stockAqui > 0 ? (
-                          <Tooltip key={t.variante.varianteId}>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                onClick={() => onAgregar(t.variante)}
-                                disabled={bloqueado}
-                                aria-label={`Agregar ${nombre} talla ${t.talla}`}
-                                className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-sand bg-crema px-1.5 text-[11px] text-tinta transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-tinta/40 hover:bg-sand/50 active:translate-y-px"
-                              >
-                                {t.talla}
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent sideOffset={4}>
-                              {t.stockAqui} en sede{t.variante.precio !== g.precioMin ? ` · ${money(t.variante.precio)}` : ""}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span
-                            key={t.variante.varianteId}
-                            aria-label={`Talla ${t.talla} sin stock`}
-                            className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through"
-                          >
-                            {t.talla}
-                          </span>
-                        )
-                      )}
-                    </div>
-
-                    <div className="mt-auto flex items-end justify-between pt-3">
-                      <span className="text-sm font-bold text-tinta">
-                        {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
-                      </span>
-                      <span className={`text-[11px] ${sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                        {sinStock ? "Sin stock" : `${g.stockTotal} en sede`}
-                      </span>
-                    </div>
-
-                    {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
-                        nota que cambió sin releerlo. */}
-                    {enCarrito > 0 && (
-                      <Badge key={enCarrito} className="anim-asentar absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
-                        {enCarrito}
-                      </Badge>
+                  {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
+                      tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
+                      «no hay M» que «no existe M». */}
+                  <div className="mt-2 flex flex-wrap gap-1" aria-label="Tallas">
+                    {g.tallas.map((t) =>
+                      t.stockAqui > 0 ? (
+                        <Tooltip key={t.variante.varianteId}>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => onAgregar(t.variante)}
+                              disabled={bloqueado}
+                              aria-label={`Agregar ${nombre} talla ${t.talla}`}
+                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-sand bg-crema px-1.5 text-[11px] text-tinta transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-tinta/40 hover:bg-sand/50 active:translate-y-px"
+                            >
+                              {t.talla}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={4}>
+                            {[
+                              `${t.stockAqui} aquí`,
+                              textoOtrasSedes(t.variante.stockOtrasSedes ?? []),
+                              t.variante.precio !== g.precioMin ? money(t.variante.precio) : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        // Talla agotada aquí: el tooltip dice dónde sí hay. `tabIndex` para que
+                        // también se lea con teclado; no es un botón porque no agrega nada.
+                        <Tooltip key={t.variante.varianteId}>
+                          <TooltipTrigger asChild>
+                            <span
+                              tabIndex={0}
+                              aria-label={`Talla ${t.talla} sin stock aquí`}
+                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
+                            >
+                              {t.talla}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={4}>
+                            {textoOtrasSedes(t.variante.stockOtrasSedes ?? [])
+                              ? `Sin stock aquí · ${textoOtrasSedes(t.variante.stockOtrasSedes ?? [])}`
+                              : "Sin stock en ninguna sede"}
+                          </TooltipContent>
+                        </Tooltip>
+                      )
                     )}
-                  </article>
-                </RevelarAlScroll>
+                  </div>
+
+                  <div className="mt-auto flex items-end justify-between pt-3">
+                    <span className="text-sm font-bold text-tinta">
+                      {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
+                    </span>
+                    <span className={`text-[11px] ${sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
+                      {sinStock ? "Sin stock" : `${g.stockTotal} en sede`}
+                    </span>
+                  </div>
+
+                  {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
+                      nota que cambió sin releerlo. */}
+                  {enCarrito > 0 && (
+                    <Badge key={enCarrito} className="anim-asentar absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
+                      {enCarrito}
+                    </Badge>
+                  )}
+                </article>
               );
             })}
           </div>

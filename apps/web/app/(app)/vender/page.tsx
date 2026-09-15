@@ -2,9 +2,12 @@ import { Suspense } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { nombresCortos } from "@/lib/nombre-integrante";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
-import { tolerar } from "@/lib/resultado";
+import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
 
 /**
@@ -26,18 +29,27 @@ export default async function VenderPage() {
 
 async function Caja() {
   const persona = await requirePersonaActualV2();
-  const [variantes, caja, stock] = await Promise.all([
+  const supabase = await createClient();
+  // Dos lecturas de stock con dos preguntas distintas:
+  // · «¿cuánto puedo cobrar AQUÍ ya?» → `getStockPorUbicacion`, la misma regla que la
+  //   pantalla de Inventario: una venta descuenta el PISO, nunca el almacén en silencio
+  //   (`inventario_piso_almacen.sql`), así que el tope que ve la cajera es el piso; en una
+  //   ubicación sin piso/almacén (Taller, `piso === null`) sigue siendo el total.
+  // · «¿dónde más hay?» → las filas crudas de TODAS las sedes que RLS deje ver, sumadas
+  //   por sede (piso + almacén: para un traslado importa lo que la otra tienda tiene, no
+  //   lo que exhibe — decisión de Felipe, 2026-09-14). Una Líder ve todas; una
+  //   colaboradora con sede fija solo la suya, y `otrasSedes` llega vacío sin romperse.
+  //   Ver `lib/stock-por-sede.ts`.
+  const [variantes, caja, resStock, ubicaciones, stockAqui] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
+    supabase.from("stock").select("variante_id, ubicacion_id, cantidad"),
+    getUbicaciones(),
     getStockPorUbicacion(persona.ubicacionId),
   ]);
-  // Una venta descuenta el piso, nunca el almacén en silencio
-  // (20260914210000_inventario_piso_almacen.sql) — el tope que ve la
-  // cajera tiene que ser ESE número, no el total de la tienda, o dejaría
-  // armar un carrito que `registrar_venta` va a rechazar igual. En una
-  // ubicación sin piso/almacén (Taller, `f.piso === null`), sigue siendo
-  // el total, como siempre.
-  const stockPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
+  const filasStock = exigir(resStock, "el stock de las sedes");
+  const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
+  const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.piso ?? f.total]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
@@ -50,12 +62,16 @@ async function Caja() {
       categoria: v.categoria,
       precio: v.precio,
       codigosBarras: v.codigosBarras,
-      stockAqui: stockPorVariante.get(v.varianteId) ?? 0,
+      stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
+      stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
   return (
     <PuntoDeVenta
       ubicacionId={persona.ubicacionId}
+      // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
+      // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
+      esLider={persona.rol === "lider"}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}
       variantes={variantesParaVenta}
@@ -93,15 +109,33 @@ async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: st
     );
   }
 
+  // Cada venta lleva la firma de la integrante que la hizo (primer nombre; inicial del
+  // apellido solo si dos integrantes del día se llaman igual). `vendedor` vacío o el
+  // relleno «—» de la RPC no es una integrante: no se pinta nada, no se inventa.
+  const integrante = nombresCortos(ventas.map((v) => v.vendedor));
+
   return (
     <div className="card-cayla divide-y divide-sand !p-0">
       {ventas.map((v) => (
         <div key={v.venta_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
           <span className="text-tinta/60">{v.hora}</span>
+          {integrante.has(v.vendedor) && (
+            <span className="shrink-0 text-tinta" title={v.vendedor}>
+              {integrante.get(v.vendedor)}
+            </span>
+          )}
           <span className="min-w-0 flex-1 truncate text-tinta/60">
             {v.comprobante_texto ?? "Sin comprobante"} {v.metodos_pago ? `· ${v.metodos_pago}` : ""}
           </span>
-          <span className="font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
+          {/* La nota de la venta («lo recoge el sábado…»), en la misma fila, truncada;
+              el texto completo queda en `title`. Si la RPC no la trae —o producción aún no
+              tiene la columna— no se pinta nada. */}
+          {v.nota && (
+            <span className="min-w-0 max-w-[16rem] truncate text-tinta/60 italic" title={v.nota}>
+              {v.nota}
+            </span>
+          )}
+          <span className="shrink-0 font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
         </div>
       ))}
     </div>

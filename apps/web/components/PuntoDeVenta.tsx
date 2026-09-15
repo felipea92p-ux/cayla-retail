@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
@@ -10,7 +11,8 @@ import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { aplicarDescuento, motivoBloqueoCobro, type MomentoTicket } from "@/lib/vender-reglas";
+import { aplicarDescuento, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
+import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -32,6 +34,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   categoria: string | null;
   precio: number;
   stockAqui: number;
+  /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
+   *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
+   *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
+  stockOtrasSedes?: { sede: string; cantidad: number }[];
 };
 
 export type ItemCarrito = {
@@ -54,6 +60,18 @@ export type ItemCarrito = {
  *  todavía no eligió ninguna (no se puede aplicar). */
 export type DescuentoForm = { pct: string; elegidas: string[] | null };
 
+/** Un ticket dejado en espera (la clienta fue a probarse otra talla): lo que hace falta
+ *  para retomarlo tal cual — líneas (con su descuento adentro), nota y código. El
+ *  formulario de % no: es un borrador, no parte del ticket. Vive en localStorage por
+ *  sede (`lib/almacen-local.ts`), sin reservar stock. */
+export type TicketEnEspera = { id: string; creadoEn: string; carrito: ItemCarrito[]; nota: string; codigoDescuento: string };
+
+/** Más de esto no es «en espera», es un mostrador desbordado: el sexto avisa. */
+const TOPE_ESPERA = 5;
+/** Un medio con el que pagó la clienta (ver `lib/vender-reglas.ts`); compartido con el
+ *  ticket desde acá, como los otros tipos (ADR-0043). */
+export type { PagoAplicado } from "@/lib/vender-reglas";
+
 type VentaOk = {
   total: number;
   prendas: number;
@@ -61,11 +79,20 @@ type VentaOk = {
 };
 
 const MAX_RESULTADOS = 6;
+
+/** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
+const ATAJOS = [
+  { href: "/caja", texto: "Caja" },
+  { href: "/cambios", texto: "Cambios" },
+  { href: "/devoluciones", texto: "Devoluciones" },
+] as const;
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
 type Props = {
   ubicacionId: string;
   ubicacionEtiqueta: string;
+  /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
+  esLider: boolean;
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
@@ -75,7 +102,7 @@ type Props = {
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -92,10 +119,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
   const [momento, setMomento] = useState<MomentoTicket>("armar");
-  // Sin preselección a propósito: un «efectivo» que nadie eligió es un dato fantasma
-  // en el cuadre de caja. `cobrar()` no sale con null — lo frena `motivoBloqueo`.
-  const [metodoPago, setMetodoPago] = useState<MetodoPago | null>(null);
+  // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
+  // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
+  // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
+  const [pagos, setPagos] = useState<PagoAplicado[]>([]);
   const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
+  // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
+  const [codigoDescuento, setCodigoDescuento] = useState("");
+  // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
+  // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
+  const [nota, setNota] = useState("");
+  // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
+  // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
+  // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
+  const [enEspera, setEnEspera] = useState<TicketEnEspera[]>([]);
+  const claveEspera = claveLocal(ubicacionId, "en-espera");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -163,6 +201,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     window.addEventListener("keydown", alTeclaSuelta);
     return () => window.removeEventListener("keydown", alTeclaSuelta);
   }, [bloqueado, hayModal]);
+
+  useEffect(() => {
+    // Hidratar desde localStorage al montar es el patrón correcto en Next (no existe en
+    // el servidor y leerlo durante el render desincroniza la hidratación); la regla lo
+    // marca igual. Misma decisión que el BACKLOG registró el 2026-09-10 para la cola.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnEspera(leer<TicketEnEspera[]>(claveEspera, []));
+  }, [claveEspera]);
+
+  // Al cerrar caja se vacía la espera de la sede (decisión de Felipe): un ticket de ayer
+  // no sobrevive a la caja de hoy. `CerrarCajaModalV2` refresca y `cajaId` llega null. El
+  // estado se ajusta durante el render (patrón «previo + comparación» que documenta React)
+  // y el efecto solo toca el sistema externo: borra la llave.
+  const [bloqueadoPrevio, setBloqueadoPrevio] = useState(bloqueado);
+  if (bloqueado !== bloqueadoPrevio) {
+    setBloqueadoPrevio(bloqueado);
+    if (bloqueado) setEnEspera([]);
+  }
+  useEffect(() => {
+    if (bloqueado) borrar(claveEspera);
+  }, [bloqueado, claveEspera]);
 
   // Reflujo suave de las líneas del ticket al agregar/quitar una prenda (Flip, ADR-0038
   // — vuelve de V1 por ADR-0045): se captura la posición ANTES de que cambie la lista y
@@ -285,6 +344,55 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     setMomento("armar");
   }
 
+  // Ticket en espera (Park/Resume): guarda el actual y deja la caja libre. Sin reserva
+  // de stock — la RPC valida al cobrar, como siempre; acá solo se avisa por nombre.
+  function persistirEspera(lista: TicketEnEspera[]) {
+    setEnEspera(lista);
+    if (!guardar(claveEspera, lista)) avisar.aviso("No se pudo guardar la espera en este navegador: el ticket sigue acá, pero no sobrevivirá a una recarga.");
+  }
+  function limpiarTicket() {
+    setCarrito([]);
+    setNota("");
+    setCodigoDescuento("");
+    setPagos([]);
+    setDescuento({ pct: "", elegidas: null });
+    setMomento("armar");
+  }
+  function dejarEnEspera() {
+    if (carrito.length === 0) return;
+    if (enEspera.length >= TOPE_ESPERA) {
+      avisar.error(`Ya hay ${TOPE_ESPERA} tickets en espera en ${ubicacionEtiqueta}. Retoma o cobra uno antes de dejar otro.`);
+      return;
+    }
+    capturarFlip();
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento }]);
+    limpiarTicket();
+    buscador.current?.focus();
+  }
+  function retomar(id: string) {
+    const ticket = enEspera.find((t) => t.id === id);
+    if (!ticket) return;
+    // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
+    const actual: TicketEnEspera | null =
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento } : null;
+    persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
+    capturarFlip();
+    setCarrito(ticket.carrito);
+    setNota(ticket.nota);
+    setCodigoDescuento(ticket.codigoDescuento);
+    setPagos([]);
+    setMomento("armar");
+    // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
+    // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar.
+    const cortas = ticket.carrito.filter((it) => {
+      const v = variantes.find((x) => x.varianteId === it.varianteId);
+      return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+    });
+    if (cortas.length > 0) {
+      avisar.aviso(`${cortas.map((it) => `${it.referencia} (${it.sku})`).join(", ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}.`);
+    }
+  }
+
   function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -319,7 +427,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
-  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, metodoPago, facturaSinRuc });
+  const restante = restanteDePagos(total, pagos);
+  const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
+  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc });
+
+  // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
+  // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
+  function agregarPago(metodo: MetodoPago) {
+    if (pagos.some((p) => p.metodo === metodo)) return;
+    setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
+  }
+  function cambiarMontoPago(indice: number, monto: number) {
+    const limpio = Math.max(0, Math.round((monto || 0) * 100) / 100);
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, monto: limpio } : p)));
+  }
+  function quitarPago(indice: number) {
+    setPagos((actual) => actual.filter((_, i) => i !== indice));
+  }
+  // Lo que la clienta entregó en efectivo — solo para mostrar el vuelto; NUNCA viaja a
+  // la RPC (si viajara lo entregado en vez de lo que cubre, rechazaría por no cuadrar).
+  function cambiarRecibido(monto: number | null) {
+    setPagos((actual) => actual.map((p) => (p.metodo === "efectivo" ? { ...p, recibido: monto ?? undefined } : p)));
+  }
 
   function limpiarComprobante() {
     setTipoComprobante("boleta");
@@ -329,9 +458,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
 
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
-    // El mismo motivo que apaga el botón frena acá. El `metodoPago === null` de al
-    // lado es solo para que TypeScript lo sepa: `motivoBloqueo` ya lo cubre.
-    if (momento !== "cobrar" || motivoBloqueo !== null || metodoPago === null) {
+    // El mismo motivo que apaga el botón frena acá.
+    if (momento !== "cobrar" || motivoBloqueo !== null) {
       if (motivoBloqueo) avisar.error(motivoBloqueo);
       return;
     }
@@ -346,17 +474,35 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
         precio_unitario: it.precioUnitario,
         descuento_unitario: it.descuentoUnitario,
       })),
-      p_pagos: [{ metodo: metodoPago, monto: total }],
+      // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
+      // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.
+      p_pagos: pagos.filter((p) => p.monto > 0).map(({ metodo, monto }) => ({ metodo, monto })),
       p_token: token.current,
       p_tipo_comprobante: tipoComprobante,
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
+      p_codigo_descuento: codigoDescuento.trim() || undefined,
+      p_nota: nota.trim() || undefined,
     });
 
     if (error) {
       setLoading(false);
-      avisar.error(traducirError(error, "registrar la venta"));
+      // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
+      // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
+      // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
+      const porStock = /stock insuficiente|stock_cantidad_no_negativa/i.test(`${error.message} ${error.details ?? ""}`);
+      const cortas = porStock
+        ? carrito.filter((it) => {
+            const v = variantes.find((x) => x.varianteId === it.varianteId);
+            return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+          })
+        : [];
+      avisar.error(
+        cortas.length > 0
+          ? `${cortas.map((it) => `${it.referencia} (${it.sku}) — quedan ${variantes.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
+          : traducirError(error, "registrar la venta")
+      );
       return;
     }
 
@@ -375,9 +521,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     setOk({ total, prendas, comprobante });
     setCarrito([]);
     limpiarComprobante();
-    // Cada venta vuelve a preguntar cómo pagó la clienta: heredar el método de la
-    // anterior sería el mismo dato fantasma que la preselección que se quitó.
-    setMetodoPago(null);
     router.refresh();
   }
 
@@ -385,6 +528,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
   // arranca por las prendas, no por el cobro.
   function cerrarVentaRegistrada() {
     setOk(null);
+    // Cada venta vuelve a preguntar cómo pagó la clienta: heredar los medios de la
+    // anterior sería el mismo dato fantasma que la preselección que se quitó.
+    setPagos([]);
+    setCodigoDescuento("");
+    setNota("");
     setMomento("armar");
   }
 
@@ -397,17 +545,38 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
     <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
       <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
         <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {ubicacionEtiqueta}</p>
-        <button
-          type="button"
-          onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
-          className={
-            bloqueado
-              ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-              : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          }
-        >
-          {bloqueado ? "Abrir caja" : "Cerrar caja"}
-        </button>
+        {/* Lo que ya existe en otras pantallas y desde la caja no se alcanzaba: ingreso/
+            egreso y arqueo, cambio de talla, devoluciones. Enlaces discretos, no menú;
+            siguen vivos con la caja cerrada (cerrarla es justo lo que se hace en /caja)
+            y sin gate de rol: AppShell ya decide quién entra a qué. */}
+        {/* Enlaces y botón van juntos en un solo ítem del flex: si la fila se parte
+            (menos de ~900 px con el lateral abierto), el grupo cae entero a la derecha en
+            la segunda línea, no un botón suelto. Bajo `sm` (celular) los enlaces se
+            ocultan: ahí el lateral ya da Caja y Devoluciones. */}
+        <div className="ml-auto flex items-center gap-3">
+          <nav aria-label="Otras operaciones de la tienda" className="hidden items-center gap-1 sm:flex">
+            {ATAJOS.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+              >
+                {a.texto}
+              </Link>
+            ))}
+          </nav>
+          <button
+            type="button"
+            onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
+            className={
+              bloqueado
+                ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            }
+          >
+            {bloqueado ? "Abrir caja" : "Cerrar caja"}
+          </button>
+        </div>
       </div>
 
       {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
@@ -470,10 +639,24 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, cajaId, variantes
           onAbrirDescuento={abrirDescuento}
           onAplicarDescuento={aplicarDescuentoAlTicket}
           onQuitarDescuento={quitarDescuentoDelTicket}
+          esLider={esLider}
+          codigoDescuento={codigoDescuento}
+          onCodigoDescuento={setCodigoDescuento}
+          nota={nota}
+          onNota={setNota}
+          enEspera={enEspera}
+          onDejarEnEspera={dejarEnEspera}
+          onRetomar={retomar}
+          onIrAEspera={() => setMomento("espera")}
           total={total}
           prendas={prendas}
-          metodoPago={metodoPago}
-          onMetodoPago={setMetodoPago}
+          pagos={pagos}
+          restante={restante}
+          vuelto={vuelto}
+          onAgregarPago={agregarPago}
+          onMontoPago={cambiarMontoPago}
+          onQuitarPago={quitarPago}
+          onRecibido={cambiarRecibido}
           tipoComprobante={tipoComprobante}
           onTipoComprobante={setTipoComprobante}
           clienteNumDoc={clienteNumDoc}
