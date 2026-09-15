@@ -110,6 +110,12 @@ const HUELLAS: Huella[] = [
     frase: 'Ya existe una variante con ese SKU — revisa el catálogo en vez de crear uno nuevo.',
   },
   {
+    // 0002_esquema.sql — unique (producto_id, talla, color_codigo): dos
+    // variantes del mismo producto no pueden repetir la misma combinación.
+    marca: "variantes_producto_id_talla_color_codigo_key",
+    frase: "Ya existe una variante con esa combinación de talla y color en este producto.",
+  },
+  {
     // 0008_caja_y_pagos.sql — una sola caja abierta por ubicación.
     marca: "cajas_ubicacion_abierta_unica",
     frase: "Esta ubicación ya tiene una caja abierta. Ciérrala antes de abrir otra.",
@@ -167,10 +173,13 @@ const HUELLAS: Huella[] = [
       "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
   },
   {
-    // 0002_esquema.sql — categorias.nombre es único GLOBAL en V2 (a
-    // diferencia de V1, que lo permitía repetido entre familias).
-    marca: "categorias_nombre_key",
-    frase: "Ya existe una categoría con ese nombre — en cualquier familia.",
+    // 20260915160000_categorias_editar_desactivar.sql — el candado real:
+    // "Blusas" y "BLUSAS"/"blusas" son la misma categoría para
+    // fn_clave_texto, aunque el texto no calce byte a byte. Reemplaza al
+    // viejo `categorias_nombre_key` (unique plano, case/accent-sensitive),
+    // que esa misma migración eliminó.
+    marca: "categorias_nombre_clave_unica",
+    frase: "Ya existe una categoría con ese nombre (aunque esté escrito distinto) — en cualquier familia.",
   },
   {
     // 20260912235500_vocabulario_cerrado.sql — el prefijo son exactamente 3 mayúsculas.
