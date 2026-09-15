@@ -2292,6 +2292,27 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_historial_producto_cambios: {
+        Args: {
+          p_producto_id: string
+        }
+        Returns: {
+          campo: string
+          categoria_anterior_nombre: string
+          categoria_nueva_nombre: string
+          created_at: string
+          entidad: string
+          id: string
+          usuario_id: string
+          usuario_nombre: string
+          valor_anterior: string
+          valor_nuevo: string
+          variante_color: string
+          variante_id: string
+          variante_sku: string
+          variante_talla: string
+        }[]
+      }
       fn_mi_perfil: {
         Args: never
         Returns: {
@@ -2317,6 +2338,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
           p_usuario_id?: string
