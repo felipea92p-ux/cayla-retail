@@ -6,13 +6,14 @@ import { CambiosLista } from "@/components/CambiosLista";
 
 // Prioridad 1 (2026-09-12): cambio de talla/color. Ver
 // supabase/migrations/0007_cambios.sql y CambioFormV2.tsx para el modelo.
-export default async function CambiosPage() {
+export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const persona = await requirePersonaActualV2();
+  const { q } = await searchParams;
   // Mismo par de lecturas que Vender (vender/page.tsx): el catálogo entero más el piso
   // de ESTA ubicación, para que el selector de "entregar en su lugar" no ofrezca una
   // talla que `registrar_cambio` va a rechazar por falta de stock.
   const [lineas, catalogo, stock] = await Promise.all([
-    getLineasVentaRecientes(persona.ubicacionId),
+    getLineasVentaRecientes(persona.ubicacionId, { busqueda: q }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
   ]);
@@ -26,12 +27,13 @@ export default async function CambiosPage() {
         <p className="mt-1 text-sm text-tinta/65">Elige la prenda vendida que la clienta quiere cambiar por otra talla o color.</p>
       </div>
 
-      {lineas.length === 0 ? (
+      {lineas.length === 0 && !q ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay ventas recientes en esta ubicación.</p>
       ) : (
         <CambiosLista
           lineas={lineas}
           ubicacionId={persona.ubicacionId}
+          busqueda={q ?? ""}
           catalogo={catalogo
             .filter((v) => v.activo)
             .map((v) => ({

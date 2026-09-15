@@ -228,7 +228,8 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       `20260914165703_movimientos_inmutables.sql`. Disparador `before update or
       delete` + retiro de `UPDATE`/`DELETE`/`TRUNCATE` a `authenticated`/`anon`.
       Probado en rojo: las dos operaciones fallan, las 105 filas quedan intactas.
-      **Aplicado solo en local.**
+      **Ya está también en producción** — ver el detalle y la higiene pendiente
+      (migración sin registrar) en «Pendiente de construir» más abajo.
 - [x] **El modal de cierre de caja dejó de revelar el esperado antes de contar**
       (`CerrarCajaModalV2.tsx`). Ahora el esperado sale de la respuesta de
       `cerrar_caja` —calculado en el instante del cierre, no al cargar la página— y
@@ -274,7 +275,8 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       registro). Tercera adenda: **pago mixto y vuelto** — filas por medio, recibido en
       efectivo con teclas que suman billetes, «Cubierto / Falta cubrir / Se pasa»;
       verificado con Boleta B001-000006 (yape 50 + efectivo 109.80, «efectivo + yape»
-      en Ventas de hoy). **Solo en `main` local — falta pushear.**
+      en Ventas de hoy). **En `origin/main`** (verificado 2026-09-15: `git merge-base
+      --is-ancestor` confirma los commits del 14-sep en el HEAD de esta rama).
 
 - [x] **El escaneo manda en el panel izquierdo de Vender; el catálogo es plan B**
       (sesión A del mismo día, rama `feat/pos-escaneo-primero`). Campo de escaneo primero
@@ -284,7 +286,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       modal (`Modal.alCerrarEnfocar` sobre Radix) y ante una tecla suelta con el foco en
       un botón (`lib/escaner-tecla-suelta.ts`, 9 tests) — antes el Enter de la pistola
       activaba ese botón. Verificado en navegador con ventas reales en local
-      (B001-000002 a 000004). **Solo en `main` local — falta pushear.**
+      (B001-000002 a 000004). **En `origin/main`.**
 
 - [x] **El catálogo de Vender se mira por prenda + color, con las tallas adentro**
       (sesión A, segunda ola del mismo día, decisión 1A de Felipe). `lib/catalogo-grupos.ts`
@@ -293,27 +295,56 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       borde rojo suave sin stock (pedido explícito; rompe el "máx. 2 rojos" del brandbook),
       `Toggle` «Solo con stock», `Badge` en el globito, `alza-cayla`, `scroll-cayla` y
       `RevelarAlScroll` (GSAP) por tarjeta — lo que ya se ve al montar no viaja. 48 → 16
-      tarjetas medidas a 1440×900. **Solo en `main` local — falta pushear.**
+      tarjetas medidas a 1440×900. **En `origin/main`.**
 - [x] **La talla agotada dice en qué sede sí hay** (sesión A, tercera ola). Tooltip por
       talla y línea en el desplegable del escáner; `lib/stock-por-sede.ts` (9 tests);
       `page.tsx` lee el stock de todas las sedes que RLS deje ver. Funciona para Líderes;
       para colaboradoras de sede fija llega vacío (ver pendiente siguiente). De paso: fuera
       el reveal al scroll del POS (dos atenuados no conviven) y `catalogo-grupos.ts` dejó
-      de ser binario para git (byte NUL → escape). **Solo en `main` local — falta pushear.**
+      de ser binario para git (byte NUL → escape). **En `origin/main`.**
 - [x] **«Ventas de hoy» firma cada venta con la integrante** (sesión A). Primer nombre,
       inicial del apellido solo si hay dos con el mismo (`lib/nombre-integrante.ts`, 6
-      tests); el relleno «—» de la RPC no se pinta. **Solo en `main` local — falta pushear.**
+      tests); el relleno «—» de la RPC no se pinta. **En `origin/main`.**
 - [x] **La cabecera de Vender enlaza a Caja, Cambios y Devoluciones** (sesión A). Tres
       enlaces discretos antes del botón de caja; agrupados con él para que la fila se parta
-      limpia; ocultos bajo `sm`. **Solo en `main` local — falta pushear.**
+      limpia; ocultos bajo `sm`. **En `origin/main`.**
 - [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
-      texto completo en `title`; nada si viene null. **Solo en `main` local — falta pushear.**
-- [ ] **Aplicar `20260914220001_stock_por_sede.sql` y cambiar `page.tsx` a la RPC.** La
-      migración está escrita y NO aplicada (esquema en la base compartida: la aplica
-      Felipe). Sin ella, una colaboradora con sede fija no ve el stock de otras sedes
-      porque `stock_select` = «puede operar la sede», y esa policy no debe abrirse por esto.
-      Después de aplicarla: `supabase.rpc("fn_stock_por_sede")` en `vender/page.tsx` (un
-      commit chico) y verificar como Micaela (ya es colaboradora de Trujillo en local).
+      texto completo en `title`; nada si viene null. **En `origin/main`.**
+- [x] **El reembolso en efectivo ya resta del arqueo, y se busca una venta por su
+      boleta** (ADR-0052, `20260915180000_reembolso_en_el_arqueo.sql`). Antes: aprobar
+      una devolución con reembolso en efectivo dejaba el cajón "sobrando" exactamente
+      ese monto en `cerrar_caja` — un faltante disfrazado de sobrante. Ahora
+      `devoluciones.caja_id` (fijado solo, al aprobar) liga el reembolso a la caja que
+      lo absorbe, y `cerrar_caja` lo resta — solo efectivo, Yape/Plin/transferencia/
+      tarjeta no tocan el cajón. Tarjeta "Reembolsos en efectivo" nueva en `/caja`. De
+      paso: Devoluciones y Cambios solo mostraban las últimas 30 ventas de la sede —
+      ahora se puede escribir "B001-10" (o solo "10") y encontrar una venta de hace
+      meses (`parsearComprobante`, `BuscarPorComprobante.tsx`, compartido por las dos
+      pantallas). Verificado en psql (3 escenarios con rollback) y de punta a punta en
+      navegador: `cerrar_caja` con un reembolso real de S/25.90 dio el esperado exacto
+      (S/586.82) contra lo contado. **No aplicado en producción** — la pega Felipe (D-11).
+- [x] **Cambios ya no tiene la misma fuga que Devoluciones tenía** (ADR-0053,
+      `20260915200000_diferencia_de_cambio_en_el_arqueo.sql`) — cerrado el mismo día
+      que se encontró. Mismo mecanismo que ADR-0052: `cambios.caja_id` (fijado solo, al
+      registrar) liga la diferencia a la caja que la absorbe; `cerrar_caja` la suma con
+      signo — positiva (paga de más) suma, negativa (se le devuelve) resta, un solo
+      `sum()` cubre los dos sentidos porque el dato ya trae el signo. Tarjeta "Cambios
+      en efectivo" nueva en `/caja` (con signo). Encontrado de paso: `cerrar_caja`
+      retorna una columna que también se llama `diferencia` — sin calificar
+      `cambios.diferencia`, la función ni compilaba en la prueba. Verificado en psql (3
+      escenarios) y de punta a punta en navegador: cambio real con diferencia de
+      +S/100 en efectivo, `cerrar_caja` dio el esperado exacto (S/194.99).
+      **No aplicado en producción** — la pega Felipe (D-11).
+- [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
+      **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
+      schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,
+      `…231015_registrar_venta_piso_con_nota`, aunque su propia migración
+      `20260914220001` no quedó registrada en `schema_migrations`). `vender/page.tsx:43`
+      todavía lee `stock` directo (`supabase.from("stock").select(...)`), así que
+      `stock_select` = «puede operar la sede» sigue filtrando y una colaboradora de sede
+      fija recibe `otrasSedes` vacío. Cambio: `supabase.rpc("fn_stock_por_sede")` en vez de
+      la lectura directa (un commit chico) y verificar como Micaela (colaboradora de
+      Trujillo — su fila ya existe en local, ver ítem siguiente).
 - [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
       `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
       («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
@@ -325,19 +356,23 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       quién la sube (Productos) y cómo llega a `getCatalogo`. Cuando exista, la tarjeta
       la pinta sin rediseñar.
 
-- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`).**
-      Verificar en local que la caja opera sobre *su* sede y no sobre la del Líder: el
-      selector «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de
-      la persona, y que el escáner solo reconozca stock de esa sede. El `seed.sql` nuevo
-      pone a Micaela como colaboradora de Trujillo, pero la base local no se reseteó
-      (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
-      `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
+- [ ] **Vender como colaboradora de sede fija (rol Colaborador, `0016_roles_colaborador`)
+      — falta VERIFICAR, ya no falta la data.** Micaela existe en local como colaboradora
+      de Tienda Trujillo (confirmado 2026-09-15: `retail.colaboradores` tiene su fila con
+      `ubicacion_asignada_id` = Trujillo). Falta entrar como ella y verificar en
+      navegador que la caja opera sobre *su* sede y no sobre la de un Líder: el selector
+      «Tienda … ▾» del AppShell, el `ubicacionId` que `vender/page.tsx` saca de la persona,
+      y que el escáner solo reconozca stock de esa sede. Sin dueño ni fecha; no bloquea
+      nada de Vender.
 
-- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
-      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
-      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
-      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
-      prenda (es una decisión operativa por tienda, no un script ciego).
+- [x] **El bloque 8 (`…231015_registrar_venta_piso_con_nota`) ya está en producción** —
+      cerrado, no es más un bloqueante. Verificado 2026-09-15 contra `pg_proc` en
+      `cayla-dynamic`: `registrar_venta` tiene una sola sobrecarga de 11 parámetros con
+      `fn_sububicacion_por_defecto` en el cuerpo, y `20260914231015` SÍ está registrada en
+      `supabase_migrations.schema_migrations` (a diferencia de lo que decía este ítem
+      hasta hoy). Sigue vigente la regla operativa: al activar piso/almacén en una tienda,
+      llevar antes el stock «sin sububicación» al piso con `mover_interno(…, null, piso,
+      …)`, prenda por prenda (decisión por tienda, no un script ciego).
 
 **Pendiente de decisión de Felipe:**
 
@@ -348,14 +383,14 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       la consola del navegador — un `GET` de una línea. El candado de verdad es que quien
       opera la caja no pueda leer ese agregado, y eso necesita los cuatro niveles de
       D-12, que hoy no existen en la base.
-- [ ] **"Control total temporal" (`0012`/`0013`) no tiene fecha de revisión.** Dentro de
-      la lista blanca `retail.colaboradores`, **cualquier colaborador puede operar
-      cualquier sede**: abrir/cerrar caja ajena, anular comprobantes SUNAT aceptados,
-      cerrar conteos, aprobar devoluciones. Es una decisión explícita y bien documentada
-      de Felipe (2026-09-12/13) para destrabar logins en pruebas — pero "temporal" sin
-      fecha, y el repo ya tiene historial de temporales que duran meses. Revisar **antes**
-      de que las tiendas operen con plata real o de invitar a más gente de la necesaria.
-      Revertir es un solo `create or replace` (el mapeo real de rol está en `0009`).
+- [x] **"Control total temporal" (`0012`/`0013`) — cerrado por `0016_roles_colaborador`.**
+      El hueco que este ítem denunciaba (cualquier colaborador podía operar cualquier
+      sede) ya no existe: verificado 2026-09-15 contra `cayla-dynamic` en vivo,
+      `fn_puede_operar_ubicacion` compone sobre el `fn_es_lider()` y
+      `fn_ubicacion_actual_persona()` reales de `0016` (Líder = todo; Colaborador = solo
+      su `ubicacion_asignada_id`), no sobre el bypass de `0012` ("cualquier persona activa
+      de Dynamic"). Sigue pendiente, aparte, el candado del **conteo ciego** (ítem
+      siguiente), que depende de los cuatro niveles de D-12 y no de este.
 - [ ] **¿Dónde vive la docencia del cobro ahora que los (!) solo se encienden cuando
       falta algo?** (ADR-0044). La explicación de «acá se registra, no se cobra» y de
       «boleta admite DNI opcional; factura exige RUC» quedó dentro de los globos de
@@ -367,20 +402,66 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
 **Pendiente de construir (no es un fix de una sesión):**
 
 - [ ] **El POS de V2 no tiene ninguna resiliencia sin internet — regresión contra V1.**
-      Cero rastro de cola offline, `localStorage` o `navigator.onLine` en `apps/web`.
-      V1 lo tenía resuelto (cola por sede, umbral de stock, reintento con el mismo
-      token). Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende nada.
-      Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
-      gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
-      `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
-      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
-      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
-      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
-      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
-      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
-      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+      **TRASPASO 2026-09-15 (sesión de Vender): siguiente paso de esta lista, empezar
+      por acá.** Cero rastro de cola offline, `localStorage` o `navigator.onLine` en
+      `apps/web` hoy. Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende
+      nada. Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada
+      con gracia, nunca pierde datos") y D-49.
+
+      **V1 ya lo construyó completo, verificado y con addendums — se borró en el corte
+      V1→V2 (`0af2f1b`, 2026-09-12), no se descartó por estar mal.** Recuperar con:
+      `git show 0af2f1b^:apps/web/lib/ventas-offline.ts` (194 líneas, puro, 11
+      pruebas — `git show 0af2f1b^:apps/web/lib/ventas-offline.test.ts`),
+      `git show 0af2f1b^:apps/web/lib/sin-red.ts` (104 líneas — `esFalloDeRed()`),
+      y sobre todo `git show 0af2f1b^:docs/adr/0036-cola-de-ventas-offline.md` (226
+      líneas: el diseño completo, con dos addendums del mismo día que ya resolvieron
+      los huecos no obvios — venta huérfana si la caja cierra antes de subir, botón
+      "Descartar" para un rechazo que no se va a resolver solo). Deriva de ADR-0013
+      §C (decisión de Felipe: vender offline solo con stock de sobra) y depende del
+      mismo contrato de `p_token`/`unique_violation` en `registrar_venta` que
+      ADR-0032/0033 fijaron — sigue vigente en la versión de hoy
+      (`20260915140000_descuento_motivo_y_escalonado.sql`, líneas ~104-108).
+
+      **Qué cambió desde que se escribió ese ADR, y hay que adaptar, no copiar tal
+      cual:** (1) `registrar_venta` pasó de 5 a 11 parámetros (piso/almacén, motivo y
+      escalonado de descuento, código, nota) — el payload que se encola tiene que
+      llevar los campos de hoy. (2) el stock ahora es piso+almacén por sububicación
+      (`lib/stock-por-sede.ts`, `getStockPorUbicacion` en `lib/inventario-v2.ts`), no
+      la columna plana que V1 leía — el umbral `stockAqui - cantidad >= 1` debe
+      evaluarse sobre el PISO, que es lo que una venta descuenta (nunca el almacén en
+      silencio, principio 4). (3) `lib/almacen-local.ts` (ADR-0049, 2026-09-14) ya es
+      el módulo reutilizable que iba a reemplazar el `localStorage` a mano de V1 —
+      `claveLocal(ubicacionId, "cola")` está reservado en su propio comentario de
+      cabecera exactamente para esto; seguir el patrón de `TOPE_ESPERA`/`enEspera` en
+      `PuntoDeVenta.tsx` (líneas ~101, 171, 413) para la cola por sede. (4) `SIN_RED`
+      ya existe en `apps/web/lib/error-escritura.ts:217` (5 huellas de red) — es lo
+      que `esFalloDeRed()` de V1 reusaba; en V2 puede importarse directo en vez de
+      duplicar la lista. (5) `cobrar()` en `PuntoDeVenta.tsx:509` es donde hoy se
+      llama a `registrar_venta` y se traduce el error — ahí bifurca V1 entre subir
+      normal y encolar. (6) El "esperado" de `cerrar_caja` HOY YA suma/resta
+      reembolsos y diferencias de cambio en efectivo (ADR-0052/0053, 2026-09-15) —
+      sumarle "efectivo encolado sin subir" (`totalEfectivoEncolado()` de V1) es una
+      cuarta pieza sobre el mismo patrón, no una nueva.
+
+      **Cuidado con `docs/datos/`: dice que esto YA ESTÁ HECHO, y no lo está — es la
+      documentación desactualizada, no el código.** `docs/datos/10-ROADMAP-DATOS.md:
+      801` ("D-49 · HECHA") y `docs/datos/09-CONTRATOS.md:115-118` describen
+      `lib/ventas-offline.ts`/`lib/sin-red.ts` como si existieran hoy en el repo — es
+      la foto de V1 sin actualizar tras el corte, el mismo problema que ya delató
+      `docs-datos-generado-es-foto-v1-del-12-sep` en otra parte de este archivo. No
+      confiar en esa carpeta para saber si esto está construido: confiar en
+      `apps/web/lib/` (vacío de esto hoy) y en este ítem del BACKLOG.
+
+      La idempotencia por `ventas.token_cliente` —la condición previa que todo esto
+      pide— **ya existe en V2** desde 2026-09-10, sin tocar.
+- [x] **Las tres migraciones de ADR-0048 ya están en producción — ya no bloquean el
+      deploy.** `20260914215059_candado_precio_venta.sql`,
+      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`.
+      Verificado 2026-09-15: las tres versiones están en
+      `supabase_migrations.schema_migrations` de `cayla-dynamic` y `registrar_venta` en
+      vivo acepta `p_codigo_descuento` y `p_nota`. Pendiente de higiene, no de deploy:
+      correr `pnpm datos:generar:produccion` (el diccionario sigue describiendo la RPC de
+      5 parámetros de V1). «Ventas de hoy» ya pinta `nota` (ítem cerrado arriba).
 - [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
       en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
       tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
@@ -401,6 +482,20 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       `PuntoDeVenta.tsx:47,141` la deja fija en `0` y el campo "Precio unitario"
       sobreescribe el precio directo. Nadie puede medir cuánto se regala en descuentos,
       ni distinguir un descuento autorizado de un cero de más al tipear.
+- [x] **El Líder también tiene tope, y el descuento pide motivo — cierra R-45 y D-44**
+      (ADR-0054, `20260915140000_descuento_motivo_y_escalonado.sql`). Desde el 09-14 la
+      Colaboradora ya tenía tope (el código); el Líder podía descontar cualquier % sin
+      dejar rastro. Ahora, para cualquier descuento > 0 (Líder o Colaboradora): motivo
+      de lista cerrada obligatorio, y nunca por debajo del costo, sin revelar el número.
+      Solo para el Líder: hasta 20 % sola, 20-35 % con argumento escrito, más de 35 %
+      nadie — sin excepción (decisión de Felipe, 2026-09-15: la base no puede distinguir
+      "Felipe" de las otras 8 personas registradas; ver ADR-0054 «Se descartó»). De
+      paso: descuento en S/ por unidad, no solo en %. Verificado en 10 escenarios psql
+      y de punta a punta en navegador (Boletas B001-000010 y B001-000011, local).
+      **No aplicado en producción** — la pega Felipe (D-11).
+- [ ] **Reporte de "cuánto margen se fue por cada motivo"** (R-45, punto 2) — el dato ya
+      se guarda (`venta_items.motivo_descuento`), pero no hay pantalla que lo sume por
+      motivo ni por período. Paso propio, sobre ADR-0054.
 - [ ] **Cero pruebas automatizadas sobre `registrar_venta`, `abrir_caja` y
       `cerrar_caja`.** Es el núcleo del dinero y del stock. No hay `supabase/tests/`
       ni un solo `*.test.ts` que las toque. Es D-25, y lo pide **antes** del censo.
@@ -409,8 +504,13 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
 - [x] **(Cerrado 2026-09-15: el disparador `movimientos_inmutables` YA está en producción** —
-      verificado tabla por tabla al refrescar el volcado; producción y local tienen los
-      mismos 7 disparadores. Queda el texto original como historia.)
+      verificado en vivo dos veces por dos sesiones distintas: primero contra `pg_proc`
+      (trigger presente, `authenticated` sin `UPDATE`/`DELETE`/`TRUNCATE`), después tabla
+      por tabla al refrescar el volcado — producción y local tienen los mismos 7
+      disparadores. Queda una sola higiene: `20260914165703` no aparece en
+      `supabase_migrations.schema_migrations` — el candado corre, pero su migración no
+      quedó registrada. Registrarla es cosa de Felipe (D-11), no bloquea nada. Queda el
+      texto original como historia.)
       **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
       contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
       `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
@@ -478,7 +578,10 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 
 **Pendiente de Felipe (producción):**
 
-- [x] **`20260915090000_movimientos_lectura.sql` aplicada en producción el 2026-09-15**,
+- [x] **`20260915090000_movimientos_lectura.sql` ya está en producción — este ítem
+      quedó viejo apenas se escribió.** Verificado 2026-09-15, dos veces: primero en
+      vivo contra `pg_proc`/`schema_migrations` de `cayla-dynamic` (la migración estaba
+      registrada y `fn_movimientos`/`fn_movimientos_resumen` existían), después
       después del merge del PR #33 (Vercel en verde). Verificada como Benjamin en
       Tienda AQP con rollback. De paso quedaron registradas en
       `supabase_migrations.schema_migrations` las tres que se aplicaron con

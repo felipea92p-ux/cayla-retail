@@ -3,6 +3,146 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (cierre de sesión: traspaso de la cola offline a otra sesión)
+
+Felipe pidió cerrar acá y seguir la cola offline (siguiente ítem de la lista del
+análisis competitivo) en otra sesión. Antes de cortar: el BACKLOG ("El POS de V2 no
+tiene ninguna resiliencia sin internet") quedó reescrito con el traspaso completo —
+V1 ya construyó esto entero y verificado (`lib/ventas-offline.ts`, `lib/sin-red.ts`,
+ADR-0036 con dos addendums) y se borró sin querer en el corte V1→V2, no por estar
+mal; recuperable con `git show 0af2f1b^:<ruta>`. Se anotó también que
+`docs/datos/10-ROADMAP-DATOS.md` y `09-CONTRATOS.md` dicen que esto ya existe (D-49
+"HECHA") — es la misma foto de V1 sin refrescar que ya se había delatado antes en
+otra parte del repo, no una segunda vez que alguien lo construyó.
+
+Lo que Felipe se lleva: **antes de traspasar trabajo a otra sesión, el lugar correcto
+para dejar el contexto es el BACKLOG, no solo el chat** — la próxima sesión audita el
+repo y lee `BACKLOG.md`/`BITACORA.md` completos por ritual (`CLAUDE.md`) antes de
+proponer nada, así que el traspaso llega sin depender de que alguien copie y pegue
+el mensaje correcto.
+
+## 2026-09-15 (la diferencia de un cambio también cuadra la caja)
+
+Quinto paso, sobre el hallazgo que el paso anterior dejó anotado sin resolver a
+propósito: `registrar_cambio` calcula y guarda `cambios.diferencia` cuando una clienta
+paga o recibe la diferencia de precio de un cambio de prenda, pero —igual que las
+devoluciones antes de ADR-0052— nunca la liga a una caja. `cambios.caja_id` (ADR-0053)
+reutiliza el mecanismo tal cual: fijado solo al registrar, sumado con signo en
+`cerrar_caja`. La diferencia real con el reembolso: `cambios.diferencia` ya trae el
+signo (paga de más suma, se le devuelve resta), así que un solo `sum()` filtrado a
+efectivo cubre los dos sentidos — el reembolso de una devolución, en cambio, siempre
+resta, nunca hay "reembolso negativo".
+
+La prueba en psql encontró un bug real antes de que llegara a ningún lado: `cerrar_caja`
+retorna una columna que también se llama `diferencia` (la del cuadre), y
+`sum(diferencia)` sin calificar es ambiguo para Postgres dentro del cuerpo de la
+función — ni compilaba. Se corrigió a `sum(cambios.diferencia)` y recién ahí pasaron
+los tres escenarios (positiva suma, negativa resta, Yape no toca el cajón). Verificado
+también de punta a punta en navegador: cambio real con diferencia de +S/100 en
+efectivo, tarjeta "Cambios en efectivo: +S/100.00" en `/caja`, y `cerrar_caja` con el
+esperado exacto (S/194.99) contra lo contado.
+
+Lo que Felipe se lleva: **una función que retorna una tabla con nombres de columna
+"genéricos" (`diferencia`, `total`, `monto`) arriesga chocar con el nombre de una
+columna real que consulta adentro** — el error de Postgres ("ambiguous") lo avisa en
+el momento, pero solo si algo prueba esa rama del código antes de producción. Acá lo
+hizo la prueba en psql, en segundos, con `rollback` — el mismo hábito que ya evitó
+sorpresas parecidas en otras RPC de este repo.
+
+## 2026-09-15 (el reembolso en efectivo también cuadra la caja)
+
+Cuarto paso de la sesión: Devoluciones guardaba `reembolso_monto`/`reembolso_metodo` al
+aprobar, pero `cerrar_caja` nunca los miraba — un reembolso en efectivo hacía "sobrar"
+el cajón exactamente ese monto, un faltante disfrazado de sobrante. `devoluciones.
+caja_id` (ADR-0052) liga cada reembolso a la caja que estaba abierta al aprobarlo —no
+la de la venta original, que puede ser de otro día— y `cerrar_caja` lo resta, solo si
+es efectivo. Las dos RPC mantuvieron su firma; nada más en el repo tuvo que enterarse.
+
+De paso, el otro hueco que la misma pantalla tenía: Devoluciones y Cambios solo
+mostraban las últimas 30 ventas de la sede, así que una clienta que volvía después de
+esa ventana no tenía cómo devolver ni cambiar nada. `parsearComprobante()` lee lo que
+se escribe a mano desde el papel impreso ("B001-10", con ceros o sin ellos, o solo el
+número) y `buscarVentaIdsPorComprobante()` encuentra la venta exacta sin importar la
+fecha — un componente (`BuscarPorComprobante.tsx`) sirve a las dos pantallas.
+
+Verificado con 3 escenarios en psql (reembolso efectivo resta, reembolso Yape no
+toca el cajón, caso de referencia) y de punta a punta en navegador: una devolución
+real con reembolso de S/25.90 en efectivo, la tarjeta nueva "Reembolsos en efectivo"
+en `/caja`, y `cerrar_caja` respondiendo el esperado exacto (S/586.82) contra lo
+contado.
+
+Lo que Felipe se lleva: **al escribir el candado se encontró la misma fuga en la
+pantalla vecina** — `registrar_cambio` calcula la diferencia de precio de un cambio
+(`cambios.diferencia`) pero tampoco la liga nunca a una caja. Se dejó anotada en el
+BACKLOG como paso propio en vez de arreglarla de pasada: el mecanismo que este ADR
+construyó (`caja_id` fijado al registrar, restado o sumado al cerrar) se reutiliza
+tal cual, pero mezclar dos módulos en un mismo commit porque comparten la causa raíz
+habría sido más difícil de revisar que dos cambios chicos y claros.
+
+## 2026-09-15 (el Líder también tiene tope — R-45 y D-44, saltados desde el 09-12)
+
+Tercer paso de la misma sesión: la comparativa externa señalaba "descuento sin motivo,
+solo en %". Al volver sobre R-45/D-44 (decididos 2026-09-12) apareció el hueco real:
+desde el 09-14 (ADR-0048) la Colaboradora ya tenía tope — el código —, pero el Líder
+podía descontar cualquier % sin dejar rastro de por qué ni mirar el costo.
+`20260915140000_descuento_motivo_y_escalonado.sql` (ADR-0054) cierra los tres candados
+de R-45 — motivo de lista cerrada y nunca bajo el costo, para cualquiera; el escalonado
+20 %/35 % con argumento, solo el Líder — sin cambiar la firma de `registrar_venta` (los
+campos viajan dentro de cada `p_items[]`, igual que `descuento_unitario` siempre lo
+hizo). De paso, la otra entrada que pedía la comparativa: descuento en S/, no solo en %
+(`aplicarDescuentoMonto()`, mismo camino que la versión en % con otra conversión).
+
+El único punto sin resolver solo con código: R-45 dice "más de 35 % lo autoriza
+Felipe", pero la base hoy no distingue a Felipe de cualquiera de las otras 8 personas
+registradas como Líder — D-12 (los cuatro niveles de rol) no existe todavía. Se le
+preguntó a Felipe en vez de asumir un mecanismo: eligió bloquear sin excepción por
+ahora ("el día que haga falta de verdad, se sube a mano en Studio") en vez de agregar
+una bandera nueva al modelo de personas por una regla que producción nunca ha usado (0
+ventas con descuento > 35 % medido ese mismo día). Verificado con 10 escenarios en
+psql (impersonando Líder y Colaboradora con `set local role` + JWT simulado) y de
+punta a punta en navegador: 25 % con argumento pasa (Boleta B001-000010), 40 % con
+argumento igual se rechaza (nadie deja fila en `venta_items`), S/20 sin argumento pasa
+por no llegar al 20 % (Boleta B001-000011).
+
+Lo que Felipe se lleva: **cuando la letra de una decisión pide algo que el modelo de
+datos todavía no puede distinguir** (aquí, "Felipe" separado de "cualquier Líder"), la
+salida más segura no es inventar el mecanismo que falta a mitad de otra tarea — es
+preguntar y, si la respuesta es "bloquéalo por ahora", dejarlo bloqueado sin excepción
+y anotar la razón (ADR-0054 «Se descartó») para el día que sí haga falta.
+
+## 2026-09-15 (el BACKLOG decía "no en producción" seis veces, y ya estaba)
+
+Felipe pidió analizar una comparativa externa del POS contra siete ERP/POS (SAP, Xstore,
+Odoo, Dynamics 365, NetSuite, Epicor, Acumatica) y decir qué falta en Vender. La verificación
+encontró un bug real de paso: con la caja cerrada desde ayer, `PuntoDeVenta.tsx` cargaba los
+tickets en espera de `localStorage` en el mismo efecto que los debía dejar vacíos —el chip
+«En espera · N» mostraba tickets de un día anterior a la caja de hoy. `esperaAlCargar()`
+(`lib/vender-reglas.ts`, 2 tests) decide qué vuelve al montar; reproducido y verificado en
+navegador antes y después del fix. De paso, `VenderFormV2.tsx` —sin importadores desde el
+corte V2, pero que igual llamaba a `registrar_venta`— salió del repo.
+
+Al limpiar el BACKLOG con esos hallazgos, la sospecha de "¿y esto sigue así?" llevó a
+consultar `pg_proc`/`information_schema` en vivo contra `cayla-dynamic` (schema `retail`,
+solo lectura) para cada ítem marcado "no en producción" en la sección de Vender+Caja.
+Seis resultaron viejos: el bloque 8 (`…231015_registrar_venta_piso_con_nota`, con
+`fn_sububicacion_por_defecto` en el cuerpo), las tres migraciones de ADR-0048 (candado de
+precio, códigos de descuento, nota), el candado de `movimientos` (ADR-0042: trigger presente,
+`authenticated` sin UPDATE/DELETE/TRUNCATE), `0016_roles_colaborador` (`fn_puede_operar_
+ubicacion` ya compone sobre el candado real, no sobre el bypass de `0012`) y —de la sesión de
+Movimientos de más arriba, escrita horas antes— `20260915090000_movimientos_lectura`, que
+esa misma entrada da por "solo local" y ya estaba pegada. De los ítems de Vender solo quedó
+uno realmente pendiente: `fn_stock_por_sede` ya está en producción (la trajo el bloque 8),
+pero `vender/page.tsx:43` sigue leyendo la tabla `stock` directo en vez de llamarla —así que
+una colaboradora de sede fija sigue sin ver otras sedes.
+
+Lo que Felipe se lleva: **`schema_migrations` registra qué se pegó, no qué existe** —al
+menos tres de estas migraciones (el bloque 8 hasta ayer, el candado de `movimientos`, y
+`20260914220001_stock_por_sede`) corren en producción sin una fila que las respalde, porque
+se pegaron sin el `insert` de registro. Un BACKLOG que se escribe leyendo el repo o el
+historial de migraciones, sin preguntarle a la base, se desactualiza en horas mientras Felipe
+sigue pegando SQL directo (D-11). La única fuente confiable es `pg_proc`/`information_schema`
+en vivo — igual que ya advertía `docs/BACKLOG.md` sobre `docs/datos/generado/`.
+
 ## 2026-09-15 (Movimientos también centrado — mismo criterio que Inventario, sin sorpresas esta vez)
 
 Felipe pidió centrar la tabla de Movimientos, "solo ese cambio puntual". Las 6 columnas
