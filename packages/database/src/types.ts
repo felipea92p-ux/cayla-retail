@@ -173,6 +173,7 @@ export type Database = {
       }
       cambios: {
         Row: {
+          caja_id: string | null
           cantidad: number
           created_at: string
           diferencia: number
@@ -185,6 +186,7 @@ export type Database = {
           venta_item_id: string
         }
         Insert: {
+          caja_id?: string | null
           cantidad: number
           created_at?: string
           diferencia?: number
@@ -197,6 +199,7 @@ export type Database = {
           venta_item_id: string
         }
         Update: {
+          caja_id?: string | null
           cantidad?: number
           created_at?: string
           diferencia?: number
@@ -209,6 +212,13 @@ export type Database = {
           venta_item_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cambios_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cambios_ubicacion_id_fkey"
             columns: ["ubicacion_id"]

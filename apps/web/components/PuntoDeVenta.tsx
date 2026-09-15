@@ -11,7 +11,18 @@ import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { aplicarDescuento, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
+import {
+  aplicarDescuento,
+  aplicarDescuentoMonto,
+  esperaAlCargar,
+  motivoBloqueoCobro,
+  restanteDePagos,
+  SIN_DETALLE_DESCUENTO,
+  vueltoDe,
+  type DetalleDescuento,
+  type MomentoTicket,
+  type PagoAplicado,
+} from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -56,12 +67,29 @@ export type ItemCarrito = {
   precioUnitario: number;
   descuentoUnitario: number;
   stockAqui: number;
+  /** Por qué se descontó esta línea (R-45): uno de `RAZONES_DESCUENTO`, o "" sin
+   *  descuento. `registrar_venta` lo exige apenas `descuentoUnitario > 0`. */
+  razonDescuento: string;
+  /** El texto de "Otro" — solo cuando `razonDescuento === "otro"`. */
+  razonDescuentoOtro: string;
+  /** El argumento escrito que pide la banda 20-35 % de un Líder (R-45); "" fuera de
+   *  esa banda o en el camino de una Colaboradora (su tope es el código, no esto). */
+  argumentoDescuento: string;
 };
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % (texto tal
- *  cual lo escribe) y a qué líneas alcanza — `null` es todo el ticket; `[]` es que
- *  todavía no eligió ninguna (no se puede aplicar). */
-export type DescuentoForm = { pct: string; elegidas: string[] | null };
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
+ *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
+ *  es todo el ticket; `[]` es que todavía no eligió ninguna), el motivo (R-45) y el
+ *  argumento que la banda 20-35 % de un Líder exige. */
+export type DescuentoForm = {
+  modo: "porcentaje" | "monto";
+  pct: string;
+  monto: string;
+  elegidas: string[] | null;
+  razon: string;
+  razonOtro: string;
+  argumento: string;
+};
 
 /** Un ticket dejado en espera (la clienta fue a probarse otra talla): lo que hace falta
  *  para retomarlo tal cual — líneas (con su descuento adentro), nota y código. El
@@ -82,6 +110,10 @@ type VentaOk = {
 };
 
 const MAX_RESULTADOS = 6;
+
+/** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
+ *  que `abrirDescuento` traiga unas), sin motivo. */
+const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 /** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
 const ATAJOS = [
@@ -126,7 +158,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
   const [pagos, setPagos] = useState<PagoAplicado[]>([]);
-  const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
+  const [descuento, setDescuento] = useState<DescuentoForm>(DESCUENTO_VACIO);
   // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
   const [codigoDescuento, setCodigoDescuento] = useState("");
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
@@ -209,9 +241,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // Hidratar desde localStorage al montar es el patrón correcto en Next (no existe en
     // el servidor y leerlo durante el render desincroniza la hidratación); la regla lo
     // marca igual. Misma decisión que el BACKLOG registró el 2026-09-10 para la cola.
+    // Mira la caja: si se cerró desde /caja y hoy se abre Vender con la caja aún cerrada,
+    // el efecto de abajo borra la llave pero este ya había cargado los tickets de ayer.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnEspera(leer<TicketEnEspera[]>(claveEspera, []));
-  }, [claveEspera]);
+    setEnEspera(esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, [])));
+  }, [bloqueado, claveEspera]);
 
   // Al cerrar caja se vacía la espera de la sede (decisión de Felipe): un ticket de ayer
   // no sobrevive a la caja de hoy. `CerrarCajaModalV2` refresca y `cajaId` llega null. El
@@ -280,6 +314,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               precioUnitario: v.precio,
               descuentoUnitario: 0,
               stockAqui: v.stockAqui,
+              razonDescuento: "",
+              razonDescuentoOtro: "",
+              argumentoDescuento: "",
             },
           ];
         }
@@ -309,6 +346,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         precioUnitario: valor,
         descuentoUnitario: 0,
         stockAqui: STOCK_CARGO_ESPECIAL,
+        razonDescuento: "",
+        razonDescuentoOtro: "",
+        argumentoDescuento: "",
       },
     ]);
     setMontoManual("");
@@ -332,18 +372,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   }
 
   // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
-  // entradas — la fila sobre el total (todo el ticket) y el «%» de cada línea (esa sola).
-  // Se aplica como `descuentoUnitario` por línea, que es lo que `registrar_venta` guarda.
+  // entradas — la fila sobre el total (todo el ticket) y el % o el S/ de cada línea. Se
+  // aplica como `descuentoUnitario` por línea, que es lo que `venta_items` guarda, junto
+  // con el motivo (R-45, 2026-09-15) — `registrar_venta` exige los dos juntos.
   function abrirDescuento(claves: string[] | null) {
-    setDescuento({ pct: "", elegidas: claves });
+    setDescuento({ ...DESCUENTO_VACIO, elegidas: claves });
     setMomento("descuento");
   }
   function aplicarDescuentoAlTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), descuento.elegidas ?? []));
+    const claves = descuento.elegidas ?? [];
+    const detalle: DetalleDescuento = { razon: descuento.razon, razonOtro: descuento.razonOtro, argumento: descuento.argumento };
+    setCarrito((actual) =>
+      descuento.modo === "monto"
+        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
+    );
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas ?? []));
+    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas ?? [], SIN_DETALLE_DESCUENTO));
     setMomento("armar");
   }
 
@@ -358,7 +405,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     setNota("");
     setCodigoDescuento("");
     setPagos([]);
-    setDescuento({ pct: "", elegidas: null });
+    setDescuento(DESCUENTO_VACIO);
     setMomento("armar");
   }
   function dejarEnEspera() {
@@ -476,6 +523,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
         descuento_unitario: it.descuentoUnitario,
+        // Sin descuento viajan como `undefined` (la clave ni aparece en el jsonb) — la
+        // RPC los lee con `coalesce(..., '')` y no le importa la diferencia.
+        motivo_descuento: it.razonDescuento || undefined,
+        motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
+        argumento_descuento: it.argumentoDescuento || undefined,
       })),
       // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
       // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.
@@ -591,7 +643,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           se activa — la fila crece y la raíz lo recorta en silencio. */}
       <div
         aria-disabled={bloqueado}
-        className={`grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+        className={`grid transition-opacity lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
         <PuntoDeVentaCatalogo
           ubicacionEtiqueta={ubicacionEtiqueta}
@@ -632,6 +684,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         />
 
         <PuntoDeVentaTicket
+          id="ticket-pos"
           bloqueado={bloqueado}
           carrito={carrito}
           listaRef={listaTicket}
@@ -676,6 +729,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         />
       </div>
 
+      {/* Apilado (bajo `lg`) el ticket queda debajo de TODO el catálogo — con el
+          catálogo real (300-900 SKUs) son muchas pantallas de scroll antes de ver el
+          total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
+          siempre a la vista en su columna fija. Mismo offset que la barra de
+          "Recibir mercadería" (`RecepcionCompraFormV2.tsx`) para despejar la barra de
+          pestañas del celular; en tablet (`sm:`) el lateral reemplaza esa barra. */}
+      {!bloqueado && carrito.length > 0 && (
+        <button
+          type="button"
+          onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral lg:hidden"
+        >
+          <span className="label-cayla text-[11px]">
+            {prendas} {prendas === 1 ? "prenda" : "prendas"} · {money(total)}
+          </span>
+          <span className="label-cayla flex items-center gap-1 text-[11px]">
+            Ver ticket
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+            </svg>
+          </span>
+        </button>
+      )}
+
       {manualAbierto && (
         <Modal
           titulo="Monto manual"
@@ -717,6 +794,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
 
       {ok && (
         <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
+          {(cerrar) => (
           <div className="space-y-5">
             <div className="card-cayla p-5 text-center">
               <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
@@ -733,10 +811,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
                 {ETIQUETA_TIPO[ok.comprobante.tipo]} <span className="font-mono">{ok.comprobante.texto}</span> emitida
               </p>
             )}
-            <button type="button" autoFocus onClick={cerrarVentaRegistrada} className={`${botonPrimario} w-full`}>
+            <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Nueva venta
             </button>
           </div>
+          )}
         </Modal>
       )}
     </div>

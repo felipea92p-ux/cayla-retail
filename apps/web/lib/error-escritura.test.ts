@@ -137,6 +137,51 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     );
     expect(salida).toContain("hasta un 15 %");
   });
+
+  it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
+    const salida = traducirError(
+      { message: "venta_descuento_requiere_motivo", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain("por qué");
+  });
+
+  it('motivo "Otro" sin detalle: pide contar por qué', () => {
+    const salida = traducirError(
+      { message: "venta_descuento_otro_sin_detalle", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain("Otro");
+  });
+
+  it("descuento bajo el costo: no revela ningún número", () => {
+    const salida = traducirError(
+      { message: "venta_descuento_bajo_costo", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).not.toMatch(/\d/);
+  });
+
+  it("descuento entre 20 % y 35 % sin argumento: pide escribirlo", () => {
+    const salida = traducirError(
+      { message: "venta_descuento_requiere_argumento", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain("argumento");
+  });
+
+  it("descuento por encima de 35 %: nadie puede aplicarlo, sin excepción", () => {
+    const salida = traducirError(
+      { message: "venta_descuento_supera_autorizacion", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain("nadie");
+  });
 });
 
 describe("la nota del ticket", () => {

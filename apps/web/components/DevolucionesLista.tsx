@@ -6,9 +6,19 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { DevolucionFormV2 } from "@/components/DevolucionFormV2";
+import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
 import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devoluciones";
 
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
+
+// Mismo patrón que ComprobantesPanel/ProformasPanel: la integrante necesita saber
+// CUÁNDO se vendió para reconocer la línea de la clienta que tiene enfrente —
+// `creadoEn` ya viajaba en `LineaVentaParaDevolucion` y no se pintaba.
+function formatearFecha(iso: string) {
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
+    new Date(iso)
+  );
+}
 
 const ETIQUETA_CONDICION: Record<string, string> = {
   vendible: "Vendible",
@@ -22,11 +32,13 @@ export function DevolucionesLista({
   pendientes,
   ubicacionId,
   esLider,
+  busqueda,
 }: {
   lineas: LineaVentaParaDevolucion[];
   pendientes: DevolucionPendiente[];
   ubicacionId: string;
   esLider: boolean;
+  busqueda: string;
 }) {
   const [enDevolucion, setEnDevolucion] = useState<LineaVentaParaDevolucion | null>(null);
 
@@ -45,8 +57,16 @@ export function DevolucionesLista({
         </div>
       )}
 
-      <div>
-        <p className="label-cayla mb-3 text-[11px] text-tinta/65">Ventas recientes</p>
+      <div className="space-y-3">
+        <BuscarPorComprobante valorInicial={busqueda} />
+        <p className="label-cayla text-[11px] text-tinta/65">
+          {busqueda ? `Resultado de "${busqueda}"` : "Ventas recientes"}
+        </p>
+        {lineas.length === 0 ? (
+          <p className="card-cayla p-5 text-sm text-tinta/75">
+            {busqueda ? "No encontramos esa boleta o factura en esta sede." : "Todavía no hay ventas recientes."}
+          </p>
+        ) : (
         <div className="card-cayla divide-y divide-tinta/10">
           {lineas.map((l) => {
             const disponible = l.cantidad - l.yaDevuelto;
@@ -60,6 +80,7 @@ export function DevolucionesLista({
                     {l.sku} · vendida × {l.cantidad}
                     {l.yaDevuelto > 0 && ` · ya devuelta × ${l.yaDevuelto}`}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
                 </div>
                 <button
                   type="button"
@@ -73,6 +94,7 @@ export function DevolucionesLista({
             );
           })}
         </div>
+        )}
       </div>
 
       {enDevolucion && (
@@ -129,7 +151,11 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
   }
 
   return (
-    <div className="px-5 py-3">
+    // `anim-revelar` sin `key` extra: `key={d.id}` en el `.map` de arriba ya hace que
+    // React reutilice la fila de una devolución que sigue pendiente tras un
+    // `router.refresh()` (no reanima) y solo monte —y por lo tanto anime— la que
+    // recién se registró.
+    <div className="anim-revelar px-5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {d.items.map((i, n) => (
@@ -157,7 +183,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       </div>
 
       {resolviendo === "aprobar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="flex gap-3">
             <div className="flex-1 space-y-1.5">
               <label className={campoEtiqueta}>Reembolso (opcional)</label>
@@ -197,7 +223,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       )}
 
       {resolviendo === "rechazar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Motivo del rechazo</label>
             <input

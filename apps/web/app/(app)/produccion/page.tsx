@@ -7,7 +7,7 @@ import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
 // producir: la orden. Se abre con costo estimado y cantidades por talla-color,
 // avanza por etapas y al cerrar confirma cuántas salieron buenas y el costo
 // real, que entra al stock del Taller (`cerrar_produccion` → `movimientos`).
-// Ver supabase/migrations/20260915120000_produccion_del_taller.sql.
+// Ver supabase/migrations/20260915130000_produccion_del_taller.sql.
 //
 // La pantalla es SIEMPRE del Taller, no de la ubicación activa: un líder
 // mirando "Tienda Lima" igual ve las órdenes de Lima-Taller, porque es quien
