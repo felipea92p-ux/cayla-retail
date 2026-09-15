@@ -3,6 +3,19 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
+
+Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
+local ya tenía aplicada `20260915120000_produccion_del_taller` (V2-nativa, bien hecha) pero
+el `.sql` no existía en ningún branch ni worktree — se reconstruyó desde la base con
+`pg_dump` + `pg_get_functiondef` y se validó con `db reset` + diff (idénticas). El reset
+delató lo que el dump de tablas no mostraba: el check de `ubicaciones.tipo` también había
+cambiado; el Taller pasa a tipo `taller` (ADR-0050). Pantalla nueva sobre las 5 RPC; el
+primer intento dio 500 por importar reglas desde un módulo con `next/headers` — de ahí
+`produccion-reglas.ts`. Lo que aprendió Felipe: una migración aplicada sin archivo en git
+"funciona" hasta el primer `db reset`; y `datos:comparar` es quien avisa que producción
+aún no la tiene. Al abrir sesión, `.env.local` apuntaba a producción — arreglado a local.
+
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 
 Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el

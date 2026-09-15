@@ -8,8 +8,10 @@
 y BITÁCORA de esa fecha).** Facturación electrónica (Lucode/SUNAT), Finanzas (EERR/
 Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más abajo,
 **ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
-y su data en `retail` era de prueba, no operación real). Lo que sí sigue vigente hoy:
-Vender/Caja (POS), Productos, Inventario, Compras, Movimientos, Colaboradores. Antes de
+y su data en `retail` era de prueba, no operación real). **Producción volvió el 2026-09-15
+sobre V2 (ADR-0050)** — lo que diga de ella más abajo describe la versión V1, no la actual.
+Lo que sí sigue vigente hoy: Vender/Caja (POS), Productos, Inventario, Compras, Movimientos,
+Colaboradores, Producción. Antes de
 actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
 el módulo todavía existe — este documento no se ha reescrito para reflejar V2 todavía
 (tarea propia, pendiente de agendar con Felipe, no improvisada acá).
@@ -296,6 +298,21 @@ ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el 
 importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
+
+- [ ] **Migración `20260915120000_produccion_del_taller` no está en producción** (ADR-0050).
+      Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
+      (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
+      `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,
+      convirtiendo la fila «Taller» (verificado: en producción es `almacen`, una sola). Ya
+      lleva `retail.`; pegar tal cual. Hasta entonces `/produccion` en producción carga vacía
+      y «Abrir orden» falla con «function abrir_produccion does not exist» —
+      `pnpm datos:comparar` lo avisa. Después: `pnpm datos:generar:produccion`.
+- [ ] **Producción: lo que quedó fuera del paso 1.** (a) Movimientos muestra
+      `produccion`/`reversion_produccion` como texto crudo, sin enlace a la orden.
+      (b) V1 tenía `RecibirLoteForm` para que el Taller reciba mercadería sin factura;
+      V2 lo cubre por Compras → Recibir — decisión de Felipe si el Taller necesita una
+      entrada manual aparte de la corrida. (c) Una orden cerrada no se edita (solo
+      revertir + volver a cerrar): revisar con el Taller si eso les alcanza.
 
 - [ ] **Migración `20260914210000_compras_resumen_por_vencer` no está en producción.**
       Agrega `por_vencer` y `por_vencer_monto` a `resumen_compras` (DROP + CREATE:
@@ -1444,6 +1461,13 @@ importante que ha entrado a este archivo desde que existe.
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
+      reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
+      verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
+      cerrar al inventario / anular / revertir, `lib/produccion-reglas.ts` con 8 tests,
+      ítem en el nav para líder y para quien trabaja en el Taller. Ciclo completo probado
+      por PostgREST con RLS real (stock 20→34→20, movimientos append-only).
 
 - [x] 2026-09-12 — **Vocabulario cerrado (colores + categorías) y código corto
       portados a V2, sin fusionar la rama V1 entera — más `activos_fijos`
