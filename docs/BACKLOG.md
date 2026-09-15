@@ -18,6 +18,46 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔀 Consolidación Vender + Caja — 2026-09-15 (tarde)
+
+Dos ramas cerradas y verificadas por separado que nunca habían llegado a `main` se
+unieron en un solo PR (`claude/caja-punto-venta-cambios-f4edbd`): **A**
+`claude/venta-caja-screens-animations-7923b9` (Tandas 1-3 del diagnóstico: arreglos,
+animaciones, `/caja/historial`, `/vender/descuentos`) y **B**
+`claude/sales-implementation-analysis-676b89` (ADR-0052/0053/0054: reembolso y
+diferencia de cambio en el arqueo, descuento con motivo y escalonado). 7 bloques de
+conflicto, todos mecánicos (`AppShell`, `cambios/page`, `CambiosLista`,
+`PuntoDeVentaTicket`, BITÁCORA ×2); `tsc`/`eslint`/`vitest` 239/239 sobre el resultado
+y las 3 pantallas con conflicto probadas en navegador. **Las 3 migraciones de B se
+aplicaron a producción ANTES del push** (ver cada ítem abajo) — sin eso, Vercel habría
+desplegado un front que lee `venta_items.motivo_descuento` y `*.caja_id` contra una base
+que no las tenía (42703).
+
+- [ ] **Cuatro sesiones eligieron ADR-0051 el mismo día.** Quedó: 0051 producción del
+      Taller (main), 0054 descuento con motivo (B, renumerado), 0055 insert directo a
+      `movimientos` (PR #37, renumerado). **`cuervo-colibri` (depósito bancario y ajuste
+      de efectivo, sin commitear al cierre de esta sesión) tiene que entrar como 0056**
+      y descartar su rename `20260915120000_reparar_fk…` → `120001`: la colisión de
+      timestamp ya la resolvió `origin/benja-ramanexo` moviendo producción del Taller a
+      `20260915130000`. Al mergear sobre `main` va a chocar en `MovimientoCajaModal.tsx`,
+      `lib/caja.ts` y `types.ts` con lo de A — conflictos chicos, mismo patrón que acá.
+- [ ] **Dos worktrees con trabajo V1 sin commitear que ya no aplica** — no se tocaron,
+      solo se anotan para que nadie los rescate por error: `pos-systems-comparison-c2472c`
+      (`CajaPanel`, `CerrarCajaModal`, `RegistrarVentaModal`, `ventas-offline`,
+      `0060_cerrar_caja_desglose_metodos.sql`; 180 commits atrás, ninguno de esos archivos
+      existe en `main`) y `motion-dev-analysis-3adc35` (`VenderFormV2.tsx`, que B borra).
+      Si Felipe confirma, se limpian con `git worktree remove --force`.
+- [ ] **`packages/database/src/types.ts` se regeneró en 3 sesiones desde 3 Postgres
+      locales distintos** y se auto-mergeó sin conflicto (tsc en verde). No se volvió a
+      regenerar en la consolidación — la próxima vez que se toque, regenerar UNA vez con
+      `--local` sobre una base con todas las migraciones de `main` aplicadas.
+- [ ] **El historial de producción registra las migraciones con timestamp UTC del momento
+      de aplicarlas, no con el del archivo** (`20260915211024` ≠ `20260915140000`, igual
+      que `movimientos_insert_solo_rpc` → `20260915205618`). `supabase migration list`
+      contra producción va a marcar estas como "remotas sin archivo" — es cosmético, el
+      nombre coincide; se anota para que nadie las vuelva a aplicar.
+
+---
 ## 🎯 POS (Vender + Caja) en V2 — diagnóstico del 2026-09-14
 
 > Sale de reconciliar `docs/datos/modulos/07-ventas-y-caja.md` y `01-INVARIANTES.md`
@@ -53,7 +93,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 Verificado: `tsc`, `eslint`, `vitest` (184/184); ambas pantallas probadas en
 navegador con escritura real (un código creado y apagado/prendido, el historial
 mostrando las 4 cajas cerradas reales de esta sesión con la sede correcta cada
-una). **Solo en local — falta pushear.**
+una). **Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
 
 **Pendiente de decisión de Felipe — las 2 pantallas grandes del mismo
 diagnóstico (2026-09-15).** Clasificadas con `superpowers:brainstorming`, no
@@ -131,8 +171,8 @@ uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
 
 Verificado: `npx tsc --noEmit`, `eslint` y `vitest` (184/184) en verde; cada ítem
 probado en navegador contra la base local (venta/cambio/ingreso reales, confirmados
-también por consulta directa a Postgres donde aplicaba). **Solo en local — falta
-pushear.**
+también por consulta directa a Postgres donde aplicaba). **Subido el 2026-09-15 en el
+PR de consolidación Vender+Caja.**
 
 **Cerrado el 2026-09-15 — Tanda 2 del diagnóstico (movimiento; ver BITÁCORA de esa
 fecha para el detalle de cada uno):**
@@ -179,7 +219,7 @@ prenda → cobrar → pagar → confirmar → «Venta registrada» con cierre an
 venta con ticket limpio, y un ingreso de caja real con «Otro» motivo (ambos campos
 del swap). Cero errores de consola en una pestaña nueva (la pestaña vieja arrastraba
 un error de una ventana intermedia de la propia edición — no representativo).
-**Solo en local — falta pushear.**
+**Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
 
 **Cerrado el 2026-09-15 (mismo día, segunda vuelta) — el resto de Tanda 2**: al
 revisar contra el mapeo original, la técnica se había aplicado en 1-2 lugares por
@@ -215,7 +255,7 @@ y expande limpio, ida y vuelta. **Lo que ya estaba construido funcionaba.**
 
 Verificado igual que la primera vuelta: `tsc`, `eslint`, `vitest` (184/184), y una
 sesión de navegador completa (ingreso de caja real, «Ventas de hoy» expandido y
-colapsado dos veces con capturas). **Solo en local — falta pushear.**
+colapsado dos veces con capturas). **Subido el 2026-09-15 en el PR de consolidación Vender+Caja.**
 
 Del mismo diagnóstico: historial de cierres de caja y códigos de descuento
 administrables se cerraron en la Tanda 3 (2026-09-15, más arriba). Ficha de
@@ -322,7 +362,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       meses (`parsearComprobante`, `BuscarPorComprobante.tsx`, compartido por las dos
       pantallas). Verificado en psql (3 escenarios con rollback) y de punta a punta en
       navegador: `cerrar_caja` con un reembolso real de S/25.90 dio el esperado exacto
-      (S/586.82) contra lo contado. **No aplicado en producción** — la pega Felipe (D-11).
+      (S/586.82) contra lo contado. **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
 - [x] **Cambios ya no tiene la misma fuga que Devoluciones tenía** (ADR-0053,
       `20260915200000_diferencia_de_cambio_en_el_arqueo.sql`) — cerrado el mismo día
       que se encontró. Mismo mecanismo que ADR-0052: `cambios.caja_id` (fijado solo, al
@@ -334,7 +374,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       `cambios.diferencia`, la función ni compilaba en la prueba. Verificado en psql (3
       escenarios) y de punta a punta en navegador: cambio real con diferencia de
       +S/100 en efectivo, `cerrar_caja` dio el esperado exacto (S/194.99).
-      **No aplicado en producción** — la pega Felipe (D-11).
+      **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
 - [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
       **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
       schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,
@@ -492,7 +532,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       "Felipe" de las otras 8 personas registradas; ver ADR-0054 «Se descartó»). De
       paso: descuento en S/ por unidad, no solo en %. Verificado en 10 escenarios psql
       y de punta a punta en navegador (Boletas B001-000010 y B001-000011, local).
-      **No aplicado en producción** — la pega Felipe (D-11).
+      **En producción desde 2026-09-15 16:1x (Lima)** — aplicada vía MCP `apply_migration` en `cayla-dynamic`, schema `retail`, verificada contra `information_schema`/`pg_proc` (columnas, constraints, cuerpos nuevos, una sola sobrecarga por función).
 - [ ] **Reporte de "cuánto margen se fue por cada motivo"** (R-45, punto 2) — el dato ya
       se guarda (`venta_items.motivo_descuento`), pero no hay pantalla que lo sume por
       motivo ni por período. Paso propio, sobre ADR-0054.

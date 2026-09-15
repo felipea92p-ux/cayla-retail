@@ -3,6 +3,39 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (consolidación Vender + Caja: dos ramas cerradas suben juntas, migraciones a producción primero)
+
+Felipe pidió analizar todo lo hecho en otras sesiones sobre Caja/POS y subirlo de una
+vez. Auditoría de 25 worktrees: solo dos ramas tenían commits vivos fuera de `main` —
+A (`venta-caja-screens-animations`, Tandas 1-3, 17 commits atrás) y B
+(`sales-implementation-analysis`, ADR-0052/0053/0054, al día) —; cuervo-colibri estaba
+escribiendo su ADR en ese momento (no se tocó) y dos worktrees del 12-sep editaban
+archivos V1 que ya no existen. Orden de merge: `origin/benja-ramanexo` (fix del
+timestamp duplicado `20260915120000`) → A → B → `origin/main` (que avanzó a mitad de
+sesión con PR #37). Siete bloques de conflicto, ninguno de lógica: ambas ramas agregaban
+cosas distintas a las mismas líneas (íconos en `AppShell`, `stockAqui` + `busqueda` en
+`cambios/page`, fecha de A dentro de la lista reestructurada por B, hooks de A + íconos
+de B en `PuntoDeVentaTicket`). `tsc`/`eslint`/`vitest` 239/239; `/cambios?q=B001-10`,
+el modal con «N en sede» y el apartado de descuento (`anim-revelar` de A envolviendo
+%/S/ + motivos de B) probados en navegador contra el local.
+
+Lo que se frenó a propósito: B lee `venta_items.motivo_descuento`, `devoluciones.caja_id`
+y `cambios.caja_id`, y producción no las tenía (verificado contra `information_schema`).
+Vercel despliega cada push a `main` → las tres migraciones se aplicaron a producción
+ANTES del push, con tres candados previos: firma exacta de las 4 funciones contra
+`pg_proc` (una sola sobrecarga), cuerpo actual de `cerrar_caja`/`aprobar_devolucion`/
+`registrar_cambio` igual a la base que B extiende (nada aplicado a mano que se fuera a
+perder), y `personas` resuelta desde `public` por `search_path` como ya hacía
+`registrar_venta`. 12/12 verificaciones después de aplicar.
+
+Lo que Felipe se lleva: **cuatro sesiones paralelas eligieron ADR-0051 el mismo día**
+(Taller, descuento, insert directo, depósito bancario) y dos arreglaron la misma
+colisión de timestamp de formas distintas. El número de un ADR y el timestamp de una
+migración se reservan contra `origin/main` en el momento de crearlos, no al final — y
+quien consolida renumera lo que no está en `main` (B → 0054, PR #37 → 0055), nunca lo
+que ya está. Y el reverso del principio 9: **una migración que el front necesita se
+aplica a producción antes del push que la necesita, no después** — el orden inverso
+deja la pantalla rota exactamente el tiempo que tarda en llegar el SQL.
 ## 2026-09-15 (P-05 cerrado: el INSERT directo a `movimientos` ya no pasa)
 
 Felipe pidió reconocer módulos y áreas de mejora desde código (no desde `.md`); leyendo
