@@ -3683,3 +3683,17 @@ Productos), y no crea variantes al vuelo como V1 (ADR-0050 §5). Verificado en C
 headless: 4 S + 6 M → `producciones` en_proceso con `S=4, M=6`. Quedan dos decisiones
 abiertas en BACKLOG (atajo «Nuevo modelo», tercerizado al abrir).
 
+## 2026-09-15 (historial de producto: movimientos por producto + ledger de precio/categoría)
+
+`fn_movimientos` gana `p_producto_id` (resuelve a sus variantes, sede sigue obligatoria —
+mismo permiso que `/movimientos`, ADR-0051) y nace `historial_producto_cambios`, un
+ledger append-only que un trigger en `productos`/`variantes` llena solo, sin que ninguna
+pantalla tenga que acordarse (decisión de Felipe: precio/categoría entran al historial
+aunque no sean movimientos de stock). Verificado en Chrome headless contra datos reales:
+`HistorialProductoPanel` muestra los 10 movimientos de Pantalón Carla en Tienda Lima
+(signo y categoría idénticos a `/movimientos` para las mismas filas), cambia a 16 en
+Taller con el signo invertido en las transferencias, y un cambio real de precio
+(S/99.90 → S/104.90) aparece en la sección "Precio y categoría" al instante. De paso:
+`_dev/` como carpeta de ruta de demo NO funciona (Next.js la excluye del ruteo por
+completo, "private folder") — la demo quedó en `productos/dev/historial/[id]`; si otra
+sesión usó `_dev` para la suya, tiene el mismo 404 silencioso.

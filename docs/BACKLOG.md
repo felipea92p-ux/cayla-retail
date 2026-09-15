@@ -308,6 +308,37 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
       la búsqueda de prendas.
 
+## 🎯 Historial de Producto en V2 — movimientos por producto + precio/categoría (2026-09-15)
+
+**Cerrado esta sesión (Sesión A3), solo local** —
+`20260915204457_movimientos_por_producto.sql` (`fn_movimientos` gana `p_producto_id`,
+resuelve a las variantes del producto; `p_ubicacion_id` sigue obligatorio) +
+`20260915204541_historial_producto_cambios.sql` (tabla `historial_producto_cambios`,
+trigger en `productos`/`variantes` que la llena solo, `fn_historial_producto_cambios`
+para leerla) + `HistorialProductoPanel.tsx` (standalone, agrupable por fecha o por
+variante) + ruta de demo `productos/dev/historial/[id]`. ADR-0051. Ninguna tabla
+existente cambia de forma; ninguna escritura existente cambia de comportamiento.
+Verificado en Chrome headless contra datos reales (ver BITÁCORA 2026-09-15).
+
+**Pendiente de Felipe (producción):**
+
+- [ ] **Aplicar las dos migraciones en producción** (con el prefijo `retail.`, ver
+      CLAUDE.md) y correr `pnpm datos:generar:produccion` + `pnpm datos:comparar`
+      después. Hasta entonces el diccionario de `docs/datos/` no describe
+      `historial_producto_cambios` ni el `p_producto_id` nuevo de `fn_movimientos`.
+- [ ] **`packages/database/src/types.ts` se editó a mano** (el Postgres local es un
+      checkout compartido entre 7 sesiones y no era seguro correr `db reset` para
+      regenerar tipos). Cuando alguien corra `generate_typescript_types` contra una base
+      estable con estas migraciones aplicadas, confirmar que coincide con lo escrito a
+      mano y no queda una edición manual suelta.
+- [ ] **Integrar `HistorialProductoPanel` en la ficha/lista real de producto** (Sesión
+      B2) — hoy solo vive en la ruta de demo, con el TODO marcado en el archivo.
+- [ ] **`_dev/` como carpeta de ruta de demo no funciona** (Next.js la excluye del ruteo
+      por completo — "private folder", 404 directo sin compilar la página). Si la
+      ruta de demo de A2 (u otra sesión) usó ese mismo criterio, probablemente tiene el
+      mismo 404 silencioso — vale la pena que se revise en el navegador antes de cerrar
+      esa sesión, no solo con build/lint.
+
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
 **Cerrado esta sesión, solo local** — `20260914210000_inventario_piso_almacen.sql`,
