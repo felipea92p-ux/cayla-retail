@@ -3,11 +3,11 @@
 
    Por qué existe: en la tabla de Inventario la columna Color decía «Blanco»,
    «Beige», «Azul marino» — para encontrar las blusas negras había que LEER
-   cada fila. Un círculo del color real se distingue sin leerlo, como en el
-   perchero. El nombre no desaparece: al pasar el mouse (o enfocar con
-   teclado) se desliza desde el círculo hacia la derecha, en una pastilla
-   que flota sobre la fila sin mover nada de sitio. En celular no hay mouse:
-   ahí el nombre va siempre al lado del círculo.
+   cada fila. Una cápsula del color real se distingue sin leerlo, como una
+   etiqueta de tela colgada en el perchero. El nombre no desaparece: al
+   pasar el mouse (o enfocar con teclado) se desliza desde la cápsula hacia
+   la derecha, en una pastilla que flota sobre la fila sin mover nada de
+   sitio. En celular no hay mouse: ahí el nombre va siempre al lado.
 
    El hex sale de `retail.colores.hex`. Los tres colores que no son un color
    (Estampado, Multicolor, Animal print) no lo tienen y se dibujan con un
@@ -30,9 +30,11 @@ export function MuestraColor({ nombre, hex }: { nombre: string | null; hex: stri
     >
       <span
         aria-hidden
-        // Borde tenue para que Blanco y Crudo se vean sobre crema; el brillo
-        // interior le da volumen de botón de tela, no de píxel plano.
-        className="h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
+        // Cápsula, no círculo: `rounded-full` sobre un rectángulo más ancho
+        // que alto cierra en semicírculo a cada lado — la forma de una
+        // etiqueta de tela, no de un punto. Borde tenue para que Blanco y
+        // Crudo se vean sobre crema; el brillo interior le da volumen.
+        className="h-3.5 w-7 shrink-0 rounded-full border border-tinta/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] transition-transform duration-300 ease-cayla group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-rojo/50 motion-reduce:transition-none"
         style={{ background: hex ?? VARIOS_COLORES }}
       />
       <span

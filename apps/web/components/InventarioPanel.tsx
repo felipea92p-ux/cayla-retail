@@ -74,9 +74,14 @@ export function InventarioPanel({
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
 
+  // `minmax(8rem, 1fr)`, no `1fr` a secas: con columnas fijas + `truncate`
+  // (que habilita min-width automático 0 en la pista), una ventana angosta
+  // dejaba "Producto" en 0px — invisible, no acortado. El piso de 8rem
+  // (~"Casaca Ximena") es el mínimo antes de que la Tabla entre a scroll
+  // horizontal (ver `ui/Tabla.tsx`).
   const plantilla = resumen.separaPisoAlmacen
-    ? "sm:grid-cols-[1fr_7rem_3.5rem_5.5rem_3.5rem_4.5rem_3.5rem_9rem]"
-    : "sm:grid-cols-[1fr_7rem_3.5rem_5.5rem_4rem]";
+    ? "sm:grid-cols-[minmax(8rem,1fr)_7rem_3.5rem_5.5rem_3.5rem_4.5rem_3.5rem_9rem]"
+    : "sm:grid-cols-[minmax(8rem,1fr)_7rem_3.5rem_5.5rem_4rem]";
 
   return (
     <div className="space-y-6">
@@ -140,39 +145,49 @@ export function InventarioPanel({
         <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto coincide con la búsqueda.</p>
       ) : (
         <Tabla>
+          {/* Toda la tabla centrada (Felipe, 2026-09-15) — encabezado y filas
+              comparten `alinear: "centro"`, columna por columna. */}
           <Encabezado
             plantilla={plantilla}
             columnas={
               resumen.separaPisoAlmacen
                 ? [
-                    { titulo: "Producto" },
-                    { titulo: "SKU" },
-                    { titulo: "Talla" },
-                    { titulo: "Color" },
-                    { titulo: "Piso", alinear: "der" },
-                    { titulo: "Almacén", alinear: "der" },
-                    { titulo: "Total", alinear: "der" },
-                    { titulo: "Estado", alinear: "der" },
+                    { titulo: "Producto", alinear: "centro" },
+                    { titulo: "SKU", alinear: "centro" },
+                    { titulo: "Talla", alinear: "centro" },
+                    { titulo: "Color", alinear: "centro" },
+                    { titulo: "Piso", alinear: "centro" },
+                    { titulo: "Almacén", alinear: "centro" },
+                    { titulo: "Total", alinear: "centro" },
+                    { titulo: "Estado", alinear: "centro" },
                   ]
-                : [{ titulo: "Producto" }, { titulo: "SKU" }, { titulo: "Talla" }, { titulo: "Color" }, { titulo: "Total", alinear: "der" }]
+                : [
+                    { titulo: "Producto", alinear: "centro" },
+                    { titulo: "SKU", alinear: "centro" },
+                    { titulo: "Talla", alinear: "centro" },
+                    { titulo: "Color", alinear: "centro" },
+                    { titulo: "Total", alinear: "centro" },
+                  ]
             }
           />
           {filtradas.map((f) => (
             <div key={f.varianteId} className={fila(plantilla)}>
-              <span className={celda("izq")}>{f.referencia}</span>
-              <span className={celda("izq", "font-mono text-xs text-tinta/75")}>{f.sku}</span>
-              <span className={celda("izq", "text-tinta/75")}>{f.talla ?? "—"}</span>
-              {/* `overflow-visible`: la pastilla con el nombre flota fuera de la celda al pasar el mouse. */}
-              <span className={celda("izq", "overflow-visible")}>
+              <span className={celda("centro")}>{f.referencia}</span>
+              <span className={celda("centro", "font-mono text-xs text-tinta/75")}>{f.sku}</span>
+              <span className={celda("centro", "text-tinta/75")}>{f.talla ?? "—"}</span>
+              {/* `overflow-visible`: la pastilla con el nombre flota fuera de la celda al pasar el mouse
+                  (el `truncate` de "centro" no debe recortarla). El texto centrado ya centra la
+                  cápsula: es `inline-flex`, se comporta como una imagen dentro del texto. */}
+              <span className={celda("centro", "overflow-visible")}>
                 <MuestraColor nombre={f.color} hex={f.colorHex} />
               </span>
               {resumen.separaPisoAlmacen ? (
                 <>
-                  <span className={celda("der")}>{f.piso}</span>
-                  <span className={celda("der")}>{f.almacen}</span>
-                  <span className={celda("der", "font-semibold text-tinta")}>{f.total}</span>
-                  <span className={celda("der")}>
-                    <span className="inline-flex items-center justify-end gap-2">
+                  <span className={celda("centro")}>{f.piso}</span>
+                  <span className={celda("centro")}>{f.almacen}</span>
+                  <span className={celda("centro", "font-semibold text-tinta")}>{f.total}</span>
+                  <span className={celda("centro")}>
+                    <span className="inline-flex items-center justify-center gap-2">
                       <span className={`label-cayla text-[10px] ${TONO_ESTADO[f.estado!]}`}>{ETIQUETA_ESTADO[f.estado!]}</span>
                       {f.estado === "reponer_piso" && puedeReponer && (
                         <button
@@ -187,7 +202,7 @@ export function InventarioPanel({
                   </span>
                 </>
               ) : (
-                <span className={celda("der", "font-semibold text-tinta")}>{f.total}</span>
+                <span className={celda("centro", "font-semibold text-tinta")}>{f.total}</span>
               )}
             </div>
           ))}

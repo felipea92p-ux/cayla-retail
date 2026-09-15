@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Inventario: la muestra de color pasa a cápsula, la tabla se centra, y un bug real que apareció al probarlo)
+
+Dos ajustes de Felipe sobre lo de hoy: (1) la muestra de color deja de ser un círculo
+(`h-3.5 w-3.5 rounded-full`) y pasa a ser una cápsula (`h-3.5 w-7 rounded-full` — mismo
+`rounded-full`, pero sobre un rectángulo 2:1, que cierra en semicírculo a cada lado). (2)
+Todas las columnas de la tabla de Inventario quedan centradas (encabezado y filas), no solo
+Color — `ui/Tabla.tsx` gana el modo `centro` que ya existía en el tipo pero nunca se usaba
+(`celda("centro")` ahora también trunca, igual que `izq`).
+
+Al centrar y verificar en el navegador salió un bug real, no de hoy: con las 8 columnas
+fijas más angostas que la ventana disponible, la columna Producto (`1fr`) colapsaba a
+**0px — invisible, no acortada** — porque `truncate` (`overflow: hidden`) le permite al
+navegador ignorar el contenido como mínimo de la pista. No es un bug de centrar: el mismo
+`min-w-0 truncate` ya estaba en la versión `izq` de ayer; solo se hizo visible al probar en
+una ventana angosta. Arreglo en dos capas: `ui/Tabla.tsx` gana `overflow-x-auto` (beneficia
+también a Compras y Movimientos, que comparten el componente); Inventario cambia su `1fr`
+por `minmax(8rem, 1fr)` (piso legible tipo "Casaca Ximena" antes de entrar a scroll).
+Verificado con las medidas reales del DOM (no solo la foto): columna en 128px con texto
+visible, tabla en `scrollWidth 844 > clientWidth 587` (desborda y scrollea, no colapsa).
+
+Lo que Felipe se lleva: **un componente compartido (`ui/Tabla.tsx`) que nunca desborda
+silenciosamente es más barato que corregir la misma fuga en cada pantalla que lo usa** —
+la próxima tabla con muchas columnas fijas hereda la protección gratis.
+
 ## 2026-09-15 (Inventario: el color se ve, y «Reponer piso» avisa antes de que el piso quede vacío)
 
 Dos pedidos puntuales de Felipe sobre la tabla de Inventario. (1) La columna Color deja de

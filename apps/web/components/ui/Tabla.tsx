@@ -30,8 +30,14 @@ export type Columna = {
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
 
+// `overflow-x-auto`: encontrado el 2026-09-15 al centrar Inventario — con
+// columnas fijas angostas (rem) + una sola `1fr`, una ventana más angosta
+// que la suma de las fijas deja a la columna flexible en 0px, invisible,
+// en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
+// tablas que usan este componente) la fila se desborda hacia un scroll
+// horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
 export function Tabla({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`card-cayla divide-y divide-tinta/10 ${className}`}>{children}</div>;
+  return <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`}>{children}</div>;
 }
 
 /** La fila de títulos. `plantilla` debe ser la misma que reciben las filas. */
@@ -58,5 +64,5 @@ export function fila(plantilla: string, extra = ""): string {
     el contenido — por eso ninguna plantilla usa `auto`: con `auto` cada fila
     calcularía su propio ancho y las columnas se descuadran entre filas. */
 export function celda(alinear: Alineacion = "izq", extra = ""): string {
-  return `min-w-0 ${alinear === "der" ? "sm:text-right whitespace-nowrap tabular-nums" : alinear === "centro" ? "sm:text-center" : "truncate"} ${extra}`;
+  return `min-w-0 ${alinear === "der" ? "sm:text-right whitespace-nowrap tabular-nums" : alinear === "centro" ? "sm:text-center truncate" : "truncate"} ${extra}`;
 }
