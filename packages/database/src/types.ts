@@ -1380,6 +1380,41 @@ export type Database = {
           },
         ]
       }
+      producto_fotos: {
+        Row: {
+          created_at: string
+          es_principal: boolean
+          id: string
+          orden: number
+          producto_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          orden?: number
+          producto_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          orden?: number
+          producto_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_fotos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           categoria_id: string | null
@@ -1388,8 +1423,10 @@ export type Database = {
           descripcion: string | null
           estado: string
           id: string
+          permitir_venta_sin_stock: boolean
           referencia: string
           stock_minimo: number | null
+          temporada: string | null
         }
         Insert: {
           categoria_id?: string | null
@@ -1398,8 +1435,10 @@ export type Database = {
           descripcion?: string | null
           estado?: string
           id?: string
+          permitir_venta_sin_stock?: boolean
           referencia: string
           stock_minimo?: number | null
+          temporada?: string | null
         }
         Update: {
           categoria_id?: string | null
@@ -1408,8 +1447,10 @@ export type Database = {
           descripcion?: string | null
           estado?: string
           id?: string
+          permitir_venta_sin_stock?: boolean
           referencia?: string
           stock_minimo?: number | null
+          temporada?: string | null
         }
         Relationships: [
           {
@@ -2176,9 +2217,12 @@ export type Database = {
           p_categoria_id?: string
           p_descripcion?: string
           p_estado: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
           p_producto_id: string
           p_referencia: string
           p_stock_minimo?: number
+          p_temporada?: string
           p_variantes: Json
         }
         Returns: undefined
@@ -2187,8 +2231,11 @@ export type Database = {
         Args: {
           p_categoria_id?: string
           p_descripcion?: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
           p_referencia: string
           p_stock_minimo?: number
+          p_temporada?: string
           p_variantes: Json
         }
         Returns: string

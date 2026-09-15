@@ -18,6 +18,55 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos: fotos, temporada y venta sin stock (2026-09-15, Sesión F1)
+
+`/productos/nuevo` y `/productos/[id]/editar` ganan galería de fotos (varias,
+reordenables con flechas, una principal), `temporada` (texto libre) y
+`permitir_venta_sin_stock` (checkbox), más margen % de solo lectura junto a
+precio/costo de cada variante (`20260915224500_producto_fotos_temporada_venta_sin_stock.sql`,
+ADR-0053). Tabla nueva `retail.producto_fotos` + bucket público
+`retail-productos-fotos`; `catalogo_crear_producto`/`catalogo_actualizar_producto`
+ganan `p_temporada`/`p_permitir_venta_sin_stock`/`p_fotos` (reemplazo completo de la
+galería en el orden del array). La consigna asumía que `foto_url`/`temporada`
+seguían vivas (muertas) en `productos` de producción — verificado contra
+`docs/datos/generado/DICCIONARIO-RETAIL.md`: **no existen**, se agregan de cero
+(ver ADR-0053 para el porqué). Verificado con RPC reales contra un schema aislado
+(`f1_dryrun`) en el proyecto de producción, nunca contra `retail.*`: alta con 3
+fotos, reorden + recambio de principal + foto nueva en edición, borrado con
+reasignación de principal, `p_fotos = null` sin tocar la galería. `typecheck`/
+`lint`/215 tests en verde.
+
+**Pendiente:**
+
+- [ ] **`20260915224500_producto_fotos_temporada_venta_sin_stock.sql` no está en
+      producción.** Aplicada y probada solo contra el schema aislado de prueba
+      (nunca contra `retail.*` real). Pegar en el SQL Editor con
+      `set search_path = retail, public, extensions;` (CLAUDE.md). Es aditiva
+      (dos columnas nullable/con default, una tabla nueva, dos funciones
+      reemplazadas con parámetros nuevos al final con default) — nada que
+      preverificar antes de pegarla.
+- [ ] **Sin verificación en navegador real (Chrome headless/Playwright).** Docker
+      no pudo levantar el stack de Supabase local en este entorno (pulls de
+      imagen bloqueados por la política de red del sandbox — ver ADR-0053). Quien
+      continúe esta sesión, o F5 al integrar, debería correr el flujo completo en
+      un entorno con Docker funcional: crear producto con 3 fotos, reordenar,
+      marcar principal, guardar, recargar, confirmar que persiste; editar uno
+      existente, agregarle temporada, guardar, verla reflejada.
+- [ ] **`permitir_venta_sin_stock` no tiene candado real en Vender/`registrar_venta`
+      todavía.** Esta sesión solo escribe y muestra el dato en la ficha
+      (fuera de alcance: F1 es dueña de la ficha de producto, no de Vender/POS,
+      que otras sesiones tocan en paralelo). Sin esto, el checkbox no cambia
+      todavía el comportamiento real de una venta con stock 0.
+- [ ] **La UI de arriba (integradora F5) debería revisar si `editar/page.tsx`
+      sigue con los `TODO(Sesión A2)`/`TODO(Sesión A3)` de "Ajustar inventario"/
+      "Ver historial" como tarjetas placeholder** — esas dos funciones ya existen
+      como modales desde el menú "..." de `/productos` (Sesión B2, 2026-09-15),
+      así que esas dos tarjetas en la ficha de edición están duplicadas/obsoletas.
+      No se tocó en esta sesión (fuera del alcance de F1: fotos/temporada/venta
+      sin stock), pero queda anotado para quien limpie al integrar.
+
+---
+
 ## 🎯 Productos: listado y filtros server-side (2026-09-15, Sesión B1)
 
 `/productos` pasó de filtrar/agrupar TODO el catálogo en memoria del cliente a
