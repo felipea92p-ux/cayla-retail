@@ -294,8 +294,9 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 - [x] **Detalle compartible por URL** (`?mov=<id>`, 2026-09-15): abrir una fila escribe
       el id con `history.replaceState` (sin consulta al servidor); cambiar un filtro o
       pasar de página lo borra. Y `buscar/page.tsx` ya excluye la centinela.
-- [ ] **Aplicar `20260915120000_reparar_fk_transferencia_items.sql` en producción (con
-      ok de Felipe).** Hallazgo del refresco: la ÚNICA diferencia entre producción y
+- [x] **`20260915120000_reparar_fk_transferencia_items.sql` aplicada en producción el
+      2026-09-15 con ok de Felipe**, verificada con una transferencia real revertida
+      (`transferir()` pasa, la línea queda enlazada a su movimiento). Hallazgo del refresco: la ÚNICA diferencia entre producción y
       local es que `transferencia_items.movimiento_id` apunta a `transferencia_items(id)`
       en vez de `movimientos(id)`. Comprobado con rollback: la primera «Mover
       mercadería» entre sedes fallaría entera con «violates foreign key constraint».
