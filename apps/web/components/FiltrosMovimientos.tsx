@@ -44,6 +44,7 @@ export function FiltrosMovimientos({
       else p.delete(k);
     }
     p.delete("cursor");
+    p.delete("mov");
     const qs = p.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   }

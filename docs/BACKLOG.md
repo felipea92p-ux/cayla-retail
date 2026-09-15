@@ -210,7 +210,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
-- [ ] **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
+- [x] **(Cerrado 2026-09-15: el disparador `movimientos_inmutables` YA está en producción** —
+      verificado tabla por tabla al refrescar el volcado; producción y local tienen los
+      mismos 7 disparadores. Queda el texto original como historia.)
+      **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
       contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
       `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
       `ubicacion_id`/`venta_item_id`/`compra_item_id`. Se desplegó el 12-sep con las
@@ -225,7 +228,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `retail.movimientos`.** Único trigger presente: `movimientos_compra_foto`
       (AFTER INSERT), que no choca con uno BEFORE UPDATE/DELETE. `authenticated` tiene
       hoy UPDATE y DELETE (TRUNCATE ya no), y 108 filas de historial que proteger.
-- [ ] **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
+- [x] **(Cerrado 2026-09-15: `docs/datos/generado/` se refrescó desde producción V2** —
+      39 tablas, 361 columnas, 219 candados, 74 funciones, verificados con md5 contra la
+      base real. `pnpm datos:comparar` vuelve a comparar contra firmas de verdad: 0 rotas.
+      Las carpetas escritas a mano (`00-MAPA.md`, módulos) siguen describiendo V1 en
+      partes — esa pasada sigue pendiente.)
+      **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
       producción.** Fue medido el 2026-09-12 contra el modelo viejo (45 tablas,
       `sede_id`, `venta_id`, `registrar_gasto`, `supabase/unificacion/`). Verificado hoy:
       `registrar_gasto` **no existe** en producción, así que el "Bloque 3" de
@@ -272,21 +280,32 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 
 **Pendiente de Felipe (producción):**
 
-- [ ] **Pegar `20260915090000_movimientos_lectura.sql` en producción** (ya lleva
-      `retail.`). Sin eso, Vercel con este código mostrará «No se pudieron cargar los
-      movimientos» — la pantalla llama a una función que producción no tiene. Orden:
-      merge a `main` → pegar la migración → recién ahí se ve. Después,
-      `pnpm datos:generar:produccion` para que el diccionario la conozca.
+- [x] **`20260915090000_movimientos_lectura.sql` aplicada en producción el 2026-09-15**,
+      después del merge del PR #33 (Vercel en verde). Verificada como Benjamin en
+      Tienda AQP con rollback. De paso quedaron registradas en
+      `supabase_migrations.schema_migrations` las tres que se aplicaron con
+      `execute_sql` (`…230000`, `…231015`, `…090000`): el historial de producción
+      vuelve a contar lo mismo que `supabase/migrations/`.
+- [x] **Foto de producción del diccionario refrescada (2026-09-15).** Se hizo desde el
+      MCP en trozos verificados con md5 contra producción (no a mano en el SQL Editor):
+      `retail_*.json` + `funciones-produccion.txt` describen la V2 real. `pnpm
+      datos:comparar`: **0 pantallas rotas**, 8 llamadas «no analizadas» porque arman
+      el objeto con `...` (entre ellas `fn_movimientos`, verificada a mano en producción).
+- [x] **Detalle compartible por URL** (`?mov=<id>`, 2026-09-15): abrir una fila escribe
+      el id con `history.replaceState` (sin consulta al servidor); cambiar un filtro o
+      pasar de página lo borra. Y `buscar/page.tsx` ya excluye la centinela.
+- [ ] **Aplicar `20260915120000_reparar_fk_transferencia_items.sql` en producción (con
+      ok de Felipe).** Hallazgo del refresco: la ÚNICA diferencia entre producción y
+      local es que `transferencia_items.movimiento_id` apunta a `transferencia_items(id)`
+      en vez de `movimientos(id)`. Comprobado con rollback: la primera «Mover
+      mercadería» entre sedes fallaría entera con «violates foreign key constraint».
+      Hoy hay 0 transferencias en producción; nadie lo pisó todavía. Sin datos que
+      tocar, sin cambios de pantalla.
 - [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
       la búsqueda de prendas.
-- [ ] **Detalle como URL compartible** (ruta interceptada, como Compras) — hoy es un
-      modal con estado local. Vale la pena el día que alguien quiera mandar por
-      WhatsApp «mirá este movimiento». Y de paso, fuera de este módulo:
-      `buscar/page.tsx` sigue leyendo `stock` sin excluir la centinela (buscar «cargo»
-      muestra 999.999 unidades) — una línea con `ID_CARGO_ESPECIAL` cuando se toque Buscar.
 
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 

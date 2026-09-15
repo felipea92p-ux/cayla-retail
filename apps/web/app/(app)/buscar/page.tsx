@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
@@ -75,6 +76,9 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
         "variante_id",
         resultados.map((r) => r.varianteId)
       )
+      // La centinela del «Monto manual» no es una prenda: sin esto, buscar
+      // «cargo» mostraba 999.999 unidades por tienda (`lib/cargo-especial.ts`).
+      .neq("variante_id", ID_CARGO_ESPECIAL)
       .gt("cantidad", 0),
     "el stock de estos resultados"
   );

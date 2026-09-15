@@ -242,22 +242,20 @@ function desdeVolcado() {
 // ── Escritura ───────────────────────────────────────────────────────────────
 
 const DOMINIOS_RETAIL = [
-  ["01 · Identidad y acceso", ["sedes", "personas", "sede_meta"]],
+  // Mapa V2 (2026-09-15). Antes describía V1 (sedes, stock_almacen, taxonomía,
+  // producción, contabilidad…) y 21 de las 39 tablas reales quedaban «sin
+  // módulo». Las tablas de V1 que ya no existen en producción se quitaron; si
+  // un día vuelven, el generador las lista como huérfanas y se las asigna acá.
+  ["01 · Identidad y acceso", ["colaboradores", "ubicaciones", "sububicaciones", "ubicacion_datos_fiscales"]],
   ["02 · Catálogo y vocabulario", ["categorias", "productos", "variantes", "colores", "codigos_barras", "codigos_correlativos"]],
-  ["03 · Taxonomía universal", ["taxonomia_versiones", "taxonomia_categorias", "taxonomia_atributos", "taxonomia_valores", "taxonomia_categoria_atributos"]],
-  ["04 · Importación de catálogo", ["importaciones", "producto_atributos"]],
-  ["05 · Inventario y movimientos", ["movimientos", "stock", "stock_almacen", "contenedores", "lotes"]],
-  ["06 · Conteo y censo físico", ["conteos", "conteo_lineas"]],
-  ["07 · Ventas y caja", ["cajas", "ventas"]],
+  ["05 · Inventario y movimientos", ["movimientos", "stock", "lotes", "transferencias", "transferencia_items"]],
+  ["06 · Conteo y censo físico", ["conteos", "conteo_items"]],
+  ["07 · Ventas y caja", ["cajas", "caja_movimientos", "ventas", "venta_items", "venta_pagos", "clientes", "codigos_descuento", "cambios", "devoluciones", "devolucion_items"]],
   // `proformas` vive en Ventas en 07-GOBIERNO.md (es la cotización del mostrador, no
   // viaja a SUNAT), pero se lista arriba con Facturación porque comparte ciclo de vida.
-  ["08 · Facturación SUNAT", ["series_comprobantes", "comprobantes", "proformas", "sede_datos_fiscales", "configuracion_empresa"]],
-  ["09 · Compras y proveedores", ["proveedores", "ordenes_compra", "ordenes_compra_items"]],
-  ["10 · Producción del Taller", ["producciones", "produccion_lineas", "ordenes_produccion", "bom_items"]],
-  ["11 · Finanzas operativas", ["gastos", "depositos_bancarios", "ajustes_efectivo"]],
-  ["12 · Contabilidad", ["cuentas_contables", "asientos", "asiento_lineas", "activos_fijos", "patrimonio_items"]],
-  ["13 · Inteligencia y reportes", ["ventas_historicas_mensuales"]],
-  ["14 · Plataforma y esquema", ["migraciones_aplicadas"]],
+  ["08 · Facturación SUNAT", ["series_comprobantes", "comprobantes", "proformas", "configuracion_empresa"]],
+  ["09 · Compras y proveedores", ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen"]],
+  ["12 · Contabilidad", ["activos_fijos"]],
 ];
 
 const MUERTAS = {
