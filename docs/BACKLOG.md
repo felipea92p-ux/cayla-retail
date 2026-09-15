@@ -548,7 +548,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       `authenticated` tenía `INSERT`+`SELECT` (UPDATE/DELETE ya los sacó ayer D-22); queda
       solo con `SELECT`. Cero pantallas dependían del insert directo (`grep` sobre
       `apps/web`: un solo `.from("movimientos")`, en `lib/compras.ts:330`, y es un
-      `.select`). Probado en rojo/verde en local (ver ADR-0051): el insert directo como
+      `.select`). Probado en rojo/verde en local (ver ADR-0055): el insert directo como
       `authenticated` ahora falla con `permission denied`; las funciones siguen sin tocar
       RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
       vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
@@ -558,7 +558,7 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       policy de INSERT sin verificar.
 - [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
       `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
-      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
+      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0055.
 - [ ] **Dos firmas vivas de `registrar_movimiento` en producción** (6 y 7 parámetros,
       `p_sububicacion_id` de más en la segunda) — un `select registrar_movimiento(...)`
       con los 6 parámetros históricos sale `is not unique`, reproducido en local
