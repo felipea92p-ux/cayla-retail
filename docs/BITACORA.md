@@ -28,6 +28,16 @@ Benjamin en Tienda AQP con rollback (288 entradas de carga inicial, 288 internas
 activación, centinela excluida). Las tres migraciones aplicadas a mano (`…230000`,
 `…231015`, `…090000`) quedaron registradas en `schema_migrations`.
 
+Cierre del día: `docs/datos/generado/` se refrescó desde producción (siete volcados
+copiados en trozos y verificados con md5 contra la base real; `scripts/datos/generar.mjs`
+aprendió el mapa de módulos de V2) y `pnpm datos:comparar` volvió a servir: 0 pantallas
+rotas. Al comparar producción contra local, tabla por tabla, salió UNA diferencia:
+`transferencia_items.movimiento_id` apunta a sí misma en producción. Comprobado con
+rollback que la primera transferencia entre sedes habría fallado entera; la reparación es
+`20260915120000_reparar_fk_transferencia_items.sql`, pendiente de aplicar con el ok de
+Felipe. De paso: el detalle de un movimiento ahora vive en la URL (`?mov=`) y Buscar deja
+fuera la centinela.
+
 Lo que Felipe se lleva: **cuando el enunciado pide «un tipo nuevo», primero hay que mirar
 si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de origen y destino
 coinciden; guardarlo como quinto tipo obligaría al motor de stock a aprender una rama más
