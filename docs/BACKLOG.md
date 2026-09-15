@@ -64,10 +64,56 @@ uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**
 Verificado: `npx tsc --noEmit`, `eslint` y `vitest` (184/184) en verde; cada ítem
 probado en navegador contra la base local (venta/cambio/ingreso reales, confirmados
 también por consulta directa a Postgres donde aplicaba). **Solo en local — falta
-pushear.** Quedan del mismo diagnóstico, para una tanda aparte: el resto de defectos
-de movimiento/consistencia de animación (modales que cierran en seco, reflujo del
-Flip al quitar una línea, cifras sin asentar) y las pantallas más grandes (historial
-de cierres de caja, anular una venta, ficha de clienta) — ver la sección de abajo,
+pushear.**
+
+**Cerrado el 2026-09-15 — Tanda 2 del diagnóstico (movimiento; ver BITÁCORA de esa
+fecha para el detalle de cada uno):**
+
+- [x] **7 de los 8 modales del módulo cerraban en seco** desde sus propios botones
+      (Cancelar/Listo/Nueva venta) — `Modal.tsx` ya ofrecía el cierre animado por
+      render-prop (`children={(cerrar) => …}`), pero solo `ComprobantesPanel.tsx` lo
+      usaba. Corregido en `CambioFormV2`, `DevolucionFormV2`, `CerrarCajaModalV2` (×2),
+      `MovimientoCajaModal` y «Venta registrada» en `PuntoDeVenta.tsx` (un octavo modal
+      que el diagnóstico original no había contado). El cierre automático tras un
+      guardado exitoso se dejó **sin** animar a propósito, mismo criterio que
+      `ComprobantesPanel.tsx` ya tenía.
+- [x] **La curva de transición por defecto de Tailwind no era `--ease-cayla`** —
+      afecta a los ~260 `transition-colors`/hover del sistema. Era una aproximación a
+      mano sin comentario que la justifique; ahora es el número literal.
+- [x] **El ticket de Vender cambiaba de un momento a otro (armar↔cobrar↔descuento) sin
+      salida.** `PuntoDeVentaTicket.tsx` gana su única excepción a "sin estado, sin
+      hooks": un búfer de ANIMACIÓN (no de negocio — `momento` sigue siendo del padre,
+      `cobrar()` allá revalida contra el valor real) que retiene el contenido saliente
+      con `.anim-revelar-salida` (nueva, en `globals.css`) los 160ms que tarda en
+      desvanecerse. El `setState` que arranca la salida vive en el render, no en el
+      efecto (el propio linter del repo marca ese patrón — `react-hooks/set-state-in-effect`).
+- [x] **Nada animaba el despliegue de un bloque** — el motivo bajo el botón del ticket
+      (`PuntoDeVentaTicket.tsx`) y el swap select↔input del motivo en
+      `MovimientoCajaModal.tsx`, con el truco `grid-template-rows` (0fr↔1fr). Costó una
+      segunda vuelta: `min-h-0` solo no basta para 0px real en un campo con
+      padding/borde fijo (queda un piso de ~17-23px medido con `getComputedStyle`) —
+      hace falta forzar `padding`/`border` a 0 con `!` SOLO mientras está oculto, y el
+      `<select>` nativo además necesita `appearance-none` + `text-[0px]` (su cromado de
+      sistema operativo no se mueve con padding/borde solos). Verificado con
+      `getComputedStyle` en el navegador real, no solo a ojo.
+- [x] **Lo que llega por `router.refresh()` se reemplazaba en seco** — `anim-entrada`
+      en el swap `AbrirCajaFormV2`↔`CajaAbiertaPanel` de `/caja` (React ya lo remonta
+      solo, son componentes distintos); `transition-opacity` en el atenuado de
+      `bloqueado` del POS (no tenía ninguna transición); `anim-revelar` en las filas de
+      «Ventas de hoy» y de devoluciones pendientes — sin `key` extra: React ya reusa el
+      nodo de lo que sigue igual tras el refresh (no reanima) y solo monta —y por lo
+      tanto anima— lo genuinamente nuevo.
+
+Verificado igual que la Tanda 1, más una vuelta extra con `getComputedStyle` para los
+colapsos de altura (no alcanza con mirar la pantalla: un colapso a 17px en vez de 0
+se ve casi igual a ojo). Sesión completa de principio a fin en navegador: agregar
+prenda → cobrar → pagar → confirmar → «Venta registrada» con cierre animado → nueva
+venta con ticket limpio, y un ingreso de caja real con «Otro» motivo (ambos campos
+del swap). Cero errores de consola en una pestaña nueva (la pestaña vieja arrastraba
+un error de una ventana intermedia de la propia edición — no representativo).
+**Solo en local — falta pushear.** Quedan del mismo diagnóstico, para una tanda
+aparte: las pantallas más grandes (historial de cierres de caja, anular una venta,
+ficha de clienta, códigos de descuento administrables) — ver la sección de abajo,
 que sigue vigente.
 
 **Cerrado el 2026-09-14 en esta sesión:**

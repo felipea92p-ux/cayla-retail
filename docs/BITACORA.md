@@ -3,6 +3,56 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Tanda 2 del diagnóstico: movimiento — 8 modales, momentos del ticket, alturas y router.refresh())
+
+Felipe pidió construir la Tanda 2 (los tres puntos que necesitaban técnica nueva, no
+reuso directo). Se hizo sin sesión de navegador al principio —el panel había perdido
+el login al reiniciarse el dev server, y no se escribe una contraseña ni de un seed
+local (regla de seguridad)— así que se avanzó a nivel de código con `tsc`/`eslint`/
+`vitest` como único freno, y Felipe entró solo mientras tanto: al notarlo, se hizo una
+sesión completa de verificación real. Dos hallazgos del diagnóstico original NO
+resultaron ser bugs al leerlos con calma: el `onLeave` del Flip al quitar una línea es
+el patrón documentado de GSAP para nodos que React ya desmontó (no se tocó), y
+animar la cifra del teclado numérico de «Monto manual» con `anim-asentar` habría sido
+peor —320ms de remontaje por cada dígito tecleado es parpadeo, no suavidad— así que
+se decidió no hacerlo. Lo que sí se construyó: los 8 modales con cierre animado
+(7 contados + «Venta registrada», que el diagnóstico no había visto); la curva por
+defecto de Tailwind corregida para que coincida con `--ease-cayla` byte a byte, no
+aproximada a mano (el mismo error que ADR-0038 evitó a propósito para GSAP, colado en
+CSS puro); el ticket de Vender con salida real al cambiar de momento, con la única
+excepción documentada a "sin estado, sin hooks" del componente (es búfer de
+animación, `momento` real sigue en el padre); dos bloques con altura animada
+(`grid-template-rows` 0fr↔1fr); y cinco lugares donde `router.refresh()` reemplazaba
+contenido en seco, ahora con entrada.
+
+El hallazgo técnico del día: **`min-h-0` con `grid-template-rows: 0fr` no basta para
+0px real.** Medido con `getComputedStyle` en `MovimientoCajaModal.tsx` (no a ojo):
+quedaba un piso de ~17px en el `<input>` (su `padding`/`border` fijos) y ~23-39px en
+el `<select>` (encima, `appearance: auto` — el cromado del sistema operativo — no se
+mueve ni con padding/borde en cero). Costó tres vueltas: `!border-0 !py-0` cerró el
+input; el select necesitó además `appearance-none` y, recién con eso, seguía en 23px
+hasta sumarle `!text-[0px] !leading-none` (el line-height nativo del control seguía
+vivo). Y un defecto propio, encontrado a mitad de la refactorización: `min-h-0` fijo
+(no condicional) deflacionaba también el alto NATURAL del estado ABIERTO —el
+contenedor `1fr` reparte el 100% de un espacio que `min-h-0` ya había achicado de
+más—, así que el campo abierto se veía tan chico como el cerrado. Se corrigió
+aplicando `min-h-0`/`!border-0`/`!py-0`/`appearance-none` SOLO en la rama colapsada,
+nunca en la expandida.
+
+Verificado de punta a punta en navegador (una vez con sesión): venta real completa
+con el cierre animado del modal «Venta registrada»; ingreso real de caja con motivo
+«Otro» (ambos campos del swap, medidos en 0px y en altura natural con
+`getComputedStyle`); ida y vuelta armar↔cobrar del ticket sin errores de consola en
+una pestaña nueva (limpia — la vieja arrastraba un error de una ventana intermedia de
+la propia edición, no representativo del código final). `tsc`, `eslint` y `vitest`
+(184/184) en verde. **Todo en local — falta pushear.**
+
+Lo que Felipe se lleva: **medir con `getComputedStyle`, no mirar la pantalla** — un
+colapso a 17px se ve casi idéntico a 0px en una captura, y el defecto real (el campo
+abierto deflacionado) tampoco saltaba a la vista sin comparar números. Y el reverso
+del principio de esta sesión: **no todo lo que "podría animarse" debe animarse** — el
+teclado numérico fue el caso donde la técnica correcta era no tocar nada.
+
 ## 2026-09-15 (diagnóstico de Venta y Caja + Tanda 1: seis arreglos verificados en navegador)
 
 Felipe pidió analizar el módulo de Venta y Caja completo (Vender/Caja/Cambios/

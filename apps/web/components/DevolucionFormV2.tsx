@@ -68,6 +68,7 @@ export function DevolucionFormV2({
   if (ok) {
     return (
       <Modal titulo="Devolución registrada" onClose={onClose}>
+        {(cerrar) => (
         <div className="space-y-4 text-center">
           <p className="text-sm text-tinta/75">
             {linea.referencia} {linea.sku} × {cantidad} — queda pendiente de aprobación.
@@ -75,10 +76,11 @@ export function DevolucionFormV2({
           <p className="text-xs text-tinta/65">
             El stock no cambia todavía. Apruébala desde la lista de &ldquo;Devoluciones pendientes&rdquo; para que se aplique.
           </p>
-          <button type="button" autoFocus onClick={onClose} className={`${botonPrimario} w-full`}>
+          <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
             Listo
           </button>
         </div>
+        )}
       </Modal>
     );
   }
@@ -89,6 +91,7 @@ export function DevolucionFormV2({
       subtitulo={`${linea.referencia} ${linea.sku} — vendida × ${linea.cantidad}`}
       onClose={onClose}
     >
+      {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         {disponible <= 0 ? (
           <p className="text-sm text-rojo">Ya se devolvió toda la cantidad de esta línea.</p>
@@ -149,7 +152,7 @@ export function DevolucionFormV2({
         {error && <p className="text-sm text-rojo">{error}</p>}
 
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+          <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
           <button type="submit" disabled={loading || disponible <= 0} className={botonPrimario}>
@@ -157,6 +160,7 @@ export function DevolucionFormV2({
           </button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

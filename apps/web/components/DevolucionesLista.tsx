@@ -139,7 +139,11 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
   }
 
   return (
-    <div className="px-5 py-3">
+    // `anim-revelar` sin `key` extra: `key={d.id}` en el `.map` de arriba ya hace que
+    // React reutilice la fila de una devolución que sigue pendiente tras un
+    // `router.refresh()` (no reanima) y solo monte —y por lo tanto anime— la que
+    // recién se registró.
+    <div className="anim-revelar px-5 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {d.items.map((i, n) => (

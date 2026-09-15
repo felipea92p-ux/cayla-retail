@@ -96,6 +96,7 @@ export function CambioFormV2({
   if (ok) {
     return (
       <Modal titulo="Cambio registrado" onClose={onClose}>
+        {(cerrar) => (
         <div className="space-y-4 text-center">
           <p className="text-sm text-tinta/75">
             {linea.referencia} {linea.sku} × {cantidad} cambiada por {varianteNueva?.referencia} {varianteNueva?.sku}.
@@ -105,16 +106,18 @@ export function CambioFormV2({
               {diferencia > 0 ? "Se cobró" : "Se devolvió"} {money(Math.abs(diferencia))} ({metodoDiferencia}).
             </p>
           )}
-          <button type="button" autoFocus onClick={onClose} className={`${botonPrimario} w-full`}>
+          <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
             Listo
           </button>
         </div>
+        )}
       </Modal>
     );
   }
 
   return (
     <Modal titulo="Cambiar talla/color" subtitulo={`${linea.referencia} ${linea.sku} — comprada × ${linea.cantidad}`} onClose={onClose}>
+      {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         {disponible <= 0 ? (
           <p className="text-sm text-rojo">Ya se cambió toda la cantidad de esta línea.</p>
@@ -192,7 +195,7 @@ export function CambioFormV2({
 
 
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+          <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
           <button type="submit" disabled={loading || disponible <= 0 || !varianteNuevaId} className={botonPrimario}>
@@ -200,6 +203,7 @@ export function CambioFormV2({
           </button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

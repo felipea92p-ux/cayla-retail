@@ -19,10 +19,17 @@ export default async function CajaPage() {
         </h1>
       </div>
 
+      {/* Abrir/cerrar caja cambia de componente entero (formulario ↔ panel), así que
+          React ya lo remonta solo — `anim-entrada` no necesita `key` para retriggerse,
+          entra de nuevo cada vez que este `router.refresh()` cambia de rama. */}
       {!caja ? (
-        <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
+        <div className="anim-entrada">
+          <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
+        </div>
       ) : (
-        <CajaConDatos caja={caja} />
+        <div className="anim-entrada">
+          <CajaConDatos caja={caja} />
+        </div>
       )}
     </div>
   );

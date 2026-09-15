@@ -588,7 +588,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           se activa — la fila crece y la raíz lo recorta en silencio. */}
       <div
         aria-disabled={bloqueado}
-        className={`grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+        className={`grid transition-opacity lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
       >
         <PuntoDeVentaCatalogo
           ubicacionEtiqueta={ubicacionEtiqueta}
@@ -739,6 +739,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
 
       {ok && (
         <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
+          {(cerrar) => (
           <div className="space-y-5">
             <div className="card-cayla p-5 text-center">
               <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
@@ -755,10 +756,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
                 {ETIQUETA_TIPO[ok.comprobante.tipo]} <span className="font-mono">{ok.comprobante.texto}</span> emitida
               </p>
             )}
-            <button type="button" autoFocus onClick={cerrarVentaRegistrada} className={`${botonPrimario} w-full`}>
+            <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Nueva venta
             </button>
           </div>
+          )}
         </Modal>
       )}
     </div>
