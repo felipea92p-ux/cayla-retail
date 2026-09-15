@@ -7,6 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
 // Reusa `retail.registrar_movimiento` (20260914230000_inventario_piso_almacen.sql,
@@ -137,6 +138,28 @@ export function AjustarInventarioModal({
 
   const negativas = lineas.filter((l) => l.resultado < 0);
 
+  // Reporte de lo tipeado en el formulario, no de lo ya confirmado — sirve tanto
+  // de respaldo antes de enviar como para revisar después de un envío exitoso
+  // (el modal se cierra solo al confirmar, no queda pantalla de "ya se aplicó").
+  function descargarReporte() {
+    const motivoTexto = MOTIVOS_AJUSTE.find((m) => m.valor === motivo)?.texto ?? "";
+    const fecha = new Date();
+    descargarCsv(
+      `ajuste-inventario_${referencia || "producto"}_${fecha.toISOString().slice(0, 10)}.csv`.replace(/\s+/g, "-"),
+      ["SKU", "Talla", "Color", "Stock actual", "Ajuste", "Stock resultante", "Motivo", "Observación"],
+      lineas.map((l) => [
+        l.variante.sku,
+        l.variante.talla ?? "—",
+        l.variante.color ?? "—",
+        l.actual,
+        l.delta > 0 ? `+${l.delta}` : l.delta,
+        l.resultado,
+        motivoTexto,
+        nota.trim() || "—",
+      ])
+    );
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!motivo) {
@@ -265,6 +288,16 @@ export function AjustarInventarioModal({
           )}
 
           <div className="min-h-[1rem] text-xs text-rojo">{error}</div>
+
+          {lineas.length > 0 && (
+            <button
+              type="button"
+              onClick={descargarReporte}
+              className="label-cayla -mt-2 text-[11px] text-tinta/55 hover:text-rojo"
+            >
+              Descargar reporte de este ajuste
+            </button>
+          )}
 
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">

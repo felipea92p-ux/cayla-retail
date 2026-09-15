@@ -141,6 +141,27 @@ HTTP real (sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
       igual que ya hace la acción masiva "Desactivar" de la Sesión B2, pero
       por fila; Duplicar no tiene diseño — decisión de Felipe antes de
       construirla).
+- [ ] **Columna "Última actualización" en la tabla de /productos — no hay
+      dato que mostrar sin tocar esquema.** `productos`/`variantes` solo
+      tienen `created_at` (0002_esquema.sql), no `updated_at` — a diferencia
+      de `stock.updated_at`, que sí existe. `historial_producto_cambios`
+      (20260915204541) sí registra cuándo cambió precio/categoría/estado,
+      pero es un ledger append-only pensado para el panel de Historial, no
+      para un `JOIN` por fila en el listado sin agregar una columna a
+      `fn_productos`. Decidir "cuál timestamp cuenta como última
+      actualización" (¿solo precio/categoría/estado? ¿también alta de
+      variante?) es una decisión de esquema/negocio, no de polish de UI —
+      queda pendiente de que Felipe la resuelva. Sesión F4 (2026-09-15) no
+      la construyó a propósito.
+- [ ] **El menú de acciones masivas hoy solo tiene Activar/Desactivar** —
+      "cambiar categoría" y "exportar" en bloque, mencionados como parte del
+      menú de acciones masivas, no existen todavía en `ProductosAgrupados.tsx`.
+      No se construyeron en la sesión F4 (2026-09-15, polish de listado): la
+      primera toca `categoria_id` de varios productos a la vez, dominio de la
+      sesión que edita categorías en paralelo; la segunda es un export de
+      catálogo completo, distinto en alcance al reporte puntual que si se
+      agregó en Ajustar Inventario (ver abajo). Quedan para quien tome
+      acciones masivas end-to-end.
 
 **Hallazgo de coordinación, no de este módulo:** el Postgres local
 (`supabase_db_cayla-retail`, puerto 54422) lo comparte el checkout principal

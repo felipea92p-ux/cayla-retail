@@ -3962,3 +3962,35 @@ que normalmente sale de `supabase gen types` contra una base viva). Pendiente en
 BACKLOG: correr `/productos/categorias` en un entorno con Supabase local antes de
 integrar, y aplicar `20260915224500_categorias_subcategoria.sql` en producción
 (con `set search_path to retail, public;`, CLAUDE.md).
+
+## 2026-09-15 (Productos: densidad visual del listado — Sesión F4)
+
+Polish de UI puro sobre `feat/productos-listado-polish` (base: `DiegoN`, que ya
+integraba A1/A2/A3/B1/B2/C1/C2) — sin tablas ni RPCs de escritura nuevas, tal
+como pedía el encargo. `ProductosAgrupados.tsx` pasó de una fila `flex` con
+badges sueltos a una tabla real (grid con encabezado, mismo espíritu que
+`ui/Tabla.tsx` de Movimientos/Compras) con columnas Producto/Categoría/
+Variantes/Stock/Costo/Estado — Costo se deriva en el cliente como rango
+min–max de `variantes.costo` (no hay `costo` a nivel de producto en el
+esquema) y Estado usa el `Chip` compartido en vez de badges a mano. En
+mobile las columnas se colapsan a una línea de resumen (categoría · variantes
+· stock · costo · chip de estado) en vez de apilar 6 filas. Las tarjetas de
+resumen (productos/variantes/stock bajo/sin stock) ya existían de la Sesión
+B1 y no se tocaron más que confirmarlas contra datos reales. `AjustarInventarioModal`
+ganó "Descargar reporte de este ajuste" (CSV con SKU/talla/color/stock actual/
+ajuste/resultado/motivo/observación) — no existía ningún patrón de exportar
+Excel/CSV en todo el repo (grep completo, cero resultados en Compras ni en
+ningún otro módulo), así que se creó `lib/exportar-csv.ts`, un helper mínimo
+con Blob + `<a download>`, sin sumar dependencia nueva (sin `xlsx` instalado).
+**No construido a propósito** (quedó en BACKLOG): columna "Última
+actualización" (no hay `updated_at` en `productos`/`variantes`, solo
+`created_at` — agregarla es decisión de esquema, no de polish) y las acciones
+masivas "cambiar categoría"/"exportar catálogo" que el encargo daba por
+existentes en el menú "..." pero no están construidas todavía en este
+archivo. Verificado: `pnpm typecheck` y `eslint` limpios sobre los 3 archivos
+tocados; acciones masivas Activar/Desactivar y el menú "..." (Editar/Ajustar
+inventario/Ver historial) revisados línea por línea, sin cambios de lógica,
+solo de layout. **Sin verificar en navegador real**: Docker sin daemon en
+esta sesión (`dockerd` no arranca — `ulimit: Operation not permitted`, sin
+systemd), igual que quedó registrado el 2026-09-10 — demo pendiente para
+quien tenga el stack local arriba.
