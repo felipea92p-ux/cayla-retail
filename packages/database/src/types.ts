@@ -229,26 +229,40 @@ export type Database = {
       categorias: {
         Row: {
           activo: boolean
+          categoria_padre_id: string | null
           familia: string | null
           id: string
           nombre: string
+          notas: string | null
           prefijo: string | null
         }
         Insert: {
           activo?: boolean
+          categoria_padre_id?: string | null
           familia?: string | null
           id?: string
           nombre: string
+          notas?: string | null
           prefijo?: string | null
         }
         Update: {
           activo?: boolean
+          categoria_padre_id?: string | null
           familia?: string | null
           id?: string
           nombre?: string
+          notas?: string | null
           prefijo?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_categoria_padre_id_fkey"
+            columns: ["categoria_padre_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clientes: {
         Row: {
@@ -2161,6 +2175,7 @@ export type Database = {
           p_categoria_id: string
           p_familia: string
           p_nombre: string
+          p_notas?: string | null
           p_prefijo: string
         }
         Returns: undefined

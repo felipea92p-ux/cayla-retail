@@ -4,7 +4,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { FAMILIAS } from "@cayla-retail/shared";
 
 // POST /api/productos/categorias → agrega una categoría dentro de una de
-// las 6 familias fijas.
+// las 6 familias fijas. También sirve para agregar una SUBCATEGORÍA
+// (`categoriaPadreId` apunta a una categoría de primer nivel ya existente):
+// es la misma alta, solo que queda anidada bajo su padre.
 //
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0035.
 //
@@ -13,7 +15,10 @@ import { FAMILIAS } from "@cayla-retail/shared";
 //   `retail.categorias` ya lo exige.
 // NO HACE: no genera el prefijo solo — lo elige la persona, a propósito: un
 //   prefijo malo (ambiguo o repetido) se rechaza en el acto por
-//   `categorias_prefijo_formato`/`categorias_prefijo_unico`.
+//   `categorias_prefijo_formato`/`categorias_prefijo_unico`. Tampoco valida
+//   el candado de un solo nivel de subcategoría ni la familia heredada del
+//   padre — de eso se encarga `retail.fn_valida_categoria_subcategoria`
+//   (20260915224500), no confiar en que esta pantalla sea el único camino.
 // DIFERENCIA CON V1: acá `categorias.nombre` es único GLOBAL, no por
 //   familia — dos familias no pueden compartir un nombre de categoría.
 export async function POST(request: Request) {
@@ -26,6 +31,8 @@ export async function POST(request: Request) {
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
   const familia = typeof cuerpo?.familia === "string" ? cuerpo.familia : "";
   const prefijo = typeof cuerpo?.prefijo === "string" ? cuerpo.prefijo.trim().toUpperCase() : "";
+  const categoriaPadreId = typeof cuerpo?.categoriaPadreId === "string" ? cuerpo.categoriaPadreId : null;
+  const notas = typeof cuerpo?.notas === "string" ? cuerpo.notas.trim() : "";
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre de la categoría." }, { status: 400 });
@@ -40,24 +47,27 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categorias")
-    .insert({ nombre, familia, prefijo })
-    .select("id, nombre, familia, prefijo")
+    .insert({ nombre, familia, prefijo, categoria_padre_id: categoriaPadreId, notas: notas || null })
+    .select("id, nombre, familia, prefijo, categoria_padre_id, notas")
     .single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar la categoría") }, { status: 400 });
   }
 
-  return Response.json({ categoria: data });
+  return Response.json({ categoria: { ...data, categoriaPadreId: data.categoria_padre_id } });
 }
 
-// PUT /api/productos/categorias → edita nombre/familia/prefijo.
+// PUT /api/productos/categorias → edita nombre/familia/prefijo/notas.
 //
 // El prefijo y el candado de nombre (por acentos/mayúsculas) los cierra
-// `retail.actualizar_categoria` (20260915160000): el prefijo se rechaza si
-// ya hay productos con esa categoria_id (fijo hacia adelante, decidido con
-// Felipe 2026-09-15), y el nombre choca contra `categorias_nombre_clave_unica`
-// igual que en el alta.
+// `retail.actualizar_categoria` (20260915224500, que extendió la versión
+// 20260915160000 con notas): el prefijo se rechaza si ya hay productos con
+// esa categoria_id (fijo hacia adelante, decidido con Felipe 2026-09-15), y
+// el nombre choca contra `categorias_nombre_clave_unica` igual que en el
+// alta. Si la categoría es una hija, la familia que se manda acá se
+// re-deriva sola desde el padre (mismo trigger del alta) — nunca queda
+// desincronizada.
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") {
@@ -69,6 +79,7 @@ export async function PUT(request: Request) {
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
   const familia = typeof cuerpo?.familia === "string" ? cuerpo.familia : "";
   const prefijo = typeof cuerpo?.prefijo === "string" ? cuerpo.prefijo.trim().toUpperCase() : "";
+  const notas = typeof cuerpo?.notas === "string" ? cuerpo.notas.trim() : "";
 
   if (!id) {
     return Response.json({ error: "Falta la categoría a editar." }, { status: 400 });
@@ -89,6 +100,7 @@ export async function PUT(request: Request) {
     p_nombre: nombre,
     p_familia: familia,
     p_prefijo: prefijo,
+    p_notas: notas || null,
   });
   if (errorRpc) {
     return Response.json({ error: traducirError(errorRpc, "editar la categoría") }, { status: 400 });
@@ -96,14 +108,14 @@ export async function PUT(request: Request) {
 
   const { data, error } = await supabase
     .from("categorias")
-    .select("id, nombre, familia, prefijo, activo")
+    .select("id, nombre, familia, prefijo, activo, categoria_padre_id, notas")
     .eq("id", id)
     .single();
   if (error) {
     return Response.json({ error: traducirError(error, "leer la categoría editada") }, { status: 400 });
   }
 
-  return Response.json({ categoria: data });
+  return Response.json({ categoria: { ...data, categoriaPadreId: data.categoria_padre_id } });
 }
 
 // PATCH /api/productos/categorias → desactiva o reactiva (nunca DELETE).

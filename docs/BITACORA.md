@@ -3945,3 +3945,20 @@ muestra y notas en alta/edición; el listado cae al cuadradito de HEX cuando no 
 Verificado con `typecheck`/`lint`/`build`/`vitest` (215/215) limpios; sin Docker/Supabase
 local en este sandbox, la subida real a Storage queda pendiente de un navegador con
 Storage encendido (local o producción) — documentado en BACKLOG.
+
+## 2026-09-15 (categorías: subcategoría opcional de un solo nivel — Sesión F3)
+
+`categorias.categoria_padre_id` (self-FK, nullable) + `notas`, con el candado real en
+`retail.fn_valida_categoria_subcategoria` (trigger, ADR-0053): un solo nivel, y la
+familia de una hija siempre se re-deriva de su padre, nunca queda desincronizada.
+`CategoriasLista.tsx` agrupa hijas en un clúster junto a su padre (una categoría sin
+hijas queda `display:contents`, pixel-idéntica a antes); "Nueva categoría" suma un
+selector opcional de padre, "Editar categoría" de una raíz suma alta/lista de hijas.
+`actualizar_categoria` pasó de 4 a 5 argumentos (se dropeó la firma vieja en la misma
+migración). **Sin verificar en navegador real** — este entorno remoto no tiene
+Docker/Supabase CLI para levantar el stack local; sí quedaron en verde `pnpm typecheck`
+y `pnpm lint` sobre `apps/web` (hubo que actualizar a mano `packages/database/src/types.ts`,
+que normalmente sale de `supabase gen types` contra una base viva). Pendiente en
+BACKLOG: correr `/productos/categorias` en un entorno con Supabase local antes de
+integrar, y aplicar `20260915224500_categorias_subcategoria.sql` en producción
+(con `set search_path to retail, public;`, CLAUDE.md).
