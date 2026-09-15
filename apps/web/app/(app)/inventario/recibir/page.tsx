@@ -38,13 +38,15 @@ export default async function RecibirLotePage() {
         <RecepcionFormV2
           ubicacionId={persona.ubicacionId}
           ubicacionEtiqueta={persona.ubicacionEtiqueta}
-          variantes={catalogo.map((v) => ({
-            varianteId: v.varianteId,
-            sku: v.sku,
-            referencia: v.referencia,
-            talla: v.talla,
-            color: v.color,
-          }))}
+          variantes={catalogo
+            .filter((v) => v.activo)
+            .map((v) => ({
+              varianteId: v.varianteId,
+              sku: v.sku,
+              referencia: v.referencia,
+              talla: v.talla,
+              color: v.color,
+            }))}
           proveedores={proveedores}
         />
       )}

@@ -187,7 +187,12 @@ function aMovimiento(f: FilaRpc): Movimiento {
     transferencia: f.transferencia_id ? { id: f.transferencia_id, estado: f.transferencia_estado, nota: f.transferencia_nota } : null,
     conteo: f.conteo_id ? { id: f.conteo_id, sistema: f.conteo_cantidad_sistema, contado: f.conteo_cantidad_contada } : null,
     devolucion: f.devolucion_id ? { id: f.devolucion_id, motivo: f.devolucion_motivo, estado: f.devolucion_estado } : null,
-    cambio: f.cambio_id ? { id: f.cambio_id, diferencia: f.cambio_diferencia } : null,
+    // `cambio_diferencia` es `numeric` en Postgres — PostgREST lo manda como
+    // string ("0.00"), nunca como number, para no perder precisión decimal.
+    // Sin este `Number(...)`, `diferencia !== 0` compara un string contra un
+    // number y JS nunca los ve iguales: ningún cambio "sin diferencia" se
+    // detectaba como tal.
+    cambio: f.cambio_id ? { id: f.cambio_id, diferencia: f.cambio_diferencia !== null ? Number(f.cambio_diferencia) : null } : null,
   };
 }
 

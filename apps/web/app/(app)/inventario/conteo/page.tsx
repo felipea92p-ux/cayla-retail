@@ -33,15 +33,17 @@ export default async function ConteoPage() {
         esLider={persona.rol === "lider"}
         conteoAbierto={conteoAbierto}
         sububicaciones={sububicaciones}
-        catalogo={catalogo.map((v) => ({
-          varianteId: v.varianteId,
-          sku: v.sku,
-          referencia: v.referencia,
-          talla: v.talla,
-          color: v.color,
-          costo: v.costo,
-          codigosBarras: v.codigosBarras,
-        }))}
+        catalogo={catalogo
+          .filter((v) => v.activo)
+          .map((v) => ({
+            varianteId: v.varianteId,
+            sku: v.sku,
+            referencia: v.referencia,
+            talla: v.talla,
+            color: v.color,
+            costo: v.costo,
+            codigosBarras: v.codigosBarras,
+          }))}
       />
 
       {cerrados.length > 0 && (

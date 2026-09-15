@@ -106,7 +106,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       almacen: separaPisoAlmacen ? _almacen : null,
       estado: separaPisoAlmacen ? calcularEstado(_piso, _almacen) : null,
     }))
-    .sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || a.sku.localeCompare(b.sku, "es"));
+    .sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
 
 export function resumirInventario(filas: FilaStock[]): ResumenInventario {

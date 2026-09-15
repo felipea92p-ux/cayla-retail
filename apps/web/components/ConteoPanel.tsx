@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib/conteo-varianza";
 import type { ConteoAbierto } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 
 type VarianteConteo = {
   varianteId: string;
@@ -50,6 +52,7 @@ export function ConteoPanel({
       setError(traducirError(error, "abrir el conteo"));
       return;
     }
+    avisar.exito("Conteo abierto");
     router.refresh();
   }
 
@@ -118,7 +121,7 @@ function ConteoEnCurso({
     const q = busqueda.trim().toLowerCase();
     if (!q) return [];
     return catalogo
-      .filter((v) => v.sku.toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
+      .filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
       .slice(0, 8);
   }, [busqueda, catalogo]);
 
@@ -148,6 +151,7 @@ function ConteoEnCurso({
       setError(traducirError(error, "registrar el conteo de esa prenda"));
       return;
     }
+    avisar.exito(`${seleccionada.referencia} contada`);
     setSeleccionada(null);
     setBusqueda("");
     setCantidad("");
@@ -170,7 +174,12 @@ function ConteoEnCurso({
               value={busqueda}
               onChange={(e) => {
                 setBusqueda(e.target.value);
-                const exacto = catalogo.find((v) => v.codigosBarras.includes(e.target.value.trim()));
+                // `resolverCodigoV2` compara sin mayúsculas ni acentos (misma
+                // regla que Vender y el buscador global) — antes era
+                // `codigosBarras.includes(texto.trim())`, sensible a
+                // mayúsculas, y el escaneo "directo" que promete el
+                // placeholder podía fallar en silencio.
+                const exacto = resolverCodigoV2(e.target.value, catalogo);
                 if (exacto) setSeleccionada(exacto);
               }}
               placeholder="Escanea el código de barras o escribe el SKU…"
@@ -319,6 +328,7 @@ function RevisarCierre({
       setError(traducirError(error, "cerrar el conteo"));
       return;
     }
+    avisar.exito("Conteo cerrado", { detalle: "El stock ya quedó ajustado a lo contado." });
     router.refresh();
     onClose();
   }

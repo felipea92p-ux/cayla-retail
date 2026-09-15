@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Inventario/Colaboradores/Movimientos: 14 arreglos del reconocimiento, todo en local)
+
+Felipe pidió ejecutar la propuesta de mejoras de esos 3 módulos, explícitamente "solo en
+local, nada de producción, ni github main ni supabase de producción". Se aplicaron los 14
+hallazgos de riesgo bajo/medio del reconocimiento anterior (3 agentes en paralelo + mi
+propia verificación) — se dejaron afuera a propósito 3 que necesitan una decisión de
+negocio, no un parche: la condición de carrera de contar-mientras-se-vende, cambiar
+`quitar_colaborador` de `DELETE` a archivado, y el selector de ubicación duplicado (ya es
+decisión consciente documentada). El hallazgo más nítido de arreglar: `cambio_diferencia`
+es `numeric`, Postgres/PostgREST lo manda como string, y `!== 0` nunca compara igual un
+string contra un number — ningún cambio "sin diferencia" se detectaba como tal, corregido
+en el origen (`movimientos-v2.ts`), no en el sitio de uso. Typecheck, `vitest` (239 tests)
+y lint verdes; probado a mano en el navegador local (Felipe, líder): Cargo especial ya no
+aparece en el selector de Recibir, la sub-navegación de Inventario (reescrita, apuntaba a
+4 rutas que ya no existen) navega bien, "Quitar acceso" confirma antes de ejecutar, y
+buscar "_" en Movimientos ya no trae las 49 variantes. Lo que aprendió Felipe: el local
+compartido entre sesiones paralelas se reseteó solo a mitad de la verificación
+(`auth.users` pasó de 2 filas a 0 y volvió a 2) — no fue nada que esta sesión rompiera, es
+el costo real de correr varias IAs contra el mismo Postgres local al mismo tiempo. Todo
+quedó commiteado en la rama local `fix/inventario-colaboradores-movimientos`, sin pushear
+— pendiente que Felipe decida cuándo subirla.
+
 ## 2026-09-15 (consolidación Vender + Caja: dos ramas cerradas suben juntas, migraciones a producción primero)
 
 Felipe pidió analizar todo lo hecho en otras sesiones sobre Caja/POS y subirlo de una

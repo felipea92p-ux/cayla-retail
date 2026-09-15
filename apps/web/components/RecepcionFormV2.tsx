@@ -174,7 +174,13 @@ export function RecepcionFormV2({
               placeholder="Costo (opc.)"
               aria-label="Costo unitario"
               value={l.costoUnitario}
-              onChange={(e) => actualizarLinea(i, { costoUnitario: e.target.value })}
+              onChange={(e) => {
+                const v = e.target.value;
+                // Vacío se deja pasar (el costo es opcional); un número
+                // negativo se recorta a 0 en vez de dejarlo viajar hasta el
+                // `check (costo >= 0)` de la base.
+                actualizarLinea(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
+              }}
               className="w-28 border-b border-tinta/20 bg-transparent px-1 py-2 text-right text-sm text-tinta outline-none placeholder:text-tinta/40 focus:border-rojo"
             />
             {lineas.length > 1 && (

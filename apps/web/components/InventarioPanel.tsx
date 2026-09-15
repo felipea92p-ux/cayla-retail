@@ -183,9 +183,18 @@ export function InventarioPanel({
               </span>
               {resumen.separaPisoAlmacen ? (
                 <>
-                  <span className={celda("centro")}>{f.piso}</span>
-                  <span className={celda("centro")}>{f.almacen}</span>
-                  <span className={celda("centro", "font-semibold text-tinta")}>{f.total}</span>
+                  <span className={celda("centro")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso</span>
+                    {f.piso}
+                  </span>
+                  <span className={celda("centro")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Almacén</span>
+                    {f.almacen}
+                  </span>
+                  <span className={celda("centro", "font-semibold text-tinta")}>
+                    <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Total</span>
+                    {f.total}
+                  </span>
                   <span className={celda("centro")}>
                     <span className="inline-flex items-center justify-center gap-2">
                       <span className={`label-cayla text-[10px] ${TONO_ESTADO[f.estado!]}`}>{ETIQUETA_ESTADO[f.estado!]}</span>
