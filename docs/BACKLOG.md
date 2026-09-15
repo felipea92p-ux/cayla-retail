@@ -111,10 +111,47 @@ prenda → cobrar → pagar → confirmar → «Venta registrada» con cierre an
 venta con ticket limpio, y un ingreso de caja real con «Otro» motivo (ambos campos
 del swap). Cero errores de consola en una pestaña nueva (la pestaña vieja arrastraba
 un error de una ventana intermedia de la propia edición — no representativo).
-**Solo en local — falta pushear.** Quedan del mismo diagnóstico, para una tanda
-aparte: las pantallas más grandes (historial de cierres de caja, anular una venta,
-ficha de clienta, códigos de descuento administrables) — ver la sección de abajo,
-que sigue vigente.
+**Solo en local — falta pushear.**
+
+**Cerrado el 2026-09-15 (mismo día, segunda vuelta) — el resto de Tanda 2**: al
+revisar contra el mapeo original, la técnica se había aplicado en 1-2 lugares por
+categoría, no en todos los identificados. Completado con la misma técnica, mismo
+riesgo bajo:
+
+- [x] `CajaAbiertaPanel.tsx` — las 5 tarjetas de resumen (`key={valor}` +
+      `anim-asentar`) y las filas de «Movimientos de esta caja» (`anim-revelar`),
+      que se habían quedado fuera del barrido de `router.refresh()`.
+- [x] El contador «160/200» bajo la nota del ticket, con el mismo truco de
+      `grid-template-rows` — antes aparecía de golpe.
+- [x] El bloque «Recibido» del pago en efectivo **no necesitó arreglo propio**:
+      `p.metodo` de una fila de pago nunca cambia una vez agregada (`agregarPago`
+      bloquea duplicados, nada muta el campo), así que animar la fila entera
+      (`anim-revelar`, agregado también a cada fila de `pagos.map`) cubre el bloque.
+- [x] Los formularios inline «Aprobar»/«Rechazar» de devoluciones pendientes —
+      `anim-revelar` simple (no el búfer de dos tiempos del ticket: es una acción de
+      Líder, poco frecuente, no justifica la complejidad extra).
+- [x] El desplegable «Ventas de hoy» del catálogo — el más visible de los siete,
+      usaba `hidden` (display:none), que ni con CSS se puede animar. Ahora
+      `grid-template-rows`. Sin controles enfocables adentro (solo filas de texto),
+      así que no necesitó los `disabled` condicionales del swap de
+      `MovimientoCajaModal`.
+
+Casi se reescribe este último a una técnica distinta (`max-height`) por una falsa
+alarma: medido con `getComputedStyle` justo después de un `.click()` disparado por
+JS y de un `navigate()`, el colapso parecía atascado en 133px. Era el Suspense de
+«Ventas de hoy» (`Cargando ventas de hoy…`) resolviendo en paralelo con el propio
+toggle, más que `element.click()` no siempre dispara el handler de React de forma
+confiable en sucesión rápida — dos problemas de METODOLOGÍA de prueba, no del
+código. Se confirmó con capturas reales (clic real + pantallazo, no JS) que colapsa
+y expande limpio, ida y vuelta. **Lo que ya estaba construido funcionaba.**
+
+Verificado igual que la primera vuelta: `tsc`, `eslint`, `vitest` (184/184), y una
+sesión de navegador completa (ingreso de caja real, «Ventas de hoy» expandido y
+colapsado dos veces con capturas). **Solo en local — falta pushear.**
+
+Queda del mismo diagnóstico, para una tanda aparte: las pantallas más grandes
+(historial de cierres de caja, anular una venta, ficha de clienta, códigos de
+descuento administrables) — ver la sección de abajo, que sigue vigente.
 
 **Cerrado el 2026-09-14 en esta sesión:**
 

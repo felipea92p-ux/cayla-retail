@@ -3,6 +3,42 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Tanda 2, segunda vuelta: el resto de instancias, y una falsa alarma de metodología)
+
+Felipe preguntó «¿queda algo más de la Tanda 2?» — al revisar el mapeo original con
+calma, sí: la técnica de cada categoría se había aplicado en 1-2 lugares, no en
+todos los que se habían identificado el mismo día. Cerrado con la misma técnica,
+mismo riesgo bajo: las 5 tarjetas de `CajaAbiertaPanel` (`anim-asentar`) y sus filas
+de movimientos (`anim-revelar`); el contador de la nota del ticket
+(`grid-template-rows`); los formularios inline de Aprobar/Rechazar en devoluciones
+(`anim-revelar` simple, no el búfer completo — es acción de Líder, poco frecuente);
+y el desplegable «Ventas de hoy», que usaba `hidden` y no se podía animar con CSS de
+ninguna forma. El bloque «Recibido» del pago en efectivo, que parecía necesitar su
+propio arreglo, resultó no necesitarlo: `p.metodo` de una fila de pago no cambia
+nunca una vez agregada (`agregarPago` bloquea duplicados), así que animar la fila
+entera ya lo cubre — un hallazgo por leer el código antes de tocarlo, no por
+asumir.
+
+El susto del día: verificando «Ventas de hoy» con `getComputedStyle` después de un
+`.click()` disparado por JS y justo tras un `navigate()`, el colapso parecía
+atascado en 133px — a punto de reescribirlo entero a `max-height` en vez de
+`grid-template-rows`. Eran dos problemas de LA PRUEBA, no del código: el Suspense de
+esa sección (`Cargando ventas de hoy…`) todavía estaba resolviendo en paralelo con
+el propio toggle que se estaba midiendo, y `element.click()` disparado por JS no
+siempre dispara el `onClick` de React de forma confiable en sucesión rápida (a
+diferencia de un clic real de la herramienta). Con clics reales y capturas de
+pantalla en vez de lecturas de JS apuradas, colapsó y expandió limpio, dos veces
+seguidas. Se estuvo cerca de reescribir código que ya funcionaba.
+
+Verificado: `tsc`, `eslint`, `vitest` (184/184); sesión de navegador completa
+(ingreso de caja real, ida y vuelta del desplegable con capturas). **Solo en
+local — falta pushear.**
+
+Lo que Felipe se lleva: **cuando una medición contradice lo que se ve en pantalla,
+sospechar primero de la medición** — sobre todo si mezcla clics simulados,
+`Suspense` y lecturas justo después de navegar. Un pantallazo real, con un clic
+real, sigue siendo la prueba más difícil de engañar.
+
 ## 2026-09-15 (Tanda 2 del diagnóstico: movimiento — 8 modales, momentos del ticket, alturas y router.refresh())
 
 Felipe pidió construir la Tanda 2 (los tres puntos que necesitaban técnica nueva, no

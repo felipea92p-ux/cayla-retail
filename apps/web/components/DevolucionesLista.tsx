@@ -171,7 +171,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       </div>
 
       {resolviendo === "aprobar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="flex gap-3">
             <div className="flex-1 space-y-1.5">
               <label className={campoEtiqueta}>Reembolso (opcional)</label>
@@ -211,7 +211,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
       )}
 
       {resolviendo === "rechazar" && (
-        <div className="mt-3 space-y-3 border-t border-tinta/10 pt-3">
+        <div className="anim-revelar mt-3 space-y-3 border-t border-tinta/10 pt-3">
           <div className="space-y-1.5">
             <label className={campoEtiqueta}>Motivo del rechazo</label>
             <input
