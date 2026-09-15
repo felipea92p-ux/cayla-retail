@@ -994,6 +994,7 @@ export type Database = {
         Row: {
           aprobado_en: string | null
           aprobado_por: string | null
+          caja_id: string | null
           created_at: string
           estado: string
           id: string
@@ -1007,6 +1008,7 @@ export type Database = {
         Insert: {
           aprobado_en?: string | null
           aprobado_por?: string | null
+          caja_id?: string | null
           created_at?: string
           estado?: string
           id?: string
@@ -1020,6 +1022,7 @@ export type Database = {
         Update: {
           aprobado_en?: string | null
           aprobado_por?: string | null
+          caja_id?: string | null
           created_at?: string
           estado?: string
           id?: string
@@ -1031,6 +1034,13 @@ export type Database = {
           venta_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "devoluciones_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "devoluciones_ubicacion_id_fkey"
             columns: ["ubicacion_id"]

@@ -30,6 +30,10 @@ export type ResumenCaja = {
   ventasOtros: number;
   ingresos: number;
   egresos: number;
+  /** Devoluciones aprobadas con reembolso en efectivo de ESTA caja (`devoluciones.
+   *  caja_id`, fijado por `aprobar_devolucion` — 20260915180000). Solo efectivo:
+   *  un reembolso por Yape/Plin/transferencia/tarjeta no toca el cajón físico. */
+  reembolsosEfectivo: number;
 };
 
 export type MovimientoCaja = {
@@ -74,9 +78,10 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
 
 export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
   const supabase = await createClient();
-  const [ventasRes, movimientos] = await Promise.all([
+  const [ventasRes, movimientos, devolucionesRes] = await Promise.all([
     supabase.from("ventas").select("id").eq("caja_id", cajaId),
     supabase.from("caja_movimientos").select("tipo, monto").eq("caja_id", cajaId),
+    supabase.from("devoluciones").select("reembolso_monto, reembolso_metodo").eq("caja_id", cajaId).eq("estado", "aprobada"),
   ]);
   const ventaIds = exigir(ventasRes, "las ventas de esta caja").map((v) => v.id);
   const filasPagos =
@@ -87,13 +92,17 @@ export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
           "los pagos de esta caja"
         );
   const filasMovs = exigir(movimientos, "los movimientos de esta caja");
+  const filasDevoluciones = exigir(devolucionesRes, "las devoluciones de esta caja");
 
   const ventasEfectivo = filasPagos.filter((p) => p.metodo === "efectivo").reduce((a, p) => a + Number(p.monto), 0);
   const ventasOtros = filasPagos.filter((p) => p.metodo !== "efectivo").reduce((a, p) => a + Number(p.monto), 0);
   const ingresos = filasMovs.filter((m) => m.tipo === "ingreso").reduce((a, m) => a + Number(m.monto), 0);
   const egresos = filasMovs.filter((m) => m.tipo === "egreso").reduce((a, m) => a + Number(m.monto), 0);
+  const reembolsosEfectivo = filasDevoluciones
+    .filter((d) => d.reembolso_metodo === "efectivo")
+    .reduce((a, d) => a + Number(d.reembolso_monto ?? 0), 0);
 
-  return { ventasEfectivo, ventasOtros, ingresos, egresos };
+  return { ventasEfectivo, ventasOtros, ingresos, egresos, reembolsosEfectivo };
 }
 
 export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja[]> {

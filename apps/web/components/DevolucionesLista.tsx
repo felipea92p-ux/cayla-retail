@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { DevolucionFormV2 } from "@/components/DevolucionFormV2";
+import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
 import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devoluciones";
 
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
@@ -22,11 +23,13 @@ export function DevolucionesLista({
   pendientes,
   ubicacionId,
   esLider,
+  busqueda,
 }: {
   lineas: LineaVentaParaDevolucion[];
   pendientes: DevolucionPendiente[];
   ubicacionId: string;
   esLider: boolean;
+  busqueda: string;
 }) {
   const [enDevolucion, setEnDevolucion] = useState<LineaVentaParaDevolucion | null>(null);
 
@@ -45,8 +48,16 @@ export function DevolucionesLista({
         </div>
       )}
 
-      <div>
-        <p className="label-cayla mb-3 text-[11px] text-tinta/65">Ventas recientes</p>
+      <div className="space-y-3">
+        <BuscarPorComprobante valorInicial={busqueda} />
+        <p className="label-cayla text-[11px] text-tinta/65">
+          {busqueda ? `Resultado de "${busqueda}"` : "Ventas recientes"}
+        </p>
+        {lineas.length === 0 ? (
+          <p className="card-cayla p-5 text-sm text-tinta/75">
+            {busqueda ? "No encontramos esa boleta o factura en esta sede." : "Todavía no hay ventas recientes."}
+          </p>
+        ) : (
         <div className="card-cayla divide-y divide-tinta/10">
           {lineas.map((l) => {
             const disponible = l.cantidad - l.yaDevuelto;
@@ -73,6 +84,7 @@ export function DevolucionesLista({
             );
           })}
         </div>
+        )}
       </div>
 
       {enDevolucion && (

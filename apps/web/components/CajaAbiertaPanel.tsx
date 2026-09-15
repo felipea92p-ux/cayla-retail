@@ -29,6 +29,7 @@ export function CajaAbiertaPanel({
         <TarjetaSimple etiqueta="Ventas con otro método" valor={money(resumen.ventasOtros)} />
         <TarjetaSimple etiqueta="Ingresos" valor={money(resumen.ingresos)} />
         <TarjetaSimple etiqueta="Egresos" valor={money(resumen.egresos)} />
+        {resumen.reembolsosEfectivo > 0 && <TarjetaSimple etiqueta="Reembolsos en efectivo" valor={money(resumen.reembolsosEfectivo)} />}
       </div>
 
       <div className="flex flex-wrap gap-2">

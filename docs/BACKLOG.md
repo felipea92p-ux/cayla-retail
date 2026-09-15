@@ -114,6 +114,26 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       limpia; ocultos bajo `sm`. **En `origin/main`.**
 - [x] **«Ventas de hoy» muestra la nota de la venta** (sesión A): misma fila, truncada,
       texto completo en `title`; nada si viene null. **En `origin/main`.**
+- [x] **El reembolso en efectivo ya resta del arqueo, y se busca una venta por su
+      boleta** (ADR-0052, `20260915180000_reembolso_en_el_arqueo.sql`). Antes: aprobar
+      una devolución con reembolso en efectivo dejaba el cajón "sobrando" exactamente
+      ese monto en `cerrar_caja` — un faltante disfrazado de sobrante. Ahora
+      `devoluciones.caja_id` (fijado solo, al aprobar) liga el reembolso a la caja que
+      lo absorbe, y `cerrar_caja` lo resta — solo efectivo, Yape/Plin/transferencia/
+      tarjeta no tocan el cajón. Tarjeta "Reembolsos en efectivo" nueva en `/caja`. De
+      paso: Devoluciones y Cambios solo mostraban las últimas 30 ventas de la sede —
+      ahora se puede escribir "B001-10" (o solo "10") y encontrar una venta de hace
+      meses (`parsearComprobante`, `BuscarPorComprobante.tsx`, compartido por las dos
+      pantallas). Verificado en psql (3 escenarios con rollback) y de punta a punta en
+      navegador: `cerrar_caja` con un reembolso real de S/25.90 dio el esperado exacto
+      (S/586.82) contra lo contado. **No aplicado en producción** — la pega Felipe (D-11).
+- [ ] **Cambios tiene la misma fuga que Devoluciones tenía** (hallazgo del ADR-0052, no
+      resuelto ahí a propósito): `registrar_cambio` calcula y guarda
+      `cambios.diferencia`/`metodo_pago_diferencia` cuando una clienta paga o recibe la
+      diferencia de un cambio de prenda, pero nunca la liga a una caja ni la resta o
+      suma en `cerrar_caja` — ese dinero también se fuga del arqueo. El mecanismo ya
+      existe (`caja_id` fijado al registrar, restado/sumado al cerrar) y es
+      directamente reutilizable; falta aplicarlo acá.
 - [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
       **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
       schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,

@@ -3,6 +3,36 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (el reembolso en efectivo también cuadra la caja)
+
+Cuarto paso de la sesión: Devoluciones guardaba `reembolso_monto`/`reembolso_metodo` al
+aprobar, pero `cerrar_caja` nunca los miraba — un reembolso en efectivo hacía "sobrar"
+el cajón exactamente ese monto, un faltante disfrazado de sobrante. `devoluciones.
+caja_id` (ADR-0052) liga cada reembolso a la caja que estaba abierta al aprobarlo —no
+la de la venta original, que puede ser de otro día— y `cerrar_caja` lo resta, solo si
+es efectivo. Las dos RPC mantuvieron su firma; nada más en el repo tuvo que enterarse.
+
+De paso, el otro hueco que la misma pantalla tenía: Devoluciones y Cambios solo
+mostraban las últimas 30 ventas de la sede, así que una clienta que volvía después de
+esa ventana no tenía cómo devolver ni cambiar nada. `parsearComprobante()` lee lo que
+se escribe a mano desde el papel impreso ("B001-10", con ceros o sin ellos, o solo el
+número) y `buscarVentaIdsPorComprobante()` encuentra la venta exacta sin importar la
+fecha — un componente (`BuscarPorComprobante.tsx`) sirve a las dos pantallas.
+
+Verificado con 3 escenarios en psql (reembolso efectivo resta, reembolso Yape no
+toca el cajón, caso de referencia) y de punta a punta en navegador: una devolución
+real con reembolso de S/25.90 en efectivo, la tarjeta nueva "Reembolsos en efectivo"
+en `/caja`, y `cerrar_caja` respondiendo el esperado exacto (S/586.82) contra lo
+contado.
+
+Lo que Felipe se lleva: **al escribir el candado se encontró la misma fuga en la
+pantalla vecina** — `registrar_cambio` calcula la diferencia de precio de un cambio
+(`cambios.diferencia`) pero tampoco la liga nunca a una caja. Se dejó anotada en el
+BACKLOG como paso propio en vez de arreglarla de pasada: el mecanismo que este ADR
+construyó (`caja_id` fijado al registrar, restado o sumado al cerrar) se reutiliza
+tal cual, pero mezclar dos módulos en un mismo commit porque comparten la causa raíz
+habría sido más difícil de revisar que dos cambios chicos y claros.
+
 ## 2026-09-15 (el Líder también tiene tope — R-45 y D-44, saltados desde el 09-12)
 
 Tercer paso de la misma sesión: la comparativa externa señalaba "descuento sin motivo,
