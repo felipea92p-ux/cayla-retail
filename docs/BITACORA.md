@@ -3915,3 +3915,20 @@ ambos modales, recarga directa de `/productos/<id>/historial` sin overlay, "Esta
 Activo → Descontinuado" apareciendo en el historial tras desactivar en bloque, y las
 tres rutas de demo (`dev-ajustar-inventario`, `dev/historial`, `_dev`) ya sin el
 contenido viejo. Borradas `productos/dev-ajustar-inventario/` y `productos/dev/`.
+
+## 2026-09-15 (categorías: subcategoría opcional de un solo nivel — Sesión F3)
+
+`categorias.categoria_padre_id` (self-FK, nullable) + `notas`, con el candado real en
+`retail.fn_valida_categoria_subcategoria` (trigger, ADR-0053): un solo nivel, y la
+familia de una hija siempre se re-deriva de su padre, nunca queda desincronizada.
+`CategoriasLista.tsx` agrupa hijas en un clúster junto a su padre (una categoría sin
+hijas queda `display:contents`, pixel-idéntica a antes); "Nueva categoría" suma un
+selector opcional de padre, "Editar categoría" de una raíz suma alta/lista de hijas.
+`actualizar_categoria` pasó de 4 a 5 argumentos (se dropeó la firma vieja en la misma
+migración). **Sin verificar en navegador real** — este entorno remoto no tiene
+Docker/Supabase CLI para levantar el stack local; sí quedaron en verde `pnpm typecheck`
+y `pnpm lint` sobre `apps/web` (hubo que actualizar a mano `packages/database/src/types.ts`,
+que normalmente sale de `supabase gen types` contra una base viva). Pendiente en
+BACKLOG: correr `/productos/categorias` en un entorno con Supabase local antes de
+integrar, y aplicar `20260915224500_categorias_subcategoria.sql` en producción
+(con `set search_path to retail, public;`, CLAUDE.md).

@@ -18,6 +18,44 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Categorías: subcategoría opcional de un solo nivel (2026-09-15, Sesión F3)
+
+`categorias.categoria_padre_id` (self-FK, nullable) + `categorias.notas`
+(`20260915224500_categorias_subcategoria.sql`, ADR-0053). Candado real en un
+trigger (`retail.fn_valida_categoria_subcategoria`): un solo nivel (el padre
+no puede a su vez tener padre; quien ya tiene hijas no puede convertirse en
+hija) y familia siempre heredada del padre. `CategoriasLista.tsx`: "Nueva
+categoría" suma selector opcional de padre; "Editar categoría" de una raíz
+suma alta/lista de hijas; una categoría sin hijas se ve pixel-idéntica a
+antes. `retail.actualizar_categoria` pasó de 4 a 5 argumentos (se agregó
+`p_notas`, firma vieja dropeada en la misma migración).
+
+**Pendiente:**
+
+- [ ] **Sin verificar en navegador real.** Esta sesión corrió en un entorno
+      remoto sin Docker/Supabase CLI — no se pudo levantar el stack local ni
+      abrir `/productos/categorias` en Chrome. Sí quedaron en verde
+      `pnpm --filter web typecheck` y `pnpm --filter web lint`. Antes de dar
+      esto por cerrado: crear "Vestidos largos" con padre "Vestidos" en un
+      entorno con Supabase local y confirmar que aparece anidada, y que una
+      categoría sin hijas (ej. "Pantalones") se sigue viendo igual.
+- [ ] **`20260915224500_categorias_subcategoria.sql` no está en producción.**
+      Aplicada solo en el archivo del repo (ni siquiera probada en local por
+      lo de arriba). Al pegar en el SQL Editor de producción: prefijo
+      `retail.` en cada tabla o `set search_path to retail, public;`
+      (CLAUDE.md). Es aditiva (dos columnas nullable, un trigger nuevo, y
+      `actualizar_categoria` se dropea/recrea con un 5º argumento opcional)
+      — nada que preverificar antes de pegar.
+- [ ] **`packages/database/src/types.ts` se editó a mano**, no con
+      `supabase gen types` (no hay base viva en este entorno). Cuando la
+      migración se aplique a un Postgres real, regenerar los tipos desde ahí
+      y confirmar que calzan con lo que se escribió a mano acá.
+- [ ] **Reasignar el padre de una categoría ya existente no tiene UI.** Se
+      puede elegir padre solo al crear; una categoría ya creada no se puede
+      mover de familia de primer nivel a subcategoría (o viceversa) desde la
+      pantalla — decisión de alcance de esta sesión, no una limitación de la
+      base (el trigger lo soportaría).
+
 ## 🎯 Productos: listado y filtros server-side (2026-09-15, Sesión B1)
 
 `/productos` pasó de filtrar/agrupar TODO el catálogo en memoria del cliente a

@@ -19,12 +19,20 @@ export default async function CategoriasPage() {
   // activas porque no había forma de volver de un desactivado.
   const res = await supabase
     .from("categorias")
-    .select("id, familia, nombre, prefijo, activo")
+    .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
     .order("familia")
     .order("nombre");
   const filas = exigir(res, "las categorías del catálogo");
 
-  type CategoriaFila = { id: string; nombre: string; prefijo: string | null; familia: Familia | null; activo: boolean };
+  type CategoriaFila = {
+    id: string;
+    nombre: string;
+    prefijo: string | null;
+    familia: Familia | null;
+    activo: boolean;
+    categoriaPadreId: string | null;
+    notas: string | null;
+  };
   const categorias: CategoriaFila[] = filas.map((c) => ({
     id: c.id,
     nombre: c.nombre,
@@ -34,6 +42,8 @@ export default async function CategoriasPage() {
     // backfill de lo que no calzaba con las 37 de CAYLA).
     familia: c.familia && FAMILIAS.includes(c.familia as Familia) ? (c.familia as Familia) : null,
     activo: c.activo,
+    categoriaPadreId: c.categoria_padre_id,
+    notas: c.notas,
   }));
 
   return (
@@ -45,7 +55,9 @@ export default async function CategoriasPage() {
           <Ayuda titulo="Categorías">
             Las 6 familias del negocio son fijas; dentro de cada una, las categorías (con su
             prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
-            código de una prenda se pueda leer de un vistazo.
+            código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
+            tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
+            no las necesita y se sigue viendo igual que siempre.
           </Ayuda>
         </h1>
       </div>
