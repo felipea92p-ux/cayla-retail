@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Productos: stock mínimo en la ficha — cerrando un hueco entre sesiones)
+
+La sesión de listado/filtros (B1) agregó `retail.productos.stock_minimo` para el
+filtro/tarjeta de "stock bajo" en `/productos`, pero esta sesión (A1) ya había
+cerrado `catalogo_crear_producto`/`catalogo_actualizar_producto` antes de que esa
+columna existiera — quedó un umbral sin dónde escribirse. `20260915170000_stock_
+minimo_en_alta_edicion.sql` agrega `p_stock_minimo` (default null, rechaza
+negativos) a las dos RPC con `drop` + `create` (agregar un parámetro cambia la
+firma); `ProductoForm.tsx` suma el campo "Stock mínimo (opcional)". Se trajo la
+migración base de B1 con `git cherry-pick` para que esta rama sea reseteable sola,
+sin depender de que ya esté mergeada la otra.
+
+Verificado con psql en una transacción con rollback (crear con umbral 3, limpiarlo
+en la edición, rechazo de -1) y con HTTP real a `/productos/nuevo` y
+`/productos/[id]/editar` (cookie de `@supabase/ssr` reconstruida a mano — sin
+navegador disponible en esta sesión): el campo renderiza y precarga el valor real.
+
+Lo que Felipe se lleva: **un campo nuevo puede quedar "huérfano" cuando dos
+sesiones en paralelo tocan el mismo módulo en momentos distintos** — el que agrega
+la columna no siempre es el que construye el formulario que la usa. `BACKLOG.md`
+es el enganche entre las dos (B1 lo dejó anotado ahí), no la memoria de quien
+programó primero.
+
 ## 2026-09-15 (Productos: alta y edición de producto+variantes, V2)
 
 `/productos/nuevo` y `/productos/[id]/editar`, sobre `catalogo_crear_producto` /
