@@ -1,9 +1,9 @@
 # ADR-0050 — Producción del Taller vuelve sobre V2: el Taller es un tipo de ubicación propio y la migración se reconstruyó desde la base local
 
 **Fecha:** 2026-09-15
-**Estado:** Aplicado en local (`diegoN`). **NO en producción** — la migración
-`20260915120000_produccion_del_taller.sql` la pega Felipe (D-11); `pnpm datos:comparar`
-lo avisa hasta entonces.
+**Estado:** Aplicado en local y **en producción** (verificado contra la base el
+2026-09-15 por la tarde: tablas, 5 RPC, check de `ubicaciones.tipo` y fila «Taller ·
+taller» presentes). Pendiente solo `pnpm datos:generar:produccion`.
 **Afecta:** `supabase/migrations/20260915120000_produccion_del_taller.sql` (nueva),
 `supabase/seed.sql` (Taller nace `taller`), `apps/web/lib/produccion.ts` + `produccion-reglas.ts`
 (nuevos), `app/(app)/produccion/page.tsx`, `components/OrdenesProduccionV2.tsx` +
@@ -80,8 +80,8 @@ Micaela (integrante de tienda) lista `producciones` y recibe `[]`.
 
 ## Pendiente
 
-- Pegar la migración en producción (Felipe). Hasta entonces `/produccion` en producción
-  falla al abrir la orden con «function abrir_produccion does not exist».
+- Refrescar el diccionario (`pnpm datos:generar:produccion`) para que `producciones` y
+  `produccion_lineas` aparezcan en `docs/datos/generado/`.
 - Movimientos pinta `produccion` / `reversion_produccion` como texto crudo; un enlace a la
   orden queda para después.
 - Sin decidir: si la orden necesita un atajo «Nuevo modelo» que abra el flujo de Productos

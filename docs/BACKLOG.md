@@ -346,14 +346,10 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Migración `20260915120000_produccion_del_taller` no está en producción** (ADR-0050).
-      Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
-      (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
-      `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,
-      convirtiendo la fila «Taller» (verificado: en producción es `almacen`, una sola). Ya
-      lleva `retail.`; pegar tal cual. Hasta entonces `/produccion` en producción carga vacía
-      y «Abrir orden» falla con «function abrir_produccion does not exist» —
-      `pnpm datos:comparar` lo avisa. Después: `pnpm datos:generar:produccion`.
+- [x] **(Cerrado 2026-09-15: la migración `20260915120000_produccion_del_taller` YA está en
+      producción** — verificado preguntándole a la base: `producciones`, `produccion_lineas`,
+      las 5 RPC, el check de `ubicaciones.tipo` con `taller` y la fila «Taller · taller».
+      Falta solo refrescar el diccionario: `pnpm datos:generar:produccion`.)
 - [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
       (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
       Productos V2 no crea variantes desde pantalla (nacen por importación), así que el
