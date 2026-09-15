@@ -249,6 +249,7 @@ export type Database = {
           id: string
           nombre: string
           prefijo: string | null
+          tallas_sugeridas: string[] | null
         }
         Insert: {
           activo?: boolean
@@ -256,6 +257,7 @@ export type Database = {
           id?: string
           nombre: string
           prefijo?: string | null
+          tallas_sugeridas?: string[] | null
         }
         Update: {
           activo?: boolean
@@ -263,6 +265,7 @@ export type Database = {
           id?: string
           nombre?: string
           prefijo?: string | null
+          tallas_sugeridas?: string[] | null
         }
         Relationships: []
       }
@@ -1415,6 +1418,7 @@ export type Database = {
           estado: string
           id: string
           referencia: string
+          token_cliente: string | null
         }
         Insert: {
           categoria_id?: string | null
@@ -1424,6 +1428,7 @@ export type Database = {
           estado?: string
           id?: string
           referencia: string
+          token_cliente?: string | null
         }
         Update: {
           categoria_id?: string | null
@@ -1433,6 +1438,7 @@ export type Database = {
           estado?: string
           id?: string
           referencia?: string
+          token_cliente?: string | null
         }
         Relationships: [
           {
@@ -1813,7 +1819,7 @@ export type Database = {
           id: string
           precio: number
           producto_id: string
-          sku: string
+          sku: string | null
           talla: string | null
         }
         Insert: {
@@ -1825,7 +1831,7 @@ export type Database = {
           id?: string
           precio: number
           producto_id: string
-          sku: string
+          sku?: string | null
           talla?: string | null
         }
         Update: {
@@ -1837,7 +1843,7 @@ export type Database = {
           id?: string
           precio?: number
           producto_id?: string
-          sku?: string
+          sku?: string | null
           talla?: string | null
         }
         Relationships: [
@@ -2245,6 +2251,16 @@ export type Database = {
           p_motivo: string
           p_ubicacion_id: string
           p_venta_id: string
+        }
+        Returns: string
+      }
+      crear_producto_con_variantes: {
+        Args: {
+          p_categoria_id: string
+          p_descripcion?: string
+          p_referencia: string
+          p_token?: string
+          p_variantes: Json
         }
         Returns: string
       }
@@ -2780,12 +2796,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2809,11 +2825,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2834,11 +2850,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2859,11 +2875,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2876,11 +2892,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

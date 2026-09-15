@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (alta de producto con matriz talla×color, prueba local, sku deja de ser obligatorio)
+
+Felipe pidió, tras comparar el modelo de variantes de CAYLA contra Lightspeed Retail, probar
+en local la pieza de mayor consecuencia que faltaba: la pantalla para dar de alta un
+producto con su matriz talla×color (hasta hoy, `/productos` era solo lectura). Se construyó
+`retail.crear_producto_con_variantes` (mismo patrón que `abrir_produccion`: candado
+`fn_es_lider()`, idempotencia por token, transacción única) y `/productos/nuevo`, con
+`categorias.tallas_sugeridas` repuesta (existía en V1, se perdió en el corte a V2) para
+guiar la carga sin forzarla. El costo real no fue la pantalla: fue que `variantes.sku`
+tenía que volverse nullable (es legado, `codigo` ya lo reemplaza) y un `grep` propio antes
+de tocar el esquema encontró que el buscador/escáner de Vender (`buscar-prenda-v2.ts` →
+`clave()`) rompía con cualquier `sku` null en el catálogo — no solo el del producto
+nuevo — corregido primero, en su propio commit (ADR-0056). Verificado en rojo/verde por SQL
+directo (alta, idempotencia, duplicado rechazado, colaborador sin rol líder rechazado) y
+después en el navegador real contra el `pnpm dev` que ya tenía otra sesión corriendo (no se
+levantó un segundo servidor — Next.js no deja sobre el mismo directorio): "Blusa Aurora"
+creada con 6 variantes, override de precio en una celda, y esa misma prenda buscada después
+en Vender sin romper nada. Rama propia (`feat/alta-producto-matriz-talla-color`), separada
+a propósito del trabajo de Inventario/Colaboradores de la sesión paralela (ver esa entrada
+en la rama `fix/inventario-colaboradores-movimientos` — no se duplica acá).
+
 ## 2026-09-15 (consolidación Vender + Caja: dos ramas cerradas suben juntas, migraciones a producción primero)
 
 Felipe pidió analizar todo lo hecho en otras sesiones sobre Caja/POS y subirlo de una
