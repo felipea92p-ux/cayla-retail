@@ -3,6 +3,25 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Productos: alta y edición de producto+variantes, V2)
+
+`/productos/nuevo` y `/productos/[id]/editar`, sobre `catalogo_crear_producto` /
+`catalogo_actualizar_producto` — sin `security definer`: la RLS ya deja escribir a un
+Líder, la RPC solo da atomicidad (producto + N variantes en un solo `insert`/`update`, sin
+ventana donde el producto exista sin variantes). SKU se sugiere solo (referencia+talla+color)
+y queda editable sin gastar el correlativo real; una variante existente no deja tocar
+color/talla/sku/`codigo` — solo precio/costo/activo, para no reabrir el hueco que V1 nunca
+cerró. Desactivar una variante se permite siempre (decidido con Felipe): es un flag, y
+`movimientos` ya es append-only. Quedan dos TODO explícitos en la ficha para Ajustar
+inventario (A2) y Ver historial (A3). Verificado en Chrome headless contra Supabase local:
+alta con 2 variantes, edición con 3ra variante agregada y precio cambiado, persistencia
+confirmada. De paso: dos migraciones del mismo minuto (`produccion_del_taller` /
+`reparar_fk_transferencia_items`) rompían `db reset` para cualquier sesión en paralelo —
+renombrada la segunda a `115959`, sin tocar contenido. Lo aprendido de la sesión, aparte del
+módulo: las 7 sesiones paralelas comparten un solo `git HEAD` (no worktrees separados) —
+`db reset` y un `packages/database/src/types.ts` truncado a mitad de escritura por una
+carrera entre dos `gen-types` a la vez lo delataron.
+
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
