@@ -3,6 +3,63 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Movimientos también centrado — mismo criterio que Inventario, sin sorpresas esta vez)
+
+Felipe pidió centrar la tabla de Movimientos, "solo ese cambio puntual". Las 6 columnas
+(encabezado y filas) pasan a `alinear: "centro"`; las dos celdas con dos y tres líneas
+(Prenda, Proceso · Referencia) no usan `celda()` — llevan `sm:text-center` directo, mismo
+criterio que el resto (en celular la fila sigue apilada a la izquierda). A diferencia de
+Inventario, acá NO apareció el bug del `1fr` en 0px: esta tabla reparte el espacio entre
+DOS columnas flexibles (`1.1fr`/`1fr`, no una sola contra seis fijas), así que ninguna
+llegó a colapsar en la misma ventana angosta donde se probó — y aunque hubiera pasado,
+`ui/Tabla.tsx` ya tiene `overflow-x-auto` desde el arreglo de ayer. Verificado con las
+medidas del DOM: 5 columnas visibles con texto centrado, sin desborde a este ancho.
+
+Lo que Felipe se lleva: **la misma corrección, aplicada una vez en el componente
+compartido, hizo que centrar la segunda tabla fuera solo estética** — no hubo que repetir
+el diagnóstico del día anterior.
+
+## 2026-09-15 (Inventario: la muestra de color pasa a cápsula, la tabla se centra, y un bug real que apareció al probarlo)
+
+Dos ajustes de Felipe sobre lo de hoy: (1) la muestra de color deja de ser un círculo
+(`h-3.5 w-3.5 rounded-full`) y pasa a ser una cápsula (`h-3.5 w-7 rounded-full` — mismo
+`rounded-full`, pero sobre un rectángulo 2:1, que cierra en semicírculo a cada lado). (2)
+Todas las columnas de la tabla de Inventario quedan centradas (encabezado y filas), no solo
+Color — `ui/Tabla.tsx` gana el modo `centro` que ya existía en el tipo pero nunca se usaba
+(`celda("centro")` ahora también trunca, igual que `izq`).
+
+Al centrar y verificar en el navegador salió un bug real, no de hoy: con las 8 columnas
+fijas más angostas que la ventana disponible, la columna Producto (`1fr`) colapsaba a
+**0px — invisible, no acortada** — porque `truncate` (`overflow: hidden`) le permite al
+navegador ignorar el contenido como mínimo de la pista. No es un bug de centrar: el mismo
+`min-w-0 truncate` ya estaba en la versión `izq` de ayer; solo se hizo visible al probar en
+una ventana angosta. Arreglo en dos capas: `ui/Tabla.tsx` gana `overflow-x-auto` (beneficia
+también a Compras y Movimientos, que comparten el componente); Inventario cambia su `1fr`
+por `minmax(8rem, 1fr)` (piso legible tipo "Casaca Ximena" antes de entrar a scroll).
+Verificado con las medidas reales del DOM (no solo la foto): columna en 128px con texto
+visible, tabla en `scrollWidth 844 > clientWidth 587` (desborda y scrollea, no colapsa).
+
+Lo que Felipe se lleva: **un componente compartido (`ui/Tabla.tsx`) que nunca desborda
+silenciosamente es más barato que corregir la misma fuga en cada pantalla que lo usa** —
+la próxima tabla con muchas columnas fijas hereda la protección gratis.
+
+## 2026-09-15 (Inventario: el color se ve, y «Reponer piso» avisa antes de que el piso quede vacío)
+
+Dos pedidos puntuales de Felipe sobre la tabla de Inventario. (1) La columna Color deja de
+decir «Blanco» y muestra el color: un círculo con el `hex` de `retail.colores` (borde tenue
+para que Blanco y Crudo se vean sobre crema); al pasar el mouse el nombre se desliza desde el
+círculo hacia la derecha en una pastilla que flota sobre la fila, sin mover nada; en celular
+el nombre va siempre al lado. Estampado, Multicolor y Animal print no tienen hex y se dibujan
+con una rueda de varios tonos. Pieza nueva y reutilizable: `ui/MuestraColor.tsx`. (2) El
+estado «Reponer piso» salta con **4 unidades o menos** en el piso (antes solo con 0), siempre
+que haya algo en el almacén para bajar; con el almacén vacío no hay qué reponer y sigue en
+«Normal». La regla vive en `lib/inventario-reglas.ts` (`UMBRAL_REPOSICION_PISO = 4`,
+`calcularEstado`) con pruebas; la tarjeta «Requieren reposición» y el filtro usan la misma.
+
+Lo que Felipe se lleva: **un umbral es una decisión de negocio y vive en UNA constante con
+nombre** — el día que las tiendas pidan 6 en vez de 4, es un número en un archivo, no una
+cacería por la pantalla, el filtro y la tarjeta.
+
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
@@ -10,11 +67,17 @@ local ya tenía aplicada `20260915120000_produccion_del_taller` (V2-nativa, bien
 el `.sql` no existía en ningún branch ni worktree — se reconstruyó desde la base con
 `pg_dump` + `pg_get_functiondef` y se validó con `db reset` + diff (idénticas). El reset
 delató lo que el dump de tablas no mostraba: el check de `ubicaciones.tipo` también había
-cambiado; el Taller pasa a tipo `taller` (ADR-0050). Pantalla nueva sobre las 5 RPC; el
+cambiado; el Taller pasa a tipo `taller` (ADR-0051). Pantalla nueva sobre las 5 RPC; el
 primer intento dio 500 por importar reglas desde un módulo con `next/headers` — de ahí
 `produccion-reglas.ts`. Lo que aprendió Felipe: una migración aplicada sin archivo en git
 "funciona" hasta el primer `db reset`; y `datos:comparar` es quien avisa que producción
 aún no la tiene. Al abrir sesión, `.env.local` apuntaba a producción — arreglado a local.
+
+> **Nota de esta fusión (2026-09-15):** esta sesión y la de Producción numeraron el
+> mismo ADR-0050 en paralelo, sin verse — el riesgo de siempre de trabajar en worktrees
+> simultáneos (ver memoria «Riesgo de sesiones paralelas»). Se quedó con 0050 el primero
+> en llegar a `main` (Movimientos); Producción pasó a **ADR-0051**, con sus referencias
+> corregidas en el mismo commit que resolvió esta fusión.
 
 ## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
 

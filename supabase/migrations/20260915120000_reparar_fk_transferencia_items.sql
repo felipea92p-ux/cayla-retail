@@ -30,9 +30,13 @@
 -- No toca datos. No cambia ninguna función ni pantalla. El único efecto visible
 -- es que las transferencias entre sedes pasan a funcionar en producción.
 --
--- ESTADO: aplicada en la base local el 2026-09-15 (sin cambio efectivo).
--- NO en producción — la pega Felipe (D-11) o se aplica con su ok; ya lleva el
--- prefijo `retail.`.
+-- ESTADO: aplicada en la base local el 2026-09-15 (sin cambio efectivo) y en
+-- producción el mismo día con el ok de Felipe (execute_sql, registrada en
+-- schema_migrations). Verificada con una transferencia real Taller → Tienda AQP
+-- como Benjamin dentro de una transacción revertida: `transferir()` pasó, la
+-- línea quedó enlazada a su movimiento y Movimientos de AQP lo mostró como
+-- «transferencia +2 → Almacén de tienda». Después del rollback: 0
+-- transferencias, 193 movimientos, stock intacto.
 -- SE ROMPE SI: alguien vuelve a crear la tabla a mano en producción copiando la
 -- definición vieja. La defensa es este archivo y `pnpm datos:comparar` con el
 -- volcado al día.
