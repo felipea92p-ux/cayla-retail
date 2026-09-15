@@ -86,6 +86,24 @@ módulo: las 7 sesiones paralelas comparten un solo `git HEAD` (no worktrees sep
 `db reset` y un `packages/database/src/types.ts` truncado a mitad de escritura por una
 carrera entre dos `gen-types` a la vez lo delataron.
 
+## 2026-09-15 (Categorías: editar y desactivar — y un candado que nunca se escribió)
+
+Sesión C1, en paralelo a otras seis sobre Productos. `/productos/categorias` solo tenía
+listado + alta desde el portado de V1; se agregó PUT/PATCH (`actualizar_categoria`,
+`desactivar_categoria`, `reactivar_categoria`, RPC security-definer igual que
+`proveedores_administrables`). Decidido con Felipe: el prefijo queda fijo apenas hay un
+producto con esa categoría (el código corto ya puede estar impreso), y desactivar se
+bloquea (no solo avisa) si hay productos activos. Al auditar el candado de nombre para el
+paso verificable, `categorias.nombre` resultó ser un `unique` plano — "Blusas" y "BLUSAS"
+no chocaban, aunque el comentario de `20260914150000_proveedores_administrables.sql` decía
+que sí. Se cerró con `categorias_nombre_clave_unica` (mismo `fn_clave_texto` que
+colores/proveedores). Verificado en navegador (Playwright) contra Supabase local: rename,
+rechazo de duplicado por acento/mayúscula, bloqueo de desactivar con conteo de productos
+(2), y desactivar/reactivar de una categoría sin productos. **Hallazgo de entorno:** las 7
+sesiones paralelas comparten el mismo working directory de git — un `checkout` ajeno movió
+la rama por debajo dos veces durante esta sesión. Se resolvió respaldando los archivos
+propios y stageando por nombre explícito, nunca `git add -A`.
+
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
