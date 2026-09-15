@@ -4133,3 +4133,18 @@ choque de migraciones `20260915120000` (dos archivos, mismo timestamp) que ya tr
 contra V2 (esta sesión solo corrigió la sección de depósito/ajuste), y la contradicción sin
 resolver sobre si Facturación/SUNAT también quedó descrita como V1 (`docs/BACKLOG.md` dice
 que sí, el mensaje de `0af2f1b` dice que se rescató íntegra).
+
+## 2026-09-15 (el lateral agrupa Venta — ADR-0057)
+
+Felipe pidió agrupar Punto de Venta ("Vender", renombrado), Caja, Cambios, Devoluciones y
+Facturación bajo una cabecera colapsable "Venta" en el lateral, arrancando expandida
+(Cambios/Devoluciones se habían hecho visibles esa misma mañana — colapsarlas de entrada
+las hubiera vuelto a esconder). Preguntado y descartado sumar "Códigos de descuento" como
+6to ítem — Felipe prefirió dejarlo donde está. Lo único delicado: el riel rojo de ADR-0014
+se posiciona por índice de array sin medir el DOM, así que `GrupoLateral` ahora aplana
+cabecera+hijas (solo si está abierta) en las filas REALMENTE visibles antes de calcular esa
+posición — nunca se desalinea con el grupo abierto o cerrado. Auto-abre si la ruta activa es
+una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya exige el
+linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
+Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
+— sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
