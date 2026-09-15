@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260915120000_produccion_del_taller.sql — CAYLA V2
+-- 20260915130000_produccion_del_taller.sql — CAYLA V2
 --
 -- Producción del Taller vuelve a existir. V1 la tenía (0018 … 0031, borradas
 -- en 0af2f1b con el corte a V2) y V2 la dejó afuera a propósito: no tenía
@@ -7,12 +7,23 @@
 -- restaurarla — sobre el modelo V2 (`ubicaciones`, `sububicaciones`,
 -- `fn_aplicar_movimiento`), no resucitando el de V1 (`sedes`/`unidad_id`).
 --
--- ORIGEN DE ESTE ARCHIVO. La migración se aplicó en la base local el
--- 2026-09-15 (`supabase_migrations.schema_migrations` la registra con esta
--- versión) pero el archivo .sql no llegó a ningún branch: se reconstruyó
--- leyendo la base (pg_dump de las tablas + pg_get_functiondef de las RPC +
--- pg_policies + grants). Es la misma definición, carácter por carácter en lo
--- que a Postgres le importa; los comentarios de cabecera son nuevos.
+-- ORIGEN DE ESTE ARCHIVO. La migración se aplicó en una base local el
+-- 2026-09-15 (`supabase_migrations.schema_migrations` la registraba con la
+-- versión `20260915120000`) pero el archivo .sql no llegó a ningún branch:
+-- se reconstruyó leyendo la base (pg_dump de las tablas + pg_get_functiondef
+-- de las RPC + pg_policies + grants). Es la misma definición, carácter por
+-- carácter en lo que a Postgres le importa; los comentarios de cabecera son
+-- nuevos.
+--
+-- RENUMERADA el 2026-09-15 al fusionar con la rama de Movimientos: las dos
+-- sesiones eligieron `20260915120000` en paralelo, sin verse — esa versión
+-- ya estaba tomada en producción por `reparar_fk_transferencia_items.sql`
+-- (aplicada esa misma tarde, con el ok de Felipe). `schema_migrations` clava
+-- por el timestamp solo; dos archivos con el mismo valor rompen `db reset`
+-- con `duplicate key`. Se corrió esta, no la otra: la otra ya estaba escrita
+-- en producción y en un `INSERT` que ya existía; esta seguía sin aplicar en
+-- ningún lado con el mecanismo del CLI. El nombre del archivo cambió; el
+-- contenido de la migración, no.
 --
 -- Qué hace:
 --   · `ubicaciones.tipo` gana el valor 'taller' (el check era tienda|almacen) y
