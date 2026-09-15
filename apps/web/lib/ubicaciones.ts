@@ -12,7 +12,7 @@ import { exigir } from "@/lib/resultado";
 export type Ubicacion = {
   id: string;
   nombre: string;
-  tipo: "tienda" | "almacen";
+  tipo: "tienda" | "almacen" | "taller";
   activo: boolean;
 };
 

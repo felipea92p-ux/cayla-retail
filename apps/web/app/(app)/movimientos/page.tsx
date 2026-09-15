@@ -96,7 +96,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         mostradas={filas.length}
         cursorSiguiente={siguiente ? serializarCursorMovimientos(siguiente) : null}
         hayCursor={!!cursor}
-        params={params}
+        // Sin `mov`: el detalle abierto es de ESTA página, no viaja a la siguiente.
+        params={{ ...params, mov: undefined }}
         pathname="/movimientos"
         sustantivo={["movimiento", "movimientos"]}
       />

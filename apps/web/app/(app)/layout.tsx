@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         rol: persona.rol,
         ubicacionId: persona.ubicacionId,
         ubicacionEtiqueta: persona.ubicacionEtiqueta,
+        ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
       }}
       ubicaciones={ubicaciones}

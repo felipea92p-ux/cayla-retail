@@ -8,8 +8,10 @@
 y BITÁCORA de esa fecha).** Facturación electrónica (Lucode/SUNAT), Finanzas (EERR/
 Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más abajo,
 **ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
-y su data en `retail` era de prueba, no operación real). Lo que sí sigue vigente hoy:
-Vender/Caja (POS), Productos, Inventario, Compras, Movimientos, Colaboradores. Antes de
+y su data en `retail` era de prueba, no operación real). **Producción volvió el 2026-09-15
+sobre V2 (ADR-0050)** — lo que diga de ella más abajo describe la versión V1, no la actual.
+Lo que sí sigue vigente hoy: Vender/Caja (POS), Productos, Inventario, Compras, Movimientos,
+Colaboradores, Producción. Antes de
 actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
 el módulo todavía existe — este documento no se ha reescrito para reflejar V2 todavía
 (tarea propia, pendiente de agendar con Felipe, no improvisada acá).
@@ -220,15 +222,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       tiene columna de fecha ni cierre automático: una caja abierta el lunes sigue
       abierta el viernes y se lleva las ventas de toda la semana. V2 tampoco tiene el
       aviso blando que V1 sí tenía ("cajas de días anteriores sin cerrar").
-- [x] **El candado de `movimientos` (ADR-0042) ya está en producción.** Verificado
-      2026-09-15 en vivo contra `cayla-dynamic`: el trigger `movimientos_inmutables`
-      existe sobre `retail.movimientos` junto al `movimientos_compra_foto` de siempre, y
-      `authenticated` ya solo tiene `INSERT`/`SELECT` (sin `UPDATE`/`DELETE`/`TRUNCATE`).
-      Queda una sola higiene: `20260914165703` no aparece en
+- [x] **(Cerrado 2026-09-15: el disparador `movimientos_inmutables` YA está en producción** —
+      verificado en vivo dos veces por dos sesiones distintas: primero contra `pg_proc`
+      (trigger presente, `authenticated` sin `UPDATE`/`DELETE`/`TRUNCATE`), después tabla
+      por tabla al refrescar el volcado — producción y local tienen los mismos 7
+      disparadores. Queda una sola higiene: `20260914165703` no aparece en
       `supabase_migrations.schema_migrations` — el candado corre, pero su migración no
-      quedó registrada (mismo patrón que el bloque 8 tuvo hasta ayer). Registrarla es
-      cosa de Felipe (D-11), no bloquea nada.
-- [ ] **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
+      quedó registrada. Registrarla es cosa de Felipe (D-11), no bloquea nada. Queda el
+      texto original como historia.)
+      **El candado de `movimientos` falta en producción, y NO necesita gemelo.** Medido
+      contra la base real el 2026-09-14: **producción ya corre V2** — 35 tablas,
+      `retail.ubicaciones` existe, `retail.sedes` ya no, y `movimientos` tiene
+      `ubicacion_id`/`venta_item_id`/`compra_item_id`. Se desplegó el 12-sep con las
+      migraciones normales (`supabase_migrations.schema_migrations` las registra como
+      `retail_0007_cambios` … `retail_0016_colaboradores_iniciales`), así que
+      **`supabase/unificacion/` dejó de ser el riel de producción** y escribir un gemelo
+      ahí habría revivido la deuda de migraciones duales (ADR-0004/0006), que este
+      backlog llama "la que más caro ha salido".
+      Lo que corresponde: pegar `20260914165703_movimientos_inmutables.sql` **tal cual**
+      —ya usa el prefijo `retail.`— y registrarla con el mismo mecanismo que las otras.
+      **El pre-flight ya se corrió contra producción: 0 funciones editan o borran
+      `retail.movimientos`.** Único trigger presente: `movimientos_compra_foto`
+      (AFTER INSERT), que no choca con uno BEFORE UPDATE/DELETE. `authenticated` tiene
+      hoy UPDATE y DELETE (TRUNCATE ya no), y 108 filas de historial que proteger.
+- [x] **(Cerrado 2026-09-15: `docs/datos/generado/` se refrescó desde producción V2** —
+      39 tablas, 361 columnas, 219 candados, 74 funciones, verificados con md5 contra la
+      base real. `pnpm datos:comparar` vuelve a comparar contra firmas de verdad: 0 rotas.
+      Las carpetas escritas a mano (`00-MAPA.md`, módulos) siguen describiendo V1 en
+      partes — esa pasada sigue pendiente.)
+      **`docs/datos/` describe un sistema que ya no existe — ni en el repo ni en
       producción.** Fue medido el 2026-09-12 contra el modelo viejo (45 tablas,
       `sede_id`, `venta_id`, `registrar_gasto`, `supabase/unificacion/`). Verificado hoy:
       `registrar_gasto` **no existe** en producción, así que el "Bloque 3" de
@@ -276,20 +298,34 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
 **Pendiente de Felipe (producción):**
 
 - [x] **`20260915090000_movimientos_lectura.sql` ya está en producción — este ítem
-      quedó viejo apenas se escribió.** Verificado 2026-09-15: la migración está
-      registrada en `supabase_migrations.schema_migrations` de `cayla-dynamic` y
-      `fn_movimientos`/`fn_movimientos_resumen` existen ahí. Pendiente de higiene, no de
-      deploy: `pnpm datos:generar:produccion` para que el diccionario la conozca.
+      quedó viejo apenas se escribió.** Verificado 2026-09-15, dos veces: primero en
+      vivo contra `pg_proc`/`schema_migrations` de `cayla-dynamic` (la migración estaba
+      registrada y `fn_movimientos`/`fn_movimientos_resumen` existían), después
+      después del merge del PR #33 (Vercel en verde). Verificada como Benjamin en
+      Tienda AQP con rollback. De paso quedaron registradas en
+      `supabase_migrations.schema_migrations` las tres que se aplicaron con
+      `execute_sql` (`…230000`, `…231015`, `…090000`): el historial de producción
+      vuelve a contar lo mismo que `supabase/migrations/`.
+- [x] **Foto de producción del diccionario refrescada (2026-09-15).** Se hizo desde el
+      MCP en trozos verificados con md5 contra producción (no a mano en el SQL Editor):
+      `retail_*.json` + `funciones-produccion.txt` describen la V2 real. `pnpm
+      datos:comparar`: **0 pantallas rotas**, 8 llamadas «no analizadas» porque arman
+      el objeto con `...` (entre ellas `fn_movimientos`, verificada a mano en producción).
+- [x] **Detalle compartible por URL** (`?mov=<id>`, 2026-09-15): abrir una fila escribe
+      el id con `history.replaceState` (sin consulta al servidor); cambiar un filtro o
+      pasar de página lo borra. Y `buscar/page.tsx` ya excluye la centinela.
+- [ ] **Aplicar `20260915120000_reparar_fk_transferencia_items.sql` en producción (con
+      ok de Felipe).** Hallazgo del refresco: la ÚNICA diferencia entre producción y
+      local es que `transferencia_items.movimiento_id` apunta a `transferencia_items(id)`
+      en vez de `movimientos(id)`. Comprobado con rollback: la primera «Mover
+      mercadería» entre sedes fallaría entera con «violates foreign key constraint».
+      Hoy hay 0 transferencias en producción; nadie lo pisó todavía. Sin datos que
+      tocar, sin cambios de pantalla.
 - [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
       la búsqueda de prendas.
-- [ ] **Detalle como URL compartible** (ruta interceptada, como Compras) — hoy es un
-      modal con estado local. Vale la pena el día que alguien quiera mandar por
-      WhatsApp «mirá este movimiento». Y de paso, fuera de este módulo:
-      `buscar/page.tsx` sigue leyendo `stock` sin excluir la centinela (buscar «cargo»
-      muestra 999.999 unidades) — una línea con `ID_CARGO_ESPECIAL` cuando se toque Buscar.
 
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
@@ -327,6 +363,21 @@ ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el 
 importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
+
+- [ ] **Migración `20260915120000_produccion_del_taller` no está en producción** (ADR-0050).
+      Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
+      (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
+      `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,
+      convirtiendo la fila «Taller» (verificado: en producción es `almacen`, una sola). Ya
+      lleva `retail.`; pegar tal cual. Hasta entonces `/produccion` en producción carga vacía
+      y «Abrir orden» falla con «function abrir_produccion does not exist» —
+      `pnpm datos:comparar` lo avisa. Después: `pnpm datos:generar:produccion`.
+- [ ] **Producción: lo que quedó fuera del paso 1.** (a) Movimientos muestra
+      `produccion`/`reversion_produccion` como texto crudo, sin enlace a la orden.
+      (b) V1 tenía `RecibirLoteForm` para que el Taller reciba mercadería sin factura;
+      V2 lo cubre por Compras → Recibir — decisión de Felipe si el Taller necesita una
+      entrada manual aparte de la corrida. (c) Una orden cerrada no se edita (solo
+      revertir + volver a cerrar): revisar con el Taller si eso les alcanza.
 
 - [ ] **Migración `20260914210000_compras_resumen_por_vencer` no está en producción.**
       Agrega `por_vencer` y `por_vencer_monto` a `resumen_compras` (DROP + CREATE:
@@ -1475,6 +1526,13 @@ importante que ha entrado a este archivo desde que existe.
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
+      reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
+      verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
+      cerrar al inventario / anular / revertir, `lib/produccion-reglas.ts` con 8 tests,
+      ítem en el nav para líder y para quien trabaja en el Taller. Ciclo completo probado
+      por PostgREST con RLS real (stock 20→34→20, movimientos append-only).
 
 - [x] 2026-09-12 — **Vocabulario cerrado (colores + categorías) y código corto
       portados a V2, sin fusionar la rama V1 entera — más `activos_fijos`

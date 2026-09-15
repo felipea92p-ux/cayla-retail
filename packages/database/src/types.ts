@@ -1104,6 +1104,7 @@ export type Database = {
           lote_id: string | null
           motivo: string | null
           nota: string | null
+          produccion_id: string | null
           sububicacion_destino_id: string | null
           sububicacion_id: string | null
           tipo: string
@@ -1125,6 +1126,7 @@ export type Database = {
           lote_id?: string | null
           motivo?: string | null
           nota?: string | null
+          produccion_id?: string | null
           sububicacion_destino_id?: string | null
           sububicacion_id?: string | null
           tipo: string
@@ -1146,6 +1148,7 @@ export type Database = {
           lote_id?: string | null
           motivo?: string | null
           nota?: string | null
+          produccion_id?: string | null
           sububicacion_destino_id?: string | null
           sububicacion_id?: string | null
           tipo?: string
@@ -1200,6 +1203,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimientos_produccion_id_fkey"
+            columns: ["produccion_id"]
+            isOneToOne: false
+            referencedRelation: "producciones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimientos_sububicacion_destino_pertenece_fk"
             columns: ["sububicacion_destino_id", "ubicacion_destino_id"]
             isOneToOne: false
@@ -1246,6 +1256,126 @@ export type Database = {
             columns: ["venta_item_id"]
             isOneToOne: false
             referencedRelation: "venta_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produccion_lineas: {
+        Row: {
+          cantidad_buenas: number | null
+          cantidad_plan: number
+          created_at: string
+          id: string
+          produccion_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad_buenas?: number | null
+          cantidad_plan: number
+          created_at?: string
+          id?: string
+          produccion_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad_buenas?: number | null
+          cantidad_plan?: number
+          created_at?: string
+          id?: string
+          produccion_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produccion_lineas_produccion_id_fkey"
+            columns: ["produccion_id"]
+            isOneToOne: false
+            referencedRelation: "producciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produccion_lineas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      producciones: {
+        Row: {
+          cantidad_buenas: number | null
+          cantidad_plan: number
+          costo_avios: number
+          costo_maquila: number
+          costo_tela: number
+          costo_unitario: number | null
+          creado_por: string | null
+          created_at: string
+          es_muestra: boolean
+          estado: string
+          etapas: Json
+          fecha_entrega: string | null
+          id: string
+          inventariado_at: string | null
+          nota: string | null
+          producto_id: string
+          token_cliente: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          cantidad_buenas?: number | null
+          cantidad_plan: number
+          costo_avios?: number
+          costo_maquila?: number
+          costo_tela?: number
+          costo_unitario?: number | null
+          creado_por?: string | null
+          created_at?: string
+          es_muestra?: boolean
+          estado?: string
+          etapas?: Json
+          fecha_entrega?: string | null
+          id?: string
+          inventariado_at?: string | null
+          nota?: string | null
+          producto_id: string
+          token_cliente?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          cantidad_buenas?: number | null
+          cantidad_plan?: number
+          costo_avios?: number
+          costo_maquila?: number
+          costo_tela?: number
+          costo_unitario?: number | null
+          creado_por?: string | null
+          created_at?: string
+          es_muestra?: boolean
+          estado?: string
+          etapas?: Json
+          fecha_entrega?: string | null
+          id?: string
+          inventariado_at?: string | null
+          nota?: string | null
+          producto_id?: string
+          token_cliente?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producciones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producciones_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1967,6 +2097,21 @@ export type Database = {
         Args: { p_sububicacion_id?: string; p_ubicacion_id: string }
         Returns: string
       }
+      abrir_produccion: {
+        Args: {
+          p_costo_avios?: number
+          p_costo_maquila?: number
+          p_costo_tela?: number
+          p_es_muestra?: boolean
+          p_fecha_entrega?: string
+          p_lineas: Json
+          p_nota?: string
+          p_producto_id: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       actualizar_mi_foto_perfil: {
         Args: { p_foto_url: string }
         Returns: undefined
@@ -2007,6 +2152,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      anular_produccion: {
+        Args: { p_motivo?: string; p_produccion_id: string }
+        Returns: undefined
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -2034,6 +2183,16 @@ export type Database = {
           unidades_faltantes: number
           unidades_sobrantes: number
         }[]
+      }
+      cerrar_produccion: {
+        Args: {
+          p_buenas: Json
+          p_costo_avios: number
+          p_costo_maquila: number
+          p_costo_tela: number
+          p_produccion_id: string
+        }
+        Returns: undefined
       }
       conteo_contar: {
         Args: {
@@ -2558,6 +2717,14 @@ export type Database = {
           vigentes: number
         }[]
       }
+      revertir_produccion: {
+        Args: { p_produccion_id: string }
+        Returns: undefined
+      }
+      set_etapa_produccion: {
+        Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
+        Returns: undefined
+      }
       transferir: {
         Args: {
           p_items: Json
@@ -2585,12 +2752,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2614,11 +2781,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2639,11 +2806,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2664,11 +2831,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2681,11 +2848,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

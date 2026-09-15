@@ -36,6 +36,19 @@ historial de migraciones, sin preguntarle a la base, se desactualiza en horas mi
 sigue pegando SQL directo (D-11). La única fuente confiable es `pg_proc`/`information_schema`
 en vivo — igual que ya advertía `docs/BACKLOG.md` sobre `docs/datos/generado/`.
 
+## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
+
+Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
+local ya tenía aplicada `20260915120000_produccion_del_taller` (V2-nativa, bien hecha) pero
+el `.sql` no existía en ningún branch ni worktree — se reconstruyó desde la base con
+`pg_dump` + `pg_get_functiondef` y se validó con `db reset` + diff (idénticas). El reset
+delató lo que el dump de tablas no mostraba: el check de `ubicaciones.tipo` también había
+cambiado; el Taller pasa a tipo `taller` (ADR-0050). Pantalla nueva sobre las 5 RPC; el
+primer intento dio 500 por importar reglas desde un módulo con `next/headers` — de ahí
+`produccion-reglas.ts`. Lo que aprendió Felipe: una migración aplicada sin archivo en git
+"funciona" hasta el primer `db reset`; y `datos:comparar` es quien avisa que producción
+aún no la tiene. Al abrir sesión, `.env.local` apuntaba a producción — arreglado a local.
+
 ## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
 
 Felipe pidió cinco tipos, búsqueda, filtros, detalle y trazabilidad de proceso en
@@ -55,7 +68,21 @@ de activación piso/almacén que corrió ayer en producción queda versionado
 (`activacion-piso-almacen-produccion.sql`). Probado en local: los 7 procesos en el
 navegador, filtros, búsqueda por SKU y código de barras, cursor 50+46 en Taller, Micaela
 fija en Trujillo y rechazada por la base al pedir Lima; 165.000 filas sintéticas → ~30 ms.
-**Solo local: nada en producción ni en Supabase remoto.**
+**Solo local hasta el merge.** Mismo día, más tarde: PR #33 mergeado (`9a23290`), Vercel
+en verde, y la migración aplicada en producción con `execute_sql` — verificada como
+Benjamin en Tienda AQP con rollback (288 entradas de carga inicial, 288 internas de la
+activación, centinela excluida). Las tres migraciones aplicadas a mano (`…230000`,
+`…231015`, `…090000`) quedaron registradas en `schema_migrations`.
+
+Cierre del día: `docs/datos/generado/` se refrescó desde producción (siete volcados
+copiados en trozos y verificados con md5 contra la base real; `scripts/datos/generar.mjs`
+aprendió el mapa de módulos de V2) y `pnpm datos:comparar` volvió a servir: 0 pantallas
+rotas. Al comparar producción contra local, tabla por tabla, salió UNA diferencia:
+`transferencia_items.movimiento_id` apunta a sí misma en producción. Comprobado con
+rollback que la primera transferencia entre sedes habría fallado entera; la reparación es
+`20260915120000_reparar_fk_transferencia_items.sql`, pendiente de aplicar con el ok de
+Felipe. De paso: el detalle de un movimiento ahora vive en la URL (`?mov=`) y Buscar deja
+fuera la centinela.
 
 Lo que Felipe se lleva: **cuando el enunciado pide «un tipo nuevo», primero hay que mirar
 si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de origen y destino
