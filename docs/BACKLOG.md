@@ -137,11 +137,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       (7 migraciones aplicadas a mano el 2026-09-14) y esa fila no existe: Felipe pasa el
       `insert` cuando toque. Sin dueño ni fecha; no bloquea nada de Vender.
 
-- [ ] **Pegar en producción el bloque 8 del SQL pendiente (`…231015_registrar_venta_piso_con_nota`)**
-      — hasta entonces, NO crear sububicaciones en ninguna tienda: la `registrar_venta` de
-      producción no sabe de piso. Y al activar piso/almacén en una tienda, llevar antes el
-      stock «sin sububicación» al piso con `mover_interno(…, null, piso, …)`, prenda por
-      prenda (es una decisión operativa por tienda, no un script ciego).
+- [x] **(Cerrado 2026-09-15: `…231015_registrar_venta_piso_con_nota` YA está en producción**
+      — verificado contra la base: una sola `registrar_venta`, cuyo cuerpo llama a
+      `fn_sububicacion_por_defecto`; `fn_stock_por_sede` ya suma por sede; y ya hay
+      sububicaciones creadas. Sigue vigente lo operativo: al activar piso/almacén en una
+      tienda, llevar antes el stock «sin sububicación» al piso con
+      `mover_interno(…, null, piso, …)`, prenda por prenda, no con un script ciego.)
 
 **Pendiente de decisión de Felipe:**
 
@@ -177,14 +178,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
       gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
       `ventas.token_cliente` —la condición previa— **ya existe en V2**.
-- [ ] **BLOQUEANTE DEL PRÓXIMO DEPLOY — tres migraciones que NO están en producción**
-      (ADR-0048): `20260914215059_candado_precio_venta.sql`,
-      `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`,
-      aplicadas solo en local el 2026-09-14, en ese orden. El front ya manda
-      `p_codigo_descuento` y `p_nota`, que la RPC de producción no acepta: pegarlas
-      (Felipe, D-11, ya llevan `retail.`) ANTES de desplegar, o el cobro falla con
-      «function … does not exist». No correr `pnpm datos:generar` hasta entonces.
-      Pendiente de la sesión izquierda: pintar `nota` en «Ventas de hoy».
+- [x] **(Cerrado 2026-09-15: las tres migraciones de ADR-0048 YA están en producción** —
+      `registrar_venta` acepta `p_codigo_descuento` y `p_nota`, verificado contra la base.
+      Al 2026-09-15 por la tarde **no hay ninguna migración del repo pendiente**: las 22
+      de `supabase/migrations/` están aplicadas, comprobadas por efecto (función/trigger/
+      tabla/constraint presente), no por `schema_migrations`, que no registra lo pegado a
+      mano. Queda: pintar `nota` en «Ventas de hoy».)
 - [x] **Ticket en espera (Park/Resume)** — cerrado el 2026-09-14 (ADR-0049): sin tabla,
       en `localStorage` por sede vía `lib/almacen-local.ts` (puro, 9 tests, nunca lanza),
       tope 5, retomar intercambia, se vacía al cerrar caja, sin reserva de stock (avisa por
