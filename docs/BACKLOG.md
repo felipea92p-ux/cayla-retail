@@ -18,6 +18,54 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos: listado y filtros server-side (2026-09-15, Sesión B1)
+
+`/productos` pasó de filtrar/agrupar TODO el catálogo en memoria del cliente a
+filtros en la URL + Postgres (`fn_productos`/`fn_productos_resumen`,
+`20260915160000_productos_listado_filtros.sql`), mismo patrón que Movimientos.
+Paginado por NÚMERO DE PÁGINA (no cursor, decisión de Felipe — el catálogo no
+crece como un ledger) y por PRODUCTO (no por fila de variante). Filtros reales:
+categoría, color, estado, rango de precio, sin stock/stock bajo. Tarjetas de
+resumen (productos, variantes, stock bajo, sin stock) de una sola consulta
+agregada. Tabla con checkboxes de selección (sin acciones todavía) y menú
+"..." por fila (Editar enlaza a `/productos/[id]/editar` de la sesión A1;
+Ajustar inventario/Ver historial/Duplicar/Archivar son placeholders con
+`TODO(B2)`). Verificado con psql contra datos reales y con HTTP real
+(sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
+
+**Pendiente:**
+
+- [ ] **`20260915160000_productos_listado_filtros.sql` no está en producción.**
+      Aplicada y probada solo en local. Sin `retail.` en el archivo: pegar en
+      el SQL Editor con `set search_path to retail, public;` (CLAUDE.md).
+      Antes de pegar: nada que preverificar, es aditiva (una columna nullable
+      + tres funciones nuevas, ningún `drop`/cambio de firma existente).
+- [ ] **El campo `stock_minimo` no tiene UI todavía.** La columna existe
+      (`retail.productos.stock_minimo`, nullable — sin valor, ese producto
+      nunca entra en "stock bajo") pero el mantenedor de ficha
+      (`ProductoForm.tsx`, sesión A1) no tiene el campo para escribirla. Sin
+      eso, "stock bajo" en /productos queda siempre en 0 salvo que alguien
+      lo cargue por Studio/SQL.
+- [ ] **El menú "..." de cada fila solo tiene el placeholder — B2 lo cablea.**
+      "Ajustar inventario" → `AjustarInventarioModal`, "Ver historial" → un
+      panel/filtro hacia `/movimientos`, "Duplicar" y "Archivar" no tienen
+      RPC todavía (Archivar probablemente sea `productos.estado =
+      'descontinuado'`, ya soportado por el filtro de estado; Duplicar no
+      tiene diseño ni RPC — decisión de Felipe antes de construirla).
+- [ ] **La selección de checkboxes vive en `ProductosAgrupados.tsx` sin
+      ninguna acción masiva cableada** — lista para que B2 le agregue una
+      barra de acciones sobre el estado `seleccionados` que ya expone.
+
+**Hallazgo de coordinación, no de este módulo:** el Postgres local
+(`supabase_db_cayla-retail`, puerto 54422) lo comparte el checkout principal
+y las 7 sesiones en paralelo de Productos — no hay worktree con su propia
+base. Durante esta sesión el contenedor se reinició al menos dos veces en
+minutos (otra sesión corriendo `supabase db reset`/`stop`/`start`), borrando
+migraciones recién probadas y datos de prueba de otras sesiones sin aviso.
+No es un problema de esta migración — es un riesgo del momento (7 sesiones
+tocando `/productos` a la vez): vale la pena que Felipe decida si conviene
+un Postgres local por sesión mientras dure este tipo de paralelismo.
+
 ## 🎯 POS (Vender + Caja) en V2 — diagnóstico del 2026-09-14
 
 > Sale de reconciliar `docs/datos/modulos/07-ventas-y-caja.md` y `01-INVARIANTES.md`

@@ -3,6 +3,47 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Productos: filtros y paginado server-side — Sesión B1)
+
+Felipe pidió migrar `/productos` del filtrado-en-memoria a filtros en la URL +
+Postgres, con tarjetas de resumen y stock bajo/sin stock — cruzando a
+propósito la separación documentada "Productos = qué existe, Inventario =
+cuánto hay". Confirmado con Felipe antes de construir (protocolo de
+pregunta): paginado por NÚMERO de página, no cursor (el catálogo no crece
+como un ledger — decisión documentada en la migración), y "stock bajo" se
+mide contra un `stock_minimo` NUEVO por producto (no un umbral hardcodeado),
+a agregar al mantenedor de ficha por la sesión A1. `fn_productos`/
+`fn_productos_resumen` (`20260915160000_productos_listado_filtros.sql`)
+agregan y paginan por PRODUCTO, no por fila de variante, para que una prenda
+de 12 variantes no corte a la mitad entre dos páginas. Dos bugs reales de
+Postgres atrapados recién al probar contra datos (no en el diseño en papel):
+`stock_total`/`stock_minimo`/`codigo` son también OUT params de la función,
+así que referenciarlos sin calificar dentro del CTE es ambiguo — Postgres no
+avisa hasta ejecutar. Y la variante centinela "Cargo especial" (POS, no es
+mercadería) aparecía en el catálogo y en "sin stock": se excluye por id,
+mismo criterio que ya usa `fn_movimientos`.
+
+Verificado dos veces: con psql directo contra `retail` local (búsqueda,
+categoría, color, precio, estado, sin_stock, stock bajo con umbral real,
+paginado, exclusión del centinela) y con una petición HTTP real al `next dev`
+del propio worktree, autenticado reconstruyendo a mano la cookie
+`sb-127-auth-token` de `@supabase/ssr` (no hay navegador disponible en esta
+sesión) — los filtros por querystring cambiaron el HTML servido, no solo la
+consulta SQL aislada. `tsc --noEmit` y `eslint` limpios; tipos de
+`fn_productos`/`fn_productos_resumen`/`productos.stock_minimo` agregados a
+mano en `packages/database/src/types.ts` (no regenerados: la migración no
+está en producción, y regenerar desde local pisaría tipos de producción que
+sí lo están — mismo cuidado que ya deja escrito CLAUDE.md).
+
+Lo que Felipe se lleva: **el Postgres local no tiene worktree propio por
+sesión — lo comparten las 7 sesiones de Productos y el checkout principal.**
+Esta sesión encontró el contenedor reiniciado dos veces en minutos (otra
+sesión corriendo `db reset`/`stop`/`start`), perdiendo migraciones recién
+probadas sin ningún aviso. No bloqueó el trabajo (se reaplicó y se
+reverificó cada vez) pero es una fuente real de confusión mientras dure este
+nivel de paralelismo — queda anotado en BACKLOG para que Felipe decida si
+vale la pena un Postgres local por sesión.
+
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
