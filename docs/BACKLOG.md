@@ -539,10 +539,38 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       objeto. Es el mismo problema que el aviso del encabezado de este archivo, pero más
       grave: esa carpeta se presenta como "la verdad medida contra la base". Necesita su
       propia pasada de actualización antes de que alguien —o un agente— construya encima.
-- [ ] **Las otras dos piezas que le faltan a D-22**, además del disparador:
-      `force row level security` sobre `movimientos` (con prueba de que las RPC que
-      insertan siguen funcionando) y cerrar el `INSERT` directo que se salta la RPC y
-      deja el stock sin mover (P-05).
+- [x] **(Cerrado 2026-09-15: `INSERT` directo a `movimientos` cerrado — P-05.)**
+      `20260915150000_movimientos_insert_solo_rpc.sql` revoca `INSERT` sobre
+      `retail.movimientos` a `authenticated`/`anon`. Verificado contra producción antes de
+      escribirla (no razonado): 12 funciones insertan en `movimientos`, las 12
+      `security definer` y dueño `postgres`; `relforcerowsecurity=false`, así que las 12 se
+      saltan la policy por ser dueñas — el privilegio de tabla era la única puerta real.
+      `authenticated` tenía `INSERT`+`SELECT` (UPDATE/DELETE ya los sacó ayer D-22); queda
+      solo con `SELECT`. Cero pantallas dependían del insert directo (`grep` sobre
+      `apps/web`: un solo `.from("movimientos")`, en `lib/compras.ts:330`, y es un
+      `.select`). Probado en rojo/verde en local (ver ADR-0051): el insert directo como
+      `authenticated` ahora falla con `permission denied`; las funciones siguen sin tocar
+      RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
+      vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
+      — y hoy nada en `apps/web` la llama (solo se usa `registrar_movimiento_caja`, que es
+      otra función). **Pendiente aparte, sin tocar hoy:** aplicar este mismo archivo a
+      producción (falta el ok puntual) y `retail.transferencias` tiene la misma forma de
+      policy de INSERT sin verificar.
+- [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
+      `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
+      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
+- [ ] **Dos firmas vivas de `registrar_movimiento` en producción** (6 y 7 parámetros,
+      `p_sububicacion_id` de más en la segunda) — un `select registrar_movimiento(...)`
+      con los 6 parámetros históricos sale `is not unique`, reproducido en local
+      2026-09-15. Mismo patrón que `recibir_lote` (ADR-0004): `create or replace` con
+      firma distinta crea función nueva, no reemplaza. Hoy no rompe nada porque
+      `apps/web` no llama a esta función (ver arriba) — pero cualquier llamada futura con
+      la firma vieja de 6 parámetros va a fallar. Se corrige con `drop function` explícito
+      de la firma que sobra, igual que se hizo con `recibir_lote`.
+- [ ] **`retail.transferencias` tiene la misma forma de policy de INSERT sin RPC** que
+      tenía `movimientos` (`transferencias_insert` en `0004_rls.sql`, mismo patrón que
+      P-05). No verificado si tiene el mismo problema — hacerlo antes de asumir que está
+      bien o mal.
 
 **Higiene encontrada de paso:**
 

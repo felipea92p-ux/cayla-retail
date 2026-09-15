@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (P-05 cerrado: el INSERT directo a `movimientos` ya no pasa)
+
+Felipe pidió reconocer módulos y áreas de mejora desde código (no desde `.md`); leyendo
+`0004_rls.sql` + `0003_funciones.sql` apareció que `movimientos_insert` deja que cualquier
+autenticado inserte en el ledger sin pasar por `fn_aplicar_movimiento` — stock queda sin
+moverse. Ya estaba nombrado (P-05, `docs/datos/13-PROMESAS-INCUMPLIDAS.md`) pero con
+`puede_operar_sede`/`sede_id`, que ya no existen; ese archivo también está viejo. Verificado
+contra producción antes de escribir nada (no razonado, mismo criterio que D-22 ayer): 12
+funciones insertan en `movimientos`, las 12 `security definer` de dueño `postgres`, y
+`relforcerowsecurity=false` — la policy nunca las frenaba, el privilegio de tabla era la
+única puerta. `20260915150000_movimientos_insert_solo_rpc.sql` revoca ese `INSERT`. Probado
+en rojo/verde en local: como `authenticated`, un insert directo ahora sale `permission
+denied`; probando que la RPC seguía viva se encontró un hallazgo aparte — `registrar_movimiento`
+tiene dos firmas vivas (6 y 7 parámetros) y con la vieja `select` sale `is not unique`, mismo
+patrón que `recibir_lote` en ADR-0004. No rompe nada hoy porque `apps/web` no llama a esa
+función (solo a `registrar_movimiento_caja`, que es otra). Rama `fix/movimientos-insert-solo-rpc`
+lista para PR — **falta aplicar en producción, con el ok puntual de Felipe** (igual que D-22).
 ## 2026-09-15 (cierre de sesión: traspaso de la cola offline a otra sesión)
 
 Felipe pidió cerrar acá y seguir la cola offline (siguiente ítem de la lista del
