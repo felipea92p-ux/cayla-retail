@@ -391,10 +391,12 @@ begin
   select id into cli_valeria from retail.clientes where nombre = 'Valeria Chávez';
   select id into cli_camila from retail.clientes where nombre = 'Camila Torres';
 
+  -- Con boleta a propósito (las series se sembraron arriba): así el historial de
+  -- Movimientos tiene una venta con comprobante que mostrar, no solo «Sin comprobante».
   venta1_id := retail.registrar_venta(ubic_lima,
     jsonb_build_array(jsonb_build_object('variante_id', sku_blu_emma_neg_m, 'cantidad', 1, 'precio_unitario', 79.90, 'descuento_unitario', 0)),
     jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 79.90)),
-    cli_valeria, gen_random_uuid());
+    cli_valeria, gen_random_uuid(), 'boleta');
 
   -- Pago MIXTO a propósito — es el caso que venta_pagos existe para resolver.
   venta2_id := retail.registrar_venta(ubic_lima,

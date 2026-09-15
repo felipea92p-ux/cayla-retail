@@ -19,15 +19,18 @@ import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
  * "Monto manual" — una prenda dañada, un cargo sin etiqueta. `registrar_venta` exige un
  * variante_id real por línea, así que esto vende contra una variante real con stock casi
  * infinito en vez de tocar la RPC. Nunca aparece en catálogo ni en búsqueda: se filtra por
- * este id en `variantesVisibles`, más abajo.
+ * este id en `variantesVisibles`, más abajo. El id vive en `lib/cargo-especial.ts` desde
+ * 2026-09-15 porque Inventario, Inicio y Movimientos también lo excluyen; acá se re-exporta
+ * para no tocar a quien ya lo importaba de este archivo (PuntoDeVentaTicket).
  */
-export const ID_CARGO_ESPECIAL = "22222222-2222-4222-8222-222222222222";
+export { ID_CARGO_ESPECIAL };
 const STOCK_CARGO_ESPECIAL = 999_999;
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
