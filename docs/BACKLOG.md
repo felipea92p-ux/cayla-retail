@@ -347,7 +347,7 @@ importante que ha entrado a este archivo desde que existe.
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Migración `20260915120000_produccion_del_taller` no está en producción** (ADR-0051).
+- [ ] **Migración `20260915130000_produccion_del_taller` no está en producción** (ADR-0051).
       Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
       (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
       `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,

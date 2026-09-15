@@ -63,8 +63,9 @@ cacería por la pantalla, el filtro y la tarjeta.
 ## 2026-09-15 (Producción vuelve sobre V2 — y la migración estaba solo en la base)
 
 Felipe pidió restaurar Producción, borrada en el corte V1→V2. La sorpresa: el Postgres
-local ya tenía aplicada `20260915120000_produccion_del_taller` (V2-nativa, bien hecha) pero
-el `.sql` no existía en ningún branch ni worktree — se reconstruyó desde la base con
+local ya tenía aplicada `produccion_del_taller` (V2-nativa, bien hecha; el archivo terminó
+llamándose `20260915130000_produccion_del_taller.sql` — ver la nota de fusión más abajo)
+pero el `.sql` no existía en ningún branch ni worktree — se reconstruyó desde la base con
 `pg_dump` + `pg_get_functiondef` y se validó con `db reset` + diff (idénticas). El reset
 delató lo que el dump de tablas no mostraba: el check de `ubicaciones.tipo` también había
 cambiado; el Taller pasa a tipo `taller` (ADR-0051). Pantalla nueva sobre las 5 RPC; el
@@ -77,7 +78,11 @@ aún no la tiene. Al abrir sesión, `.env.local` apuntaba a producción — arre
 > mismo ADR-0050 en paralelo, sin verse — el riesgo de siempre de trabajar en worktrees
 > simultáneos (ver memoria «Riesgo de sesiones paralelas»). Se quedó con 0050 el primero
 > en llegar a `main` (Movimientos); Producción pasó a **ADR-0051**, con sus referencias
-> corregidas en el mismo commit que resolvió esta fusión.
+> corregidas en el mismo commit que resolvió esta fusión. El mismo choque se repitió en
+> la migración: las dos sesiones eligieron `20260915120000` para archivos distintos.
+> Esa versión ya estaba en producción (`reparar_fk_transferencia_items.sql`, aplicada esa
+> tarde); `produccion_del_taller.sql` pasó a `20260915130000` al sincronizar la rama el
+> mismo día (ver esa entrada, más abajo).
 
 ## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
 
