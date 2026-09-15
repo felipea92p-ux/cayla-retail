@@ -12,13 +12,16 @@ export default async function ColoresPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
 
+  // Trae activos e inactivos: cualquiera con acceso a la pantalla ve el
+  // directorio completo (igual que Proveedores) — solo Editar/Desactivar/
+  // Reactivar quedan detrás de `puedeEditar`.
   const res = await supabase
     .from("colores")
-    .select("codigo, nombre, familia_color, hex")
-    .eq("activo", true)
+    .select("codigo, nombre, familia_color, hex, orden, activo")
     .order("orden")
     .order("nombre");
   const filas = exigir(res, "los colores del vocabulario");
+  const activos = filas.filter((c) => c.activo);
 
   return (
     <div className="space-y-6">
@@ -27,7 +30,7 @@ export default async function ColoresPage() {
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Colores
           <Ayuda titulo="Colores">
-            El vocabulario cerrado de color: {filas.length} nombres para que cuatro personas
+            El vocabulario cerrado de color: {activos.length} nombres para que cuatro personas
             capturando prendas en paralelo no inventen cinco formas de escribir &quot;azul
             marino&quot;. Un color de acá se puede usar en cualquier modelo desde ahora mismo.
           </Ayuda>
@@ -37,7 +40,14 @@ export default async function ColoresPage() {
       <ProductosNav />
 
       <ColoresLista
-        coloresIniciales={filas.map((c) => ({ codigo: c.codigo, nombre: c.nombre, familiaColor: c.familia_color, hex: c.hex }))}
+        coloresIniciales={filas.map((c) => ({
+          codigo: c.codigo,
+          nombre: c.nombre,
+          familiaColor: c.familia_color,
+          hex: c.hex,
+          orden: c.orden,
+          activo: c.activo,
+        }))}
         puedeEditar={persona.rol === "lider"}
       />
     </div>

@@ -1510,6 +1510,20 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-15 — **Vocabulario de colores: editar, desactivar y reactivar** (rama
+      `feat/colores-crud`). El listado + alta ya existían; faltaba `PUT/PATCH` en
+      `apps/web/app/api/productos/colores/route.ts` (mismo guard de Líder que el POST) y
+      la pantalla para usarlo. Antes de desactivar cuenta `variantes` activas con ese
+      `color_codigo` y bloquea si hay alguna — decisión de Felipe: se bloquea del todo,
+      no se avisa y se deja seguir. El HEX no tiene candado técnico (nada en
+      `movimientos`/ventas guarda una copia; catálogo/inventario/producción lo resuelven
+      en vivo desde `colores.hex`) pero el formulario lo esconde detrás de "Cambiar
+      color" para que no se mueva sin querer. Verificado en el navegador (login sin
+      escribir contraseña, vía magic link del service role local): editar Amarillo,
+      candado `colores_clave_unica` sigue rechazando "Crudo" → "  Amarillo  ", bloqueo
+      de desactivar contra Azul marino (variantes activas reales), desactivar/reactivar
+      Amarillo. `tsc`/`eslint` en verde.
+
 - [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0051). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
       verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /

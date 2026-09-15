@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Colores: editar, desactivar y reactivar — el candado de nombre único sigue de pie)
+
+El vocabulario de colores (`/productos/colores`) tenía listado y alta; ahora también edita
+(nombre, familia, orden, hex) y desactiva/reactiva vía `activo` — nunca `DELETE` — con un
+solo `PATCH` nuevo en `apps/web/app/api/productos/colores/route.ts`, mismo guard de rol
+Líder que ya tenía el POST. Antes de desactivar cuenta cuántas `variantes` activas usan ese
+`color_codigo` y bloquea si hay alguna: probado en el navegador contra Azul marino (9
+variantes activas, bloqueado) y Amarillo (0, desactivó y reactivó sin problema). El HEX no
+tiene candado técnico real — nada en `movimientos`/ventas guarda una copia, todo lo resuelve
+en vivo desde `colores.hex` (`lib/catalogo-v2.ts`, `lib/inventario-v2.ts`, `lib/produccion.ts`)
+— pero el formulario lo esconde detrás de "Cambiar color" para que no se mueva sin querer al
+editar otra cosa. Se volvió a probar el candado real (`colores_clave_unica`) renombrando
+"Crudo" a "  Amarillo  " y lo sigue rechazando por tildes/mayúsculas/espacios de más.
+
+Lo que Felipe se lleva: verificar en el navegador exigió loguearse sin escribir una
+contraseña (regla de la sesión del 2026-09-08) — se generó un magic link con el service role
+local y se canjeó por una sesión propia, sin tocar ninguna credencial real; de paso se pisó
+el bloqueo de Next a recursos de dev por origen cruzado (`127.0.0.1` vs `localhost`), que no
+tiene nada que ver con Colores pero hubiera bloqueado cualquier prueba headless futura contra
+este dev server.
+
 ## 2026-09-15 (Movimientos también centrado — mismo criterio que Inventario, sin sorpresas esta vez)
 
 Felipe pidió centrar la tabla de Movimientos, "solo ese cambio puntual". Las 6 columnas
