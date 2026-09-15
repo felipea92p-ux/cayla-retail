@@ -7,8 +7,23 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { Chip } from "@/components/ui/Chip";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import type { ProductoListado } from "@/lib/catalogo-v2";
+import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+
+/** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
+ *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
+ *  deriva acá en vez de sumar una columna nueva a `fn_productos` para un valor
+ *  que ya viaja en la respuesta. */
+function rangoCosto(variantes: VarianteCatalogo[]): string {
+  if (variantes.length === 0) return "—";
+  const costos = variantes.map((v) => v.costo);
+  const min = Math.min(...costos);
+  const max = Math.max(...costos);
+  return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
+}
+
+const PLANTILLA_FILA = "sm:grid-cols-[1.25rem_1fr_7rem_4.5rem_4.5rem_6.5rem_6.5rem_2.25rem]";
 
 /**
  * Catálogo agrupado por producto — una fila por modelo, expandible a sus
@@ -137,13 +152,25 @@ export function ProductosAgrupados({
         )}
       </label>
 
+      <div className={`label-cayla hidden items-center gap-3 px-5 text-[11px] text-tinta/55 sm:grid ${PLANTILLA_FILA}`}>
+        <span aria-hidden />
+        <span>Producto</span>
+        <span>Categoría</span>
+        <span className="text-right">Variantes</span>
+        <span className="text-right">Stock</span>
+        <span className="text-right">Costo</span>
+        <span>Estado</span>
+        <span aria-hidden />
+      </div>
+
       {productos.map((p) => {
         const abierto = abiertos.has(p.productoId);
         const sinStock = p.stockTotal === 0;
         const stockBajo = !sinStock && p.stockMinimo != null && p.stockTotal < p.stockMinimo;
+        const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
         return (
           <div key={p.productoId} className="card-cayla overflow-hidden">
-            <div className="flex w-full items-center gap-3 px-5 py-3.5 hover:bg-sand/30">
+            <div className={`flex items-center gap-3 px-5 py-3.5 hover:bg-sand/30 sm:grid sm:gap-x-3 sm:gap-y-2 ${PLANTILLA_FILA}`}>
               <input
                 type="checkbox"
                 checked={seleccionados.has(p.productoId)}
@@ -153,31 +180,12 @@ export function ProductosAgrupados({
               />
               <button
                 onClick={() => toggleAbierto(p.productoId)}
-                className="flex flex-1 items-center gap-4 text-left"
+                className="flex min-w-0 items-center gap-2 text-left"
                 aria-expanded={abierto}
               >
-                <span className="flex-1 text-sm text-tinta">
+                <span className="min-w-0 flex-1 truncate text-sm text-tinta" title={p.referencia}>
                   {p.referencia}
                   {p.codigo && <span className="ml-2 font-mono text-xs text-tinta/55">{p.codigo}</span>}
-                </span>
-                {p.estado === "descontinuado" && (
-                  <span className="label-cayla rounded-full border border-tinta/20 px-2 py-0.5 text-[10px] text-tinta/55">
-                    Descontinuado
-                  </span>
-                )}
-                {sinStock && (
-                  <span className="label-cayla rounded-full border border-rojo/30 bg-rojo/[0.06] px-2 py-0.5 text-[10px] text-rojo">
-                    Sin stock
-                  </span>
-                )}
-                {stockBajo && (
-                  <span className="label-cayla rounded-full border border-ambar/40 bg-ambar/[0.08] px-2 py-0.5 text-[10px] text-ambar">
-                    Stock bajo
-                  </span>
-                )}
-                <span className="text-xs text-tinta/65">{p.categoria ?? "—"}</span>
-                <span className="label-cayla text-[11px] text-tinta/55">
-                  {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
                 </span>
                 <svg
                   aria-hidden
@@ -192,7 +200,30 @@ export function ProductosAgrupados({
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
-              <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} />
+              <span className="hidden truncate text-xs text-tinta/65 sm:block" title={p.categoria ?? undefined}>
+                {p.categoria ?? "—"}
+              </span>
+              <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
+              <span className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>{p.stockTotal}</span>
+              <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{rangoCosto(p.variantes)}</span>
+              <span className="hidden sm:block">
+                <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+              </span>
+              <span className="justify-self-end">
+                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} />
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pb-3.5 sm:hidden">
+              <span className="text-xs text-tinta/65">{p.categoria ?? "—"}</span>
+              <span className="label-cayla text-[11px] text-tinta/55">
+                {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
+              </span>
+              <span className={`text-xs font-semibold tabular-nums ${tonoStock}`}>Stock {p.stockTotal}</span>
+              <span className="text-xs tabular-nums text-tinta/65">{rangoCosto(p.variantes)}</span>
+              <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+              {sinStock && <Chip tono="rojo">Sin stock</Chip>}
+              {stockBajo && <Chip tono="ambar">Stock bajo</Chip>}
             </div>
             {abierto && (
               <div className="border-t border-tinta/10 overflow-x-auto">
