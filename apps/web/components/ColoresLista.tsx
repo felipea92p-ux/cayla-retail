@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Image from "next/image";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { createClient } from "@/lib/supabase/client";
+import { subirMuestraColor } from "@/lib/colores-muestra";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -20,7 +23,17 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
  * `BLU-0042-AZM-M`) — moverla desde acá rompería ese enganche.
  */
 
-type Color = { codigo: string; nombre: string; familiaColor: string | null; hex: string | null; orden: number; activo: boolean };
+type Color = {
+  codigo: string;
+  nombre: string;
+  familiaColor: string | null;
+  hex: string | null;
+  orden: number;
+  activo: boolean;
+  tipo: string;
+  imagenMuestraUrl: string | null;
+  notas: string | null;
+};
 
 const FAMILIAS_COLOR = [
   { valor: "neutro", texto: "Neutro" },
@@ -34,8 +47,73 @@ const FAMILIAS_COLOR = [
   { valor: "estampado", texto: "Estampado" },
 ] as const;
 
+// Naturaleza visual del color (20260915230000_colores_tipo_y_muestra.sql) —
+// ortogonal a FAMILIAS_COLOR (matiz): un mismo tipo cruza todas las familias.
+const TIPOS_COLOR = [
+  { valor: "solido", texto: "Sólido" },
+  { valor: "textura", texto: "Textura" },
+  { valor: "estampado", texto: "Estampado" },
+] as const;
+
+const ETIQUETA_TIPO: Record<string, string> = { solido: "Sólido", textura: "Textura", estampado: "Estampado" };
+
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+}
+
+// El cuadradito de la grilla: la muestra real si existe, si no el hex de
+// siempre. Mismo tamaño en los dos casos para que la grilla no salte.
+// `unoptimized` como en PerfilModal.tsx: viene del bucket de Storage, no de
+// /public, y no vale la pena pasarla por el optimizador de imágenes de Next.
+function Muestra({ url, hex, className = "h-12 w-full" }: { url: string | null; hex: string | null; className?: string }) {
+  if (url) {
+    return (
+      <div className={`relative ${className} overflow-hidden rounded-lg border border-tinta/10`}>
+        <Image src={url} alt="" fill unoptimized className="object-cover" />
+      </div>
+    );
+  }
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ backgroundColor: hex ?? "#e8e0d0" }} aria-hidden />;
+}
+
+// El botón de subir/cambiar muestra, sobre un <input type=file> oculto —
+// mismo dispositivo que BotonElegir en AdjuntosCompra.tsx. Sube al instante
+// (bucket público, sin RPC de registro) y avisa la URL nueva por callback;
+// quien lo usa decide si va al estado de "nuevo color" o al PATCH de edición.
+function SelectorMuestra({ urlActual, hex, onSubida }: { urlActual: string | null; hex: string | null; onSubida: (url: string) => void }) {
+  const [subiendo, setSubiendo] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+
+  async function onArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+    setSubiendo(true);
+    const { url, error } = await subirMuestraColor(createClient(), archivo);
+    setSubiendo(false);
+    if (error || !url) {
+      avisar.error(error ?? "No se pudo subir la muestra.");
+      return;
+    }
+    onSubida(url);
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <Muestra url={urlActual} hex={hex} className="h-12 w-12 shrink-0" />
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+        className="sr-only"
+        disabled={subiendo}
+        onChange={onArchivo}
+      />
+      <Boton type="button" peso="discreto" className="px-2.5 py-1.5 text-[11px]" onClick={() => input.current?.click()} disabled={subiendo}>
+        {subiendo ? "Subiendo…" : urlActual ? "Cambiar muestra" : "Subir muestra"}
+      </Boton>
+    </div>
+  );
 }
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
@@ -49,6 +127,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [codigo, setCodigo] = useState("");
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
   const [hex, setHex] = useState("#c9b79c");
+  const [tipo, setTipo] = useState<(typeof TIPOS_COLOR)[number]["valor"]>("solido");
+  const [imagenMuestraUrl, setImagenMuestraUrl] = useState<string | null>(null);
+  const [notas, setNotas] = useState("");
 
   const activos = colores.filter((c) => c.activo);
   const desactivados = colores.filter((c) => !c.activo);
@@ -59,6 +140,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setCodigo("");
     setFamiliaColor("neutro");
     setHex("#c9b79c");
+    setTipo("solido");
+    setImagenMuestraUrl(null);
+    setNotas("");
   }
 
   async function guardar() {
@@ -67,7 +151,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, tipo, imagenMuestraUrl, notas }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -84,6 +168,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             hex: datos.color.hex,
             orden: 200,
             activo: true,
+            tipo: datos.color.tipo,
+            imagenMuestraUrl: datos.color.imagen_muestra_url,
+            notas: datos.color.notas,
           },
         ])
       );
@@ -126,15 +213,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {activos.map((c) => (
           <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4">
-            <div
-              className="h-12 w-full rounded-lg border border-tinta/10"
-              style={{ backgroundColor: c.hex ?? "#e8e0d0" }}
-              aria-hidden
-            />
+            <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
             <p className="text-sm font-medium text-tinta">{c.nombre}</p>
             <div className="flex justify-between text-[11px] text-tinta/65">
               <span className="font-mono">{c.codigo}</span>
-              <span>{c.familiaColor ?? "—"}</span>
+              <span>
+                {c.familiaColor ?? "—"}
+                {c.tipo !== "solido" ? ` · ${ETIQUETA_TIPO[c.tipo]}` : ""}
+              </span>
             </div>
             {puedeEditar && (
               <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
@@ -177,6 +263,10 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               opciones={FAMILIAS_COLOR}
             />
           </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_COLOR} />
+            <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+          </div>
           <div className="mt-4 flex items-center gap-3">
             <label className="label-cayla text-[11px] text-tinta/65" htmlFor="color-hex">
               Color
@@ -188,6 +278,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               onChange={(e) => setHex(e.target.value)}
               className="h-9 w-14 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
             />
+          </div>
+          <div className="mt-4">
+            <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
+            <p className="mt-1 text-xs text-tinta/55">Opcional — sin foto, el catálogo muestra el color de arriba.</p>
+            <div className="mt-1.5">
+              <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+            </div>
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <Boton peso="fantasma" onClick={() => setAgregando(false)} disabled={guardando}>
@@ -206,15 +303,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
-                <div
-                  className="h-12 w-full rounded-lg border border-tinta/10"
-                  style={{ backgroundColor: c.hex ?? "#e8e0d0" }}
-                  aria-hidden
-                />
+                <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
                 <p className="text-sm font-medium text-tinta">{c.nombre}</p>
                 <div className="flex justify-between text-[11px] text-tinta/65">
                   <span className="font-mono">{c.codigo}</span>
-                  <span>{c.familiaColor ?? "—"}</span>
+                  <span>
+                    {c.familiaColor ?? "—"}
+                    {c.tipo !== "solido" ? ` · ${ETIQUETA_TIPO[c.tipo]}` : ""}
+                  </span>
                 </div>
                 {puedeEditar && (
                   <Boton
@@ -251,7 +347,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 }
 
 // ---------------------------------------------------------------------------
-// Edición: nombre, familia, orden y hex. El HEX arranca bloqueado detrás de
+// Edición: nombre, familia, tipo, orden, hex, muestra y notas. El HEX arranca bloqueado detrás de
 // "Cambiar color" a propósito — no es un candado técnico (nada en
 // `movimientos`/`ventas` guarda una copia del hex; catálogo, inventario y
 // producción lo resuelven en vivo desde `colores.hex`), es solo para que no
@@ -276,6 +372,11 @@ function ColorEditarModal({
   const [orden, setOrden] = useState(String(color.orden));
   const [hex, setHex] = useState(color.hex ?? "#c9b79c");
   const [hexAbierto, setHexAbierto] = useState(false);
+  const [tipo, setTipo] = useState<(typeof TIPOS_COLOR)[number]["valor"]>(
+    (color.tipo as (typeof TIPOS_COLOR)[number]["valor"]) ?? "solido"
+  );
+  const [imagenMuestraUrl, setImagenMuestraUrl] = useState(color.imagenMuestraUrl);
+  const [notas, setNotas] = useState(color.notas ?? "");
   const [guardando, setGuardando] = useState(false);
   const [desactivando, setDesactivando] = useState(false);
 
@@ -289,7 +390,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, tipo, imagenMuestraUrl, notas }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -304,6 +405,9 @@ function ColorEditarModal({
         hex: datos.color.hex,
         orden: datos.color.orden,
         activo: datos.color.activo,
+        tipo: datos.color.tipo,
+        imagenMuestraUrl: datos.color.imagen_muestra_url,
+        notas: datos.color.notas,
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -355,6 +459,15 @@ function ColorEditarModal({
             />
           </div>
           <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+          <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_COLOR} />
+          <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+
+          <div>
+            <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
+            <div className="mt-1.5">
+              <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+            </div>
+          </div>
 
           <div>
             <p className="label-cayla text-[11px] text-tinta/65">Color</p>

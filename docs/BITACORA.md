@@ -3915,3 +3915,14 @@ ambos modales, recarga directa de `/productos/<id>/historial` sin overlay, "Esta
 Activo → Descontinuado" apareciendo en el historial tras desactivar en bloque, y las
 tres rutas de demo (`dev-ajustar-inventario`, `dev/historial`, `_dev`) ya sin el
 contenido viejo. Borradas `productos/dev-ajustar-inventario/` y `productos/dev/`.
+
+## 2026-09-15 (colores: tipo visual y muestra real)
+
+Sesión F2 (`feat/colores-tipo-muestra`, sobre `DiegoN`): `colores.tipo` (sólido/textura/
+estampado, ortogonal a `familia_color`), `colores.imagen_muestra_url` (bucket público
+`retail-colores-muestras` — ADR-0053 justifica público sobre el precedente privado de
+adjuntos de factura) y `colores.notas`. `ColoresLista.tsx` con selector de tipo, subida de
+muestra y notas en alta/edición; el listado cae al cuadradito de HEX cuando no hay foto.
+Verificado con `typecheck`/`lint`/`build`/`vitest` (215/215) limpios; sin Docker/Supabase
+local en este sandbox, la subida real a Storage queda pendiente de un navegador con
+Storage encendido (local o producción) — documentado en BACKLOG.
