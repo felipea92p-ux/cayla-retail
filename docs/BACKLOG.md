@@ -127,13 +127,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       pantallas). Verificado en psql (3 escenarios con rollback) y de punta a punta en
       navegador: `cerrar_caja` con un reembolso real de S/25.90 dio el esperado exacto
       (S/586.82) contra lo contado. **No aplicado en producción** — la pega Felipe (D-11).
-- [ ] **Cambios tiene la misma fuga que Devoluciones tenía** (hallazgo del ADR-0052, no
-      resuelto ahí a propósito): `registrar_cambio` calcula y guarda
-      `cambios.diferencia`/`metodo_pago_diferencia` cuando una clienta paga o recibe la
-      diferencia de un cambio de prenda, pero nunca la liga a una caja ni la resta o
-      suma en `cerrar_caja` — ese dinero también se fuga del arqueo. El mecanismo ya
-      existe (`caja_id` fijado al registrar, restado/sumado al cerrar) y es
-      directamente reutilizable; falta aplicarlo acá.
+- [x] **Cambios ya no tiene la misma fuga que Devoluciones tenía** (ADR-0053,
+      `20260915200000_diferencia_de_cambio_en_el_arqueo.sql`) — cerrado el mismo día
+      que se encontró. Mismo mecanismo que ADR-0052: `cambios.caja_id` (fijado solo, al
+      registrar) liga la diferencia a la caja que la absorbe; `cerrar_caja` la suma con
+      signo — positiva (paga de más) suma, negativa (se le devuelve) resta, un solo
+      `sum()` cubre los dos sentidos porque el dato ya trae el signo. Tarjeta "Cambios
+      en efectivo" nueva en `/caja` (con signo). Encontrado de paso: `cerrar_caja`
+      retorna una columna que también se llama `diferencia` — sin calificar
+      `cambios.diferencia`, la función ni compilaba en la prueba. Verificado en psql (3
+      escenarios) y de punta a punta en navegador: cambio real con diferencia de
+      +S/100 en efectivo, `cerrar_caja` dio el esperado exacto (S/194.99).
+      **No aplicado en producción** — la pega Felipe (D-11).
 - [ ] **Cambiar `vender/page.tsx` a `fn_stock_por_sede`** — lo único que falta. La RPC
       **ya está en producción** (verificado 2026-09-15 contra `pg_proc` en `cayla-dynamic`,
       schema `retail`: security definer, suma piso+almacén por sede — la trajo el bloque 8,

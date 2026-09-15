@@ -3,6 +3,34 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (la diferencia de un cambio también cuadra la caja)
+
+Quinto paso, sobre el hallazgo que el paso anterior dejó anotado sin resolver a
+propósito: `registrar_cambio` calcula y guarda `cambios.diferencia` cuando una clienta
+paga o recibe la diferencia de precio de un cambio de prenda, pero —igual que las
+devoluciones antes de ADR-0052— nunca la liga a una caja. `cambios.caja_id` (ADR-0053)
+reutiliza el mecanismo tal cual: fijado solo al registrar, sumado con signo en
+`cerrar_caja`. La diferencia real con el reembolso: `cambios.diferencia` ya trae el
+signo (paga de más suma, se le devuelve resta), así que un solo `sum()` filtrado a
+efectivo cubre los dos sentidos — el reembolso de una devolución, en cambio, siempre
+resta, nunca hay "reembolso negativo".
+
+La prueba en psql encontró un bug real antes de que llegara a ningún lado: `cerrar_caja`
+retorna una columna que también se llama `diferencia` (la del cuadre), y
+`sum(diferencia)` sin calificar es ambiguo para Postgres dentro del cuerpo de la
+función — ni compilaba. Se corrigió a `sum(cambios.diferencia)` y recién ahí pasaron
+los tres escenarios (positiva suma, negativa resta, Yape no toca el cajón). Verificado
+también de punta a punta en navegador: cambio real con diferencia de +S/100 en
+efectivo, tarjeta "Cambios en efectivo: +S/100.00" en `/caja`, y `cerrar_caja` con el
+esperado exacto (S/194.99) contra lo contado.
+
+Lo que Felipe se lleva: **una función que retorna una tabla con nombres de columna
+"genéricos" (`diferencia`, `total`, `monto`) arriesga chocar con el nombre de una
+columna real que consulta adentro** — el error de Postgres ("ambiguous") lo avisa en
+el momento, pero solo si algo prueba esa rama del código antes de producción. Acá lo
+hizo la prueba en psql, en segundos, con `rollback` — el mismo hábito que ya evitó
+sorpresas parecidas en otras RPC de este repo.
+
 ## 2026-09-15 (el reembolso en efectivo también cuadra la caja)
 
 Cuarto paso de la sesión: Devoluciones guardaba `reembolso_monto`/`reembolso_metodo` al
