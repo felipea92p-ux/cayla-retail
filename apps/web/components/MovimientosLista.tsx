@@ -64,16 +64,18 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
 
   return (
     <>
+      {/* Tabla centrada (Felipe, 2026-09-15) — mismo criterio que Inventario:
+          encabezado y filas comparten `alinear: "centro"`, columna por columna. */}
       <Tabla>
         <Encabezado
           plantilla={PLANTILLA}
           columnas={[
-            { titulo: "Hora" },
-            { titulo: "Tipo" },
-            { titulo: "Prenda" },
-            { titulo: "Proceso · Referencia" },
-            { titulo: "Cant.", alinear: "der" },
-            { titulo: "Persona", desdeLg: true },
+            { titulo: "Hora", alinear: "centro" },
+            { titulo: "Tipo", alinear: "centro" },
+            { titulo: "Prenda", alinear: "centro" },
+            { titulo: "Proceso · Referencia", alinear: "centro" },
+            { titulo: "Cant.", alinear: "centro" },
+            { titulo: "Persona", alinear: "centro", desdeLg: true },
           ]}
         />
         {dias.map((dia) => (
@@ -95,18 +97,20 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
                   onClick={() => abrir(m)}
                   className={fila(PLANTILLA, "w-full text-left transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}
                 >
-                  <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{m.hora}</span>
-                  <span className={celda("izq", "overflow-visible")}>
+                  <span className={celda("centro", "text-xs tabular-nums text-tinta/65")}>{m.hora}</span>
+                  <span className={celda("centro", "overflow-visible")}>
                     <Chip tono={tonoCategoria(m.categoria, m.delta)}>{ETIQUETA_CATEGORIA[m.categoria]}</Chip>
                   </span>
-                  <span className="min-w-0">
+                  {/* `sm:text-center`, no `text-center` a secas: en celular la fila se apila
+                      y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
+                  <span className="min-w-0 sm:text-center">
                     <span className="block truncate text-sm text-tinta" title={m.referencia}>{m.referencia}</span>
                     <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
                       <span className="font-mono">{m.sku}</span>
                       {detallePrenda && ` · ${detallePrenda}`}
                     </span>
                   </span>
-                  <span className="min-w-0 text-xs">
+                  <span className="min-w-0 text-xs sm:text-center">
                     <span className="block truncate text-sm text-tinta">
                       {etiquetaProceso(m.motivo)}
                       {m.esSistema && <span className="label-cayla ml-1.5 text-[10px] text-tinta/50">Sistema</span>}
@@ -120,13 +124,13 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
                   </span>
                   <span
                     className={celda(
-                      "der",
-                      `text-sm font-semibold ${m.delta > 0 ? "text-verde-profundo" : m.delta < 0 ? "text-tinta" : "text-tinta/65"}`
+                      "centro",
+                      `text-sm font-semibold tabular-nums ${m.delta > 0 ? "text-verde-profundo" : m.delta < 0 ? "text-tinta" : "text-tinta/65"}`
                     )}
                   >
                     {textoDelta(m)}
                   </span>
-                  <span className={celda("izq", "hidden text-xs text-tinta/65 lg:block")} title={m.usuario ?? undefined}>
+                  <span className={celda("centro", "hidden text-xs text-tinta/65 lg:block")} title={m.usuario ?? undefined}>
                     {m.esSistema ? "—" : (m.usuario ?? "—")}
                   </span>
                 </button>
