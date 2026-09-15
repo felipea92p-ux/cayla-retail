@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   descuentoUnitarioPorPorcentaje,
+  esperaAlCargar,
   motivoBloqueoCobro,
   porcentajeDeLinea,
   restanteDePagos,
@@ -163,3 +164,17 @@ describe("vueltoDe — recibido menos monto, solo en efectivo", () => {
   });
 });
 
+
+// La espera de la sede se vacía al cerrar caja (ADR-0049), y eso incluye abrir Vender al
+// día siguiente con la caja todavía cerrada: lo guardado ayer no vuelve a la pantalla.
+// Antes el efecto de hidratación cargaba la espera sin mirar la caja y el de borrado
+// solo tocaba la llave — el chip «En espera · N» mostraba tickets de ayer.
+describe("esperaAlCargar — con la caja cerrada no vuelve ningún ticket de ayer", () => {
+  const guardados = [{ id: "a" }, { id: "b" }];
+  it("con la caja abierta carga lo guardado", () => {
+    expect(esperaAlCargar(false, guardados)).toBe(guardados);
+  });
+  it("con la caja cerrada la espera arranca vacía aunque haya algo guardado", () => {
+    expect(esperaAlCargar(true, guardados)).toEqual([]);
+  });
+});

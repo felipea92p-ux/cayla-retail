@@ -11,6 +11,14 @@ import type { MetodoPago } from "@cayla-retail/shared";
  *  aparecen recién al tocar «Cobrar». */
 export type MomentoTicket = "armar" | "descuento" | "espera" | "cobrar";
 
+/** Qué tickets en espera vuelven a la pantalla al montar Vender. La espera de la sede
+ *  se vacía al cerrar caja (ADR-0049) — y eso incluye abrir la página al día siguiente
+ *  con la caja todavía cerrada: lo guardado ayer no vuelve. Vive acá y no dentro del
+ *  efecto porque es la decisión, no el acceso al storage. */
+export function esperaAlCargar<T>(cajaCerrada: boolean, guardados: T[]): T[] {
+  return cajaCerrada ? [] : guardados;
+}
+
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
  *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
  *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que

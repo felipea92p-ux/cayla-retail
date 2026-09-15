@@ -11,7 +11,7 @@ import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { aplicarDescuento, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
+import { aplicarDescuento, esperaAlCargar, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -206,9 +206,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // Hidratar desde localStorage al montar es el patrón correcto en Next (no existe en
     // el servidor y leerlo durante el render desincroniza la hidratación); la regla lo
     // marca igual. Misma decisión que el BACKLOG registró el 2026-09-10 para la cola.
+    // Mira la caja: si se cerró desde /caja y hoy se abre Vender con la caja aún cerrada,
+    // el efecto de abajo borra la llave pero este ya había cargado los tickets de ayer.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnEspera(leer<TicketEnEspera[]>(claveEspera, []));
-  }, [claveEspera]);
+    setEnEspera(esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, [])));
+  }, [bloqueado, claveEspera]);
 
   // Al cerrar caja se vacía la espera de la sede (decisión de Felipe): un ticket de ayer
   // no sobrevive a la caja de hoy. `CerrarCajaModalV2` refresca y `cajaId` llega null. El
