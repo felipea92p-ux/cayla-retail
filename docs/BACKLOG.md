@@ -252,17 +252,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `authenticated` tenía `INSERT`+`SELECT` (UPDATE/DELETE ya los sacó ayer D-22); queda
       solo con `SELECT`. Cero pantallas dependían del insert directo (`grep` sobre
       `apps/web`: un solo `.from("movimientos")`, en `lib/compras.ts:330`, y es un
-      `.select`). Probado en rojo/verde en local (ver ADR-0051): el insert directo como
+      `.select`). Probado en rojo/verde en local (ver ADR-0052): el insert directo como
       `authenticated` ahora falla con `permission denied`; las funciones siguen sin tocar
       RLS. Hallazgo de paso, sin tocar hoy: `registrar_movimiento` tiene **dos firmas**
       vivas en producción (6 y 7 parámetros) — mismo patrón que `recibir_lote` en ADR-0004
       — y hoy nada en `apps/web` la llama (solo se usa `registrar_movimiento_caja`, que es
-      otra función). **Pendiente aparte, sin tocar hoy:** aplicar este mismo archivo a
-      producción (falta el ok puntual) y `retail.transferencias` tiene la misma forma de
-      policy de INSERT sin verificar.
+      otra función). **Aplicado en producción el mismo día** (ok puntual de Felipe,
+      `apply_migration`): `authenticated` verificado ahí también con solo `SELECT`, comentario
+      de la policy guardado, cero advertencias nuevas en `get_advisors`. **Pendiente aparte:**
+      `retail.transferencias` tiene la misma forma de policy de INSERT sin verificar.
 - [ ] **La pieza que le sigue faltando a D-22:** `force row level security` sobre
       `movimientos`, con prueba de que las RPC que insertan (venta, transferencia, conteo)
-      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0051.
+      siguen pudiendo hacerlo. Sigue descartada por riesgo — ver ADR-0042/ADR-0052.
 - [ ] **Dos firmas vivas de `registrar_movimiento` en producción** (6 y 7 parámetros,
       `p_sububicacion_id` de más en la segunda) — un `select registrar_movimiento(...)`
       con los 6 parámetros históricos sale `is not unique`, reproducido en local

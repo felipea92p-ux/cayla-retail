@@ -18,8 +18,21 @@ en rojo/verde en local: como `authenticated`, un insert directo ahora sale `perm
 denied`; probando que la RPC seguía viva se encontró un hallazgo aparte — `registrar_movimiento`
 tiene dos firmas vivas (6 y 7 parámetros) y con la vieja `select` sale `is not unique`, mismo
 patrón que `recibir_lote` en ADR-0004. No rompe nada hoy porque `apps/web` no llama a esa
-función (solo a `registrar_movimiento_caja`, que es otra). Rama `fix/movimientos-insert-solo-rpc`
-lista para PR — **falta aplicar en producción, con el ok puntual de Felipe** (igual que D-22).
+función (solo a `registrar_movimiento_caja`, que es otra). PR #37 abierto, CI en verde.
+Felipe dio el ok puntual el mismo día — aplicada en producción con `apply_migration`
+(proyecto `vovjyyiafkxteijimpuy`) y verificado después contra la base real (no contra el
+`success` de la llamada): `authenticated` quedó con solo `SELECT`, el comentario de la
+policy se guardó, y `get_advisors` no sumó ninguna advertencia nueva sobre `movimientos`.
+
+> **Nota de esta fusión (2026-09-15):** al traer `main` a esta rama para pushear, esta
+> sesión chocó de nuevo con la de Producción — la misma nota más abajo (línea ~101) cuenta
+> cómo esa sesión ya había resuelto el primer choque de `ADR-0050` renumerándose a
+> **ADR-0051**. Esta sesión había escrito su propio ADR nuevo como **0051** sin verlo (el
+> mismo riesgo de siempre, ver memoria «Riesgo de sesiones paralelas»: dos sesiones
+> numerando en paralelo sin saberse). Se resolvió moviendo el de esta sesión a **ADR-0052**
+> antes de pushear — Producción se queda con 0051, ya mergeado a `main`. El archivo de
+> `docs/BACKLOG.md` con las dos referencias cruzadas también se corrigió en el mismo commit.
+
 ## 2026-09-15 (Movimientos también centrado — mismo criterio que Inventario, sin sorpresas esta vez)
 
 Felipe pidió centrar la tabla de Movimientos, "solo ese cambio puntual". Las 6 columnas
