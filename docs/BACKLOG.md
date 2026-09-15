@@ -1510,6 +1510,19 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-15 — **`AjustarInventarioModal.tsx`: ajuste manual de stock por
+      variante, con signo** (Sesión A2, `feat/productos-ajustar-inventario`).
+      Reusa `retail.registrar_movimiento` (tipo='ajuste', ya existente desde
+      `20260914230000_inventario_piso_almacen.sql`) — cero vías nuevas de
+      escritura a `stock`. Motivos `reposicion`/`merma`/`conteo_fisico`/`otro`
+      agregados a `ETIQUETA_PROCESO`/`PROCESOS_FILTRO` en `movimientos-reglas.ts`.
+      Valida el stock negativo en pantalla (ADR-0023) antes de llamar a la RPC.
+      Selector Piso de venta/Almacén de tienda cuando la ubicación los separa.
+      Probado en navegador contra Tienda Lima / Blusa Valentina, verificado en
+      `/movimientos`. **Pendiente (Sesión B2):** conectarlo al menú de acciones
+      de la lista real de productos y borrar la ruta demo
+      `/productos/dev-ajustar-inventario` (`ClienteDemo.tsx` + `page.tsx`).
+
 - [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
       verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
