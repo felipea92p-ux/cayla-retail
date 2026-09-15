@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 // Stock por ubicación para la pantalla de Inventario. `retail.stock` es un
 // snapshot derivado de `movimientos` (nunca se edita a mano) — acá solo se
@@ -54,6 +55,10 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
          )`
       )
       .eq("ubicacion_id", ubicacionId)
+      // La variante centinela del «Monto manual» tiene 999.999 unidades por
+      // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
+      // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
+      .neq("variante_id", ID_CARGO_ESPECIAL)
       .order("variante_id"),
     "el inventario de esta ubicación"
   );

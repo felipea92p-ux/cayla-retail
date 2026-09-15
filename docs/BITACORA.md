@@ -3,6 +3,33 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Movimientos: el modelo ya lo tenía todo; lo que faltaba era leerlo)
+
+Felipe pidió cinco tipos, búsqueda, filtros, detalle y trazabilidad de proceso en
+Movimientos, «sin aplicar a ciegas». La auditoría dio que ninguna tabla necesita cambiar:
+`retail.movimientos` ya guarda tipo, motivo (el proceso), sububicación origen y destino,
+usuario, nota y una FK a cada proceso — y es inmutable. La pantalla era el problema: embeds
+sobre los últimos 100, sin filtros, sin el nombre de la persona (otro schema) y con «−» en
+todo traslado, incluidos los que entran. `20260915090000_movimientos_lectura.sql` agrega
+`fn_movimientos` (una fila plana por movimiento con comprobante/guía/factura/conteo/
+devolución/cambio resueltos, categoría y signo calculados en SQL, filtros y cursor
+server-side, `security definer` con `p_ubicacion_id` obligatorio) y `fn_movimientos_resumen`;
+la categoría INTERNO/TRANSFERENCIA se deriva de `ubicacion_id = ubicacion_destino_id`, no de
+un 5.º `tipo` (ADR-0050). Pantalla nueva: resumen del período, filtros en la URL, lista por
+día, modal de detalle por proceso, paginado. La variante centinela «Cargo especial» queda
+fuera de Movimientos, Inventario e Inicio por constante (`lib/cargo-especial.ts`); el script
+de activación piso/almacén que corrió ayer en producción queda versionado
+(`activacion-piso-almacen-produccion.sql`). Probado en local: los 7 procesos en el
+navegador, filtros, búsqueda por SKU y código de barras, cursor 50+46 en Taller, Micaela
+fija en Trujillo y rechazada por la base al pedir Lima; 165.000 filas sintéticas → ~30 ms.
+**Solo local: nada en producción ni en Supabase remoto.**
+
+Lo que Felipe se lleva: **cuando el enunciado pide «un tipo nuevo», primero hay que mirar
+si ya está escrito en dos columnas** — INTERNO es un traslado cuya sede de origen y destino
+coinciden; guardarlo como quinto tipo obligaría al motor de stock a aprender una rama más
+para un hecho que ya sabe. Y un centinela que vive en el ledger no se borra: se excluye al
+leer, por su id, en todos los lugares que cuentan unidades.
+
 ## 2026-09-14 (una sola registrar_venta: el piso de Inventario y la nota de Vender se pisaron sin verse)
 
 Al cerrar las dos sesiones de Vender y fusionar los 14 commits ajenos de la tarde apareció el

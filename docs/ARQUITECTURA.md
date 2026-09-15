@@ -124,6 +124,13 @@ flowchart TB
 - `/almacen` y `/almacen/recibir` → **redirects puros** a
   `/inventario/almacen` y `/inventario/recibir` (compat de enlaces
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
+- `/movimientos` (V2, 2026-09-15, ADR-0050) → `lib/movimientos-v2.ts`
+  (`filtrosDesdeParams`, `listarMovimientos`, `getResumenMovimientos`) → RPC
+  `fn_movimientos` / `fn_movimientos_resumen` (lectura pura, cursor, filtros en
+  Postgres) → `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx`
+  (agrupada por día) + `MovimientoDetalle.tsx` (modal por proceso, sin segunda
+  consulta). Las reglas de pantalla (categoría, signo, referencia por proceso) viven
+  en `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
@@ -294,6 +301,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
+| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
 
 ### 4.3 RLS sin `tenant_id`
 

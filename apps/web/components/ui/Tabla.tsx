@@ -18,7 +18,15 @@ import type { ReactNode } from "react";
 
 type Alineacion = "izq" | "der" | "centro";
 
-export type Columna = { titulo: ReactNode; alinear?: Alineacion; /** Solo desde sm: oculta en celular. */ soloEscritorio?: boolean };
+export type Columna = {
+  titulo: ReactNode;
+  alinear?: Alineacion;
+  /** Solo desde sm: oculta en celular. */
+  soloEscritorio?: boolean;
+  /** Solo desde lg: para una columna prescindible cuando la plantilla `sm:` no
+   *  la incluye (la fila debe ocultar esa celda con `hidden lg:block` también). */
+  desdeLg?: boolean;
+};
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
 
@@ -31,7 +39,7 @@ export function Encabezado({ columnas, plantilla }: { columnas: Columna[]; plant
   return (
     <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${plantilla}`} role="row">
       {columnas.map((c, i) => (
-        <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${ALINEAR[c.alinear ?? "izq"]}`} role="columnheader">
+        <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""}`} role="columnheader">
           {c.titulo}
         </span>
       ))}
