@@ -29,6 +29,10 @@ const FAMILIAS_COLOR = [
   "estampado",
 ] as const;
 
+// Naturaleza visual del color (20260915230000_colores_tipo_y_muestra.sql) —
+// ortogonal a FAMILIAS_COLOR (matiz): un mismo tipo cruza todas las familias.
+const TIPOS_COLOR = ["solido", "textura", "estampado"] as const;
+
 export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") {
@@ -40,6 +44,9 @@ export async function POST(request: Request) {
   const codigo = typeof cuerpo?.codigo === "string" ? cuerpo.codigo.trim().toUpperCase() : "";
   const familiaColor = typeof cuerpo?.familiaColor === "string" ? cuerpo.familiaColor : "";
   const hex = typeof cuerpo?.hex === "string" && cuerpo.hex.trim() ? cuerpo.hex.trim() : null;
+  const tipo = typeof cuerpo?.tipo === "string" && cuerpo.tipo ? cuerpo.tipo : "solido";
+  const imagenMuestraUrl = typeof cuerpo?.imagenMuestraUrl === "string" && cuerpo.imagenMuestraUrl.trim() ? cuerpo.imagenMuestraUrl.trim() : null;
+  const notas = typeof cuerpo?.notas === "string" && cuerpo.notas.trim() ? cuerpo.notas.trim() : null;
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
@@ -53,14 +60,17 @@ export async function POST(request: Request) {
   if (hex && !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
     return Response.json({ error: "El color tiene que ser un hex válido (#RRGGBB)." }, { status: 400 });
   }
+  if (!TIPOS_COLOR.includes(tipo as (typeof TIPOS_COLOR)[number])) {
+    return Response.json({ error: "Elige un tipo de color de la lista (sólido, textura o estampado)." }, { status: 400 });
+  }
 
   const supabase = await createClient();
   // orden=200: los 30 propios de CAYLA van del 10 al 92; un color agregado
   // desde esta pantalla entra después de todos ellos.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200 })
-    .select("codigo, nombre, familia_color, hex")
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, tipo, imagen_muestra_url: imagenMuestraUrl, notas })
+    .select("codigo, nombre, familia_color, hex, tipo, imagen_muestra_url, notas")
     .single();
 
   if (error) {
@@ -91,7 +101,16 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
-  const patch: { nombre?: string; familia_color?: string; hex?: string | null; orden?: number; activo?: boolean } = {};
+  const patch: {
+    nombre?: string;
+    familia_color?: string;
+    hex?: string | null;
+    orden?: number;
+    activo?: boolean;
+    tipo?: string;
+    imagen_muestra_url?: string | null;
+    notas?: string | null;
+  } = {};
 
   if ("nombre" in cuerpoObj) {
     const nombre = typeof cuerpoObj.nombre === "string" ? cuerpoObj.nombre.trim() : "";
@@ -122,6 +141,21 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "El orden tiene que ser un número entero de 0 para arriba." }, { status: 400 });
     }
     patch.orden = orden;
+  }
+
+  if ("tipo" in cuerpoObj) {
+    if (!TIPOS_COLOR.includes(cuerpoObj.tipo as (typeof TIPOS_COLOR)[number])) {
+      return Response.json({ error: "Elige un tipo de color de la lista (sólido, textura o estampado)." }, { status: 400 });
+    }
+    patch.tipo = cuerpoObj.tipo as string;
+  }
+
+  if ("imagenMuestraUrl" in cuerpoObj) {
+    patch.imagen_muestra_url = typeof cuerpoObj.imagenMuestraUrl === "string" && cuerpoObj.imagenMuestraUrl.trim() ? cuerpoObj.imagenMuestraUrl.trim() : null;
+  }
+
+  if ("notas" in cuerpoObj) {
+    patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
 
   const supabase = await createClient();
@@ -158,7 +192,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo")
+    .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas")
     .single();
 
   if (error) {

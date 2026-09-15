@@ -3934,3 +3934,14 @@ producción — nunca contra `retail.*` — y se borró al terminar: alta con 3 
 reorden + recambio de principal + foto nueva en edición, borrado con reasignación,
 `p_fotos = null` sin tocar la galería. `typecheck`/`lint`/215 tests en verde. Sin
 verificación en navegador real — queda en BACKLOG para quien tenga Docker a mano.
+
+## 2026-09-15 (colores: tipo visual y muestra real)
+
+Sesión F2 (`feat/colores-tipo-muestra`, sobre `DiegoN`): `colores.tipo` (sólido/textura/
+estampado, ortogonal a `familia_color`), `colores.imagen_muestra_url` (bucket público
+`retail-colores-muestras` — ADR-0053 justifica público sobre el precedente privado de
+adjuntos de factura) y `colores.notas`. `ColoresLista.tsx` con selector de tipo, subida de
+muestra y notas en alta/edición; el listado cae al cuadradito de HEX cuando no hay foto.
+Verificado con `typecheck`/`lint`/`build`/`vitest` (215/215) limpios; sin Docker/Supabase
+local en este sandbox, la subida real a Storage queda pendiente de un navegador con
+Storage encendido (local o producción) — documentado en BACKLOG.

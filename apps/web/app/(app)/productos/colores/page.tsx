@@ -17,7 +17,7 @@ export default async function ColoresPage() {
   // Reactivar quedan detrás de `puedeEditar`.
   const res = await supabase
     .from("colores")
-    .select("codigo, nombre, familia_color, hex, orden, activo")
+    .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas")
     .order("orden")
     .order("nombre");
   const filas = exigir(res, "los colores del vocabulario");
@@ -47,6 +47,9 @@ export default async function ColoresPage() {
           hex: c.hex,
           orden: c.orden,
           activo: c.activo,
+          tipo: c.tipo,
+          imagenMuestraUrl: c.imagen_muestra_url,
+          notas: c.notas,
         }))}
         puedeEditar={persona.rol === "lider"}
       />

@@ -1673,6 +1673,30 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-15 — **Colores: tipo visual y muestra real** (Sesión F2,
+      `feat/colores-tipo-muestra`, sobre `DiegoN`). `colores.tipo`
+      (sólido/textura/estampado — ortogonal a `familia_color`, que agrupa por
+      matiz, no por naturaleza), `colores.imagen_muestra_url` y
+      `colores.notas` internas (`20260915230000_colores_tipo_y_muestra.sql`).
+      Bucket propio `retail-colores-muestras`, PÚBLICO a diferencia de
+      `retail-compras-adjuntos` (privado) — decisión justificada en
+      ADR-0053: una muestra de tela no tiene el problema de confidencialidad
+      de una factura (RUC, montos), y público evita pedir URL firmada por
+      cada una de las ~30+ muestras en cada render de la grilla. Columna
+      simple en vez de tabla-aparte-con-RPC (como adjuntos de factura)
+      porque la relación es 1:1, no 1:N — el candado de negocio real ya
+      existe (`colores_write_lider`). `ColoresLista.tsx`: selector de tipo,
+      subida de muestra (`lib/colores-muestra.ts`, mismo patrón de subida
+      navegador→bucket que `lib/adjuntos-compra.ts`) y campo de notas en
+      alta y edición; el listado muestra la muestra real si existe, si no
+      el cuadradito de HEX de siempre (fallback intacto). Verificado en
+      este entorno: `typecheck`, `lint`, `next build` y `vitest run`
+      (215/215) limpios — **sin Docker/Supabase local disponibles en este
+      sandbox**, la subida real a Storage y el fallback visual en pantalla
+      quedan pendientes de confirmar en navegador con Storage encendido
+      (local con `supabase start`, o en producción tras correr la
+      migración con el prefijo `retail.` del SQL Editor).
+
 - [x] 2026-09-15 — **`AjustarInventarioModal.tsx`: ajuste manual de stock por
       variante, con signo** (Sesión A2, `feat/productos-ajustar-inventario`).
       Reusa `retail.registrar_movimiento` (tipo='ajuste', ya existente desde
