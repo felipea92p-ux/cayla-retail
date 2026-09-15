@@ -260,6 +260,34 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Movimientos en V2 — lectura con proceso, filtros y detalle (2026-09-15)
+
+**Cerrado esta sesión, solo local** — `20260915090000_movimientos_lectura.sql`
+(`fn_movimientos`, `fn_movimientos_resumen`, 2 índices por fecha) + pantalla nueva
+(`movimientos/page.tsx`, `FiltrosMovimientos.tsx`, `MovimientosLista.tsx`,
+`MovimientoDetalle.tsx`), ADR-0050. Ninguna tabla cambia; ninguna escritura cambia.
+Corregido de paso: el signo de las transferencias que ENTRAN (antes salía «−»),
+la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
+(`lib/cargo-especial.ts`), y `activacion-piso-almacen-produccion.sql` versionado.
+
+**Pendiente de Felipe (producción):**
+
+- [ ] **Pegar `20260915090000_movimientos_lectura.sql` en producción** (ya lleva
+      `retail.`). Sin eso, Vercel con este código mostrará «No se pudieron cargar los
+      movimientos» — la pantalla llama a una función que producción no tiene. Orden:
+      merge a `main` → pegar la migración → recién ahí se ve. Después,
+      `pnpm datos:generar:produccion` para que el diccionario la conozca.
+- [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
+      fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
+      buscan por eso. Si Felipe lo usa seguido, va como función hermana de
+      `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
+      la búsqueda de prendas.
+- [ ] **Detalle como URL compartible** (ruta interceptada, como Compras) — hoy es un
+      modal con estado local. Vale la pena el día que alguien quiera mandar por
+      WhatsApp «mirá este movimiento». Y de paso, fuera de este módulo:
+      `buscar/page.tsx` sigue leyendo `stock` sin excluir la centinela (buscar «cargo»
+      muestra 999.999 unidades) — una línea con `ID_CARGO_ESPECIAL` cuando se toque Buscar.
+
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
 **Cerrado esta sesión, solo local** — `20260914210000_inventario_piso_almacen.sql`,

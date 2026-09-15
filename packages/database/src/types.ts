@@ -2148,6 +2148,94 @@ export type Database = {
           ultimo_acceso: string
         }[]
       }
+      fn_movimientos: {
+        Args: {
+          p_busqueda?: string
+          p_categoria?: string
+          p_cursor_creado_en?: string
+          p_cursor_id?: string
+          p_desde?: string
+          p_hasta?: string
+          p_limite?: number
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          cambio_diferencia: number
+          cambio_id: string
+          cantidad: number
+          categoria: string
+          color: string
+          compra_documento: string
+          compra_id: string
+          comprobante_estado: string
+          comprobante_numero: string
+          comprobante_tipo: string
+          conteo_cantidad_contada: number
+          conteo_cantidad_sistema: number
+          conteo_id: string
+          created_at: string
+          delta: number
+          devolucion_estado: string
+          devolucion_id: string
+          devolucion_motivo: string
+          es_sistema: boolean
+          fecha_lima: string
+          hora: string
+          id: string
+          lote_guia: string
+          lote_id: string
+          lote_nota: string
+          motivo: string
+          nota: string
+          proveedor_nombre: string
+          referencia: string
+          sku: string
+          sububicacion_destino_id: string
+          sububicacion_destino_nombre: string
+          sububicacion_destino_tipo: string
+          sububicacion_id: string
+          sububicacion_nombre: string
+          sububicacion_tipo: string
+          talla: string
+          tipo: string
+          transferencia_estado: string
+          transferencia_id: string
+          transferencia_nota: string
+          ubicacion_destino_id: string
+          ubicacion_destino_nombre: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+          usuario_id: string
+          usuario_nombre: string
+          variante_id: string
+          venta_id: string
+          venta_nota: string
+        }[]
+      }
+      fn_movimientos_resumen: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          categoria: string
+          delta: number
+          movimientos: number
+          unidades: number
+        }[]
+      }
+      fn_movimientos_variantes: {
+        Args: { p_busqueda: string }
+        Returns: string[]
+      }
       fn_nombres_personas: {
         Args: { p_ids: string[] }
         Returns: {
