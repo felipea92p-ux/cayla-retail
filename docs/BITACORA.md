@@ -3651,3 +3651,16 @@ dos veces — invisible con `setModal(null)`, fatal con `router.back()` (retroce
 páginas). Ahora el temporizador va en un `useEffect`. Verificado en Chrome headless: 10
 escenarios (lista, por pagar, pestañas hermanas, carga directa, `desde=nueva`, móvil, pago
 anidado) sin errores de consola.
+
+## 2026-09-15 (producción: matriz color × talla, y las variantes nacen en Productos)
+
+Felipe pidió comparar con la Producción de V1 (jul-2026, borrada en el corte V1→V2):
+avíos, maquila y tercerizado ya estaban en V2 —solo las etiquetas salían pegadas
+("TELADE TODA LA CORRIDA") porque el formulario pasaba texto por `ayuda`, que es el
+slot del botón de ayuda, no `pie`—; lo que faltaba era la grilla estilo Shopify. Se
+decidió la ruta A: la orden reparte cantidades en una matriz color × talla sobre las
+variantes que el catálogo ya tiene (celda «—» si la combinación no existe, enlace a
+Productos), y no crea variantes al vuelo como V1 (ADR-0050 §5). Verificado en Chrome
+headless: 4 S + 6 M → `producciones` en_proceso con `S=4, M=6`. Quedan dos decisiones
+abiertas en BACKLOG (atajo «Nuevo modelo», tercerizado al abrir).
+

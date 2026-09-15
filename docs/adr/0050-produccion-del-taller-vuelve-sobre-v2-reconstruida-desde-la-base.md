@@ -48,6 +48,14 @@ se perdió. La única copia era la base.
    semáforo de margen, costo unitario; 8 tests) no importa Supabase ni `next/headers`,
    así que los componentes cliente lo usan sin arrastrar el servidor al bundle —
    exactamente el error 500 que dio el primer intento.
+5. **Las variantes nacen en Productos, nunca desde una orden** (decidido con Felipe el
+   mismo día, al comparar con V1). V1 dejaba tipear "S, M, L" y "Negro, Palo Rosa" en la
+   orden y `registrar_produccion` creaba las variantes al vuelo: prendas sin precio (hoy
+   ADR-0048 lo prohíbe), colores duplicados ("Negro"/"negro") y SKUs a ciegas. V2 conserva
+   la firma de `abrir_produccion` (solo `variante_id` existentes) y la pantalla lo hace
+   visible: matriz color × talla al estilo Shopify donde **solo hay celda si el catálogo
+   tiene esa variante**; una combinación que falta se ve como «—» y un enlace manda a
+   Productos. Se descartó la alternativa B (crear al vuelo) por el principio 2.
 
 ## Lo que la base vuelve imposible
 
@@ -76,6 +84,11 @@ Micaela (integrante de tienda) lista `producciones` y recibe `[]`.
   falla al abrir la orden con «function abrir_produccion does not exist».
 - Movimientos pinta `produccion` / `reversion_produccion` como texto crudo; un enlace a la
   orden queda para después.
+- Sin decidir: si la orden necesita un atajo «Nuevo modelo» que abra el flujo de Productos
+  y vuelva con el modelo elegido (Productos V2 hoy no crea variantes desde pantalla — nacen
+  por importación), y si «tercerizado» debe marcarse al abrir la orden o basta en la
+  tarjeta, como hoy. `productos.material` (V1) no existe en el esquema V2: no se agrega
+  desde Producción (principio 1).
 - `recibir_lote` sigue existiendo para mercadería sin factura; V1 tenía `RecibirLoteForm`
   para el Taller y V2 lo cubre con Compras → Recibir. No se restauró: decidir con Felipe
   si el Taller necesita una entrada manual aparte de la corrida.

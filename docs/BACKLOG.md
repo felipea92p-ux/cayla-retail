@@ -354,6 +354,12 @@ importante que ha entrado a este archivo desde que existe.
       lleva `retail.`; pegar tal cual. Hasta entonces `/produccion` en producción carga vacía
       y «Abrir orden» falla con «function abrir_produccion does not exist» —
       `pnpm datos:comparar` lo avisa. Después: `pnpm datos:generar:produccion`.
+- [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
+      (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
+      Productos V2 no crea variantes desde pantalla (nacen por importación), así que el
+      enlace de la matriz solo orienta. (b) ¿«tercerizado» se marca al abrir la orden o
+      basta en la tarjeta? (c) `productos.material` de V1 no existe en V2 — solo si Felipe
+      lo pide, y como cambio de catálogo, no de Producción.
 - [ ] **Producción: lo que quedó fuera del paso 1.** (a) Movimientos muestra
       `produccion`/`reversion_produccion` como texto crudo, sin enlace a la orden.
       (b) V1 tenía `RecibirLoteForm` para que el Taller reciba mercadería sin factura;

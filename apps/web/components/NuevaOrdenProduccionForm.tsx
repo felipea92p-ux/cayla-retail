@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoSelectNativo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import type { ModeloProducible } from "@/lib/produccion";
+import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
+import { compararTallas } from "@/lib/tallas";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
 // por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
@@ -49,15 +51,23 @@ export function NuevaOrdenProduccionForm({
 
   const modelo = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
 
-  // Las variantes se agrupan por color: es como el Taller arma la curva de
-  // tallas sobre la mesa — un color, todas sus tallas, y recién el siguiente.
-  const porColor = useMemo(() => {
-    const grupos = new Map<string, ModeloProducible["variantes"]>();
-    for (const v of modelo?.variantes ?? []) {
-      const clave = v.color ?? "Sin color";
-      grupos.set(clave, [...(grupos.get(clave) ?? []), v]);
+  // Matriz color × talla, como la grilla de variantes de Shopify: una fila
+  // por color, una columna por talla, y en cada celda cuántas van. Solo
+  // existen las celdas que el catálogo ya tiene como variante — Producción
+  // no inventa tallas ni colores (decisión con Felipe, 2026-09-15: las
+  // variantes nacen en Productos, con su SKU y su precio, nunca al vuelo desde
+  // una orden; en V1 sí pasaba y dejaba colores duplicados y prendas sin precio).
+  const matriz = useMemo(() => {
+    const variantes = modelo?.variantes ?? [];
+    const tallas = [...new Set(variantes.map((v) => v.talla ?? "Única"))].sort(compararTallas);
+    const filas = new Map<string, { hex: string | null; celdas: Map<string, VarianteDeModelo> }>();
+    for (const v of variantes) {
+      const color = v.color ?? "Sin color";
+      const fila = filas.get(color) ?? { hex: v.colorHex, celdas: new Map() };
+      fila.celdas.set(v.talla ?? "Única", v);
+      filas.set(color, fila);
     }
-    return [...grupos.entries()];
+    return { tallas, filas: [...filas.entries()] };
   }, [modelo]);
 
   const lineas = (modelo?.variantes ?? [])
@@ -128,51 +138,83 @@ export function NuevaOrdenProduccionForm({
         </div>
 
         {modelo && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <span className={campoEtiqueta}>Cuántas por talla y color</span>
-            {porColor.map(([color, variantes]) => (
-              <div key={color} className="space-y-1.5">
-                <p className="flex items-center gap-1.5 text-xs text-tinta/70">
-                  {variantes[0]?.colorHex && (
-                    <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/15" style={{ background: variantes[0].colorHex }} />
-                  )}
-                  {color}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {variantes.map((v) => {
-                    const valor = cantidades[v.varianteId] ?? "";
-                    const activa = (Number(valor) || 0) > 0;
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-tinta/65">
+                    <th className="pb-1.5 pr-3 text-left font-normal">Color</th>
+                    {matriz.tallas.map((t) => (
+                      <th key={t} className="label-cayla pb-1.5 text-center text-[11px] font-normal">
+                        {t}
+                      </th>
+                    ))}
+                    <th className="label-cayla pb-1.5 pl-3 text-right text-[11px] font-normal">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tinta/10">
+                  {matriz.filas.map(([color, fila]) => {
+                    const totalFila = [...fila.celdas.values()].reduce((s, v) => s + (Math.floor(Number(cantidades[v.varianteId])) || 0), 0);
                     return (
-                      <label
-                        key={v.varianteId}
-                        className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
-                          activa ? "border-rojo/60 bg-rojo/5" : "border-tinta/15"
-                        }`}
-                        title={v.sku}
-                      >
-                        <span className="w-10 text-tinta/80">{v.talla ?? "Única"}</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          placeholder="0"
-                          value={valor}
-                          onChange={(e) => setCantidades((c) => ({ ...c, [v.varianteId]: e.target.value }))}
-                          className="w-14 border-b border-tinta/20 bg-transparent px-1 py-0.5 text-right text-sm text-tinta outline-none placeholder:text-tinta/30 focus:border-rojo"
-                        />
-                      </label>
+                      <tr key={color}>
+                        <td className="py-1.5 pr-3 text-tinta/80">
+                          <span className="flex items-center gap-1.5 whitespace-nowrap">
+                            {fila.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/15" style={{ background: fila.hex }} />}
+                            {color}
+                          </span>
+                        </td>
+                        {matriz.tallas.map((t) => {
+                          const v = fila.celdas.get(t);
+                          if (!v) {
+                            // El catálogo no tiene esta combinación: no hay variante a la que sumarle stock.
+                            return (
+                              <td key={t} className="py-1.5 text-center text-tinta/30" title="No existe esta talla en este color">
+                                —
+                              </td>
+                            );
+                          }
+                          const valor = cantidades[v.varianteId] ?? "";
+                          const activa = (Number(valor) || 0) > 0;
+                          return (
+                            <td key={t} className="px-0.5 py-1.5 text-center">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                placeholder="0"
+                                aria-label={`${color} ${t}`}
+                                title={v.sku}
+                                value={valor}
+                                onChange={(e) => setCantidades((c) => ({ ...c, [v.varianteId]: e.target.value }))}
+                                className={`w-14 rounded-md border bg-transparent px-1.5 py-1 text-center text-sm tabular-nums text-tinta outline-none transition-colors placeholder:text-tinta/30 focus:border-rojo ${
+                                  activa ? "border-rojo/60 bg-rojo/5" : "border-tinta/15"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })}
+                        <td className="py-1.5 pl-3 text-right tabular-nums text-tinta/80">{totalFila > 0 ? totalFila : ""}</td>
+                      </tr>
                     );
                   })}
-                </div>
-              </div>
-            ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-tinta/65">
+              ¿Falta una talla o un color? Se agrega en{" "}
+              <Link href="/productos" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                Productos
+              </Link>
+              , no desde la orden.
+            </p>
           </div>
         )}
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <CampoMonto etiqueta="Tela" ayuda="De toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
-          <CampoMonto etiqueta="Avíos" ayuda="Botones, cierres, etiquetas" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
-          <CampoMonto etiqueta="Maquila" ayuda="Lo tercerizado" inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
+          <CampoMonto etiqueta="Tela" pie="De toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
+          <CampoMonto etiqueta="Avíos" pie="Botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
+          <CampoMonto etiqueta="Maquila" pie="Lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
         </div>
 
         <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
@@ -184,8 +226,8 @@ export function NuevaOrdenProduccionForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <CampoTexto etiqueta="Fecha de entrega" ayuda="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
-          <CampoTexto etiqueta="Nota" ayuda="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Tela, cliente, urgencia…" />
+          <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
+          <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Tela, cliente, urgencia…" />
         </div>
 
         <div className="flex gap-2 pt-1">
