@@ -14,7 +14,9 @@ export type PersonaActualV2 = {
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
-  ubicacionTipo: "tienda" | "almacen";
+  /** Producción (2026-09-15): `taller` deja de aplastarse a "tienda" — es el
+   *  tipo que decide si la persona ve el módulo del Taller sin ser líder. */
+  ubicacionTipo: "tienda" | "almacen" | "taller";
   /** Si puede usar el selector de ubicación del AppShell (Fase 2). Hoy es
    *  lo mismo que `rol === "lider"`, pero se guarda aparte para no atar el
    *  AppShell a esa igualdad — el día que "control total temporal"
@@ -27,6 +29,12 @@ export type PersonaActualV2 = {
 // constante porque ese archivo es "use server" y solo puede exportar
 // funciones (mismo patrón que ya usaba V1 con COOKIE_SEDE).
 const COOKIE_UBICACION = "cayla_ubicacion_activa";
+
+// `ubicaciones.tipo` tiene check ('tienda','almacen','taller'); cualquier otra
+// cosa (null de una RPC vieja) se lee como tienda, el caso más restrictivo.
+function tipoUbicacion(tipo: string | null | undefined): PersonaActualV2["ubicacionTipo"] {
+  return tipo === "almacen" || tipo === "taller" ? tipo : "tienda";
+}
 
 /** Trae la persona actual, resuelta contra Dynamic. Sin persona activa ahí
  *  (o sin ubicación de retail enlazada a su sede), no puede usar la app
@@ -45,7 +53,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
 
   let ubicacionId = data.ubicacion_id;
   let ubicacionEtiqueta = data.ubicacion_nombre ?? "";
-  let ubicacionTipo: "tienda" | "almacen" = data.ubicacion_tipo === "almacen" ? "almacen" : "tienda";
+  let ubicacionTipo: PersonaActualV2["ubicacionTipo"] = tipoUbicacion(data.ubicacion_tipo);
 
   // Selector de ubicación (Fase 2, pendiente desde app/(app)/layout.tsx):
   // la cookie solo cambia la PERSPECTIVA de la app — el permiso real de
@@ -65,7 +73,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
       if (ubicacion) {
         ubicacionId = ubicacion.id;
         ubicacionEtiqueta = ubicacion.nombre;
-        ubicacionTipo = ubicacion.tipo === "almacen" ? "almacen" : "tienda";
+        ubicacionTipo = tipoUbicacion(ubicacion.tipo);
       }
     }
   }

@@ -30,6 +30,9 @@ type Persona = {
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
+  /** Producción (2026-09-15): un integrante del Taller ve el módulo sin ser
+   *  líder. Solo el AppShell lo mira; el permiso real lo da la base. */
+  ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
 };
 
@@ -59,6 +62,7 @@ const IC = {
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
 };
@@ -365,6 +369,12 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   const compras: Item = { href: "/compras", etiqueta: "Compras", icono: IC.compras };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
+  const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
+  // Producción (restaurada 2026-09-15): la ve el líder desde cualquier
+  // ubicación (decide qué se fabrica) y quien trabaja EN el Taller. Una
+  // colaboradora de tienda no la necesita: a ella el stock le llega por
+  // traslado, no por corrida.
+  const veProduccion = esLider || persona.ubicacionTipo === "taller";
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
   // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
@@ -389,6 +399,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
         productos,
         inventario,
         ...(esLider ? [compras] : []),
+        ...(veProduccion ? [produccion] : []),
         movimientos,
         ...(esLider ? [facturacion, colaboradores] : []),
       ],
