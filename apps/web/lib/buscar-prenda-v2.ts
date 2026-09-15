@@ -18,8 +18,10 @@ export type PrendaBuscableV2 = {
   codigosBarras: string[];
 };
 
-export function clave(texto: string): string {
-  return texto
+// Acepta null/undefined porque variantes.sku ya no es NOT NULL (2026-09-15) —
+// una variante creada por crear_producto_con_variantes() no tiene sku legado.
+export function clave(texto: string | null | undefined): string {
+  return (texto ?? "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")

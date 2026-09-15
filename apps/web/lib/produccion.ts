@@ -156,7 +156,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.id,
-          sku: v.sku,
+          sku: v.sku ?? "",
           talla: v.talla,
           color: v.color?.nombre ?? null,
           colorHex: v.color?.hex ?? null,

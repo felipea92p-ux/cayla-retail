@@ -403,7 +403,8 @@ begin
   -- Pago MIXTO a propósito — es el caso que venta_pagos existe para resolver.
   venta2_id := retail.registrar_venta(ubic_lima,
     jsonb_build_array(
-      jsonb_build_object('variante_id', sku_ves_sofi_neg_m, 'cantidad', 1, 'precio_unitario', 149.90, 'descuento_unitario', 15.00),
+      -- motivo_descuento obligatorio desde 20260915140000_descuento_motivo_y_escalonado.sql
+      jsonb_build_object('variante_id', sku_ves_sofi_neg_m, 'cantidad', 1, 'precio_unitario', 149.90, 'descuento_unitario', 15.00, 'motivo_descuento', 'cerrar_venta'),
       jsonb_build_object('variante_id', sku_pan_carl_neg_30, 'cantidad', 1, 'precio_unitario', 99.90, 'descuento_unitario', 0),
       jsonb_build_object('variante_id', sku_fal_rena_bei_m, 'cantidad', 1, 'precio_unitario', 74.90, 'descuento_unitario', 0)
     ),
@@ -413,7 +414,7 @@ begin
     ), cli_camila, gen_random_uuid());
 
   venta3_id := retail.registrar_venta(ubic_trujillo,
-    jsonb_build_array(jsonb_build_object('variante_id', sku_cas_luci_bei_m, 'cantidad', 1, 'precio_unitario', 159.90, 'descuento_unitario', 10.00)),
+    jsonb_build_array(jsonb_build_object('variante_id', sku_cas_luci_bei_m, 'cantidad', 1, 'precio_unitario', 159.90, 'descuento_unitario', 10.00, 'motivo_descuento', 'liquidacion_temporada')),
     jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 149.90)),
     null, gen_random_uuid());
 

@@ -118,7 +118,7 @@ function ConteoEnCurso({
     const q = busqueda.trim().toLowerCase();
     if (!q) return [];
     return catalogo
-      .filter((v) => v.sku.toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
+      .filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
       .slice(0, 8);
   }, [busqueda, catalogo]);
 
