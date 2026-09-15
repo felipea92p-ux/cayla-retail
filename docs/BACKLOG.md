@@ -206,12 +206,58 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 **Pendiente de construir (no es un fix de una sesión):**
 
 - [ ] **El POS de V2 no tiene ninguna resiliencia sin internet — regresión contra V1.**
-      Cero rastro de cola offline, `localStorage` o `navigator.onLine` en `apps/web`.
-      V1 lo tenía resuelto (cola por sede, umbral de stock, reintento con el mismo
-      token). Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende nada.
-      Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada con
-      gracia, nunca pierde datos") y la decisión D-49. La idempotencia por
-      `ventas.token_cliente` —la condición previa— **ya existe en V2**.
+      **TRASPASO 2026-09-15 (sesión de Vender): siguiente paso de esta lista, empezar
+      por acá.** Cero rastro de cola offline, `localStorage` o `navigator.onLine` en
+      `apps/web` hoy. Hoy, si se corta el internet en TRU/AQP/LIM, esa tienda no vende
+      nada. Contradice el principio 9 de `CLAUDE.md` ("todo puede fallar… se degrada
+      con gracia, nunca pierde datos") y D-49.
+
+      **V1 ya lo construyó completo, verificado y con addendums — se borró en el corte
+      V1→V2 (`0af2f1b`, 2026-09-12), no se descartó por estar mal.** Recuperar con:
+      `git show 0af2f1b^:apps/web/lib/ventas-offline.ts` (194 líneas, puro, 11
+      pruebas — `git show 0af2f1b^:apps/web/lib/ventas-offline.test.ts`),
+      `git show 0af2f1b^:apps/web/lib/sin-red.ts` (104 líneas — `esFalloDeRed()`),
+      y sobre todo `git show 0af2f1b^:docs/adr/0036-cola-de-ventas-offline.md` (226
+      líneas: el diseño completo, con dos addendums del mismo día que ya resolvieron
+      los huecos no obvios — venta huérfana si la caja cierra antes de subir, botón
+      "Descartar" para un rechazo que no se va a resolver solo). Deriva de ADR-0013
+      §C (decisión de Felipe: vender offline solo con stock de sobra) y depende del
+      mismo contrato de `p_token`/`unique_violation` en `registrar_venta` que
+      ADR-0032/0033 fijaron — sigue vigente en la versión de hoy
+      (`20260915140000_descuento_motivo_y_escalonado.sql`, líneas ~104-108).
+
+      **Qué cambió desde que se escribió ese ADR, y hay que adaptar, no copiar tal
+      cual:** (1) `registrar_venta` pasó de 5 a 11 parámetros (piso/almacén, motivo y
+      escalonado de descuento, código, nota) — el payload que se encola tiene que
+      llevar los campos de hoy. (2) el stock ahora es piso+almacén por sububicación
+      (`lib/stock-por-sede.ts`, `getStockPorUbicacion` en `lib/inventario-v2.ts`), no
+      la columna plana que V1 leía — el umbral `stockAqui - cantidad >= 1` debe
+      evaluarse sobre el PISO, que es lo que una venta descuenta (nunca el almacén en
+      silencio, principio 4). (3) `lib/almacen-local.ts` (ADR-0049, 2026-09-14) ya es
+      el módulo reutilizable que iba a reemplazar el `localStorage` a mano de V1 —
+      `claveLocal(ubicacionId, "cola")` está reservado en su propio comentario de
+      cabecera exactamente para esto; seguir el patrón de `TOPE_ESPERA`/`enEspera` en
+      `PuntoDeVenta.tsx` (líneas ~101, 171, 413) para la cola por sede. (4) `SIN_RED`
+      ya existe en `apps/web/lib/error-escritura.ts:217` (5 huellas de red) — es lo
+      que `esFalloDeRed()` de V1 reusaba; en V2 puede importarse directo en vez de
+      duplicar la lista. (5) `cobrar()` en `PuntoDeVenta.tsx:509` es donde hoy se
+      llama a `registrar_venta` y se traduce el error — ahí bifurca V1 entre subir
+      normal y encolar. (6) El "esperado" de `cerrar_caja` HOY YA suma/resta
+      reembolsos y diferencias de cambio en efectivo (ADR-0052/0053, 2026-09-15) —
+      sumarle "efectivo encolado sin subir" (`totalEfectivoEncolado()` de V1) es una
+      cuarta pieza sobre el mismo patrón, no una nueva.
+
+      **Cuidado con `docs/datos/`: dice que esto YA ESTÁ HECHO, y no lo está — es la
+      documentación desactualizada, no el código.** `docs/datos/10-ROADMAP-DATOS.md:
+      801` ("D-49 · HECHA") y `docs/datos/09-CONTRATOS.md:115-118` describen
+      `lib/ventas-offline.ts`/`lib/sin-red.ts` como si existieran hoy en el repo — es
+      la foto de V1 sin actualizar tras el corte, el mismo problema que ya delató
+      `docs-datos-generado-es-foto-v1-del-12-sep` en otra parte de este archivo. No
+      confiar en esa carpeta para saber si esto está construido: confiar en
+      `apps/web/lib/` (vacío de esto hoy) y en este ítem del BACKLOG.
+
+      La idempotencia por `ventas.token_cliente` —la condición previa que todo esto
+      pide— **ya existe en V2** desde 2026-09-10, sin tocar.
 - [x] **Las tres migraciones de ADR-0048 ya están en producción — ya no bloquean el
       deploy.** `20260914215059_candado_precio_venta.sql`,
       `20260914215103_codigos_descuento.sql` y `20260914220804_nota_en_ventas.sql`.

@@ -3,6 +3,24 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (cierre de sesión: traspaso de la cola offline a otra sesión)
+
+Felipe pidió cerrar acá y seguir la cola offline (siguiente ítem de la lista del
+análisis competitivo) en otra sesión. Antes de cortar: el BACKLOG ("El POS de V2 no
+tiene ninguna resiliencia sin internet") quedó reescrito con el traspaso completo —
+V1 ya construyó esto entero y verificado (`lib/ventas-offline.ts`, `lib/sin-red.ts`,
+ADR-0036 con dos addendums) y se borró sin querer en el corte V1→V2, no por estar
+mal; recuperable con `git show 0af2f1b^:<ruta>`. Se anotó también que
+`docs/datos/10-ROADMAP-DATOS.md` y `09-CONTRATOS.md` dicen que esto ya existe (D-49
+"HECHA") — es la misma foto de V1 sin refrescar que ya se había delatado antes en
+otra parte del repo, no una segunda vez que alguien lo construyó.
+
+Lo que Felipe se lleva: **antes de traspasar trabajo a otra sesión, el lugar correcto
+para dejar el contexto es el BACKLOG, no solo el chat** — la próxima sesión audita el
+repo y lee `BACKLOG.md`/`BITACORA.md` completos por ritual (`CLAUDE.md`) antes de
+proponer nada, así que el traspaso llega sin depender de que alguien copie y pegue
+el mensaje correcto.
+
 ## 2026-09-15 (la diferencia de un cambio también cuadra la caja)
 
 Quinto paso, sobre el hallazgo que el paso anterior dejó anotado sin resolver a
