@@ -1703,30 +1703,39 @@ export type Database = {
       }
       venta_items: {
         Row: {
+          argumento_descuento: string | null
           cantidad: number
           costo_unitario: number
           descuento_unitario: number
           id: string
+          motivo_descuento: string | null
+          motivo_descuento_detalle: string | null
           precio_unitario: number
           subtotal: number | null
           variante_id: string
           venta_id: string
         }
         Insert: {
+          argumento_descuento?: string | null
           cantidad: number
           costo_unitario: number
           descuento_unitario?: number
           id?: string
+          motivo_descuento?: string | null
+          motivo_descuento_detalle?: string | null
           precio_unitario: number
           subtotal?: number | null
           variante_id: string
           venta_id: string
         }
         Update: {
+          argumento_descuento?: string | null
           cantidad?: number
           costo_unitario?: number
           descuento_unitario?: number
           id?: string
+          motivo_descuento?: string | null
+          motivo_descuento_detalle?: string | null
           precio_unitario?: number
           subtotal?: number | null
           variante_id?: string

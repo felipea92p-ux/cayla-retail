@@ -11,7 +11,18 @@ import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { aplicarDescuento, esperaAlCargar, motivoBloqueoCobro, restanteDePagos, vueltoDe, type MomentoTicket, type PagoAplicado } from "@/lib/vender-reglas";
+import {
+  aplicarDescuento,
+  aplicarDescuentoMonto,
+  esperaAlCargar,
+  motivoBloqueoCobro,
+  restanteDePagos,
+  SIN_DETALLE_DESCUENTO,
+  vueltoDe,
+  type DetalleDescuento,
+  type MomentoTicket,
+  type PagoAplicado,
+} from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -56,12 +67,29 @@ export type ItemCarrito = {
   precioUnitario: number;
   descuentoUnitario: number;
   stockAqui: number;
+  /** Por qué se descontó esta línea (R-45): uno de `RAZONES_DESCUENTO`, o "" sin
+   *  descuento. `registrar_venta` lo exige apenas `descuentoUnitario > 0`. */
+  razonDescuento: string;
+  /** El texto de "Otro" — solo cuando `razonDescuento === "otro"`. */
+  razonDescuentoOtro: string;
+  /** El argumento escrito que pide la banda 20-35 % de un Líder (R-45); "" fuera de
+   *  esa banda o en el camino de una Colaboradora (su tope es el código, no esto). */
+  argumentoDescuento: string;
 };
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % (texto tal
- *  cual lo escribe) y a qué líneas alcanza — `null` es todo el ticket; `[]` es que
- *  todavía no eligió ninguna (no se puede aplicar). */
-export type DescuentoForm = { pct: string; elegidas: string[] | null };
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
+ *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
+ *  es todo el ticket; `[]` es que todavía no eligió ninguna), el motivo (R-45) y el
+ *  argumento que la banda 20-35 % de un Líder exige. */
+export type DescuentoForm = {
+  modo: "porcentaje" | "monto";
+  pct: string;
+  monto: string;
+  elegidas: string[] | null;
+  razon: string;
+  razonOtro: string;
+  argumento: string;
+};
 
 /** Un ticket dejado en espera (la clienta fue a probarse otra talla): lo que hace falta
  *  para retomarlo tal cual — líneas (con su descuento adentro), nota y código. El
@@ -82,6 +110,10 @@ type VentaOk = {
 };
 
 const MAX_RESULTADOS = 6;
+
+/** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
+ *  que `abrirDescuento` traiga unas), sin motivo. */
+const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 /** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
 const ATAJOS = [
@@ -126,7 +158,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
   const [pagos, setPagos] = useState<PagoAplicado[]>([]);
-  const [descuento, setDescuento] = useState<DescuentoForm>({ pct: "", elegidas: null });
+  const [descuento, setDescuento] = useState<DescuentoForm>(DESCUENTO_VACIO);
   // Código que autoriza el descuento de una Colaboradora; viaja tal cual y la RPC lo valida.
   const [codigoDescuento, setCodigoDescuento] = useState("");
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
@@ -282,6 +314,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               precioUnitario: v.precio,
               descuentoUnitario: 0,
               stockAqui: v.stockAqui,
+              razonDescuento: "",
+              razonDescuentoOtro: "",
+              argumentoDescuento: "",
             },
           ];
         }
@@ -311,6 +346,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         precioUnitario: valor,
         descuentoUnitario: 0,
         stockAqui: STOCK_CARGO_ESPECIAL,
+        razonDescuento: "",
+        razonDescuentoOtro: "",
+        argumentoDescuento: "",
       },
     ]);
     setMontoManual("");
@@ -334,18 +372,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   }
 
   // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
-  // entradas — la fila sobre el total (todo el ticket) y el «%» de cada línea (esa sola).
-  // Se aplica como `descuentoUnitario` por línea, que es lo que `registrar_venta` guarda.
+  // entradas — la fila sobre el total (todo el ticket) y el % o el S/ de cada línea. Se
+  // aplica como `descuentoUnitario` por línea, que es lo que `venta_items` guarda, junto
+  // con el motivo (R-45, 2026-09-15) — `registrar_venta` exige los dos juntos.
   function abrirDescuento(claves: string[] | null) {
-    setDescuento({ pct: "", elegidas: claves });
+    setDescuento({ ...DESCUENTO_VACIO, elegidas: claves });
     setMomento("descuento");
   }
   function aplicarDescuentoAlTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), descuento.elegidas ?? []));
+    const claves = descuento.elegidas ?? [];
+    const detalle: DetalleDescuento = { razon: descuento.razon, razonOtro: descuento.razonOtro, argumento: descuento.argumento };
+    setCarrito((actual) =>
+      descuento.modo === "monto"
+        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
+    );
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
-    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas ?? []));
+    setCarrito((actual) => aplicarDescuento(actual, 0, descuento.elegidas ?? [], SIN_DETALLE_DESCUENTO));
     setMomento("armar");
   }
 
@@ -360,7 +405,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     setNota("");
     setCodigoDescuento("");
     setPagos([]);
-    setDescuento({ pct: "", elegidas: null });
+    setDescuento(DESCUENTO_VACIO);
     setMomento("armar");
   }
   function dejarEnEspera() {
@@ -478,6 +523,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
         descuento_unitario: it.descuentoUnitario,
+        // Sin descuento viajan como `undefined` (la clave ni aparece en el jsonb) — la
+        // RPC los lee con `coalesce(..., '')` y no le importa la diferencia.
+        motivo_descuento: it.razonDescuento || undefined,
+        motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
+        argumento_descuento: it.argumentoDescuento || undefined,
       })),
       // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
       // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.

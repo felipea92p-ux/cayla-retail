@@ -1,12 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
+  aplicarDescuentoMonto,
+  descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
   esperaAlCargar,
   motivoBloqueoCobro,
+  necesitaArgumentoEscrito,
   porcentajeDeLinea,
   restanteDePagos,
+  SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  type DetalleDescuento,
 } from "./vender-reglas";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
@@ -77,7 +82,16 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
 
 // ---- Descuento manual (2026-09-14): viaja como `descuentoUnitario` por línea, que es
 // lo que `venta_items` ya guarda. Un % se vuelve monto por unidad, con 2 decimales.
-const linea = (claveLinea: string, precioUnitario: number, descuentoUnitario = 0) => ({ claveLinea, precioUnitario, descuentoUnitario });
+const linea = (claveLinea: string, precioUnitario: number, descuentoUnitario = 0) => ({
+  claveLinea,
+  precioUnitario,
+  descuentoUnitario,
+  razonDescuento: "",
+  razonDescuentoOtro: "",
+  argumentoDescuento: "",
+});
+
+const cumpleanos: DetalleDescuento = { razon: "cumpleanos_clienta_top", razonOtro: "", argumento: "" };
 
 describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad", () => {
   it("10 % de S/79.90 son S/7.99", () => {
@@ -97,21 +111,66 @@ describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad", (
   });
 });
 
+describe("descuentoUnitarioPorMonto — un S/ por unidad, la otra entrada del apartado", () => {
+  it("un monto menor al precio se aplica tal cual, a 2 decimales", () => {
+    expect(descuentoUnitarioPorMonto(79.9, 15)).toBe(15);
+    expect(descuentoUnitarioPorMonto(79.9, 15.005)).toBe(15.01);
+  });
+  it("nunca supera el precio — el candado de venta_items lo rechazaría igual", () => {
+    expect(descuentoUnitarioPorMonto(50, 80)).toBe(50);
+  });
+  it("un monto inválido (0, negativo, NaN) no descuenta nada", () => {
+    expect(descuentoUnitarioPorMonto(79.9, 0)).toBe(0);
+    expect(descuentoUnitarioPorMonto(79.9, -5)).toBe(0);
+    expect(descuentoUnitarioPorMonto(79.9, Number.NaN)).toBe(0);
+  });
+});
+
 describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", () => {
   const carrito = [linea("a", 79.9), linea("b", 179.9), linea("c", 50, 5)];
 
   it("sin claves descuenta todas las líneas", () => {
-    expect(aplicarDescuento(carrito, 10, []).map((l) => l.descuentoUnitario)).toEqual([7.99, 17.99, 5]);
+    expect(aplicarDescuento(carrito, 10, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([7.99, 17.99, 5]);
   });
   it("con claves descuenta solo esas y deja las demás como estaban", () => {
-    expect(aplicarDescuento(carrito, 20, ["b"]).map((l) => l.descuentoUnitario)).toEqual([0, 35.98, 5]);
+    expect(aplicarDescuento(carrito, 20, ["b"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([0, 35.98, 5]);
   });
   it("0 % quita el descuento de las líneas alcanzadas", () => {
-    expect(aplicarDescuento(carrito, 0, ["c"]).map((l) => l.descuentoUnitario)).toEqual([0, 0, 0]);
+    expect(aplicarDescuento(carrito, 0, ["c"], SIN_DETALLE_DESCUENTO).map((l) => l.descuentoUnitario)).toEqual([0, 0, 0]);
   });
   it("no muta el carrito original", () => {
-    aplicarDescuento(carrito, 50, []);
+    aplicarDescuento(carrito, 50, [], cumpleanos);
     expect(carrito[0].descuentoUnitario).toBe(0);
+  });
+
+  it("guarda el motivo en cada línea alcanzada, y deja las demás sin tocar", () => {
+    const resultado = aplicarDescuento(carrito, 10, ["a"], cumpleanos);
+    expect(resultado[0].razonDescuento).toBe("cumpleanos_clienta_top");
+    expect(resultado[1].razonDescuento).toBe("");
+  });
+  it('con motivo "otro" guarda también el detalle; con cualquier otro motivo lo limpia', () => {
+    const otro: DetalleDescuento = { razon: "otro", razonOtro: "Pedido especial de la clienta", argumento: "" };
+    const resultado = aplicarDescuento(carrito, 10, ["a"], otro);
+    expect(resultado[0].razonDescuentoOtro).toBe("Pedido especial de la clienta");
+
+    const conMotivoDistinto = aplicarDescuento(resultado, 10, ["a"], cumpleanos);
+    expect(conMotivoDistinto[0].razonDescuentoOtro).toBe("");
+  });
+  it("quitar el descuento (SIN_DETALLE_DESCUENTO) también limpia motivo y argumento", () => {
+    const conDescuento = aplicarDescuento(carrito, 25, ["a"], { razon: "cerrar_venta", razonOtro: "", argumento: "Cierre de caja" });
+    const sinDescuento = aplicarDescuento(conDescuento, 0, ["a"], SIN_DETALLE_DESCUENTO);
+    expect(sinDescuento[0]).toMatchObject({ descuentoUnitario: 0, razonDescuento: "", argumentoDescuento: "" });
+  });
+});
+
+describe("aplicarDescuentoMonto — lo mismo que aplicarDescuento, pero en S/", () => {
+  const carrito = [linea("a", 79.9), linea("b", 50)];
+
+  it("aplica el mismo monto por unidad a las líneas alcanzadas, recortado al precio", () => {
+    expect(aplicarDescuentoMonto(carrito, 60, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 50]);
+  });
+  it("guarda el motivo igual que la versión por %", () => {
+    expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");
   });
 });
 
@@ -176,5 +235,23 @@ describe("esperaAlCargar — con la caja cerrada no vuelve ningún ticket de aye
   });
   it("con la caja cerrada la espera arranca vacía aunque haya algo guardado", () => {
     expect(esperaAlCargar(true, guardados)).toEqual([]);
+  });
+});
+
+// R-45: el escalonado (20-35 % con argumento escrito, más de 35 % nadie) es solo del
+// Líder — la Colaboradora sigue con su propio tope, el código. El candado real vive en
+// `registrar_venta`; esto solo decide cuándo el apartado MUESTRA el campo.
+describe("necesitaArgumentoEscrito — la banda 20-35 % es solo del Líder", () => {
+  it("a un Líder por debajo de 20 % no le pide nada", () => {
+    expect(necesitaArgumentoEscrito(true, 20)).toBe(false);
+    expect(necesitaArgumentoEscrito(true, 15)).toBe(false);
+  });
+  it("a un Líder pasado el 20 % le pide argumento", () => {
+    expect(necesitaArgumentoEscrito(true, 21)).toBe(true);
+    expect(necesitaArgumentoEscrito(true, 35)).toBe(true);
+  });
+  it("a una Colaboradora nunca — su tope es el código, no el escalonado", () => {
+    expect(necesitaArgumentoEscrito(false, 30)).toBe(false);
+    expect(necesitaArgumentoEscrito(false, 90)).toBe(false);
   });
 });
