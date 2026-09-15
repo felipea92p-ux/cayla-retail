@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-15 (Movimientos también centrado — mismo criterio que Inventario, sin sorpresas esta vez)
+
+Felipe pidió centrar la tabla de Movimientos, "solo ese cambio puntual". Las 6 columnas
+(encabezado y filas) pasan a `alinear: "centro"`; las dos celdas con dos y tres líneas
+(Prenda, Proceso · Referencia) no usan `celda()` — llevan `sm:text-center` directo, mismo
+criterio que el resto (en celular la fila sigue apilada a la izquierda). A diferencia de
+Inventario, acá NO apareció el bug del `1fr` en 0px: esta tabla reparte el espacio entre
+DOS columnas flexibles (`1.1fr`/`1fr`, no una sola contra seis fijas), así que ninguna
+llegó a colapsar en la misma ventana angosta donde se probó — y aunque hubiera pasado,
+`ui/Tabla.tsx` ya tiene `overflow-x-auto` desde el arreglo de ayer. Verificado con las
+medidas del DOM: 5 columnas visibles con texto centrado, sin desborde a este ancho.
+
+Lo que Felipe se lleva: **la misma corrección, aplicada una vez en el componente
+compartido, hizo que centrar la segunda tabla fuera solo estética** — no hubo que repetir
+el diagnóstico del día anterior.
+
 ## 2026-09-15 (Inventario: la muestra de color pasa a cápsula, la tabla se centra, y un bug real que apareció al probarlo)
 
 Dos ajustes de Felipe sobre lo de hoy: (1) la muestra de color deja de ser un círculo
