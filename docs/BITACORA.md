@@ -31,6 +31,11 @@ solo sale cuando hay filas con variante, y "Vaciar" también sirve para las agru
 en navegador con Playwright contra el Supabase local (escritorio y 375 px, la tabla cabe sin
 scroll). No toca RPC ni esquema.
 
+De paso, en Proveedores (misma captura de Diego): la fila era inerte y cada una llevaba
+"Editar" + "Desactivar" con el mismo peso. Ahora la fila entera abre las facturas del proveedor
+(`/compras?prov=`), el saldo abre Por pagar filtrado, queda una sola acción por fila (Editar /
+Reactivar) y Desactivar vive al pie del modal de edición. Solo `ProveedoresPanel.tsx`.
+
 Lo que se lleva: **la pantalla se dibuja con la forma en que la gente ya cuenta la mercadería**,
 no con la forma en que la base la guarda — la base sigue viendo variantes sueltas.
 
