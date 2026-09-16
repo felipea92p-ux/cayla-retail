@@ -3,6 +3,26 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (invitar colaboradores estaba caído en producción — dominio no verificado en Resend)
+
+Felipe reportó "Error sending invite email" al invitar a un colaborador nuevo desde el
+dashboard de Supabase, en producción. Diagnóstico por logs de Auth (`vovjyyiafkxteijimpuy`,
+el proyecto real de producción — ver memoria `produccion-restaurada-y-proyectos-supabase`):
+11 intentos fallidos seguidos, todos con el mismo `550 "The associated domain with your API
+key is not verified"`. No era bug de la app — era Resend (el SMTP de Authentication →
+Emails, sender `dynamic@cayla.pe`) rechazando el envío porque `cayla.pe` no pasaba su
+verificación de dominio. El DNS en GoDaddy tenía bien el SPF/MX de `send.cayla.pe`, pero el
+TXT `resend._domainkey` (DKIM) estaba desactualizado — clave vieja, probablemente de cuando
+se recreó el dominio en Resend hace un mes, nunca resincronizada. Felipe reemplazó el valor
+por el que muestra el panel de Resend; confirmado por `dig` contra el nameserver autoritativo
+(no el resolver con caché, que todavía servía el valor viejo) que el cambio se guardó bien, y
+~25 minutos después (tiempo de caché DNS restante) Resend marcó el dominio verificado. Cierre
+confirmado por logs: invite de las 15:25:28 salió con `status 200` sin error, contra los 11
+fallos idénticos previos. Lo que aprendió Felipe: un DKIM en base64 puede "verse igual" a
+simple vista y no serlo (caracteres casi idénticos como `l`/`I`) — mejor confiar en que el
+proveedor lo marque inválido que comparar a ojo; y cambiar el TTL de un registro no acelera
+la expiración de copias ya cacheadas en otros resolvers, solo afecta lecturas futuras.
+
 ## 2026-09-16 (BACKLOG desactualizado: 10 migraciones ya estaban en producción)
 
 Felipe pidió subir el PR del buscador y, de paso, "si hay migraciones ejecutarlas
