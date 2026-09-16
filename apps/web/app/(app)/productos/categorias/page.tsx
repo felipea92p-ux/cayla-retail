@@ -2,7 +2,6 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
-import { ProductosNav } from "@/components/ProductosNav";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
@@ -61,8 +60,6 @@ export default async function CategoriasPage() {
           </Ayuda>
         </h1>
       </div>
-
-      <ProductosNav />
 
       <CategoriasLista categoriasIniciales={categorias} puedeEditar={persona.rol === "lider"} />
     </div>

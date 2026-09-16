@@ -4,7 +4,6 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto } from "@/lib/catalogo-v2";
-import { ProductosNav } from "@/components/ProductosNav";
 import { ProductoForm } from "@/components/ProductoForm";
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -41,8 +40,6 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
         </h1>
       </div>
-
-      <ProductosNav />
 
       <ProductoForm categorias={categorias} colores={colores} producto={producto} />
 
