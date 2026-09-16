@@ -3,6 +3,15 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Taxonomía ideal — propuesta ADR-0072, sin aplicar)
+
+17 referentes investigados (Shopify, Stripe, QuickBooks, Odoo, ERPNext, Square, Lightspeed, GS1,
+Google, Akeneo/commercetools, ERP de moda, SUNAT y otros), 191 hallazgos, 170 confirmados contra
+documentación oficial y 12 refutados antes de sintetizar. La propuesta (modelo-color como objeto,
+tallas con escala y talla clave, precio con vigencia, línea de venta congelada) compila en
+Postgres 17 y rechaza 102 de 102 estados imposibles, verificado de nuevo al integrarla.
+Aprendizaje: la investigación dice qué construir; la fecha la pone la primera etiqueta impresa.
+
 ## 2026-09-16 (Colores: proponer/aprobar — ADR-0070)
 
 Última pieza de la sesión de hoy sobre Catálogo/Inventario/Taxonomía: cerrar el punto
