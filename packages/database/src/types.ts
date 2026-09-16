@@ -983,6 +983,63 @@ export type Database = {
           },
         ]
       }
+      costo_historial: {
+        Row: {
+          cantidad_nueva: number
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at: string
+          id: string
+          movimiento_id: string
+          origen: string
+          stock_previo: number
+          usuario_id: string | null
+          variante_id: string
+        }
+        Insert: {
+          cantidad_nueva: number
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at?: string
+          id?: string
+          movimiento_id: string
+          origen: string
+          stock_previo: number
+          usuario_id?: string | null
+          variante_id: string
+        }
+        Update: {
+          cantidad_nueva?: number
+          costo_anterior?: number
+          costo_resultante?: number
+          costo_unitario_nuevo?: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string
+          origen?: string
+          stock_previo?: number
+          usuario_id?: string | null
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costo_historial_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "costo_historial_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -2310,56 +2367,34 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
-      catalogo_actualizar_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_producto_id: string
-              p_referencia: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_producto_id: string
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
-      catalogo_crear_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_referencia: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
+      catalogo_actualizar_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_estado: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
+          p_producto_id: string
+          p_referencia: string
+          p_stock_minimo?: number
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: undefined
+      }
+      catalogo_crear_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
+          p_referencia: string
+          p_stock_minimo?: number
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
         Returns: {
@@ -2495,6 +2530,24 @@ export type Database = {
           rol: string
           sede: string
           ubicacion_asignada: string
+        }[]
+      }
+      fn_costo_historial: {
+        Args: { p_variante_id: string }
+        Returns: {
+          cantidad_nueva: number
+          compra_documento: string
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at: string
+          id: string
+          lote_guia: string
+          origen: string
+          produccion_referencia: string
+          proveedor_nombre: string
+          stock_previo: number
+          usuario_nombre: string
         }[]
       }
       fn_dynamic_disponibles: {
@@ -2717,6 +2770,16 @@ export type Database = {
         Returns: boolean
       }
       fn_puede_registrar_compras: { Args: never; Returns: boolean }
+      fn_recalcular_costo_variante: {
+        Args: {
+          p_cantidad_nueva: number
+          p_costo_unitario_nuevo: number
+          p_movimiento_id: string
+          p_origen: string
+          p_variante_id: string
+        }
+        Returns: number
+      }
       fn_reservar_numero_serie: {
         Args: { p_tipo: string; p_ubicacion_id: string }
         Returns: {
@@ -3036,12 +3099,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3065,11 +3128,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3090,11 +3153,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3115,11 +3178,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3132,11 +3195,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
