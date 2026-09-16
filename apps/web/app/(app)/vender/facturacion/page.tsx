@@ -71,15 +71,20 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
               {MESES[mes % 12]} →
             </Link>
           )}
+          {/* Separado del navegador de mes por un divisor: no es "otro mes",
+              es una acción secundaria distinta que vive en esta pantalla desde
+              antes (decisión de Felipe, 2026-09-15: se queda acá, no pasa al
+              lateral). Antes colgaba solo debajo del título, sin agruparse con
+              ninguna de las tres secciones de abajo. */}
+          <span className="h-5 w-px bg-tinta/15" aria-hidden="true" />
+          <Link
+            href="/vender/descuentos"
+            className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+          >
+            Códigos de descuento
+          </Link>
         </div>
       </div>
-
-      <Link
-        href="/vender/descuentos"
-        className="label-cayla -mt-4 inline-block text-[11px] text-tinta/60 transition-colors hover:text-rojo"
-      >
-        Códigos de descuento →
-      </Link>
 
       {/* Ventas de hoy primero: es lo más inmediato — qué pasó en el mostrador
           en las últimas horas, antes que el trabajo pendiente (proformas) o el
