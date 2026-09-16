@@ -78,6 +78,14 @@ export function ProformasPanel({
   const porVencer = vigentes.filter((p) => p.porVencer);
   const montoVigente = vigentes.reduce((acc, p) => acc + Number(p.total), 0);
 
+  // Un solo orden para tabla y tarjetas — nunca dos criterios que puedan
+  // desalinearse. Excepciones primero: vigentes (y entre ellas, por vencer)
+  // arriba de convertidas/vencidas.
+  const proformasOrdenadas = [...proformas].sort((a, b) => {
+    const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
+    return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
+  });
+
   function cerrarModal() {
     setModal(null);
     setTotal(0);
@@ -179,27 +187,21 @@ export function ProformasPanel({
             Sin proformas este mes.
           </p>
         ) : (
-          <div className="overflow-x-auto card-cayla">
-            <table className="w-full min-w-[760px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]" />
-                </tr>
-              </thead>
-              {/* Excepciones primero: vigentes (y entre ellas, por vencer) arriba de convertidas/vencidas. */}
-              <tbody className="divide-y divide-tinta/5">
-                {[...proformas]
-                  .sort((a, b) => {
-                    const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
-                    // Y dentro de las vigentes, las que están por vencer primero
-                    // (el comentario de arriba lo prometía; el orden no lo hacía).
-                    return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
-                  })
-                  .map((p) => (
+          <>
+            {/* Tabla — 640px (`sm`) y más ancho; ver la misma nota en ComprobantesPanel. */}
+            <div className="hidden overflow-x-auto card-cayla sm:block">
+              <table className="w-full min-w-[760px] text-left text-xs">
+                <thead className="border-b border-tinta/10 text-tinta/65">
+                  <tr>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tinta/5">
+                  {proformasOrdenadas.map((p) => (
                     <tr key={p.id}>
                       <td className="px-3 py-2.5 text-tinta/75">
                         {p.porVencer && (
@@ -229,9 +231,46 @@ export function ProformasPanel({
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tarjetas — por debajo de `sm`. */}
+            <div className="space-y-2 sm:hidden">
+              {proformasOrdenadas.map((p) => (
+                <div key={p.id} className="card-cayla p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-tinta">{p.cliente_nombre ?? "Cliente varios"}</p>
+                      <p className="mt-0.5 text-xs text-tinta/65">
+                        {p.porVencer && (
+                          <span
+                            title="Vence en menos de 48 horas"
+                            className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ambar align-middle"
+                          />
+                        )}
+                        {formatearFecha(p.created_at)}
+                      </p>
+                    </div>
+                    <p className="font-display shrink-0 text-base tabular-nums text-tinta">{money(Number(p.total))}</p>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    <span className={`label-cayla border px-3 py-1 text-[11px] ${ESTADO_ESTILO[p.estado]}`}>
+                      {ESTADO_ETIQUETA[p.estado]}
+                    </span>
+                    {p.estado === "vigente" && (
+                      <button
+                        onClick={() => setModal({ convertir: p })}
+                        className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+                      >
+                        Convertir
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
