@@ -257,11 +257,24 @@ export function ComprobantesPanel({
 
   return (
     <div className="space-y-6">
-      {/* Resumen del mes */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
+      {/* Resumen del mes. Cuatro tiles, no tres: "Rechazados" tenía su propio
+          número escondido como sub-línea roja dentro de "Pendientes de enviar"
+          — dos urgencias distintas (una normal, una que exige acción) peleando
+          por el mismo espacio de una oración. Ahora cada una tiene su lugar. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
         <div className="bg-crema p-4">
           <p className="label-cayla text-[11px] text-tinta/65">Emitidos este mes</p>
           <p className="font-display mt-1 text-2xl text-tinta">{comprobantes.length}</p>
+          {pruebas > 0 && (
+            <p className="mt-0.5 text-xs text-tinta/75">
+              {pruebas} de prueba
+              <Ayuda titulo="Comprobante de prueba">
+                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
+                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
+                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
+              </Ayuda>
+            </p>
+          )}
         </div>
         <div className="bg-crema p-4">
           <p className="label-cayla text-[11px] text-tinta/65">Monto facturado</p>
@@ -277,16 +290,12 @@ export function ComprobantesPanel({
             </Ayuda>
           </p>
           <p className={`font-display mt-1 text-2xl ${pendientes > 0 ? "text-ambar" : "text-tinta"}`}>{pendientes}</p>
-          {rechazados > 0 && <p className="mt-0.5 text-xs text-rojo">{rechazados} rechazado{rechazados > 1 ? "s" : ""}</p>}
-          {pruebas > 0 && (
-            <p className="mt-0.5 text-xs text-tinta/75">
-              {pruebas} de prueba
-              <Ayuda titulo="Comprobante de prueba">
-                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
-                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
-                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
-              </Ayuda>
-            </p>
+        </div>
+        <div className="bg-crema p-4">
+          <p className="label-cayla text-[11px] text-tinta/65">Rechazados</p>
+          <p className={`font-display mt-1 text-2xl ${rechazados > 0 ? "text-rojo" : "text-tinta"}`}>{rechazados}</p>
+          {rechazados > 0 && (
+            <p className="mt-0.5 text-xs text-rojo">SUNAT no los aceptó — el motivo está en la fila.</p>
           )}
         </div>
       </div>
