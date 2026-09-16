@@ -9,6 +9,7 @@
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
+    "caja:verificar": "node scripts/caja/verificar.mjs",
     "datos:generar": "node scripts/datos/generar.mjs",
     "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",
     "datos:comparar": "node scripts/datos/comparar.mjs --md",

@@ -4550,3 +4550,41 @@ Lo que Felipe se lleva: **el riesgo que el BACKLOG anotó nunca se materializó 
 byte, el tercero regenerado correctamente). La próxima vez que un ADR prediga una colisión en
 `BACKLOG.md`, vale la pena cerrar el loop con `git diff <commit-de-origen> HEAD -- <archivo>`
 en vez de asumir que "va a chocar" significa que chocó.
+
+## 2026-09-16 (Caja: primera prueba automatizada de abrir_caja/cerrar_caja)
+
+Segundo paso de la misma sesión: Felipe pidió cerrar la deuda de tests sobre `abrir_caja`/
+`cerrar_caja` ("el núcleo del dinero"), sin precedente de vitest contra Postgres real en este
+repo — los 20 `*.test.ts` de `apps/web` prueban solo lógica pura (`lib/*-reglas.ts`), nunca una
+RPC. El precedente real era `scripts/migraciones/verificar.mjs` (Node envolviendo `docker exec
+psql`, registrado como `pnpm <dominio>:verbo`) más el patrón "psql en una transacción con
+rollback" que varias sesiones de Caja ya habían usado a mano, sin dejarlo escrito. Se combinaron
+los dos: `scripts/caja/verificar.sql` (15 escenarios, identidades simuladas con `set_config
+('request.jwt.claim.sub', ...)`, igual que `supabase/seed.sql`) + `scripts/caja/verificar.mjs`
+(corre el `.sql`, parsea el reporte, sale con código 1 si algo falló — a propósito distinto de
+`migraciones:verificar`, que nunca falla porque es un auditor, no una prueba). `pnpm
+caja:verificar` en `package.json`.
+
+Dos bugs reales encontrados construyéndolo, ninguno en las RPC: (1) `rollback to savepoint`
+deshace TODO lo escrito después del savepoint, incluida una tabla temporal de resultados que
+uso para ir acumulando el reporte — no solo los efectos de la RPC bajo prueba. Cambiado a `raise
+notice`, que es un mensaje al cliente y sobrevive al rollback. (2) El Postgres local lo comparten
+~27 worktrees y casi siempre hay una caja de verdad abierta en alguna sede cuando la prueba
+arranca — `cajas_ubicacion_abierta_unica` rechazaba el primer intento de abrir. Se cierran todas
+a la fuerza (sin pasar por `cerrar_caja`, solo para liberar el índice) al principio de la MISMA
+transacción que termina en `rollback`: inocuo, porque nada de eso sale de la transacción y las
+cajas ajenas reaparecen exactamente como estaban en cuanto termina.
+
+Verificado que la prueba prueba algo de verdad, no solo que siempre da verde: se invirtió a mano
+una aserción (`B6`), corrió, confirmó `✗` + `exit 1`, se revirtió. Cero huella verificada contando
+`cajas` y consultando `ubicacion_asignada_id` de Micaela antes/después de 3 corridas seguidas
+(la B4-B5 reasignan temporalmente a Micaela a Tienda Lima para aislar el candado de líder del de
+ubicación — el rollback la devuelve a Trujillo). 15/15 en verde. Fuera de alcance, documentado en
+BACKLOG: `ventas_efectivo`/reembolsos/diferencia de cambio de `cerrar_caja` (ADR-0052/0053) no
+están cubiertos — pedirían un fixture de venta/devolución/cambio completo que Felipe no pidió acá.
+
+Lo que Felipe se lleva: **un `raise notice` sobrevive a un rollback; un `insert` en una tabla
+normal, no** — para reportar resultados de una prueba que además debe dejar cero huella, el
+mensaje es la única escritura segura. Y una prueba que nunca se vio fallar no es una prueba
+verificada, es una aspiración — invertir una aserción a mano y ver el rojo es parte del trabajo,
+no un paso extra.

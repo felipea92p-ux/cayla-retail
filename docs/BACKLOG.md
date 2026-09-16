@@ -18,6 +18,31 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Caja: pruebas de abrir_caja/cerrar_caja contra Postgres real (2026-09-16)
+
+`pnpm caja:verificar` (`scripts/caja/verificar.mjs` + `.sql`) — 15 escenarios en una sola
+transacción con rollback (mismo patrón que cada sesión de Caja venía haciendo a mano y
+perdiendo al cerrar): permisos de `abrir_caja` por ubicación (colaborador propia/ajena
+sede, líder cualquiera), unicidad de caja abierta, monto de apertura negativo, aritmética
+de `cerrar_caja` con depósito+ajuste, el candado de líder de ADR-0056 en ambas direcciones,
+doble cierre, permiso de `cerrar_caja` por ubicación, monto contado negativo. Cero huella
+verificada (conteo de `cajas` y `ubicacion_asignada_id` de Micaela iguales antes/después de
+3 corridas seguidas); el camino de falla se probó a propósito (una aserción invertida a
+mano, confirmó ✗ + exit 1, revertida).
+
+**Pendiente, sin dueño:**
+
+- [ ] **`cerrar_caja` también suma `ventas_efectivo` y reembolsos/diferencia de cambio
+      (ADR-0052/0053) — esta prueba no los cubre.** Necesitan fixture de producto+variante+
+      venta/devolución/cambio completo, fuera del alcance que pidió Felipe ("abrir_caja ni
+      cerrar_caja"). Esos tres términos ya se verificaron a mano en sus propias sesiones;
+      quien los quiera automatizados arranca de `scripts/caja/verificar.sql` (mismo patrón
+      de identidades simuladas con `request.jwt.claim.sub`).
+- [ ] **No está enganchado a CI** — no existe pipeline de CI en este repo todavía. Corre
+      manual, `pnpm caja:verificar`, contra el Postgres local (`docker exec`).
+
+---
+
 ## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
 
 **El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**
