@@ -938,6 +938,8 @@ export type Database = {
       conteos: {
         Row: {
           abierto_por: string | null
+          alcance: string
+          alcance_categoria_id: string | null
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
@@ -948,6 +950,8 @@ export type Database = {
         }
         Insert: {
           abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
@@ -958,6 +962,8 @@ export type Database = {
         }
         Update: {
           abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
@@ -967,6 +973,13 @@ export type Database = {
           ubicacion_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conteos_alcance_categoria_id_fkey"
+            columns: ["alcance_categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conteos_sububicacion_pertenece_fk"
             columns: ["sububicacion_id", "ubicacion_id"]
@@ -2283,7 +2296,12 @@ export type Database = {
         Returns: string
       }
       abrir_conteo: {
-        Args: { p_sububicacion_id?: string; p_ubicacion_id: string }
+        Args: {
+          p_alcance?: string
+          p_alcance_categoria_id?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+        }
         Returns: string
       }
       abrir_produccion: {
@@ -2698,6 +2716,18 @@ export type Database = {
           ubicacion_id: string
           ubicacion_nombre: string
           ubicacion_tipo: string
+        }[]
+      }
+      fn_prioridad_conteo: {
+        Args: { p_alcance_categoria_id?: string; p_ubicacion_id: string }
+        Returns: {
+          color: string
+          dias_sin_contar: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+          ventas_30d: number
         }[]
       }
       fn_productos: {

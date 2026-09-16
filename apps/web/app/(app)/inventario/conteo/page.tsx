@@ -1,7 +1,9 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getConteoAbierto, getConteosCerradosRecientes } from "@/lib/conteos";
+import { getConteoAbierto, getConteosCerradosRecientes, getPrioridadConteo } from "@/lib/conteos";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
 import { ConteoPanel } from "@/components/ConteoPanel";
 
 // Conteos físicos (Felipe, 2026-09-14): el backend (abrir_conteo,
@@ -13,12 +15,16 @@ import { ConteoPanel } from "@/components/ConteoPanel";
 // que antes, cuando la ubicación no los usa (Taller).
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
-  const [conteoAbierto, cerrados, catalogo, sububicaciones] = await Promise.all([
+  const supabase = await createClient();
+  const [conteoAbierto, cerrados, catalogo, sububicaciones, categorias, prioridad] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosCerradosRecientes(persona.ubicacionId),
     getCatalogo(),
     getSububicaciones(persona.ubicacionId),
+    supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
+    getPrioridadConteo(persona.ubicacionId),
   ]);
+  const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
 
   return (
     <div className="space-y-8">
@@ -33,6 +39,8 @@ export default async function ConteoPage() {
         esLider={persona.rol === "lider"}
         conteoAbierto={conteoAbierto}
         sububicaciones={sububicaciones}
+        categorias={categoriasOpciones}
+        prioridad={prioridad}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({
