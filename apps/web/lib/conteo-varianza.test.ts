@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resumirVarianza, type FilaPrevisualizacion } from "./conteo-varianza";
+import { avanceConteo, exactitudConteos, resumirVarianza, type FilaPrevisualizacion } from "./conteo-varianza";
 
 // El cierre del conteo es el único momento en que un número de esta pantalla se convierte
 // en una decisión: Felipe mira la diferencia en soles y aprueba o no. Si esa cifra sale
@@ -104,5 +104,37 @@ describe("lo que nadie contó", () => {
     );
     expect(v.lineas[0].origen).toBe("no_contado");
     expect(v.solesFaltantes).toBe(84);
+  });
+});
+
+describe("exactitudConteos", () => {
+  it("cuenta líneas correctas sobre líneas cerradas, ignorando el conteo abierto", () => {
+    const r = exactitudConteos([
+      { estado: "cerrado", lineas: 40, lineasConDiferencia: 2 },
+      { estado: "cerrado", lineas: 10, lineasConDiferencia: 1 },
+      { estado: "abierto", lineas: 5, lineasConDiferencia: 5 },
+    ]);
+    expect(r).toEqual({ porcentaje: 94, lineas: 50, correctas: 47, conteos: 2 });
+  });
+
+  it("sin líneas cerradas no inventa un 100 %", () => {
+    expect(exactitudConteos([])).toBeNull();
+    expect(exactitudConteos([{ estado: "abierto", lineas: 3, lineasConDiferencia: 0 }])).toBeNull();
+    expect(exactitudConteos([{ estado: "cerrado", lineas: 0, lineasConDiferencia: 0 }])).toBeNull();
+  });
+
+  it("un decimal, sin más", () => {
+    expect(exactitudConteos([{ estado: "cerrado", lineas: 3, lineasConDiferencia: 1 }])?.porcentaje).toBe(66.7);
+  });
+});
+
+describe("avanceConteo", () => {
+  it("contadas sobre el total que devuelve la vista previa", () => {
+    expect(avanceConteo([{ origen: "contado" }, { origen: "contado" }, { origen: "no_contado" }, { origen: "no_contado" }])).toEqual({
+      contadas: 2,
+      total: 4,
+      porcentaje: 50,
+    });
+    expect(avanceConteo([])).toEqual({ contadas: 0, total: 0, porcentaje: 0 });
   });
 });

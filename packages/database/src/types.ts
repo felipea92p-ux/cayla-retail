@@ -945,6 +945,7 @@ export type Database = {
           created_at: string
           estado: string
           id: string
+          numero: number
           sububicacion_id: string | null
           ubicacion_id: string
         }
@@ -957,6 +958,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          numero?: number
           sububicacion_id?: string | null
           ubicacion_id: string
         }
@@ -969,6 +971,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          numero?: number
           sububicacion_id?: string | null
           ubicacion_id?: string
         }
@@ -1941,6 +1944,7 @@ export type Database = {
           id: string
           nota: string | null
           nota_cierre: string | null
+          numero: number
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
@@ -1956,6 +1960,7 @@ export type Database = {
           id?: string
           nota?: string | null
           nota_cierre?: string | null
+          numero?: number
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
@@ -1971,6 +1976,7 @@ export type Database = {
           id?: string
           nota?: string | null
           nota_cierre?: string | null
+          numero?: number
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
         }
@@ -2701,6 +2707,29 @@ export type Database = {
           rol: string
           sede: string
           ubicacion_asignada: string
+        }[]
+      }
+      fn_conteos_resumen: {
+        Args: { p_limite?: number; p_ubicacion_id: string }
+        Returns: {
+          abierto_por: string
+          alcance: string
+          alcance_categoria_nombre: string
+          cerrado_en: string
+          cerrado_por: string
+          contado: number
+          created_at: string
+          diferencia: number
+          estado: string
+          id: string
+          lineas: number
+          lineas_con_diferencia: number
+          numero: number
+          sistema: number
+          soles_diferencia: number
+          sububicacion_id: string
+          sububicacion_nombre: string
+          sububicacion_tipo: string
         }[]
       }
       fn_costo_historial: {

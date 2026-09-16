@@ -9,8 +9,9 @@ import {
   ETIQUETA_CATEGORIA,
   etiquetaDia,
   etiquetaProceso,
+  nombreCortoSububicacion,
+  partesOrigenDestino,
   textoDelta,
-  textoOrigenDestino,
   textoReferencia,
   tonoCategoria,
   type Movimiento,
@@ -27,10 +28,14 @@ import {
 // modal. Si el id no está en la página cargada (otros filtros, otra página del
 // cursor), no se abre nada — nunca se inventa una consulta extra.
 //
-// Hora · Tipo · Prenda · Proceso y referencia · Cantidad · Persona
-// La persona solo entra desde lg: en una pantalla mediana las dos columnas de
-// texto (prenda y proceso) valen más que quién lo hizo, que sigue en el detalle.
-const PLANTILLA = "sm:grid-cols-[3rem_6.75rem_1.1fr_1fr_3.5rem] lg:grid-cols-[3rem_6.75rem_1.1fr_1fr_3.5rem_7rem]";
+// Columnas (diseño de Felipe, 2026-09-16):
+// Prenda · Hora y dónde · Proceso · Origen → Destino (y su documento) · Cantidad · Responsable
+// La prenda va primero (es lo que se busca con la vista); origen → destino es
+// columna propia porque es lo que una encargada lee para entender un
+// movimiento sin abrirlo. Responsable solo desde lg: en una pantalla mediana
+// las columnas de texto valen más que quién lo hizo, que sigue en el detalle.
+const PLANTILLA =
+  "sm:grid-cols-[minmax(11rem,1.2fr)_5.5rem_8.5rem_minmax(8rem,1fr)_3.5rem] lg:grid-cols-[minmax(11rem,1.2fr)_5.5rem_8.5rem_minmax(8rem,1fr)_3.5rem_minmax(8rem,0.9fr)]";
 
 export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimiento[]; hoyLima: string }) {
   const params = useSearchParams();
@@ -78,18 +83,16 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
         </div>
       )}
 
-      {/* Tabla centrada (Felipe, 2026-09-15) — mismo criterio que Inventario:
-          encabezado y filas comparten `alinear: "centro"`, columna por columna. */}
       <Tabla>
         <Encabezado
           plantilla={PLANTILLA}
           columnas={[
-            { titulo: "Hora", alinear: "centro" },
-            { titulo: "Tipo", alinear: "centro" },
-            { titulo: "Prenda", alinear: "centro" },
-            { titulo: "Proceso · Referencia", alinear: "centro" },
+            { titulo: "Prenda · variante" },
+            { titulo: "Hora · dónde", alinear: "centro" },
+            { titulo: "Proceso", alinear: "centro" },
+            { titulo: "Origen → Destino", alinear: "centro" },
             { titulo: "Cant.", alinear: "centro" },
-            { titulo: "Persona", alinear: "centro", desdeLg: true },
+            { titulo: "Responsable", alinear: "centro", desdeLg: true },
           ]}
         />
         {dias.map((dia) => (
@@ -101,9 +104,11 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
               </span>
             </div>
             {dia.filas.map((m) => {
-              const origenDestino = m.categoria === "interno" || m.categoria === "transferencia" ? textoOrigenDestino(m) : null;
+              const { origen, destino } = partesOrigenDestino(m);
+              const origenDestino = destino ? `${origen} → ${destino}` : origen;
               const referencia = textoReferencia(m);
               const detallePrenda = [m.talla, m.color].filter(Boolean).join(" · ");
+              const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
               return (
                 <button
                   key={m.id}
@@ -111,29 +116,43 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
                   onClick={() => abrir(m)}
                   className={fila(PLANTILLA, "w-full text-left transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}
                 >
-                  <span className={celda("centro", "text-xs tabular-nums text-tinta/65")}>{m.hora}</span>
-                  <span className={celda("centro", "overflow-visible")}>
-                    <Chip tono={tonoCategoria(m.categoria, m.delta)}>{ETIQUETA_CATEGORIA[m.categoria]}</Chip>
-                  </span>
-                  {/* `sm:text-center`, no `text-center` a secas: en celular la fila se apila
-                      y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
-                  <span className="min-w-0 sm:text-center">
+                  <span className="min-w-0">
                     <span className="block truncate text-sm text-tinta" title={m.referencia}>{m.referencia}</span>
                     <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
                       <span className="font-mono">{m.sku}</span>
                       {detallePrenda && ` · ${detallePrenda}`}
                     </span>
                   </span>
-                  <span className="min-w-0 text-xs sm:text-center">
-                    <span className="block truncate text-sm text-tinta">
+                  {/* `sm:text-center`, no `text-center` a secas: en celular la fila se apila
+                      y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
+                  <span className="min-w-0 sm:text-center">
+                    <span className="block text-sm tabular-nums text-tinta">{m.hora}</span>
+                    {donde && <span className="block truncate text-xs text-tinta/55">{donde}</span>}
+                  </span>
+                  <span className="min-w-0 overflow-visible sm:text-center">
+                    <Chip tono={tonoCategoria(m.categoria, m.delta)}>{ETIQUETA_CATEGORIA[m.categoria]}</Chip>
+                    <span className="mt-0.5 block truncate text-xs text-tinta/65" title={etiquetaProceso(m.motivo)}>
                       {etiquetaProceso(m.motivo)}
                       {m.esSistema && <span className="label-cayla ml-1.5 text-[10px] text-tinta/50">Sistema</span>}
                     </span>
+                  </span>
+                  {/* El documento va debajo del destino, como en el diseño («Piso →
+                      Clienta · Boleta B001-123»): es la prueba de ESE tránsito. */}
+                  <span className="min-w-0 sm:text-center">
+                    <span className="block truncate text-sm text-tinta/75" title={origenDestino}>
+                      <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">De · a</span>
+                      {destino ? (
+                        <>
+                          {origen} <span className="text-tinta/45">→</span> {destino}
+                        </>
+                      ) : (
+                        origen
+                      )}
+                    </span>
                     {referencia && (
-                      <span className="block truncate text-tinta/65" title={referencia}>{referencia}</span>
-                    )}
-                    {origenDestino && (
-                      <span className="block truncate text-tinta/65" title={origenDestino}>{origenDestino}</span>
+                      <span className="block truncate text-xs text-tinta/55" title={referencia}>
+                        {referencia}
+                      </span>
                     )}
                   </span>
                   <span
@@ -144,8 +163,8 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
                   >
                     {textoDelta(m)}
                   </span>
-                  <span className={celda("centro", "hidden text-xs text-tinta/65 lg:block")} title={m.usuario ?? undefined}>
-                    {m.esSistema ? "—" : (m.usuario ?? "—")}
+                  <span className={celda("centro", "hidden text-xs text-tinta/75 lg:block")} title={m.usuario ?? undefined}>
+                    {m.esSistema ? "Sistema" : (m.usuario ?? "—")}
                   </span>
                 </button>
               );

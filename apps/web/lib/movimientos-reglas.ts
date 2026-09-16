@@ -55,6 +55,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   movimiento_interno: "Reposición interna",
   devolucion: "Devolución",
   cambio: "Cambio",
+  anulacion_venta: "Anulación de venta",
+  produccion: "Producción del Taller",
   conteo: "Ajuste por conteo",
   reposicion: "Reposición",
   merma: "Merma",
@@ -74,6 +76,8 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "movimiento_interno",
   "devolucion",
   "cambio",
+  "anulacion_venta",
+  "produccion",
   "conteo",
   "reposicion",
   "merma",
@@ -205,6 +209,38 @@ export function textoOrigenDestino(m: Movimiento): string | null {
     return `${m.ubicacion} → ${m.ubicacionDestino ?? "—"}`;
   }
   return m.sububicacion?.nombre ?? null;
+}
+
+/** De dónde a dónde, para la columna «Origen → Destino» de la lista (diseño
+ *  de Felipe, 2026-09-16): cada proceso nombra sus dos puntas en el
+ *  vocabulario de la tienda, no en el de la base. Una venta sale del piso
+ *  hacia la clienta; una recepción llega del proveedor al almacén; un ajuste
+ *  no tiene dos puntas — es un solo lugar y el proceso ya dice qué pasó.
+ *  `destino` null = mostrar solo el origen. */
+export function partesOrigenDestino(m: Movimiento): { origen: string; destino: string | null } {
+  const aqui = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : m.ubicacion;
+  switch (m.categoria) {
+    case "interno":
+      return { origen: nombreCortoSububicacion(m.sububicacion), destino: nombreCortoSububicacion(m.sububicacionDestino) };
+    case "transferencia":
+      return { origen: m.ubicacion, destino: m.ubicacionDestino ?? "—" };
+    case "ajuste":
+      return { origen: aqui, destino: null };
+  }
+  switch (m.motivo) {
+    case "venta":
+      return { origen: aqui, destino: "Clienta" };
+    case "anulacion_venta":
+    case "devolucion":
+      return { origen: "Clienta", destino: aqui };
+    case "cambio":
+      return m.delta > 0 ? { origen: "Clienta", destino: aqui } : { origen: aqui, destino: "Clienta" };
+    case "recepcion":
+      return { origen: m.lote?.proveedor ?? "Proveedor", destino: aqui };
+    case "produccion":
+      return { origen: "Producción", destino: aqui };
+  }
+  return { origen: aqui, destino: null };
 }
 
 export function textoComprobante(c: NonNullable<Movimiento["venta"]>["comprobante"]): string {

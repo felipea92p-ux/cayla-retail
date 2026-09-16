@@ -11,14 +11,23 @@ import { usePathname } from "next/navigation";
 // (`grep` sobre apps/web confirmó cero usos), así que el enlace muerto nunca
 // se vio — hasta ahora, que se monta desde `layout.tsx`.
 //
-// Orden = flujo real: Stock (qué hay) → Recibir (entra mercadería) → Mover
-// (se redistribuye entre piso/almacén/sedes) → Conteo (se verifica que el
-// stock diga la verdad).
-const SECCIONES = [
-  { href: "/inventario", etiqueta: "Stock" },
-  { href: "/inventario/recibir", etiqueta: "Recibir" },
-  { href: "/inventario/mover", etiqueta: "Mover" },
-  { href: "/inventario/conteo", etiqueta: "Conteo" },
+// Reescrita otra vez el 2026-09-16 (Felipe, al integrar sus 4 diseños de
+// Inventario): las pestañas son las 4 PANTALLAS del módulo, no sus acciones.
+// Existencias (qué hay) → Movimientos (por qué cambió) → Traslados (qué
+// viaja entre sedes) → Conteo (se verifica que el stock diga la verdad).
+// «Recibir» y «Mover» dejaron de ser pestañas: mover es el botón «+ Nuevo
+// traslado» dentro de Existencias y Traslados; recibir sin factura sigue
+// viva en `/inventario/recibir` y en «+ Nuevo» (Compras tiene el camino
+// principal, contra factura). Ninguna ruta se borró.
+//
+// Cada pestaña sabe qué rutas cuelgan de ella (`prefijos`): el detalle de un
+// traslado o de un conteo tiene que iluminar SU pestaña, y `/inventario` a
+// secas no puede ser prefijo de nada o se iluminaría siempre.
+const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
+  { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/recibir", "/inventario/mover"] },
+  { href: "/inventario/movimientos", etiqueta: "Movimientos", prefijos: ["/inventario/movimientos"] },
+  { href: "/inventario/traslados", etiqueta: "Traslados", prefijos: ["/inventario/traslados"] },
+  { href: "/inventario/conteo", etiqueta: "Conteo", prefijos: ["/inventario/conteo"] },
 ];
 
 export function InventarioNav() {
@@ -26,11 +35,12 @@ export function InventarioNav() {
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-tinta/10">
       {SECCIONES.map((s) => {
-        const activo = pathname === s.href;
+        const activo = pathname === s.href || s.prefijos.some((p) => pathname === p || pathname.startsWith(p + "/"));
         return (
           <Link
             key={s.href}
             href={s.href}
+            aria-current={activo ? "page" : undefined}
             className={`label-cayla -mb-px shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
               activo ? "border-rojo text-tinta" : "border-transparent text-tinta/65 hover:text-rojo"
             }`}
