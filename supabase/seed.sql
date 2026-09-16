@@ -277,6 +277,7 @@ declare
   sku_fal_rena_bei_m uuid; sku_cas_luci_bei_m uuid;
   cli_valeria uuid; cli_camila uuid;
   sub_piso_lima uuid; sub_almacen_lima uuid; sub_piso_trujillo uuid; sub_almacen_trujillo uuid;
+  traslado1_id uuid; traslado2_id uuid; traslado1_items jsonb; traslado2_items jsonb; v_linea jsonb;
 begin
   select id into ubic_almacen from retail.ubicaciones where nombre = 'Taller';
   select id into ubic_lima from retail.ubicaciones where nombre = 'Tienda Lima';
@@ -353,23 +354,35 @@ begin
        where p.referencia in ('Pantalón Carla', 'Pantalón Mía', 'Falda Renata', 'Falda Ariana')),
     'GUIA-002-SIN-FACTURA', 'Mercadería adicional, sin factura');
 
-  -- ---------- transferencias ----------
-  perform retail.transferir(ubic_almacen, ubic_lima,
-    (select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 6))
-       from retail.variantes v join retail.productos p on p.id = v.producto_id
-       where p.referencia in ('Blusa Emma', 'Vestido Sofía', 'Pantalón Carla', 'Falda Renata', 'Casaca Ximena')),
-    'Reposición semanal Tienda Lima');
+  -- ---------- traslados (20260916150000_traslados_dos_fases.sql): dos fases,
+  -- envío + confirmación limpia en el mismo momento — el seed no simula el
+  -- viaje de 20 horas, deja el traslado ya "cerrado" para que el resto del
+  -- guion (reposición de piso, ventas) siga viendo el stock en el almacén de
+  -- destino como antes. iniciar_traslado() entrega al almacén de la tienda
+  -- destino, nunca directo al piso — una venta necesita reposición explícita
+  -- primero, igual que en la operación real.
+  select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 6))
+    into traslado1_items
+    from retail.variantes v join retail.productos p on p.id = v.producto_id
+    where p.referencia in ('Blusa Emma', 'Vestido Sofía', 'Pantalón Carla', 'Falda Renata', 'Casaca Ximena');
+  traslado1_id := retail.iniciar_traslado(ubic_almacen, ubic_lima, traslado1_items, now() + interval '2 days', 'Reposición semanal Tienda Lima');
+  for v_linea in select * from jsonb_array_elements(traslado1_items) loop
+    perform retail.registrar_recepcion_traslado(traslado1_id, (v_linea ->> 'variante_id')::uuid, (v_linea ->> 'cantidad')::integer);
+  end loop;
+  perform retail.confirmar_traslado(traslado1_id);
 
-  perform retail.transferir(ubic_almacen, ubic_trujillo,
-    (select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 5))
-       from retail.variantes v join retail.productos p on p.id = v.producto_id
-       where p.referencia in ('Blusa Valentina', 'Vestido Antonella', 'Pantalón Mía', 'Falda Ariana', 'Casaca Luciana')),
-    'Primer envío Tienda Trujillo');
+  select jsonb_agg(jsonb_build_object('variante_id', v.id, 'cantidad', 5))
+    into traslado2_items
+    from retail.variantes v join retail.productos p on p.id = v.producto_id
+    where p.referencia in ('Blusa Valentina', 'Vestido Antonella', 'Pantalón Mía', 'Falda Ariana', 'Casaca Luciana');
+  traslado2_id := retail.iniciar_traslado(ubic_almacen, ubic_trujillo, traslado2_items, now() + interval '2 days', 'Primer envío Tienda Trujillo');
+  for v_linea in select * from jsonb_array_elements(traslado2_items) loop
+    perform retail.registrar_recepcion_traslado(traslado2_id, (v_linea ->> 'variante_id')::uuid, (v_linea ->> 'cantidad')::integer);
+  end loop;
+  perform retail.confirmar_traslado(traslado2_id);
 
   -- ---------- reposición de piso (20260914210000_inventario_piso_almacen.sql):
-  -- transferir() entrega al almacén de tienda, nunca directo al piso — una
-  -- venta necesita reposición explícita primero, igual que en la operación
-  -- real. Deja 2 en piso / 4 en almacén por SKU (Trujillo: 2/3) para que la
+  -- deja 2 en piso / 4 en almacén por SKU (Trujillo: 2/3) para que la
   -- pantalla de Inventario tenga algo real que mostrar en ambas columnas.
   select id into sku_blu_emma_neg_m from retail.variantes where sku = 'BLU-EMMA-NEG-M';
   select id into sku_blu_emma_neg_l from retail.variantes where sku = 'BLU-EMMA-NEG-L';

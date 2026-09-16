@@ -1264,6 +1264,7 @@ export type Database = {
           sububicacion_id: string | null
           tipo: string
           transferencia_item_id: string | null
+          transferencia_recepcion_id: string | null
           ubicacion_destino_id: string | null
           ubicacion_id: string
           usuario_id: string | null
@@ -1286,6 +1287,7 @@ export type Database = {
           sububicacion_id?: string | null
           tipo: string
           transferencia_item_id?: string | null
+          transferencia_recepcion_id?: string | null
           ubicacion_destino_id?: string | null
           ubicacion_id: string
           usuario_id?: string | null
@@ -1308,6 +1310,7 @@ export type Database = {
           sububicacion_id?: string | null
           tipo?: string
           transferencia_item_id?: string | null
+          transferencia_recepcion_id?: string | null
           ubicacion_destino_id?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
@@ -1383,6 +1386,13 @@ export type Database = {
             columns: ["transferencia_item_id"]
             isOneToOne: false
             referencedRelation: "transferencia_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_transferencia_recepcion_fkey"
+            columns: ["transferencia_recepcion_id"]
+            isOneToOne: false
+            referencedRelation: "transferencia_recepciones"
             referencedColumns: ["id"]
           },
           {
@@ -1866,31 +1876,101 @@ export type Database = {
           },
         ]
       }
+      transferencia_recepciones: {
+        Row: {
+          cantidad_recibida: number
+          created_at: string
+          id: string
+          movimiento_id: string | null
+          registrado_por: string | null
+          transferencia_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad_recibida: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          registrado_por?: string | null
+          transferencia_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad_recibida?: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          registrado_por?: string | null
+          transferencia_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencia_recepciones_movimiento_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_recepciones_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_recepciones_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transferencias: {
         Row: {
+          cerrado_en: string | null
+          cerrado_por: string | null
+          confirmado_en: string | null
+          confirmado_por: string | null
           creado_por: string | null
           created_at: string
           estado: string
+          fecha_estimada_llegada: string | null
           id: string
           nota: string | null
+          nota_cierre: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Insert: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          confirmado_en?: string | null
+          confirmado_por?: string | null
           creado_por?: string | null
           created_at?: string
           estado?: string
+          fecha_estimada_llegada?: string | null
           id?: string
           nota?: string | null
+          nota_cierre?: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Update: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          confirmado_en?: string | null
+          confirmado_por?: string | null
           creado_por?: string | null
           created_at?: string
           estado?: string
+          fecha_estimada_llegada?: string | null
           id?: string
           nota?: string | null
+          nota_cierre?: string | null
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
         }
@@ -2439,6 +2519,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      cerrar_traslado_con_diferencia: {
+        Args: { p_nota?: string; p_transferencia_id: string }
+        Returns: {
+          lineas_recibidas: number
+          unidades_recibidas: number
+        }[]
+      }
+      confirmar_traslado: {
+        Args: { p_transferencia_id: string }
+        Returns: {
+          lineas_con_diferencia: number
+          lineas_ok: number
+          resultado: string
+        }[]
+      }
       conteo_contar: {
         Args: {
           p_cantidad_contada: number
@@ -2838,6 +2933,19 @@ export type Database = {
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
+      fn_traslado_lineas: {
+        Args: { p_transferencia_id: string }
+        Returns: {
+          cantidad_enviada: number
+          cantidad_recibida: number
+          color: string
+          diferencia: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
+      }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
@@ -2855,6 +2963,16 @@ export type Database = {
           vendedor: string
           venta_id: string
         }[]
+      }
+      iniciar_traslado: {
+        Args: {
+          p_fecha_estimada_llegada: string
+          p_items: Json
+          p_nota?: string
+          p_ubicacion_destino_id: string
+          p_ubicacion_origen_id: string
+        }
+        Returns: string
       }
       listar_compras: {
         Args: {
@@ -3060,6 +3178,14 @@ export type Database = {
         Args: { p_contacto?: string; p_nombre: string; p_ruc?: string }
         Returns: string
       }
+      registrar_recepcion_traslado: {
+        Args: {
+          p_cantidad_recibida: number
+          p_transferencia_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
       registrar_serie_comprobante: {
         Args: {
           p_serie: string
@@ -3106,15 +3232,6 @@ export type Database = {
       set_etapa_produccion: {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
         Returns: undefined
-      }
-      transferir: {
-        Args: {
-          p_items: Json
-          p_nota?: string
-          p_ubicacion_destino_id: string
-          p_ubicacion_origen_id: string
-        }
-        Returns: string
       }
     }
     Enums: {

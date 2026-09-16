@@ -49,7 +49,9 @@ export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): To
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
   venta: "Venta",
-  transferencia: "Transferencia",
+  transferencia: "Transferencia (modelo anterior)",
+  traslado_salida: "Traslado — salida",
+  traslado_entrada: "Traslado — llegada",
   movimiento_interno: "Reposición interna",
   devolucion: "Devolución",
   cambio: "Cambio",
@@ -67,7 +69,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
 export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "recepcion",
   "venta",
-  "transferencia",
+  "traslado_salida",
+  "traslado_entrada",
   "movimiento_interno",
   "devolucion",
   "cambio",
@@ -90,6 +93,22 @@ export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
   aprobada: "Aprobada",
   rechazada: "Rechazada",
 };
+
+/** `transferencias.estado` (20260916150000): "completada" son filas del
+ *  modelo atómico anterior a esta migración — no vuelven a escribirse, pero
+ *  siguen existiendo en el historial y hay que poder mostrarlas. */
+export const ETIQUETA_ESTADO_TRASLADO: Record<string, string> = {
+  completada: "Completada",
+  en_transito: "En tránsito",
+  recibido_con_diferencia: "Con diferencia — pendiente de líder",
+  cerrada: "Cerrada",
+};
+
+export function tonoEstadoTraslado(estado: string): TonoChip {
+  if (estado === "recibido_con_diferencia") return "ambar";
+  if (estado === "en_transito") return "neutro";
+  return "verde";
+}
 
 // ---------------------------------------------------------------------------
 // La fila que devuelve `fn_movimientos`, ya en castellano de pantalla. Cada
