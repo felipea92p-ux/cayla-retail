@@ -4588,3 +4588,48 @@ normal, no** — para reportar resultados de una prueba que además debe dejar c
 mensaje es la única escritura segura. Y una prueba que nunca se vio fallar no es una prueba
 verificada, es una aspiración — invertir una aserción a mano y ver el rojo es parte del trabajo,
 no un paso extra.
+
+## 2026-09-16 (Caja: botón de ojo en el historial de cierres — detalle bajo demanda)
+
+Tercer paso de la misma sesión: Felipe pidió un botón por fila en `/caja/historial` para ver
+"todo el flujo" de una caja — hora de apertura/cierre, ventas del turno, y todo detalle
+relevante. Se optó por bajo demanda (`app/actions/caja.ts`, Server Action nueva, mismo patrón
+de archivo que `app/actions/ubicacion.ts`, único precedente de `"use server"` en el repo) en vez
+de precargar el detalle de las 60 filas del historial junto con la lista — una caja de un día
+ocupado puede tener decenas de ventas que nadie va a mirar. `getDetalleCierre(cajaId)` junta
+`ventas`+`venta_pagos`+`venta_items`, `caja_movimientos` (reusa `getMovimientosCaja`, no
+duplica la consulta), `devoluciones` y `cambios` — las dos últimas ya vienen filtradas solo a
+lo real: `caja_id` únicamente se fija cuando la plata se mueve de verdad (`aprobar_devolucion`/
+`registrar_cambio`), así que un `where caja_id = $1` alcanza sin filtro de estado aparte.
+`components/CierreCajaDetalle.tsx` (botón + modal) sigue el patrón `Modal.tsx` ya establecido
+(`MovimientoDetalle.tsx`); apertura/cierre no se vuelven a pedir (ya viajan con la fila del
+historial), solo el timeline se busca al abrir.
+
+Un bug propio atrapado antes de que llegara a producción: la primera versión llamaba a
+`getDetalleCierre` DURANTE EL RENDER (una guarda `if (eventos === null && cargando) { fetch... }`
+en el cuerpo del componente) — efecto secundario en render, no en un evento ni un efecto, el
+tipo de bug que React Strict Mode puede disparar dos veces o directamente saltarse según el
+momento. Reescrito para que el propio `onClick` del botón dispare el `fetch` (mismo criterio que
+ya usa toda acción de este repo — `onSubmit` llamando una RPC directo), sin `useEffect`.
+
+Al conectar `ventas.estado`/`motivo_anulacion`/`anulado_por`/`anulado_en` (para poder marcar una
+venta anulada en el timeline) `tsc` avisó que `packages/database/src/types.ts` no las conocía —
+existen en la base desde `0010_facturacion.sql` (verificado con `\d retail.ventas` y `grep` al
+propio archivo de migración, no es una columna huérfana de otra sesión en el Postgres
+compartido) pero nadie las agregó a los tipos. Completadas a mano las tres formas (Row/Insert/
+Update), sin agregar la relación de `anulado_por` a `personas`: esa FK cruza a `public.personas`
+— `retail.personas` ya no existe (verificado contra `information_schema.tables`) — y el propio
+`usuario_id` (mismo cruce de schema) ya venía sin su relación en el archivo generado; agregar
+solo la mía habría sido inventar una excepción donde el generador real nunca puso una.
+
+Verificado en navegador contra datos reales de sesiones anteriores (no fixtures): una caja vacía
+(mensaje de "sin ventas ni movimientos"), la propia caja de depósito+ajuste de la Tarea 1 de hoy
+(-S/50 depósito, +S/15 ajuste con su nota, exacto), una caja con un cambio con diferencia
+("Cambio · diferencia efectivo +S/100.00"), y una caja con 8 ventas reales entre las 12:55pm y
+las 3:46pm (multi-método "efectivo, yape" agrupado correctamente, unidades sumadas por venta).
+`tsc`/`eslint`/vitest (239/239) en verde; cero errores de consola en las cuatro pruebas.
+
+Lo que Felipe se lleva: **"vamos a necesitar el dato" no es la misma pregunta que "cuándo lo
+pedimos"** — apertura/cierre viajan gratis con la fila que ya se cargó; el resto (ventas,
+movimientos, devoluciones, cambios) se pide recién al clic, porque precargarlo para 60 filas
+que casi nadie abre sería trabajo que el servidor hace y nadie usa.

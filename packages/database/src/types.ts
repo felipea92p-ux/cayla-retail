@@ -2051,30 +2051,42 @@ export type Database = {
       }
       ventas: {
         Row: {
+          anulado_en: string | null
+          anulado_por: string | null
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          estado: string
           id: string
+          motivo_anulacion: string | null
           nota: string | null
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
         }
         Insert: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          estado?: string
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
         }
         Update: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          estado?: string
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           token_cliente?: string | null
           ubicacion_id?: string
