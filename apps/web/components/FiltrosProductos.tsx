@@ -58,7 +58,12 @@ export function FiltrosProductos({ categorias, colores }: { categorias: Opcion[]
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
   if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
   if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
-  if (stock) chips.push({ texto: stock === "sin_stock" ? "Sin stock" : "Stock bajo", quitar: { stock: "" } });
+  if (stock) {
+    chips.push({
+      texto: stock === "sin_stock" ? "Sin stock" : stock === "bajo" ? "Stock bajo" : "Pedir a proveedor",
+      quitar: { stock: "" },
+    });
+  }
   if (precioMin || precioMax) {
     chips.push({
       texto:
@@ -121,6 +126,7 @@ export function FiltrosProductos({ categorias, colores }: { categorias: Opcion[]
           <option value="">Todos</option>
           <option value="sin_stock">Sin stock</option>
           <option value="bajo">Stock bajo</option>
+          <option value="reponer">Pedir a proveedor</option>
         </CampoSelectNativo>
       </div>
 

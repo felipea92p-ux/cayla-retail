@@ -2722,10 +2722,14 @@ export type Database = {
           color_hex: string
           color_nombre: string
           costo: number
+          demanda_diaria: number
           estado: string
+          lead_time_dias: number
           precio: number
           producto_id: string
+          punto_reorden: number
           referencia: string
+          reponer_de_proveedor: boolean
           sku: string
           stock_minimo: number
           stock_total: number
@@ -2746,6 +2750,7 @@ export type Database = {
           p_precio_min?: number
         }
         Returns: {
+          reponer_de_proveedor: number
           sin_stock: number
           stock_bajo: number
           total_productos: number
