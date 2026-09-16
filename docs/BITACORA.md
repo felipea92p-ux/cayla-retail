@@ -3,6 +3,47 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (5 piezas inspiradas en NetSuite: costeo, reorden, conteo, traslados)
+
+Felipe comparó CAYLA contra NetSuite (reporte aparte) y eligió 5 piezas para
+construir: traslado entre ubicaciones, costo de stock, punto de reorden,
+conteo por alcance, indicador de rotación. Dos de las cinco NO eran huecos —
+"traslados" estaba marcado "distinto a propósito" e "indicadores" "fuera de
+alcance a propósito" (citando el propio límite de Felipe para Movimientos) —
+se lo señalé antes de construir. Auditar las 5 contra código real (no el
+reporte) encontró que 3 eran decisiones ya tocadas antes, no huecos nuevos:
+costeo reabre D-45 (que Felipe mismo dejó pendiente de su contador); reorden
+es una reconstrucción de una feature V1 que el corte a V2 borró; conteo tiene
+un segundo diseño ("censo") perdido por accidente en ese mismo corte. Ocho
+preguntas puntuales (2 rondas) resolvieron las decisiones de negocio.
+
+A mitad de la auditoría, 44 commits nuevos de compañeros llegaron a `main`
+(Historial de Producto, `stock_minimo` por producto, rediseño de Productos)
+— **el hallazgo más caro de la sesión: `fn_movimientos` ya tenía un 12º
+parámetro que mi primer intento de parche no vio**, dejando dos versiones
+ambiguas de la función en vez de reemplazar la real. Se corrigió antes de
+seguir. `stock_minimo` (ya construido por un compañero) se reusó como piso
+del punto de reorden en vez de inventar un segundo umbral.
+
+Las 5 piezas: **costo promedio ponderado** (`fn_recalcular_costo_variante`,
+historial append-only, se ve gratis en `/productos/[id]/historial` sumando
+una rama al trigger que ya existía); **punto de reorden** (extiende
+`fn_productos`, global por producto, `demanda_diaria × lead_time_dias +
+stock_minimo`); **conteo por alcance** (reactiva el campo `alcance` del
+diseño censo sobre la pantalla que ya vive en producción, sin tocar
+`conteo_contar`/`cerrar_conteo`); **indicador de rotación** (reusa el mismo
+cálculo de reorden, sin tabla propia); **traslados en dos fases** (envío →
+en tránsito → confirmación en destino — el hallazgo de UI más caro: cada
+pierna del modelo nuevo solo trae SU lado, mostrar "Taller → —" en vez de
+"Taller → Tienda Lima" se encontró recién probando en navegador, no por SQL).
+
+Lo que Felipe se lleva: cada pieza se verificó de verdad (SQL directo +
+navegador), no "debería funcionar" — y en las dos piezas más grandes
+(traslados, fn_movimientos) esa verificación encontró bugs reales que un
+`db reset` limpio no hubiera mostrado por sí solo. Pendiente, fuera de esta
+rama a propósito: Guía de Remisión Electrónica (SUNAT) para traslados —
+hueco legal real encontrado en el camino, requiere su propia autorización.
+
 ## 2026-09-16 (BACKLOG desactualizado: 10 migraciones ya estaban en producción)
 
 Felipe pidió subir el PR del buscador y, de paso, "si hay migraciones ejecutarlas
