@@ -53,7 +53,8 @@ explícito de Felipe. Rama local: `fix/inventario-colaboradores-movimientos`.
       filtraba `estado='activo'`** — alguien desactivado en Dynamic seguía
       apareciendo como vigente. Migración
       `20260915230000_colaboradores_perfil_y_lista_correctos.sql`, misma firma en
-      las dos funciones. Aplicada y verificada en local (una sola firma cada una).
+      las dos funciones. **Aplicada y verificada también en producción (2026-09-16,
+      `vovjyyiafkxteijimpuy`)** — una sola firma cada una, comentario guardado.
 - [x] **"Quitar acceso" sin confirmación** — un clic y ya, sin paso de revisión.
       Se agregó un modal de confirmación (mismo patrón que "Agregar colaborador").
       Verificado en el navegador.
@@ -78,8 +79,10 @@ explícito de Felipe. Rama local: `fix/inventario-colaboradores-movimientos`.
 - [x] **Búsqueda de Movimientos sin escapar `%`/`_`** en
       `fn_movimientos_variantes` — un guion bajo literal en un SKU actuaba como
       comodín. Migración `20260915231500_movimientos_busqueda_escapa_comodines.sql`,
-      misma firma, con `escape '\'`. Verificado: buscar "_" ya no trae las 49
-      variantes; buscar "blusa" sigue filtrando normal.
+      misma firma, con `escape '\'`. Verificado en local: buscar "_" ya no trae las 49
+      variantes; buscar "blusa" sigue filtrando normal. **Aplicada también en
+      producción (2026-09-16)** — ahí buscar "_" devuelve vacío, no las 37
+      variantes reales que tiene la base.
 - [x] **Un link `?mov=<id>` compartido (WhatsApp) fallaba en silencio** si el
       movimiento caía fuera del rango de 30 días por defecto — sin tocar la premisa
       de "nunca una consulta extra" (`MovimientosLista.tsx` ya lo documentaba así),
