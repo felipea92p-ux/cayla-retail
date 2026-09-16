@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Tucán y Golondrina — documentos alineados a V2)
+
+Los documentos daban la taxonomía y el importador como vivos en producción o "pendientes de pegar"; en realidad estuvieron vivos solo del 11-sep al 12-sep 20:49 UTC, hasta que el corte a V2 los borró de producción y del repo.
+Se corrigieron BACKLOG, las fichas 03/04 (aviso V1 arriba, huecos marcados como latentes), INVARIANTES, SEGURIDAD y las notas en línea de 07-15; no pegar seed/`0052`/`0056`/`0057` (42P01) y se reconstruyen sobre V2 después del censo.
+Aprendizaje: una "evidencia en vivo" vale solo hasta el siguiente `drop schema`; el aprobador de "se propone y admin aprueba" será un rol nuevo `admin` en `retail.colaboradores`.
+
 ## 2026-09-16 (Loro — prendas escaneables antes del censo)
 
 Felipe tomó Loro, Tucán, Golondrina y Halcón. Al medir producción, los documentos de

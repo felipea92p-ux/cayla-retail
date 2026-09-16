@@ -279,6 +279,12 @@ repartidas en **44 tablas**. Las reglas caen en tres patrones y dos excepciones.
 `codigos_barras`, `codigos_correlativos`, `importaciones`, `producto_atributos`, las
 cinco `taxonomia_*`, `configuracion_empresa`, `sede_datos_fiscales`. Son catálogos
 compartidos: para vender hay que ver todo lo que existe, no solo lo de tu tienda.
+**Corrección 2026-09-16 (V2):** `importaciones`, `producto_atributos` y las cinco
+`taxonomia_*` **no existen hoy** (borradas en el corte a V2 el 2026-09-12; se reconstruyen
+después del censo), así que nadie —ni Líder ni Admin— escribe taxonomía. En V2 el candado
+es `retail.fn_es_lider()` = `colaboradores.rol = 'lider'`; los 9 colaboradores son Líder y
+no hay admin en retail. El aprobador de "se propone y admin aprueba" será un **rol nuevo
+`admin` en `retail.colaboradores`** (decidido 2026-09-16, pendiente de construir).
 **Acá vive la transparencia de la sección 9:** `variantes` (con `costo`), `productos`
 (con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria`) están
 los tres en este grupo.
@@ -310,14 +316,17 @@ Tiene las reglas de fila activadas (`unificacion/38_migraciones_aplicadas.sql:73
 completo a la API, para cualquier rol**. Es a propósito. Es el registro de qué SQL se
 pegó en producción, solo le sirve a quien tiene el editor SQL (Felipe, D-11), y una
 regla que solo Admin pudiera leer sería más trabajo que no tener ninguna. Verificado:
-no aparece en `generado/retail_policies.json` y tiene 18 filas en producción.
+no aparece en `generado/retail_policies.json` y tiene 18 filas en producción
+(**2026-09-16: ya no existe** — el corte a V2 del 2026-09-12 la borró junto con la taxonomía).
 
 Y hay un segundo grupo que conviene entender antes de sacar conclusiones: **22 tablas
 tienen solo regla de SELECT**. `stock`, `stock_almacen`, `codigos_barras`,
 `codigos_correlativos`, `comprobantes`, `conteos`, `conteo_lineas`, `proformas`,
 `series_comprobantes`, `importaciones`, `producto_atributos`, `produccion_lineas`,
 `asientos`, `asiento_lineas`, `configuracion_empresa`, `sede_datos_fiscales`,
-`sede_meta` y las cinco `taxonomia_*`. **No se puede escribir en ellas desde la API,
+`sede_meta` y las cinco `taxonomia_*` (`importaciones`, `producto_atributos` y las
+`taxonomia_*`: borradas en el corte a V2 el 2026-09-12; se reconstruyen después del
+censo). **No se puede escribir en ellas desde la API,
 por nadie.** La única puerta es una función que corre como dueña — que es justo el
 diseño de `00-MAPA.md`, frase 6.
 
@@ -353,8 +362,8 @@ detiene es la regla de fila.
 | `apps/web/components/PatrimonioEditor.tsx:44` | `patrimonio_items` | insert | `patrimonio_all_lider` = admin |
 | `apps/web/components/HistoricosEditor.tsx:48` | `ventas_historicas_mensuales` | upsert | `ventas_hist_all_lider` = admin |
 | `apps/web/components/FotoProducto.tsx:56` | `productos` | update (foto) | `productos_update_lider` = admin |
-| `apps/web/app/api/taxonomia/anclar/route.ts:130` | `colores` | update | `colores_update_lider` = admin |
-| `apps/web/app/api/taxonomia/anclar/route.ts:131` | `categorias` | update | `categorias_update_lider` = admin |
+| `apps/web/app/api/taxonomia/anclar/route.ts:130` (borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo) | `colores` | update | `colores_update_lider` = admin |
+| `apps/web/app/api/taxonomia/anclar/route.ts:131` (ídem) | `categorias` | update | `categorias_update_lider` = admin |
 
 **Dos lecturas de esa tabla, las dos ciertas a la vez:**
 

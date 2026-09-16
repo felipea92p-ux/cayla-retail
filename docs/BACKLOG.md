@@ -52,6 +52,8 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       decidir **quién es admin**: los 9 colaboradores de retail son Líder, `colaboradores`
       solo admite `lider`/`colaborador`, y los admins viven en Dynamic. Es el mismo
       mecanismo que Tucán necesita para la taxonomía: se diseña una sola vez.
+      **Decidido 2026-09-16: rol nuevo `admin` en `retail.colaboradores`** (pendiente de
+      construir).
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.
 - [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos
@@ -1352,37 +1354,25 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
       `RecepcionCompraFormV2.tsx`.
 
-- [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
-      puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
-      migración `0052`, `scripts/taxonomia/cargar.mjs`, 1.849 categorías y 10.216
-      valores de la Shopify Product Taxonomy v2026-08 en local, motor de anclaje
-      en dos pasadas (`lib/taxonomia/anclar.ts` puro y testeado +
-      `anclar-ia.ts`), endpoint `POST/PUT /api/taxonomia/anclar` (propone / guarda,
-      nunca en un solo paso) y pantalla `/inventario/taxonomia`.
-      **Bloqueado por lo mismo que todo lo demás de IA: no hay `ANTHROPIC_API_KEY`
-      en el entorno.** Sin ella el endpoint responde 503 con el mensaje que lo
-      explica, y el anclaje de los 30 colores y 32 categorías de CAYLA nunca se ha
-      ejecutado — o sea que la calidad real de las propuestas del modelo todavía no
-      se ha visto. Va en `.env.local` y también en Vercel (Production y Preview),
-      **sin** prefijo `NEXT_PUBLIC_`, igual que `PADRON_TOKEN` y `LUCODE_TOKEN`.
-      Lo que falta después, en orden (plan completo aprobado por Felipe): leer el
-      archivo del cliente sin IA (`.xlsx` con `exceljs`, `.csv`, Google Sheets por
-      URL) → llamada 1 que infiere el plan de mapeo de columnas → llamada 2 que
-      ancla los valores distintos y siembra el vocabulario propio del cliente con
-      SUS nombres → RPC `importar_catalogo` transaccional (llamar
-      `crear_producto_con_variantes` 900 veces son ~5 minutos de round-trips a São
-      Paulo, ADR-0013) + tabla `importaciones` + deshacer por `estado` →
-      carril PDF/foto que produce la misma tabla y entra al mismo motor → aviso de
-      versión nueva del estándar. Costo estimado ~$0.17 por cliente con Opus 5 y la
-      taxonomía cacheada, contra ~$5.85 si se le mandaran las 3.000 filas al modelo:
-      la regla es que **la IA compila el mapeo, no procesa las filas**.
-
-- [ ] **`0052` no está en producción.** Se aplicó y verificó solo contra el
-      Postgres local. Pegarla en el SQL Editor de producción requiere el prefijo
-      `retail.` (CLAUDE.md §"Cómo aplicar SQL a producción") y es un cambio de
-      esquema en producción, o sea decisión de Felipe. El seed de la taxonomía
-      (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
-      `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
+- [ ] **Tucán (taxonomía universal) y Golondrina (importador de catálogos con IA): hoy
+      NO existen, ni en producción ni en el repo (verificado 2026-09-16).** Estuvieron
+      en producción del 11-sep al 12-sep 20:49 UTC, cuando el corte a V2
+      (`retail_0001b_limpiar_esquema_v1`, `drop schema retail cascade`) se llevó las 5
+      `taxonomia_*`, `producto_atributos`, `importaciones` y `migraciones_aplicadas`, y
+      `0af2f1b` borró `0052`, `0056`-`0059`, `lib/taxonomia/`, `lib/importacion`,
+      `/api/taxonomia/anclar`, `/api/importacion/*`, `/inventario/taxonomia` e
+      `/inventario/importar`. En producción no existen `importar_catalogo`,
+      `deshacer_importacion` ni `fn_codigo_tres_letras`, ni las columnas de anclaje:
+      0 de 30 colores y 0 de 38 categorías anclados.
+      **NO pegar el seed (`scripts/taxonomia/cargar.mjs`) ni `0052`/`0056`/`0057` en
+      producción: fallan con 42P01; reconstruir sobre V2 es una migración nueva,
+      después del censo (20-sep).** Decisión de Felipe 2026-09-16: se reconstruyen
+      después del censo, guiados por el ADR de "taxonomía ideal" que está en
+      investigación. El diseño V1 (plan de mapeo en dos llamadas, `importar_catalogo`
+      transaccional, ~$0.17 por cliente, "la IA compila el mapeo, no procesa las
+      filas") queda como referencia en ADR-0030 y en `docs/datos/modulos/03-…` y
+      `04-…`. El aprobador de "se propone y admin aprueba" será un rol nuevo `admin` en
+      `retail.colaboradores` (decidido 2026-09-16, sin construir).
 
 - [x] **`20260914200000_compras_multipago` sí está en producción** (verificado
       2026-09-16: `retail.registrar_pagos_compra` existe).
@@ -1411,7 +1401,8 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       `configuracion_empresa`, `sede_meta`, `sede_datos_fiscales`,
       `persona_actual` y `puede_operar_sede`, que existen en producción y no en
       local. Hoy los 5 tipos de taxonomía y las 2 columnas de anclaje se
-      insertaron a mano por eso. Mientras el drift exista, regenerar a ciegas
+      insertaron a mano por eso **(ya no: se borraron en el corte a V2 el 2026-09-12 y
+      `packages/database` no los trae; se reconstruyen después del censo)**. Mientras el drift exista, regenerar a ciegas
       rompe la app: hace falta decidir cuál de los dos entornos es la fuente.
 
 

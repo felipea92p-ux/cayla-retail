@@ -730,7 +730,8 @@ inventado.
 
 **Tres problemas en una sola línea de error:**
 1. La pantalla no existe, y el único camino que hoy crea colores es
-   `importar_catalogo` (`supabase/migrations/0057_importar_catalogo_revisado.sql:118-131`),
+   `importar_catalogo` (`supabase/migrations/0057_importar_catalogo_revisado.sql:118-131`;
+   borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo),
    que solo corre en una importación masiva — no sirve para el color que apareció a
    mitad de un conteo.
 2. Dice **"La Líder"**, en femenino. D-12 fija **Líder de equipo** justamente porque
@@ -741,7 +742,8 @@ inventado.
    color.**
 
 **Qué exigiría.** Una pantalla de alta de `colores` (`codigo` de 3 mayúsculas,
-`nombre`, `familia_color`, `hex`, `orden`, `taxonomia_valor_id`) accesible al Líder de
+`nombre`, `familia_color`, `hex`, `orden`, `taxonomia_valor_id` — esta última borrada en
+el corte a V2 el 2026-09-12; se reconstruye después del censo) accesible al Líder de
 equipo, más corregir el texto de los cuatro `raise exception` para que nombre la ruta
 real y el rol real.
 
@@ -872,10 +874,13 @@ archivo está viejo.
 `configuracion_empresa`. **`docs/BACKLOG.md:82` y `:87` dicen que `0052` no está
 aplicada en producción: están equivocados** — y se contradicen con `:64` del mismo
 archivo, que dice que sí. Las tablas de taxonomía están ahí, con 29.586 filas entre
-las cinco.
+las cinco. **(Nota 2026-09-16: foto de antes del drop. Las 5 `taxonomia_*`,
+`importaciones`, `producto_atributos` y `migraciones_aplicadas`: borrado en el corte a V2
+el 2026-09-12; se reconstruye después del censo. NO pegar el seed/`0052`: falla con 42P01.)**
 
 **Existe pero casi sin usar** (construido, no probado con datos reales):
-`cuentas_contables` (0 filas), `asientos`/`asiento_lineas` (0), `importaciones` (0),
+`cuentas_contables` (0 filas), `asientos`/`asiento_lineas` (0), `importaciones` (0;
+borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo),
 `ordenes_compra_items` (0), `gastos` (0), `depositos_bancarios` (0),
 `ajustes_efectivo` (0), `proformas` (0), `patrimonio_items` (0), `conteo_lineas` (0).
 Nada de eso es un error: es la diferencia normal entre "el código está listo" y "el

@@ -133,7 +133,7 @@ segundo reciben números distintos.
 | # | Quién promete | Qué promete | Quién depende | ¿Se cumple? | Evidencia |
 |---|---|---|---|---|---|
 | 1.6 | 06 · Conteo | Un censo no inventa: no hay dos conteos abiertos sobre el mismo lugar ni una prenda contada dos veces | Inventario | ✅ | `conteos_un_abierto_por_sede` (por **sede y ubicación**) · `conteo_lineas_conteo_id_variante_id_key` · `retail.previsualizar_cierre_conteo` corre antes de `cerrar_conteo` |
-| 1.7 | 03 · Taxonomía | Hay **una sola** versión del vocabulario activa | Catálogo, importación | ✅ | `taxonomia_una_sola_activa` · 1.849 categorías, 993 atributos y 10.216 valores cargados en producción (`generado/retail_filas.json`) |
+| 1.7 | 03 · Taxonomía | Hay **una sola** versión del vocabulario activa | Catálogo, importación | ✅ | `taxonomia_una_sola_activa` · 1.849 categorías, 993 atributos y 10.216 valores cargados en producción (`generado/retail_filas.json`) — **(borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo)** |
 | 1.8 | 02 · Catálogo | Una variante es única por (producto, talla, color); un color escrito de cinco formas es un solo color | Inventario, ventas, inteligencia | ✅ | `variantes_identidad_unica` · `colores_clave_unica` sobre `retail.fn_clave_texto(nombre)` — ADR-0024 |
 | 1.9 | 12 · Contabilidad | Un asiento nunca queda descuadrado | El contador | ⚠️ | `asiento_lineas_cuadra` → `retail.fn_asiento_cuadra` **sí existe en producción**. Pero el candado de la línea individual (`linea_debe_xor_haber`) existe solo en local: una línea con `debe = −100` y `haber = −100` cuadra perfecto. Ver `01-INVARIANTES.md` §2 |
 | 1.10 | 01 · Identidad | La sede es el candado: un Integrante de Arequipa opera Arequipa | Todos | ⚠️ | `retail.puede_operar_sede` en producción cierra el hueco del NULL con `coalesce(..., false)` en las dos ramas (`supabase/unificacion/03_candados.sql:76-79`). **En local el hueco sigue abierto** (`supabase/migrations/0012_rpc_valida_sede.sql:15-27`, sin `coalesce` en la comparación de sede). Al revés de lo que se suponía |
@@ -375,7 +375,8 @@ catálogo.
 **La evidencia es corta y contundente.** `producto_atributos` se crea en
 `supabase/migrations/0056_importar_catalogo.sql:62-71`, con su llave compuesta
 `(producto_id, atributo_id)`, su elección entre valor universal y texto libre, y su
-`check (valor_id is not null or valor_texto is not null)`. Existe en producción.
+`check (valor_id is not null or valor_texto is not null)`. Existe en producción
+**(ya no: borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo)**.
 
 Después:
 - Se le activa la seguridad por filas (`:73`).
@@ -392,7 +393,8 @@ tiene 0 filas— sino porque **aunque se importara, seguiría en 0**.
 
 **Lo que hace que duela:** el vocabulario del otro lado está completo. La taxonomía
 universal tiene **993 atributos** cargados y **16.527 relaciones categoría↔atributo** en
-producción (`generado/retail_filas.json`). El diccionario está impreso, encuadernado y
+producción (`generado/retail_filas.json`) **(borrado en el corte a V2 el 2026-09-12; se
+reconstruye después del censo)**. El diccionario está impreso, encuadernado y
 en el estante. Lo que falta es que alguien escriba en él.
 
 **Qué lo arregla:** una rama en `importar_catalogo` que, resuelto el atributo contra
@@ -434,7 +436,8 @@ del mes, cuando el contador nota que falta una boleta y el correlativo ya pasó.
   cuándo salió.
 - El tipo está en la aplicación: `apps/web/lib/comprobantes.ts:5`.
 - **El vigilante no está.** `apps/web/app/api/` tiene cinco rutas —`export`,
-  `importacion`, `lucode`, `padron`, `taxonomia`— y **ninguna es una alarma**. El único
+  `importacion`, `lucode`, `padron`, `taxonomia`— (`importacion` y `taxonomia`: borrado
+  en el corte a V2 el 2026-09-12; se reconstruye después del censo) y **ninguna es una alarma**. El único
   archivo de automatización del repo es `.github/workflows/ci.yml`, que no consulta la
   base.
 
@@ -472,7 +475,7 @@ código:
 | `recibir_lote` | Llega mercadería con un SKU que no existía | ❌ | `supabase/unificacion/13_recibir_lote_valida_sede.sql:73-75` |
 | `registrar_produccion` | El Taller fabrica un modelo nuevo | ❌ | `supabase/unificacion/09_funciones_produccion.sql:152-155`. Peor: le pone de SKU `'T' ‖ 11 caracteres al azar` y `precio = 0` |
 | `conteo_crear_variante` | Aparece una prenda durante el censo | ✅ | `supabase/unificacion/30_conteos.sql:318-326` — inserta en `variantes` **y** en `codigos_barras` |
-| `importar_catalogo` | Carga masiva de un archivo | ✅ | `supabase/migrations/0057_importar_catalogo_revisado.sql:252` — `perform fn_asignar_codigo_variante(...)` |
+| `importar_catalogo` | Carga masiva de un archivo | ✅ | `supabase/migrations/0057_importar_catalogo_revisado.sql:252` — `perform fn_asignar_codigo_variante(...)` — **(borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo)** |
 
 **La función que acuña el código hace lo correcto** y lo hace idempotente:
 `retail.fn_asignar_codigo_variante` compone `BASE-COLOR-TALLA`, lo escribe en
@@ -537,6 +540,9 @@ Verificado el 2026-09-12 cruzando `generado/funciones-produccion.txt` (56 funcio
 leídas de la base) contra los 38 archivos de `supabase/unificacion/`. Reconstruir
 producción desde el repo hoy **da una base distinta a la real**, y una de las que falta
 es justo `importar_catalogo` — la puerta por la que van a entrar las 900 prendas.
+**(2026-09-16: `importar_catalogo`, `deshacer_importacion` y `fn_codigo_tres_letras`
+ya no existen en producción — borrado en el corte a V2 el 2026-09-12; se reconstruye
+después del censo.)**
 
 **Dos pantallas están rotas en las tiendas ahora mismo** por el mismo motivo: la app
 llama a funciones con parámetros que producción no acepta.
@@ -608,7 +614,7 @@ No es una lista de deseos: es el orden que sale de las dependencias entre ellos.
 | **4** | **§2.2** — cargar el plan de cuentas | Sin cuentas ninguna regla automática tiene dónde escribir. Primero venta y gasto | Carga de datos + 2 reglas |
 | **5** | **§2.4** — sueldos por sede desde Dynamic | Sin esto el resultado por sede es fantasía, y D-30 es lo que Felipe más quiere | Una vista + el permiso |
 | **6** | **§2.3** — costo absorbido del Taller | **Exige D-47 antes** (inventario de insumos) y D-45 decidida con el contador | Es el más grande de la lista |
-| **—** | **§2.5** — `producto_atributos` | No bloquea a nadie hoy. Se cierra cuando se arregle `importar_catalogo` en producción (§3) | Una rama en la función |
+| **—** | **§2.5** — `producto_atributos` | No bloquea a nadie hoy. Se cierra cuando se arregle `importar_catalogo` en producción (§3) — (borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo) | Una rama en la función |
 
 **Lo que no está en esta lista y debería preocupar más que todo lo anterior:** no hay ni
 una prueba automática sobre el núcleo de stock (D-25). Los cuatro errores de esa familia
