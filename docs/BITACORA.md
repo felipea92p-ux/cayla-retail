@@ -3,6 +3,35 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (BACKLOG desactualizado: 10 migraciones ya estaban en producción)
+
+Felipe pidió subir el PR del buscador y, de paso, "si hay migraciones ejecutarlas
+en producción". Antes de pegar nada, se comparó `supabase/migrations/` contra el
+historial real de `retail` (`vovjyyiafkxteijimpuy`) — no contra BACKLOG.md, que
+[[commits-y-migraciones-en-produccion]] ya advertía que puede mentir. Resultado:
+**las 10 migraciones que BACKLOG marcaba `no está en producción`
+(`producto_fotos_temporada_venta_sin_stock`, `categorias_subcategoria`,
+`productos_listado_filtros`, `compras_resumen_por_vencer`,
+`compras_orden_por_creacion`, `compras_multipago`, `compras_total_del_papel`,
+`compras_adjuntos`, `proveedores_administrables`, `igv_solo_en_factura`) ya
+estaban aplicadas** — alguien (muy probablemente Felipe a mano, siguiendo su
+propio flujo) las pegó hoy mismo entre las 14:16 y las 15:31. Se verificó cada
+una contra objetos reales (columnas, constraints, funciones, el bucket de
+adjuntos), no solo contra el historial de `list_migrations` — ese historial
+tampoco es 100% confiable solo: `produccion_del_taller` está aplicada (se ven
+sus tablas `producciones`/`produccion_lineas`) pero no aparece con ese nombre
+en el historial. La única excepción real es la migración de taxonomía (`0052`
+en BACKLOG): ni existe su archivo en este checkout, ni tiene sentido aplicarla
+sola — depende de `ANTHROPIC_API_KEY` y de una decisión de Felipe aparte, como
+ya decía BACKLOG. No se ejecutó nada en producción esta sesión: no hacía falta.
+
+Lo que Felipe se lleva: **el BACKLOG puede quedar desactualizado incluso más
+rápido de lo que se pensaba** — no por descuido, sino porque él mismo aplica
+migraciones a mano y nadie vuelve a tachar la lista. Las 10 casillas se
+corrigieron en `docs/BACKLOG.md`. Si esto se vuelve a repetir seguido, vale la
+pena que él avise "ya pegué tal cosa" al cerrar, o usar la skill `/backlog`
+para re-auditar el archivo completo de vez en cuando.
+
 ## 2026-09-16 (Buscador global fuera de la cabecera)
 
 Felipe pidió sacar el buscador ("Buscar o escanear prenda…") de la cabecera —
