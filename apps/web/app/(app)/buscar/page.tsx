@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
@@ -46,12 +47,11 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
   const catalogo = await getCatalogo();
 
+  const k = clave(term);
   const resultados = catalogo
     .filter((v) => v.activo)
     .filter((v) =>
-      `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.talla ?? ""} ${v.color ?? ""}`
-        .toLowerCase()
-        .includes(term)
+      clave(`${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.codigosBarras.join(" ")}`).includes(k)
     )
     .slice(0, 30);
 

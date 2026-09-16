@@ -28,6 +28,37 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Loro (módulo 02) — prendas escaneables antes del censo (2026-09-16)
+
+Rama `claude/taxonomia-loro-tucan-15eaf3`. Verificado contra V2 y contra producción:
+`docs/datos/modulos/02-catalogo-y-vocabulario.md` describe V1, y 3 de los 4 huecos que
+Felipe priorizó ya los había cerrado el corte a V2 (disparador de códigos, color como FK,
+pantalla de colores). Lo que quedaba se cerró aquí: regla de identidad con talla
+normalizada (ADR-0069), red de códigos para variantes activas y `/buscar` leyendo
+códigos de barras. Probado en local; tipos y 266 pruebas en verde.
+
+- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en producción
+      ANTES del censo.** Bloque 0 (pre-flight) tiene que dar 0. Archiva los 6 productos de
+      prueba (quedan con historial, 13 salidas y 5 ventas intactas), apaga la categoría
+      "Polos" fuera del vocabulario, retira Arena `ARE` (choca con el prefijo de Aretes) y
+      crea `ARN`, completa la familia de 5 colores y aplica la regla nueva.
+- [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
+      catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
+      Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
+      se llevan a 0 con movimientos de ajuste (motivo explícito "retiro de datos de
+      prueba", nunca merma).
+- [ ] **Proponer y aprobar colores (decisión 2026-09-16).** Cualquiera propone, el color
+      queda pendiente pero usable, y admin aprueba o fusiona. No existe, y antes hay que
+      decidir **quién es admin**: los 9 colaboradores de retail son Líder, `colaboradores`
+      solo admite `lider`/`colaborador`, y los admins viven en Dynamic. Es el mismo
+      mecanismo que Tucán necesita para la taxonomía: se diseña una sola vez.
+- [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
+      ya lee códigos de barras, pero solo se llega por URL.
+- [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos
+      3, 5, 6, 7, 9-15 no están re-verificados y varios citan migraciones que ya no existen.
+
+---
+
 ## 🎯 5 piezas inspiradas en NetSuite (2026-09-16)
 
 Rama `traslados-costeo-reorden-conteo`, todo verificado solo en LOCAL — nada
