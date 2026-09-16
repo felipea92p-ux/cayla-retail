@@ -87,13 +87,16 @@ que commitee) antes de que se pierda.
 
 **Pendiente, sin tocar — decisión de Felipe:**
 
-- [ ] **PR #47 (`DiegoN` → `main`) sigue `CONFLICTING`/`DIRTY`**: 35 commits,
-      +7012/−369. `main` tiene 26 commits que `DiegoN` no tiene (la
-      consolidación Vender+Caja, PR #41-43) y `DiegoN` tiene 34 que `main` no
-      tiene (todo lo de Productos). Nadie lo tocó esta sesión — reconciliar
-      esto es una decisión de más de un módulo a la vez (gatillo explícito de
-      `CLAUDE.md`), no algo para resolver sin que Felipe elija el camino
-      (¿merge de `main` sobre `DiegoN` primero?, ¿al revés?, ¿rebase?).
+- [x] **PR #47 (`DiegoN` → `main`) ya mergeó** (`4d9da93`, 2026-09-16) — la
+      reconciliación de más de un módulo que este ítem pedía ya se resolvió
+      (ver BITÁCORA "Tercera nota" del 2026-09-15/16: ganó la numeración de
+      ADR de `main`, `diegoN` corrió 0051-0056→0058-0062). Verificado el
+      2026-09-16 (sesión de cierre de deuda de Caja) que el módulo Caja
+      sobrevivió limpio: `lib/caja.ts` y `MovimientoCajaModal.tsx` sin ningún
+      byte de diferencia entre el punto en que ADR-0056 llegó a `main` y el
+      HEAD post-PR#47/#50; `types.ts` (el único de los tres que sí cambió en
+      el merge) sigue reflejando la firma real de las 3 RPC de caja. Ver
+      BITÁCORA de hoy para el detalle completo.
 - [ ] **Los cabos sueltos que el resumen anterior daba por abiertos ya no lo
       están** — verificado contra GitHub, no contra lo que decía el resumen:
       PRs #44/#45/#46/#48 (las 4 ramas F1-F4 → DiegoN) ya están MERGED, no

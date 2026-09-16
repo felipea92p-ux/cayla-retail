@@ -4525,3 +4525,28 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-16 (Caja: ADR-0056 sobrevivió limpio al PR #47/#50 — verificado, no reparado)
+
+Felipe pidió confirmar que depósito/ajuste (ADR-0056) mergeó bien contra `main` tras la
+fusión de PR #47 (`DiegoN`→`main`, `4d9da93`) — el BACKLOG documentaba riesgo de choque en
+`MovimientoCajaModal.tsx`/`lib/caja.ts`/`types.ts`. `git diff f073ff0 HEAD -- apps/web/lib/caja.ts
+apps/web/components/MovimientoCajaModal.tsx` da vacío: cero bytes de diferencia desde que
+ADR-0056 llegó a `main`, pese a atravesar PR#41, #47 y #50. `types.ts` sí cambió en el merge
+de PR#47 (`f8bc7e3`) pero sigue exacto: `registrar_movimiento_caja` con sus 6 parámetros
+(`p_nota`/`p_es_ajuste` opcionales), `cerrar_caja` con su retorno de 3 columnas. Confirmado
+además que ninguna migración posterior a `20260915202040` volvió a tocar `cerrar_caja` — sigue
+siendo la versión de ADR-0053 (`20260915200000`), que suma `caja_movimientos` por `tipo`, nunca
+por `motivo`: un depósito o ajuste se cuadra en cuanto existe la fila, sin que `cerrar_caja`
+necesite saber que existen. Verificado en vivo, no solo en el código: caja de Tienda Lima
+(apertura S/10, sesión de Felipe ya activa en el panel) — depósito bancario real (egreso S/50,
+con voucher) e ajuste de caja real (ingreso S/15, sobrante, exige líder — Felipe lo es) — al
+cerrar, "el sistema esperaba" dio S/-25.00 = 10 + 15 − 50, exactamente la suma de apertura +
+ambos movimientos. `docs/BACKLOG.md` actualizado: el ítem de PR #47 `CONFLICTING/DIRTY` estaba
+obsoleto (ya mergeó), marcado resuelto con este detalle.
+
+Lo que Felipe se lleva: **el riesgo que el BACKLOG anotó nunca se materializó donde importaba**
+— los tres archivos señalados como zona de choque llegaron intactos (dos sin tocar un solo
+byte, el tercero regenerado correctamente). La próxima vez que un ADR prediga una colisión en
+`BACKLOG.md`, vale la pena cerrar el loop con `git diff <commit-de-origen> HEAD -- <archivo>`
+en vez de asumir que "va a chocar" significa que chocó.
