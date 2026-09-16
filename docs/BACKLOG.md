@@ -18,6 +18,31 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Buscador global fuera de la cabecera (2026-09-16)
+
+A pedido de Felipe: `BuscadorGlobal` (la caja "Buscar o escanear prenda…" que
+vivía en la cabecera de TODAS las pantallas) se quitó de `AppShell.tsx` — no
+por estar roto (se verificó en navegador que funciona de punta a punta: busca
+por SKU/referencia/talla/color y muestra stock por ubicación), sino porque no
+tiene sentido un buscador de catálogo idéntico en pantallas como
+`/colaboradores` o `/producción` igual que en `/vender` o `/inicio`. De paso
+se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya estaba
+muerto de verdad (cero imports en todo el repo — probablemente un diseño
+anterior del Inicio que quedó huérfano).
+
+- [ ] **`/buscar/page.tsx` queda sin ningún punto de entrada en la UI.** La
+      pantalla en sí sigue intacta y funcional (búsqueda real con stock por
+      ubicación), solo alcanzable hoy por URL directa. Pendiente de que
+      Felipe decida: ¿se borra la pantalla también, o se reengancha en un
+      lugar puntual — ej. una tarjeta más en "Acciones" de Inicio — en vez de
+      vivir en la cabecera global?
+
+Verificado: `pnpm --filter web typecheck`/`lint` en verde; probado en
+navegador real (escritorio y celular) en `/` y `/productos` — la cabecera
+queda solo con el selector de ubicación, sin salto de layout.
+
+---
+
 ## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
 
 **El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**

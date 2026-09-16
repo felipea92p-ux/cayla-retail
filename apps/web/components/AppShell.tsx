@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
-import { Boton, Hilo } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { PerfilModal } from "@/components/PerfilModal";
 
@@ -84,7 +84,6 @@ const IC = {
   cambios: "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
   // Flecha en U: la prenda vuelve.
   devoluciones: "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
-  buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
   // Bolsa, no carrito: el carrito ya es de "Punto de Venta" (IC.vender) — la
   // cabecera "Venta" necesita un trazo propio para no verse igual a su hija.
@@ -119,42 +118,6 @@ type ItemGrupo = { id: string; etiqueta: string; icono: string; hijos: Item[] };
 type FilaMenu = Item | ItemGrupo;
 function esGrupo(f: FilaMenu): f is ItemGrupo {
   return "hijos" in f;
-}
-
-function BuscadorGlobal({ compacto = false }: { compacto?: boolean }) {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-  const [enfocado, setEnfocado] = useState(false);
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const term = q.trim();
-        if (term) {
-          router.push(`/buscar?q=${encodeURIComponent(term)}`);
-          setQ("");
-        }
-      }}
-      className={compacto ? "w-full" : "w-full max-w-md"}
-    >
-      {/* Mismo hilo vivo que los campos del sistema (ADR-0011): el buscador
-          tenía su propio `focus-within:border-rojo`, que hacía lo mismo pero
-          apareciendo de golpe en vez de dibujarse. */}
-      <div className="relative flex items-center gap-2.5 px-1 py-2">
-        <Icono d={IC.buscar} className={`h-[18px] w-[18px] shrink-0 transition-colors ${enfocado ? "text-rojo" : "text-tinta/65"}`} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onFocus={() => setEnfocado(true)}
-          onBlur={() => setEnfocado(false)}
-          placeholder="Buscar o escanear prenda…"
-          aria-label="Buscar o escanear prenda"
-          className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
-        />
-        <Hilo activo={enfocado} />
-      </div>
-    </form>
-  );
 }
 
 /* ------------------------------------------------------------------
@@ -719,9 +682,6 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
           <Link href="/" className="flex items-center gap-2 sm:hidden">
             <Image src="/cayla-isotipo.png" alt="CAYLA" width={26} height={26} priority className="h-[26px] w-auto" />
           </Link>
-          <div className="min-w-0 flex-1 sm:max-w-sm">
-            <BuscadorGlobal compacto />
-          </div>
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción
               (que ya tenían el suyo propio, local a esa pantalla). Un

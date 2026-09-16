@@ -3,6 +3,32 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Buscador global fuera de la cabecera)
+
+Felipe pidió sacar el buscador ("Buscar o escanear prenda…") de la cabecera —
+se repetía en TODAS las pantallas sin distinguir contexto. Antes de tocar
+nada se verificó en navegador que el buscador SÍ funcionaba de punta a punta
+(no era el bug histórico de Fase 1 que menciona el propio comentario de
+`buscar/page.tsx`: ese ya se arregló en el rediseño V2 del 2026-09-12). La
+objeción real de Felipe no era que estuviera roto, sino que no tiene sentido
+un buscador de catálogo idéntico en `/colaboradores` o `/producción` que en
+`/vender` o `/inicio`. Se quitó `BuscadorGlobal` de `AppShell.tsx`
+(componente, ícono `IC.buscar`, imports `useRouter`/`Hilo` huérfanos) y de
+paso se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya
+estaba muerto de verdad (cero imports en todo el repo).
+
+`/buscar/page.tsx` (búsqueda real por SKU/referencia/talla/color con stock
+por ubicación) queda intacta pero sin ningún punto de entrada en la UI —
+sigue funcionando por URL directa. Pendiente en BACKLOG que Felipe decida si
+se borra también o se reengancha en un lugar puntual (ej. Inicio).
+
+Lo que Felipe se lleva: **antes de borrar algo por "no sirve", vale la pena
+probarlo en navegador** — este buscador en particular sí funcionaba (se
+comprobó buscando "Emma" y viendo 6 resultados reales con stock por
+ubicación); el problema no era la función sino el lugar donde vivía.
+Verificado: `pnpm --filter web typecheck`/`lint` en verde; navegador real en
+escritorio y celular, `/` y `/productos`.
+
 ## 2026-09-15 (Productos: filtros y paginado server-side — Sesión B1)
 
 Felipe pidió migrar `/productos` del filtrado-en-memoria a filtros en la URL +
