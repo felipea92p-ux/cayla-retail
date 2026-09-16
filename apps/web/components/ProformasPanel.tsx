@@ -9,7 +9,8 @@ import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
+import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
@@ -237,54 +238,48 @@ export function ProformasPanel({
       {/* ==================== Modal: crear proforma ==================== */}
       {modal === "crear" && (
         <Modal titulo="Nueva proforma" onClose={cerrarModal}>
-          <form onSubmit={onCrear} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Ubicación</label>
-              <select value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)} className={campoSelect}>
-                {ubicaciones.map((u) => (
-                  <option key={u.id} value={u.id}>{u.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Cliente (opcional)</label>
-              <input
-                value={clienteNombre}
-                onChange={(e) => setClienteNombre(e.target.value)}
-                placeholder="Nombre de la clienta"
-                className={campoTexto}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Total (incluye IGV)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={total || ""}
-                onChange={(e) => setTotal(Number(e.target.value))}
-                className={campoTexto}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Vigente por (días)</label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={venceEnDias}
-                onChange={(e) => setVenceEnDias(Number(e.target.value))}
-                className={campoTexto}
-              />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className={botonCancelar}>
+          <form onSubmit={onCrear} className="mt-5 space-y-2">
+            <CampoSelect
+              etiqueta="Ubicación"
+              valor={ubicacionId}
+              onValor={setUbicacionId}
+              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+            />
+
+            <CampoTexto
+              etiqueta="Cliente (opcional)"
+              value={clienteNombre}
+              onChange={(e) => setClienteNombre(e.target.value)}
+              placeholder="Nombre de la clienta"
+            />
+
+            <CampoMonto
+              etiqueta="Total (incluye IGV)"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              placeholder="0.00"
+              value={total || ""}
+              onChange={(e) => setTotal(Number(e.target.value))}
+            />
+
+            <CampoTexto
+              etiqueta="Vigente por (días)"
+              type="number"
+              min="1"
+              required
+              value={venceEnDias}
+              onChange={(e) => setVenceEnDias(Number(e.target.value))}
+            />
+
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className={botonPrimario}>
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Guardando…" : "Guardar proforma"}
-              </button>
+              </Boton>
             </div>
           </form>
         </Modal>
@@ -293,32 +288,24 @@ export function ProformasPanel({
       {/* ==================== Modal: convertir a comprobante ==================== */}
       {modal && typeof modal === "object" && (
         <Modal titulo="Convertir a comprobante" onClose={cerrarModal}>
-          <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="space-y-4">
+          <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="mt-5 space-y-2">
             <p className="text-xs text-tinta/75">
               {modal.convertir.cliente_nombre ?? "Cliente varios"} · {money(Number(modal.convertir.total))}
             </p>
 
-            <div className="space-y-1.5">
-              <label className={campoEtiqueta}>Tipo</label>
-              <div className="flex gap-2">
-                {(["boleta", "factura"] as TipoComprobante[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setTipo(t);
-                      setClienteNumDoc("");
-                      setConvertirNombre("");
-                    }}
-                    className={`label-cayla flex-1 border px-3 py-2 text-[11px] transition-colors ${
-                      tipo === t ? "border-rojo bg-rojo/10 text-rojo-profundo" : "border-tinta/20 text-tinta/70"
-                    }`}
-                  >
-                    {t === "boleta" ? "Boleta" : "Factura"}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Segmentado
+              etiqueta="Tipo"
+              valor={tipo}
+              onValor={(t) => {
+                setTipo(t);
+                setClienteNumDoc("");
+                setConvertirNombre("");
+              }}
+              opciones={[
+                { valor: "boleta", texto: "Boleta" },
+                { valor: "factura", texto: "Factura" },
+              ] as const}
+            />
 
             <ConsultaDocumento
               tipo={tipo === "factura" ? "ruc" : "dni"}
@@ -329,13 +316,13 @@ export function ProformasPanel({
               onNombre={setConvertirNombre}
             />
 
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className={botonCancelar}>
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className={botonPrimario}>
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Emitiendo…" : "Emitir comprobante"}
-              </button>
+              </Boton>
             </div>
           </form>
         </Modal>

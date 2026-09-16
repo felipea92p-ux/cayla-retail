@@ -4575,3 +4575,23 @@ Proformas — Nueva proforma y Convertir a comprobante — en ambos estilos, par
 sienta el hilo vivo, el desplegable propio y el segmentado antes de decidir. `EfectivoPanel`,
 que el mismo ítem del backlog menciona junto a Proformas, ya no existe (era de Finanzas V1,
 borrado en el corte) — no se tocó nada ahí.
+
+**Felipe aprobó "tal cual" — migrado en la misma sesión.** `ProformasPanel.tsx`: import de
+`ui/Modal.tsx` reducido a `Modal` (los strings viejos siguen exportados para los 6 modales
+del núcleo que faltan); los dos modales pasan a `CampoSelect`/`CampoTexto`/`CampoMonto`/
+`Segmentado`/`Boton` de `components/ui/campos.tsx`, mismo patrón exacto que ya usa
+`ComprobantesPanel`. `ConsultaDocumento` no se tocó — ya vivía sobre `CampoTexto` desde
+ADR-0011. Cero cambio en `onCrear`/`onConvertir`/`lib/proformas.ts`/la RPC — es solo el
+shell visual. Verificado `tsc --noEmit` (apps/web, limpio), `pnpm lint` (limpio) y
+`pnpm test` (239/239, ninguna prueba tocaba este componente y ninguna se rompió).
+
+**Lo que NO se verificó: navegador autenticado como líder.** El stack local
+(`supabase_*_cayla-retail`, puertos 544XX) ya estaba arriba de una sesión anterior y
+`apps/web/.env.local` faltaba en este worktree (copiado del checkout principal — mismas
+claves de siempre, nada nuevo). La sesión local persistida era de Micaela (colaboradora,
+sin acceso a Facturación); se generó un magic link con el `service_role` local para
+`felipe@cayla.local` sin escribir la contraseña, pero el canje de sesión no se completó
+(quedó en `/login` tras seguir el link) — no vale la pena perseguirlo más para un cambio
+puramente presentacional ya probado en producción vía `ComprobantesPanel`. El `next dev`
+de este worktree queda corriendo en `localhost:3000` por si Felipe prefiere entrar él
+mismo con su contraseña real y mirarlo antes de que esto se fusione.

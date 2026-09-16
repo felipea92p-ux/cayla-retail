@@ -2307,17 +2307,14 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       El hallazgo de taupe que salió acá el 09-sep ya está cerrado (ADR-0017,
       `--color-taupe-profundo`); lo que queda es el barrido de las pantallas con
       sesión, que es más ancho que ese solo color.
-- [ ] Campos viejos: `ProformasPanel` y los 6 modales del núcleo siguen con los strings
-      `campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`.
-      `components/ui/campos.tsx` (ADR-0011) ya reemplazó esto en `ComprobantesPanel`
-      (misma pantalla de Facturación, en producción). Migrar pantalla por pantalla,
-      nunca de un saque: los strings viejos siguen exportados justamente para que la
-      migración sea opcional. `EfectivoPanel` ya no existe (era de Finanzas V1, borrado
-      en el corte V1→V2) — se cae de esta lista.
-      **2026-09-16: antes/después de `ProformasPanel` armado y mostrado a Felipe
-      (artifact interactivo, ver BITÁCORA de hoy) — a la espera de su visto bueno antes
-      de tocar el componente.** Esperar a que confirme que le gusta el diseño ahí
-      primero.
+- [ ] Campos viejos: los 6 modales del núcleo (abrir/cerrar caja, vender, bajar a
+      tienda, registrar gasto, movimiento de stock) siguen con los strings
+      `campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`. Migrar pantalla por
+      pantalla, nunca de un saque: los strings viejos siguen exportados justamente para
+      que la migración sea opcional. `EfectivoPanel` ya no existe (era de Finanzas V1,
+      borrado en el corte V1→V2) — se cae de esta lista. `ProformasPanel` ya migró
+      (ver CERRADO 2026-09-16) — queda como ejemplo de referencia además de
+      `ComprobantesPanel`.
 
 ---
 
@@ -2336,6 +2333,17 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-16 — **`ProformasPanel` migrado a `components/ui/campos.tsx` (ADR-0011).**
+      Mostrado antes/después a Felipe (artifact interactivo) — aprobó "tal cual". Cambio
+      puramente presentacional: `CampoSelect`/`CampoTexto`/`CampoMonto`/`Segmentado`/
+      `Boton` en los dos modales (Nueva proforma, Convertir a comprobante); `onCrear`,
+      `onConvertir`, `lib/proformas.ts` y la RPC sin tocar. Verificado `tsc --noEmit`,
+      `pnpm lint` y `pnpm test` (239/239) en verde. Sin demo en navegador autenticado
+      como líder en esta sesión (el atajo de magic link local no completó el canje de
+      sesión) — dev server queda levantado en `localhost:3000` por si Felipe quiere
+      verlo él mismo. Quedan los 6 modales del núcleo con los campos viejos — ítem
+      "Campos viejos" más arriba en este archivo.
 
 - [x] 2026-09-15 — **Colores: tipo visual y muestra real** (Sesión F2,
       `feat/colores-tipo-muestra`, sobre `DiegoN`). `colores.tipo`
