@@ -4648,3 +4648,147 @@ decisión más temprana de lo que parecía.
 Verificado: `pnpm typecheck`, `eslint` y `vitest` (258/258) limpios sobre los archivos
 tocados. Solo dentro del alcance del encargo — no se tocó `lib/caja.ts` ni
 `ConsultaDocumento.tsx` (otras sesiones en paralelo).
+
+## 2026-09-16 (Facturación: el "ya no existe" del banner era falso, y el correlativo huérfano ya no es hipotético)
+
+Encargo de Felipe: auditar Facturación fresco, sin confiar en `docs/BACKLOG.md` §1198-1400
+("reemplazo total de Alegra") por ser anterior al corte V1→V2. El propio banner del inicio del
+archivo decía que Facturación "ya no existe en el código" — falso, y ya lo sospechaba Felipe
+(vio `facturacion/page.tsx:14` con el comentario "rescatada de producción"). Confirmado con la
+fuente más primaria posible: el mensaje del commit del corte (`0af2f1b`) dice explícito
+*"Facturación/SUNAT se rescata íntegra (comprobantes, series con correlativo, proformas, 9
+RPCs)"* — nunca se borró, a diferencia de Producción (que sí se borró y volvió después) o
+Finanzas (sigue borrada). Cierra también la duda que esta misma bitácora había dejado abierta
+ayer (15-09, entrada de depósito/ajuste): "la contradicción sin resolver sobre si Facturación/
+SUNAT también quedó descrita como V1". Banner corregido en BACKLOG.md.
+
+**Los dos pendientes concretos que el propio ADR-0016 (09-09) dejó abiertos:**
+
+1. **"Cerrar el ciclo de una anulación en trámite" — ya estaba cerrado el mismo 09-09**
+   (botón "Consultar" + `interpretarEstadoAnulacion`, ver el propio ADR), y sigue vivo hoy:
+   `retail.anular_comprobante` en producción tiene la firma de 4 argumentos con
+   `p_confirmada boolean` (leído con `pg_get_functiondef`, no asumido), y el código
+   (`ComprobantesPanel.tsx`, `lib/lucode.ts:270-346`, las dos rutas de `/api/lucode/`) sigue
+   ahí. Nada que hacer acá — el backlog viejo lo daba por abierto porque es anterior a la
+   sección "Cerrar el ciclo" que el propio ADR-0016 agregó ese mismo día.
+2. **"Qué hacer con un correlativo reservado que nunca se transmitió" — sigue abierto, y
+   dejó de ser hipotético.** La RPC en producción rechaza anular cualquier cosa que no esté
+   `estado='aceptado'` (cuerpo leído completo), y el frontend nunca ofrece "Anular" para un
+   `pendiente` — solo "Transmitir". Consultando `retail.comprobantes` en vivo aparecieron
+   **B004-000004** (S/655.50, sin cliente, 14-09) y **B004-000005** (S/185.30, con cliente,
+   15-09): dos números oficiales ya reservados ante SUNAT, ninguno transmitido, sin ningún
+   camino en el sistema para soltarlos o anularlos. Anotado en BACKLOG (🩹 ARREGLAR) como
+   pregunta de negocio para Felipe, no técnica — no se tocó la base ni se intentó transmitir
+   esos dos por cuenta propia.
+
+**De paso, la pregunta suelta de Felipe sobre si `VentasDelDiaPanel` (Facturación) y
+`VentasDeHoy` (Vender/Caja) son el mismo componente: no lo son.** Dos implementaciones
+independientes — `VentasDelDiaPanel.tsx` es un componente de solo lectura que pinta
+`VentaDelDia[]` ya resuelto por el servidor (todas las sedes, para el líder); `VentasDeHoy`
+vive inline en `vender/page.tsx` y llama `fn_ventas_del_dia` directo, acotado a una sola
+`ubicacionId`. Comparten forma (RPC `fn_ventas_del_dia` de origen) pero ninguna línea de
+código. Se puede tocar la forma de uno sin arriesgar el otro.
+
+**Proformas (BACKLOG §"Campos viejos"): preparado, no migrado — a la espera del visto bueno
+de Felipe, como pedía el ítem original.** `ProformasPanel.tsx` sigue con
+`campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`; `ComprobantesPanel.tsx`, en la
+misma pantalla, ya vive en `components/ui/campos.tsx` (ADR-0011) y está en producción. Armado
+un antes/después interactivo (artifact, no código del repo) con los dos modales reales de
+Proformas — Nueva proforma y Convertir a comprobante — en ambos estilos, para que Felipe
+sienta el hilo vivo, el desplegable propio y el segmentado antes de decidir. `EfectivoPanel`,
+que el mismo ítem del backlog menciona junto a Proformas, ya no existe (era de Finanzas V1,
+borrado en el corte) — no se tocó nada ahí.
+
+**Felipe aprobó "tal cual" — migrado en la misma sesión.** `ProformasPanel.tsx`: import de
+`ui/Modal.tsx` reducido a `Modal` (los strings viejos siguen exportados para los 6 modales
+del núcleo que faltan); los dos modales pasan a `CampoSelect`/`CampoTexto`/`CampoMonto`/
+`Segmentado`/`Boton` de `components/ui/campos.tsx`, mismo patrón exacto que ya usa
+`ComprobantesPanel`. `ConsultaDocumento` no se tocó — ya vivía sobre `CampoTexto` desde
+ADR-0011. Cero cambio en `onCrear`/`onConvertir`/`lib/proformas.ts`/la RPC — es solo el
+shell visual. Verificado `tsc --noEmit` (apps/web, limpio), `pnpm lint` (limpio) y
+`pnpm test` (239/239, ninguna prueba tocaba este componente y ninguna se rompió).
+
+**Lo que NO se verificó: navegador autenticado como líder.** El stack local
+(`supabase_*_cayla-retail`, puertos 544XX) ya estaba arriba de una sesión anterior y
+`apps/web/.env.local` faltaba en este worktree (copiado del checkout principal — mismas
+claves de siempre, nada nuevo). La sesión local persistida era de Micaela (colaboradora,
+sin acceso a Facturación); se generó un magic link con el `service_role` local para
+`felipe@cayla.local` sin escribir la contraseña, pero el canje de sesión no se completó
+(quedó en `/login` tras seguir el link) — no vale la pena perseguirlo más para un cambio
+puramente presentacional ya probado en producción vía `ComprobantesPanel`. El `next dev`
+de este worktree queda corriendo en `localhost:3000` por si Felipe prefiere entrar él
+mismo con su contraseña real y mirarlo antes de que esto se fusione.
+
+## 2026-09-16 (Facturación: cuatro amistades chicas — motivo de rechazo, proformas
+que no se pierden de vista, Rechazados con su propio número, y un link que encontró casa)
+
+Pedido de Felipe: "seguí analizando Facturación, decime qué cambiar para que sea más
+amigable o qué es redundante". Auditoría de los cuatro archivos de siempre
+(`facturacion/page.tsx`, `ComprobantesPanel.tsx`, `ProformasPanel.tsx`,
+`VentasDelDiaPanel.tsx`) más `ConsultaDocumento.tsx`, `Ayuda.tsx` y `TarjetaIndicador.tsx`
+para entender el vocabulario visual completo antes de opinar. Cinco hallazgos, Felipe
+aprobó cuatro (deja "conectar Ventas de hoy con Emitir" para después — ver BACKLOG).
+
+**Arreglado ya, sin esperar menú (defecto chico):** `Comprobante.motivo_rechazo` viajaba
+desde la base (`lib/comprobantes.ts:20` ya lo trae) hasta el tipo, y `ComprobantesPanel.tsx`
+nunca lo pintaba — un rechazo de SUNAT se veía como una etiqueta roja sin ninguna razón.
+Mismo tratamiento que ya tenía `motivo_anulacion`, en rojo para diferenciarlo.
+
+**Los otros tres, con menú y decididos por Felipe:**
+- **Proformas vigentes independientes del mes.** `getProformasMes` traía todo por
+  `created_at` del mes visible; una vigente creada el 30 podía desaparecer el día 1. Se
+  separó en dos consultas (vigentes sin fecha + historial por mes) y se mergean por `id`
+  — más simple y sin riesgo de escapar mal un filtro `.or()` con fechas interpoladas.
+- **"Rechazados" con su propio tile.** Había propuesto reusar `TarjetaIndicador`, pero al
+  mirar el componente de cerca no tiene un tono "aviso" (ámbar) — solo neutro/`critico`
+  (rojo) — y "Pendientes de enviar" necesita quedarse ámbar (es normal, no una alarma).
+  Se corrigió el plan sobre la marcha: se mantuvieron los tiles a mano que ya tenía
+  `ComprobantesPanel` y se agregó un cuarto, no se migró todo el bloque a
+  `TarjetaIndicador` como había dicho.
+- **El link de Códigos de descuento.** Se movió a la fila del navegador de mes, con un
+  divisor — sin tocar la decisión de Felipe del 15-09 de no sumarlo al lateral.
+
+**Lo que salió de paso, sin tocar:** `totalMes` en "Monto facturado" suma TODOS los
+comprobantes del mes — pendientes, rechazados, anulados y hasta los de prueba (sandbox).
+Es una pregunta de negocio (¿qué debe significar "facturado"?), no una de código: anotado
+en BACKLOG, no se cambió.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en cada uno de los 3
+commits por separado. Mismo límite que la sesión anterior para ver esto en el navegador:
+este repo solo tiene login por contraseña (sin magic link/OTP en el frontend — se
+confirmó que no existe ninguna ruta `/auth/*`), así que no hay demo autenticada como
+líder; el `next dev` de este worktree sigue arriba en `localhost:3000`.
+
+## 2026-09-16 (Facturación: tarjetas para celular, y por fin una sesión de líder para verlo)
+
+Felipe confirmó que sí entra desde el teléfono a veces — construyo el ítem 5 que había
+quedado pendiente de su respuesta. `ComprobantesPanel.tsx`/`ProformasPanel.tsx`: la
+tabla (`min-w-[760px]`) se reserva para `sm:` (640px) y más ancho; por debajo, las
+mismas filas se pintan como tarjetas apiladas. Para no duplicar la decisión de qué
+botón mostrar (Transmitir/Anular/Consultar) y el motivo de rechazo/anulación en dos
+JSX distintos, se extrajo `accionComprobante()` — vive fuera del componente porque no
+tiene closure sobre los handlers, así que los recibe por parámetro. En Proformas, el
+`.sort()` que antes vivía inline en el `.map()` de la tabla pasó a `proformasOrdenadas`,
+calculado una vez y leído por los dos layouts.
+
+**Por fin se pudo ver en un navegador real, autenticado.** Los intentos anteriores
+(magic link sin ruta de callback en el frontend) se abandonaron; esta vez Felipe entró
+él mismo con su contraseña real en el pane compartido — cerrar la sesión de Micaela
+(botón "Salir" real, no forzado por código) fue lo único que hizo falta. Con él ya
+adentro como líder en Tienda Lima: se creó una proforma de prueba real (María Torres,
+S/185.50) para tener al menos una fila que ver, y resultó que Tienda Lima ya tenía 13
+comprobantes reales sembrados por otra sesión — de paso sirvieron para probar el
+layout con volumen real, no un caso de una sola fila. A 375px de ancho (iPhone
+chico): cero desborde horizontal, cada tarjeta con tipo+serie, cliente, total, estado
+y el botón de acción, legible sin agrandar nada. Los datos de prueba se dejaron en el
+local (Postgres local, no producción) — no hace falta limpiarlos, le sirven a la
+próxima sesión como fixture.
+
+De paso, con Felipe ya autenticado, quedaron confirmados en el navegador real los tres
+cambios de la sesión anterior que solo habían pasado por `tsc`/`lint`/tests: el link de
+Códigos de descuento en la fila del navegador de mes (con su divisor), los 4 tiles de
+Comprobantes con Rechazados aparte, y el formulario de Proformas ya con los campos de
+`campos.tsx` (Desplegable, CampoMonto con su "S/" grande) funcionando de punta a punta
+contra el RPC real.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en verde.

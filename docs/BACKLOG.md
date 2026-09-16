@@ -10,8 +10,18 @@ Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más
 **ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
 y su data en `retail` era de prueba, no operación real). **Producción volvió el 2026-09-15
 sobre V2 (ADR-0051)** — lo que diga de ella más abajo describe la versión V1, no la actual.
+**Corrección 2026-09-16 (auditoría de Facturación): la frase de arriba está mal para
+Facturación — nunca se borró, a diferencia de Producción/Finanzas.** El propio commit del
+corte (`0af2f1b`, 2026-09-12) lo dice en su mensaje: *"Facturación/SUNAT se rescata íntegra
+(comprobantes, series con correlativo, proformas, 9 RPCs)"*. Verificado hoy contra el código
+(`vender/facturacion/page.tsx`, `ComprobantesPanel.tsx`, `ProformasPanel.tsx`, `lib/lucode.ts`,
+las RPCs) y contra producción (`retail.comprobantes`/`retail.proformas` tienen filas reales:
+aceptadas, anulada, y 2 pendientes). Cierra la duda que había quedado abierta en BITÁCORA
+2026-09-15 ("la contradicción sin resolver sobre si Facturación/SUNAT también quedó descrita
+como V1"). Detalle de lo que SÍ sigue abierto en Facturación (no el módulo entero, un punto
+puntual) en 🩹 ARREGLAR, más abajo en este mismo archivo.
 Lo que sí sigue vigente hoy: Vender/Caja (POS), Productos, Inventario, Compras, Movimientos,
-Colaboradores, Producción. Antes de
+Colaboradores, Producción, Facturación. Antes de
 actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
 el módulo todavía existe — este documento no se ha reescrito para reflejar V2 todavía
 (tarea propia, pendiente de agendar con Felipe, no improvisada acá).
@@ -1759,6 +1769,42 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       dato. No se tocó (no es de esta sesión arreglarlo ni está claro cuál es el
       backfill correcto sin mirar cómo se pobló originalmente); quien lo vea de nuevo,
       confirmar con esa misma consulta antes de sospechar de su propio código.
+- [ ] **`ComprobantesPanel.tsx`: "Monto facturado" suma TODOS los comprobantes del
+      mes, sin importar el estado — encontrado 2026-09-16 al rehacer los tiles del
+      resumen, no es de esta sesión.** `totalMes` (`ComprobantesPanel.tsx`, `const
+      totalMes = comprobantes.reduce((acc, c) => acc + Number(c.total), 0)`) suma
+      pendientes, rechazados, anulados y hasta comprobantes de **prueba** (sandbox,
+      que la propia pantalla explica que "no vale como comprobante de pago"). Un
+      rechazo o una anulación no fueron una venta facturada; un comprobante de
+      prueba nunca lo fue. Pregunta de negocio, no técnica: ¿"Monto facturado" debe
+      contar solo `aceptado` + `entorno_transmision='produccion'`? No lo cambié sin
+      confirmar contigo qué debe significar la cifra.
+- [ ] **Facturación: "Ventas de hoy" no conecta con "Emitir comprobante" — con
+      Felipe, pospuesto 2026-09-16 (se hicieron los ítems 2, 3 y 4 de la misma
+      auditoría, este no).** Hoy hay que mirar el monto en `VentasDelDiaPanel` y
+      volver a tipearlo a mano en el modal de `ComprobantesPanel` — dos pantallas
+      para un solo dato. `retail.emitir_comprobante` ya acepta `p_venta_id`/
+      `p_items` en producción; `ComprobantesPanel.tsx:215-224` no los manda. Falta
+      levantar el estado del modal "emitir" a un componente cliente que envuelva a
+      los dos paneles hermanos (hoy conviven sueltos en `facturacion/page.tsx`).
+
+- [ ] **Correlativo reservado que nunca se transmitió — sigue sin resolver (ADR-0016 lo
+      dejó afuera a propósito), y ya no es hipotético: hay 2 casos reales en producción
+      hoy, 2026-09-16.** `emitir_comprobante` reserva el número oficial ante SUNAT en el
+      mismo instante en que se guarda el comprobante — antes de transmitir. Si nadie
+      aprieta "Transmitir" después, ese número queda `estado='pendiente'` para siempre:
+      no se puede anular (`retail.anular_comprobante` exige `estado = 'aceptado'`,
+      verificado leyendo la función en producción con `pg_get_functiondef`) y no hay botón
+      para soltarlo — `ComprobantesPanel.tsx` solo ofrece "Transmitir" o "Anular", nunca
+      los dos a la vez. Confirmado en `retail.comprobantes`: **B004-000004** (S/655.50,
+      sin cliente, creado 2026-09-14) y **B004-000005** (S/185.30, con cliente, creado
+      2026-09-15) — dos correlativos oficiales ya quemados ante SUNAT, ninguno transmitido
+      ni recuperable desde la pantalla. Pregunta de negocio para Felipe, no técnica: ¿se
+      puede anular sin avisarle a SUNAT (nunca salió de acá, no hay nada que darle de baja
+      allá — sería un camino nuevo, más simple que el de ADR-0016, no el mismo)? ¿Hay un
+      plazo razonable antes de tratarlo como abandonado? Mientras no se decida, cada
+      "Emitir" que alguien no transmite quema un número de la serie sin remedio.
+
 - [x] **RESUELTO 2026-09-09. Ahora corre 3 tareas y encontró 1 error real el primer día.**
       `"typecheck": "tsc --noEmit"` en los tres paquetes y la tarea declarada en
       `turbo.json`. Estado al encenderlo: `apps/web` **0 errores** y `packages/shared`
@@ -2244,13 +2290,14 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       El hallazgo de taupe que salió acá el 09-sep ya está cerrado (ADR-0017,
       `--color-taupe-profundo`); lo que queda es el barrido de las pantallas con
       sesión, que es más ancho que ese solo color.
-- [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
-      siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
-      `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
-      Facturación con campos que sí tienen estado (hilo de foco, desplegable propio,
-      segmentado). Migrar pantalla por pantalla, nunca de un saque: los strings
-      viejos siguen exportados justamente para que la migración sea opcional.
-      Esperar a que Felipe confirme que le gusta el diseño en Facturación primero.
+- [ ] Campos viejos: los 6 modales del núcleo (abrir/cerrar caja, vender, bajar a
+      tienda, registrar gasto, movimiento de stock) siguen con los strings
+      `campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`. Migrar pantalla por
+      pantalla, nunca de un saque: los strings viejos siguen exportados justamente para
+      que la migración sea opcional. `EfectivoPanel` ya no existe (era de Finanzas V1,
+      borrado en el corte V1→V2) — se cae de esta lista. `ProformasPanel` ya migró
+      (ver CERRADO 2026-09-16) — queda como ejemplo de referencia además de
+      `ComprobantesPanel`.
 
 ---
 
@@ -2269,6 +2316,50 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-16 — **Facturación en tarjetas para celular (ítem 5 de la auditoría de
+      amigabilidad; Felipe confirmó que sí entra desde el teléfono a veces).**
+      `ComprobantesPanel.tsx` y `ProformasPanel.tsx`: la tabla (`min-w-[760px]`) queda
+      para `sm:` (640px) y más ancho; por debajo, las mismas filas se pintan como
+      tarjetas apiladas — mismo dato, sin columnas, sin scroll horizontal. Se extrajo
+      `accionComprobante()` (botón Transmitir/Anular/Consultar + motivo de rechazo o
+      anulación) y `proformasOrdenadas` para que tabla y tarjetas lean la misma lógica,
+      no dos copias que puedan desalinearse. **Verificado en el navegador real, con
+      Felipe autenticado como líder** (el límite de las sesiones anteriores — sin
+      sesión de líder disponible — se resolvió cuando entró él mismo con su
+      contraseña): 375px de ancho, con los 13 comprobantes y 1 proforma reales que ya
+      había en el local, sin ningún desborde horizontal. `tsc --noEmit`, `pnpm lint`,
+      `pnpm test` (239/239) en verde.
+
+- [x] 2026-09-16 — **Auditoría de amigabilidad de Facturación: 3 de 5 hallazgos
+      construidos, con el visto bueno de Felipe (pidió todos menos "conectar Ventas
+      de hoy con Emitir", ver 🩹 ARREGLAR).** (1) `ComprobantesPanel.tsx`: motivo de
+      rechazo de SUNAT ahora visible en la fila (existía en el tipo y en la
+      consulta, `lib/comprobantes.ts:20`, y no se pintaba nunca). (2)
+      `lib/proformas.ts`: las vigentes se traen aparte, sin el filtro de mes, para
+      que una proforma abierta no se caiga de la vista al cruzar de mes — el resto
+      de estados sigue por mes. (3) `ComprobantesPanel.tsx`: el resumen pasa de 3 a
+      4 tiles — "Rechazados" ya no es una sub-línea roja dentro de "Pendientes de
+      enviar". (4) `facturacion/page.tsx`: "Códigos de descuento" se movió de un
+      link huérfano bajo el título a la fila de acciones junto al navegador de mes.
+      Verificado `tsc --noEmit`, `pnpm lint`, `pnpm test` (239/239) en cada commit
+      por separado (4 commits). **Sin demo en navegador autenticado como líder**
+      (mismo límite que la sesión de ProformasPanel: este repo solo tiene login por
+      contraseña, sin flujo de magic link/OTP en el frontend — verificado, no hay
+      ninguna ruta `/auth/*` en `apps/web/app`). De paso salió un hallazgo nuevo, no
+      tocado: "Monto facturado" suma comprobantes rechazados/anulados/de prueba —
+      ver 🩹 ARREGLAR, es decisión de Felipe qué debe contar la cifra.
+
+- [x] 2026-09-16 — **`ProformasPanel` migrado a `components/ui/campos.tsx` (ADR-0011).**
+      Mostrado antes/después a Felipe (artifact interactivo) — aprobó "tal cual". Cambio
+      puramente presentacional: `CampoSelect`/`CampoTexto`/`CampoMonto`/`Segmentado`/
+      `Boton` en los dos modales (Nueva proforma, Convertir a comprobante); `onCrear`,
+      `onConvertir`, `lib/proformas.ts` y la RPC sin tocar. Verificado `tsc --noEmit`,
+      `pnpm lint` y `pnpm test` (239/239) en verde. Sin demo en navegador autenticado
+      como líder en esta sesión (el atajo de magic link local no completó el canje de
+      sesión) — dev server queda levantado en `localhost:3000` por si Felipe quiere
+      verlo él mismo. Quedan los 6 modales del núcleo con los campos viejos — ítem
+      "Campos viejos" más arriba en este archivo.
 
 - [x] 2026-09-15 — **Colores: tipo visual y muestra real** (Sesión F2,
       `feat/colores-tipo-muestra`, sobre `DiegoN`). `colores.tipo`
