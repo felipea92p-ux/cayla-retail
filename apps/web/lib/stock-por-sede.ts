@@ -61,3 +61,28 @@ export function textoOtrasSedes(otras: SedeConStock[]): string | null {
   if (otras.length === 0) return null;
   return otras.map((o) => `${o.cantidad} en ${o.sede}`).join(" · ");
 }
+
+export type ResumenRed = {
+  /** Cuántas otras sedes tienen esta prenda. */
+  sedes: number;
+  /** Suma de esas sedes (no incluye la sede que se está mirando). */
+  total: number;
+  /** «Taller: 14 · Lima: 22» — una línea, sede por sede. */
+  detalle: string;
+};
+
+/** Formato de Existencias (Felipe, 2026-09-16): «Disponible en 3 sedes:
+ *  36 uds» arriba, «Taller: 14 · Lima: 22» abajo. Función propia y no un
+ *  cambio a `textoOtrasSedes` — esa la usa también Vender
+ *  (`PuntoDeVentaCatalogo.tsx`, «no hay tu talla aquí, pero sí en
+ *  Trujillo») con su propio formato, y las dos pantallas no tienen por qué
+ *  leer igual. Null si no hay en ninguna otra sede (mismo criterio que
+ *  `textoOtrasSedes`: nunca "0 sedes", directo nada que mostrar). */
+export function resumenRed(otras: SedeConStock[]): ResumenRed | null {
+  if (otras.length === 0) return null;
+  return {
+    sedes: otras.length,
+    total: otras.reduce((acc, o) => acc + o.cantidad, 0),
+    detalle: otras.map((o) => `${o.sede}: ${o.cantidad}`).join(" · "),
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { agruparStockPorSede, nombreCortoSede, textoOtrasSedes } from "./stock-por-sede";
+import { agruparStockPorSede, nombreCortoSede, resumenRed, textoOtrasSedes } from "./stock-por-sede";
 
 // «No hay tu talla aquí, pero sí en Trujillo» es la venta que hoy se pierde en el
 // mostrador. Estas reglas convierten las filas crudas de `stock` (todas las sedes) en
@@ -101,5 +101,24 @@ describe("textoOtrasSedes — la línea que se lee en el tooltip y en el buscado
 
   it("sin otras sedes no hay línea", () => {
     expect(textoOtrasSedes([])).toBeNull();
+  });
+});
+
+describe("resumenRed — «Disponible en X sedes» de Existencias", () => {
+  it("cuenta sedes y suma unidades, con la línea sede: cantidad", () => {
+    expect(
+      resumenRed([
+        { sede: "Taller", cantidad: 14 },
+        { sede: "Lima", cantidad: 22 },
+      ]),
+    ).toEqual({ sedes: 2, total: 36, detalle: "Taller: 14 · Lima: 22" });
+  });
+
+  it("una sola sede no pluraliza el conteo, pero sí arma el objeto", () => {
+    expect(resumenRed([{ sede: "Taller", cantidad: 5 }])).toEqual({ sedes: 1, total: 5, detalle: "Taller: 5" });
+  });
+
+  it("sin otras sedes, null — no «Disponible en 0 sedes»", () => {
+    expect(resumenRed([])).toBeNull();
   });
 });

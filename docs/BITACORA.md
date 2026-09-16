@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Existencias: ajustes de Felipe probando — ADR-0071, corrección)
+
+Felipe probó Existencias en local y pidió cinco cambios puntuales. El de fondo: "Stock
+bajo" dejó de sumar piso + almacén y pasó a mirar SOLO el almacén (≤ 20) — la pregunta
+correcta es "¿queda reserva si el piso se vacía?", no "¿cuánto hay hoy en total?".
+"Reponer piso" subió de 4 a 7 y ahora solo aparece cuando el almacén ya tiene más de
+20 (reserva sana, solo falta bajarla) — con los `if` de `calcularEstado` en orden de
+severidad, "Stock bajo" gana solo cuando de verdad hace falta. El botón "Reponer" se
+simplificó a mirar directo ese estado, sin una segunda función aparte. Visuales: foto
+de la prenda en la fila (primera pantalla de LISTADO con fotos de producto — hasta hoy
+solo vivían en la ficha), "En la red" con el formato de dos líneas de su referencia
+operativa (función nueva `resumenRed()`, sin tocar `textoOtrasSedes()` que usa Vender).
+Verificado en el DOM que "Piso · Almacén" ya estaba centrado (grid blockifica el
+`<span>`, 45px/45px de margen medidos) — lo que se veía corrido en su captura era la
+fila entera, antes de sumarle la miniatura.
+
 ## 2026-09-16 (Inventario: las 4 vistas de Felipe integradas — ADR-0071)
 
 Felipe diseñó en Stitch Existencias/Movimientos/Transferencias/Conteos y pidió
