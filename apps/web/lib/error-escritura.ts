@@ -233,6 +233,19 @@ const HUELLAS: Huella[] = [
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
+ * ¿El error tiene forma de corte de red, no de rechazo del servidor? Se usa para
+ * bifurcar ANTES de mostrar nada — la cola de ventas offline (`lib/ventas-offline.ts`,
+ * BACKLOG "resiliencia sin internet") la reusa para decidir si una venta se encola en vez
+ * de mostrarse como fallo. Misma lista `SIN_RED` que `traducirError` ya usaba: una sola
+ * fuente de verdad para "esto no llegó al servidor" (principio 4).
+ */
+export function esFalloDeRed(error: ErrorEscritura): boolean {
+  if (!error) return false;
+  const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ").toLowerCase();
+  return SIN_RED.some((t) => crudo.includes(t));
+}
+
+/**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
@@ -241,12 +254,12 @@ const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed
 export function traducirError(error: ErrorEscritura, contexto: string): string {
   if (!error) return `No se pudo ${contexto}.`;
 
-  const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
-  const enMinusculas = crudo.toLowerCase();
-
-  if (SIN_RED.some((t) => enMinusculas.includes(t))) {
+  if (esFalloDeRed(error)) {
     return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
   }
+
+  const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
+  const enMinusculas = crudo.toLowerCase();
 
   const huella = HUELLAS.find((h) => enMinusculas.includes(h.marca.toLowerCase()));
   if (huella) return typeof huella.frase === "function" ? huella.frase(error.details ?? "") : huella.frase;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
@@ -24,12 +24,14 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
+import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 /**
@@ -107,6 +109,9 @@ type VentaOk = {
   total: number;
   prendas: number;
   comprobante: { tipo: TipoComprobante; texto: string } | null;
+  /** Se cobró sin red y quedó guardada en este equipo — todavía no es una venta real en
+   *  el servidor (ver `lib/ventas-offline.ts`). Sin comprobante posible hasta que suba. */
+  offline: boolean;
 };
 
 const MAX_RESULTADOS = 6;
@@ -142,6 +147,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
   const token = useRef<string>(crypto.randomUUID());
+  /** Mutex de la subida de la cola offline: mientras haya una pasada en curso, un
+   *  segundo disparo (mount/online/latido solapados, o React Strict Mode invocando el
+   *  efecto dos veces en desarrollo) espera esa MISMA pasada en vez de lanzar otra — dos
+   *  llamadas paralelas a `registrar_venta` con el mismo token chocan en la numeración
+   *  del comprobante (429/409) en vez de deduplicarse limpio, medido en este mismo
+   *  módulo el 2026-09-16. */
+  const subidaEnCursoRef = useRef<Promise<void> | null>(null);
 
   const [q, setQ] = useState("");
   const [activo, setActivo] = useState(0);
@@ -169,6 +181,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
   const [enEspera, setEnEspera] = useState<TicketEnEspera[]>([]);
   const claveEspera = claveLocal(ubicacionId, "en-espera");
+  // Cola de ventas offline (BACKLOG "resiliencia sin internet", ADR-0036 adaptado): a
+  // diferencia de `enEspera`, sobrevive el cierre de caja a propósito — una venta ya
+  // cobrada en el mostrador no puede perderse solo porque alguien cerró caja antes de
+  // que subiera (ADR-0036, addendum "por sede").
+  const [cola, setCola] = useState<VentaEncolada[]>([]);
+  const claveCola = claveLocal(ubicacionId, "cola");
   const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
@@ -180,7 +198,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
-  const variantesVisibles = useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantes]);
+  // El overlay de la cola offline: lo que ya se vendió sin conexión pero no subió
+  // todavía se descuenta EN PANTALLA de `stockAqui`, o una segunda venta sin red vería
+  // unidades que ya no existen (ADR-0036). Se aplica ACÁ, antes de derivar catálogo,
+  // búsqueda y grilla, así toda la pantalla ve el mismo stock — no solo `cobrar()`.
+  const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantes, cola), [variantes, cola]);
+  const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
 
   const categorias = useMemo(() => {
     const vistas = new Set<string>();
@@ -246,6 +269,81 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEnEspera(esperaAlCargar(bloqueado, leer<TicketEnEspera[]>(claveEspera, [])));
   }, [bloqueado, claveEspera]);
+
+  useEffect(() => {
+    // Misma razón que arriba: no existe `localStorage` en el servidor. A diferencia de
+    // `enEspera`, la cola NO se filtra por `bloqueado` — sobrevive el cierre de caja
+    // a propósito (ver el estado `cola`, arriba).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCola(leer<VentaEncolada[]>(claveCola, []));
+  }, [claveCola]);
+
+  // Trío de sincronización de la cola offline (ADR-0036 + addendum "por sede"): corre
+  // siempre que la pantalla esté montada, tenga o no la sede una caja abierta ahora
+  // mismo — al montar, al volver la red (evento `online`) y con un latido de 30 s por si
+  // el navegador nunca dispara ese evento. No depende del estado `cola` que pinta la
+  // pantalla: lee y escribe `localStorage` directo en cada intento, y reconcilia por
+  // `token` contra una lectura FRESCA al final — así una venta que `cobrar()` encola a
+  // mitad de una subida no se pierde si el intento anterior termina y sobreescribe con
+  // una foto vieja. Una venta ya rechazada (`rechazo !== null`) no se reintenta sola
+  // (addendum "Descartar": repetiría el mismo rechazo cada 30 s sin decir nada útil).
+  useEffect(() => {
+    let cancelado = false;
+    const supabase = createClient();
+
+    async function pasada() {
+      const inicio = leer<VentaEncolada[]>(claveCola, []);
+      const aReintentar = inicio.filter((v) => v.rechazo === null);
+      if (aReintentar.length === 0) return;
+
+      const resueltos = new Map<string, VentaEncolada | null>();
+      for (const venta of aReintentar) {
+        const { error } = await supabase.rpc("registrar_venta", venta.params);
+        if (!error) resueltos.set(venta.token, null);
+        else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
+        // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
+      }
+      if (cancelado || resueltos.size === 0) return;
+
+      const actual = leer<VentaEncolada[]>(claveCola, []);
+      const final = actual.flatMap((v) => {
+        if (!resueltos.has(v.token)) return [v];
+        const actualizada = resueltos.get(v.token) ?? null;
+        return actualizada ? [actualizada] : [];
+      });
+      guardar(claveCola, final);
+      if (!cancelado) {
+        setCola(final);
+        router.refresh();
+      }
+    }
+
+    // Mutex: si ya hay una pasada en curso, este disparo espera esa MISMA promesa en vez
+    // de lanzar una paralela (ver el comentario de `subidaEnCursoRef`, arriba).
+    function intentarSubir(): Promise<void> {
+      if (!subidaEnCursoRef.current) {
+        subidaEnCursoRef.current = pasada().finally(() => {
+          subidaEnCursoRef.current = null;
+        });
+      }
+      return subidaEnCursoRef.current;
+    }
+
+    intentarSubir();
+    window.addEventListener("online", intentarSubir);
+    const latido = setInterval(intentarSubir, 30_000);
+    return () => {
+      cancelado = true;
+      window.removeEventListener("online", intentarSubir);
+      clearInterval(latido);
+    };
+  }, [claveCola, router]);
+
+  function descartarRechazada(token: string) {
+    const restante = cola.filter((v) => v.token !== token);
+    setCola(restante);
+    if (!guardar(claveCola, restante)) avisar.aviso("No se pudo actualizar la lista guardada en este navegador.");
+  }
 
   // Al cerrar caja se vacía la espera de la sede (decisión de Felipe): un ticket de ayer
   // no sobrevive a la caja de hoy. `CerrarCajaModalV2` refresca y `cajaId` llega null. El
@@ -435,7 +533,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar.
     const cortas = ticket.carrito.filter((it) => {
-      const v = variantes.find((x) => x.varianteId === it.varianteId);
+      const v = variantesConOverlay.find((x) => x.varianteId === it.varianteId);
       return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
     });
     if (cortas.length > 0) {
@@ -515,8 +613,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     }
     setLoading(true);
 
-    const supabase = createClient();
-    const { data: ventaId, error } = await supabase.rpc("registrar_venta", {
+    const params: ParamsRegistrarVenta = {
       p_ubicacion_id: ubicacionId,
       p_items: carrito.map((it) => ({
         variante_id: it.varianteId,
@@ -539,9 +636,42 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       p_cliente_nombre: clienteNombre || undefined,
       p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
-    });
+    };
+
+    const supabase = createClient();
+    const { data: ventaId, error } = await supabase.rpc("registrar_venta", params);
 
     if (error) {
+      // Sin red: no es un rechazo del servidor, es que el envío no llegó. Se intenta
+      // encolar (BACKLOG "resiliencia sin internet", ADR-0036 adaptado) antes de
+      // mostrarlo como un fallo cualquiera — la clienta sigue en el mostrador.
+      if (esFalloDeRed(error)) {
+        const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
+        const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
+        if (!carritoPasaElUmbral(items, stockOverlay)) {
+          setLoading(false);
+          avisar.error(
+            "Sin conexión, y esta venta dejaría alguna prenda en 0 sin que el servidor lo confirme — no se puede vender así (ADR-0013). Ajusta la cantidad o espera a que vuelva el internet."
+          );
+          return;
+        }
+        const nuevaVenta: VentaEncolada = { token: token.current, ubicacionId, creadoEn: new Date().toISOString(), items, params, rechazo: null };
+        const nuevaCola = [...cola, nuevaVenta];
+        if (!guardar(claveCola, nuevaCola)) {
+          setLoading(false);
+          avisar.error("No se pudo guardar la venta sin conexión en este navegador (¿modo privado, storage lleno?). No quedó registrada en ningún lado — anótala a mano.");
+          return;
+        }
+        setCola(nuevaCola);
+        setLoading(false);
+        token.current = crypto.randomUUID();
+        avisar.exito(`Venta de ${money(total)} guardada sin conexión`, { detalle: "Subirá sola cuando vuelva el internet." });
+        setOk({ total, prendas, comprobante: null, offline: true });
+        setCarrito([]);
+        limpiarComprobante();
+        return;
+      }
+
       setLoading(false);
       // El error de stock de la base no trae el nombre de la prenda; la pantalla sí lo
       // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
@@ -549,13 +679,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       const porStock = /stock insuficiente|stock_cantidad_no_negativa/i.test(`${error.message} ${error.details ?? ""}`);
       const cortas = porStock
         ? carrito.filter((it) => {
-            const v = variantes.find((x) => x.varianteId === it.varianteId);
+            const v = variantesConOverlay.find((x) => x.varianteId === it.varianteId);
             return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
           })
         : [];
       avisar.error(
         cortas.length > 0
-          ? `${cortas.map((it) => `${it.referencia} (${it.sku}) — quedan ${variantes.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
+          ? `${cortas.map((it) => `${it.referencia} (${it.sku}) — quedan ${variantesConOverlay.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
           : traducirError(error, "registrar la venta")
       );
       return;
@@ -573,7 +703,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     setLoading(false);
     token.current = crypto.randomUUID();
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: comprobante ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.texto}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
-    setOk({ total, prendas, comprobante });
+    setOk({ total, prendas, comprobante, offline: false });
     setCarrito([]);
     limpiarComprobante();
     router.refresh();
@@ -633,6 +763,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           </button>
         </div>
       </div>
+
+      {/* Arriba de la bifurcación "caja abierta / caja cerrada" a propósito (ADR-0036,
+          addendum "por sede"): una venta guardada sin conexión, o rechazada de verdad al
+          subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
+      <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
 
       {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
           fuera de alcance del mouse. `disabled` real en cada control de abajo, no
@@ -793,18 +928,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       )}
 
       {ok && (
-        <Modal titulo="Venta registrada" subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
+        <Modal titulo={ok.offline ? "Venta guardada sin conexión" : "Venta registrada"} subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
           {(cerrar) => (
           <div className="space-y-5">
-            <div className="card-cayla p-5 text-center">
-              <p className="label-cayla text-[11px] text-verde-profundo">Listo</p>
+            <div className={`card-cayla p-5 text-center ${ok.offline ? "border-ambar/30" : ""}`}>
+              <p className={`label-cayla text-[11px] ${ok.offline ? "text-ambar-profundo" : "text-verde-profundo"}`}>
+                {ok.offline ? "Guardada en este equipo" : "Listo"}
+              </p>
               <p className="font-display mt-2 text-3xl text-tinta">{money(ok.total)}</p>
               <p className="mt-1 text-sm text-tinta/70">
                 {ok.prendas} {ok.prendas === 1 ? "prenda" : "prendas"}
               </p>
             </div>
             <p className="text-center text-xs text-tinta/65">
-              Ya está descontada del stock de {ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».
+              {ok.offline
+                ? "Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía."
+                : `Ya está descontada del stock de ${ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».`}
             </p>
             {ok.comprobante && (
               <p className="card-cayla text-center text-sm text-tinta">

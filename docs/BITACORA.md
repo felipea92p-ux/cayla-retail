@@ -4525,3 +4525,51 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-16 (Vender: vuelve la resiliencia sin internet — ADR-0063 — y `fn_stock_por_sede`)
+
+**Prioridad 2 (chica) primero:** `vender/page.tsx` leía `stock` directo para "dónde más
+hay" — `stock_select` (RLS) solo deja ver las sedes que la persona puede OPERAR, así que
+una colaboradora de sede fija recibía `otrasSedes` vacío. Cambiado a
+`supabase.rpc("fn_stock_por_sede")` (`20260914220001`, security definer, confirmado en
+vivo que YA estaba aplicada tanto en local como en producción — el propio comentario de
+la migración decía "NO APLICADA" porque así estaba cuando se escribió el 14, Felipe la
+aplicó después). Verificado como Felipe y como Micaela (Trujillo): "Blusa Emma" pasó de
+vacío a "14 en Taller · 3 en Lima" para ella.
+
+**Prioridad 1 (grande): la cola de ventas offline vuelve (ADR-0063).** V1 la tenía
+completa (ADR-0036, 2026-09-11) y se borró en el corte V1→V2 sin estar mal — se
+recuperó adaptada a los 11 parámetros de `registrar_venta` de hoy, al stock por piso
+(`lib/stock-por-sede.ts`) y a `lib/almacen-local.ts` (ADR-0049), que ya tenía la llave
+`"cola"` reservada para esto. `lib/ventas-offline.ts` (puro, 19 tests), `esFalloDeRed()`
+nuevo en `error-escritura.ts` (reusa `SIN_RED`), estado `cola` + trío de sincronización
+(mount/`online`/latido) + bifurcación de `cobrar()` en `PuntoDeVenta.tsx`, banner con
+"Descartar" de dos pasos en `PuntoDeVentaColaOffline.tsx` nuevo.
+
+Probando en navegador (interceptando `fetch` solo para `registrar_venta` — nunca se tocó
+Kong, lo comparten ~27 worktrees) salieron dos bugs reales que no estaban en el diseño
+original, los dos con fix y test: (1) dos llamadas paralelas al mismo token (mount +
+evento `online` casi juntos, o React Strict Mode en desarrollo) chocaban en la
+numeración del comprobante — `read_network_requests` mostró 2 POST con 26ms de
+diferencia, ambos 409; un mutex (`subidaEnCursoRef`, una promesa compartida) lo dejó en
+1. (2) una venta ya RECHAZADA seguía descontando stock en el overlay de pantalla, como
+si existiera — corregido para excluirla (el servidor revierte la transacción entera al
+rechazar, no queda nada que reservar).
+
+**No se pudo verificar de punta a punta la subida exitosa real** ("sube sola" → aparece
+en Ventas de hoy): a mitad de la prueba, `retail.stock` quedó con las 96 filas de las
+tres sedes en `sububicacion_id = NULL` (`sububicaciones` conserva sus 6 filas intactas —
+no es el catálogo, es que ninguna fila de stock apunta a una), casi seguro por un reseed
+de otra worktree sin su backfill de piso/almacén. Con eso, toda venta se rechaza con
+"Stock insuficiente: hay 0…", online u offline, hasta con "Monto manual". Quedó anotado
+en BACKLOG (🩹 ARREGLAR) para quien lo vuelva a ver.
+
+**Decisión de Felipe (preguntada con `AskUserQuestion`):** la ficha de clienta
+(`p_cliente_id`, ya aceptado por `registrar_venta` pero nunca usado) no se construye
+esta sesión — "el campo ya está pero aún no tengo contemplado el almacenar clientes en
+mi sistema". Ni pantalla de consulta ni integración al cobro; queda en BACKLOG como
+decisión más temprana de lo que parecía.
+
+Verificado: `pnpm typecheck`, `eslint` y `vitest` (258/258) limpios sobre los archivos
+tocados. Solo dentro del alcance del encargo — no se tocó `lib/caja.ts` ni
+`ConsultaDocumento.tsx` (otras sesiones en paralelo).
