@@ -58,6 +58,34 @@ cerró V2. Se cerró D-22 de verdad (ADR-0070): TRUNCATE directo o en cascada, m
 
 ---
 
+## 🎯 Colores: proponer/aprobar (2026-09-16, ADR-0070)
+
+Rama `claude/proponer-aprobar-color-20260916`. Cierra el punto que había quedado
+abierto en el ítem de Loro de más abajo: cualquiera con sesión propone un color y
+queda usable al instante (no frena el censo); cualquiera de los 9 Líderes lo aprueba
+después. `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobado_en`;
+el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
+`fn_es_lider()`, no el cliente. `typecheck`/`lint`/266 tests en verde.
+
+- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en
+      producción.** Tres bloques, todos repetibles.
+- [ ] **Verificación pendiente, con dueño claro:** la lógica del trigger se probó de
+      verdad contra producción (impersonando a Felipe y a Angie Chávez, una de las 16
+      colaboradoras dadas de alta hoy, en una transacción con ROLLBACK). Las dos
+      políticas RLS nuevas **no** se pudieron probar de punta a punta por ese mismo
+      canal — la conexión usada tiene `rolbypassrls=true` y pasa por encima de
+      cualquier política siempre. Sintaxis idéntica a `colores_select`/
+      `productos_write_lider`, ya vivas en producción, pero es inferencia por patrón,
+      no prueba. **Falta: alguien con una cuenta de Colaborador real entra a
+      `/productos/colores` en el navegador, propone un color, y confirma que no
+      puede aprobarlo — solo un Líder puede.** Ver ADR-0070, sección "Cómo se
+      verificó".
+- [ ] **No hay forma de "rechazar" una propuesta mala, solo desactivarla** una por
+      una desde el camino que ya existía. Con 16 cuentas nuevas es un riesgo bajo,
+      no cero. No construido a propósito en esta pasada (alcance acotado).
+
+---
+
 ## 🎯 Loro (módulo 02) — prendas escaneables antes del censo (2026-09-16)
 
 Rama `claude/taxonomia-loro-tucan-15eaf3`. Verificado contra V2 y contra producción:
@@ -67,21 +95,28 @@ pantalla de colores). Lo que quedaba se cerró aquí: regla de identidad con tal
 normalizada (ADR-0069), red de códigos para variantes activas y `/buscar` leyendo
 códigos de barras. Probado en local; tipos y 266 pruebas en verde.
 
-- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en producción
-      ANTES del censo.** Bloque 0 (pre-flight) tiene que dar 0. Archiva los 6 productos de
-      prueba (quedan con historial, 13 salidas y 5 ventas intactas), apaga la categoría
-      "Polos" fuera del vocabulario, retira Arena `ARE` (choca con el prefijo de Aretes) y
-      crea `ARN`, completa la familia de 5 colores y aplica la regla nueva.
+- [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql`: pegado y confirmado en
+      producción 2026-09-16 — cerrado.** Felipe lo corrió completo, bloque 0
+      (pre-flight) dio 0 como se esperaba. Comprobación final (bloque 3), igual a lo
+      previsto: `activas_sin_codigo=0`, `activas_sin_codigo_barras=0`,
+      `productos_descontinuados=6`, `regla_nueva=1`, `regla_vieja=0`,
+      `colores_sin_familia=0`, `arena_activa=ARN`. Verificado además por consulta
+      directa (Supabase MCP, solo lectura): `retail.colores` tiene `ARE` inactivo
+      ("Arena (retirado)") y `ARN` activo ("Arena"). Las 37 variantes de producción
+      quedan escaneables (código + código de barras); los 6 productos de prueba
+      (BLU-001/PAN-001/VES-001/POL-001/CHO-001/FAL-001) descontinuados, con su
+      historial intacto.
 - [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
       catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
       Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
       se llevan a 0 con movimientos de ajuste (motivo explícito "retiro de datos de
       prueba", nunca merma).
-- [ ] **Proponer y aprobar colores (decisión 2026-09-16).** Cualquiera propone, el color
-      queda pendiente pero usable, y admin aprueba o fusiona. No existe, y antes hay que
-      decidir **quién es admin**: los 9 colaboradores de retail son Líder, `colaboradores`
-      solo admite `lider`/`colaborador`, y los admins viven en Dynamic. Es el mismo
-      mecanismo que Tucán necesita para la taxonomía: se diseña una sola vez.
+- [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
+      propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
+      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
+      pegar en producción y la verificación en navegador que quedó anotada ahí — no
+      cerrado del todo todavía. Sigue pendiente el mismo mecanismo para Tucán
+      (taxonomía), no construido en esta pasada.
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.
 - [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos

@@ -12,6 +12,41 @@ réplica y que cualquier sesión aplicara stock sin libro. Candado cerrado con d
 después. Aprendizaje: un candado se prueba contra quien realmente tiene la llave, no contra
 quien uno imagina.
 
+## 2026-09-16 (Colores: proponer/aprobar — ADR-0070)
+
+Última pieza de la sesión de hoy sobre Catálogo/Inventario/Taxonomía: cerrar el punto
+que había quedado abierto en Loro (BACKLOG del mismo día). `retail.colores` gana
+`estado`/`propuesto_por`/`aprobado_por`/`aprobado_en`; un trigger decide el estado real
+mirando `fn_es_lider()`, nunca el cliente. Probado de verdad contra producción
+(impersonando a Felipe y a Angie Chávez, una de las 16 colaboradoras de hoy, en una
+transacción con ROLLBACK): el color de Angie nace `pendiente` y usable, el de Felipe
+nace `aprobado`. Aprendizaje del día, apuntado también en el ADR: el MCP de Supabase
+conecta con `rolbypassrls=true` — sirve para probar lógica de negocio (el trigger) pero
+NO sirve para probar si una política RLS bloquea a alguien de verdad, porque la
+conexión pasa por encima de todas igual. Queda pendiente pegar en producción y una
+verificación en navegador con una cuenta de Colaborador real.
+
+## 2026-09-16 (16 colaboradores de tienda dados de alta en producción)
+
+El censo dependía solo de Felipe porque ningún encargado de piso tenía cuenta en
+retail — no por RLS roto, sino porque nadie los había dado de alta. Consulta de
+solo lectura contra Dynamic encontró 16 personas activas ya elegibles (11 Tienda
+TRU, 2 Tienda AQP, 3 Taller LIM) y confirmó que Tienda LIM no tiene ni una sola
+persona activa ni una fila en `retail.ubicaciones` — hueco aparte, sin candidatos
+que onboardear todavía. Con el ok explícito de Felipe se insertaron directo en
+`retail.colaboradores` (rol `colaborador`, `agregado_por` = Felipe, misma forma
+que arma `agregar_colaborador`; la RPC no se pudo llamar tal cual porque el MCP
+de Supabase no lleva sesión de `auth.uid()`). Verificado: 3+2+11=16.
+
+## 2026-09-16 (PR #55 fusionado + SQL de Loro confirmado en producción)
+
+Felipe llegó perdido con inventario/catálogo/taxonomía; auditoría mostró que el PR #55
+(rama `claude/taxonomia-loro-tucan-15eaf3`, ya verde) resolvía justo eso — se fusionó a
+`main` sin rehacerlo. Felipe pegó `SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en
+producción; comprobación final igual a la esperada en los 7 campos. Aprendizaje: antes de
+construir algo nuevo, revisar si otra sesión en paralelo ya lo dejó listo — con ~10
+sesiones tocando el mismo dominio el mismo día, es más probable de lo que parece.
+
 ## 2026-09-16 (Loro — prendas escaneables antes del censo)
 
 Felipe tomó Loro, Tucán, Golondrina y Halcón. Al medir producción, los documentos de

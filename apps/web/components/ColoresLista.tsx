@@ -14,9 +14,13 @@ import { subirMuestraColor } from "@/lib/colores-muestra";
  * los 30 colores de CAYLA en la base, pero hasta ahora ninguna pantalla
  * dejaba agregar uno nuevo a mano.
  *
- * Alta + edición + desactivar/reactivar viven acá. La policy de escritura
- * (`colores_write_lider` en `0004_rls.sql`) ya exige Líder — `puedeEditar`
- * solo decide si se MUESTRAN los controles; el candado real vive en la base.
+ * "+ Agregar color" es de cualquiera con sesión desde el 2026-09-16
+ * (`20260916220000_colores_proponer_aprobar.sql`): un color propuesto nace
+ * `pendiente` y queda usable al instante (nunca frena a quien está en medio
+ * de un censo), y cualquiera de los Líderes lo aprueba después. Editar,
+ * aprobar y desactivar/reactivar siguen detrás de `puedeEditar` — el candado
+ * real vive en la base (`colores_update_lider`), esto solo decide qué se
+ * MUESTRA.
  *
  * `codigo` no se edita: es la clave primaria natural (referenciada por
  * `variantes.color_codigo` y por el propio código de cada prenda,
@@ -33,6 +37,7 @@ type Color = {
   tipo: string;
   imagenMuestraUrl: string | null;
   notas: string | null;
+  estado: "pendiente" | "aprobado";
 };
 
 const FAMILIAS_COLOR = [
@@ -122,6 +127,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState<Color | null>(null);
   const [cambiandoCodigo, setCambiandoCodigo] = useState<string | null>(null);
+  const [aprobandoCodigo, setAprobandoCodigo] = useState<string | null>(null);
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -171,15 +177,44 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             tipo: datos.color.tipo,
             imagenMuestraUrl: datos.color.imagen_muestra_url,
             notas: datos.color.notas,
+            estado: datos.color.estado,
           },
         ])
       );
-      avisar.exito(`Color ${datos.color.nombre} agregado`);
+      avisar.exito(
+        datos.color.estado === "pendiente" ? `${datos.color.nombre} agregado — ya lo puedes usar` : `Color ${datos.color.nombre} agregado`,
+        datos.color.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
+      );
       setAgregando(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setGuardando(false);
+    }
+  }
+
+  // Aprobar es de un solo clic, sin modal — el color ya está en uso desde
+  // que se propuso, esto solo lo saca de la lista de pendientes. No existe
+  // "rechazar": un color pendiente que no sirve se desactiva (abajo).
+  async function aprobar(c: Color) {
+    setAprobandoCodigo(c.codigo);
+    try {
+      const res = await fetch("/api/productos/colores", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: c.codigo, estado: "aprobado" }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo aprobar el color.");
+        return;
+      }
+      setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, estado: "aprobado" as const } : x))));
+      avisar.exito(`${c.nombre} aprobado`);
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setAprobandoCodigo(null);
     }
   }
 
@@ -210,23 +245,26 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
-      {puedeEditar && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={abrir}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar color
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={abrir}
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Agregar color
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {activos.map((c) => (
           <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4">
             <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
-            <p className="text-sm font-medium text-tinta">{c.nombre}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-tinta">{c.nombre}</p>
+              {c.estado === "pendiente" && (
+                <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+              )}
+            </div>
             <div className="flex justify-between text-[11px] text-tinta/65">
               <span className="font-mono">{c.codigo}</span>
               <span>
@@ -235,9 +273,21 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               </span>
             </div>
             {puedeEditar && (
-              <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
-                Editar
-              </Boton>
+              <div className="flex gap-2">
+                {c.estado === "pendiente" && (
+                  <Boton
+                    peso="primario"
+                    className="flex-1 px-2.5 py-1.5 text-[11px]"
+                    cargando={aprobandoCodigo === c.codigo}
+                    onClick={() => aprobar(c)}
+                  >
+                    Aprobar
+                  </Boton>
+                )}
+                <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
+                  Editar
+                </Boton>
+              </div>
             )}
           </div>
         ))}
@@ -419,6 +469,7 @@ function ColorEditarModal({
         tipo: datos.color.tipo,
         imagenMuestraUrl: datos.color.imagen_muestra_url,
         notas: datos.color.notas,
+        estado: datos.color.estado,
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
