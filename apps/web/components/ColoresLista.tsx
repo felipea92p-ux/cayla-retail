@@ -210,6 +210,18 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
+      {puedeEditar && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={abrir}
+            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+          >
+            + Agregar color
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {activos.map((c) => (
           <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4">
@@ -229,72 +241,71 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             )}
           </div>
         ))}
-        {puedeEditar && (
-          <button
-            onClick={abrir}
-            className="flex min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-tinta/25 text-sm text-tinta/65 transition-colors hover:border-rojo hover:text-rojo"
-          >
-            <span className="text-xl leading-none">+</span>
-            Agregar color
-          </button>
-        )}
       </div>
 
       {agregando && (
-        <section className="card-cayla anim-entrada p-5">
-          <p className="font-display text-lg text-tinta">Nuevo color del vocabulario</p>
-          <p className="mt-1 text-xs text-tinta/65">
-            Queda disponible de inmediato para cualquier prenda nueva o existente.
-          </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
-            <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
-            <CampoTexto
-              etiqueta="Código (3 letras)"
-              mono
-              value={codigo}
-              maxLength={3}
-              onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-              placeholder="VEB"
-            />
-            <CampoSelect
-              etiqueta="Familia"
-              valor={familiaColor}
-              onValor={setFamiliaColor}
-              opciones={FAMILIAS_COLOR}
-            />
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_COLOR} />
-            <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <label className="label-cayla text-[11px] text-tinta/65" htmlFor="color-hex">
-              Color
-            </label>
-            <input
-              id="color-hex"
-              type="color"
-              value={hex}
-              onChange={(e) => setHex(e.target.value)}
-              className="h-9 w-14 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
-            />
-          </div>
-          <div className="mt-4">
-            <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
-            <p className="mt-1 text-xs text-tinta/55">Opcional — sin foto, el catálogo muestra el color de arriba.</p>
-            <div className="mt-1.5">
-              <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+        <Modal
+          titulo="Nuevo color del vocabulario"
+          subtitulo="Queda disponible de inmediato para cualquier prenda nueva o existente."
+          ancho="max-w-md"
+          onClose={() => setAgregando(false)}
+        >
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
+                <CampoTexto
+                  etiqueta="Código (3 letras)"
+                  mono
+                  value={codigo}
+                  maxLength={3}
+                  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                  placeholder="VEB"
+                />
+              </div>
+              <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+              <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_COLOR} />
+              <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+
+              <div className="flex items-center gap-3">
+                <label className="label-cayla text-[11px] text-tinta/65" htmlFor="color-hex">
+                  Color
+                </label>
+                <input
+                  id="color-hex"
+                  type="color"
+                  value={hex}
+                  onChange={(e) => setHex(e.target.value)}
+                  className="h-9 w-14 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
+                />
+              </div>
+
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
+                <p className="mt-1 text-xs text-tinta/55">Opcional — sin foto, el catálogo muestra el color de arriba.</p>
+                <div className="mt-1.5">
+                  <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  className="flex-1"
+                  onClick={guardar}
+                  cargando={guardando}
+                  disabled={!nombre.trim() || codigo.length !== 3}
+                >
+                  Guardar color
+                </Boton>
+              </div>
             </div>
-          </div>
-          <div className="mt-5 flex justify-end gap-2">
-            <Boton peso="fantasma" onClick={() => setAgregando(false)} disabled={guardando}>
-              Cancelar
-            </Boton>
-            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!nombre.trim() || codigo.length !== 3}>
-              Guardar color
-            </Boton>
-          </div>
-        </section>
+          )}
+        </Modal>
       )}
 
       {desactivados.length > 0 && (

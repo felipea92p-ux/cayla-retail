@@ -18,6 +18,91 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
+
+**El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**
+Esta sesión abrió sobre un fetch cacheado: `git log origin/DiegoN` mostraba
+`8d8e0ee` (la integración A1/A2+A3+B1+B2/C1/C2) como si fuera la punta, y con
+eso F1-F4 (fotos/temporada, colores tipo+muestra, subcategoría, densidad
+visual) parecían haberse perdido — archivos y migraciones enteras ausentes
+del árbol. Un `git fetch` explícito mostró la punta real: `7fed0c8`
+("resuelve colisiones de ADR y migración entre F1/F2/F3"), que sí trae las
+cuatro sesiones completas, ya fusionadas sobre A/B/C. `git merge --ff-only
+origin/DiegoN` en el checkout principal + `npx supabase migration up`
+(las 3 migraciones de F1/F2/F3) resolvió todo — no hubo ninguna regresión
+real, solo una caché local vieja. **Antes de asumir que "DiegoN perdió
+trabajo", siempre `git fetch` explícito primero.**
+
+Con eso resuelto, se verificaron en navegador real (Docker sí funciona en
+este Mac) los 5 puntos pendientes de la sesión remota anterior — detalle de
+cada uno en la sección de su propia sesión (F1/F2/F3) más abajo y en
+BITÁCORA de hoy. Cierre general: `tsc`/`eslint`/`vitest` (215/215) en verde
+sobre `7fed0c8`.
+
+**Hallazgo de infraestructura, no de código:** el stack local de
+`cayla-retail` (`supabase start` de este proyecto) no levanta el contenedor
+de Storage (`docker ps` no lo lista, a diferencia del stack de
+`cayla-dynamic`, que sí lo tiene). Cualquier subida real de archivo — foto
+de producto, muestra de color — no se puede probar de punta a punta en local
+hasta que eso se resuelva. Se verificó la lógica de cada pantalla igual,
+sembrando datos directo en Postgres en vez de subir por Storage; ver el
+detalle en cada ítem.
+
+**Ajuste de layout, pedido aparte por Felipe en la misma sesión:** contra
+capturas de referencia (`~/Downloads/Pantallas producto/`, un mockup de ERP
+genérico usado solo como referencia de densidad/ancho, no como spec literal
+— trae conceptos que no existen acá, como "Departamentos" o "Colección
+SS24"), dos quejas concretas:
+
+- [x] **Productos/Categorías/Colores no usaban el ancho completo del
+      `<main>`.** `AppShell.tsx` topa todo lo que no esté en
+      `SIN_TOPE_DE_ANCHO` a `max-w-5xl` — Vender y Compras ya estaban
+      exceptuados por necesitar el espacio; `/productos` no lo estaba.
+      Agregado a la lista (una línea, cubre `/productos` y todo lo que
+      cuelga: categorías, colores, ficha, historial).
+- [x] **"Agregar color"/"Agregar categoría" aparecían al final de una lista
+      larga**, no arriba como en la referencia. En `ColoresLista.tsx` y
+      `CategoriasLista.tsx`: el disparador pasó a un botón fijo arriba de la
+      grilla/lista (mismo estilo que "+ Nuevo producto" de `/productos`), y
+      el formulario de alta/edición —que vivía como una `<section>` empotrada
+      al fondo de la página— pasó a `<Modal>` (el mismo componente que ya
+      usa `ColorEditarModal`), así que aparece centrado sobre lo que se
+      esté mirando, no al fondo de un scroll largo. Sin cambios de datos ni
+      de RPC — puro reacomodo de layout.
+
+**Verificado:** `pnpm --filter web typecheck`/`lint` en verde; los tres
+archivos tocados (`AppShell.tsx`, `ColoresLista.tsx`, `CategoriasLista.tsx`)
+probados en navegador real contra un `pnpm dev` propio de este worktree
+(puerto aparte, mismo Postgres local compartido) — ancho completo y los 4
+modales (nuevo color, editar color, nueva categoría, editar categoría)
+abriendo arriba, no al fondo.
+
+**No se tocó el checkout principal ni se hizo commit.** El editor de este
+agente tiene bloqueado escribir fuera de su propio worktree (para no
+corromper el checkout principal desde una sesión aislada) — el fix vive sin
+commitear en la rama `claude/cayla-productos-integration-verify-59676d` de
+este worktree, ya con `origin/DiegoN` fusionado adentro. Pendiente de que
+Felipe lo traiga (merge/cherry-pick del worktree, o pedirle a este agente
+que commitee) antes de que se pierda.
+
+**Pendiente, sin tocar — decisión de Felipe:**
+
+- [ ] **PR #47 (`DiegoN` → `main`) sigue `CONFLICTING`/`DIRTY`**: 35 commits,
+      +7012/−369. `main` tiene 26 commits que `DiegoN` no tiene (la
+      consolidación Vender+Caja, PR #41-43) y `DiegoN` tiene 34 que `main` no
+      tiene (todo lo de Productos). Nadie lo tocó esta sesión — reconciliar
+      esto es una decisión de más de un módulo a la vez (gatillo explícito de
+      `CLAUDE.md`), no algo para resolver sin que Felipe elija el camino
+      (¿merge de `main` sobre `DiegoN` primero?, ¿al revés?, ¿rebase?).
+- [ ] **Los cabos sueltos que el resumen anterior daba por abiertos ya no lo
+      están** — verificado contra GitHub, no contra lo que decía el resumen:
+      PRs #44/#45/#46/#48 (las 4 ramas F1-F4 → DiegoN) ya están MERGED, no
+      quedó ninguno redundante por cerrar a mano. El hilo de F3 sobre
+      mergear su propio PR #46 también quedó resuelto solo (ya está
+      mergeado). Sin acción pendiente en ninguno de los dos.
+
+---
+
 ## 🎯 Productos: fotos, temporada y venta sin stock (2026-09-15, Sesión F1)
 
 `/productos/nuevo` y `/productos/[id]/editar` ganan galería de fotos (varias,
@@ -45,13 +130,16 @@ reasignación de principal, `p_fotos = null` sin tocar la galería. `typecheck`/
       (dos columnas nullable/con default, una tabla nueva, dos funciones
       reemplazadas con parámetros nuevos al final con default) — nada que
       preverificar antes de pegarla.
-- [ ] **Sin verificación en navegador real (Chrome headless/Playwright).** Docker
-      no pudo levantar el stack de Supabase local en este entorno (pulls de
-      imagen bloqueados por la política de red del sandbox — ver ADR-0053). Quien
-      continúe esta sesión, o F5 al integrar, debería correr el flujo completo en
-      un entorno con Docker funcional: crear producto con 3 fotos, reordenar,
-      marcar principal, guardar, recargar, confirmar que persiste; editar uno
-      existente, agregarle temporada, guardar, verla reflejada.
+- [x] **Verificado en navegador real (2026-09-15, noche, Claude Code Desktop —
+      Docker sí funciona en este Mac).** `FotosProducto.tsx` carga, reordena
+      ("Mover a la izquierda/derecha"), cambia de principal ("Marcar
+      principal") y persiste tras guardar+recargar — probado sobre "Blusa
+      Emma" con 3 fotos sembradas directo en `retail.producto_fotos` (no vía
+      la UI: el botón "Agregar foto" dispara un `<input type=file>` oculto, y
+      la herramienta de navegador de esta sesión no puede setear archivos en
+      un input de ese tipo — limitación de la herramienta, no del código).
+      `Temporada` se guarda y sigue ahí tras recargar. Fotos y temporada de
+      prueba se revirtieron al terminar (no quedan en la base).
 - [ ] **`permitir_venta_sin_stock` no tiene candado real en Vender/`registrar_venta`
       todavía.** Esta sesión solo escribe y muestra el dato en la ficha
       (fuera de alcance: F1 es dueña de la ficha de producto, no de Vender/POS,
@@ -81,13 +169,11 @@ antes. `retail.actualizar_categoria` pasó de 4 a 5 argumentos (se agregó
 
 **Pendiente:**
 
-- [ ] **Sin verificar en navegador real.** Esta sesión corrió en un entorno
-      remoto sin Docker/Supabase CLI — no se pudo levantar el stack local ni
-      abrir `/productos/categorias` en Chrome. Sí quedaron en verde
-      `pnpm --filter web typecheck` y `pnpm --filter web lint`. Antes de dar
-      esto por cerrado: crear "Vestidos largos" con padre "Vestidos" en un
-      entorno con Supabase local y confirmar que aparece anidada, y que una
-      categoría sin hijas (ej. "Pantalones") se sigue viendo igual.
+- [x] **Verificado en navegador real (2026-09-15, noche).** Se creó
+      "Vestidos largos" (VLA) con padre "Vestidos" desde la propia pantalla —
+      aparece en un clúster junto a "Vestidos", el resto de categorías sin
+      hijas (ej. "Pantalones") se sigue viendo igual. Se dejó tal cual (es
+      dato real, no de prueba) — Felipe decide si la renombra/borra.
 - [ ] **`20260915224501_categorias_subcategoria.sql` no está en producción.**
       Aplicada solo en el archivo del repo (ni siquiera probada en local por
       lo de arriba). Al pegar en el SQL Editor de producción: prefijo
@@ -1752,11 +1838,24 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       alta y edición; el listado muestra la muestra real si existe, si no
       el cuadradito de HEX de siempre (fallback intacto). Verificado en
       este entorno: `typecheck`, `lint`, `next build` y `vitest run`
-      (215/215) limpios — **sin Docker/Supabase local disponibles en este
-      sandbox**, la subida real a Storage y el fallback visual en pantalla
-      quedan pendientes de confirmar en navegador con Storage encendido
-      (local con `supabase start`, o en producción tras correr la
-      migración con el prefijo `retail.` del SQL Editor).
+      (215/215) limpios.
+
+      **Fallback visual verificado en navegador real (2026-09-15, noche).**
+      "Denim" del ejemplo original no existe — el vocabulario cerrado tiene
+      30 nombres fijos y ninguno se llama así; se probó con "Estampado"
+      (mismo mecanismo). Tipo=Textura + notas se guardan y persisten.
+      **La subida real de la muestra sigue sin probarse un extremo a otro**:
+      el contenedor `supabase_storage_cayla-retail` no está entre los que
+      levanta este proyecto local (`docker ps` solo trae
+      db/rest/auth/kong/studio/pg_meta/inbucket — Storage no corre acá), y
+      el botón "Subir muestra" usa un `<input type=file>` oculto que la
+      herramienta de navegador de esta sesión no puede completar. Se
+      verificó igual el mecanismo de display (URL en `imagen_muestra_url` →
+      se pinta la foto en vez del cuadrado de HEX) escribiendo una imagen de
+      prueba directo en la fila vía SQL, no por Storage — y se revirtió al
+      terminar. Antes de dar la subida por buena: levantar Storage local
+      (agregarlo a `supabase/config.toml` si no está declarado, o confirmar
+      por qué se excluyó) y subir una muestra real desde el botón.
 
 - [x] 2026-09-15 — **`AjustarInventarioModal.tsx`: ajuste manual de stock por
       variante, con signo** (Sesión A2, `feat/productos-ajustar-inventario`).

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
@@ -228,6 +229,18 @@ export function CategoriasLista({
 
   return (
     <div className="space-y-3">
+      {puedeEditar && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => abrirBorrador(VACIO)}
+            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+          >
+            + Agregar categoría
+          </button>
+        </div>
+      )}
+
       {FAMILIAS.map((f) => {
         const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c));
         return (
@@ -295,20 +308,20 @@ export function CategoriasLista({
         );
       })}
 
-      {puedeEditar && !borrador && (
-        <Boton peso="fantasma" onClick={() => abrirBorrador(VACIO)} className="w-full">
-          + Agregar categoría
-        </Boton>
-      )}
-
       {borrador && (
-        <section className="card-cayla anim-entrada p-5">
-          <p className="font-display text-lg text-tinta">{editando ? "Editar categoría" : "Nueva categoría"}</p>
-          <p className="mt-1 text-xs text-tinta/65">
-            {editando ? "El prefijo ya no se puede cambiar si hay productos con esta categoría." : "Queda disponible de inmediato en Productos."}
-          </p>
-
-          <div className="mt-4 space-y-4">
+        <Modal
+          titulo={editando ? "Editar categoría" : "Nueva categoría"}
+          subtitulo={
+            editando
+              ? "El prefijo ya no se puede cambiar si hay productos con esta categoría."
+              : "Queda disponible de inmediato en Productos."
+          }
+          ancho="max-w-xl"
+          onClose={() => abrirBorrador(null)}
+        >
+          {(cerrar) => (
+            <>
+          <div className="mt-5 space-y-4">
             {!editando && (
               <CampoSelect
                 etiqueta="Categoría padre (opcional)"
@@ -457,7 +470,7 @@ export function CategoriasLista({
               <span />
             )}
             <div className="flex gap-2">
-              <Boton peso="fantasma" onClick={() => abrirBorrador(null)} disabled={guardando}>
+              <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
               <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3}>
@@ -465,7 +478,9 @@ export function CategoriasLista({
               </Boton>
             </div>
           </div>
-        </section>
+            </>
+          )}
+        </Modal>
       )}
 
       {desactivadas.length > 0 && (

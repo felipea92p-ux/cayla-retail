@@ -3994,3 +3994,48 @@ solo de layout. **Sin verificar en navegador real**: Docker sin daemon en
 esta sesión (`dockerd` no arranca — `ulimit: Operation not permitted`, sin
 systemd), igual que quedó registrado el 2026-09-10 — demo pendiente para
 quien tenga el stack local arriba.
+
+## 2026-09-15 (noche, Claude Code Desktop — F1-F4 verificados en navegador + ajuste de layout)
+
+`origin/DiegoN` local estaba cacheado en `8d8e0ee` (la integración A/B/C, sin
+F1-F4): un `git fetch` explícito reveló la punta real, `7fed0c8`, que ya trae
+las cuatro sesiones fusionadas. `git merge --ff-only` en el checkout
+principal + `npx supabase migration up` (3 migraciones) y quedó al día — no
+hubo regresión, solo un fetch viejo. Verificado con login real
+(`felipe@cayla.local`): fotos de producto cargan/reordenan/cambian de
+principal y persisten (probado sembrando 3 fotos directo en
+`retail.producto_fotos`, no por el botón — el `<input type=file>` oculto no
+se puede completar con la herramienta de navegador de esta sesión); temporada
+se guarda y persiste; "Vestidos largos" bajo "Vestidos" aparece en clúster
+(se dejó, es dato real); filtros de `/productos` sí filtran de verdad
+(`cat=<uuid>`, no `categoria=` — ojo con ese nombre de parámetro) y
+actualizan tarjetas de resumen; menú "..." con Ajustar inventario/Ver
+historial confirmado. Para colores: "Denim" del pedido original no existe
+(vocabulario cerrado de 30 nombres fijos); probado con "Estampado" en su
+lugar — tipo/notas persisten, y el fallback a muestra-real-en-vez-de-hex se
+confirmó escribiendo la URL directo en la base (Storage no corre en el stack
+local de `cayla-retail`, a diferencia del de `cayla-dynamic`; la subida real
+por el botón sigue sin probarse de punta a punta). `tsc`/`eslint`/`vitest`
+(215/215) verdes sobre `7fed0c8`.
+
+Aparte, pedido de Felipe contra capturas de referencia
+(`~/Downloads/Pantallas producto/`): Productos/Categorías/Colores no usaban
+el ancho completo (`AppShell.tsx`: agregado `/productos` a
+`SIN_TOPE_DE_ANCHO`, mismo trato que Vender/Compras) y "Agregar color"/
+"Agregar categoría" aparecían al fondo de una lista larga en vez de arriba
+(el disparador subió a un botón fijo sobre la grilla, y el formulario —una
+`<section>` empotrada al fondo— pasó a `<Modal>`, igual que `ColorEditarModal`
+ya usaba). Sin cambios de datos/RPC. Verificado en navegador real contra un
+`pnpm dev` propio de este worktree (puerto aparte, mismo Postgres
+compartido). **Sin commitear**: el editor de este agente no puede escribir
+fuera de su worktree — el fix queda en la rama
+`claude/cayla-productos-integration-verify-59676d` (con `origin/DiegoN` ya
+fusionado adentro), a la espera de que Felipe lo traiga.
+
+Cabos sueltos del resumen de la sesión remota anterior, reconciliados contra
+GitHub (no contra lo que decía el resumen): PRs #44/#45/#46/#48 (F1-F4 →
+DiegoN) ya están MERGED, nada redundante que cerrar a mano; el hilo de F3
+sobre su propio PR también se resolvió solo. Sigue abierto, sin tocar: PR #47
+(`DiegoN` → `main`) en `CONFLICTING`/`DIRTY` (35 commits, +7012/−369,
+`main` con 26 commits que `DiegoN` no tiene y viceversa 34) — decisión de
+más de un módulo, queda para que Felipe elija cómo reconciliar.
