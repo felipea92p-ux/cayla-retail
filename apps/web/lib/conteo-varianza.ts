@@ -106,3 +106,44 @@ export function resumirVarianza(filas: FilaPrevisualizacion[], costoDe: Map<stri
     lineasSinCosto,
   };
 }
+
+// ============================================================================
+// La pantalla de Conteo rediseñada (Felipe, 2026-09-16) necesita dos cifras
+// más, también sin red:
+// ============================================================================
+
+/**
+ * Exactitud de inventario sobre los conteos CERRADOS: de cada 100 líneas
+ * contadas, cuántas coincidieron con el sistema. Es lo que en un inventario
+ * se llama IRA (inventory record accuracy). Null si no hay ninguna línea
+ * cerrada — «sin dato» no se disfraza de 100 %.
+ *
+ * Se mide por líneas y no por unidades a propósito: una línea con 1 unidad
+ * de más y otra con 1 de menos NO se cancelan — son dos registros que
+ * estaban mal.
+ */
+export function exactitudConteos(conteos: { estado: string; lineas: number; lineasConDiferencia: number }[]): {
+  porcentaje: number;
+  lineas: number;
+  correctas: number;
+  conteos: number;
+} | null {
+  const cerrados = conteos.filter((c) => c.estado === "cerrado" && c.lineas > 0);
+  const lineas = cerrados.reduce((acc, c) => acc + c.lineas, 0);
+  if (lineas === 0) return null;
+  const correctas = cerrados.reduce((acc, c) => acc + (c.lineas - c.lineasConDiferencia), 0);
+  return { porcentaje: Math.round((correctas / lineas) * 1000) / 10, lineas, correctas, conteos: cerrados.length };
+}
+
+/**
+ * Avance del conteo abierto: cuántas prendas con stock en esa sububicación
+ * ya se tocaron. Sale de `previsualizar_cierre_conteo`, que ya distingue
+ * `contado` de `no_contado` — no hace falta otra consulta. Una prenda que se
+ * contó pero NO tenía stock en el sistema (apareció de la nada) cuenta como
+ * contada y suma al total: es una línea real del conteo.
+ */
+export function avanceConteo(filas: { origen: string | null }[]): { contadas: number; total: number; porcentaje: number } {
+  const contadas = filas.filter((f) => f.origen === "contado").length;
+  const total = filas.length;
+  return { contadas, total, porcentaje: total === 0 ? 0 : Math.round((contadas / total) * 100) };
+}

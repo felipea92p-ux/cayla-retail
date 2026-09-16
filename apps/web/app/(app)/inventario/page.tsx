@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getStockPorUbicacion, resumirInventario } from "@/lib/inventario-v2";
+import { getExistencias, resumirExistencias } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
+import { getTrasladosEnCurso } from "@/lib/traslados";
+import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
 
@@ -10,8 +13,13 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 // `stock` — la separación es una columna más (`sububicacion_id`), no dos
 // tablas como en V1 — pero ahora una ubicación puede tener más de una fila
 // por variante, así que la pantalla necesita saber agregar antes de
-// mostrar. Esa agregación vive en `getStockPorUbicacion`, no acá: esta
-// página sigue siendo solo "traer los datos y elegir el layout".
+// mostrar. Esa agregación vive en `getStockPorUbicacion`, no acá.
+//
+// Existencias (2026-09-16, diseño de Felipe): a cada prenda se le suma lo que
+// viene en camino hacia acá y lo que hay en las otras sedes
+// (`getExistencias`), y arriba tres cifras: cuánto hay, cuántas prendas
+// piden algo, cuánto está por llegar. Esta página sigue siendo solo "traer
+// los datos y elegir el layout".
 export default async function InventarioPage({
   searchParams,
 }: {
@@ -27,30 +35,56 @@ export default async function InventarioPage({
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  const [stock, sububicaciones] = await Promise.all([
-    getStockPorUbicacion(ubicacionActivaId),
+  const [stock, sububicaciones, traslados] = await Promise.all([
+    getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
+    getTrasladosEnCurso(ubicacionActivaId),
   ]);
-  const resumen = resumirInventario(stock);
+  const resumen = resumirExistencias(stock);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
+
+  // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
+  // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
+  const haciaAca = traslados.filter((t) => t.ubicacionDestinoId === ubicacionActivaId);
+  const proximaLlegada = haciaAca.map((t) => t.fechaEstimadaLlegada).filter((f): f is string => !!f).sort()[0] ?? null;
+  const enCamino = {
+    traslados: haciaAca.length,
+    proximaLlegada,
+    atrasados: haciaAca.filter((t) => t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
+  };
+
+  // La foto es del momento en que se cargó: la app no sincroniza en segundo
+  // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
+  const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
+          <p className="mt-1 text-sm text-tinta/65">
+            Qué hay en piso y almacén, qué viene en camino y dónde más hay. Vista cargada a las {horaCarga} — recarga para ver lo último.
+          </p>
         </div>
-        {persona.rol === "lider" && (
-          <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+          <Link
+            href="/inventario/mover"
+            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+          >
+            + Nuevo traslado
+          </Link>
+        </div>
       </div>
 
       <InventarioPanel
         ubicacionId={ubicacionActivaId}
         stock={stock}
         resumen={resumen}
+        enCamino={enCamino}
+        sububicaciones={sububicaciones}
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
       />

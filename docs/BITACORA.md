@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Inventario: las 4 vistas de Felipe integradas — ADR-0071)
+
+Felipe diseñó en Stitch Existencias/Movimientos/Transferencias/Conteos y pidió
+integrarlas "sin aplastar nada". Auditadas contra el código: casi todo ya existía como
+dato y faltaba la pantalla; lo que era de otra empresa (Almacén Central, guías SUNAT,
+"hace 2 min", percheros, turnos) no entró. Cuatro decisiones suyas: grupo "Inventario"
+con 4 pestañas (Movimientos se muda a `/inventario/movimientos`, la vieja redirige),
+semáforo nuevo "Stock bajo" (piso + almacén ≤ 6 → pedir traslado), número corrido para
+traslados y conteos (migración `20260916200000`, solo local), y NO al estado "por
+revisar" en conteos ("lo hace la misma persona que cuenta"). Probado en local con Felipe
+(Lima) mandando el Traslado 3 y Micaela (Trujillo) viéndolo llegar: apareció la prenda
+que Trujillo nunca tuvo, en cero con "+2 en camino" — bug encontrado en navegador, no
+por SQL. Timestamp de la migración chocó con `main` (`variantes_identidad_unica`,
+mismo minuto): renombrada antes de fusionar. Aprendizaje: un diseño ajeno se integra
+preguntando primero qué dato real hay detrás de cada número, no dibujando el número.
+
 ## 2026-09-16 (Colores: proponer/aprobar — ADR-0070)
 
 Última pieza de la sesión de hoy sobre Catálogo/Inventario/Taxonomía: cerrar el punto

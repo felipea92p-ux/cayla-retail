@@ -56,7 +56,7 @@ export default async function InicioPage() {
             { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a esta ubicación" },
             { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación" },
             { href: "/productos", etiqueta: "Productos", detalle: "Catálogo completo" },
-            { href: "/movimientos", etiqueta: "Movimientos", detalle: "Por qué cambió el stock" },
+            { href: "/inventario/movimientos", etiqueta: "Movimientos", detalle: "Por qué cambió el stock" },
           ].map((a) => (
             <Link key={a.href} href={a.href} className="group bg-crema p-5 transition-colors hover:bg-papel">
               <p className="text-sm font-medium text-tinta group-hover:text-rojo">{a.etiqueta}</p>

@@ -25,10 +25,13 @@ function money(n: number) {
   return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
 }
 
+export type AvanceConteo = { contadas: number; total: number; porcentaje: number };
+
 export function ConteoPanel({
   ubicacionId,
   esLider,
   conteoAbierto,
+  avance,
   catalogo,
   sububicaciones,
   categorias,
@@ -37,6 +40,9 @@ export function ConteoPanel({
   ubicacionId: string;
   esLider: boolean;
   conteoAbierto: ConteoAbierto | null;
+  /** Cuántas prendas con stock ya se contaron (lo calcula la página con
+   *  `previsualizar_cierre_conteo`); null sin conteo abierto. */
+  avance: AvanceConteo | null;
   catalogo: VarianteConteo[];
   sububicaciones: Sububicacion[];
   categorias: { id: string; nombre: string }[];
@@ -179,15 +185,17 @@ export function ConteoPanel({
     );
   }
 
-  return <ConteoEnCurso conteo={conteoAbierto} catalogo={catalogo} esLider={esLider} />;
+  return <ConteoEnCurso conteo={conteoAbierto} avance={avance} catalogo={catalogo} esLider={esLider} />;
 }
 
 function ConteoEnCurso({
   conteo,
+  avance,
   catalogo,
   esLider,
 }: {
   conteo: ConteoAbierto;
+  avance: AvanceConteo | null;
   catalogo: VarianteConteo[];
   esLider: boolean;
 }) {
@@ -243,10 +251,38 @@ function ConteoEnCurso({
   return (
     <div className="space-y-5">
       <div className="card-cayla p-5">
-        <p className="label-cayla text-[11px] text-tinta/65">
-          Conteo abierto{conteo.sububicacionNombre ? ` · ${conteo.sububicacionNombre}` : ""} · {conteo.abiertoPorNombre} ·{" "}
-          {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
-        </p>
+        {/* Cabecera del conteo abierto (diseño de Felipe, 2026-09-16): número,
+            dónde y qué se cuenta, quién lo abrió, y el avance — cuántas de las
+            prendas con stock ya se tocaron. La barra no es decoración: quien
+            cuenta sabe cuánto le falta sin preguntar. */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-display text-lg text-tinta">Conteo {conteo.numero}</p>
+            <p className="label-cayla mt-0.5 text-[11px] text-tinta/65">
+              {conteo.sububicacionNombre ?? "Toda la ubicación"}
+              {conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? ` · solo ${conteo.alcanceCategoriaNombre}` : " · todo el catálogo"} ·{" "}
+              {conteo.abiertoPorNombre} · {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
+            </p>
+          </div>
+          {avance && (
+            <div className="min-w-[12rem] flex-1 sm:max-w-xs">
+              <div className="flex items-baseline justify-between text-xs text-tinta/65">
+                <span>
+                  {avance.contadas} de {avance.total} prendas contadas
+                </span>
+                <span className="font-semibold tabular-nums text-tinta">{avance.porcentaje} %</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={avance.porcentaje} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-full rounded-full bg-tinta transition-[width]" style={{ width: `${avance.porcentaje}%` }} />
+              </div>
+              {avance.total - avance.contadas > 0 && (
+                <p className="mt-1 text-xs text-tinta/55">
+                  {avance.total - avance.contadas} {avance.total - avance.contadas === 1 ? "prenda pendiente" : "prendas pendientes"} — las que no se cuenten no se tocan al cerrar
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {!seleccionada ? (
           <div className="mt-3">

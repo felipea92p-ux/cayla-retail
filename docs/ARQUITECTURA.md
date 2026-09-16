@@ -124,13 +124,40 @@ flowchart TB
 - `/almacen` y `/almacen/recibir` → **redirects puros** a
   `/inventario/almacen` y `/inventario/recibir` (compat de enlaces
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
-- `/movimientos` (V2, 2026-09-15, ADR-0050) → `lib/movimientos-v2.ts`
-  (`filtrosDesdeParams`, `listarMovimientos`, `getResumenMovimientos`) → RPC
-  `fn_movimientos` / `fn_movimientos_resumen` (lectura pura, cursor, filtros en
-  Postgres) → `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx`
-  (agrupada por día) + `MovimientoDetalle.tsx` (modal por proceso, sin segunda
-  consulta). Las reglas de pantalla (categoría, signo, referencia por proceso) viven
-  en `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
+- `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
+  el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
+  los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
+  `listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
+  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres) →
+  `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx` (agrupada
+  por día; columna «Origen → Destino» con `partesOrigenDestino`) +
+  `MovimientoDetalle.tsx` (modal por proceso, sin segunda consulta). Las reglas de
+  pantalla (categoría, signo, referencia por proceso) viven en
+  `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
+
+**Inventario V2 — las cuatro pantallas (2026-09-16, ADR-0071).** El lateral tiene un
+grupo "Inventario" (`AppShell.tsx`, `grupoInventario`) y `inventario/layout.tsx` monta
+`InventarioNav.tsx` con las mismas cuatro pestañas: Existencias · Movimientos ·
+Traslados · Conteo. Todo `/inventario/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
+- `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
+  (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
+  de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  `InventarioPanel.tsx` (tres tarjetas, filtros en memoria, semáforo de 4 estados con
+  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda) → `ReponerPisoModal.tsx` (RPC
+  `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
+- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosEnCurso`, `getTrasladosCerrados`,
+  con `numero`) → `TrasladosLista.tsx` (vista rápida por chips, en memoria) →
+  `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
+  `confirmar_traslado`, `cerrar_traslado_con_diferencia`). Reglas en `lib/traslados-reglas.ts`.
+- `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
+  `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo`) →
+  `ConteoPanel.tsx` (RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`; avance con
+  `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
+  (`getConteoDetalle`, solo lectura). Exactitud con `exactitudConteos`
+  (`lib/conteo-varianza.ts`).
+- `/inventario/recibir` (sin factura) y `/inventario/mover` (`MoverMercaderiaFormV2.tsx`
+  → RPC `iniciar_traslado`) siguen vivas como rutas, sin pestaña propia: se llega por
+  «+ Nuevo traslado» / «+ Nuevo».
 
 **Productos (catálogo V2, integración final 2026-09-15)**
 - `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
@@ -343,6 +370,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
+| `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
 
 ### 4.3 RLS sin `tenant_id`

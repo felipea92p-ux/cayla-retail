@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   etiquetaDia,
   etiquetaProceso,
+  partesOrigenDestino,
   leerCursorMovimientos,
   serializarCursorMovimientos,
   textoDelta,
@@ -175,5 +176,47 @@ describe("etiquetaDia", () => {
 
   it("otro año lo dice", () => {
     expect(etiquetaDia("2025-12-24", "2026-09-15")).toMatch(/2025/);
+  });
+});
+
+describe("partesOrigenDestino", () => {
+  // La columna «Origen → Destino» (diseño de Felipe, 2026-09-16) nombra las
+  // dos puntas en vocabulario de tienda: la clienta, el proveedor, el Taller,
+  // el piso o el almacén — nunca «entrada»/«salida».
+  const piso = { id: "s1", nombre: "Piso de venta", tipo: "piso_venta" };
+  const almacen = { id: "s2", nombre: "Almacén de tienda", tipo: "almacen_tienda" };
+
+  it("una venta sale del piso hacia la clienta; una devolución vuelve", () => {
+    expect(partesOrigenDestino(movimiento({ tipo: "salida", categoria: "salida", motivo: "venta", delta: -1, sububicacion: piso })))
+      .toEqual({ origen: "Piso", destino: "Clienta" });
+    expect(partesOrigenDestino(movimiento({ motivo: "devolucion", delta: 1, sububicacion: piso })))
+      .toEqual({ origen: "Clienta", destino: "Piso" });
+  });
+
+  it("una recepción llega del proveedor al almacén", () => {
+    expect(
+      partesOrigenDestino(movimiento({ motivo: "recepcion", sububicacion: almacen, lote: { id: "l1", guia: "G-1", nota: null, proveedor: "Textiles Sur" } }))
+    ).toEqual({ origen: "Textiles Sur", destino: "Almacén" });
+  });
+
+  it("un cambio mira el signo: entra de la clienta o sale hacia ella", () => {
+    expect(partesOrigenDestino(movimiento({ motivo: "cambio", delta: 1, sububicacion: piso }))).toEqual({ origen: "Clienta", destino: "Piso" });
+    expect(partesOrigenDestino(movimiento({ tipo: "salida", categoria: "salida", motivo: "cambio", delta: -1, sububicacion: piso })))
+      .toEqual({ origen: "Piso", destino: "Clienta" });
+  });
+
+  it("interno y transferencia usan sus dos puntas reales; un ajuste no tiene destino", () => {
+    expect(
+      partesOrigenDestino(movimiento({ tipo: "traslado", categoria: "interno", motivo: "movimiento_interno", delta: 0, sububicacion: almacen, sububicacionDestino: piso }))
+    ).toEqual({ origen: "Almacén", destino: "Piso" });
+    expect(
+      partesOrigenDestino(movimiento({ tipo: "salida", categoria: "transferencia", motivo: "traslado_salida", delta: -4, ubicacionDestino: "Tienda Trujillo" }))
+    ).toEqual({ origen: "Tienda Lima", destino: "Tienda Trujillo" });
+    expect(partesOrigenDestino(movimiento({ tipo: "ajuste", categoria: "ajuste", motivo: "merma", delta: -1, sububicacion: piso })))
+      .toEqual({ origen: "Piso", destino: null });
+  });
+
+  it("sin sububicación (Taller) el origen es la ubicación misma", () => {
+    expect(partesOrigenDestino(movimiento({ motivo: "produccion", ubicacion: "Taller" }))).toEqual({ origen: "Producción", destino: "Taller" });
   });
 });

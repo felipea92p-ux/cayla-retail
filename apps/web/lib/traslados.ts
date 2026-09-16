@@ -10,6 +10,9 @@ import { exigir, exigirOpcional } from "@/lib/resultado";
 
 export type TrasladoResumen = {
   id: string;
+  /** Número corrido (20260916200000): «Traslado 12» — lo que se dice por
+   *  WhatsApp, en vez del uuid. */
+  numero: number;
   ubicacionOrigenId: string;
   ubicacionOrigenNombre: string;
   ubicacionDestinoId: string;
@@ -17,9 +20,59 @@ export type TrasladoResumen = {
   estado: string;
   fechaEstimadaLlegada: string | null;
   creadoEn: string;
+  confirmadoEn: string | null;
+  cerradoEn: string | null;
   nota: string | null;
   unidadesEnviadas: number;
+  /** Cuántas prendas distintas van, y las primeras por nombre — para leer
+   *  «Blusa Emma, Vestido Sofía +2» sin abrir el detalle. */
+  lineas: number;
+  referencias: string[];
 };
+
+const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota,
+  origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
+  destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
+  transferencia_items ( cantidad, variante:variantes ( producto:productos ( referencia ) ) )`;
+
+type FilaResumen = {
+  id: string;
+  numero: number;
+  ubicacion_origen_id: string;
+  ubicacion_destino_id: string;
+  estado: string;
+  fecha_estimada_llegada: string | null;
+  created_at: string;
+  confirmado_en: string | null;
+  cerrado_en: string | null;
+  nota: string | null;
+  origen: { nombre: string } | null;
+  destino: { nombre: string } | null;
+  transferencia_items: { cantidad: number; variante: { producto: { referencia: string } | null } | null }[] | null;
+};
+
+function aResumen(f: FilaResumen): TrasladoResumen {
+  const items = f.transferencia_items ?? [];
+  // Un producto con tres tallas en el mismo traslado se nombra una vez.
+  const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
+  return {
+    id: f.id,
+    numero: f.numero,
+    ubicacionOrigenId: f.ubicacion_origen_id,
+    ubicacionOrigenNombre: f.origen?.nombre ?? "—",
+    ubicacionDestinoId: f.ubicacion_destino_id,
+    ubicacionDestinoNombre: f.destino?.nombre ?? "—",
+    estado: f.estado,
+    fechaEstimadaLlegada: f.fecha_estimada_llegada,
+    creadoEn: f.created_at,
+    confirmadoEn: f.confirmado_en,
+    cerradoEn: f.cerrado_en,
+    nota: f.nota,
+    unidadesEnviadas: items.reduce((acc, i) => acc + i.cantidad, 0),
+    lineas: items.length,
+    referencias,
+  };
+}
 
 /** Traslados que no han terminado: en tránsito o con diferencia pendiente de
  *  líder. Bilateral — sale tanto si la ubicación es origen como destino. */
@@ -28,30 +81,32 @@ export async function getTrasladosEnCurso(ubicacionId: string): Promise<Traslado
   const filas = exigir(
     await supabase
       .from("transferencias")
-      .select(
-        `id, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, nota,
-         origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
-         destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
-         transferencia_items ( cantidad )`
-      )
+      .select(SELECT_RESUMEN)
       .or(`ubicacion_origen_id.eq.${ubicacionId},ubicacion_destino_id.eq.${ubicacionId}`)
       .in("estado", ["en_transito", "recibido_con_diferencia"])
       .order("fecha_estimada_llegada", { ascending: true }),
     "los traslados en curso"
   );
+  return filas.map((f) => aResumen(f as FilaResumen));
+}
 
-  return filas.map((f) => ({
-    id: f.id,
-    ubicacionOrigenId: f.ubicacion_origen_id,
-    ubicacionOrigenNombre: f.origen?.nombre ?? "—",
-    ubicacionDestinoId: f.ubicacion_destino_id,
-    ubicacionDestinoNombre: f.destino?.nombre ?? "—",
-    estado: f.estado,
-    fechaEstimadaLlegada: f.fecha_estimada_llegada,
-    creadoEn: f.created_at,
-    nota: f.nota,
-    unidadesEnviadas: (f.transferencia_items ?? []).reduce((acc, i) => acc + i.cantidad, 0),
-  }));
+/** Los últimos traslados que YA terminaron (cerrados, o «completada» del
+ *  modelo atómico anterior), para el historial de la pantalla. Aparte de los
+ *  en curso a propósito: los en curso se traen todos (son pocos y hay que
+ *  verlos todos); el historial se acota. */
+export async function getTrasladosCerrados(ubicacionId: string, limite = 30): Promise<TrasladoResumen[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase
+      .from("transferencias")
+      .select(SELECT_RESUMEN)
+      .or(`ubicacion_origen_id.eq.${ubicacionId},ubicacion_destino_id.eq.${ubicacionId}`)
+      .in("estado", ["cerrada", "completada"])
+      .order("created_at", { ascending: false })
+      .limit(limite),
+    "los traslados anteriores"
+  );
+  return filas.map((f) => aResumen(f as FilaResumen));
 }
 
 export type LineaTraslado = {
@@ -67,6 +122,7 @@ export type LineaTraslado = {
 
 export type TrasladoDetalle = {
   id: string;
+  numero: number;
   ubicacionOrigenId: string;
   ubicacionOrigenNombre: string;
   ubicacionDestinoId: string;
@@ -85,7 +141,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   const res = await supabase
     .from("transferencias")
     .select(
-      `id, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, nota, nota_cierre, creado_por,
+      `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, nota, nota_cierre, creado_por,
        origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
        destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre )`
     )
@@ -103,6 +159,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
 
   return {
     id: t.id,
+    numero: t.numero,
     ubicacionOrigenId: t.ubicacion_origen_id,
     ubicacionOrigenNombre: t.origen?.nombre ?? "—",
     ubicacionDestinoId: t.ubicacion_destino_id,

@@ -1,43 +1,75 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
+import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import type { EstadoStock, FilaStock, ResumenInventario } from "@/lib/inventario-v2";
+import { textoOtrasSedes } from "@/lib/stock-por-sede";
+import {
+  ACCION_ESTADO_STOCK,
+  ETIQUETA_ESTADO_STOCK,
+  necesitaReponerPiso,
+  UMBRAL_REPOSICION_PISO,
+  type EstadoStock,
+} from "@/lib/inventario-reglas";
+import type { FilaExistencias, ResumenExistencias } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
-const ETIQUETA_ESTADO: Record<EstadoStock, string> = {
-  normal: "Normal",
-  reponer_piso: "Reponer piso",
-  sin_stock: "Sin stock en tienda",
+// «Normal» no lleva chip: es la mayoría de las filas y un chip verde en cada
+// una sería decoración (brandbook: el semáforo nunca es adorno). Los tres
+// estados que piden algo sí se pintan — el ojo va solo a donde hay tarea.
+const TONO_ESTADO: Record<Exclude<EstadoStock, "normal">, TonoChip> = {
+  reponer_piso: "ambar",
+  stock_bajo: "rojo",
+  sin_stock: "neutro",
 };
 
-const TONO_ESTADO: Record<EstadoStock, string> = {
-  normal: "text-tinta/45",
-  reponer_piso: "text-ambar",
-  sin_stock: "text-rojo",
+const PUNTO_ESTADO: Record<EstadoStock, string> = {
+  normal: "bg-verde",
+  reponer_piso: "bg-ambar",
+  stock_bajo: "bg-rojo",
+  sin_stock: "bg-tinta/35",
 };
 
 const TODAS = "__todas__";
+/** Filtro compuesto: las tres que piden acción, sin elegir cuál. */
+const ATENCION = "__atencion__";
+const ESTADOS: EstadoStock[] = ["normal", "reponer_piso", "stock_bajo", "sin_stock"];
+
+function fechaHora(iso: string) {
+  return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
+}
 
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
 // asume que toda ubicación separa piso y almacén — se adapta según lo que
 // `getSububicaciones` encontró para ESA ubicación (`resumen.separaPisoAlmacen`),
-// nunca por el nombre ("Taller" vs. "Tienda X"). Taller sigue viendo la
-// tabla simple de siempre.
+// nunca por el nombre ("Taller" vs. "Tienda X"). Taller sigue viendo una
+// tabla más corta: sin piso/almacén ni semáforo, pero con tránsito y red.
+//
+// Existencias (Felipe, 2026-09-16): tres tarjetas arriba, una fila por prenda
+// con su estado, lo que viene en camino y dónde más hay, y la leyenda del
+// semáforo abajo. Las acciones viven en la fila: «Reponer» (bajar del
+// almacén, modal que ya existía) y «Ajustar» (el modal de ajuste que hasta
+// hoy solo se abría desde Productos).
 export function InventarioPanel({
   ubicacionId,
   stock,
   resumen,
+  enCamino,
+  sububicaciones,
   sububicacionPiso,
   sububicacionAlmacen,
 }: {
   ubicacionId: string;
-  stock: FilaStock[];
-  resumen: ResumenInventario;
+  stock: FilaExistencias[];
+  resumen: ResumenExistencias;
+  enCamino: { traslados: number; proximaLlegada: string | null; atrasados: number };
+  sububicaciones: Sububicacion[];
   sububicacionPiso: Sububicacion | null;
   sububicacionAlmacen: Sububicacion | null;
 }) {
@@ -46,7 +78,8 @@ export function InventarioPanel({
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
-  const [reponiendo, setReponiendo] = useState<FilaStock | null>(null);
+  const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
+  const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
 
   const categorias = useMemo(
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -67,41 +100,69 @@ export function InventarioPanel({
       if (categoria !== TODAS && f.categoria !== categoria) return false;
       if (talla !== TODAS && f.talla !== talla) return false;
       if (color !== TODAS && f.color !== color) return false;
+      if (estado === ATENCION) return f.estado !== null && f.estado !== "normal";
       if (estado !== TODAS && f.estado !== estado) return false;
       return true;
     });
   }, [stock, k, categoria, talla, color, estado]);
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
+  const separa = resumen.separaPisoAlmacen;
+  const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo;
+  const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
 
-  // `minmax(8rem, 1fr)`, no `1fr` a secas: con columnas fijas + `truncate`
+  // `minmax(12rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
   // (que habilita min-width automático 0 en la pista), una ventana angosta
-  // dejaba "Producto" en 0px — invisible, no acortado. El piso de 8rem
-  // (~"Casaca Ximena") es el mínimo antes de que la Tabla entre a scroll
-  // horizontal (ver `ui/Tabla.tsx`).
-  const plantilla = resumen.separaPisoAlmacen
-    ? "sm:grid-cols-[minmax(8rem,1fr)_7rem_3.5rem_5.5rem_3.5rem_4.5rem_3.5rem_9rem]"
-    : "sm:grid-cols-[minmax(8rem,1fr)_7rem_3.5rem_5.5rem_4rem]";
+  // dejaba "Prenda" en 0px — invisible, no acortado. El piso de 12rem es lo
+  // que ocupa «Casaca Ximena» más su SKU debajo antes de que la Tabla entre
+  // a scroll horizontal (ver `ui/Tabla.tsx`).
+  const plantilla = separa
+    ? "sm:grid-cols-[minmax(12rem,1.4fr)_7.5rem_5rem_11rem_5.5rem_minmax(9rem,1fr)_4.5rem]"
+    : "sm:grid-cols-[minmax(12rem,1.4fr)_5rem_5.5rem_minmax(9rem,1fr)_4.5rem]";
 
   return (
     <div className="space-y-6">
-      <div className={`grid gap-3 ${resumen.separaPisoAlmacen ? "sm:grid-cols-4" : "sm:grid-cols-1"}`}>
-        <TarjetaResumen etiqueta="Total tienda" valor={resumen.total} />
-        {resumen.separaPisoAlmacen && (
-          <>
-            <TarjetaResumen etiqueta="Piso de venta" valor={resumen.piso ?? 0} />
-            <TarjetaResumen etiqueta="Almacén de tienda" valor={resumen.almacen ?? 0} />
-            <TarjetaResumen
-              etiqueta="Requieren reposición"
-              valor={resumen.requierenReposicion}
-              tono={resumen.requierenReposicion > 0 ? "text-ambar" : undefined}
-            />
-          </>
+      {/* Tres cifras, de la más tranquila a la que más pide (diseño de
+          Felipe): cuánto hay, cuántas prendas piden algo, cuánto viene. La
+          del medio se puede tocar y filtra la tabla a esas prendas. */}
+      <div className={`grid gap-3 ${separa ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <Tarjeta etiqueta="Prendas disponibles" valor={resumen.total} unidad="unidades">
+          {separa && porcentajePiso !== null
+            ? `${porcentajePiso}% en el piso de venta · ${resumen.piso} piso · ${resumen.almacen} almacén`
+            : `${stock.length} ${stock.length === 1 ? "prenda distinta" : "prendas distintas"}`}
+        </Tarjeta>
+        {separa && (
+          <Tarjeta
+            etiqueta="Piden atención"
+            valor={pidenAtencion}
+            unidad={pidenAtencion === 1 ? "prenda" : "prendas"}
+            tono={pidenAtencion > 0 ? "text-ambar-profundo" : undefined}
+            acento={pidenAtencion > 0}
+            onClick={pidenAtencion > 0 ? () => setEstado(estado === ATENCION ? TODAS : ATENCION) : undefined}
+            activa={estado === ATENCION}
+          >
+            {pidenAtencion === 0 && resumen.porEstado.sin_stock === 0
+              ? "Nada pendiente: piso cubierto y stock holgado"
+              : [
+                  resumen.porEstado.reponer_piso > 0 && `${resumen.porEstado.reponer_piso} bajar del almacén`,
+                  resumen.porEstado.stock_bajo > 0 && `${resumen.porEstado.stock_bajo} pedir traslado`,
+                  resumen.porEstado.sin_stock > 0 && `${resumen.porEstado.sin_stock} sin stock`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+          </Tarjeta>
         )}
+        <Tarjeta etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
+          {enCamino.traslados === 0
+            ? "Ningún traslado en camino"
+            : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
+                enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
+              }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
+        </Tarjeta>
       </div>
 
       {stock.length > 0 && (
-        <div className={`card-cayla grid gap-4 p-5 ${resumen.separaPisoAlmacen ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
+        <div className={`card-cayla grid gap-4 p-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
           <CampoTexto etiqueta="Buscar" placeholder="Producto, SKU o código de barras" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <CampoSelect
             etiqueta="Categoría"
@@ -124,7 +185,7 @@ export function InventarioPanel({
             marcador="Todos"
             opciones={[{ valor: TODAS, texto: "Todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
           />
-          {resumen.separaPisoAlmacen && (
+          {separa && (
             <CampoSelect
               etiqueta="Estado"
               valor={estado}
@@ -132,7 +193,8 @@ export function InventarioPanel({
               marcador="Todos"
               opciones={[
                 { valor: TODAS, texto: "Todos" },
-                ...(Object.keys(ETIQUETA_ESTADO) as EstadoStock[]).map((e) => ({ valor: e, texto: ETIQUETA_ESTADO[e] })),
+                { valor: ATENCION, texto: "Piden atención" },
+                ...ESTADOS.map((e) => ({ valor: e, texto: ETIQUETA_ESTADO_STOCK[e] })),
               ]}
             />
           )}
@@ -145,60 +207,71 @@ export function InventarioPanel({
         <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto coincide con la búsqueda.</p>
       ) : (
         <Tabla>
-          {/* Toda la tabla centrada (Felipe, 2026-09-15) — encabezado y filas
-              comparten `alinear: "centro"`, columna por columna. */}
+          {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
+              va a la izquierda como en su diseño: dos líneas (nombre, y SKU ·
+              talla · color) se leen mal centradas. */}
           <Encabezado
             plantilla={plantilla}
             columnas={
-              resumen.separaPisoAlmacen
+              separa
                 ? [
-                    { titulo: "Producto", alinear: "centro" },
-                    { titulo: "SKU", alinear: "centro" },
-                    { titulo: "Talla", alinear: "centro" },
-                    { titulo: "Color", alinear: "centro" },
-                    { titulo: "Piso", alinear: "centro" },
-                    { titulo: "Almacén", alinear: "centro" },
-                    { titulo: "Total", alinear: "centro" },
+                    { titulo: "Prenda · variante" },
+                    { titulo: "Piso · Almacén", alinear: "centro" },
+                    { titulo: "Disponible", alinear: "centro" },
                     { titulo: "Estado", alinear: "centro" },
+                    { titulo: "En camino", alinear: "centro" },
+                    { titulo: "En la red", alinear: "centro" },
+                    { titulo: "", alinear: "centro" },
                   ]
                 : [
-                    { titulo: "Producto", alinear: "centro" },
-                    { titulo: "SKU", alinear: "centro" },
-                    { titulo: "Talla", alinear: "centro" },
-                    { titulo: "Color", alinear: "centro" },
-                    { titulo: "Total", alinear: "centro" },
+                    { titulo: "Prenda · variante" },
+                    { titulo: "Disponible", alinear: "centro" },
+                    { titulo: "En camino", alinear: "centro" },
+                    { titulo: "En la red", alinear: "centro" },
+                    { titulo: "", alinear: "centro" },
                   ]
             }
           />
-          {filtradas.map((f) => (
-            <div key={f.varianteId} className={fila(plantilla)}>
-              <span className={celda("centro")}>{f.referencia}</span>
-              <span className={celda("centro", "font-mono text-xs text-tinta/75")}>{f.sku}</span>
-              <span className={celda("centro", "text-tinta/75")}>{f.talla ?? "—"}</span>
-              {/* `overflow-visible`: la pastilla con el nombre flota fuera de la celda al pasar el mouse
-                  (el `truncate` de "centro" no debe recortarla). El texto centrado ya centra la
-                  cápsula: es `inline-flex`, se comporta como una imagen dentro del texto. */}
-              <span className={celda("centro", "overflow-visible")}>
-                <MuestraColor nombre={f.color} hex={f.colorHex} />
-              </span>
-              {resumen.separaPisoAlmacen ? (
-                <>
-                  <span className={celda("centro")}>
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso</span>
-                    {f.piso}
+          {filtradas.map((f) => {
+            const otras = textoOtrasSedes(f.enRed);
+            return (
+              <div key={f.varianteId} className={fila(plantilla)}>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-tinta" title={f.referencia}>
+                    {f.referencia}
                   </span>
-                  <span className={celda("centro")}>
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Almacén</span>
-                    {f.almacen}
+                  {/* `overflow-visible`: la pastilla con el nombre del color flota
+                      fuera de la celda al pasar el mouse. */}
+                  <span className="flex items-center gap-1.5 overflow-visible text-xs text-tinta/65">
+                    <span className="font-mono">{f.sku}</span>
+                    {f.talla && <span>· {f.talla}</span>}
+                    <span>·</span>
+                    <MuestraColor nombre={f.color} hex={f.colorHex} />
                   </span>
-                  <span className={celda("centro", "font-semibold text-tinta")}>
-                    <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Total</span>
-                    {f.total}
+                </span>
+                {separa && (
+                  <span className={celda("centro", "text-sm tabular-nums")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>
+                    <span className={f.piso !== null && f.piso <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
+                    <span className="text-tinta/45"> · </span>
+                    <span className="text-tinta">{f.almacen}</span>
                   </span>
-                  <span className={celda("centro")}>
+                )}
+                <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Disponible</span>
+                  {f.total}
+                </span>
+                {separa && (
+                  <span className={celda("centro", "overflow-visible")}>
                     <span className="inline-flex items-center justify-center gap-2">
-                      <span className={`label-cayla text-[10px] ${TONO_ESTADO[f.estado!]}`}>{ETIQUETA_ESTADO[f.estado!]}</span>
-                      {f.estado === "reponer_piso" && puedeReponer && (
+                      {f.estado === "normal" || f.estado === null ? (
+                        <span className="label-cayla text-[10px] text-tinta/45">Normal</span>
+                      ) : (
+                        <Chip tono={TONO_ESTADO[f.estado]}>
+                          <span title={ACCION_ESTADO_STOCK[f.estado]}>{ETIQUETA_ESTADO_STOCK[f.estado]}</span>
+                        </Chip>
+                      )}
+                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
                         <button
                           type="button"
                           onClick={() => setReponiendo(f)}
@@ -209,12 +282,43 @@ export function InventarioPanel({
                       )}
                     </span>
                   </span>
-                </>
-              ) : (
-                <span className={celda("centro", "font-semibold text-tinta")}>{f.total}</span>
-              )}
-            </div>
-          ))}
+                )}
+                <span className={celda("centro", `text-sm tabular-nums ${f.enTransito > 0 ? "text-verde-profundo" : "text-tinta/35"}`)}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En camino</span>
+                  {f.enTransito > 0 ? `+${f.enTransito}` : "—"}
+                </span>
+                <span className={celda("centro", `text-xs ${otras ? "text-tinta/75" : "text-tinta/35"}`)} title={otras ?? undefined}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En la red</span>
+                  {otras ?? "—"}
+                </span>
+                <span className={celda("centro")}>
+                  <button
+                    type="button"
+                    onClick={() => setAjustando(f)}
+                    className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                  >
+                    Ajustar
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-xs text-tinta/55">
+            <span>
+              Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
+            </span>
+            {separa && (
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {ESTADOS.map((e) => (
+                  <span key={e} className="inline-flex items-center gap-1.5" title={ACCION_ESTADO_STOCK[e]}>
+                    <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_ESTADO[e]}`} />
+                    <span className="text-tinta/75">{ETIQUETA_ESTADO_STOCK[e]}</span>
+                    <span className="hidden text-tinta/45 lg:inline">· {ACCION_ESTADO_STOCK[e]}</span>
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
         </Tabla>
       )}
 
@@ -227,15 +331,67 @@ export function InventarioPanel({
           onClose={() => setReponiendo(null)}
         />
       )}
+
+      {ajustando && (
+        <AjustarInventarioModal
+          productoId={ajustando.productoId}
+          ubicacionId={ubicacionId}
+          sububicaciones={sububicaciones}
+          onClose={() => setAjustando(null)}
+        />
+      )}
     </div>
   );
 }
 
-function TarjetaResumen({ etiqueta, valor, tono }: { etiqueta: string; valor: number; tono?: string }) {
-  return (
-    <div className="card-cayla p-5">
+function Tarjeta({
+  etiqueta,
+  valor,
+  unidad,
+  tono,
+  acento = false,
+  activa = false,
+  href,
+  onClick,
+  children,
+}: {
+  etiqueta: string;
+  valor: number;
+  unidad: string;
+  tono?: string;
+  /** Borde izquierdo en rojo: la tarjeta que pide algo (diseño de Felipe). */
+  acento?: boolean;
+  activa?: boolean;
+  href?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  const clase = `card-cayla block p-5 text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+    onClick || href ? "hover:bg-sand/30" : ""
+  } ${activa ? "bg-sand/40" : ""}`;
+  const contenido = (
+    <>
       <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className={`font-display mt-1 text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</p>
-    </div>
+      <p className="mt-1 flex items-baseline gap-2">
+        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
+        <span className="text-sm text-tinta/55">{unidad}</span>
+      </p>
+      <p className="mt-1 text-xs text-tinta/65">{children}</p>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className={clase}>
+        {contenido}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa}>
+        {contenido}
+      </button>
+    );
+  }
+  return <div className={clase}>{contenido}</div>;
 }

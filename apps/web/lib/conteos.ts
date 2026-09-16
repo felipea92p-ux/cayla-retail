@@ -21,6 +21,8 @@ export type ItemConteoAbierto = {
 
 export type ConteoAbierto = {
   id: string;
+  /** Número corrido (20260916200000): «Conteo 7». */
+  numero: number;
   ubicacionId: string;
   // null: conteo de toda la ubicación (Taller, o una tienda antes de
   // 20260914210000_inventario_piso_almacen.sql). Con piso/almacén
@@ -30,6 +32,9 @@ export type ConteoAbierto = {
   sububicacionNombre: string | null;
   creadoEn: string;
   abiertoPorNombre: string;
+  /** `todo` o `categoria` (20260916110000); con categoría, su nombre. */
+  alcance: string;
+  alcanceCategoriaNombre: string | null;
   items: ItemConteoAbierto[];
 };
 
@@ -37,7 +42,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
   const supabase = await createClient();
   const res = await supabase
     .from("conteos")
-    .select("id, ubicacion_id, created_at, abierto_por, sububicacion:sububicaciones ( id, nombre )")
+    .select("id, numero, ubicacion_id, created_at, abierto_por, alcance, sububicacion:sububicaciones ( id, nombre ), categoria:categorias ( nombre )")
     .eq("ubicacion_id", ubicacionId)
     .eq("estado", "abierto")
     .maybeSingle();
@@ -62,11 +67,14 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
 
   return {
     id: conteo.id,
+    numero: conteo.numero,
     ubicacionId: conteo.ubicacion_id,
     sububicacionId: conteo.sububicacion?.id ?? null,
     sububicacionNombre: conteo.sububicacion?.nombre ?? null,
     creadoEn: conteo.created_at,
     abiertoPorNombre: nombres[0]?.nombre ?? "—",
+    alcance: conteo.alcance,
+    alcanceCategoriaNombre: conteo.categoria?.nombre ?? null,
     items: items.map((i) => ({
       id: i.id,
       varianteId: i.variante_id,
@@ -80,40 +88,60 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
   };
 }
 
-export type ConteoCerrado = {
+export type ConteoResumen = {
   id: string;
+  numero: number;
+  estado: string;
   creadoEn: string;
   cerradoEn: string | null;
+  sububicacionNombre: string | null;
+  sububicacionTipo: string | null;
+  alcance: string;
+  alcanceCategoriaNombre: string | null;
   abiertoPorNombre: string;
   cerradoPorNombre: string;
-  lineasContadas: number;
+  lineas: number;
+  lineasConDiferencia: number;
+  sistema: number;
+  contado: number;
+  /** contado − sistema, en unidades: negativo = faltó. */
+  diferencia: number;
+  /** La misma diferencia valorizada al costo actual de cada variante. */
+  solesDiferencia: number;
 };
 
-export async function getConteosCerradosRecientes(ubicacionId: string, limite = 10): Promise<ConteoCerrado[]> {
+/** Los conteos de una ubicación con su resultado ya sumado — el abierto (si
+ *  hay) primero, después los cerrados del más reciente al más antiguo.
+ *  `fn_conteos_resumen` (20260916200000) hace la suma en Postgres: traer los
+ *  `conteo_items` de cada conteo solo para mostrar un total sería cargar
+ *  miles de filas por pantalla. */
+export async function getConteosResumen(ubicacionId: string, limite = 20): Promise<ConteoResumen[]> {
   const supabase = await createClient();
-  const conteos = exigir(
-    await supabase
-      .from("conteos")
-      .select("id, created_at, cerrado_en, abierto_por, cerrado_por, conteo_items(count)")
-      .eq("ubicacion_id", ubicacionId)
-      .eq("estado", "cerrado")
-      .order("cerrado_en", { ascending: false })
-      .limit(limite),
-    "los conteos cerrados"
-  );
-  if (conteos.length === 0) return [];
+  const filas = exigir(await supabase.rpc("fn_conteos_resumen", { p_ubicacion_id: ubicacionId, p_limite: limite }), "los conteos");
+  if (filas.length === 0) return [];
 
-  const ids = [...new Set(conteos.flatMap((c) => [c.abierto_por, c.cerrado_por]).filter((id): id is string => !!id))];
-  const nombres = exigir(await supabase.rpc("fn_nombres_personas", { p_ids: ids }), "los nombres de responsables");
+  const ids = [...new Set(filas.flatMap((c) => [c.abierto_por, c.cerrado_por]).filter((id): id is string => !!id))];
+  const nombres = ids.length > 0 ? exigir(await supabase.rpc("fn_nombres_personas", { p_ids: ids }), "los nombres de responsables") : [];
   const nombrePorId = new Map(nombres.map((n) => [n.id, n.nombre]));
 
-  return conteos.map((c) => ({
+  return filas.map((c) => ({
     id: c.id,
+    numero: c.numero,
+    estado: c.estado,
     creadoEn: c.created_at,
     cerradoEn: c.cerrado_en,
+    sububicacionNombre: c.sububicacion_nombre,
+    sububicacionTipo: c.sububicacion_tipo,
+    alcance: c.alcance,
+    alcanceCategoriaNombre: c.alcance_categoria_nombre,
     abiertoPorNombre: (c.abierto_por && nombrePorId.get(c.abierto_por)) || "—",
     cerradoPorNombre: (c.cerrado_por && nombrePorId.get(c.cerrado_por)) || "—",
-    lineasContadas: c.conteo_items?.[0]?.count ?? 0,
+    lineas: c.lineas,
+    lineasConDiferencia: c.lineas_con_diferencia,
+    sistema: c.sistema,
+    contado: c.contado,
+    diferencia: c.diferencia,
+    solesDiferencia: Number(c.soles_diferencia ?? 0),
   }));
 }
 
@@ -162,4 +190,94 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     diasSinContar: f.dias_sin_contar,
     ventas30d: f.ventas_30d,
   }));
+}
+
+// ============================================================================
+// Detalle de un conteo cerrado (2026-09-16, diseño de Felipe): las líneas
+// que se contaron, con sistema, físico y diferencia. Hasta hoy un conteo
+// cerrado solo mostraba «N líneas contadas» — el detalle existía en la base
+// (`conteo_items`) y no en ninguna pantalla.
+// ============================================================================
+
+export type LineaConteo = {
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  sistema: number;
+  contado: number;
+  diferencia: number;
+};
+
+export type ConteoDetalle = ConteoResumen & { lineasDetalle: LineaConteo[] };
+
+export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null> {
+  const supabase = await createClient();
+  // En una `const` aparte y no inline en `exigirOpcional(await …)`: con
+  // `.maybeSingle()` el tipo contextual del genérico pisa la inferencia del
+  // select y `cabecera` sale `never` (mismo patrón que `getConteoAbierto`).
+  const res = await supabase
+    .from("conteos")
+    .select(
+      "id, numero, estado, created_at, cerrado_en, abierto_por, cerrado_por, alcance, sububicacion:sububicaciones ( nombre, tipo ), categoria:categorias ( nombre )"
+    )
+    .eq("id", id)
+    .maybeSingle();
+  const cabecera = exigirOpcional(res, "el conteo");
+  if (!cabecera) return null;
+
+  const ids = [cabecera.abierto_por, cabecera.cerrado_por].filter((x): x is string => !!x);
+  const [itemsRes, nombresRes] = await Promise.all([
+    supabase
+      .from("conteo_items")
+      .select(
+        `variante_id, cantidad_sistema, cantidad_contada,
+         variante:variantes ( sku, talla, costo, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("conteo_id", id),
+    ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
+  ]);
+  const items = exigir(itemsRes, "las líneas del conteo");
+  const nombrePorId = new Map(exigir(nombresRes, "los nombres de responsables").map((n) => [n.id, n.nombre]));
+
+  const lineasDetalle: LineaConteo[] = items
+    .map((i) => ({
+      varianteId: i.variante_id,
+      sku: i.variante?.sku ?? "",
+      referencia: i.variante?.producto?.referencia ?? "",
+      talla: i.variante?.talla ?? null,
+      color: i.variante?.color?.nombre ?? null,
+      sistema: i.cantidad_sistema,
+      contado: i.cantidad_contada,
+      diferencia: i.cantidad_contada - i.cantidad_sistema,
+    }))
+    // Las diferencias primero, las más grandes arriba; después el resto por nombre.
+    .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia) || a.referencia.localeCompare(b.referencia, "es") || a.sku.localeCompare(b.sku));
+
+  // Para UN conteo las líneas ya están en memoria: se suman acá, con el mismo
+  // criterio que `fn_conteos_resumen` (diferencia = contado − sistema, soles
+  // al costo actual de la variante).
+  const soles = items.reduce((acc, i) => acc + (i.cantidad_contada - i.cantidad_sistema) * Number(i.variante?.costo ?? 0), 0);
+
+  return {
+    id: cabecera.id,
+    numero: cabecera.numero,
+    estado: cabecera.estado,
+    creadoEn: cabecera.created_at,
+    cerradoEn: cabecera.cerrado_en,
+    sububicacionNombre: cabecera.sububicacion?.nombre ?? null,
+    sububicacionTipo: cabecera.sububicacion?.tipo ?? null,
+    alcance: cabecera.alcance,
+    alcanceCategoriaNombre: cabecera.categoria?.nombre ?? null,
+    abiertoPorNombre: (cabecera.abierto_por && nombrePorId.get(cabecera.abierto_por)) || "—",
+    cerradoPorNombre: (cabecera.cerrado_por && nombrePorId.get(cabecera.cerrado_por)) || "—",
+    lineas: lineasDetalle.length,
+    lineasConDiferencia: lineasDetalle.filter((l) => l.diferencia !== 0).length,
+    sistema: lineasDetalle.reduce((acc, l) => acc + l.sistema, 0),
+    contado: lineasDetalle.reduce((acc, l) => acc + l.contado, 0),
+    diferencia: lineasDetalle.reduce((acc, l) => acc + l.diferencia, 0),
+    solesDiferencia: Math.round(soles * 100) / 100,
+    lineasDetalle,
+  };
 }

@@ -76,6 +76,10 @@ const IC = {
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
   traslados: "M4 12h13M13 5l7 7-7 7",
+  // Planilla con un visto: contar lo que hay y dejarlo asentado. La cabecera
+  // "Inventario" se queda con la caja de siempre (IC.inventario), que
+  // "Existencias" comparte — es la raíz del módulo, la misma cosa.
+  conteo: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
@@ -192,13 +196,30 @@ function GrupoLateral({
   // `/vender` vs `/vender/facturacion` — se corrige acá para los dos).
   // Si ninguna fila calza exacto (`/productos/nuevo`, que no es ninguna de
   // las tres pestañas), recién ahí se cae a la coincidencia por prefijo.
+  // Y entre varios prefijos que calzan, gana el MÁS LARGO (2026-09-16, al
+  // agrupar Inventario): en `/inventario/traslados/<id>` calzan "Existencias"
+  // (`/inventario`) y "Traslados" (`/inventario/traslados`) — la segunda es
+  // la que de verdad contiene la ruta, aunque venga después en el array.
+  // Una cabecera colapsada compite con el largo de la hija que le calza.
   const filaExacta = filas.findIndex((f) => f.tipo === "item" && f.item.href === pathname);
-  const indiceActivo =
-    filaExacta >= 0
-      ? filaExacta
-      : filas.findIndex((f) =>
-          f.tipo === "item" ? activo(f.item.href) : f.item.hijos.some((h) => activo(h.href)) && !gruposAbiertos[f.item.id]
-        );
+  let indiceActivo = filaExacta;
+  if (indiceActivo < 0) {
+    let mejorLargo = -1;
+    filas.forEach((f, i) => {
+      const largo =
+        f.tipo === "item"
+          ? activo(f.item.href)
+            ? f.item.href.length
+            : -1
+          : !gruposAbiertos[f.item.id]
+            ? Math.max(-1, ...f.item.hijos.filter((h) => activo(h.href)).map((h) => h.href.length))
+            : -1;
+      if (largo > mejorLargo) {
+        mejorLargo = largo;
+        indiceActivo = i;
+      }
+    });
+  }
 
   return (
     <div>
@@ -453,7 +474,10 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 }
 
 // Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos"];
+// Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
+// «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
+// en 64rem sin recortar la prenda.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario"];
 
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
@@ -490,6 +514,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/colores"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
+    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -529,8 +554,13 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
   const colores: Item = { href: "/productos/colores", etiqueta: "Colores", icono: IC.colores };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
+  // Los cuatro hijos de Inventario (Felipe, 2026-09-16, integrando sus
+  // diseños): "Existencias" es la raíz del módulo; Movimientos se mudó de
+  // `/movimientos` a `/inventario/movimientos` (la ruta vieja redirige).
+  const existencias: Item = { href: "/inventario", etiqueta: "Existencias", icono: IC.inventario };
+  const movimientos: Item = { href: "/inventario/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados };
-  const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
+  const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
   // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
@@ -589,11 +619,23 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     hijos: [proveedores, facturas, recibirMercaderia, porPagar],
   };
 
+  // "Inventario" agrupa las cuatro pantallas del stock (Felipe, 2026-09-16,
+  // integrando sus diseños; mismo criterio que Catálogo y Compras). Antes
+  // eran tres filas sueltas (Movimientos, Inventario, Traslados) y Conteo
+  // solo se alcanzaba por pestaña. Lo ve cualquier integrante: opera stock,
+  // recibe y cuenta, con menos permisos dentro de cada pantalla.
+  const grupoInventario: ItemGrupo = {
+    id: "inventario",
+    etiqueta: "Inventario",
+    icono: IC.inventario,
+    hijos: [existencias, movimientos, traslados, conteo],
+  };
+
   const grupos = [
     {
       titulo: null,
       // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
-      // Producción, Compras, Ventas, Movimientos, Inventario.
+      // Producción, Compras, Ventas, Inventario.
       items: [
         inicio,
         ...(esLider ? [colaboradores] : []),
@@ -601,9 +643,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
         ...(veProduccion ? [produccion] : []),
         ...(esLider ? [grupoCompras] : []),
         grupoVenta,
-        movimientos,
-        inventario,
-        traslados,
+        grupoInventario,
       ],
     },
   ].filter((g) => g.items.length > 0);
