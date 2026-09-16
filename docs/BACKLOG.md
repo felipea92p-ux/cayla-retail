@@ -42,6 +42,18 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       prueba (quedan con historial, 13 salidas y 5 ventas intactas), apaga la categoría
       "Polos" fuera del vocabulario, retira Arena `ARE` (choca con el prefijo de Aretes) y
       crea `ARN`, completa la familia de 5 colores y aplica la regla nueva.
+- [x] **Una prenda del censo se puede volver a editar (SKU opcional).** `/productos/nuevo`
+      crea variantes sin SKU a propósito, pero `/productos/[id]/editar` y las RPC
+      `catalogo_actualizar_producto`/`catalogo_crear_producto` lo exigían: ni precio, ni
+      foto, ni categoría, ni estado se podían guardar. Migración
+      `20260916193000_catalogo_sku_opcional.sql` (misma firma; SKU vacío se guarda NULL,
+      nunca `''`, que chocaría contra el índice único en la segunda talla). En la ficha,
+      color, talla y código de una variante ya guardada se muestran de solo lectura (antes
+      eran inputs que la RPC ignoraba en silencio). Probado: `pnpm
+      pruebas:editar-producto-sin-sku`, 8/8 en local (1/8 antes de la migración).
+- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-loro-editar.sql` en
+      producción.** Bloque 0 (pre-flight) tiene que dar `true | true | 2`. Sin esto, la
+      primera prenda que el censo cargue en producción no se podrá editar.
 - [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
       catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
       Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
