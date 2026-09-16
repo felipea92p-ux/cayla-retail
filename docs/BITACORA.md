@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-16 (Inventario: las 4 vistas de Felipe integradas — ADR-0070)
+## 2026-09-16 (Inventario: las 4 vistas de Felipe integradas — ADR-0071)
 
 Felipe diseñó en Stitch Existencias/Movimientos/Transferencias/Conteos y pidió
 integrarlas "sin aplastar nada". Auditadas contra el código: casi todo ya existía como
@@ -18,6 +18,20 @@ que Trujillo nunca tuvo, en cero con "+2 en camino" — bug encontrado en navega
 por SQL. Timestamp de la migración chocó con `main` (`variantes_identidad_unica`,
 mismo minuto): renombrada antes de fusionar. Aprendizaje: un diseño ajeno se integra
 preguntando primero qué dato real hay detrás de cada número, no dibujando el número.
+
+## 2026-09-16 (Colores: proponer/aprobar — ADR-0070)
+
+Última pieza de la sesión de hoy sobre Catálogo/Inventario/Taxonomía: cerrar el punto
+que había quedado abierto en Loro (BACKLOG del mismo día). `retail.colores` gana
+`estado`/`propuesto_por`/`aprobado_por`/`aprobado_en`; un trigger decide el estado real
+mirando `fn_es_lider()`, nunca el cliente. Probado de verdad contra producción
+(impersonando a Felipe y a Angie Chávez, una de las 16 colaboradoras de hoy, en una
+transacción con ROLLBACK): el color de Angie nace `pendiente` y usable, el de Felipe
+nace `aprobado`. Aprendizaje del día, apuntado también en el ADR: el MCP de Supabase
+conecta con `rolbypassrls=true` — sirve para probar lógica de negocio (el trigger) pero
+NO sirve para probar si una política RLS bloquea a alguien de verdad, porque la
+conexión pasa por encima de todas igual. Queda pendiente pegar en producción y una
+verificación en navegador con una cuenta de Colaborador real.
 
 ## 2026-09-16 (16 colaboradores de tienda dados de alta en producción)
 

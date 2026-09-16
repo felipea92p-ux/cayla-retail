@@ -439,35 +439,47 @@ export type Database = {
       colores: {
         Row: {
           activo: boolean
+          aprobado_en: string | null
+          aprobado_por: string | null
           codigo: string
+          estado: string
           familia_color: string | null
           hex: string | null
           imagen_muestra_url: string | null
           nombre: string
           notas: string | null
           orden: number
+          propuesto_por: string | null
           tipo: string
         }
         Insert: {
           activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           codigo: string
+          estado?: string
           familia_color?: string | null
           hex?: string | null
           imagen_muestra_url?: string | null
           nombre: string
           notas?: string | null
           orden?: number
+          propuesto_por?: string | null
           tipo?: string
         }
         Update: {
           activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           codigo?: string
+          estado?: string
           familia_color?: string | null
           hex?: string | null
           imagen_muestra_url?: string | null
           nombre?: string
           notas?: string | null
           orden?: number
+          propuesto_por?: string | null
           tipo?: string
         }
         Relationships: []

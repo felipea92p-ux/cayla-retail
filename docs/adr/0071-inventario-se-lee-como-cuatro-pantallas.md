@@ -1,4 +1,9 @@
-# ADR-0070 — Inventario se lee como cuatro pantallas: Existencias, Movimientos, Traslados, Conteo
+# ADR-0071 — Inventario se lee como cuatro pantallas: Existencias, Movimientos, Traslados, Conteo
+
+**Numeración:** nació como ADR-0070 en esta rama; al fusionar con `main` ese número ya lo
+tenía "Colores: proponer/aprobar" (PR #59, `0070-colores-proponer-aprobar.md`), fusionado
+mientras esta pieza seguía en PR sin fusionar. Se renumera a 0071, siguiendo el mismo
+protocolo que ADR-0067/0068 (quien fusiona en segundo lugar renumera).
 
 **Fecha:** 2026-09-16
 **Estado:** Aplicado en local. La migración `20260916200000_numeracion_traslados_conteos.sql`

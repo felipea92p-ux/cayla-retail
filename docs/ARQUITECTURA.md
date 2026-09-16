@@ -125,7 +125,7 @@ flowchart TB
   `/inventario/almacen` y `/inventario/recibir` (compat de enlaces
   guardados tras el rediseño UX 2026-07-18; no es código duplicado).
 - `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
-  el 2026-09-16, ADR-0070 — la ruta vieja es un `permanentRedirect` que conserva
+  el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
   los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
   `listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
   `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres) →
@@ -135,7 +135,7 @@ flowchart TB
   pantalla (categoría, signo, referencia por proceso) viven en
   `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
 
-**Inventario V2 — las cuatro pantallas (2026-09-16, ADR-0070).** El lateral tiene un
+**Inventario V2 — las cuatro pantallas (2026-09-16, ADR-0071).** El lateral tiene un
 grupo "Inventario" (`AppShell.tsx`, `grupoInventario`) y `inventario/layout.tsx` monta
 `InventarioNav.tsx` con las mismas cuatro pestañas: Existencias · Movimientos ·
 Traslados · Conteo. Todo `/inventario/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
@@ -370,7 +370,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
-| `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0070 |
+| `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
 
 ### 4.3 RLS sin `tenant_id`

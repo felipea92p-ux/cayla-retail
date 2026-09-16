@@ -415,12 +415,16 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
 1. ~~**No existe la pantalla para agregar un color, y la base la menciona por su nombre.**~~
    **Cerrado en V2 (verificado 2026-09-16):** ninguna función manda ya a "Catálogo → Colores",
    `/productos/colores` tiene "+ Agregar color" (`components/ColoresLista.tsx`) y "Arena" viene en
-   el vocabulario base (`20260912235500_vocabulario_cerrado.sql:70`). Queda abierta la decisión
-   del 2026-09-16 —cualquiera propone un color y admin aprueba—, que V2 no tiene: hoy escribe
-   `colores_write_lider` (FOR ALL, incluido DELETE), y en producción los 9 colaboradores de retail
-   son Líder. En retail no existe un nivel "admin" (`colaboradores_rol_check` solo admite
-   `lider`/`colaborador`); los admins existen en Dynamic (`public.personas.rol`). En producción
-   Arena estaba como `ARE`, igual al prefijo de Aretes: el script del 2026-09-16 la pasa a `ARN`.
+   el vocabulario base (`20260912235500_vocabulario_cerrado.sql:70`). En producción Arena estaba
+   como `ARE`, igual al prefijo de Aretes: el script del PR de Loro la pasó a `ARN`.
+   **La decisión del 2026-09-16 —cualquiera propone un color y cualquiera de los Líderes
+   aprueba— también cerrada (ADR-0070, pendiente de pegar en producción):**
+   `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobado_en`;
+   `colores_write_lider` (FOR ALL) se reemplaza por `colores_insert_autenticado` (cualquier
+   sesión) + `colores_update_lider` (solo Líder, sin cambios ahí). El estado real lo decide un
+   trigger mirando `retail.fn_es_lider()`, no el cliente — un intento de forzar
+   `estado='aprobado'` a mano desde una cuenta de Colaborador se lo pisa el trigger antes de
+   guardar.
    `0048_conteos.sql:307` y `0051_conteo_color_vacio.sql:60` levantan literalmente:
    `'El color % no existe. La Líder puede agregarlo en Catálogo → Colores'`. Esa pantalla no
    existe: `components/InventarioNav.tsx:17-29` lista Proveedores, Compras, Recibir, Almacén,
