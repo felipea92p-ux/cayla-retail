@@ -3,6 +3,70 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (cierre — ADR-0064 en producción)
+
+Felipe pegó `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql` en el
+SQL Editor de `cayla-dynamic` y confirmó `pg_proc` con conteo = 1 en `registrar_cambio` y
+`aprobar_devolucion` (una sola sobrecarga cada una, no el hueco de ADR-0009/0004). BACKLOG
+y ADR-0064 actualizados a "en producción". Sesión de Cambios cerrada: pruebas
+automatizadas de `registrar_cambio` (ADR-0063) + el candado de caja (ADR-0064), ambas
+en producción, sin bugs pendientes conocidos en el módulo.
+
+## 2026-09-16 (Cambio y devolución exigen caja si hay efectivo de por medio)
+
+Felipe preguntó qué quedaba pendiente en Cambios; se repasó código + BACKLOG completo y
+salieron dos huecos que el propio código deja escritos como aceptados a propósito (ADR-
+0052/0053: sin caja abierta, la diferencia/reembolso en efectivo queda con `caja_id` null
+para siempre). Felipe pidió armar el paso para el que cruza Cambios+Devoluciones+Caja.
+Antes de tocar nada: `git log` de las últimas 6h no mostró actividad en
+Devoluciones/Caja — igual, al aplicar la migración local (`supabase migration up --local`)
+apareció una versión remota (`20260916172645`) sin archivo local: otra sesión
+(`devoluciones-anular-ventas-e282dc`) ya tenía su propio `anular_venta.sql` aplicado al
+mismo Postgres compartido, sin haberlo commiteado a git todavía (por eso el `git log`
+no lo vio). Se copió su archivo a este worktree (sin tocar su trabajo) y se renumeró la
+migración propia a un timestamp posterior para no forzar `--include-all` — se confirmó
+sin overlap de funciones antes de aplicar.
+
+`20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql`:
+`registrar_cambio`/`aprobar_devolucion` ahora exigen caja abierta, mismo mensaje que
+`registrar_venta` ya usa, pero SOLO cuando hay efectivo real de por medio (diferencia/
+reembolso = 0, o pagado por otro método, sigue sin necesitar caja). Mismas firmas.
+Verificado: 13 escenarios en `registrar_cambio.mjs` (el 13º es el candado nuevo) + 2 en
+el nuevo `aprobar_devolucion_caja.mjs` (rechaza con efectivo, sigue andando sin efectivo),
+`typecheck`/`lint` limpios. **Solo en local, no en producción** — falta el ok de Felipe.
+
+Lo que Felipe se lleva: **el número de ADR (0063, y ahora 0064) puede colisionar con
+`devoluciones-anular-ventas-e282dc`**, que usó los mismos números para su propio trabajo
+concurrente — se resuelve al fusionar, como ya pasó con ADR-0051. Y una confirmación del
+patrón ya conocido: `git log` no ve el trabajo de otra sesión que aún no commiteó — solo
+`supabase migration up` (o revisar el disco de otros worktrees directo) lo delata.
+
+## 2026-09-16 (Cambios: primeras pruebas automatizadas de `registrar_cambio`)
+
+Se confirmó contra `docs/BACKLOG.md` (sección POS V2) que no había ítem grande pendiente
+de Cambios — lo único de ese módulo ahí ya estaba cerrado. Tarea: `registrar_cambio` tenía
+cero pruebas automatizadas (todo lo anterior fue "verificado en psql"/"en el navegador", a
+mano). Se escribieron 12 (`scripts/pruebas/registrar_cambio.mjs`,
+`pnpm pruebas:registrar-cambio`): la diferencia en los tres sentidos, los 6 candados
+(cantidad, método de pago, cantidad excedida, venta/variante inexistente, stock
+insuficiente), idempotencia por token, el candado de sede (confirma a nivel RPC lo mismo
+que se pidió verificar para Vender con Micaela) y que la diferencia en efectivo cuadra
+`cerrar_caja` (ADR-0053). Técnica: `docker exec ... psql` + `set local
+request.jwt.claim.sub` + `ROLLBACK` siempre — el mismo patrón que ya documenta la cabecera
+de `supabase/seed.sql`, cero dependencias nuevas, y deliberadamente fuera de `pnpm test`
+(CI no tiene Postgres — ver ADR-0063 para el razonamiento completo). 12/12 en verde, dos
+corridas seguidas, cero rastro en la base compartida.
+
+Lo que Felipe se lleva: **Tienda Lima y Tienda Trujillo no tienen sububicaciones de
+piso/almacén en el Postgres local compartido** — `seed.sql` las crea pero solo corre en
+`db reset`, y este Postgres se migró de más veces sin uno después de
+`20260914230000_inventario_piso_almacen.sql`. Hoy, cualquier venta o cambio real en el
+navegador contra ese mismo Postgres (no solo esta prueba) recibe `sububicacion_id = NULL`
+en vez de piso/almacén de verdad. El fix es un `INSERT` aditivo idéntico al de `seed.sql`
+(está en la cabecera del script) — quedó sin aplicar porque el clasificador de auto mode
+lo bloqueó como escritura persistente sobre un recurso compartido por ~27 worktrees, no
+algo para decidir en solitario. Anotado en BACKLOG para que Felipe lo corra.
+
 ## 2026-09-16 (invitar colaboradores estaba caído en producción — dominio no verificado en Resend)
 
 Felipe reportó "Error sending invite email" al invitar a un colaborador nuevo desde el
