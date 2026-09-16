@@ -138,11 +138,16 @@ const HUELLAS: Huella[] = [
     frase: 'Ya existe una variante con ese SKU — revisa el catálogo en vez de crear uno nuevo.',
   },
   {
-    // 20260916190000_variantes_identidad_unica.sql — la talla se compara
-    // normalizada ("M" = "m "), y "sin color" cuenta como un color más.
+    // 20260916190000_variantes_identidad_unica.sql — la talla se compara como
+    // en el código impreso ("M" = "m ", "Única" = "U"); sin color cuenta como un color.
     marca: "variantes_identidad_unica",
     frase:
-      "Ya existe una variante con esa talla y color en este producto. La talla se compara sin mayúsculas ni espacios: \"M\" y \"m\" son la misma.",
+      "Ya existe una variante con esa talla y color en este producto. La talla se compara como en la etiqueta: \"M\" y \"m\" son la misma, y \"Única\" es lo mismo que \"U\".",
+  },
+  {
+    // 20260912235500_vocabulario_cerrado.sql — el código impreso es único.
+    marca: "variantes_codigo_unico",
+    frase: "Ya existe una prenda con ese código (modelo, color y talla). Revisa el catálogo en vez de crearla de nuevo.",
   },
   {
     // 0008_caja_y_pagos.sql — una sola caja abierta por ubicación.

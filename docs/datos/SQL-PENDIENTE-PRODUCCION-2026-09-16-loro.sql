@@ -8,6 +8,8 @@
 --   · 0 pares de variantes que choquen con la regla nueva de identidad.
 --   · "Polos" (categoría de los datos de prueba) no tiene prefijo ni familia; la
 --     del vocabulario es "Polos/Camisetas" (POL). Su único producto es POL-001.
+--   · Arena es ARE (prefijo de Aretes) en vez de ARN, y Negro, Blanco, Beige,
+--     Rojo y Azul Marino no tienen familia de color.
 --
 -- Cómo pegar: en el SQL Editor de producción, UN bloque por vez y en orden.
 -- Todos los bloques son repetibles: pegar dos veces no falla ni duplica nada.
@@ -22,7 +24,7 @@
 select count(*) as duplicados
 from (
   select 1 from retail.variantes
-  group by producto_id, retail.fn_clave_texto(talla), color_codigo
+  group by producto_id, retail.fn_token_talla(talla), color_codigo
   having count(*) > 1
 ) d;
 
@@ -58,17 +60,47 @@ where id = '1a7a0f31-cea0-42cd-8528-34614f73fe4a';
 commit;
 
 
+-- ---------- 1b. Colores de producción iguales a los del repo ----------
+-- Los datos de prueba crearon 6 colores ANTES del vocabulario cerrado, y el
+-- vocabulario no los pisó (`on conflict do nothing`):
+--   · Arena quedó como ARE, que es también el prefijo de Aretes: una etiqueta
+--     ARE-0001-ARE-U se lee "Aretes 1, Arena". El código de un color no se
+--     cambia (lo usan variantes y etiquetas), así que ARE se retira y Arena
+--     real nace como ARN, igual que en el repo. Las 6 variantes con ARE son de
+--     prueba y ya quedaron apagadas en el bloque 1.
+--   · Negro, Blanco, Beige, Rojo y Azul Marino no tienen familia: cualquier
+--     reporte por familia de color deja fuera justo los colores más vendidos.
+-- Tiene que ir ANTES de cargar el catálogo real: después, ARE ya estaría
+-- impreso en etiquetas.
+begin;
+update retail.colores set nombre = 'Arena (retirado)', activo = false
+where codigo = 'ARE' and nombre <> 'Arena (retirado)';
+insert into retail.colores (codigo, nombre, familia_color, hex, orden, tipo)
+values ('ARN', 'Arena', 'tierra', '#C9B79C', 15, 'solido')
+on conflict (codigo) do nothing;
+update retail.colores c set familia_color = v.familia, orden = v.orden, nombre = v.nombre
+from (values
+  ('NEG', 'Negro',       'neutro', 10),
+  ('BLA', 'Blanco',      'neutro', 11),
+  ('BEI', 'Beige',       'neutro', 14),
+  ('AZM', 'Azul marino', 'azul',   20),
+  ('ROJ', 'Rojo',        'rojo',   30)
+) as v(codigo, nombre, familia, orden)
+where c.codigo = v.codigo and c.familia_color is null;
+commit;
+
+
 -- ---------- 2. Migración 20260916190000_variantes_identidad_unica ----------
 begin;
 alter table retail.variantes
   drop constraint if exists variantes_producto_id_talla_color_codigo_key;
 
 create unique index if not exists variantes_identidad_unica
-  on retail.variantes (producto_id, retail.fn_clave_texto(talla), color_codigo)
+  on retail.variantes (producto_id, retail.fn_token_talla(talla), color_codigo)
   nulls not distinct;
 
 comment on index retail.variantes_identidad_unica is
-  'Una prenda = producto + talla normalizada + color. "M" y "m " son la misma talla; dos variantes sin color con la misma talla chocan.';
+  'Una prenda = producto + talla (fn_token_talla, igual que el código impreso) + color. "M"/"m " y "Única"/"U" son la misma talla; dos variantes sin color con la misma talla chocan.';
 
 do $$
 declare v_id uuid;
@@ -97,4 +129,7 @@ select
   (select count(*) from pg_indexes where schemaname = 'retail'
      and indexname = 'variantes_identidad_unica')                                     as regla_nueva,                -- 1
   (select count(*) from pg_constraint
-     where conname = 'variantes_producto_id_talla_color_codigo_key')                  as regla_vieja;                -- 0
+     where conname = 'variantes_producto_id_talla_color_codigo_key')                  as regla_vieja,                -- 0
+  (select count(*) from retail.colores where activo and familia_color is null)        as colores_sin_familia,        -- 0
+  (select string_agg(codigo, ',') from retail.colores where activo
+     and retail.fn_clave_texto(nombre) = 'arena')                                            as arena_activa;               -- ARN

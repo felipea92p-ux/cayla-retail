@@ -40,16 +40,18 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
 - [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en producción
       ANTES del censo.** Bloque 0 (pre-flight) tiene que dar 0. Archiva los 6 productos de
       prueba (quedan con historial, 13 salidas y 5 ventas intactas), apaga la categoría
-      "Polos" fuera del vocabulario y aplica la regla nueva.
+      "Polos" fuera del vocabulario, retira Arena `ARE` (choca con el prefijo de Aretes) y
+      crea `ARN`, completa la familia de 5 colores y aplica la regla nueva.
 - [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
       catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
       Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
       se llevan a 0 con movimientos de ajuste (motivo explícito "retiro de datos de
       prueba", nunca merma).
 - [ ] **Proponer y aprobar colores (decisión 2026-09-16).** Cualquiera propone, el color
-      queda pendiente pero usable, y admin aprueba o fusiona. No existe: hoy escribe solo
-      `colores_write_lider`, y en producción Líder = admin. Es el mismo mecanismo que Tucán
-      necesita para la taxonomía: se diseña una sola vez.
+      queda pendiente pero usable, y admin aprueba o fusiona. No existe, y antes hay que
+      decidir **quién es admin**: los 9 colaboradores de retail son Líder, `colaboradores`
+      solo admite `lider`/`colaborador`, y los admins viven en Dynamic. Es el mismo
+      mecanismo que Tucán necesita para la taxonomía: se diseña una sola vez.
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.
 - [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos

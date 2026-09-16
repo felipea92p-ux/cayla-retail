@@ -417,7 +417,10 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
    `/productos/colores` tiene "+ Agregar color" (`components/ColoresLista.tsx`) y "Arena" viene en
    el vocabulario base (`20260912235500_vocabulario_cerrado.sql:70`). Queda abierta la decisión
    del 2026-09-16 —cualquiera propone un color y admin aprueba—, que V2 no tiene: hoy escribe
-   solo `colores_write_lider`, y en producción Líder = admin.
+   `colores_write_lider` (FOR ALL, incluido DELETE), y en producción los 9 colaboradores de retail
+   son Líder. En retail no existe un nivel "admin" (`colaboradores_rol_check` solo admite
+   `lider`/`colaborador`); los admins existen en Dynamic (`public.personas.rol`). En producción
+   Arena estaba como `ARE`, igual al prefijo de Aretes: el script del 2026-09-16 la pasa a `ARN`.
    `0048_conteos.sql:307` y `0051_conteo_color_vacio.sql:60` levantan literalmente:
    `'El color % no existe. La Líder puede agregarlo en Catálogo → Colores'`. Esa pantalla no
    existe: `components/InventarioNav.tsx:17-29` lista Proveedores, Compras, Recibir, Almacén,
@@ -458,8 +461,9 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
    **Cerrado 2026-09-16 (`20260916190000_variantes_identidad_unica.sql`, ADR-0069):** en V2 el
    color ya era FK, pero la regla `unique (producto_id, talla, color_codigo)` comparaba la talla
    como texto exacto ("M" ≠ "m ") y dejaba pasar dos variantes sin color con la misma talla. La
-   reemplaza `variantes_identidad_unica` sobre `fn_clave_texto(talla)` con `nulls not distinct`.
-   Producción tenía 0 pares en conflicto.
+   reemplaza `variantes_identidad_unica` sobre `fn_token_talla(talla)` —la misma normalización del
+   código impreso, así "Única" = "U"— con `nulls not distinct`. Producción tenía 0 pares en
+   conflicto.
    `variantes_identidad_unica` es `(producto_id, coalesce(talla,''), coalesce(color,''))` —
    el texto desnormalizado, no `color_id`. **Consecuencia:** "Azul marino" y "azul  marino" del
    mismo modelo y talla son dos filas distintas para la base, dos posiciones de stock y dos

@@ -11,9 +11,12 @@
 --      la misma talla (una correa, un gorro) no chocaban nunca.
 --
 -- LA REGLA NUEVA
---   Una variante = producto + talla normalizada (fn_clave_texto: sin mayúsculas,
---   sin acentos, sin espacios sobrantes) + color. `nulls not distinct` hace que
---   "sin color" y "sin talla" cuenten como un valor más, igual que en la tienda.
+--   Una variante = producto + talla normalizada + color. La talla se normaliza
+--   con fn_token_talla, la MISMA función que arma el código impreso: "M", "m "
+--   y "M" dan M; "Única", "U" y vacío dan U; "S/M" y "SM" dan SM. Si la
+--   identidad usara otra normalización, "Única" y "U" pasarían esta regla y
+--   reventarían después contra variantes_codigo_unico con un error crudo.
+--   `nulls not distinct` hace que "sin color" cuente como un color más.
 --   Se reemplaza la regla vieja en vez de convivir con ella: la nueva es
 --   estrictamente más fuerte y ninguna función usa la vieja en un `on conflict`.
 --
@@ -33,11 +36,11 @@ alter table retail.variantes
   drop constraint if exists variantes_producto_id_talla_color_codigo_key;
 
 create unique index if not exists variantes_identidad_unica
-  on retail.variantes (producto_id, retail.fn_clave_texto(talla), color_codigo)
+  on retail.variantes (producto_id, retail.fn_token_talla(talla), color_codigo)
   nulls not distinct;
 
 comment on index retail.variantes_identidad_unica is
-  'Una prenda = producto + talla normalizada + color. "M" y "m " son la misma talla; dos variantes sin color con la misma talla chocan.';
+  'Una prenda = producto + talla (fn_token_talla, igual que el código impreso) + color. "M"/"m " y "Única"/"U" son la misma talla; dos variantes sin color con la misma talla chocan.';
 
 do $$
 declare v_id uuid;

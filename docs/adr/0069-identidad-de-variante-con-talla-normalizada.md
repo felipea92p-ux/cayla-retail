@@ -23,20 +23,26 @@ En V2 el color de una variante ya es una referencia obligatoria a `colores`, as�
 ## Decisión
 
 DECIDÍ: reemplazar la regla por un índice único sobre
-`(producto_id, retail.fn_clave_texto(talla), color_codigo) nulls not distinct`. La talla se
-compara con la misma clave que ya normaliza colores y categorías (sin mayúsculas, sin acentos,
-sin espacios sobrantes), y "sin talla" / "sin color" cuentan como un valor más.
+`(producto_id, retail.fn_token_talla(talla), color_codigo) nulls not distinct`. La talla se
+compara con `fn_token_talla`, la misma función que arma el segmento de talla del código impreso:
+"M" y "m " dan `M`; "Única", "U" y vacío dan `U`; "S/M" y "sm" dan `SM`. "Sin color" cuenta como
+un color más. Así, dos variantes chocan en la identidad exactamente cuando chocarían en su código.
 
-DESCARTÉ: una tabla `tallas` con FK, como se hizo con `colores`. Cierra el agujero y además
+DESCARTÉ (1): normalizar con `fn_clave_texto`, que fue la primera versión de este mismo ADR.
+Iguala mayúsculas y espacios, pero no "Única" con "U" ni "S/M" con "SM". Esas tallas pasaban la
+identidad y reventaban después contra `variantes_codigo_unico`, con el error crudo "avisa a
+Felipe". Dos reglas para la misma pregunta, con respuestas distintas.
+
+DESCARTÉ (2): una tabla `tallas` con FK, como se hizo con `colores`. Cierra el agujero y además
 fija un orden (XS < S < M), pero obliga a migrar todas las variantes, a mantener otro
 vocabulario y a decidir antes del censo qué hacer con tallas numéricas de calzado y jeans. El
 backlog del 2026-09-09 ya lo dejó fuera a propósito: agregar tallas tarde es barato, porque no
 es FK de nada.
 
-SE ROMPE SI: una prenda real necesita dos variantes que solo difieren en mayúsculas o espacios
-de la talla (no existe en CAYLA), o si alguien importa "talla única" y "U" como tallas distintas
-del mismo modelo: `fn_clave_texto` no las iguala (`fn_token_talla` sí, pero solo para el código).
-En ese caso la base acepta las dos y el duplicado vuelve.
+SE ROMPE SI: un modelo de calzado necesita las tallas "36.5" y "365" como distintas, o un modelo
+necesita "S-M" y "SM" como tallas diferentes: `fn_token_talla` borra todo lo que no es letra o
+número y las iguala. En CAYLA no existe hoy, y el código impreso ya las confundía igual. Si
+aparece, se corrige `fn_token_talla` (y con ella el código), no la identidad.
 
 ## Por qué reemplazar y no convivir
 
@@ -54,8 +60,15 @@ código eran todas de productos de prueba, que se archivan antes en el mismo scr
 
 ## Cómo se verificó
 
-En local, dentro de una transacción deshecha: variante nueva nace con `GEN-0003-AZM-M` y su fila
-en `codigos_barras`; "m " rechazada contra "M"; dos variantes sin color con talla "U"/"u"
-rechazadas; talla "L" aceptada; una variante activa a la que se le quitó el código lo recupera
-al re-ejecutar el bloque. El script de producción se ejecutó dos veces seguidas contra local sin
-errores.
+En local, dentro de transacciones deshechas: variante nueva nace con código y su fila en
+`codigos_barras`; "m " rechazada contra "M"; "U" y talla vacía rechazadas contra "Única"; "sm "
+sin color rechazada contra "S/M" sin color; "M" y "L" aceptadas; una variante activa a la que se
+le quitó el código lo recupera al re-ejecutar el bloque. El script de producción se ejecutó dos
+veces seguidas contra local sin errores. Producción: 0 pares en conflicto con esta regla.
+
+## Lo que viaja en el mismo script de producción
+
+Los datos de prueba crearon colores antes del vocabulario cerrado: Arena quedó como `ARE`, que
+es también el prefijo de Aretes, y cinco colores quedaron sin familia. El script retira `ARE`,
+crea `ARN` (igual que en el repo) y completa las familias, antes de que se imprima la primera
+etiqueta real.
