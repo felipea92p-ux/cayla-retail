@@ -1963,6 +1963,48 @@ export type Database = {
           },
         ]
       }
+      venta_anulacion_items: {
+        Row: {
+          condicion: string
+          created_at: string
+          id: string
+          movimiento_id: string | null
+          venta_id: string
+          venta_item_id: string
+        }
+        Insert: {
+          condicion: string
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          venta_id: string
+          venta_item_id: string
+        }
+        Update: {
+          condicion?: string
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          venta_id?: string
+          venta_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venta_anulacion_items_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venta_anulacion_items_venta_item_id_fkey"
+            columns: ["venta_item_id"]
+            isOneToOne: false
+            referencedRelation: "venta_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venta_items: {
         Row: {
           argumento_descuento: string | null
@@ -2051,30 +2093,42 @@ export type Database = {
       }
       ventas: {
         Row: {
+          anulado_en: string | null
+          anulado_por: string | null
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          estado: string
           id: string
+          motivo_anulacion: string | null
           nota: string | null
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
         }
         Insert: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          estado?: string
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
         }
         Update: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          estado?: string
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           token_cliente?: string | null
           ubicacion_id?: string
@@ -2298,6 +2352,10 @@ export type Database = {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
       }
+      anular_venta: {
+        Args: { p_items: Json; p_motivo: string; p_venta_id: string }
+        Returns: undefined
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -2310,56 +2368,34 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
-      catalogo_actualizar_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_producto_id: string
-              p_referencia: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_producto_id: string
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
-      catalogo_crear_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_referencia: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
+      catalogo_actualizar_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_estado: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
+          p_producto_id: string
+          p_referencia: string
+          p_stock_minimo?: number
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: undefined
+      }
+      catalogo_crear_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_fotos?: Json
+          p_permitir_venta_sin_stock?: boolean
+          p_referencia: string
+          p_stock_minimo?: number
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
         Returns: {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getHistorialCierres } from "@/lib/caja";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { BotonVerDetalleCierre } from "@/components/CierreCajaDetalle";
 
 function money(n: number) {
   return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
@@ -17,7 +18,7 @@ function formatearFecha(iso: string) {
   }).format(new Date(iso));
 }
 
-const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.5rem_5.5rem]";
+const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.5rem_5.5rem_2.5rem]";
 
 // Tanda 3 del diagnóstico de Venta y Caja (2026-09-15): lo que `cajas` ya guarda
 // (esperado, contado, diferencia, quién) y ninguna pantalla leía. Sin RPC ni
@@ -52,6 +53,7 @@ export default async function HistorialCierresPage() {
               { titulo: "Esperado", alinear: "der" },
               { titulo: "Contado", alinear: "der" },
               { titulo: "Diferencia", alinear: "der" },
+              { titulo: "", alinear: "centro" },
             ]}
           />
           {cierres.map((c) => {
@@ -84,6 +86,9 @@ export default async function HistorialCierresPage() {
                   <span className="label-cayla mr-1 font-normal text-tinta/40 sm:hidden">Diferencia</span>
                   {c.diferencia >= 0 ? "+" : ""}
                   {money(c.diferencia)}
+                </span>
+                <span className={celda("centro")}>
+                  <BotonVerDetalleCierre cierre={c} />
                 </span>
                 {c.nota && <p className="col-span-full mt-1 text-xs italic text-tinta/60">{c.nota}</p>}
               </div>

@@ -42,6 +42,57 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
+// Botón de la columna "SUNAT" + su motivo, si hay uno — extraído porque tabla
+// (escritorio) y tarjeta (celular, ADR pendiente de numerar) pintan la misma
+// decisión en dos layouts distintos y no pueden desincronizarse. Los
+// handlers vienen por parámetro porque esta función vive fuera del
+// componente: no tiene closure sobre `onTransmitir` ni sobre los `useState`.
+function accionComprobante(
+  c: Comprobante,
+  handlers: {
+    transmitiendoId: string | null;
+    consultandoId: string | null;
+    onTransmitir: (id: string) => void;
+    onAnularClick: (c: Comprobante) => void;
+    onConsultarAnulacion: (id: string) => void;
+  }
+) {
+  const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
+  const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
+  const boton = puedeTransmitir ? (
+    <Boton
+      type="button"
+      peso="discreto"
+      onClick={() => handlers.onTransmitir(c.id)}
+      cargando={handlers.transmitiendoId === c.id}
+      className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
+    >
+      {handlers.transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
+    </Boton>
+  ) : puedeAnular ? (
+    <Boton type="button" peso="discreto" onClick={() => handlers.onAnularClick(c)} className="px-2.5 py-1.5 text-[11px]">
+      Anular
+    </Boton>
+  ) : anulacionEnTramite(c) ? (
+    <Boton
+      type="button"
+      peso="discreto"
+      onClick={() => handlers.onConsultarAnulacion(c.id)}
+      cargando={handlers.consultandoId === c.id}
+      className="px-2.5 py-1.5 text-[11px]"
+    >
+      {handlers.consultandoId === c.id ? "Consultando…" : "Consultar"}
+    </Boton>
+  ) : (
+    <span className="text-tinta/65">—</span>
+  );
+
+  const motivo = c.estado === "rechazado" && c.motivo_rechazo ? c.motivo_rechazo : c.motivo_anulacion;
+  const motivoEsRechazo = c.estado === "rechazado" && !!c.motivo_rechazo;
+
+  return { boton, motivo, motivoEsRechazo };
+}
+
 function formatearFecha(iso: string) {
   return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
     new Date(iso)
@@ -129,6 +180,12 @@ export function ComprobantesPanel({
     } finally {
       setEnviandoAnulacion(false);
     }
+  }
+
+  function onAnularClick(c: Comprobante) {
+    setAnulando(c);
+    setMotivoAnulacion("");
+    setModal("anular");
   }
 
   // Consultar una baja en trámite. Va por fila, igual que transmitir.
@@ -257,11 +314,24 @@ export function ComprobantesPanel({
 
   return (
     <div className="space-y-6">
-      {/* Resumen del mes */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
+      {/* Resumen del mes. Cuatro tiles, no tres: "Rechazados" tenía su propio
+          número escondido como sub-línea roja dentro de "Pendientes de enviar"
+          — dos urgencias distintas (una normal, una que exige acción) peleando
+          por el mismo espacio de una oración. Ahora cada una tiene su lugar. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
         <div className="bg-crema p-4">
           <p className="label-cayla text-[11px] text-tinta/65">Emitidos este mes</p>
           <p className="font-display mt-1 text-2xl text-tinta">{comprobantes.length}</p>
+          {pruebas > 0 && (
+            <p className="mt-0.5 text-xs text-tinta/75">
+              {pruebas} de prueba
+              <Ayuda titulo="Comprobante de prueba">
+                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
+                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
+                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
+              </Ayuda>
+            </p>
+          )}
         </div>
         <div className="bg-crema p-4">
           <p className="label-cayla text-[11px] text-tinta/65">Monto facturado</p>
@@ -277,16 +347,12 @@ export function ComprobantesPanel({
             </Ayuda>
           </p>
           <p className={`font-display mt-1 text-2xl ${pendientes > 0 ? "text-ambar" : "text-tinta"}`}>{pendientes}</p>
-          {rechazados > 0 && <p className="mt-0.5 text-xs text-rojo">{rechazados} rechazado{rechazados > 1 ? "s" : ""}</p>}
-          {pruebas > 0 && (
-            <p className="mt-0.5 text-xs text-tinta/75">
-              {pruebas} de prueba
-              <Ayuda titulo="Comprobante de prueba">
-                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
-                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
-                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
-              </Ayuda>
-            </p>
+        </div>
+        <div className="bg-crema p-4">
+          <p className="label-cayla text-[11px] text-tinta/65">Rechazados</p>
+          <p className={`font-display mt-1 text-2xl ${rechazados > 0 ? "text-rojo" : "text-tinta"}`}>{rechazados}</p>
+          {rechazados > 0 && (
+            <p className="mt-0.5 text-xs text-rojo">SUNAT no los aceptó — el motivo está en la fila.</p>
           )}
         </div>
       </div>
@@ -343,86 +409,108 @@ export function ComprobantesPanel({
             Sin comprobantes emitidos este mes.
           </p>
         ) : (
-          <div className="scroll-cayla card-cayla overflow-hidden">
-            <div className="scroll-cayla overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Comprobante</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">SUNAT</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
-                {comprobantes.map((c) => {
-                  const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
-                  const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
-                  return (
-                    <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                      <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
-                        {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
-                      </td>
-                      <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
-                      <td className="px-3 py-3">
-                        <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
-                          {etiquetaEstado(c)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        {puedeTransmitir ? (
-                          <Boton
-                            type="button"
-                            peso="discreto"
-                            onClick={() => onTransmitir(c.id)}
-                            cargando={transmitiendoId === c.id}
-                            className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
-                          >
-                            {transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
-                          </Boton>
-                        ) : puedeAnular ? (
-                          <Boton
-                            type="button"
-                            peso="discreto"
-                            onClick={() => {
-                              setAnulando(c);
-                              setMotivoAnulacion("");
-                              setModal("anular");
-                            }}
-                            className="px-2.5 py-1.5 text-[11px]"
-                          >
-                            Anular
-                          </Boton>
-                        ) : anulacionEnTramite(c) ? (
-                          <Boton
-                            type="button"
-                            peso="discreto"
-                            onClick={() => onConsultarAnulacion(c.id)}
-                            cargando={consultandoId === c.id}
-                            className="px-2.5 py-1.5 text-[11px]"
-                          >
-                            {consultandoId === c.id ? "Consultando…" : "Consultar"}
-                          </Boton>
-                        ) : (
-                          <span className="text-tinta/65">—</span>
-                        )}
-                        {c.motivo_anulacion && (
-                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-tinta/65">
-                            {c.motivo_anulacion}
-                          </p>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <>
+            {/* Tabla — 640px (`sm`) y más ancho. Por debajo, una tabla de 6
+                columnas no cabe sin scroll horizontal ni encogiendo el texto
+                hasta ilegible, así que esa franja usa las tarjetas de abajo
+                en su lugar (mismo dato, layout vertical). */}
+            <div className="scroll-cayla card-cayla hidden overflow-hidden sm:block">
+              <div className="scroll-cayla overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-xs">
+                <thead className="border-b border-tinta/10 text-tinta/65">
+                  <tr>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Comprobante</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">SUNAT</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tinta/5">
+                  {comprobantes.map((c) => {
+                    const { boton, motivo, motivoEsRechazo } = accionComprobante(c, {
+                      transmitiendoId,
+                      consultandoId,
+                      onTransmitir,
+                      onAnularClick,
+                      onConsultarAnulacion,
+                    });
+                    return (
+                      <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
+                        <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
+                        <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
+                          {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
+                        </td>
+                        <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
+                        <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
+                        <td className="px-3 py-3">
+                          <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
+                            {etiquetaEstado(c)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          {boton}
+                          {motivo && (
+                            <p
+                              className={`mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug ${
+                                motivoEsRechazo ? "text-rojo-profundo" : "text-tinta/65"
+                              }`}
+                            >
+                              {motivo}
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              </div>
             </div>
-          </div>
+
+            {/* Tarjetas — por debajo de `sm`. Mismos datos que la tabla, sin
+                columnas: nada obliga a desplazar la pantalla hacia el costado
+                para leer el estado de un comprobante desde el teléfono. */}
+            <div className="space-y-2 sm:hidden">
+              {comprobantes.map((c) => {
+                const { boton, motivo, motivoEsRechazo } = accionComprobante(c, {
+                  transmitiendoId,
+                  consultandoId,
+                  onTransmitir,
+                  onAnularClick,
+                  onConsultarAnulacion,
+                });
+                return (
+                  <div key={c.id} className="card-cayla p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-base text-tinta">
+                          {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-tinta/65">{c.cliente_nombre ?? "Cliente varios"}</p>
+                      </div>
+                      <p className="font-display shrink-0 text-base tabular-nums text-tinta">{money(Number(c.total))}</p>
+                    </div>
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                      <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
+                        {etiquetaEstado(c)}
+                      </span>
+                      <span className="text-[11px] text-tinta/55">{formatearFecha(c.created_at)}</span>
+                    </div>
+                    <div className="mt-2.5">
+                      {boton}
+                      {motivo && (
+                        <p className={`mt-1 whitespace-normal text-[11px] leading-snug ${motivoEsRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>
+                          {motivo}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
