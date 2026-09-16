@@ -410,6 +410,11 @@ export function ComprobantesPanel({
                         ) : (
                           <span className="text-tinta/65">—</span>
                         )}
+                        {c.estado === "rechazado" && c.motivo_rechazo && (
+                          <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-rojo-profundo">
+                            {c.motivo_rechazo}
+                          </p>
+                        )}
                         {c.motivo_anulacion && (
                           <p className="mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug text-tinta/65">
                             {c.motivo_anulacion}
