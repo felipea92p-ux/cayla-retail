@@ -3,6 +3,15 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Halcón — el historial ya no se puede vaciar)
+
+D-22 pedía cuatro piezas; medido en producción, una (FORCE RLS) no protegía nada porque el
+dueño se salta RLS, y faltaban otras que nadie había nombrado: TRUNCATE en cascada, modo
+réplica y que cualquier sesión aplicara stock sin libro. Candado cerrado con disparadores
+"siempre" y retiro de permisos (ADR-0071), con prueba que reproduce los 8 huecos antes y 9/9
+después. Aprendizaje: un candado se prueba contra quien realmente tiene la llave, no contra
+quien uno imagina.
+
 ## 2026-09-16 (Colores: proponer/aprobar — ADR-0070)
 
 Última pieza de la sesión de hoy sobre Catálogo/Inventario/Taxonomía: cerrar el punto

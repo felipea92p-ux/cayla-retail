@@ -1,5 +1,14 @@
 # 05 · Inventario y movimientos
-> **Pájaro:** HALCÓN · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** HALCÓN · **Lo lleva:** Felipe Alvarez · **Última revisión:** 2026-09-16
+
+> **⚠ Este documento describe el núcleo V1.** Se escribió el 2026-09-12 a las 15:37; seis
+> minutos después `0af2f1b` cambió V1 por V2. V2 trabaja con `ubicaciones` y `sububicaciones`
+> (`piso_venta` / `almacen_tienda`) dentro de una sola tabla `stock`: ya no existen
+> `stock_almacen`, `contenedores`, `fn_puede_operar_sede`, `bajar_a_piso` ni `devolver_a_almacen`.
+> Verificado contra producción el 2026-09-16: de los 16 huecos, 9 quedaron resueltos o
+> desaparecieron con V1 (2, 3, 6, 8, 9, 10, 11, 12, 14), 4 son parciales (1, 4, 15, 16) y 3
+> siguen vigentes (5 = D-40, 7 = D-41, 13 = D-25). Los huecos nuevos de V2 están en
+> `docs/BACKLOG.md`, sección Halcón. Producción tiene 200 movimientos, no 28.
 
 ## Para qué existe
 
@@ -422,7 +431,13 @@ sin historia se puede creer o no creer, pero no se puede auditar.
 
 ## Huecos conocidos
 
-1. **El historial se puede borrar: no hay candado físico (D-22).** Tres cosas faltan a la
+1. ~~**El historial se puede borrar: no hay candado físico (D-22).**~~
+   **Cerrado 2026-09-16 (`20260916200000_historial_candado_completo.sql`, ADR-0071):** V2 ya
+   frenaba UPDATE/DELETE desde la tienda (20260914165703). Faltaba TRUNCATE (directo o en
+   cascada), el modo réplica, `service_role` con todos los permisos, y cualquier sesión pudiendo
+   ejecutar `fn_aplicar_movimiento`/`recalcular_stock` o escribir `stock`. FORCE RLS no se usa:
+   el dueño y `service_role` tienen BYPASSRLS. Pruebas: `pnpm pruebas:candado-historial` (9/9).
+   Texto original V1: Tres cosas faltan a la
    vez: `0004_grants.sql:11` da `update, delete on all tables ... to authenticated`;
    ninguna tabla del módulo tiene `FORCE ROW LEVEL SECURITY` (verificado: cero coincidencias
    en `supabase/migrations/` y `supabase/unificacion/`); y no existe ningún trigger
