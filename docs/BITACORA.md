@@ -12,6 +12,9 @@ de prueba. Se cerró lo que sí quedaba (talla normalizada en la identidad, red 
 `/buscar` con códigos de barras; ADR-0069) y se archivan los productos de prueba.
 Aprendizaje: un hueco documentado es una foto con fecha; antes de arreglarlo, se mide
 contra la base de hoy.
+Después: una prenda del censo (nace sin SKU) no se podía volver a editar porque la ficha
+seguía exigiendo SKU; ahora es opcional y vacío se guarda NULL (20260916193000, 8 pruebas).
+Aprendizaje: cuando una puerta deja de pedir un dato, hay que revisar todas las que lo exigen.
 
 ## 2026-09-16 (5 piezas inspiradas en NetSuite: costeo, reorden, conteo, traslados)
 

@@ -254,10 +254,14 @@ export type VarianteDetalle = {
   colorCodigo: string | null;
   color: string | null;
   talla: string | null;
-  sku: string;
+  /** Legado y opcional: las prendas del censo (crear_producto_con_variantes)
+   *  nacen sin SKU. Se deja `null` tal cual — convertirlo en "" acá hacía que
+   *  el formulario lo reenviara como "" (20260916193000). */
+  sku: string | null;
   precio: number;
   costo: number;
   activo: boolean;
+  /** Lo que va impreso en la etiqueta y lee la pistola. */
   codigo: string | null;
   codigosBarras: string[];
 };
@@ -324,7 +328,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       colorCodigo: v.color_codigo,
       color: v.color?.nombre ?? null,
       talla: v.talla,
-      sku: v.sku ?? "",
+      sku: v.sku,
       precio: Number(v.precio),
       costo: Number(v.costo),
       activo: v.activo,
