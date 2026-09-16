@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Loro — prendas escaneables antes del censo)
+
+Felipe tomó Loro, Tucán, Golondrina y Halcón. Al medir producción, los documentos de
+esos 4 módulos resultaron ser del V1: 3 de los 4 huecos priorizados de Loro ya los había
+cerrado el corte a V2, y las 36 variantes "invisibles para la pistola" eran todas datos
+de prueba. Se cerró lo que sí quedaba (talla normalizada en la identidad, red de códigos,
+`/buscar` con códigos de barras; ADR-0069) y se archivan los productos de prueba.
+Aprendizaje: un hueco documentado es una foto con fecha; antes de arreglarlo, se mide
+contra la base de hoy.
+
 ## 2026-09-16 (5 piezas inspiradas en NetSuite: costeo, reorden, conteo, traslados)
 
 Felipe comparó CAYLA contra NetSuite (reporte aparte) y eligió 5 piezas para

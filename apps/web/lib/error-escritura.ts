@@ -138,10 +138,11 @@ const HUELLAS: Huella[] = [
     frase: 'Ya existe una variante con ese SKU — revisa el catálogo en vez de crear uno nuevo.',
   },
   {
-    // 0002_esquema.sql — unique (producto_id, talla, color_codigo): dos
-    // variantes del mismo producto no pueden repetir la misma combinación.
-    marca: "variantes_producto_id_talla_color_codigo_key",
-    frase: "Ya existe una variante con esa combinación de talla y color en este producto.",
+    // 20260916190000_variantes_identidad_unica.sql — la talla se compara
+    // normalizada ("M" = "m "), y "sin color" cuenta como un color más.
+    marca: "variantes_identidad_unica",
+    frase:
+      "Ya existe una variante con esa talla y color en este producto. La talla se compara sin mayúsculas ni espacios: \"M\" y \"m\" son la misma.",
   },
   {
     // 0008_caja_y_pagos.sql — una sola caja abierta por ubicación.
