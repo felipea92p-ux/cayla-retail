@@ -94,6 +94,31 @@ ADR-0063 (nuevo).
 
 ---
 
+## 🎯 Caja: pruebas de abrir_caja/cerrar_caja contra Postgres real (2026-09-16)
+
+`pnpm caja:verificar` (`scripts/caja/verificar.mjs` + `.sql`) — 15 escenarios en una sola
+transacción con rollback (mismo patrón que cada sesión de Caja venía haciendo a mano y
+perdiendo al cerrar): permisos de `abrir_caja` por ubicación (colaborador propia/ajena
+sede, líder cualquiera), unicidad de caja abierta, monto de apertura negativo, aritmética
+de `cerrar_caja` con depósito+ajuste, el candado de líder de ADR-0056 en ambas direcciones,
+doble cierre, permiso de `cerrar_caja` por ubicación, monto contado negativo. Cero huella
+verificada (conteo de `cajas` y `ubicacion_asignada_id` de Micaela iguales antes/después de
+3 corridas seguidas); el camino de falla se probó a propósito (una aserción invertida a
+mano, confirmó ✗ + exit 1, revertida).
+
+**Pendiente, sin dueño:**
+
+- [ ] **`cerrar_caja` también suma `ventas_efectivo` y reembolsos/diferencia de cambio
+      (ADR-0052/0053) — esta prueba no los cubre.** Necesitan fixture de producto+variante+
+      venta/devolución/cambio completo, fuera del alcance que pidió Felipe ("abrir_caja ni
+      cerrar_caja"). Esos tres términos ya se verificaron a mano en sus propias sesiones;
+      quien los quiera automatizados arranca de `scripts/caja/verificar.sql` (mismo patrón
+      de identidades simuladas con `request.jwt.claim.sub`).
+- [ ] **No está enganchado a CI** — no existe pipeline de CI en este repo todavía. Corre
+      manual, `pnpm caja:verificar`, contra el Postgres local (`docker exec`).
+
+---
+
 ## 🧹 Buscador global fuera de la cabecera (2026-09-16)
 
 A pedido de Felipe: `BuscadorGlobal` (la caja "Buscar o escanear prenda…" que
@@ -188,13 +213,16 @@ que commitee) antes de que se pierda.
 
 **Pendiente, sin tocar — decisión de Felipe:**
 
-- [ ] **PR #47 (`DiegoN` → `main`) sigue `CONFLICTING`/`DIRTY`**: 35 commits,
-      +7012/−369. `main` tiene 26 commits que `DiegoN` no tiene (la
-      consolidación Vender+Caja, PR #41-43) y `DiegoN` tiene 34 que `main` no
-      tiene (todo lo de Productos). Nadie lo tocó esta sesión — reconciliar
-      esto es una decisión de más de un módulo a la vez (gatillo explícito de
-      `CLAUDE.md`), no algo para resolver sin que Felipe elija el camino
-      (¿merge de `main` sobre `DiegoN` primero?, ¿al revés?, ¿rebase?).
+- [x] **PR #47 (`DiegoN` → `main`) ya mergeó** (`4d9da93`, 2026-09-16) — la
+      reconciliación de más de un módulo que este ítem pedía ya se resolvió
+      (ver BITÁCORA "Tercera nota" del 2026-09-15/16: ganó la numeración de
+      ADR de `main`, `diegoN` corrió 0051-0056→0058-0062). Verificado el
+      2026-09-16 (sesión de cierre de deuda de Caja) que el módulo Caja
+      sobrevivió limpio: `lib/caja.ts` y `MovimientoCajaModal.tsx` sin ningún
+      byte de diferencia entre el punto en que ADR-0056 llegó a `main` y el
+      HEAD post-PR#47/#50; `types.ts` (el único de los tres que sí cambió en
+      el merge) sigue reflejando la firma real de las 3 RPC de caja. Ver
+      BITÁCORA de hoy para el detalle completo.
 - [ ] **Los cabos sueltos que el resumen anterior daba por abiertos ya no lo
       están** — verificado contra GitHub, no contra lo que decía el resumen:
       PRs #44/#45/#46/#48 (las 4 ramas F1-F4 → DiegoN) ya están MERGED, no

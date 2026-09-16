@@ -4856,3 +4856,111 @@ Comprobantes con Rechazados aparte, y el formulario de Proformas ya con los camp
 contra el RPC real.
 
 Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en verde.
+
+## 2026-09-16 (Caja: ADR-0056 sobrevivió limpio al PR #47/#50 — verificado, no reparado)
+
+Felipe pidió confirmar que depósito/ajuste (ADR-0056) mergeó bien contra `main` tras la
+fusión de PR #47 (`DiegoN`→`main`, `4d9da93`) — el BACKLOG documentaba riesgo de choque en
+`MovimientoCajaModal.tsx`/`lib/caja.ts`/`types.ts`. `git diff f073ff0 HEAD -- apps/web/lib/caja.ts
+apps/web/components/MovimientoCajaModal.tsx` da vacío: cero bytes de diferencia desde que
+ADR-0056 llegó a `main`, pese a atravesar PR#41, #47 y #50. `types.ts` sí cambió en el merge
+de PR#47 (`f8bc7e3`) pero sigue exacto: `registrar_movimiento_caja` con sus 6 parámetros
+(`p_nota`/`p_es_ajuste` opcionales), `cerrar_caja` con su retorno de 3 columnas. Confirmado
+además que ninguna migración posterior a `20260915202040` volvió a tocar `cerrar_caja` — sigue
+siendo la versión de ADR-0053 (`20260915200000`), que suma `caja_movimientos` por `tipo`, nunca
+por `motivo`: un depósito o ajuste se cuadra en cuanto existe la fila, sin que `cerrar_caja`
+necesite saber que existen. Verificado en vivo, no solo en el código: caja de Tienda Lima
+(apertura S/10, sesión de Felipe ya activa en el panel) — depósito bancario real (egreso S/50,
+con voucher) e ajuste de caja real (ingreso S/15, sobrante, exige líder — Felipe lo es) — al
+cerrar, "el sistema esperaba" dio S/-25.00 = 10 + 15 − 50, exactamente la suma de apertura +
+ambos movimientos. `docs/BACKLOG.md` actualizado: el ítem de PR #47 `CONFLICTING/DIRTY` estaba
+obsoleto (ya mergeó), marcado resuelto con este detalle.
+
+Lo que Felipe se lleva: **el riesgo que el BACKLOG anotó nunca se materializó donde importaba**
+— los tres archivos señalados como zona de choque llegaron intactos (dos sin tocar un solo
+byte, el tercero regenerado correctamente). La próxima vez que un ADR prediga una colisión en
+`BACKLOG.md`, vale la pena cerrar el loop con `git diff <commit-de-origen> HEAD -- <archivo>`
+en vez de asumir que "va a chocar" significa que chocó.
+
+## 2026-09-16 (Caja: primera prueba automatizada de abrir_caja/cerrar_caja)
+
+Segundo paso de la misma sesión: Felipe pidió cerrar la deuda de tests sobre `abrir_caja`/
+`cerrar_caja` ("el núcleo del dinero"), sin precedente de vitest contra Postgres real en este
+repo — los 20 `*.test.ts` de `apps/web` prueban solo lógica pura (`lib/*-reglas.ts`), nunca una
+RPC. El precedente real era `scripts/migraciones/verificar.mjs` (Node envolviendo `docker exec
+psql`, registrado como `pnpm <dominio>:verbo`) más el patrón "psql en una transacción con
+rollback" que varias sesiones de Caja ya habían usado a mano, sin dejarlo escrito. Se combinaron
+los dos: `scripts/caja/verificar.sql` (15 escenarios, identidades simuladas con `set_config
+('request.jwt.claim.sub', ...)`, igual que `supabase/seed.sql`) + `scripts/caja/verificar.mjs`
+(corre el `.sql`, parsea el reporte, sale con código 1 si algo falló — a propósito distinto de
+`migraciones:verificar`, que nunca falla porque es un auditor, no una prueba). `pnpm
+caja:verificar` en `package.json`.
+
+Dos bugs reales encontrados construyéndolo, ninguno en las RPC: (1) `rollback to savepoint`
+deshace TODO lo escrito después del savepoint, incluida una tabla temporal de resultados que
+uso para ir acumulando el reporte — no solo los efectos de la RPC bajo prueba. Cambiado a `raise
+notice`, que es un mensaje al cliente y sobrevive al rollback. (2) El Postgres local lo comparten
+~27 worktrees y casi siempre hay una caja de verdad abierta en alguna sede cuando la prueba
+arranca — `cajas_ubicacion_abierta_unica` rechazaba el primer intento de abrir. Se cierran todas
+a la fuerza (sin pasar por `cerrar_caja`, solo para liberar el índice) al principio de la MISMA
+transacción que termina en `rollback`: inocuo, porque nada de eso sale de la transacción y las
+cajas ajenas reaparecen exactamente como estaban en cuanto termina.
+
+Verificado que la prueba prueba algo de verdad, no solo que siempre da verde: se invirtió a mano
+una aserción (`B6`), corrió, confirmó `✗` + `exit 1`, se revirtió. Cero huella verificada contando
+`cajas` y consultando `ubicacion_asignada_id` de Micaela antes/después de 3 corridas seguidas
+(la B4-B5 reasignan temporalmente a Micaela a Tienda Lima para aislar el candado de líder del de
+ubicación — el rollback la devuelve a Trujillo). 15/15 en verde. Fuera de alcance, documentado en
+BACKLOG: `ventas_efectivo`/reembolsos/diferencia de cambio de `cerrar_caja` (ADR-0052/0053) no
+están cubiertos — pedirían un fixture de venta/devolución/cambio completo que Felipe no pidió acá.
+
+Lo que Felipe se lleva: **un `raise notice` sobrevive a un rollback; un `insert` en una tabla
+normal, no** — para reportar resultados de una prueba que además debe dejar cero huella, el
+mensaje es la única escritura segura. Y una prueba que nunca se vio fallar no es una prueba
+verificada, es una aspiración — invertir una aserción a mano y ver el rojo es parte del trabajo,
+no un paso extra.
+
+## 2026-09-16 (Caja: botón de ojo en el historial de cierres — detalle bajo demanda)
+
+Tercer paso de la misma sesión: Felipe pidió un botón por fila en `/caja/historial` para ver
+"todo el flujo" de una caja — hora de apertura/cierre, ventas del turno, y todo detalle
+relevante. Se optó por bajo demanda (`app/actions/caja.ts`, Server Action nueva, mismo patrón
+de archivo que `app/actions/ubicacion.ts`, único precedente de `"use server"` en el repo) en vez
+de precargar el detalle de las 60 filas del historial junto con la lista — una caja de un día
+ocupado puede tener decenas de ventas que nadie va a mirar. `getDetalleCierre(cajaId)` junta
+`ventas`+`venta_pagos`+`venta_items`, `caja_movimientos` (reusa `getMovimientosCaja`, no
+duplica la consulta), `devoluciones` y `cambios` — las dos últimas ya vienen filtradas solo a
+lo real: `caja_id` únicamente se fija cuando la plata se mueve de verdad (`aprobar_devolucion`/
+`registrar_cambio`), así que un `where caja_id = $1` alcanza sin filtro de estado aparte.
+`components/CierreCajaDetalle.tsx` (botón + modal) sigue el patrón `Modal.tsx` ya establecido
+(`MovimientoDetalle.tsx`); apertura/cierre no se vuelven a pedir (ya viajan con la fila del
+historial), solo el timeline se busca al abrir.
+
+Un bug propio atrapado antes de que llegara a producción: la primera versión llamaba a
+`getDetalleCierre` DURANTE EL RENDER (una guarda `if (eventos === null && cargando) { fetch... }`
+en el cuerpo del componente) — efecto secundario en render, no en un evento ni un efecto, el
+tipo de bug que React Strict Mode puede disparar dos veces o directamente saltarse según el
+momento. Reescrito para que el propio `onClick` del botón dispare el `fetch` (mismo criterio que
+ya usa toda acción de este repo — `onSubmit` llamando una RPC directo), sin `useEffect`.
+
+Al conectar `ventas.estado`/`motivo_anulacion`/`anulado_por`/`anulado_en` (para poder marcar una
+venta anulada en el timeline) `tsc` avisó que `packages/database/src/types.ts` no las conocía —
+existen en la base desde `0010_facturacion.sql` (verificado con `\d retail.ventas` y `grep` al
+propio archivo de migración, no es una columna huérfana de otra sesión en el Postgres
+compartido) pero nadie las agregó a los tipos. Completadas a mano las tres formas (Row/Insert/
+Update), sin agregar la relación de `anulado_por` a `personas`: esa FK cruza a `public.personas`
+— `retail.personas` ya no existe (verificado contra `information_schema.tables`) — y el propio
+`usuario_id` (mismo cruce de schema) ya venía sin su relación en el archivo generado; agregar
+solo la mía habría sido inventar una excepción donde el generador real nunca puso una.
+
+Verificado en navegador contra datos reales de sesiones anteriores (no fixtures): una caja vacía
+(mensaje de "sin ventas ni movimientos"), la propia caja de depósito+ajuste de la Tarea 1 de hoy
+(-S/50 depósito, +S/15 ajuste con su nota, exacto), una caja con un cambio con diferencia
+("Cambio · diferencia efectivo +S/100.00"), y una caja con 8 ventas reales entre las 12:55pm y
+las 3:46pm (multi-método "efectivo, yape" agrupado correctamente, unidades sumadas por venta).
+`tsc`/`eslint`/vitest (239/239) en verde; cero errores de consola en las cuatro pruebas.
+
+Lo que Felipe se lleva: **"vamos a necesitar el dato" no es la misma pregunta que "cuándo lo
+pedimos"** — apertura/cierre viajan gratis con la fila que ya se cargó; el resto (ventas,
+movimientos, devoluciones, cambios) se pide recién al clic, porque precargarlo para 60 filas
+que casi nadie abre sería trabajo que el servidor hace y nadie usa.
