@@ -470,22 +470,39 @@ futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
       bounded (sin tocar Vender); la primera es arquitectónica (cambia un flujo
       que ya está muy afinado — ADR-0043/0044). Sin RPC nueva en cualquier caso:
       `registrar_venta` ya sabe qué hacer con `p_cliente_id`.
-- [ ] **Anular una venta.** No existe ni pantalla ni RPC `anular_venta` (grep
-      vacío en todo el repo, verificado 2026-09-15). Bloqueante real: `ventas`
-      **no tiene ninguna columna de estado** (`0002_esquema.sql:220-228`) —
-      cualquier diseño empieza con una migración de esquema en producción, el
-      gatillo explícito de "detente y confirma" de `CLAUDE.md`. Antes de que
-      una sesión futura la diseñe, necesita de Felipe: (1) ¿el stock **siempre**
-      vuelve al piso al anular, o depende de la condición de la prenda (mismo
-      menú que ya usa Devoluciones: vendible / dañada / a proveedor)? (2) si el
-      comprobante ya fue **aceptado por SUNAT**, ¿anular exige una nota de
-      crédito (otra integración con Lucode) o la venta puede quedar "anulada"
-      en el sistema mientras el comprobante legal sigue vivo, con el desfase
-      documentado? (3) ¿hay un límite de tiempo (¿mismo día? ¿mientras la caja
-      sigue abierta?) o cualquier venta histórica se puede anular? (4) ¿quién
-      puede hacerlo — Líder únicamente, o también la Colaboradora que la
-      vendió? Sin estas cuatro respuestas, cualquier RPC que se escriba
-      adivinaría reglas de negocio que le corresponden a Felipe, no al código.
+- [x] **Anular una venta — esquema y RPC (2026-09-16, sesión Devoluciones).**
+      Felipe respondió las 4 preguntas que este mismo ítem dejaba pendientes:
+      (1) el stock depende de la condición de la prenda, mismo selector que
+      Devoluciones; (2) si el comprobante ya fue aceptado por SUNAT, **no se
+      puede anular** — usar Cambio o Devolución; (3) el plazo es mientras la
+      caja de esa venta siga abierta (no el día calendario); (4) solo un
+      Líder. `20260916172645_anular_venta.sql` (ADR-0063): `ventas.estado`
+      + tabla `venta_anulacion_items` + RPC `anular_venta`. Aplicada al
+      Postgres local y verificada con 8 escenarios en una transacción
+      revertida (detalle en el ADR). **Sin aplicar en producción todavía.**
+- [x] **Anular una venta — pantalla (2026-09-16).** Felipe confirmó: junto a
+      Cambio/Devolución. `AnularVentaForm.tsx` (nuevo) + botón "Anular" en
+      `DevolucionesLista.tsx`, una sola vez por venta (no por línea), visible
+      solo para Líder. No se tocó `BuscarPorComprobante.tsx` — resultó ser
+      solo la caja de búsqueda, sin lógica de acciones que compartir.
+      Verificado en navegador real (login `felipe@cayla.local`): el botón
+      aparece una vez por venta, el modal carga las líneas reales de la
+      venta, y un caso real (caja de una venta del 14-sep, ya cerrada) mostró
+      el mensaje de error correcto de punta a punta (RPC → `traducirError` →
+      pantalla) — prueba end-to-end del camino de rechazo con datos reales,
+      no sintéticos. El camino feliz (clic hasta "Venta anulada") no se pudo
+      cerrar por clic dentro de la sesión de Claude — el stock de Tienda Lima
+      vivía todo en `sububicacion_id = null`, ninguna unidad asignada a "Piso
+      de venta" (probablemente sin backfill desde
+      `20260914230000_inventario_piso_almacen.sql`), y `registrar_venta`
+      rechaza cualquier venta nueva con "hay 0" sin importar cuánto diga
+      `stock.cantidad`. **Felipe probó el camino completo en su propia sesión
+      local (2026-09-16) y confirmó que todo funciona, camino feliz
+      incluido** — sin precisar en el chat si lo desbloqueó con el backfill
+      que se le ofreció o con otro ítem que ya tenía piso asignado. El camino
+      feliz de `anular_venta` en sí ya estaba probado por SQL de todas formas
+      (ver ADR-0063 y la entrada de BITÁCORA de hoy: 9 escenarios en una
+      transacción revertida).
 
 **Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada
 uno verificado en navegador; ver BITÁCORA de esa fecha para el detalle):**

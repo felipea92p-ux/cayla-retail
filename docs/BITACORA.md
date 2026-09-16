@@ -4525,3 +4525,93 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-16 (anular una venta — esquema y RPC, sesión Devoluciones)
+
+Arrancó bloqueado a propósito: `ventas` no tenía columna de estado y el ítem del
+BACKLOG pedía 4 respuestas de Felipe antes de escribir una línea de esquema. Se le
+preguntaron con `AskUserQuestion` (texto del BACKLOG, verbatim) antes de tocar código.
+Respondió: stock depende de la condición (mismo selector de Devoluciones), bloqueado
+si el comprobante ya fue aceptado por SUNAT (usar Cambio/Devolución en su lugar),
+plazo = mientras la caja de esa venta siga abierta, y solo Líder.
+
+`20260916172645_anular_venta.sql` (ADR-0063): `ventas` gana `estado`
+(`completada`/`anulada`) + `motivo_anulacion`/`anulado_por`/`anulado_en`, mismo shape
+que ya usa `comprobantes` (ADR-0016) — no una tabla de estados inventada. Tabla nueva
+`venta_anulacion_items` (una fila por línea, con su condición). RPC `anular_venta`
+reutiliza patrones existentes en vez de crear nuevos: la regla de "solo vendible repone
+stock" es la misma que ya aplica `aprobar_devolucion`; el bloqueo por SUNAT delega en
+que `anular_comprobante` (ADR-0016) es un carril aparte, nunca duplicado; el candado de
+líder es el mismo `fn_es_lider()` de siempre. Sin política UPDATE nueva en `ventas` —
+nunca tuvo una, así que el candado real sigue viviendo en la función.
+
+Un hallazgo de esquema al aplicar: `retail.personas` ya no existe (se eliminó en
+`0009_integracion_dynamic.sql`, todas las FK a persona apuntan a `public.personas`
+desde entonces) — la primera versión de la migración todavía apuntaba a
+`retail.personas` para `anulado_por` y falló con `42P01` al aplicar; corregida antes de
+reintentar. Aplicada al Postgres local compartido (con aviso previo a Felipe, que
+confirmó sin objeción) y verificada con 8 escenarios dentro de una transacción
+revertida vía `docker exec` + `psql` (impersonando Líder/Colaboradora con
+`set local role authenticated` + `request.jwt.claims`, patrón ya usado en ADR-0052/0054):
+anulación con condición mixta (vendible repone stock, dañada no), reintento sobre una
+venta ya anulada, caja cerrada, comprobante ya aceptado por SUNAT, y quien no es líder
+— los últimos 4 rechazados con el mensaje esperado. `ROLLBACK` limpio al final, sin
+dejar datos de prueba en la base compartida por las otras sesiones.
+
+**Sin aplicar en producción todavía** (falta el ok de Felipe y el
+`set search_path to retail, public;` de rigor). **Pendiente, sin resolver a propósito**
+(heredado de ADR-0016, no nuevo de esta migración): un comprobante `pendiente` de una
+venta anulada queda huérfano — ver ADR-0063, sección "Sin resolver".
+
+**Segundo hallazgo antes de aplicar:** un ítem ya tocado por Cambios o Devoluciones
+podía anularse otra vez encima — `anular_venta` habría repuesto stock que ya había
+vuelto por ese otro camino, duplicándolo. No era una de las 4 preguntas de Felipe;
+criterio propio (documentado en ADR-0063, regla 5). Guardia agregada
+(`retail.cambios`/`devolucion_items` con estado ≠ rechazada bloquean la venta
+completa), función re-aplicada con `create or replace` sobre la ya aplicada (sin volver
+a correr el `alter table`), y las 8 pruebas anteriores + 1 nueva (venta con un cambio ya
+registrado) vueltas a correr — 9/9 en verde.
+
+**Pantalla, misma sesión:** Felipe confirmó "junto a Cambio y Devolución". Al mirar el
+código, `BuscarPorComprobante.tsx` resultó ser solo la caja de texto de búsqueda (sin
+lógica de acciones) — el punto real donde viven "Devolver"/"Cambiar" es cada lista
+(`DevolucionesLista.tsx`/`CambiosLista.tsx`), no el buscador. Se agregó `AnularVentaForm.tsx`
+(nuevo) y un botón "Anular" en `DevolucionesLista.tsx`, mostrado una sola vez por venta
+(no una vez por línea — una venta de varios ítems solo tiene una fila con el botón) y
+solo para Líder (`esLider`, mismo prop que ya gateaba Aprobar/Rechazar). El formulario
+carga TODAS las líneas de la venta al abrir (no solo la clickeada — `anular_venta` exige
+la condición de cada una), con un `select` de condición por línea y un motivo único.
+
+Verificado en navegador real con login `felipe@cayla.local` (líder, Tienda Lima): el
+botón aparece correctamente una vez por venta; se abrió el modal sobre una venta real
+del 14-sep, cargó su única línea con la condición en "Vendible" por defecto, y al
+enviar reprodujo en pantalla, con datos reales (no sembrados), el mismo rechazo que la
+prueba SQL ya había cubierto sintéticamente: "La caja de esta venta ya cerró…" —
+confirma el camino completo RPC → `traducirError` → UI. **El camino feliz no se pudo
+completar por clic**: se abrió una caja de prueba en Tienda Lima y se intentó una venta
+nueva para tener algo fresco que anular, pero `registrar_venta` rechazó cualquier
+prenda con "Stock insuficiente: hay 0" pese a que `stock.cantidad` mostraba 6 — se
+confirmó por SQL que TODO el stock de Tienda Lima vive hoy con `sububicacion_id = null`,
+ninguna unidad asignada a "Piso de venta" (la migración `20260914230000_inventario_piso_almacen.sql`
+introdujo la sub-ubicación pero el stock existente nunca se backfilleó). Es una
+condición del entorno local compartido, no un bug de esta sesión ni de `anular_venta`
+— anotado en BACKLOG para quien toque Inventario/piso-almacén. La caja de prueba se
+cerró limpia (cuadró exacto, sin ventas) antes de salir.
+
+`pnpm typecheck`/`lint` en verde sobre los archivos tocados (el único error de
+`typecheck` que queda en el árbol es en `productos/colores/*`, preexistente, confirmado
+por diff que esta sesión no lo tocó ni lo causó — otro síntoma del mismo Postgres local
+compartido: el historial de migraciones dice `20260915230000_colores_tipo_y_muestra.sql`
+aplicada, pero `retail.colores` real no tiene `tipo`/`imagen_muestra_url`/`notas`).
+
+**Cierre del día: Felipe probó todo de punta a punta en su propia sesión local**
+contra el checklist detallado que se le dejó (camino feliz con condición mixta, caja
+cerrada, venta ya anulada, venta con cambio/devolución previa, motivo obligatorio,
+botón oculto para quien no es líder) y confirmó que funciona completo — incluido el
+camino feliz que esta sesión no había podido cerrar por clic (el bloqueo de stock sin
+piso en Tienda Lima). No se registró en el chat si lo resolvió con el backfill que se
+le ofreció o con otro ítem que ya tenía piso asignado. **Anular una venta queda
+cerrado del lado de Devoluciones**: esquema, RPC y pantalla construidos, verificados
+por SQL, por navegador (camino de rechazo) y ahora por Felipe en persona (camino
+completo). Sin commitear y sin aplicar en producción — ambos a la espera de que
+Felipe lo pida explícitamente.
