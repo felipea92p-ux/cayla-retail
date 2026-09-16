@@ -362,7 +362,7 @@ API directa, sin que ninguna pantalla lo muestre. Eso es exactamente el hueco 1.
    migraciones locales (`0012:52,84,127,178,230`, `0013:133`, `0017:49`, `0018:64`,
    `0021:34`, `0025:34`, `0026:41`, `0027:56,123`, `0028:30,57`, `0029:45,91,194`,
    `0031:67`, `0032:91`, `0034:86,200,264,308`, `0037:64,144`, `0038:40`, `0040:77`,
-   `0041:83`, `0044:229,269`, `0048:180,212,300`, `0051:50`). **Una sola** usa la forma
+   `0041:83`, `0044:229,269`, `0048:180,212,300`, `0059:50`). **Una sola** usa la forma
    segura: `registrar_venta`, con `if fn_puede_operar_sede(...) is not true`
    (`0054_venta_idempotente.sql:115`).
    **La consecuencia en la tienda:** alguien con cuenta de Supabase Auth válida pero sin

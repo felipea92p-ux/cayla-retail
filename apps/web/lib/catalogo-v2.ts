@@ -42,7 +42,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
 
   return filas.map((v) => ({
     varianteId: v.id,
-    sku: v.sku,
+    sku: v.sku ?? "",
     talla: v.talla,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
@@ -306,7 +306,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       colorCodigo: v.color_codigo,
       color: v.color?.nombre ?? null,
       talla: v.talla,
-      sku: v.sku,
+      sku: v.sku ?? "",
       precio: Number(v.precio),
       costo: Number(v.costo),
       activo: v.activo,

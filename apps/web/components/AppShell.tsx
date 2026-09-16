@@ -19,6 +19,12 @@ import { PerfilModal } from "@/components/PerfilModal";
 // Ahora el marcador es UN solo riel rojo que se DESLIZA de una fila a otra:
 // la misma pieza del `Segmentado` (que ya se desliza en horizontal) puesta de
 // canto. Estructura, ancho y respiro cambiaron; ninguna ruta lo hizo.
+//
+// v3.3 (2026-09-15, ADR-0057): Punto de Venta/Caja/Cambios/Devoluciones/
+// Facturación se agrupan bajo una cabecera colapsable "Venta" (arranca
+// abierta). El riel sigue sin medir el DOM: camina sobre las filas
+// REALMENTE visibles (cabecera + hijas si está abierto), no sobre el array
+// de datos — ver `GrupoLateral`. Rutas sin cambios.
 
 // V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
 // ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
@@ -63,8 +69,17 @@ const IC = {
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  // Flechas verticales (no las horizontales de "movimientos", para no leerse
+  // como el mismo ícono con otro nombre): cambiar una talla por otra.
+  cambios: "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
+  // Flecha en U: la prenda vuelve.
+  devoluciones: "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
   buscar: "M11 19a8 8 0 100-16 8 8 0 000 16zm10 2l-4.35-4.35",
   nuevo: "M12 5v14m-7-7h14",
+  // Bolsa, no carrito: el carrito ya es de "Punto de Venta" (IC.vender) — la
+  // cabecera "Venta" necesita un trazo propio para no verse igual a su hija.
+  venta: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
+  chevron: "M9 6l6 6-6 6",
 };
 
 /* ------------------------------------------------------------------
@@ -79,6 +94,12 @@ const PASO_FILA = ALTO_FILA + AIRE_FILA;
 const ALTO_RIEL = 20; // px — la misma marca de canto del listbox de campos.tsx
 
 type Item = { href: string; etiqueta: string; icono: string };
+// Cabecera colapsable de "Venta": agrupa Items, no navega (sin href propio).
+type ItemVenta = { etiqueta: string; icono: string; hijos: Item[] };
+type FilaMenu = Item | ItemVenta;
+function esGrupoVenta(f: FilaMenu): f is ItemVenta {
+  return "hijos" in f;
+}
 
 function BuscadorGlobal({ compacto = false }: { compacto?: boolean }) {
   const router = useRouter();
@@ -122,7 +143,51 @@ function BuscadorGlobal({ compacto = false }: { compacto?: boolean }) {
    los títulos de grupo en el DOM, y una medición que se hace tarde es
    un riel que salta al cargar la página.
    ------------------------------------------------------------------ */
-function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; items: Item[]; indiceActivo: number }) {
+type FilaLateral =
+  | { tipo: "item"; item: Item; indentada: boolean; ordenEnGrupo: number }
+  | { tipo: "grupo"; item: ItemVenta };
+
+function GrupoLateral({
+  titulo,
+  items,
+  activo,
+  ventaAbierto,
+  ventaTocado,
+  onToggleVenta,
+}: {
+  titulo: string | null;
+  items: FilaMenu[];
+  activo: (href: string) => boolean;
+  ventaAbierto: boolean;
+  /** Recién en `true` tras el primer toggle/auto-apertura: evita que las
+   *  hijas jueguen `anim-revelar` en la carga inicial, cuando ya arrancan
+   *  visibles (no es una revelación, es la foto de siempre). */
+  ventaTocado: boolean;
+  onToggleVenta: () => void;
+}) {
+  // Aplana cabecera + hijas (solo si está abierta) en las filas que de
+  // verdad se van a pintar — el riel lee ESTE índice, nunca el del array
+  // original, así que nunca se desalinea aunque "Venta" cambie cuántas
+  // filas ocupa al abrirse o cerrarse.
+  const filas: FilaLateral[] = [];
+  items.forEach((it) => {
+    if (esGrupoVenta(it)) {
+      filas.push({ tipo: "grupo", item: it });
+      if (ventaAbierto) {
+        it.hijos.forEach((h, idx) => filas.push({ tipo: "item", item: h, indentada: true, ordenEnGrupo: idx }));
+      }
+    } else {
+      filas.push({ tipo: "item", item: it, indentada: false, ordenEnGrupo: 0 });
+    }
+  });
+
+  // Con el grupo cerrado, la cabecera hace de sustituto de sus hijas: si una
+  // de ellas es la ruta activa, el riel se queda en "Venta" (la única fila
+  // que representa a esa ruta mientras está colapsada).
+  const indiceActivo = filas.findIndex((f) =>
+    f.tipo === "item" ? activo(f.item.href) : f.item.hijos.some((h) => activo(h.href)) && !ventaAbierto
+  );
+
   return (
     <div>
       {/* Con un solo grupo el título sobra: sería una etiqueta para TODO el
@@ -140,16 +205,52 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
             opacity: indiceActivo >= 0 ? 1 : 0,
           }}
         />
-        {items.map((i, n) => {
+        {filas.map((f, n) => {
           const esActivo = n === indiceActivo;
+
+          if (f.tipo === "grupo") {
+            const contieneActivo = f.item.hijos.some((h) => activo(h.href));
+            return (
+              <button
+                key="venta"
+                type="button"
+                onClick={onToggleVenta}
+                aria-expanded={ventaAbierto}
+                style={{ height: ALTO_FILA }}
+                className={`group relative flex items-center gap-3.5 rounded-lg pl-4 pr-3 text-sm transition-colors ${
+                  esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
+                }`}
+              >
+                <Icono
+                  d={f.item.icono}
+                  className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
+                    esActivo || contieneActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
+                  }`}
+                />
+                <span className="flex-1 text-left">{f.item.etiqueta}</span>
+                <Icono
+                  d={IC.chevron}
+                  className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${
+                    ventaAbierto ? "rotate-90" : ""
+                  }`}
+                />
+              </button>
+            );
+          }
+
           return (
             <Link
-              key={i.href}
-              href={i.href}
+              key={f.item.href}
+              href={f.item.href}
               aria-current={esActivo ? "page" : undefined}
-              style={{ height: ALTO_FILA }}
-              className={`group relative flex items-center gap-3.5 rounded-lg pl-4 pr-3 text-sm transition-colors ${
-                esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
+              style={{
+                height: ALTO_FILA,
+                animationDelay: f.indentada && ventaTocado ? `${f.ordenEnGrupo * 30}ms` : undefined,
+              }}
+              className={`group relative flex items-center gap-3.5 rounded-lg pr-3 text-sm transition-colors ${
+                f.indentada ? "pl-9" : "pl-4"
+              } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"} ${
+                f.indentada && ventaTocado ? "anim-revelar" : ""
               }`}
             >
               {/* Marca fantasma: al pasar el mouse por una fila apagada aparece
@@ -164,12 +265,12 @@ function GrupoLateral({ titulo, items, indiceActivo }: { titulo: string | null; 
                 />
               )}
               <Icono
-                d={i.icono}
+                d={f.item.icono}
                 className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
                   esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
                 }`}
               />
-              {i.etiqueta}
+              {f.item.etiqueta}
             </Link>
           );
         })}
@@ -212,6 +313,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
     { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
+    { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
   ];
 
@@ -343,6 +445,11 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
+  // "Venta" arranca desplegado (pedido de Felipe, 2026-09-15: Cambios y
+  // Devoluciones recién se hicieron visibles en el menú ESE MISMO día — un
+  // grupo colapsado por defecto las habría vuelto a esconder).
+  const [ventaAbierto, setVentaAbierto] = useState(true);
+  const [ventaTocado, setVentaTocado] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
 
@@ -360,9 +467,30 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const activo = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
+  // Entrar a una pantalla de Venta por otra vía (un link de "+ Nuevo", un
+  // favorito) nunca debe dejarla escondida detrás de un grupo colapsado.
+  // Ajuste de estado durante el render, no en un efecto (mismo patrón que ya
+  // exige el linter del repo — BITÁCORA 2026-09-14, búfer de animación del
+  // ticket): comparar contra el valor del render anterior en vez de un
+  // `useEffect` también evita animar la revelación cuando alguien entra
+  // directo a `/cambios` (recarga o link externo) — ahí nunca "se abrió".
+  const enGrupoVenta = ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"].some((h) =>
+    activo(h),
+  );
+  const [entrabaAGrupoVenta, setEntrabaAGrupoVenta] = useState(enGrupoVenta);
+  if (enGrupoVenta !== entrabaAGrupoVenta) {
+    setEntrabaAGrupoVenta(enGrupoVenta);
+    if (enGrupoVenta) {
+      setVentaAbierto(true);
+      setVentaTocado(true);
+    }
+  }
+
   const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
-  const vender: Item = { href: "/vender", etiqueta: "Vender", icono: IC.vender };
+  const puntoDeVenta: Item = { href: "/vender", etiqueta: "Punto de Venta", icono: IC.vender };
   const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
+  const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
+  const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
   const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
@@ -386,30 +514,39 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // lista elegida). Comercial y Finanzas siguen sin pantalla V2, siguen
   // fuera por esa otra razón. "Facturación" (0010_facturacion.sql) —
   // líder-only, emite documentos legales ante SUNAT.
+  // "Venta" agrupa el mostrador + lo legal del cobro (rediseño 2026-09-15):
+  // Punto de Venta/Caja/Cambios/Devoluciones son de cualquier integrante;
+  // Facturación queda adentro pero sigue líder-only, igual que siempre.
+  const grupoVenta: ItemVenta = {
+    etiqueta: "Venta",
+    icono: IC.venta,
+    hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
+  };
+
   const grupos = [
     {
       titulo: null,
       // Compras (ADR-0035) va después de Inventario: es de donde entra la
-      // mercadería. Líder-only como Facturación y Colaboradores — registra
-      // facturas y pagos.
+      // mercadería. Líder-only como Colaboradores — registra facturas y pagos.
       items: [
         inicio,
-        vender,
-        caja,
+        grupoVenta,
         productos,
         inventario,
         ...(esLider ? [compras] : []),
         ...(veProduccion ? [produccion] : []),
         movimientos,
-        ...(esLider ? [facturacion, colaboradores] : []),
+        ...(esLider ? [colaboradores] : []),
       ],
     },
   ].filter((g) => g.items.length > 0);
 
-  // Celular: 5 columnas fijas con el "+" al centro. Vender y Caja son las
-  // de uso diario en el mostrador; Productos/Movimientos/Colaboradores
-  // quedan a un toque del lateral (no entran en 5 columnas fijas).
-  const columnas: (Item | null)[] = [inicio, vender, null, inventario, caja];
+  // Celular: 5 columnas fijas con el "+" al centro. Punto de Venta y Caja
+  // son las de uso diario en el mostrador; Productos/Movimientos/
+  // Colaboradores quedan a un toque del lateral (no entran en 5 columnas
+  // fijas). El lateral de escritorio (con el grupo "Venta") no existe en
+  // celular — esta barra es su propia estructura, sin cambios acá.
+  const columnas: (Item | null)[] = [inicio, puntoDeVenta, null, inventario, caja];
   const indiceMovil = columnas.findIndex((c) => c !== null && activo(c.href));
 
   const iniciales =
@@ -453,7 +590,13 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
               key={g.titulo}
               titulo={grupos.length > 1 ? g.titulo : null}
               items={g.items}
-              indiceActivo={g.items.findIndex((i) => activo(i.href))}
+              activo={activo}
+              ventaAbierto={ventaAbierto}
+              ventaTocado={ventaTocado}
+              onToggleVenta={() => {
+                setVentaTocado(true);
+                setVentaAbierto((v) => !v);
+              }}
             />
           ))}
         </nav>

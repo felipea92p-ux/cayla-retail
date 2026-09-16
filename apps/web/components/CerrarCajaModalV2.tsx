@@ -74,6 +74,7 @@ export function CerrarCajaModalV2({
     const cuadra = Math.abs(resultado.diferencia) < 0.01;
     return (
       <Modal titulo="Caja cerrada" onClose={cerrarYRefrescar}>
+        {(cerrar) => (
         <div className="space-y-4 text-center">
           <p className={`label-cayla text-[11px] ${cuadra ? "text-verde-profundo" : "text-rojo"}`}>
             {cuadra ? "Cuadró" : "No cuadró"}
@@ -99,10 +100,11 @@ export function CerrarCajaModalV2({
               <dd className="tabular-nums">{money(resultado.contado)}</dd>
             </div>
           </dl>
-          <button type="button" autoFocus onClick={cerrarYRefrescar} className={`${botonPrimario} w-full`}>
+          <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
             Listo
           </button>
         </div>
+        )}
       </Modal>
     );
   }
@@ -113,6 +115,7 @@ export function CerrarCajaModalV2({
       subtitulo="Cuenta el efectivo del cajón. Al cerrar te decimos si cuadra."
       onClose={onClose}
     >
+      {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="cierre-monto">
@@ -131,7 +134,7 @@ export function CerrarCajaModalV2({
           />
         </div>
         <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+          <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
           <button type="submit" disabled={loading} className={botonPrimario}>
@@ -139,6 +142,7 @@ export function CerrarCajaModalV2({
           </button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

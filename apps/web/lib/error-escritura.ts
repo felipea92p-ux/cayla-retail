@@ -82,6 +82,34 @@ const HUELLAS: Huella[] = [
     frase: (tope) => `Ese código permite hasta un ${tope} % de descuento. Baja el descuento o usa otro código.`,
   },
   {
+    // 20260915140000_descuento_motivo_y_escalonado.sql — cualquier descuento > 0 pide un
+    // motivo de la lista (R-45). El detalle es «referencia (sku)».
+    marca: "venta_descuento_requiere_motivo",
+    frase: (prenda) => `Elige por qué se aplica el descuento en ${prenda} antes de cobrar.`,
+  },
+  {
+    // Misma migración — el motivo "Otro" pide un texto que lo explique.
+    marca: "venta_descuento_otro_sin_detalle",
+    frase: (prenda) => `Cuenta en una línea por qué es "Otro" el motivo del descuento en ${prenda}.`,
+  },
+  {
+    // Misma migración — candado universal de R-45: nunca por debajo del costo, sin
+    // importar quién descuente. No revela el número — el candado tampoco lo hace.
+    marca: "venta_descuento_bajo_costo",
+    frase: (prenda) => `Ese descuento en ${prenda} deja el precio por debajo de lo que cuesta. Bájalo un poco.`,
+  },
+  {
+    // Misma migración — banda 20-35 % de un Líder (R-45): pide un argumento escrito.
+    marca: "venta_descuento_requiere_argumento",
+    frase: (prenda) => `El descuento en ${prenda} pasa el 20 %: escribe el argumento antes de cobrar.`,
+  },
+  {
+    // Misma migración — más de 35 % nadie, ni un Líder (decisión de Felipe, 2026-09-15):
+    // la base no puede distinguirlo de cualquier otra de las 9 personas registradas.
+    marca: "venta_descuento_supera_autorizacion",
+    frase: (prenda) => `El descuento en ${prenda} pasa el 35 % — nadie puede aplicarlo así. Bájalo.`,
+  },
+  {
     // 0010_stock_concurrencia.sql:14 — la red que impide dejar el stock en negativo.
     marca: "stock_cantidad_no_negativa",
     frase:

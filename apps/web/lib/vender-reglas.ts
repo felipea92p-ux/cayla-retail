@@ -11,6 +11,14 @@ import type { MetodoPago } from "@cayla-retail/shared";
  *  aparecen recién al tocar «Cobrar». */
 export type MomentoTicket = "armar" | "descuento" | "espera" | "cobrar";
 
+/** Qué tickets en espera vuelven a la pantalla al montar Vender. La espera de la sede
+ *  se vacía al cerrar caja (ADR-0049) — y eso incluye abrir la página al día siguiente
+ *  con la caja todavía cerrada: lo guardado ayer no vuelve. Vive acá y no dentro del
+ *  efecto porque es la decisión, no el acceso al storage. */
+export function esperaAlCargar<T>(cajaCerrada: boolean, guardados: T[]): T[] {
+  return cajaCerrada ? [] : guardados;
+}
+
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
  *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
  *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que
@@ -80,13 +88,75 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return redondear2((precioUnitario * porcentaje) / 100);
 }
 
-type LineaDescontable = { claveLinea: string; precioUnitario: number; descuentoUnitario: number };
+/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
+ *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
+ *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo. */
+export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
+  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
+  return redondear2(Math.min(montoUnitario, precioUnitario));
+}
+
+// ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
+// Un texto libre no se puede sumar; una lista sí, y a fin de mes se ve cuánto margen se
+// fue por cada motivo (R-45, punto 2). El candado de verdad vive en `registrar_venta`
+// (`20260915140000_descuento_motivo_y_escalonado.sql`) — esto es la MISMA regla en el
+// navegador, para que el apartado sepa qué pedir antes de que la Encargada intente cobrar.
+
+/** Los cinco motivos que `registrar_venta` acepta — la base manda; agregar uno acá sin
+ *  agregarlo también en la migración deja a la venta rechazándose con el error genérico. */
+export const RAZONES_DESCUENTO = [
+  { valor: "cumpleanos_clienta_top", etiqueta: "Cumpleaños clienta top" },
+  { valor: "prenda_con_desperfecto", etiqueta: "Prenda con desperfecto" },
+  { valor: "liquidacion_temporada", etiqueta: "Liquidación de temporada" },
+  { valor: "cerrar_venta", etiqueta: "Cerrar la venta" },
+  { valor: "otro", etiqueta: "Otro" },
+] as const;
+
+/** Lo que acompaña a un descuento aplicado: el motivo (uno de `RAZONES_DESCUENTO`), el
+ *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide la banda
+ *  20-35% de un Líder (`necesitaArgumentoEscrito`). Viajan por línea, igual que
+ *  `descuentoUnitario`: dos líneas con el mismo % pueden llevar motivos distintos si se
+ *  aplicaron en dos acciones separadas del apartado. */
+export type DetalleDescuento = { razon: string; razonOtro: string; argumento: string };
+
+/** Lo que queda en una línea al quitarle el descuento: ni monto, ni motivo, ni argumento. */
+export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "", argumento: "" };
+
+type LineaDescontable = {
+  claveLinea: string;
+  precioUnitario: number;
+  descuentoUnitario: number;
+  razonDescuento: string;
+  razonDescuentoOtro: string;
+  argumentoDescuento: string;
+};
+
+function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
+  const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
+  return carrito.map((l) =>
+    alcanza(l)
+      ? {
+          ...l,
+          descuentoUnitario: montoPara(l),
+          razonDescuento: detalle.razon,
+          razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
+          argumentoDescuento: detalle.argumento,
+        }
+      : l,
+  );
+}
 
 /** Devuelve un carrito nuevo con el % aplicado a las líneas de `claves` — o a todas si
- *  `claves` viene vacío ("todo el ticket"). Las que no entran quedan como estaban. */
-export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porcentaje: number, claves: string[]): L[] {
-  const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
-  return carrito.map((l) => (alcanza(l) ? { ...l, descuentoUnitario: descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje) } : l));
+ *  `claves` viene vacío ("todo el ticket"). Las que no entran quedan como estaban. Para
+ *  quitar un descuento: `aplicarDescuento(carrito, 0, claves, SIN_DETALLE_DESCUENTO)`. */
+export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porcentaje: number, claves: string[], detalle: DetalleDescuento): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
+}
+
+/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
+ *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos). */
+export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
 }
 
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
@@ -94,5 +164,12 @@ export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porce
 export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario: number }): number {
   if (l.precioUnitario <= 0 || l.descuentoUnitario <= 0) return 0;
   return Math.round((l.descuentoUnitario / l.precioUnitario) * 100);
+}
+
+/** Si el apartado tiene que pedir el argumento escrito: solo a un Líder, y solo pasado el
+ *  20% (R-45). El candado real vive en `registrar_venta`; esto es progresividad de la
+ *  pantalla, no una segunda copia de la regla — por eso no bloquea nada por sí solo. */
+export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): boolean {
+  return esLider && porcentaje > 20;
 }
 

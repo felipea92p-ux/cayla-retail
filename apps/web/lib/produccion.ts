@@ -3,7 +3,7 @@ import { exigir, exigirOpcional } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
-// escritura pasa por las RPC de `20260915120000_produccion_del_taller.sql`
+// escritura pasa por las RPC de `20260915130000_produccion_del_taller.sql`
 // (abrir / set_etapa / cerrar / anular / revertir), que son la única puerta —
 // las tablas no tienen policy de insert/update/delete. Mismo patrón que
 // `devoluciones.ts`: la pantalla lee con `exigir()` porque una orden que no
@@ -156,7 +156,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.id,
-          sku: v.sku,
+          sku: v.sku ?? "",
           talla: v.talla,
           color: v.color?.nombre ?? null,
           colorHex: v.color?.hex ?? null,

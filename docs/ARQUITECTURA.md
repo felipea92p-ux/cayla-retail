@@ -153,7 +153,7 @@ flowchart TB
   por sede) y `lib/historial-producto.ts:getCambiosProducto` (RPC
   `fn_historial_producto_cambios`: precio/categoría/estado, ledger
   append-only `historial_producto_cambios`, trigger `fn_registrar_cambio_producto`
-  sobre `productos`/`variantes` — ADR-0051, ampliado en
+  sobre `productos`/`variantes` — ADR-0059, ampliado en
   `20260915223000_historial_producto_estado.sql` para no perder los cambios
   de `estado`).
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo

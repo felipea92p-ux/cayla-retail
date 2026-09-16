@@ -1,6 +1,16 @@
 # 11 · Finanzas operativas
 > **Pájaro:** GARZA · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
 
+> ⚠️ **Este archivo describe V1, borrado del código el 2026-09-12 a las 15:43 (commit
+> `0af2f1b`) — ver el aviso de `docs/BACKLOG.md` y ADR-0056.** Las tres tablas de abajo
+> (`gastos`, `depositos_bancarios`, `ajustes_efectivo`) ya no existen en ningún riel.
+> **Lo único que se puso al día es depósito bancario y ajuste de efectivo:** desde el
+> 2026-09-15 viven como dos columnas (`nota`, `es_ajuste`) en `retail.caja_movimientos`,
+> del módulo 07 (Colibrí) — ver ADR-0056 y `docs/datos/modulos/07-ventas-y-caja.md` (que
+> a su vez también describe V1 en el resto de su contenido). **`gastos`, el estado de
+> resultados por sede y el resto de este archivo siguen sin auditar contra V2 — pendiente,
+> sin dueño.** Lo de abajo queda como registro del diseño de V1, no como estado actual.
+
 ## Para qué existe
 
 En una tienda el cajón físico no cuadra por magia: entra plata por las ventas en
@@ -111,6 +121,11 @@ funcionar sin tocar datos. Ver hueco 1.
 
 ### `depositos_bancarios` — el efectivo que sale del cajón y se lleva al banco
 
+> **V2 (2026-09-15, ADR-0056): esta tabla ya no existe.** Un depósito bancario hoy es una
+> fila de `retail.caja_movimientos` con `tipo='egreso'`, `motivo='Depósito bancario'` y el
+> voucher en la columna `nota` — sin candado de rol, igual que cualquier egreso. Ver
+> módulo 07 (Colibrí). Lo de abajo describe el diseño de V1, ya no el esquema real.
+
 **Existe en:** local y producción (0 filas en producción —
 `generado/DICCIONARIO-RETAIL.md`)
 **Quién escribe:** la RPC `registrar_deposito`, llamada desde `EfectivoPanel.tsx:35`.
@@ -145,6 +160,13 @@ funcionar sin tocar datos. Ver hueco 1.
 ---
 
 ### `ajustes_efectivo` — la corrección manual del efectivo teórico de una sede
+
+> **V2 (2026-09-15, ADR-0056): esta tabla ya no existe.** Un ajuste de efectivo hoy es una
+> fila de `retail.caja_movimientos` con `es_ajuste=true` — y a diferencia de lo que
+> describen los huecos 2 y 3 de abajo, en V2 **sí** pasa por RPC (`registrar_movimiento_caja`),
+> **sí** queda con `usuario_id`, y **exige líder de equipo** (`fn_es_lider()`): el hueco de
+> auditoría que V1 nunca cerró es justo lo que motivó ese candado. Ver módulo 07 (Colibrí).
+> Lo de abajo describe el diseño de V1, ya no el esquema real.
 
 **Existe en:** local y producción (0 filas en producción —
 `generado/DICCIONARIO-RETAIL.md`)

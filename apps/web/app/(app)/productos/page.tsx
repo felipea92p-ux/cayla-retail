@@ -23,7 +23,11 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 // (SKU/talla/color/precio/costo) y sus códigos de barra. Alta de producto
 // queda para Fase 2 (requiere decidir con Felipe el flujo, no solo el CRUD).
 //
-// variantes.
+// Fase UI 2 (2026-09-14): la tabla plana (una fila por variante) se vuelve
+// ilegible con más de ~20 filas. `ProductosAgrupados` la reemplaza por el
+// patrón de `trix/catalogo-vocabulario` (V1) — un producto, expandible a sus
+// variantes — sin traer con él el stock que V1 mostraba ahí: en V2 eso es
+// `/inventario`, a propósito separado de "qué existe".
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
 // cliente (`getCatalogo()`) a filtros en la URL + Postgres
@@ -32,6 +36,13 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 // (paginado por número de página, por qué el stock entra acá ahora).
 // `getCatalogo()` sigue existiendo para quien necesite el catálogo entero
 // sin filtrar (el escáner de Vender).
+//
+// Fase 2 (2026-09-15): alta de producto con matriz talla×color, en
+// `/productos/nuevo` — RPC `crear_producto_con_variantes`, candado real de
+// Líder ahí; `persona.rol === "lider"` de acá solo decide si el botón se
+// MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
+// (`/productos/[id]/editar`): la matriz es para crear varias variantes de
+// una sola vez, no tiene sentido para una que ya existe.
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
