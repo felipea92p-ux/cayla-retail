@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260916150000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql — CAYLA V2
+-- 20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql — CAYLA V2
 --
 -- Cierra el hueco que ADR-0052 (devoluciones) y ADR-0053 (cambios) dejaron escrito
 -- a propósito, sin resolver: si NO hay caja abierta en la ubicación cuando se
