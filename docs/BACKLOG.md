@@ -1805,6 +1805,30 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`ComprobantesPanel.tsx`: "Monto facturado" suma TODOS los comprobantes del
+      mes, sin importar el estado — encontrado 2026-09-16 al rehacer los tiles del
+      resumen, no es de esta sesión.** `totalMes` (`ComprobantesPanel.tsx`, `const
+      totalMes = comprobantes.reduce((acc, c) => acc + Number(c.total), 0)`) suma
+      pendientes, rechazados, anulados y hasta comprobantes de **prueba** (sandbox,
+      que la propia pantalla explica que "no vale como comprobante de pago"). Un
+      rechazo o una anulación no fueron una venta facturada; un comprobante de
+      prueba nunca lo fue. Pregunta de negocio, no técnica: ¿"Monto facturado" debe
+      contar solo `aceptado` + `entorno_transmision='produccion'`? No lo cambié sin
+      confirmar contigo qué debe significar la cifra.
+- [ ] **Facturación: "Ventas de hoy" no conecta con "Emitir comprobante" — con
+      Felipe, pospuesto 2026-09-16 (se hicieron los ítems 2, 3 y 4 de la misma
+      auditoría, este no).** Hoy hay que mirar el monto en `VentasDelDiaPanel` y
+      volver a tipearlo a mano en el modal de `ComprobantesPanel` — dos pantallas
+      para un solo dato. `retail.emitir_comprobante` ya acepta `p_venta_id`/
+      `p_items` en producción; `ComprobantesPanel.tsx:215-224` no los manda. Falta
+      levantar el estado del modal "emitir" a un componente cliente que envuelva a
+      los dos paneles hermanos (hoy conviven sueltos en `facturacion/page.tsx`).
+- [ ] **Facturación: tablas de Proformas/Comprobantes fuerzan scroll horizontal en
+      celular (`min-w-[760px]`) — sin decidir si vale la pena.** Solo importa si de
+      verdad se revisa Facturación desde el teléfono; preguntado a Felipe
+      2026-09-16, sin respuesta todavía. No construir sin confirmar el caso de uso
+      real — sería sobre-construir para un uso que quizás no existe (principio 5).
+
 - [ ] **Correlativo reservado que nunca se transmitió — sigue sin resolver (ADR-0016 lo
       dejó afuera a propósito), y ya no es hipotético: hay 2 casos reales en producción
       hoy, 2026-09-16.** `emitir_comprobante` reserva el número oficial ante SUNAT en el
@@ -2333,6 +2357,25 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-16 — **Auditoría de amigabilidad de Facturación: 3 de 5 hallazgos
+      construidos, con el visto bueno de Felipe (pidió todos menos "conectar Ventas
+      de hoy con Emitir", ver 🩹 ARREGLAR).** (1) `ComprobantesPanel.tsx`: motivo de
+      rechazo de SUNAT ahora visible en la fila (existía en el tipo y en la
+      consulta, `lib/comprobantes.ts:20`, y no se pintaba nunca). (2)
+      `lib/proformas.ts`: las vigentes se traen aparte, sin el filtro de mes, para
+      que una proforma abierta no se caiga de la vista al cruzar de mes — el resto
+      de estados sigue por mes. (3) `ComprobantesPanel.tsx`: el resumen pasa de 3 a
+      4 tiles — "Rechazados" ya no es una sub-línea roja dentro de "Pendientes de
+      enviar". (4) `facturacion/page.tsx`: "Códigos de descuento" se movió de un
+      link huérfano bajo el título a la fila de acciones junto al navegador de mes.
+      Verificado `tsc --noEmit`, `pnpm lint`, `pnpm test` (239/239) en cada commit
+      por separado (4 commits). **Sin demo en navegador autenticado como líder**
+      (mismo límite que la sesión de ProformasPanel: este repo solo tiene login por
+      contraseña, sin flujo de magic link/OTP en el frontend — verificado, no hay
+      ninguna ruta `/auth/*` en `apps/web/app`). De paso salió un hallazgo nuevo, no
+      tocado: "Monto facturado" suma comprobantes rechazados/anulados/de prueba —
+      ver 🩹 ARREGLAR, es decisión de Felipe qué debe contar la cifra.
 
 - [x] 2026-09-16 — **`ProformasPanel` migrado a `components/ui/campos.tsx` (ADR-0011).**
       Mostrado antes/después a Felipe (artifact interactivo) — aprobó "tal cual". Cambio

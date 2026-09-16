@@ -4595,3 +4595,43 @@ sin acceso a Facturación); se generó un magic link con el `service_role` local
 puramente presentacional ya probado en producción vía `ComprobantesPanel`. El `next dev`
 de este worktree queda corriendo en `localhost:3000` por si Felipe prefiere entrar él
 mismo con su contraseña real y mirarlo antes de que esto se fusione.
+
+## 2026-09-16 (Facturación: cuatro amistades chicas — motivo de rechazo, proformas
+que no se pierden de vista, Rechazados con su propio número, y un link que encontró casa)
+
+Pedido de Felipe: "seguí analizando Facturación, decime qué cambiar para que sea más
+amigable o qué es redundante". Auditoría de los cuatro archivos de siempre
+(`facturacion/page.tsx`, `ComprobantesPanel.tsx`, `ProformasPanel.tsx`,
+`VentasDelDiaPanel.tsx`) más `ConsultaDocumento.tsx`, `Ayuda.tsx` y `TarjetaIndicador.tsx`
+para entender el vocabulario visual completo antes de opinar. Cinco hallazgos, Felipe
+aprobó cuatro (deja "conectar Ventas de hoy con Emitir" para después — ver BACKLOG).
+
+**Arreglado ya, sin esperar menú (defecto chico):** `Comprobante.motivo_rechazo` viajaba
+desde la base (`lib/comprobantes.ts:20` ya lo trae) hasta el tipo, y `ComprobantesPanel.tsx`
+nunca lo pintaba — un rechazo de SUNAT se veía como una etiqueta roja sin ninguna razón.
+Mismo tratamiento que ya tenía `motivo_anulacion`, en rojo para diferenciarlo.
+
+**Los otros tres, con menú y decididos por Felipe:**
+- **Proformas vigentes independientes del mes.** `getProformasMes` traía todo por
+  `created_at` del mes visible; una vigente creada el 30 podía desaparecer el día 1. Se
+  separó en dos consultas (vigentes sin fecha + historial por mes) y se mergean por `id`
+  — más simple y sin riesgo de escapar mal un filtro `.or()` con fechas interpoladas.
+- **"Rechazados" con su propio tile.** Había propuesto reusar `TarjetaIndicador`, pero al
+  mirar el componente de cerca no tiene un tono "aviso" (ámbar) — solo neutro/`critico`
+  (rojo) — y "Pendientes de enviar" necesita quedarse ámbar (es normal, no una alarma).
+  Se corrigió el plan sobre la marcha: se mantuvieron los tiles a mano que ya tenía
+  `ComprobantesPanel` y se agregó un cuarto, no se migró todo el bloque a
+  `TarjetaIndicador` como había dicho.
+- **El link de Códigos de descuento.** Se movió a la fila del navegador de mes, con un
+  divisor — sin tocar la decisión de Felipe del 15-09 de no sumarlo al lateral.
+
+**Lo que salió de paso, sin tocar:** `totalMes` en "Monto facturado" suma TODOS los
+comprobantes del mes — pendientes, rechazados, anulados y hasta los de prueba (sandbox).
+Es una pregunta de negocio (¿qué debe significar "facturado"?), no una de código: anotado
+en BACKLOG, no se cambió.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en cada uno de los 3
+commits por separado. Mismo límite que la sesión anterior para ver esto en el navegador:
+este repo solo tiene login por contraseña (sin magic link/OTP en el frontend — se
+confirmó que no existe ninguna ruta `/auth/*`), así que no hay demo autenticada como
+líder; el `next dev` de este worktree sigue arriba en `localhost:3000`.
