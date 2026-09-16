@@ -28,6 +28,29 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Inventario — las 4 vistas de Felipe (2026-09-16, ADR-0070)
+
+Rama `inventario-vistas-de-felipe`. Existencias, Movimientos, Traslados y Conteo
+rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral con las
+4 como pestañas. Tipos, lint, 282 pruebas y build en verde; recorrido en navegador como
+líder (Lima) y como colaboradora (Trujillo).
+
+- [ ] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`**
+      (`numero` + sequence en `transferencias` y `conteos`, y `fn_conteos_resumen`).
+      Con `set search_path = retail, public, extensions;` al inicio, como las 4
+      anteriores. Sin esto, Traslados y Conteo en producción fallan al leer `numero`
+      — **no fusionar la rama sin aplicarla antes.** Espera el ok puntual de Felipe.
+- [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
+      (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
+      `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
+      completa, no la página), campana de notificaciones, "Ajuste rápido" desde la
+      cabecera de Movimientos (hoy vive por fila en Existencias).
+- [ ] **"Pedir traslado" no es una acción del sistema.** El semáforo "Stock bajo" dice
+      "pide traslado" y "En la red" dice dónde hay, pero el pedido se hace por
+      WhatsApp. Una "solicitud de traslado" desde la sede destino (que la sede origen
+      convierte en `iniciar_traslado`) cerraría el ciclo. Es modelo de datos nuevo:
+      pedir a Felipe con Ganas/Pagas antes de tocarlo.
+
 ## 🎯 Loro (módulo 02) — prendas escaneables antes del censo (2026-09-16)
 
 Rama `claude/taxonomia-loro-tucan-15eaf3`. Verificado contra V2 y contra producción:
