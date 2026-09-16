@@ -28,6 +28,36 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Halcón (módulo 05) — candado completo del historial, D-22 (2026-09-16)
+
+Rama `claude/halcon-d22`. El documento del módulo describe V1: de sus 16 huecos, 9 ya los
+cerró V2. Se cerró D-22 de verdad (ADR-0070): TRUNCATE directo o en cascada, modo réplica,
+`service_role` con todos los permisos, y cualquier sesión pudiendo aplicar stock o escribir
+`stock` sin movimiento. Sin FORCE RLS, que en producción no protege nada (BYPASSRLS).
+`pnpm pruebas:candado-historial`: 1/9 antes, 9/9 después; cambios 13/13 y devoluciones 2/2.
+
+- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-halcon.sql` en producción.**
+      Pre-flight medido hoy: 0 y 0. Después, vender una prenda en TRU y registrar una entrada.
+- [ ] **CRÍTICO · D-40, vender desde el almacén.** En TRU 35 de 36 variantes están solo en
+      almacén (la activación mandó todo atrás) y la caja solo vende lo que está en piso.
+- [ ] **ALTO · "Monto manual" no cobra en TRU ni AQP.** El Cargo especial tiene stock sin
+      sububicación y la venta lo busca en el piso.
+- [ ] **ALTO · `registrar_movimiento` tiene dos firmas vivas.** El ajuste en el Taller (no
+      manda `p_sububicacion_id`) falla por función ambigua, y la firma de 6 argumentos crea
+      stock sin piso ni almacén. Borrar la de 6. `anular_venta` (en main, no en producción)
+      tiene el mismo riesgo: revisarla antes de aplicarla.
+- [ ] **ALTO · El ajuste de inventario no tiene aprobación ni tope.** Los 9 colaboradores son
+      Líder, así que cualquiera ajusta cualquier sede. Candidato al mecanismo propone/aprueba.
+- [ ] **MEDIO · Traslado con diferencia:** lo que falta no queda como merma y lo que sobra
+      entra sin origen (`cerrar_traslado_con_diferencia`).
+- [ ] **MEDIO · Toda función nueva de retail nace ejecutable por `authenticated`** (default ACL
+      del schema). Cada función interna necesita su `revoke` explícito.
+- [ ] **MEDIO · D-41 (devolver del piso al almacén) sin pantalla; demanda de reorden y de
+      prioridad de conteo cuenta ventas devueltas y depende de `motivo = 'venta'` en texto.**
+- [ ] **Reescribir `docs/datos/modulos/05-inventario-y-movimientos.md` sobre V2.**
+
+---
+
 ## 🎯 Loro (módulo 02) — prendas escaneables antes del censo (2026-09-16)
 
 Rama `claude/taxonomia-loro-tucan-15eaf3`. Verificado contra V2 y contra producción:
