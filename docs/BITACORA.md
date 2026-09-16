@@ -4525,3 +4525,53 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-16 (Facturación: el "ya no existe" del banner era falso, y el correlativo huérfano ya no es hipotético)
+
+Encargo de Felipe: auditar Facturación fresco, sin confiar en `docs/BACKLOG.md` §1198-1400
+("reemplazo total de Alegra") por ser anterior al corte V1→V2. El propio banner del inicio del
+archivo decía que Facturación "ya no existe en el código" — falso, y ya lo sospechaba Felipe
+(vio `facturacion/page.tsx:14` con el comentario "rescatada de producción"). Confirmado con la
+fuente más primaria posible: el mensaje del commit del corte (`0af2f1b`) dice explícito
+*"Facturación/SUNAT se rescata íntegra (comprobantes, series con correlativo, proformas, 9
+RPCs)"* — nunca se borró, a diferencia de Producción (que sí se borró y volvió después) o
+Finanzas (sigue borrada). Cierra también la duda que esta misma bitácora había dejado abierta
+ayer (15-09, entrada de depósito/ajuste): "la contradicción sin resolver sobre si Facturación/
+SUNAT también quedó descrita como V1". Banner corregido en BACKLOG.md.
+
+**Los dos pendientes concretos que el propio ADR-0016 (09-09) dejó abiertos:**
+
+1. **"Cerrar el ciclo de una anulación en trámite" — ya estaba cerrado el mismo 09-09**
+   (botón "Consultar" + `interpretarEstadoAnulacion`, ver el propio ADR), y sigue vivo hoy:
+   `retail.anular_comprobante` en producción tiene la firma de 4 argumentos con
+   `p_confirmada boolean` (leído con `pg_get_functiondef`, no asumido), y el código
+   (`ComprobantesPanel.tsx`, `lib/lucode.ts:270-346`, las dos rutas de `/api/lucode/`) sigue
+   ahí. Nada que hacer acá — el backlog viejo lo daba por abierto porque es anterior a la
+   sección "Cerrar el ciclo" que el propio ADR-0016 agregó ese mismo día.
+2. **"Qué hacer con un correlativo reservado que nunca se transmitió" — sigue abierto, y
+   dejó de ser hipotético.** La RPC en producción rechaza anular cualquier cosa que no esté
+   `estado='aceptado'` (cuerpo leído completo), y el frontend nunca ofrece "Anular" para un
+   `pendiente` — solo "Transmitir". Consultando `retail.comprobantes` en vivo aparecieron
+   **B004-000004** (S/655.50, sin cliente, 14-09) y **B004-000005** (S/185.30, con cliente,
+   15-09): dos números oficiales ya reservados ante SUNAT, ninguno transmitido, sin ningún
+   camino en el sistema para soltarlos o anularlos. Anotado en BACKLOG (🩹 ARREGLAR) como
+   pregunta de negocio para Felipe, no técnica — no se tocó la base ni se intentó transmitir
+   esos dos por cuenta propia.
+
+**De paso, la pregunta suelta de Felipe sobre si `VentasDelDiaPanel` (Facturación) y
+`VentasDeHoy` (Vender/Caja) son el mismo componente: no lo son.** Dos implementaciones
+independientes — `VentasDelDiaPanel.tsx` es un componente de solo lectura que pinta
+`VentaDelDia[]` ya resuelto por el servidor (todas las sedes, para el líder); `VentasDeHoy`
+vive inline en `vender/page.tsx` y llama `fn_ventas_del_dia` directo, acotado a una sola
+`ubicacionId`. Comparten forma (RPC `fn_ventas_del_dia` de origen) pero ninguna línea de
+código. Se puede tocar la forma de uno sin arriesgar el otro.
+
+**Proformas (BACKLOG §"Campos viejos"): preparado, no migrado — a la espera del visto bueno
+de Felipe, como pedía el ítem original.** `ProformasPanel.tsx` sigue con
+`campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`; `ComprobantesPanel.tsx`, en la
+misma pantalla, ya vive en `components/ui/campos.tsx` (ADR-0011) y está en producción. Armado
+un antes/después interactivo (artifact, no código del repo) con los dos modales reales de
+Proformas — Nueva proforma y Convertir a comprobante — en ambos estilos, para que Felipe
+sienta el hilo vivo, el desplegable propio y el segmentado antes de decidir. `EfectivoPanel`,
+que el mismo ítem del backlog menciona junto a Proformas, ya no existe (era de Finanzas V1,
+borrado en el corte) — no se tocó nada ahí.

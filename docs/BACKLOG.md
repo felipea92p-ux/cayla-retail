@@ -10,8 +10,18 @@ Balance/Efectivo/Patrimonio) y Producción del Taller, tal como se detallan más
 **ya no existen en el código** — V2 las borró a propósito (no tenían pantalla V2 propia
 y su data en `retail` era de prueba, no operación real). **Producción volvió el 2026-09-15
 sobre V2 (ADR-0051)** — lo que diga de ella más abajo describe la versión V1, no la actual.
+**Corrección 2026-09-16 (auditoría de Facturación): la frase de arriba está mal para
+Facturación — nunca se borró, a diferencia de Producción/Finanzas.** El propio commit del
+corte (`0af2f1b`, 2026-09-12) lo dice en su mensaje: *"Facturación/SUNAT se rescata íntegra
+(comprobantes, series con correlativo, proformas, 9 RPCs)"*. Verificado hoy contra el código
+(`vender/facturacion/page.tsx`, `ComprobantesPanel.tsx`, `ProformasPanel.tsx`, `lib/lucode.ts`,
+las RPCs) y contra producción (`retail.comprobantes`/`retail.proformas` tienen filas reales:
+aceptadas, anulada, y 2 pendientes). Cierra la duda que había quedado abierta en BITÁCORA
+2026-09-15 ("la contradicción sin resolver sobre si Facturación/SUNAT también quedó descrita
+como V1"). Detalle de lo que SÍ sigue abierto en Facturación (no el módulo entero, un punto
+puntual) en 🩹 ARREGLAR, más abajo en este mismo archivo.
 Lo que sí sigue vigente hoy: Vender/Caja (POS), Productos, Inventario, Compras, Movimientos,
-Colaboradores, Producción. Antes de
+Colaboradores, Producción, Facturación. Antes de
 actuar sobre cualquier ítem de este archivo, confirmar contra `apps/web/app/(app)/` que
 el módulo todavía existe — este documento no se ha reescrito para reflejar V2 todavía
 (tarea propia, pendiente de agendar con Felipe, no improvisada acá).
@@ -1795,6 +1805,23 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **Correlativo reservado que nunca se transmitió — sigue sin resolver (ADR-0016 lo
+      dejó afuera a propósito), y ya no es hipotético: hay 2 casos reales en producción
+      hoy, 2026-09-16.** `emitir_comprobante` reserva el número oficial ante SUNAT en el
+      mismo instante en que se guarda el comprobante — antes de transmitir. Si nadie
+      aprieta "Transmitir" después, ese número queda `estado='pendiente'` para siempre:
+      no se puede anular (`retail.anular_comprobante` exige `estado = 'aceptado'`,
+      verificado leyendo la función en producción con `pg_get_functiondef`) y no hay botón
+      para soltarlo — `ComprobantesPanel.tsx` solo ofrece "Transmitir" o "Anular", nunca
+      los dos a la vez. Confirmado en `retail.comprobantes`: **B004-000004** (S/655.50,
+      sin cliente, creado 2026-09-14) y **B004-000005** (S/185.30, con cliente, creado
+      2026-09-15) — dos correlativos oficiales ya quemados ante SUNAT, ninguno transmitido
+      ni recuperable desde la pantalla. Pregunta de negocio para Felipe, no técnica: ¿se
+      puede anular sin avisarle a SUNAT (nunca salió de acá, no hay nada que darle de baja
+      allá — sería un camino nuevo, más simple que el de ADR-0016, no el mismo)? ¿Hay un
+      plazo razonable antes de tratarlo como abandonado? Mientras no se decida, cada
+      "Emitir" que alguien no transmite quema un número de la serie sin remedio.
+
 - [x] **RESUELTO 2026-09-09. Ahora corre 3 tareas y encontró 1 error real el primer día.**
       `"typecheck": "tsc --noEmit"` en los tres paquetes y la tarea declarada en
       `turbo.json`. Estado al encenderlo: `apps/web` **0 errores** y `packages/shared`
@@ -2280,13 +2307,17 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       El hallazgo de taupe que salió acá el 09-sep ya está cerrado (ADR-0017,
       `--color-taupe-profundo`); lo que queda es el barrido de las pantallas con
       sesión, que es más ancho que ese solo color.
-- [ ] Campos viejos: `ProformasPanel`, `EfectivoPanel` y los 6 modales del núcleo
-      siguen con los strings `campoTexto`/`campoSelect`/`botonPrimario` de
-      `ui/Modal.tsx`. `components/ui/campos.tsx` (ADR-0011) ya los reemplaza en
-      Facturación con campos que sí tienen estado (hilo de foco, desplegable propio,
-      segmentado). Migrar pantalla por pantalla, nunca de un saque: los strings
-      viejos siguen exportados justamente para que la migración sea opcional.
-      Esperar a que Felipe confirme que le gusta el diseño en Facturación primero.
+- [ ] Campos viejos: `ProformasPanel` y los 6 modales del núcleo siguen con los strings
+      `campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`.
+      `components/ui/campos.tsx` (ADR-0011) ya reemplazó esto en `ComprobantesPanel`
+      (misma pantalla de Facturación, en producción). Migrar pantalla por pantalla,
+      nunca de un saque: los strings viejos siguen exportados justamente para que la
+      migración sea opcional. `EfectivoPanel` ya no existe (era de Finanzas V1, borrado
+      en el corte V1→V2) — se cae de esta lista.
+      **2026-09-16: antes/después de `ProformasPanel` armado y mostrado a Felipe
+      (artifact interactivo, ver BITÁCORA de hoy) — a la espera de su visto bueno antes
+      de tocar el componente.** Esperar a que confirme que le gusta el diseño ahí
+      primero.
 
 ---
 
