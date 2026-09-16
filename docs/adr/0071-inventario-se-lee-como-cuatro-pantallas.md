@@ -49,21 +49,15 @@ Ganas/Pagas. Sus respuestas gobiernan este ADR.
      string (arrays) — el redirect los reenvía con `append`, probado con `?cat=entrada`.
 
 2. **Semáforo de Existencias con cuatro estados: Normal · Reponer piso · Stock bajo ·
-   Sin stock.** "Stock bajo" (nuevo) = piso + almacén de ESA tienda ≤ 6 (Felipe:
-   "6 o menos", el doble del umbral de piso que ya había fijado en 4). Bajar del
-   almacén no lo arregla: hay que pedir traslado. Gana sobre "Reponer piso" a
-   propósito — una prenda con 1 y 1 se puede reponer, pero eso no es lo que la
-   encargada necesita saber; el botón "Reponer" se sigue ofreciendo aparte
-   (`necesitaReponerPiso`), independiente del estado. Es distinto de
-   `productos.stock_minimo` (Catálogo), que mira la red entera por modelo y avisa cuándo
-   pedir al proveedor: dos preguntas distintas, dos números.
+   Sin stock**, corregido el mismo día probando la pantalla con datos reales — ver
+   "Corrección 2026-09-16" más abajo, que reemplaza los umbrales originales de este
+   punto (4 y 6) por los que rigen hoy (7 y 20) y cambia a qué mira "Stock bajo".
+   Es distinto de `productos.stock_minimo` (Catálogo), que mira la red entera por
+   modelo y avisa cuándo pedir al proveedor: dos preguntas distintas, dos números.
    - DESCARTÉ calcularlo contra la demanda (ventas/día) en vez de un número fijo: ya
      existe esa señal a nivel producto (`reponer_de_proveedor`, ADR de punto de reorden)
      y tener dos fórmulas para "me estoy quedando sin" en dos pantallas es justo la
      inconsistencia que este proyecto evita.
-   - SE ROMPE SI una prenda de talla única vive normalmente con 6 unidades en una
-     tienda: se verá "Stock bajo" aunque para ella sea normal. Si pasa seguido, el
-     umbral se vuelve por categoría, no se parcha con un `if`.
 
 3. **Número corrido para traslados y conteos** (`transferencias.numero`,
    `conteos.numero`; sequence propia cada uno, default al insertar, rellenado por
@@ -88,6 +82,54 @@ Ganas/Pagas. Sus respuestas gobiernan este ADR.
    - SE ROMPE SI en la práctica una integrante cuenta y un líder cierra en otro
      momento: hoy `cerrar_conteo` exige líder, y ella no puede avisar que terminó más
      que de palabra. No se cambió el permiso de cierre (no se pidió); queda anotado.
+
+## Corrección 2026-09-16 (mismo día, probando la pantalla ya construida)
+
+Felipe probó Existencias y pidió cinco ajustes puntuales — cuatro visuales y uno de
+regla de negocio real, que reemplaza al punto 2 original:
+
+1. **Los umbrales del semáforo cambian, y "Stock bajo" deja de sumar piso + almacén.**
+   `UMBRAL_REPOSICION_PISO` sube de 4 a 7 (con 4 el aviso llegaba tarde). El cambio de
+   fondo: `UMBRAL_STOCK_BAJO_TIENDA` (piso+almacén ≤ 6) se retira; nace
+   `UMBRAL_STOCK_BAJO_ALMACEN` = 20, que mira **solo el almacén**, sin sumar el piso.
+   La pregunta que resuelve pasó de "¿cuánto hay hoy en total?" a "¿a esta tienda
+   todavía le queda de dónde sacar?" — una prenda con el piso lleno y el almacén en 15
+   igual pide traslado, porque cuando el piso se vacíe no habrá con qué reponerlo.
+   `calcularEstado` queda con sus tres `if` en orden estricto de severidad
+   (sin_stock → stock_bajo → reponer_piso → normal): con este orden, "Reponer piso"
+   solo aparece cuando el almacén YA tiene más de 20 — hay reserva sana, solo falta
+   bajarla; si la reserva misma está baja, gana "Stock bajo" sobre "Reponer piso"
+   siempre, no como antes (que "Reponer" se ofrecía aparte del estado, con su propia
+   función `necesitaReponerPiso`, retirada en esta corrección).
+   - DESCARTÉ mantener dos condiciones independientes (piso bajo Y almacén bajo,
+     evaluadas por separado): con los `if` encadenados, la severidad se decide sola —
+     agregar una tabla de combinaciones al lado hubiera sido la misma regla, escrita
+     dos veces, con más chance de desincronizarse.
+   - SE ROMPE SI una prenda con el piso lleno (>7) y el almacén exactamente en el
+     umbral (=20) es normal en la práctica pero el sistema la marca "Stock bajo": el
+     número es de Felipe, ajustable en `UMBRAL_STOCK_BAJO_ALMACEN`, una sola constante.
+2. **"Reponer" solo aparece en el estado "Reponer piso"** — antes se ofrecía también en
+   "Stock bajo" (con algo en el almacén, aunque fuera poco). Con la nueva definición de
+   "Stock bajo" (ya no importa el piso) esto ya no hacía falta separado: el botón
+   ahora solo mira `f.estado === "reponer_piso"`, directo, sin una segunda función.
+3. **Miniatura de la prenda** en la columna "Prenda · variante" — la foto principal del
+   producto (`producto_fotos.es_principal`, o la de menor `orden` si ninguna está
+   marcada), 36×36, con un marcador de perchero (mismo trazo que `IC.inventario` en
+   `AppShell.tsx`) cuando el producto no tiene fotos. Primera pantalla de LISTADO que
+   muestra fotos de producto en esta app — hasta hoy solo vivían en la ficha
+   (`/productos/[id]`) y en el formulario de alta/edición.
+4. **"En la red" cambia de formato**: de "15 en Taller" (una línea) a "Disponible en 2
+   sedes: 20 uds" arriba y "Taller: 15 · Lima: 5" abajo — el formato de la referencia
+   operativa de Felipe. Función nueva `resumenRed()` en `lib/stock-por-sede.ts`, **no**
+   un cambio a `textoOtrasSedes()` — esa la usa también Vender
+   (`PuntoDeVentaCatalogo.tsx`, "no hay tu talla aquí, pero sí en Trujillo") con su
+   propio formato de una línea, y las dos pantallas no tenían por qué leer igual.
+5. **Confirmado, no cambiado: "Piso · Almacén" ya estaba centrado.** Medido en el DOM
+   (no a ojo): la celda es un *grid item* — CSS "blockifica" todo hijo directo de un
+   contenedor `display:grid`, así que `text-align:center` sobre un `<span>` sí centra
+   su contenido ahí, con la misma separación a cada lado (45px/45px en la fila medida).
+   Lo que se veía descentrado en la captura de Felipe era la fila completa, más angosta
+   antes de sumar la miniatura de la prenda (punto 3) — no esta columna en particular.
 
 ## Consecuencias
 
