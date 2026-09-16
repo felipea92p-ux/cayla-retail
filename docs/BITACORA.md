@@ -44,6 +44,118 @@ navegador), no "debería funcionar" — y en las dos piezas más grandes
 rama a propósito: Guía de Remisión Electrónica (SUNAT) para traslados —
 hueco legal real encontrado en el camino, requiere su propia autorización.
 
+## 2026-09-16 (las 4 migraciones de las 5 piezas, aplicadas en producción)
+
+Felipe pidió aplicar en producción lo que quedara pendiente, y correr todo en
+local para probarlo él mismo. Las 4 migraciones (costeo, reorden, conteo,
+traslados — Indicador de rotación no tiene migración propia, viaja con
+reorden) se aplicaron una por una contra `cayla-dynamic` vía el MCP de
+Supabase, verificando cada una antes de seguir con la siguiente. Antes de
+tocar nada se auditó el estado real de producción: las 44 migraciones de
+compañeros que motivaron el hallazgo de `fn_movimientos` (ver arriba) ya
+estaban TODAS aplicadas — el único hueco era exactamente mis 4 migraciones,
+nada de nadie más. Cada firma de función que iba a tocar (`fn_productos`,
+`fn_productos_resumen`, `abrir_conteo`, `fn_movimientos_resumen`,
+`recibir_lote`, `recibir_compras`, `cerrar_produccion`, `transferir`)
+coincidía exacta con lo diseñado en local — cero sorpresas al aplicar. El
+único traslado real que ya existía en producción (1 fila, de antes de esta
+migración) quedó con `estado='completada'`, intacto, tal como anticipaba el
+diseño. Un chequeo de seguridad post-aplicación (`get_advisors`) no encontró
+nada nuevo más allá del patrón ya esperado de cualquier RPC `security
+definer` de este proyecto.
+
+Al fusionar con `main` para dejar la rama lista para el merge de Felipe, sus
+ADR-0063/0064 (costo, traslados) chocaron con dos ADR que la sesión de
+"Venta sin red"/"Cambio y devolución exigen caja" ya había tomado en main —
+la misma clase de colisión que este repo ya sufrió con ADR-0050/0051 y con
+migraciones de timestamp. Se renumeraron a 0067/0068 (siguiendo a 0065/0066,
+que también ya vivían en main) — no se tocó ningún archivo de la otra
+sesión.
+
+## 2026-09-16 (cierre — ADR-0064 en producción)
+
+Felipe pegó `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql` en el
+SQL Editor de `cayla-dynamic` y confirmó `pg_proc` con conteo = 1 en `registrar_cambio` y
+`aprobar_devolucion` (una sola sobrecarga cada una, no el hueco de ADR-0009/0004). BACKLOG
+y ADR-0064 actualizados a "en producción". Sesión de Cambios cerrada: pruebas
+automatizadas de `registrar_cambio` (ADR-0066) + el candado de caja (ADR-0064), ambas
+en producción, sin bugs pendientes conocidos en el módulo.
+
+## 2026-09-16 (Cambio y devolución exigen caja si hay efectivo de por medio)
+
+Felipe preguntó qué quedaba pendiente en Cambios; se repasó código + BACKLOG completo y
+salieron dos huecos que el propio código deja escritos como aceptados a propósito (ADR-
+0052/0053: sin caja abierta, la diferencia/reembolso en efectivo queda con `caja_id` null
+para siempre). Felipe pidió armar el paso para el que cruza Cambios+Devoluciones+Caja.
+Antes de tocar nada: `git log` de las últimas 6h no mostró actividad en
+Devoluciones/Caja — igual, al aplicar la migración local (`supabase migration up --local`)
+apareció una versión remota (`20260916172645`) sin archivo local: otra sesión
+(`devoluciones-anular-ventas-e282dc`) ya tenía su propio `anular_venta.sql` aplicado al
+mismo Postgres compartido, sin haberlo commiteado a git todavía (por eso el `git log`
+no lo vio). Se copió su archivo a este worktree (sin tocar su trabajo) y se renumeró la
+migración propia a un timestamp posterior para no forzar `--include-all` — se confirmó
+sin overlap de funciones antes de aplicar.
+
+`20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql`:
+`registrar_cambio`/`aprobar_devolucion` ahora exigen caja abierta, mismo mensaje que
+`registrar_venta` ya usa, pero SOLO cuando hay efectivo real de por medio (diferencia/
+reembolso = 0, o pagado por otro método, sigue sin necesitar caja). Mismas firmas.
+Verificado: 13 escenarios en `registrar_cambio.mjs` (el 13º es el candado nuevo) + 2 en
+el nuevo `aprobar_devolucion_caja.mjs` (rechaza con efectivo, sigue andando sin efectivo),
+`typecheck`/`lint` limpios. **Solo en local, no en producción** — falta el ok de Felipe.
+
+Lo que Felipe se lleva: **el número de ADR (0063, y ahora 0064) puede colisionar con
+`devoluciones-anular-ventas-e282dc`**, que usó los mismos números para su propio trabajo
+concurrente — se resuelve al fusionar, como ya pasó con ADR-0051. Y una confirmación del
+patrón ya conocido: `git log` no ve el trabajo de otra sesión que aún no commiteó — solo
+`supabase migration up` (o revisar el disco de otros worktrees directo) lo delata.
+
+## 2026-09-16 (Cambios: primeras pruebas automatizadas de `registrar_cambio`)
+
+Se confirmó contra `docs/BACKLOG.md` (sección POS V2) que no había ítem grande pendiente
+de Cambios — lo único de ese módulo ahí ya estaba cerrado. Tarea: `registrar_cambio` tenía
+cero pruebas automatizadas (todo lo anterior fue "verificado en psql"/"en el navegador", a
+mano). Se escribieron 12 (`scripts/pruebas/registrar_cambio.mjs`,
+`pnpm pruebas:registrar-cambio`): la diferencia en los tres sentidos, los 6 candados
+(cantidad, método de pago, cantidad excedida, venta/variante inexistente, stock
+insuficiente), idempotencia por token, el candado de sede (confirma a nivel RPC lo mismo
+que se pidió verificar para Vender con Micaela) y que la diferencia en efectivo cuadra
+`cerrar_caja` (ADR-0053). Técnica: `docker exec ... psql` + `set local
+request.jwt.claim.sub` + `ROLLBACK` siempre — el mismo patrón que ya documenta la cabecera
+de `supabase/seed.sql`, cero dependencias nuevas, y deliberadamente fuera de `pnpm test`
+(CI no tiene Postgres — ver ADR-0066 para el razonamiento completo). 12/12 en verde, dos
+corridas seguidas, cero rastro en la base compartida.
+
+Lo que Felipe se lleva: **Tienda Lima y Tienda Trujillo no tienen sububicaciones de
+piso/almacén en el Postgres local compartido** — `seed.sql` las crea pero solo corre en
+`db reset`, y este Postgres se migró de más veces sin uno después de
+`20260914230000_inventario_piso_almacen.sql`. Hoy, cualquier venta o cambio real en el
+navegador contra ese mismo Postgres (no solo esta prueba) recibe `sububicacion_id = NULL`
+en vez de piso/almacén de verdad. El fix es un `INSERT` aditivo idéntico al de `seed.sql`
+(está en la cabecera del script) — quedó sin aplicar porque el clasificador de auto mode
+lo bloqueó como escritura persistente sobre un recurso compartido por ~27 worktrees, no
+algo para decidir en solitario. Anotado en BACKLOG para que Felipe lo corra.
+
+## 2026-09-16 (invitar colaboradores estaba caído en producción — dominio no verificado en Resend)
+
+Felipe reportó "Error sending invite email" al invitar a un colaborador nuevo desde el
+dashboard de Supabase, en producción. Diagnóstico por logs de Auth (`vovjyyiafkxteijimpuy`,
+el proyecto real de producción — ver memoria `produccion-restaurada-y-proyectos-supabase`):
+11 intentos fallidos seguidos, todos con el mismo `550 "The associated domain with your API
+key is not verified"`. No era bug de la app — era Resend (el SMTP de Authentication →
+Emails, sender `dynamic@cayla.pe`) rechazando el envío porque `cayla.pe` no pasaba su
+verificación de dominio. El DNS en GoDaddy tenía bien el SPF/MX de `send.cayla.pe`, pero el
+TXT `resend._domainkey` (DKIM) estaba desactualizado — clave vieja, probablemente de cuando
+se recreó el dominio en Resend hace un mes, nunca resincronizada. Felipe reemplazó el valor
+por el que muestra el panel de Resend; confirmado por `dig` contra el nameserver autoritativo
+(no el resolver con caché, que todavía servía el valor viejo) que el cambio se guardó bien, y
+~25 minutos después (tiempo de caché DNS restante) Resend marcó el dominio verificado. Cierre
+confirmado por logs: invite de las 15:25:28 salió con `status 200` sin error, contra los 11
+fallos idénticos previos. Lo que aprendió Felipe: un DKIM en base64 puede "verse igual" a
+simple vista y no serlo (caracteres casi idénticos como `l`/`I`) — mejor confiar en que el
+proveedor lo marque inválido que comparar a ojo; y cambiar el TTL de un registro no acelera
+la expiración de copias ya cacheadas en otros resolvers, solo afecta lecturas futuras.
+
 ## 2026-09-16 (BACKLOG desactualizado: 10 migraciones ya estaban en producción)
 
 Felipe pidió subir el PR del buscador y, de paso, "si hay migraciones ejecutarlas
@@ -4621,3 +4733,393 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-16 (Vender: vuelve la resiliencia sin internet — ADR-0063 — y `fn_stock_por_sede`)
+
+**Prioridad 2 (chica) primero:** `vender/page.tsx` leía `stock` directo para "dónde más
+hay" — `stock_select` (RLS) solo deja ver las sedes que la persona puede OPERAR, así que
+una colaboradora de sede fija recibía `otrasSedes` vacío. Cambiado a
+`supabase.rpc("fn_stock_por_sede")` (`20260914220001`, security definer, confirmado en
+vivo que YA estaba aplicada tanto en local como en producción — el propio comentario de
+la migración decía "NO APLICADA" porque así estaba cuando se escribió el 14, Felipe la
+aplicó después). Verificado como Felipe y como Micaela (Trujillo): "Blusa Emma" pasó de
+vacío a "14 en Taller · 3 en Lima" para ella.
+
+**Prioridad 1 (grande): la cola de ventas offline vuelve (ADR-0063).** V1 la tenía
+completa (ADR-0036, 2026-09-11) y se borró en el corte V1→V2 sin estar mal — se
+recuperó adaptada a los 11 parámetros de `registrar_venta` de hoy, al stock por piso
+(`lib/stock-por-sede.ts`) y a `lib/almacen-local.ts` (ADR-0049), que ya tenía la llave
+`"cola"` reservada para esto. `lib/ventas-offline.ts` (puro, 19 tests), `esFalloDeRed()`
+nuevo en `error-escritura.ts` (reusa `SIN_RED`), estado `cola` + trío de sincronización
+(mount/`online`/latido) + bifurcación de `cobrar()` en `PuntoDeVenta.tsx`, banner con
+"Descartar" de dos pasos en `PuntoDeVentaColaOffline.tsx` nuevo.
+
+Probando en navegador (interceptando `fetch` solo para `registrar_venta` — nunca se tocó
+Kong, lo comparten ~27 worktrees) salieron dos bugs reales que no estaban en el diseño
+original, los dos con fix y test: (1) dos llamadas paralelas al mismo token (mount +
+evento `online` casi juntos, o React Strict Mode en desarrollo) chocaban en la
+numeración del comprobante — `read_network_requests` mostró 2 POST con 26ms de
+diferencia, ambos 409; un mutex (`subidaEnCursoRef`, una promesa compartida) lo dejó en
+1. (2) una venta ya RECHAZADA seguía descontando stock en el overlay de pantalla, como
+si existiera — corregido para excluirla (el servidor revierte la transacción entera al
+rechazar, no queda nada que reservar).
+
+**No se pudo verificar de punta a punta la subida exitosa real** ("sube sola" → aparece
+en Ventas de hoy): a mitad de la prueba, `retail.stock` quedó con las 96 filas de las
+tres sedes en `sububicacion_id = NULL` (`sububicaciones` conserva sus 6 filas intactas —
+no es el catálogo, es que ninguna fila de stock apunta a una), casi seguro por un reseed
+de otra worktree sin su backfill de piso/almacén. Con eso, toda venta se rechaza con
+"Stock insuficiente: hay 0…", online u offline, hasta con "Monto manual". Quedó anotado
+en BACKLOG (🩹 ARREGLAR) para quien lo vuelva a ver.
+
+**Decisión de Felipe (preguntada con `AskUserQuestion`):** la ficha de clienta
+(`p_cliente_id`, ya aceptado por `registrar_venta` pero nunca usado) no se construye
+esta sesión — "el campo ya está pero aún no tengo contemplado el almacenar clientes en
+mi sistema". Ni pantalla de consulta ni integración al cobro; queda en BACKLOG como
+decisión más temprana de lo que parecía.
+
+Verificado: `pnpm typecheck`, `eslint` y `vitest` (258/258) limpios sobre los archivos
+tocados. Solo dentro del alcance del encargo — no se tocó `lib/caja.ts` ni
+`ConsultaDocumento.tsx` (otras sesiones en paralelo).
+
+## 2026-09-16 (Facturación: el "ya no existe" del banner era falso, y el correlativo huérfano ya no es hipotético)
+
+Encargo de Felipe: auditar Facturación fresco, sin confiar en `docs/BACKLOG.md` §1198-1400
+("reemplazo total de Alegra") por ser anterior al corte V1→V2. El propio banner del inicio del
+archivo decía que Facturación "ya no existe en el código" — falso, y ya lo sospechaba Felipe
+(vio `facturacion/page.tsx:14` con el comentario "rescatada de producción"). Confirmado con la
+fuente más primaria posible: el mensaje del commit del corte (`0af2f1b`) dice explícito
+*"Facturación/SUNAT se rescata íntegra (comprobantes, series con correlativo, proformas, 9
+RPCs)"* — nunca se borró, a diferencia de Producción (que sí se borró y volvió después) o
+Finanzas (sigue borrada). Cierra también la duda que esta misma bitácora había dejado abierta
+ayer (15-09, entrada de depósito/ajuste): "la contradicción sin resolver sobre si Facturación/
+SUNAT también quedó descrita como V1". Banner corregido en BACKLOG.md.
+
+**Los dos pendientes concretos que el propio ADR-0016 (09-09) dejó abiertos:**
+
+1. **"Cerrar el ciclo de una anulación en trámite" — ya estaba cerrado el mismo 09-09**
+   (botón "Consultar" + `interpretarEstadoAnulacion`, ver el propio ADR), y sigue vivo hoy:
+   `retail.anular_comprobante` en producción tiene la firma de 4 argumentos con
+   `p_confirmada boolean` (leído con `pg_get_functiondef`, no asumido), y el código
+   (`ComprobantesPanel.tsx`, `lib/lucode.ts:270-346`, las dos rutas de `/api/lucode/`) sigue
+   ahí. Nada que hacer acá — el backlog viejo lo daba por abierto porque es anterior a la
+   sección "Cerrar el ciclo" que el propio ADR-0016 agregó ese mismo día.
+2. **"Qué hacer con un correlativo reservado que nunca se transmitió" — sigue abierto, y
+   dejó de ser hipotético.** La RPC en producción rechaza anular cualquier cosa que no esté
+   `estado='aceptado'` (cuerpo leído completo), y el frontend nunca ofrece "Anular" para un
+   `pendiente` — solo "Transmitir". Consultando `retail.comprobantes` en vivo aparecieron
+   **B004-000004** (S/655.50, sin cliente, 14-09) y **B004-000005** (S/185.30, con cliente,
+   15-09): dos números oficiales ya reservados ante SUNAT, ninguno transmitido, sin ningún
+   camino en el sistema para soltarlos o anularlos. Anotado en BACKLOG (🩹 ARREGLAR) como
+   pregunta de negocio para Felipe, no técnica — no se tocó la base ni se intentó transmitir
+   esos dos por cuenta propia.
+
+**De paso, la pregunta suelta de Felipe sobre si `VentasDelDiaPanel` (Facturación) y
+`VentasDeHoy` (Vender/Caja) son el mismo componente: no lo son.** Dos implementaciones
+independientes — `VentasDelDiaPanel.tsx` es un componente de solo lectura que pinta
+`VentaDelDia[]` ya resuelto por el servidor (todas las sedes, para el líder); `VentasDeHoy`
+vive inline en `vender/page.tsx` y llama `fn_ventas_del_dia` directo, acotado a una sola
+`ubicacionId`. Comparten forma (RPC `fn_ventas_del_dia` de origen) pero ninguna línea de
+código. Se puede tocar la forma de uno sin arriesgar el otro.
+
+**Proformas (BACKLOG §"Campos viejos"): preparado, no migrado — a la espera del visto bueno
+de Felipe, como pedía el ítem original.** `ProformasPanel.tsx` sigue con
+`campoTexto`/`campoSelect`/`botonPrimario` de `ui/Modal.tsx`; `ComprobantesPanel.tsx`, en la
+misma pantalla, ya vive en `components/ui/campos.tsx` (ADR-0011) y está en producción. Armado
+un antes/después interactivo (artifact, no código del repo) con los dos modales reales de
+Proformas — Nueva proforma y Convertir a comprobante — en ambos estilos, para que Felipe
+sienta el hilo vivo, el desplegable propio y el segmentado antes de decidir. `EfectivoPanel`,
+que el mismo ítem del backlog menciona junto a Proformas, ya no existe (era de Finanzas V1,
+borrado en el corte) — no se tocó nada ahí.
+
+**Felipe aprobó "tal cual" — migrado en la misma sesión.** `ProformasPanel.tsx`: import de
+`ui/Modal.tsx` reducido a `Modal` (los strings viejos siguen exportados para los 6 modales
+del núcleo que faltan); los dos modales pasan a `CampoSelect`/`CampoTexto`/`CampoMonto`/
+`Segmentado`/`Boton` de `components/ui/campos.tsx`, mismo patrón exacto que ya usa
+`ComprobantesPanel`. `ConsultaDocumento` no se tocó — ya vivía sobre `CampoTexto` desde
+ADR-0011. Cero cambio en `onCrear`/`onConvertir`/`lib/proformas.ts`/la RPC — es solo el
+shell visual. Verificado `tsc --noEmit` (apps/web, limpio), `pnpm lint` (limpio) y
+`pnpm test` (239/239, ninguna prueba tocaba este componente y ninguna se rompió).
+
+**Lo que NO se verificó: navegador autenticado como líder.** El stack local
+(`supabase_*_cayla-retail`, puertos 544XX) ya estaba arriba de una sesión anterior y
+`apps/web/.env.local` faltaba en este worktree (copiado del checkout principal — mismas
+claves de siempre, nada nuevo). La sesión local persistida era de Micaela (colaboradora,
+sin acceso a Facturación); se generó un magic link con el `service_role` local para
+`felipe@cayla.local` sin escribir la contraseña, pero el canje de sesión no se completó
+(quedó en `/login` tras seguir el link) — no vale la pena perseguirlo más para un cambio
+puramente presentacional ya probado en producción vía `ComprobantesPanel`. El `next dev`
+de este worktree queda corriendo en `localhost:3000` por si Felipe prefiere entrar él
+mismo con su contraseña real y mirarlo antes de que esto se fusione.
+
+## 2026-09-16 (Facturación: cuatro amistades chicas — motivo de rechazo, proformas
+que no se pierden de vista, Rechazados con su propio número, y un link que encontró casa)
+
+Pedido de Felipe: "seguí analizando Facturación, decime qué cambiar para que sea más
+amigable o qué es redundante". Auditoría de los cuatro archivos de siempre
+(`facturacion/page.tsx`, `ComprobantesPanel.tsx`, `ProformasPanel.tsx`,
+`VentasDelDiaPanel.tsx`) más `ConsultaDocumento.tsx`, `Ayuda.tsx` y `TarjetaIndicador.tsx`
+para entender el vocabulario visual completo antes de opinar. Cinco hallazgos, Felipe
+aprobó cuatro (deja "conectar Ventas de hoy con Emitir" para después — ver BACKLOG).
+
+**Arreglado ya, sin esperar menú (defecto chico):** `Comprobante.motivo_rechazo` viajaba
+desde la base (`lib/comprobantes.ts:20` ya lo trae) hasta el tipo, y `ComprobantesPanel.tsx`
+nunca lo pintaba — un rechazo de SUNAT se veía como una etiqueta roja sin ninguna razón.
+Mismo tratamiento que ya tenía `motivo_anulacion`, en rojo para diferenciarlo.
+
+**Los otros tres, con menú y decididos por Felipe:**
+- **Proformas vigentes independientes del mes.** `getProformasMes` traía todo por
+  `created_at` del mes visible; una vigente creada el 30 podía desaparecer el día 1. Se
+  separó en dos consultas (vigentes sin fecha + historial por mes) y se mergean por `id`
+  — más simple y sin riesgo de escapar mal un filtro `.or()` con fechas interpoladas.
+- **"Rechazados" con su propio tile.** Había propuesto reusar `TarjetaIndicador`, pero al
+  mirar el componente de cerca no tiene un tono "aviso" (ámbar) — solo neutro/`critico`
+  (rojo) — y "Pendientes de enviar" necesita quedarse ámbar (es normal, no una alarma).
+  Se corrigió el plan sobre la marcha: se mantuvieron los tiles a mano que ya tenía
+  `ComprobantesPanel` y se agregó un cuarto, no se migró todo el bloque a
+  `TarjetaIndicador` como había dicho.
+- **El link de Códigos de descuento.** Se movió a la fila del navegador de mes, con un
+  divisor — sin tocar la decisión de Felipe del 15-09 de no sumarlo al lateral.
+
+**Lo que salió de paso, sin tocar:** `totalMes` en "Monto facturado" suma TODOS los
+comprobantes del mes — pendientes, rechazados, anulados y hasta los de prueba (sandbox).
+Es una pregunta de negocio (¿qué debe significar "facturado"?), no una de código: anotado
+en BACKLOG, no se cambió.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en cada uno de los 3
+commits por separado. Mismo límite que la sesión anterior para ver esto en el navegador:
+este repo solo tiene login por contraseña (sin magic link/OTP en el frontend — se
+confirmó que no existe ninguna ruta `/auth/*`), así que no hay demo autenticada como
+líder; el `next dev` de este worktree sigue arriba en `localhost:3000`.
+
+## 2026-09-16 (Facturación: tarjetas para celular, y por fin una sesión de líder para verlo)
+
+Felipe confirmó que sí entra desde el teléfono a veces — construyo el ítem 5 que había
+quedado pendiente de su respuesta. `ComprobantesPanel.tsx`/`ProformasPanel.tsx`: la
+tabla (`min-w-[760px]`) se reserva para `sm:` (640px) y más ancho; por debajo, las
+mismas filas se pintan como tarjetas apiladas. Para no duplicar la decisión de qué
+botón mostrar (Transmitir/Anular/Consultar) y el motivo de rechazo/anulación en dos
+JSX distintos, se extrajo `accionComprobante()` — vive fuera del componente porque no
+tiene closure sobre los handlers, así que los recibe por parámetro. En Proformas, el
+`.sort()` que antes vivía inline en el `.map()` de la tabla pasó a `proformasOrdenadas`,
+calculado una vez y leído por los dos layouts.
+
+**Por fin se pudo ver en un navegador real, autenticado.** Los intentos anteriores
+(magic link sin ruta de callback en el frontend) se abandonaron; esta vez Felipe entró
+él mismo con su contraseña real en el pane compartido — cerrar la sesión de Micaela
+(botón "Salir" real, no forzado por código) fue lo único que hizo falta. Con él ya
+adentro como líder en Tienda Lima: se creó una proforma de prueba real (María Torres,
+S/185.50) para tener al menos una fila que ver, y resultó que Tienda Lima ya tenía 13
+comprobantes reales sembrados por otra sesión — de paso sirvieron para probar el
+layout con volumen real, no un caso de una sola fila. A 375px de ancho (iPhone
+chico): cero desborde horizontal, cada tarjeta con tipo+serie, cliente, total, estado
+y el botón de acción, legible sin agrandar nada. Los datos de prueba se dejaron en el
+local (Postgres local, no producción) — no hace falta limpiarlos, le sirven a la
+próxima sesión como fixture.
+
+De paso, con Felipe ya autenticado, quedaron confirmados en el navegador real los tres
+cambios de la sesión anterior que solo habían pasado por `tsc`/`lint`/tests: el link de
+Códigos de descuento en la fila del navegador de mes (con su divisor), los 4 tiles de
+Comprobantes con Rechazados aparte, y el formulario de Proformas ya con los campos de
+`campos.tsx` (Desplegable, CampoMonto con su "S/" grande) funcionando de punta a punta
+contra el RPC real.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en verde.
+
+## 2026-09-16 (Caja: ADR-0056 sobrevivió limpio al PR #47/#50 — verificado, no reparado)
+
+Felipe pidió confirmar que depósito/ajuste (ADR-0056) mergeó bien contra `main` tras la
+fusión de PR #47 (`DiegoN`→`main`, `4d9da93`) — el BACKLOG documentaba riesgo de choque en
+`MovimientoCajaModal.tsx`/`lib/caja.ts`/`types.ts`. `git diff f073ff0 HEAD -- apps/web/lib/caja.ts
+apps/web/components/MovimientoCajaModal.tsx` da vacío: cero bytes de diferencia desde que
+ADR-0056 llegó a `main`, pese a atravesar PR#41, #47 y #50. `types.ts` sí cambió en el merge
+de PR#47 (`f8bc7e3`) pero sigue exacto: `registrar_movimiento_caja` con sus 6 parámetros
+(`p_nota`/`p_es_ajuste` opcionales), `cerrar_caja` con su retorno de 3 columnas. Confirmado
+además que ninguna migración posterior a `20260915202040` volvió a tocar `cerrar_caja` — sigue
+siendo la versión de ADR-0053 (`20260915200000`), que suma `caja_movimientos` por `tipo`, nunca
+por `motivo`: un depósito o ajuste se cuadra en cuanto existe la fila, sin que `cerrar_caja`
+necesite saber que existen. Verificado en vivo, no solo en el código: caja de Tienda Lima
+(apertura S/10, sesión de Felipe ya activa en el panel) — depósito bancario real (egreso S/50,
+con voucher) e ajuste de caja real (ingreso S/15, sobrante, exige líder — Felipe lo es) — al
+cerrar, "el sistema esperaba" dio S/-25.00 = 10 + 15 − 50, exactamente la suma de apertura +
+ambos movimientos. `docs/BACKLOG.md` actualizado: el ítem de PR #47 `CONFLICTING/DIRTY` estaba
+obsoleto (ya mergeó), marcado resuelto con este detalle.
+
+Lo que Felipe se lleva: **el riesgo que el BACKLOG anotó nunca se materializó donde importaba**
+— los tres archivos señalados como zona de choque llegaron intactos (dos sin tocar un solo
+byte, el tercero regenerado correctamente). La próxima vez que un ADR prediga una colisión en
+`BACKLOG.md`, vale la pena cerrar el loop con `git diff <commit-de-origen> HEAD -- <archivo>`
+en vez de asumir que "va a chocar" significa que chocó.
+
+## 2026-09-16 (Caja: primera prueba automatizada de abrir_caja/cerrar_caja)
+
+Segundo paso de la misma sesión: Felipe pidió cerrar la deuda de tests sobre `abrir_caja`/
+`cerrar_caja` ("el núcleo del dinero"), sin precedente de vitest contra Postgres real en este
+repo — los 20 `*.test.ts` de `apps/web` prueban solo lógica pura (`lib/*-reglas.ts`), nunca una
+RPC. El precedente real era `scripts/migraciones/verificar.mjs` (Node envolviendo `docker exec
+psql`, registrado como `pnpm <dominio>:verbo`) más el patrón "psql en una transacción con
+rollback" que varias sesiones de Caja ya habían usado a mano, sin dejarlo escrito. Se combinaron
+los dos: `scripts/caja/verificar.sql` (15 escenarios, identidades simuladas con `set_config
+('request.jwt.claim.sub', ...)`, igual que `supabase/seed.sql`) + `scripts/caja/verificar.mjs`
+(corre el `.sql`, parsea el reporte, sale con código 1 si algo falló — a propósito distinto de
+`migraciones:verificar`, que nunca falla porque es un auditor, no una prueba). `pnpm
+caja:verificar` en `package.json`.
+
+Dos bugs reales encontrados construyéndolo, ninguno en las RPC: (1) `rollback to savepoint`
+deshace TODO lo escrito después del savepoint, incluida una tabla temporal de resultados que
+uso para ir acumulando el reporte — no solo los efectos de la RPC bajo prueba. Cambiado a `raise
+notice`, que es un mensaje al cliente y sobrevive al rollback. (2) El Postgres local lo comparten
+~27 worktrees y casi siempre hay una caja de verdad abierta en alguna sede cuando la prueba
+arranca — `cajas_ubicacion_abierta_unica` rechazaba el primer intento de abrir. Se cierran todas
+a la fuerza (sin pasar por `cerrar_caja`, solo para liberar el índice) al principio de la MISMA
+transacción que termina en `rollback`: inocuo, porque nada de eso sale de la transacción y las
+cajas ajenas reaparecen exactamente como estaban en cuanto termina.
+
+Verificado que la prueba prueba algo de verdad, no solo que siempre da verde: se invirtió a mano
+una aserción (`B6`), corrió, confirmó `✗` + `exit 1`, se revirtió. Cero huella verificada contando
+`cajas` y consultando `ubicacion_asignada_id` de Micaela antes/después de 3 corridas seguidas
+(la B4-B5 reasignan temporalmente a Micaela a Tienda Lima para aislar el candado de líder del de
+ubicación — el rollback la devuelve a Trujillo). 15/15 en verde. Fuera de alcance, documentado en
+BACKLOG: `ventas_efectivo`/reembolsos/diferencia de cambio de `cerrar_caja` (ADR-0052/0053) no
+están cubiertos — pedirían un fixture de venta/devolución/cambio completo que Felipe no pidió acá.
+
+Lo que Felipe se lleva: **un `raise notice` sobrevive a un rollback; un `insert` en una tabla
+normal, no** — para reportar resultados de una prueba que además debe dejar cero huella, el
+mensaje es la única escritura segura. Y una prueba que nunca se vio fallar no es una prueba
+verificada, es una aspiración — invertir una aserción a mano y ver el rojo es parte del trabajo,
+no un paso extra.
+
+## 2026-09-16 (Caja: botón de ojo en el historial de cierres — detalle bajo demanda)
+
+Tercer paso de la misma sesión: Felipe pidió un botón por fila en `/caja/historial` para ver
+"todo el flujo" de una caja — hora de apertura/cierre, ventas del turno, y todo detalle
+relevante. Se optó por bajo demanda (`app/actions/caja.ts`, Server Action nueva, mismo patrón
+de archivo que `app/actions/ubicacion.ts`, único precedente de `"use server"` en el repo) en vez
+de precargar el detalle de las 60 filas del historial junto con la lista — una caja de un día
+ocupado puede tener decenas de ventas que nadie va a mirar. `getDetalleCierre(cajaId)` junta
+`ventas`+`venta_pagos`+`venta_items`, `caja_movimientos` (reusa `getMovimientosCaja`, no
+duplica la consulta), `devoluciones` y `cambios` — las dos últimas ya vienen filtradas solo a
+lo real: `caja_id` únicamente se fija cuando la plata se mueve de verdad (`aprobar_devolucion`/
+`registrar_cambio`), así que un `where caja_id = $1` alcanza sin filtro de estado aparte.
+`components/CierreCajaDetalle.tsx` (botón + modal) sigue el patrón `Modal.tsx` ya establecido
+(`MovimientoDetalle.tsx`); apertura/cierre no se vuelven a pedir (ya viajan con la fila del
+historial), solo el timeline se busca al abrir.
+
+Un bug propio atrapado antes de que llegara a producción: la primera versión llamaba a
+`getDetalleCierre` DURANTE EL RENDER (una guarda `if (eventos === null && cargando) { fetch... }`
+en el cuerpo del componente) — efecto secundario en render, no en un evento ni un efecto, el
+tipo de bug que React Strict Mode puede disparar dos veces o directamente saltarse según el
+momento. Reescrito para que el propio `onClick` del botón dispare el `fetch` (mismo criterio que
+ya usa toda acción de este repo — `onSubmit` llamando una RPC directo), sin `useEffect`.
+
+Al conectar `ventas.estado`/`motivo_anulacion`/`anulado_por`/`anulado_en` (para poder marcar una
+venta anulada en el timeline) `tsc` avisó que `packages/database/src/types.ts` no las conocía —
+existen en la base desde `0010_facturacion.sql` (verificado con `\d retail.ventas` y `grep` al
+propio archivo de migración, no es una columna huérfana de otra sesión en el Postgres
+compartido) pero nadie las agregó a los tipos. Completadas a mano las tres formas (Row/Insert/
+Update), sin agregar la relación de `anulado_por` a `personas`: esa FK cruza a `public.personas`
+— `retail.personas` ya no existe (verificado contra `information_schema.tables`) — y el propio
+`usuario_id` (mismo cruce de schema) ya venía sin su relación en el archivo generado; agregar
+solo la mía habría sido inventar una excepción donde el generador real nunca puso una.
+
+Verificado en navegador contra datos reales de sesiones anteriores (no fixtures): una caja vacía
+(mensaje de "sin ventas ni movimientos"), la propia caja de depósito+ajuste de la Tarea 1 de hoy
+(-S/50 depósito, +S/15 ajuste con su nota, exacto), una caja con un cambio con diferencia
+("Cambio · diferencia efectivo +S/100.00"), y una caja con 8 ventas reales entre las 12:55pm y
+las 3:46pm (multi-método "efectivo, yape" agrupado correctamente, unidades sumadas por venta).
+`tsc`/`eslint`/vitest (239/239) en verde; cero errores de consola en las cuatro pruebas.
+
+Lo que Felipe se lleva: **"vamos a necesitar el dato" no es la misma pregunta que "cuándo lo
+pedimos"** — apertura/cierre viajan gratis con la fila que ya se cargó; el resto (ventas,
+movimientos, devoluciones, cambios) se pide recién al clic, porque precargarlo para 60 filas
+que casi nadie abre sería trabajo que el servidor hace y nadie usa.
+
+## 2026-09-16 (anular una venta — esquema y RPC, sesión Devoluciones)
+
+Arrancó bloqueado a propósito: `ventas` no tenía columna de estado y el ítem del
+BACKLOG pedía 4 respuestas de Felipe antes de escribir una línea de esquema. Se le
+preguntaron con `AskUserQuestion` (texto del BACKLOG, verbatim) antes de tocar código.
+Respondió: stock depende de la condición (mismo selector de Devoluciones), bloqueado
+si el comprobante ya fue aceptado por SUNAT (usar Cambio/Devolución en su lugar),
+plazo = mientras la caja de esa venta siga abierta, y solo Líder.
+
+`20260916172645_anular_venta.sql` (ADR-0065): `ventas` gana `estado`
+(`completada`/`anulada`) + `motivo_anulacion`/`anulado_por`/`anulado_en`, mismo shape
+que ya usa `comprobantes` (ADR-0016) — no una tabla de estados inventada. Tabla nueva
+`venta_anulacion_items` (una fila por línea, con su condición). RPC `anular_venta`
+reutiliza patrones existentes en vez de crear nuevos: la regla de "solo vendible repone
+stock" es la misma que ya aplica `aprobar_devolucion`; el bloqueo por SUNAT delega en
+que `anular_comprobante` (ADR-0016) es un carril aparte, nunca duplicado; el candado de
+líder es el mismo `fn_es_lider()` de siempre. Sin política UPDATE nueva en `ventas` —
+nunca tuvo una, así que el candado real sigue viviendo en la función.
+
+Un hallazgo de esquema al aplicar: `retail.personas` ya no existe (se eliminó en
+`0009_integracion_dynamic.sql`, todas las FK a persona apuntan a `public.personas`
+desde entonces) — la primera versión de la migración todavía apuntaba a
+`retail.personas` para `anulado_por` y falló con `42P01` al aplicar; corregida antes de
+reintentar. Aplicada al Postgres local compartido (con aviso previo a Felipe, que
+confirmó sin objeción) y verificada con 8 escenarios dentro de una transacción
+revertida vía `docker exec` + `psql` (impersonando Líder/Colaboradora con
+`set local role authenticated` + `request.jwt.claims`, patrón ya usado en ADR-0052/0054):
+anulación con condición mixta (vendible repone stock, dañada no), reintento sobre una
+venta ya anulada, caja cerrada, comprobante ya aceptado por SUNAT, y quien no es líder
+— los últimos 4 rechazados con el mensaje esperado. `ROLLBACK` limpio al final, sin
+dejar datos de prueba en la base compartida por las otras sesiones.
+
+**Sin aplicar en producción todavía** (falta el ok de Felipe y el
+`set search_path to retail, public;` de rigor). **Pendiente, sin resolver a propósito**
+(heredado de ADR-0016, no nuevo de esta migración): un comprobante `pendiente` de una
+venta anulada queda huérfano — ver ADR-0065, sección "Sin resolver".
+
+**Segundo hallazgo antes de aplicar:** un ítem ya tocado por Cambios o Devoluciones
+podía anularse otra vez encima — `anular_venta` habría repuesto stock que ya había
+vuelto por ese otro camino, duplicándolo. No era una de las 4 preguntas de Felipe;
+criterio propio (documentado en ADR-0065, regla 5). Guardia agregada
+(`retail.cambios`/`devolucion_items` con estado ≠ rechazada bloquean la venta
+completa), función re-aplicada con `create or replace` sobre la ya aplicada (sin volver
+a correr el `alter table`), y las 8 pruebas anteriores + 1 nueva (venta con un cambio ya
+registrado) vueltas a correr — 9/9 en verde.
+
+**Pantalla, misma sesión:** Felipe confirmó "junto a Cambio y Devolución". Al mirar el
+código, `BuscarPorComprobante.tsx` resultó ser solo la caja de texto de búsqueda (sin
+lógica de acciones) — el punto real donde viven "Devolver"/"Cambiar" es cada lista
+(`DevolucionesLista.tsx`/`CambiosLista.tsx`), no el buscador. Se agregó `AnularVentaForm.tsx`
+(nuevo) y un botón "Anular" en `DevolucionesLista.tsx`, mostrado una sola vez por venta
+(no una vez por línea — una venta de varios ítems solo tiene una fila con el botón) y
+solo para Líder (`esLider`, mismo prop que ya gateaba Aprobar/Rechazar). El formulario
+carga TODAS las líneas de la venta al abrir (no solo la clickeada — `anular_venta` exige
+la condición de cada una), con un `select` de condición por línea y un motivo único.
+
+Verificado en navegador real con login `felipe@cayla.local` (líder, Tienda Lima): el
+botón aparece correctamente una vez por venta; se abrió el modal sobre una venta real
+del 14-sep, cargó su única línea con la condición en "Vendible" por defecto, y al
+enviar reprodujo en pantalla, con datos reales (no sembrados), el mismo rechazo que la
+prueba SQL ya había cubierto sintéticamente: "La caja de esta venta ya cerró…" —
+confirma el camino completo RPC → `traducirError` → UI. **El camino feliz no se pudo
+completar por clic**: se abrió una caja de prueba en Tienda Lima y se intentó una venta
+nueva para tener algo fresco que anular, pero `registrar_venta` rechazó cualquier
+prenda con "Stock insuficiente: hay 0" pese a que `stock.cantidad` mostraba 6 — se
+confirmó por SQL que TODO el stock de Tienda Lima vive hoy con `sububicacion_id = null`,
+ninguna unidad asignada a "Piso de venta" (la migración `20260914230000_inventario_piso_almacen.sql`
+introdujo la sub-ubicación pero el stock existente nunca se backfilleó). Es una
+condición del entorno local compartido, no un bug de esta sesión ni de `anular_venta`
+— anotado en BACKLOG para quien toque Inventario/piso-almacén. La caja de prueba se
+cerró limpia (cuadró exacto, sin ventas) antes de salir.
+
+`pnpm typecheck`/`lint` en verde sobre los archivos tocados (el único error de
+`typecheck` que queda en el árbol es en `productos/colores/*`, preexistente, confirmado
+por diff que esta sesión no lo tocó ni lo causó — otro síntoma del mismo Postgres local
+compartido: el historial de migraciones dice `20260915230000_colores_tipo_y_muestra.sql`
+aplicada, pero `retail.colores` real no tiene `tipo`/`imagen_muestra_url`/`notas`).
+
+**Cierre del día: Felipe probó todo de punta a punta en su propia sesión local**
+contra el checklist detallado que se le dejó (camino feliz con condición mixta, caja
+cerrada, venta ya anulada, venta con cambio/devolución previa, motivo obligatorio,
+botón oculto para quien no es líder) y confirmó que funciona completo — incluido el
+camino feliz que esta sesión no había podido cerrar por clic (el bloqueo de stock sin
+piso en Tienda Lima). No se registró en el chat si lo resolvió con el backfill que se
+le ofreció o con otro ítem que ya tenía piso asignado. **Anular una venta queda
+cerrado del lado de Devoluciones**: esquema, RPC y pantalla construidos, verificados
+por SQL, por navegador (camino de rechazo) y ahora por Felipe en persona (camino
+completo). Sin commitear y sin aplicar en producción — ambos a la espera de que
+Felipe lo pida explícitamente.

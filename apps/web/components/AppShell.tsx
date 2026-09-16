@@ -96,6 +96,15 @@ const IC = {
   categorias: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
   // Gota: el color de la tela.
   colores: "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z",
+  // Camión: quien entrega la mercadería — "Compras" (cabecera) se queda con
+  // la bolsa+recibo de siempre; sus hijas necesitan trazo propio cada una.
+  proveedores: "M1 3h15v13H1zM16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+  // Hoja con líneas: el documento de la factura.
+  facturas: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+  // Bandeja de entrada: lo que llega a la sede.
+  recibir: "M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
+  // Reloj: lo que todavía no se pagó, contra una fecha.
+  porPagar: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
   chevron: "M9 6l6 6-6 6",
 };
 
@@ -480,6 +489,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/colores"],
+    compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -522,7 +532,14 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
-  const compras: Item = { href: "/compras", etiqueta: "Compras", icono: IC.compras };
+  // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
+  // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
+  // son lo que se hace CONTRA una factura) — esa nav queda redundante con
+  // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
+  const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
+  const facturas: Item = { href: "/compras", etiqueta: "Facturas", icono: IC.facturas };
+  const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
+  const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
   // Producción (restaurada 2026-09-15): la ve el líder desde cualquier
@@ -546,7 +563,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // Facturación queda adentro pero sigue líder-only, igual que siempre.
   const grupoVenta: ItemGrupo = {
     id: "venta",
-    etiqueta: "Venta",
+    etiqueta: "Ventas",
     icono: IC.venta,
     hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
   };
@@ -561,22 +578,32 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     icono: IC.catalogo,
     hijos: [productos, categorias, colores],
   };
+  // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
+  // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que
+  // Catálogo: "generalizado y ordenado"). Líder-only, como ya era la
+  // "Compras" plana que reemplaza — registra facturas y pagos a proveedor.
+  const grupoCompras: ItemGrupo = {
+    id: "compras",
+    etiqueta: "Compras",
+    icono: IC.compras,
+    hijos: [proveedores, facturas, recibirMercaderia, porPagar],
+  };
 
   const grupos = [
     {
       titulo: null,
-      // Compras (ADR-0035) va después de Inventario: es de donde entra la
-      // mercadería. Líder-only como Colaboradores — registra facturas y pagos.
+      // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
+      // Producción, Compras, Ventas, Movimientos, Inventario.
       items: [
         inicio,
-        grupoVenta,
+        ...(esLider ? [colaboradores] : []),
         grupoCatalogo,
+        ...(veProduccion ? [produccion] : []),
+        ...(esLider ? [grupoCompras] : []),
+        grupoVenta,
+        movimientos,
         inventario,
         traslados,
-        ...(esLider ? [compras] : []),
-        ...(veProduccion ? [produccion] : []),
-        movimientos,
-        ...(esLider ? [colaboradores] : []),
       ],
     },
   ].filter((g) => g.items.length > 0);

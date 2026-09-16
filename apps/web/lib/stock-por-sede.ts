@@ -6,10 +6,11 @@
 // Sin DOM ni Supabase: `vender/page.tsx` la llama con lo que trae la consulta y el
 // catálogo solo pinta el resultado. Probada sola (`stock-por-sede.test.ts`).
 //
-// Nota sobre RLS (medido 2026-09-14): `stock_select` deja ver solo las sedes que la
-// persona puede operar. Una Líder ve todas; una colaboradora con sede fija ve solo la
-// suya, así que para ella `otrasSedes` llega vacío — la pantalla se degrada a «Sin stock
-// aquí» sin romperse. Ampliarlo es una RPC `security definer` (migración pendiente).
+// Nota sobre RLS (medido 2026-09-14, corregido 2026-09-16): `stock_select` deja ver
+// solo las sedes que la persona puede operar — leer `stock` directo dejaba `otrasSedes`
+// vacío para una colaboradora con sede fija. `vender/page.tsx` ya no lee la tabla: llama
+// a `fn_stock_por_sede()` (20260914220001, security definer), que expone las cantidades
+// por sede a cualquiera con acceso a retail sin ampliar esa policy.
 
 export type FilaStock = { variante_id: string; ubicacion_id: string; cantidad: number };
 export type SedeConStock = { sede: string; cantidad: number };

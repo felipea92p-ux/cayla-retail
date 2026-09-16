@@ -1,8 +1,14 @@
-# ADR-0064 — El traslado entre ubicaciones pasa de atómico a dos fases
+# ADR-0068 — El traslado entre ubicaciones pasa de atómico a dos fases
+
+**Numeración:** nació como ADR-0064 en esta rama; al fusionar con `main` ese número ya lo
+tenía "Cambio y devolución exigen caja" (0064-cambio-y-devolucion-exigen-caja-si-hay-
+efectivo.md). Se renumera a 0068, siguiendo a ADR-0067 (misma rama, mismo motivo).
 
 **Fecha:** 2026-09-16
-**Estado:** Aplicado en la base local (`20260916150000_traslados_dos_fases.sql`).
-**No aplicado en producción** — falta autorización explícita de Felipe.
+**Estado:** Aplicado en local Y en producción (`20260916150000_traslados_dos_fases.sql`,
+aplicada contra `cayla-dynamic` vía MCP de Supabase con autorización explícita de Felipe,
+verificada contra `pg_proc`/`information_schema` en producción tras aplicar — incluida la
+transferencia real que ya existía, que quedó intacta con `estado='completada'`).
 **Afecta:** `retail.transferencias` (candado de `estado` ampliado, columnas nuevas),
 tabla nueva `retail.transferencia_recepciones`, columna nueva `retail.movimientos.
 transferencia_recepcion_id`, función `retail.transferir` retirada y reemplazada por

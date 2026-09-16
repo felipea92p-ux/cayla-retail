@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { ComprasNav } from "@/components/ComprasNav";
 
-// Compras (ADR-0035): tres pantallas sobre la misma entidad — la factura del
-// proveedor. El layout solo pone la sub-navegación; cada página resuelve su
-// propia persona y datos.
+// Compras (ADR-0035): varias pantallas sobre la misma entidad — la factura
+// del proveedor. La sub-navegación que este layout ponía (`ComprasNav.tsx`,
+// Proveedores/Facturas/Recibir mercadería/Por pagar) se retiró el
+// 2026-09-16: las mismas cuatro secciones viven ahora como el grupo
+// colapsable "Compras" del lateral (`AppShell.tsx`) — tenerlas en los dos
+// lados era la misma navegación repetida. El layout de acá abajo solo
+// resuelve el candado de rol; cada página sigue resolviendo su propia
+// persona y datos.
 //
 // Líder-only (0016_roles_colaborador.sql), igual que Facturación y
 // Colaboradores. Faltaba acá: el menú ya escondía el enlace (`esLider` en
@@ -30,7 +34,6 @@ export default async function ComprasLayout({ children, modal }: { children: Rea
 
   return (
     <div className="space-y-6">
-      <ComprasNav />
       {children}
       {modal}
     </div>

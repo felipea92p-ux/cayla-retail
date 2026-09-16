@@ -1,9 +1,13 @@
-# ADR-0063 — El costo de una variante pasa de "último recibido" a promedio ponderado
+# ADR-0067 — El costo de una variante pasa de "último recibido" a promedio ponderado
+
+**Numeración:** nació como ADR-0063 en esta rama; al fusionar con `main` ese número ya lo
+tenía "Vuelve la venta sin red" (0063-vuelve-la-venta-sin-red-cola-offline-adaptada-a-v2.md,
+de la fusión de 5 sesiones de Venta). Se renumera a 0067, el primero libre tras 0066.
 
 **Fecha:** 2026-09-16
-**Estado:** Aplicado en la base local (`20260916090000_costo_promedio_ponderado.sql`).
-**No aplicado en producción** — falta autorización explícita de Felipe y el paso con
-prefijo `retail.` (ver CLAUDE.md).
+**Estado:** Aplicado en local Y en producción (`20260916090000_costo_promedio_ponderado.sql`,
+aplicada contra `cayla-dynamic` vía MCP de Supabase con autorización explícita de Felipe,
+verificada contra `pg_proc`/`information_schema` en producción tras aplicar).
 **Afecta:** tabla nueva `retail.costo_historial`, función nueva
 `retail.fn_recalcular_costo_variante` (llamada por las tres funciones que ya escribían
 `variantes.costo`: `recibir_lote`, `recibir_compras`, `cerrar_produccion` — las tres
