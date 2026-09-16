@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "apps/web/app/(app)/compras/layout.tsx": {
-    "mtime": 1789575181.7249262,
-    "seen": 1789581740.2814496,
-    "ast_hash": "aeadbe134a6691ddaede0dcafbeb2cd6",
+    "mtime": 1789588662.8321233,
+    "seen": 1789588759.5667546,
+    "ast_hash": "2d3a2a0e61f9e6d752aeb703252d226e",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/compras/nueva/page.tsx": {
@@ -132,21 +132,21 @@
     "semantic_hash": ""
   },
   "apps/web/app/(app)/productos/categorias/page.tsx": {
-    "mtime": 1789575181.7626317,
-    "seen": 1789581740.2814496,
-    "ast_hash": "58bfa5213a99d558e67188344e4916a3",
+    "mtime": 1789588662.8352318,
+    "seen": 1789588759.5667546,
+    "ast_hash": "e8237224e5f671c6bd5138db7c5ed6dc",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/productos/colores/page.tsx": {
-    "mtime": 1789575181.7645068,
-    "seen": 1789581740.2814496,
-    "ast_hash": "07d5267b4446ad8f6c1b8f07cc4df3b8",
+    "mtime": 1789588662.8362422,
+    "seen": 1789588759.5667546,
+    "ast_hash": "9f1b388839aad2b418c932352abb7a97",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/productos/page.tsx": {
-    "mtime": 1789575181.767019,
-    "seen": 1789581740.2814496,
-    "ast_hash": "89cdff1a8a255358a60b2063fbe61959",
+    "mtime": 1789588662.8372412,
+    "seen": 1789588759.5667546,
+    "ast_hash": "1f3793539bb0b99bad6b9cb1c9790914",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/vender/facturacion/page.tsx": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/AppShell.tsx": {
-    "mtime": 1789575181.802377,
-    "seen": 1789581740.2814496,
-    "ast_hash": "14b83c5c1ed418e782e59f767c2079e9",
+    "mtime": 1789588662.8396332,
+    "seen": 1789588759.5667546,
+    "ast_hash": "88a938f3e4e900866abb5cce5dd4b07c",
     "semantic_hash": ""
   },
   "apps/web/components/Ayuda.tsx": {
@@ -244,12 +244,6 @@
     "seen": 1789581740.2814496,
     "ast_hash": "5537286de13ad412915828e842bf215b",
     "semantic_hash": ""
-  },
-  "apps/web/components/BuscadorHero.tsx": {
-    "mtime": 1789575181.8034825,
-    "seen": 1789581740.2814496,
-    "ast_hash": "d3119055ed9e7ae90163b7b0cbcedb6e",
-    "semantic_hash": "d3119055ed9e7ae90163b7b0cbcedb6e"
   },
   "apps/web/components/CajaAbiertaPanel.tsx": {
     "mtime": 1789575181.806102,
@@ -317,12 +311,6 @@
     "ast_hash": "dd85414c703ab221af52894b8d9ffc31",
     "semantic_hash": ""
   },
-  "apps/web/components/ComprasNav.tsx": {
-    "mtime": 1789575181.8182495,
-    "seen": 1789581740.2814496,
-    "ast_hash": "def2b88f7aed3ed6256c86f9bb25a2c6",
-    "semantic_hash": ""
-  },
   "apps/web/components/ComprobantesPanel.tsx": {
     "mtime": 1789575181.8199942,
     "seen": 1789581740.2814496,
@@ -382,12 +370,6 @@
     "seen": 1789581740.2814496,
     "ast_hash": "9db21ef12f2870aa97ff44ceffb8444d",
     "semantic_hash": ""
-  },
-  "apps/web/components/ProductosNav.tsx": {
-    "mtime": 1789575181.8477838,
-    "seen": 1789581740.2814496,
-    "ast_hash": "5794ccc79db2f65909ca182f5eaa9970",
-    "semantic_hash": "5794ccc79db2f65909ca182f5eaa9970"
   },
   "apps/web/components/ProformasPanel.tsx": {
     "mtime": 1789575181.8487377,
@@ -1374,15 +1356,15 @@
     "semantic_hash": ""
   },
   "docs/BACKLOG.md": {
-    "mtime": 1789581681.7379277,
-    "seen": 1789581740.2814496,
-    "ast_hash": "a067cb15cb51212989e3967aa4a8b6c5",
+    "mtime": 1789588662.842934,
+    "seen": 1789588759.5667546,
+    "ast_hash": "0cb4d4ec9f9696adb7e7e2d2f89d7f93",
     "semantic_hash": ""
   },
   "docs/BITACORA.md": {
-    "mtime": 1789581715.8524265,
-    "seen": 1789581740.2814496,
-    "ast_hash": "cc6c62062ad9c64739870c59d3483489",
+    "mtime": 1789588662.8466637,
+    "seen": 1789588759.5667546,
+    "ast_hash": "20dbd8be74929b010ac2592620d669dd",
     "semantic_hash": ""
   },
   "docs/CHECKLIST-MANANA.md": {
@@ -2436,9 +2418,9 @@
     "semantic_hash": ""
   },
   "apps/web/app/(app)/productos/[id]/editar/page.tsx": {
-    "mtime": 1789575181.7595625,
-    "seen": 1789581740.2814496,
-    "ast_hash": "0f75d8852baa4f82e708a6d37cf0ba46",
+    "mtime": 1789588662.8337176,
+    "seen": 1789588759.5667546,
+    "ast_hash": "e5b70a9f92de258201c1c96139f5515f",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/productos/[id]/historial/page.tsx": {
