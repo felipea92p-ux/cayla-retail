@@ -18,6 +18,68 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Cambio y devolución exigen caja si hay efectivo de por medio (2026-09-16)
+
+Al escribir las pruebas de `registrar_cambio` (ítem siguiente) se encontró que ADR-0052
+(devoluciones) y ADR-0053 (cambios) habían dejado, cada uno en su propia cabecera de
+migración, el MISMO hueco sin resolver: sin caja abierta en la ubicación, la diferencia/
+reembolso en efectivo queda con `caja_id = null` — invisible para siempre en cualquier
+`cerrar_caja`. Felipe pidió armar el paso para cerrarlo. Detalle completo en ADR-0064.
+
+- [x] **`20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql`** —
+      `registrar_cambio`/`aprobar_devolucion` rechazan ahora (mismo mensaje que ya usa
+      `registrar_venta`: "No hay una caja abierta…") cuando hay efectivo real moviéndose
+      y no hay caja abierta; sin efectivo, siguen funcionando igual que antes. Mismas
+      firmas, sin columnas nuevas. Aplicada y probada **solo en local**
+      (`pnpm pruebas:registrar-cambio` 13/13, `pnpm pruebas:aprobar-devolucion-caja` 2/2,
+      `typecheck`/`lint` limpios) — no en producción, sin ok de Felipe todavía.
+- [ ] **Aplicar en producción** — pendiente el ok puntual de Felipe.
+- [ ] **Colisión de número de ADR (0063 y ahora también 0064) con la sesión concurrente
+      `devoluciones-anular-ventas-e282dc`** (su propio `anular_venta`, migración
+      `20260916172645_anular_venta.sql`, sin relación de código con este cambio — se
+      verificó que no tocan las mismas funciones). Se resuelve al fusionar ramas, mismo
+      patrón que ya pasó con ADR-0051.
+
+---
+
+## 🎯 Cambios: primeras pruebas automatizadas de `registrar_cambio` (2026-09-16)
+
+`registrar_cambio` (0007_cambios.sql + ADR-0053) tenía cero pruebas automatizadas — cada
+verificación anterior fue manual ("verificado en psql"/"en el navegador"). Se revisó
+`docs/BACKLOG.md` (sección POS V2 de abajo) antes de empezar: no hay ningún ítem grande
+pendiente específico de Cambios — lo único de Cambios en esa sección ya está cerrado
+(ComboBuscable, ADR-0053). Detalle completo de la decisión de CÓMO probar una RPC en
+ADR-0063 (nuevo).
+
+- [x] **`scripts/pruebas/registrar_cambio.mjs`** — 12 escenarios contra el Postgres local
+      real (`docker exec ... psql`, `set local request.jwt.claim.sub`, siempre
+      `ROLLBACK` — mismo patrón que ya documenta `supabase/seed.sql`, cero dependencias
+      nuevas). Cubre: diferencia en los tres sentidos (cero/cobra/devuelve), los 6
+      candados (`cantidad<=0`, diferencia sin método, excede lo comprado, venta/variante
+      inexistente, sin stock de la variante nueva), idempotencia por `p_token`, el
+      candado de sede (Micaela no puede cambiar en Lima — mismo candado que se pidió
+      verificar para Vender, confirmado a nivel RPC) y que la diferencia en efectivo
+      cuadra `cerrar_caja` (ADR-0053). Corre con `pnpm pruebas:registrar-cambio` — necesita
+      el stack local levantado, **no** corre desde `pnpm test`/CI (ver ADR-0063, no toca
+      base de datos). Verificado: 12/12 en verde, dos corridas seguidas, sin dejar rastro
+      (`movimientos`/`cambios` de prueba en 0 después de cada corrida).
+- [ ] **Tienda Lima y Tienda Trujillo no tienen sububicaciones de piso/almacén en el
+      Postgres local compartido** (hallazgo de paso, no de este módulo — ver ADR-0063).
+      `seed.sql` las crea pero solo corre en `db reset`; este Postgres se migró de más
+      veces sin uno después de `20260914230000_inventario_piso_almacen.sql`. Hoy,
+      cualquier venta/cambio real en el navegador contra este mismo Postgres compartido
+      (no solo esta prueba) recibe `sububicacion_id = NULL` en vez de piso/almacén real.
+      El `INSERT` aditivo para reponerlas (idéntico al de `seed.sql`) está en la cabecera
+      de `scripts/pruebas/registrar_cambio.mjs` — bloqueado para este agente por el
+      clasificador de auto mode ("Modify Shared Resources", correcto: es una escritura
+      persistente sobre un recurso de ~27 worktrees). Felipe decide si lo corre.
+- [ ] **El mismo patrón (ADR-0063) falta para el resto de RPC de escritura** —
+      `registrar_venta`, `crear_devolucion`, `cerrar_caja`, `transferir`,
+      `mover_interno`… ninguna tiene pruebas automatizadas todavía. No es urgente, es el
+      precedente a copiar cuando alguien las toque.
+
+---
+
 ## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
 
 **El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**
