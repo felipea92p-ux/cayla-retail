@@ -1,4 +1,4 @@
-# ADR-0070 — El historial de movimientos se cierra con disparadores "siempre" y retiro de permisos, no con FORCE RLS
+# ADR-0071 — El historial de movimientos se cierra con disparadores "siempre" y retiro de permisos, no con FORCE RLS
 
 **Fecha:** 2026-09-16
 **Estado:** Aplicado en local (`20260916200000_historial_candado_completo.sql`). Producción:

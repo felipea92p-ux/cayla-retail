@@ -432,7 +432,7 @@ sin historia se puede creer o no creer, pero no se puede auditar.
 ## Huecos conocidos
 
 1. ~~**El historial se puede borrar: no hay candado físico (D-22).**~~
-   **Cerrado 2026-09-16 (`20260916200000_historial_candado_completo.sql`, ADR-0070):** V2 ya
+   **Cerrado 2026-09-16 (`20260916200000_historial_candado_completo.sql`, ADR-0071):** V2 ya
    frenaba UPDATE/DELETE desde la tienda (20260914165703). Faltaba TRUNCATE (directo o en
    cascada), el modo réplica, `service_role` con todos los permisos, y cualquier sesión pudiendo
    ejecutar `fn_aplicar_movimiento`/`recalcular_stock` o escribir `stock`. FORCE RLS no se usa:
