@@ -203,7 +203,7 @@ cumplir. Lista completa y verificada en `generado/retail_fks_cruzadas.json`:
 | Hacia | Cuántas | Desde |
 |---|---|---|
 | `public.sedes` | **24** | `activos_fijos`, `ajustes_efectivo`, `asientos`, `cajas`, `comprobantes`, `contenedores`, `conteos`, `depositos_bancarios`, `gastos`, `lotes`, `movimientos` (×2: origen y destino), `ordenes_compra`, `ordenes_produccion` (×2), `producciones`, `proformas`, `sede_meta` (×2), `series_comprobantes`, `stock`, `stock_almacen`, `ventas`, `ventas_historicas_mensuales` |
-| `public.personas` | **18** | `ajustes_efectivo`, `asientos`, `cajas` (×2: abierta_por / cerrada_por), `codigos_barras`, `comprobantes` (×2), `conteo_lineas`, `conteos` (×2), `depositos_bancarios`, `gastos`, `importaciones`, `lotes`, `movimientos`, `producciones`, `proformas`, `ventas` |
+| `public.personas` | **18** | `ajustes_efectivo`, `asientos`, `cajas` (×2: abierta_por / cerrada_por), `codigos_barras`, `comprobantes` (×2), `conteo_lineas`, `conteos` (×2), `depositos_bancarios`, `gastos`, `importaciones` (borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo), `lotes`, `movimientos`, `producciones`, `proformas`, `ventas` |
 
 **24 tablas de retail** tienen al menos una. En la práctica: contratar a alguien
 en Dynamic hace que retail lo vea **al instante**, sin sincronizar nada. Y

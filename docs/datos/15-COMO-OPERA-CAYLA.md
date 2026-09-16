@@ -290,7 +290,8 @@ devuelve el consumo con precisión. *Dato duro, y cambia el módulo entero.*
 >
 > Audaces **exporta un archivo** — se importa reusando el patrón del importador de
 > catálogo que ya está construido y probado (ADR-0035), no hay que inventar un camino
-> nuevo.
+> nuevo. **(El importador: borrado en el corte a V2 el 2026-09-12; se reconstruye después
+> del censo. Lo que se reusa hoy es el diseño, no el código.)**
 
 **R-27 · El consumo puede venir por talla o como promedio del modelo**, según el caso.
 *Dato duro.*
@@ -415,7 +416,7 @@ funcione impecable. *Decidido.*
 | **Orden de arreglo** | Empezar por **los candados del núcleo**. Motivo: producción tiene 28 movimientos y 2 ventas — la ventana barata se cierra el día que se cargue el catálogo |
 | **Las 6 de solo texto** | Corregidas el 2026-09-12 |
 | **P-18 · Depreciación** | **Construirla.** Hay 39 activos cargados y el resultado por sede está inflado sin ella |
-| **P-19 · `producto_atributos`** | **Se queda, pero nadie la escribe a mano**: los atributos los propone el importador y la persona confirma (patrón de ADR-0035). Empezar con 2-3 atributos que muevan decisiones, no con 8 |
+| **P-19 · `producto_atributos`** | **Se queda, pero nadie la escribe a mano**: los atributos los propone el importador y la persona confirma (patrón de ADR-0035). (`producto_atributos` y el importador: borrados en el corte a V2 el 2026-09-12; se reconstruyen después del censo.) Empezar con 2-3 atributos que muevan decisiones, no con 8 |
 
 ---
 

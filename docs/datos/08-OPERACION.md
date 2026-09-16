@@ -141,7 +141,8 @@ Cuatro cosas. Las tres primeras se saben desde hace tiempo; la tercera está
    miente hacia el lado peligroso.**
 
 4. **El volumen.** `taxonomia_categoria_atributos` tiene **16.527 filas** en
-   producción y 0 en un local recién creado (`generado/retail_filas.json`). Una
+   producción **(borrado en el corte a V2 el 2026-09-12; se reconstruye después del
+   censo)** y 0 en un local recién creado (`generado/retail_filas.json`). Una
    consulta que vuela con cero filas puede arrastrarse en la tienda.
 
 ### El entorno de ensayo (D-18): aprobado, no construido
@@ -257,7 +258,9 @@ columna.
 
 1. **Solo cubre un riel.** Las filas del backfill son todas de `unificacion/`.
    De las siete migraciones de `migrations/` que llegaron pegadas a mano
-   (taxonomía, importaciones) **no hay ni una fila**.
+   (taxonomía, importaciones) **no hay ni una fila** (hoy no existen ni esas tablas ni
+   `migraciones_aplicadas`: borradas en el corte a V2 el 2026-09-12; se reconstruyen
+   después del censo).
 2. **La convención se escribió y no se aplicó.** De los 37 archivos de
    `unificacion/`, el único que lleva la línea de auto-registro es el `38`, que
    es justamente el que la inventó. Los cuatro más recientes —`34`, `35`, `36`,
@@ -326,6 +329,9 @@ están escritas en `supabase/migrations/` y llegaron pegadas a mano:
 `importar_catalogo`, `deshacer_importacion`, `fn_codigo_tres_letras`,
 `fn_familia_de_universal` y `fn_familia_color_de_universal`. Sumadas a las dos
 huérfanas de arriba, son **siete funciones que `unificacion/` sola no produce**.
+**(2026-09-16: `importar_catalogo`, `deshacer_importacion` y `fn_codigo_tres_letras` ya
+no existen en producción — borrado en el corte a V2 el 2026-09-12; se reconstruye después
+del censo.)**
 
 Por el mismo camino llegaron **siete tablas**: las cinco de taxonomía
 (`taxonomia_versiones`, `taxonomia_categorias`, `taxonomia_atributos`,
@@ -333,7 +339,9 @@ Por el mismo camino llegaron **siete tablas**: las cinco de taxonomía
 `producto_atributos`. La prueba dura: las policies
 `taxonomia_categorias_select`, `importaciones_select` y
 `producto_atributos_select` están vivas en producción y solo están escritas en
-`supabase/migrations/0052_taxonomia_universal.sql` y `0056_importar_catalogo.sql`.
+`supabase/migrations/0052_taxonomia_universal.sql` y `0056_importar_catalogo.sql`
+**(las siete tablas, sus policies y esas dos migraciones: borrado en el corte a V2 el
+2026-09-12; se reconstruye después del censo)**.
 
 > **Corrección al BACKLOG.** `docs/BACKLOG.md:82` dice *"(`0052` no está
 > aplicada allá)"* y `:87-88` propone *"aplicar `0052` en producción"*. **Es
@@ -342,6 +350,11 @@ Por el mismo camino llegaron **siete tablas**: las cinco de taxonomía
 > datos: `taxonomia_categoria_atributos` tiene **16.527 filas** vivas. Esas dos
 > líneas del backlog hay que corregirlas: mandan a alguien a pegar algo que ya
 > está pegado.
+>
+> **Nota 2026-09-16:** esta corrección quedó vieja el mismo día. El corte a V2
+> (2026-09-12 20:49 UTC) borró la taxonomía y el importador; hoy **no** están en
+> producción, y pegar el seed/`0052`/`0056`/`0057` falla con 42P01. Se reconstruyen
+> sobre V2 después del censo, como migración nueva.
 
 **Lo que hoy NO es un problema, y conviene decirlo:** producción tiene **56
 funciones y ni un solo nombre repetido** (`generado/funciones-produccion.txt`).
@@ -421,7 +434,8 @@ solo en la Mac de Felipe.
 **Los datos no tienen ninguna copia que conste en el repo.** Y hay datos que no
 se reconstruyen desde SQL: `movimientos` (28 filas, la única fuente de verdad
 del inventario), `activos_fijos` (39 filas, el único dato financiero real
-cargado), y la taxonomía entera (16.527 + 10.216 + 1.849 + 993 filas). Ninguna
+cargado), y la taxonomía entera (16.527 + 10.216 + 1.849 + 993 filas; borrado en
+el corte a V2 el 2026-09-12; se reconstruye después del censo). Ninguna
 migración las crea: son datos, no esquema.
 
 ### Lo que NO se pudo verificar — tres preguntas abiertas
@@ -645,7 +659,7 @@ y rol por su cuenta, porque los candados de fila ya no la están mirando.**
 | El `coalesce` que le falta a `fn_puede_operar_sede` en local | §1, punto 3 |
 | Regenerar `RPCS.md` contra producción y no contra el contenedor local de Dynamic | §1 |
 | La fila número 18 de `migraciones_aplicadas` que nadie documentó | §2 |
-| Corregir `BACKLOG.md:82` y `:87-88`, que mandan a aplicar la `0052` ya aplicada | §3 |
+| Corregir `BACKLOG.md:82` y `:87-88`, que mandan a aplicar la `0052` ya aplicada (hecho 2026-09-16: la `0052` se borró en el corte a V2 el 2026-09-12 y NO se pega; se reconstruye después del censo) | §3 |
 | Corregir el número de tablas en `README.md`, `ARQUITECTURA.md` y `CLAUDE.md` (36 / 28 → **45 + 2 vistas**) | §1 |
 | Costo real del entorno de ensayo | §1 — panel de facturación, no inventarlo |
 | La tabla `periodos_contables` y sus funciones | §5 y `modulos/12-contabilidad.md` |

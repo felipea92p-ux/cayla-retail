@@ -724,7 +724,8 @@ variantes, 5 productos y 2 ventas**. Con eso, cualquier sell-through por talla e
 ruido con forma de número. Y la carga masiva tampoco ayuda todavía:
 `producto_atributos` tiene **0 filas** y la llamada a `importar_catalogo` es la
 única del sistema que el comparador **no puede revisar** (arma sus parámetros con
-`...`, `generado/DRIFT.md`). Orden correcto: **catálogo real → ventas reales →
+`...`, `generado/DRIFT.md`) — **(las dos: borrado en el corte a V2 el 2026-09-12; se
+reconstruye después del censo)**. Orden correcto: **catálogo real → ventas reales →
 recién entonces la consulta por talla.** Construirla antes es construir sobre
 nada.
 

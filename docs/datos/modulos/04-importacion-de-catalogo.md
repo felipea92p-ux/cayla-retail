@@ -1,5 +1,15 @@
 # 04 · Importación de catálogo
-> **Pájaro:** GOLONDRINA · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** GOLONDRINA · **Lo lleva:** Felipe Alvarez · **Última revisión:** 2026-09-16
+
+> **⚠ Este documento describe el importador V1. El módulo no existe hoy, ni en producción
+> ni en el repo** (verificado 2026-09-16: `to_regclass` da NULL para `importaciones` y
+> `producto_atributos`; no existen `importar_catalogo`, `deshacer_importacion` ni
+> `fn_codigo_tres_letras`). **Historia:** estuvo en producción del 2026-09-11 al 2026-09-12
+> 20:49 UTC; ese día el corte a V2 aplicó `retail_0001b_limpiar_esquema_v1` (`drop schema retail
+> cascade`), y `0af2f1b` borró del repo `0056`-`0059`, `lib/importacion`, `/api/importacion/*` y
+> `/inventario/importar`. **No pegar `0056`/`0057` en producción: fallan con 42P01.** Golondrina
+> se reconstruye sobre V2 **después del censo** (20-sep), como migración nueva guiada por el ADR
+> de "taxonomía ideal"; lo de abajo queda como diseño de referencia.
 
 ## Para qué existe
 
@@ -256,6 +266,8 @@ sin `importacion_id` no hay forma de deshacer en bloque una carga que salió mal
 descontinuar prenda por prenda desde el editor SQL.
 
 ## Huecos conocidos
+
+> Todos los huecos de abajo están latentes: renacen si alguien re-porta el diseño V1 tal cual; ninguno duele hoy en tienda.
 
 1. **`producto_atributos` existe, está documentada, tiene sus candados… y nadie la escribe
    nunca.** El campo `tejido` y el campo `patron` existen en `CAMPOS`

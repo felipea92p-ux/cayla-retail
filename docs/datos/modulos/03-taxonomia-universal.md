@@ -1,5 +1,16 @@
 # 03 · Taxonomía universal
-> **Pájaro:** TUCÁN · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** TUCÁN · **Lo lleva:** Felipe Alvarez · **Última revisión:** 2026-09-16
+
+> **⚠ Este documento describe la taxonomía V1. El módulo no existe hoy, ni en producción
+> ni en el repo** (verificado 2026-09-16: `to_regclass` da NULL para las cinco
+> `taxonomia_*`, no hay columnas de anclaje, 0 de 30 colores y 0 de 38 categorías anclados).
+> **Historia:** estuvo en producción del 2026-09-11 al 2026-09-12 20:49 UTC; ese día el corte a
+> V2 aplicó `retail_0001b_limpiar_esquema_v1` (`drop schema retail cascade`), y `0af2f1b` borró
+> del repo `0052`, `lib/taxonomia/`, `/api/taxonomia/anclar` e `/inventario/taxonomia`. Las cifras
+> "en producción" de abajo (29.586 filas, "local y producción") son fotos de antes del drop.
+> **No pegar el seed (`scripts/taxonomia/cargar.mjs`) ni `0052` en producción: fallan con
+> 42P01.** Tucán se reconstruye sobre V2 **después del censo** (20-sep), como migración nueva
+> guiada por el ADR de "taxonomía ideal"; lo de abajo queda como diseño de referencia.
 
 ## Para qué existe
 
@@ -244,6 +255,8 @@ Ese es el único motivo por el que 30.000 filas de vocabulario viven en una base
 hoy tiene 5 productos.
 
 ## Huecos conocidos
+
+> Todos los huecos de abajo están latentes: renacen si alguien re-porta el diseño V1 tal cual; ninguno duele hoy en tienda.
 
 1. **El repo se contradice sobre si esto está en producción, y el encargo de esta ficha
    heredó la versión equivocada.** `docs/BACKLOG.md:64` dice "`0052` + seed + `0056`

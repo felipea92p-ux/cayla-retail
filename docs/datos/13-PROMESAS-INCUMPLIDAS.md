@@ -723,6 +723,10 @@ el mapa del **front** (rutas ↔ lib ↔ RPC); el modelo de datos ya vive aquí.
 
 ### P-17 · `BACKLOG.md` dice que `0052` no está en producción. Sí lo está.
 
+> **Nota 2026-09-16:** ya no lo está. Estuvo del 11-sep al 12-sep 20:49 UTC (borrado en el
+> corte a V2 el 2026-09-12; se reconstruye después del censo). Todo lo de abajo es foto de
+> antes del drop. **No pegar el seed/`0052`/`0056`/`0057`: fallan con 42P01.**
+
 **Qué se promete.** `docs/BACKLOG.md:64` — *"`[x]` **`0052` + seed + `0056` ya están en
 producción** (Felipe los pegó el 11-sep)"*.
 
@@ -819,7 +823,9 @@ fuente que nunca tuvo datos.
 
 **Qué hacer. Base o texto, según qué se quiera.** Si los atributos ricos siguen en pie:
 que `importar_catalogo` escriba ahí lo que la taxonomía universal resuelva por categoría
-—la información ya está en `taxonomia_categoria_atributos`, 16.527 filas. Si no: marcarla
+—la información ya está en `taxonomia_categoria_atributos`, 16.527 filas (borrado en el
+corte a V2 el 2026-09-12, junto con `producto_atributos` e `importar_catalogo`; se
+reconstruye después del censo). Si no: marcarla
 en el diccionario como **decidida, no construida**, y decir quién la llenaría. Detalle en
 `modulos/04-importacion-de-catalogo.md`.
 
@@ -1043,7 +1049,7 @@ ya está bien y meter una cláusula que sobra.
 | P-14 | "El integrante no ve costo" — retirar la promesa | MEDIO | Texto |
 | P-15 | 36 / 28 / 44 tablas: ninguna es la buena | MEDIO | Texto |
 | P-16 | `ARQUITECTURA.md`: foto vieja, 8 tablas sin mencionar | MEDIO | Texto |
-| P-17 | `BACKLOG` dice que `0052` no está aplicada; sí lo está | MEDIO | Texto |
+| P-17 | `BACKLOG` dice que `0052` no está aplicada; sí lo está (ya no: borrado en el corte a V2 el 2026-09-12; se reconstruye después del censo) | MEDIO | Texto |
 | P-18 | Depreciación documentada y nunca calculada | MEDIO | Elegir uno |
 | P-19 | `producto_atributos` sin un solo `insert` | MEDIO | SQL o texto |
 | P-20 | Buscar promete la pistola y el filtro ignora el código | MEDIO | Pantalla |

@@ -468,7 +468,9 @@ funciones sí tienen el parámetro. Es exactamente el hueco que ni `typecheck` n
   Verificado el 2026-09-12: **sí está** — las cinco tablas de taxonomía, más
   `importaciones`, `producto_atributos`, `proformas`, `conteos`, `conteo_lineas`,
   `codigos_barras` y `migraciones_aplicadas`, existen todas en producción. Las líneas
-  82 y 87 son las que están mal.
+  82 y 87 son las que están mal. **(Taxonomía, `importaciones`, `producto_atributos` y
+  `migraciones_aplicadas`: borrado en el corte a V2 el 2026-09-12; se reconstruye después
+  del censo. Hoy NO están en producción y el seed/`0052` falla con 42P01.)**
 
 **La lección de gobierno, que es la misma en los dos casos:** una alarma en la que no se
 confía es peor que ninguna, porque enseña a ignorar el color verde. El dueño de la
