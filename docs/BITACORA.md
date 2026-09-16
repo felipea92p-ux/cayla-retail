@@ -3,6 +3,17 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (PR #50 mergeado, migraciones de Colaboradores/Movimientos en producción)
+
+Felipe mergeó PR #50 (los 14 arreglos de Inventario/Colaboradores/Movimientos) él mismo
+desde GitHub, y pidió aplicar las dos migraciones nuevas a producción. Aplicadas con
+`apply_migration` (proyecto `vovjyyiafkxteijimpuy`) y verificadas después contra la base
+real: `fn_mi_perfil`, `fn_colaboradores` y `fn_movimientos_variantes` quedaron con una sola
+firma cada una (sin repetir el problema de `recibir_lote`/`registrar_movimiento`), los
+comentarios de función se guardaron, y en producción buscar "_" en Movimientos ya no trae
+todas las 37 variantes reales. El resto del batch (código de Inventario/Colaboradores/
+Movimientos, sin SQL) ya quedó desplegado con el merge a `main` — no necesitaba paso aparte.
+
 ## 2026-09-15 (Inventario/Colaboradores/Movimientos: 14 arreglos del reconocimiento, todo en local)
 
 Felipe pidió ejecutar la propuesta de mejoras de esos 3 módulos, explícitamente "solo en
