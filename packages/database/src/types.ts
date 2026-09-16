@@ -442,24 +442,33 @@ export type Database = {
           codigo: string
           familia_color: string | null
           hex: string | null
+          imagen_muestra_url: string | null
           nombre: string
+          notas: string | null
           orden: number
+          tipo: string
         }
         Insert: {
           activo?: boolean
           codigo: string
           familia_color?: string | null
           hex?: string | null
+          imagen_muestra_url?: string | null
           nombre: string
+          notas?: string | null
           orden?: number
+          tipo?: string
         }
         Update: {
           activo?: boolean
           codigo?: string
           familia_color?: string | null
           hex?: string | null
+          imagen_muestra_url?: string | null
           nombre?: string
+          notas?: string | null
           orden?: number
+          tipo?: string
         }
         Relationships: []
       }
