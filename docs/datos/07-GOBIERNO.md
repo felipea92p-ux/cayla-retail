@@ -23,10 +23,10 @@ organigrama. "Eso es de Halcón" es una frase que se dice en un pasillo; "eso es
 | # | Pájaro | Módulo | Lo lleva | Por qué ese pájaro |
 |---|---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | _libre_ | Grita cuando entra alguien que no debería. Los gansos son mejores guardianes que los perros |
-| 02 | **Loro** | Catálogo y vocabulario | _libre_ | Nombra y repite. Este módulo decide cómo se llama cada cosa, y esa palabra se repite en toda la empresa |
-| 03 | **Tucán** | Taxonomía universal | _libre_ | Pico enorme para un trabajo de clasificar |
-| 04 | **Golondrina** | Importación de catálogo | _libre_ | Llega de afuera trayendo todo de golpe |
-| 05 | **Halcón** | **Inventario y movimientos** | _libre_ | No se le escapa nada. Es el núcleo: el pájaro más pesado de llevar |
+| 02 | **Loro** | Catálogo y vocabulario | Felipe Alvarez | Nombra y repite. Este módulo decide cómo se llama cada cosa, y esa palabra se repite en toda la empresa |
+| 03 | **Tucán** | Taxonomía universal | Felipe Alvarez | Pico enorme para un trabajo de clasificar |
+| 04 | **Golondrina** | Importación de catálogo | Felipe Alvarez | Llega de afuera trayendo todo de golpe |
+| 05 | **Halcón** | **Inventario y movimientos** | Felipe Alvarez | No se le escapa nada. Es el núcleo: el pájaro más pesado de llevar |
 | 06 | **Lechuza** | Conteo y censo físico | _libre_ | Cuenta de noche, cuando la tienda está cerrada |
 | 07 | **Colibrí** | Ventas y caja | _libre_ | Rápido o no sirve |
 | 08 | **Cuervo** | Facturación SUNAT | _libre_ | Formal, memorioso, se acuerda de todos los papeles |

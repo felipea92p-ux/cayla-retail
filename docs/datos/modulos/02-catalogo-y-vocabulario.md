@@ -1,5 +1,12 @@
 # 02 · Catálogo y vocabulario
-> **Pájaro:** LORO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** LORO · **Lo lleva:** Felipe Alvarez · **Última revisión:** 2026-09-16
+
+> **⚠ Este documento describe el núcleo V1.** Se escribió el 2026-09-12, el mismo día del
+> corte a V2 (`0af2f1b`), y no lo menciona. En V2 `variantes` tiene `color_codigo` (FK a
+> `colores.codigo`) en vez de `color`/`color_id`, no existen `taxonomia_*`, `importaciones`,
+> `producto_atributos` ni `registrar_produccion`, y las migraciones `00xx` que se citan abajo ya
+> no están en el repo. Los huecos 1, 2, 4 y 8 se re-verificaron contra V2 y producción el
+> 2026-09-16; el resto sigue sin re-verificar.
 
 ## Para qué existe
 
@@ -405,7 +412,15 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
 
 ## Huecos conocidos
 
-1. **No existe la pantalla para agregar un color, y la base la menciona por su nombre.**
+1. ~~**No existe la pantalla para agregar un color, y la base la menciona por su nombre.**~~
+   **Cerrado en V2 (verificado 2026-09-16):** ninguna función manda ya a "Catálogo → Colores",
+   `/productos/colores` tiene "+ Agregar color" (`components/ColoresLista.tsx`) y "Arena" viene en
+   el vocabulario base (`20260912235500_vocabulario_cerrado.sql:70`). Queda abierta la decisión
+   del 2026-09-16 —cualquiera propone un color y admin aprueba—, que V2 no tiene: hoy escribe
+   `colores_write_lider` (FOR ALL, incluido DELETE), y en producción los 9 colaboradores de retail
+   son Líder. En retail no existe un nivel "admin" (`colaboradores_rol_check` solo admite
+   `lider`/`colaborador`); los admins existen en Dynamic (`public.personas.rol`). En producción
+   Arena estaba como `ARE`, igual al prefijo de Aretes: el script del 2026-09-16 la pasa a `ARN`.
    `0048_conteos.sql:307` y `0051_conteo_color_vacio.sql:60` levantan literalmente:
    `'El color % no existe. La Líder puede agregarlo en Catálogo → Colores'`. Esa pantalla no
    existe: `components/InventarioNav.tsx:17-29` lista Proveedores, Compras, Recibir, Almacén,
@@ -416,7 +431,14 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
    prenda no se puede dar de alta hasta que Felipe pegue SQL. Es exactamente lo que pasó con
    "Arena" (`0050_color_arena.sql`).
 
-2. **Tres de los cinco caminos dejan la prenda invisible para la pistola.**
+2. ~~**Tres de los cinco caminos dejan la prenda invisible para la pistola.**~~
+   **Cerrado en V2 (verificado 2026-09-16):** el disparador `variantes_asignar_codigo`
+   (`20260912235500_vocabulario_cerrado.sql:240`) acuña código y fila en `codigos_barras` para
+   toda variante nueva, venga del camino que venga; `recibir_lote` ya no crea variantes y
+   `registrar_produccion` no existe. Lo que quedaba —36 variantes de producción nacidas antes del
+   disparador— eran todas de los productos de prueba: se archivan, y
+   `20260916190000_variantes_identidad_unica.sql` deja una red que rellena cualquier variante
+   **activa** sin código.
    `recibir_lote` (`0031_recibir_lote_completo.sql:98`), `crear_producto_con_variantes`
    (`0035_productos_proveedor.sql:65`) y `registrar_produccion`
    (`0029_orden_produccion.sql:247`) insertan en `variantes` sin `color_id`, sin `codigo` y sin
@@ -435,7 +457,13 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
    **Consecuencia:** un update a mano desde el navegador puede cambiar el nombre de una prenda
    cuya etiqueta ya está pegada en la percha, y la pistola deja de encontrarla.
 
-4. **La identidad única vigila la columna sucia.**
+4. ~~**La identidad única vigila la columna sucia.**~~
+   **Cerrado 2026-09-16 (`20260916190000_variantes_identidad_unica.sql`, ADR-0069):** en V2 el
+   color ya era FK, pero la regla `unique (producto_id, talla, color_codigo)` comparaba la talla
+   como texto exacto ("M" ≠ "m ") y dejaba pasar dos variantes sin color con la misma talla. La
+   reemplaza `variantes_identidad_unica` sobre `fn_token_talla(talla)` —la misma normalización del
+   código impreso, así "Única" = "U"— con `nulls not distinct`. Producción tenía 0 pares en
+   conflicto.
    `variantes_identidad_unica` es `(producto_id, coalesce(talla,''), coalesce(color,''))` —
    el texto desnormalizado, no `color_id`. **Consecuencia:** "Azul marino" y "azul  marino" del
    mismo modelo y talla son dos filas distintas para la base, dos posiciones de stock y dos
@@ -462,7 +490,11 @@ teléfono vuelve a ser `BLUSA-MANGA-LARGA-ESCOTE-V-M-AZUL-MARINO`.
    **Consecuencia:** si una prenda ya existe en el catálogo y llega con el EAN de fábrica en la
    etiqueta, no hay pantalla para adoptarlo. Hay que abrir un conteo o pegar SQL.
 
-8. **El buscador global dice que lee la pistola y no lee el código.**
+8. ~~**El buscador global dice que lee la pistola y no lee el código.**~~
+   **Cerrado 2026-09-16:** `/buscar` filtra también por `codigosBarras` (código corto y de fábrica)
+   y normaliza acentos con la misma `clave()` que la caja y el conteo
+   (`lib/buscar-prenda-v2.ts`). Verificado con la semilla local: el EAN `7750100000006` pasó de 0 a
+   1 resultado.
    `app/(app)/buscar/page.tsx:14` afirma: «La pistola Zebra funciona aquí sin configurar nada:
    tipea el código y da Enter», y la ayuda de la pantalla (`:30-31`) repite «o escanear la
    etiqueta con la pistola: es lo mismo». El filtro real (`:80`) es

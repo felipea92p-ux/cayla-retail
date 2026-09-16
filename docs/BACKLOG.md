@@ -28,6 +28,43 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Loro (módulo 02) — prendas escaneables antes del censo (2026-09-16)
+
+Rama `claude/taxonomia-loro-tucan-15eaf3`. Verificado contra V2 y contra producción:
+`docs/datos/modulos/02-catalogo-y-vocabulario.md` describe V1, y 3 de los 4 huecos que
+Felipe priorizó ya los había cerrado el corte a V2 (disparador de códigos, color como FK,
+pantalla de colores). Lo que quedaba se cerró aquí: regla de identidad con talla
+normalizada (ADR-0069), red de códigos para variantes activas y `/buscar` leyendo
+códigos de barras. Probado en local; tipos y 266 pruebas en verde.
+
+- [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql`: pegado y confirmado en
+      producción 2026-09-16 — cerrado.** Felipe lo corrió completo, bloque 0
+      (pre-flight) dio 0 como se esperaba. Comprobación final (bloque 3), igual a lo
+      previsto: `activas_sin_codigo=0`, `activas_sin_codigo_barras=0`,
+      `productos_descontinuados=6`, `regla_nueva=1`, `regla_vieja=0`,
+      `colores_sin_familia=0`, `arena_activa=ARN`. Verificado además por consulta
+      directa (Supabase MCP, solo lectura): `retail.colores` tiene `ARE` inactivo
+      ("Arena (retirado)") y `ARN` activo ("Arena"). Las 37 variantes de producción
+      quedan escaneables (código + código de barras); los 6 productos de prueba
+      (BLU-001/PAN-001/VES-001/POL-001/CHO-001/FAL-001) descontinuados, con su
+      historial intacto.
+- [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
+      catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
+      Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
+      se llevan a 0 con movimientos de ajuste (motivo explícito "retiro de datos de
+      prueba", nunca merma).
+- [ ] **Proponer y aprobar colores (decisión 2026-09-16).** Cualquiera propone, el color
+      queda pendiente pero usable, y admin aprueba o fusiona. No existe, y antes hay que
+      decidir **quién es admin**: los 9 colaboradores de retail son Líder, `colaboradores`
+      solo admite `lider`/`colaborador`, y los admins viven en Dynamic. Es el mismo
+      mecanismo que Tucán necesita para la taxonomía: se diseña una sola vez.
+- [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
+      ya lee códigos de barras, pero solo se llega por URL.
+- [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos
+      3, 5, 6, 7, 9-15 no están re-verificados y varios citan migraciones que ya no existen.
+
+---
+
 ## 🎯 5 piezas inspiradas en NetSuite (2026-09-16)
 
 Rama `traslados-costeo-reorden-conteo`, todo verificado solo en LOCAL — nada

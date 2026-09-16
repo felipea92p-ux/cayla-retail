@@ -3,6 +3,37 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (16 colaboradores de tienda dados de alta en producción)
+
+El censo dependía solo de Felipe porque ningún encargado de piso tenía cuenta en
+retail — no por RLS roto, sino porque nadie los había dado de alta. Consulta de
+solo lectura contra Dynamic encontró 16 personas activas ya elegibles (11 Tienda
+TRU, 2 Tienda AQP, 3 Taller LIM) y confirmó que Tienda LIM no tiene ni una sola
+persona activa ni una fila en `retail.ubicaciones` — hueco aparte, sin candidatos
+que onboardear todavía. Con el ok explícito de Felipe se insertaron directo en
+`retail.colaboradores` (rol `colaborador`, `agregado_por` = Felipe, misma forma
+que arma `agregar_colaborador`; la RPC no se pudo llamar tal cual porque el MCP
+de Supabase no lleva sesión de `auth.uid()`). Verificado: 3+2+11=16.
+
+## 2026-09-16 (PR #55 fusionado + SQL de Loro confirmado en producción)
+
+Felipe llegó perdido con inventario/catálogo/taxonomía; auditoría mostró que el PR #55
+(rama `claude/taxonomia-loro-tucan-15eaf3`, ya verde) resolvía justo eso — se fusionó a
+`main` sin rehacerlo. Felipe pegó `SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en
+producción; comprobación final igual a la esperada en los 7 campos. Aprendizaje: antes de
+construir algo nuevo, revisar si otra sesión en paralelo ya lo dejó listo — con ~10
+sesiones tocando el mismo dominio el mismo día, es más probable de lo que parece.
+
+## 2026-09-16 (Loro — prendas escaneables antes del censo)
+
+Felipe tomó Loro, Tucán, Golondrina y Halcón. Al medir producción, los documentos de
+esos 4 módulos resultaron ser del V1: 3 de los 4 huecos priorizados de Loro ya los había
+cerrado el corte a V2, y las 36 variantes "invisibles para la pistola" eran todas datos
+de prueba. Se cerró lo que sí quedaba (talla normalizada en la identidad, red de códigos,
+`/buscar` con códigos de barras; ADR-0069) y se archivan los productos de prueba.
+Aprendizaje: un hueco documentado es una foto con fecha; antes de arreglarlo, se mide
+contra la base de hoy.
+
 ## 2026-09-16 (5 piezas inspiradas en NetSuite: costeo, reorden, conteo, traslados)
 
 Felipe comparó CAYLA contra NetSuite (reporte aparte) y eligió 5 piezas para
