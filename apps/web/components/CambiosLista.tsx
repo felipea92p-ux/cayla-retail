@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CambioFormV2 } from "@/components/CambioFormV2";
 import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { codigoPrenda } from "@/lib/cambios-reglas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 type VarianteCatalogo = {
   varianteId: string;

@@ -32,6 +32,7 @@ import {
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
@@ -931,7 +932,7 @@ export function PuntoDeVentaTicket({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
-                          <p className="font-mono text-xs text-tinta/60">{it.sku}</p>
+                          <p className="font-mono text-xs text-tinta/60">{codigoPrenda(it)}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <button

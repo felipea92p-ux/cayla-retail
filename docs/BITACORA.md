@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (Vender, Devoluciones y Anular muestran el código de etiqueta, no un sku vacío)
+
+La línea del ticket, los avisos de stock, el buscador de Vender, Devoluciones y Anular venta pintaban `sku`, vacío en las prendas del censo; ahora usan `codigoPrenda`, que sale de Cambios a `lib/prenda-reglas.ts` (lo comparten 4 flujos), y un ticket en espera guardado sin `codigo` lo recupera del catálogo al retomarlo (`conCodigoDelCatalogo`, con prueba). Probado en navegador contra la base local con una prenda sin sku creada para eso ("Blusa verificación código", queda en local). Aprendizaje: lo que se guarda en el navegador de la caja es un esquema más — cambiar su forma pide decidir qué pasa con lo ya guardado.
+
 ## 2026-09-16 (Existencias: ajustes de Felipe probando — ADR-0071, corrección)
 
 Felipe probó Existencias en local y pidió cinco cambios puntuales. El de fondo: "Stock

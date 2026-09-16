@@ -8,7 +8,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { codigoPrenda, opcionesDeCambio } from "@/lib/cambios-reglas";
+import { opcionesDeCambio } from "@/lib/cambios-reglas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 type VarianteCatalogo = {
   varianteId: string;

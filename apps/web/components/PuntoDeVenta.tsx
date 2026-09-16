@@ -14,6 +14,7 @@ import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/l
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  conCodigoDelCatalogo,
   esperaAlCargar,
   motivoBloqueoCobro,
   restanteDePagos,
@@ -33,6 +34,7 @@ import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -47,6 +49,10 @@ export { ID_CARGO_ESPECIAL };
 const STOCK_CARGO_ESPECIAL = 999_999;
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
+  /** Código de etiqueta (`variantes.codigo`) — lo que se le MUESTRA a la colaboradora con
+   *  `codigoPrenda`. El escáner no lo necesita aparte: el disparador que lo acuña también
+   *  lo registra en `codigos_barras`. */
+  codigo: string | null;
   categoria: string | null;
   precio: number;
   stockAqui: number;
@@ -65,6 +71,9 @@ export type ItemCarrito = {
   varianteId: string;
   referencia: string;
   sku: string;
+  /** Código de etiqueta al momento de escanear; se muestra con `codigoPrenda`. Un ticket
+   *  en espera guardado antes del 2026-09-16 no lo trae — `retomar()` lo completa. */
+  codigo: string | null;
   cantidad: number;
   precioUnitario: number;
   descuentoUnitario: number;
@@ -408,6 +417,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               varianteId: v.varianteId,
               referencia: v.referencia,
               sku: v.sku,
+              codigo: v.codigo,
               cantidad: 1,
               precioUnitario: v.precio,
               descuentoUnitario: 0,
@@ -440,6 +450,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         varianteId: ID_CARGO_ESPECIAL,
         referencia: "Cargo especial",
         sku: "CARGO-ESPECIAL-01",
+        codigo: null,
         cantidad: 1,
         precioUnitario: valor,
         descuentoUnitario: 0,
@@ -524,20 +535,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     const actual: TicketEnEspera | null =
       carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento } : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
+    // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
+    // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
+    const lineas = conCodigoDelCatalogo(ticket.carrito, variantesVisibles);
     capturarFlip();
-    setCarrito(ticket.carrito);
+    setCarrito(lineas);
     setNota(ticket.nota);
     setCodigoDescuento(ticket.codigoDescuento);
     setPagos([]);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar.
-    const cortas = ticket.carrito.filter((it) => {
+    const cortas = lineas.filter((it) => {
       const v = variantesConOverlay.find((x) => x.varianteId === it.varianteId);
       return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
     });
     if (cortas.length > 0) {
-      avisar.aviso(`${cortas.map((it) => `${it.referencia} (${it.sku})`).join(", ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}.`);
+      avisar.aviso(`${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)})`).join(", ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}.`);
     }
   }
 
@@ -685,7 +699,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         : [];
       avisar.error(
         cortas.length > 0
-          ? `${cortas.map((it) => `${it.referencia} (${it.sku}) — quedan ${variantesConOverlay.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
+          ? `${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)}) — quedan ${variantesConOverlay.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
           : traducirError(error, "registrar la venta")
       );
       return;

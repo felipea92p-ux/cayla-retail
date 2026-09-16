@@ -19,6 +19,22 @@ export function esperaAlCargar<T>(cajaCerrada: boolean, guardados: T[]): T[] {
   return cajaCerrada ? [] : guardados;
 }
 
+/** Las líneas de un ticket retomado, con el código de etiqueta completo. Un ticket dejado
+ *  en espera antes de que el carrito guardara `codigo` (2026-09-16) vuelve del navegador
+ *  SIN ese campo, y si es una prenda del censo tampoco trae sku: la línea se pintaba con
+ *  el hueco vacío. Se completa desde el catálogo de la sede por `varianteId` — el mismo
+ *  dato que habría guardado `agregar()`. Lo que el catálogo ya no tenga (prenda
+ *  desactivada, «Cargo especial») queda sin código y `codigoPrenda` cae al sku. */
+export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: string | null }>(
+  carrito: readonly T[],
+  catalogo: readonly { varianteId: string; codigo: string | null }[]
+): (T & { codigo: string | null })[] {
+  return carrito.map((it) => ({
+    ...it,
+    codigo: it.codigo ?? catalogo.find((v) => v.varianteId === it.varianteId)?.codigo ?? null,
+  }));
+}
+
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
  *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
  *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que

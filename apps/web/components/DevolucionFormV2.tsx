@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import type { LineaVentaParaDevolucion } from "@/lib/devoluciones";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -71,7 +72,7 @@ export function DevolucionFormV2({
         {(cerrar) => (
         <div className="space-y-4 text-center">
           <p className="text-sm text-tinta/75">
-            {linea.referencia} {linea.sku} × {cantidad} — queda pendiente de aprobación.
+            {linea.referencia} {codigoPrenda(linea)} × {cantidad} — queda pendiente de aprobación.
           </p>
           <p className="text-xs text-tinta/65">
             El stock no cambia todavía. Apruébala desde la lista de &ldquo;Devoluciones pendientes&rdquo; para que se aplique.
@@ -88,7 +89,7 @@ export function DevolucionFormV2({
   return (
     <Modal
       titulo="Registrar devolución"
-      subtitulo={`${linea.referencia} ${linea.sku} — vendida × ${linea.cantidad}`}
+      subtitulo={`${linea.referencia} ${codigoPrenda(linea)} — vendida × ${linea.cantidad}`}
       onClose={onClose}
     >
       {(cerrar) => (

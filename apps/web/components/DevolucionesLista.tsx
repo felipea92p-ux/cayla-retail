@@ -8,6 +8,7 @@ import { campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/comp
 import { DevolucionFormV2 } from "@/components/DevolucionFormV2";
 import { AnularVentaForm } from "@/components/AnularVentaForm";
 import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devoluciones";
 
 const METODOS = ["efectivo", "tarjeta", "yape", "plin", "transferencia"] as const;
@@ -85,7 +86,7 @@ export function DevolucionesLista({
                     {l.referencia} <span className="text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/")}</span>
                   </p>
                   <p className="mt-0.5 font-mono text-[11px] text-tinta/65">
-                    {l.sku} · vendida × {l.cantidad}
+                    {codigoPrenda(l)} · vendida × {l.cantidad}
                     {l.yaDevuelto > 0 && ` · ya devuelta × ${l.yaDevuelto}`}
                   </p>
                   <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
@@ -182,7 +183,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
             <p key={n} className="text-sm text-tinta">
               {i.referencia} <span className="text-tinta/65">{[i.talla, i.color].filter(Boolean).join("/")}</span>{" "}
               <span className="font-mono text-[11px] text-tinta/65">
-                {i.sku} × {i.cantidad} · {ETIQUETA_CONDICION[i.condicion] ?? i.condicion}
+                {codigoPrenda(i)} × {i.cantidad} · {ETIQUETA_CONDICION[i.condicion] ?? i.condicion}
               </span>
             </p>
           ))}

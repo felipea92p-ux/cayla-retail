@@ -8,14 +8,8 @@
 // que con dos prendas nuevas en el catálogo, "" calzaba con la PRIMERA de ellas: se
 // escondía una prenda que no tenía nada que ver y la vendida aparecía como opción de
 // cambio por sí misma. La identidad de una prenda es su `varianteId`; el código es solo
-// lo que se lee.
-
-/** Lo que se imprime en la etiqueta y lee la pistola: `variantes.codigo`, autogenerado
- *  por el disparador `variantes_asignar_codigo`. El `sku` es legado (antes del
- *  2026-09-09) y queda solo como respaldo para una variante vieja sin código. */
-export function codigoPrenda(v: { codigo: string | null; sku: string | null }): string {
-  return v.codigo || v.sku || "sin código";
-}
+// lo que se lee (`codigoPrenda`, que vive en `prenda-reglas.ts` porque lo usan todos los
+// flujos de venta, no solo Cambios).
 
 /** Qué se le puede entregar a la clienta en lugar de la prenda vendida: cualquier
  *  variante que NO sea la vendida (cambiarla por sí misma no tiene sentido) y que tenga

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  conCodigoDelCatalogo,
   descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
   esperaAlCargar,
@@ -235,6 +236,26 @@ describe("esperaAlCargar — con la caja cerrada no vuelve ningún ticket de aye
   });
   it("con la caja cerrada la espera arranca vacía aunque haya algo guardado", () => {
     expect(esperaAlCargar(true, guardados)).toEqual([]);
+  });
+});
+
+// Un ticket en espera guardado en el navegador antes del 2026-09-16 no tiene `codigo`
+// (el carrito solo guardaba `sku`), y una prenda del censo tampoco tiene sku: al
+// retomarlo, la línea del ticket salía sin nada que diga qué talla/color era.
+describe("conCodigoDelCatalogo — un ticket en espera viejo recupera el código al retomarlo", () => {
+  const catalogo = [
+    { varianteId: "v-blusa-m", codigo: "BLU-0003-NEG-M" },
+    { varianteId: "v-vestido-s", codigo: "VES-0002-NEG-S" },
+  ];
+  it("completa desde el catálogo la línea guardada sin el campo", () => {
+    const guardado = [{ varianteId: "v-blusa-m", sku: "", cantidad: 1 }];
+    expect(conCodigoDelCatalogo(guardado, catalogo)).toEqual([{ varianteId: "v-blusa-m", sku: "", cantidad: 1, codigo: "BLU-0003-NEG-M" }]);
+  });
+  it("respeta el código que la línea ya traía", () => {
+    expect(conCodigoDelCatalogo([{ varianteId: "v-vestido-s", codigo: "VES-0002-NEG-S" }], [])[0].codigo).toBe("VES-0002-NEG-S");
+  });
+  it("sin la prenda en el catálogo queda en null, no rompe el ticket", () => {
+    expect(conCodigoDelCatalogo([{ varianteId: "v-cargo-especial" }], catalogo)[0].codigo).toBeNull();
   });
 });
 
