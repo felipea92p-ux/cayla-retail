@@ -2,7 +2,6 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
-import { ProductosNav } from "@/components/ProductosNav";
 import { ColoresLista } from "@/components/ColoresLista";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0035: el vocabulario
@@ -36,8 +35,6 @@ export default async function ColoresPage() {
           </Ayuda>
         </h1>
       </div>
-
-      <ProductosNav />
 
       <ColoresLista
         coloresIniciales={filas.map((c) => ({

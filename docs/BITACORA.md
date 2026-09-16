@@ -67,6 +67,81 @@ en vez de piso/almacén de verdad. El fix es un `INSERT` aditivo idéntico al de
 lo bloqueó como escritura persistente sobre un recurso compartido por ~27 worktrees, no
 algo para decidir en solitario. Anotado en BACKLOG para que Felipe lo corra.
 
+## 2026-09-16 (invitar colaboradores estaba caído en producción — dominio no verificado en Resend)
+
+Felipe reportó "Error sending invite email" al invitar a un colaborador nuevo desde el
+dashboard de Supabase, en producción. Diagnóstico por logs de Auth (`vovjyyiafkxteijimpuy`,
+el proyecto real de producción — ver memoria `produccion-restaurada-y-proyectos-supabase`):
+11 intentos fallidos seguidos, todos con el mismo `550 "The associated domain with your API
+key is not verified"`. No era bug de la app — era Resend (el SMTP de Authentication →
+Emails, sender `dynamic@cayla.pe`) rechazando el envío porque `cayla.pe` no pasaba su
+verificación de dominio. El DNS en GoDaddy tenía bien el SPF/MX de `send.cayla.pe`, pero el
+TXT `resend._domainkey` (DKIM) estaba desactualizado — clave vieja, probablemente de cuando
+se recreó el dominio en Resend hace un mes, nunca resincronizada. Felipe reemplazó el valor
+por el que muestra el panel de Resend; confirmado por `dig` contra el nameserver autoritativo
+(no el resolver con caché, que todavía servía el valor viejo) que el cambio se guardó bien, y
+~25 minutos después (tiempo de caché DNS restante) Resend marcó el dominio verificado. Cierre
+confirmado por logs: invite de las 15:25:28 salió con `status 200` sin error, contra los 11
+fallos idénticos previos. Lo que aprendió Felipe: un DKIM en base64 puede "verse igual" a
+simple vista y no serlo (caracteres casi idénticos como `l`/`I`) — mejor confiar en que el
+proveedor lo marque inválido que comparar a ojo; y cambiar el TTL de un registro no acelera
+la expiración de copias ya cacheadas en otros resolvers, solo afecta lecturas futuras.
+
+## 2026-09-16 (BACKLOG desactualizado: 10 migraciones ya estaban en producción)
+
+Felipe pidió subir el PR del buscador y, de paso, "si hay migraciones ejecutarlas
+en producción". Antes de pegar nada, se comparó `supabase/migrations/` contra el
+historial real de `retail` (`vovjyyiafkxteijimpuy`) — no contra BACKLOG.md, que
+[[commits-y-migraciones-en-produccion]] ya advertía que puede mentir. Resultado:
+**las 10 migraciones que BACKLOG marcaba `no está en producción`
+(`producto_fotos_temporada_venta_sin_stock`, `categorias_subcategoria`,
+`productos_listado_filtros`, `compras_resumen_por_vencer`,
+`compras_orden_por_creacion`, `compras_multipago`, `compras_total_del_papel`,
+`compras_adjuntos`, `proveedores_administrables`, `igv_solo_en_factura`) ya
+estaban aplicadas** — alguien (muy probablemente Felipe a mano, siguiendo su
+propio flujo) las pegó hoy mismo entre las 14:16 y las 15:31. Se verificó cada
+una contra objetos reales (columnas, constraints, funciones, el bucket de
+adjuntos), no solo contra el historial de `list_migrations` — ese historial
+tampoco es 100% confiable solo: `produccion_del_taller` está aplicada (se ven
+sus tablas `producciones`/`produccion_lineas`) pero no aparece con ese nombre
+en el historial. La única excepción real es la migración de taxonomía (`0052`
+en BACKLOG): ni existe su archivo en este checkout, ni tiene sentido aplicarla
+sola — depende de `ANTHROPIC_API_KEY` y de una decisión de Felipe aparte, como
+ya decía BACKLOG. No se ejecutó nada en producción esta sesión: no hacía falta.
+
+Lo que Felipe se lleva: **el BACKLOG puede quedar desactualizado incluso más
+rápido de lo que se pensaba** — no por descuido, sino porque él mismo aplica
+migraciones a mano y nadie vuelve a tachar la lista. Las 10 casillas se
+corrigieron en `docs/BACKLOG.md`. Si esto se vuelve a repetir seguido, vale la
+pena que él avise "ya pegué tal cosa" al cerrar, o usar la skill `/backlog`
+para re-auditar el archivo completo de vez en cuando.
+
+## 2026-09-16 (Buscador global fuera de la cabecera)
+
+Felipe pidió sacar el buscador ("Buscar o escanear prenda…") de la cabecera —
+se repetía en TODAS las pantallas sin distinguir contexto. Antes de tocar
+nada se verificó en navegador que el buscador SÍ funcionaba de punta a punta
+(no era el bug histórico de Fase 1 que menciona el propio comentario de
+`buscar/page.tsx`: ese ya se arregló en el rediseño V2 del 2026-09-12). La
+objeción real de Felipe no era que estuviera roto, sino que no tiene sentido
+un buscador de catálogo idéntico en `/colaboradores` o `/producción` que en
+`/vender` o `/inicio`. Se quitó `BuscadorGlobal` de `AppShell.tsx`
+(componente, ícono `IC.buscar`, imports `useRouter`/`Hilo` huérfanos) y de
+paso se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya
+estaba muerto de verdad (cero imports en todo el repo).
+
+`/buscar/page.tsx` (búsqueda real por SKU/referencia/talla/color con stock
+por ubicación) queda intacta pero sin ningún punto de entrada en la UI —
+sigue funcionando por URL directa. Pendiente en BACKLOG que Felipe decida si
+se borra también o se reengancha en un lugar puntual (ej. Inicio).
+
+Lo que Felipe se lleva: **antes de borrar algo por "no sirve", vale la pena
+probarlo en navegador** — este buscador en particular sí funcionaba (se
+comprobó buscando "Emma" y viendo 6 resultados reales con stock por
+ubicación); el problema no era la función sino el lugar donde vivía.
+Verificado: `pnpm --filter web typecheck`/`lint` en verde; navegador real en
+escritorio y celular, `/` y `/productos`.
+
 ## 2026-09-15 (Productos: filtros y paginado server-side — Sesión B1)
 
 Felipe pidió migrar `/productos` del filtrado-en-memoria a filtros en la URL +
