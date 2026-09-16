@@ -11,7 +11,6 @@ import {
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
-import { ProductosNav } from "@/components/ProductosNav";
 import { ProductosAgrupados } from "@/components/ProductosAgrupados";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
@@ -74,8 +73,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           </Link>
         )}
       </div>
-
-      <ProductosNav />
 
       <Resumen resumen={resumen} params={params} />
 
