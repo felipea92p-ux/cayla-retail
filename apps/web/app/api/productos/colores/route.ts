@@ -11,12 +11,17 @@ import { traducirError } from "@/lib/error-escritura";
 // PROMETE: el color queda disponible de inmediato para cualquier prenda
 //   nueva o existente — es la misma tabla que ya usa `getCatalogo()`
 //   (lib/catalogo-v2.ts) para la pantalla de Productos.
-// ASUME: sesión válida y rol de Líder. La policy de escritura de
-//   `retail.colores` ya lo exige; este chequeo es solo para devolver un
-//   mensaje en idioma CAYLA en vez del 403 crudo de PostgREST.
+// ASUME: sesión válida (cualquier persona activa, no solo Líder — decisión
+//   2026-09-16: "cualquiera propone, un Líder aprueba"). Quién propone no se
+//   valida acá: el estado real (`pendiente`/`aprobado`) lo decide un trigger
+//   en la base (`retail.fn_colores_estado_trigger`,
+//   `20260916220000_colores_proponer_aprobar.sql`) mirando si quien llama es
+//   Líder — nunca lo que mande este endpoint.
 // NO HACE: no normaliza duplicados por su cuenta. Si "Azul marino" ya
 //   existe, `colores_clave_unica` lo rechaza y el mensaje se lo dice a la
 //   persona — no se le oculta silenciosamente ni se fusiona con el existente.
+//   Tampoco hace falta una pantalla de "fusionar": ese mismo candado hace
+//   imposible que dos colores equivalentes convivan como filas distintas.
 const FAMILIAS_COLOR = [
   "neutro",
   "azul",
@@ -34,10 +39,10 @@ const FAMILIAS_COLOR = [
 const TIPOS_COLOR = ["solido", "textura", "estampado"] as const;
 
 export async function POST(request: Request) {
-  const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
-    return Response.json({ error: "Solo un Líder puede agregar un color al vocabulario." }, { status: 403 });
-  }
+  // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
+  // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
+  // exigir Líder. El resultado (`estado`) no lo elige nadie de acá.
+  await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
   const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("colores")
     .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, tipo, imagen_muestra_url: imagenMuestraUrl, notas })
-    .select("codigo, nombre, familia_color, hex, tipo, imagen_muestra_url, notas")
+    .select("codigo, nombre, familia_color, hex, tipo, imagen_muestra_url, notas, estado")
     .single();
 
   if (error) {
@@ -110,7 +115,18 @@ export async function PATCH(request: Request) {
     tipo?: string;
     imagen_muestra_url?: string | null;
     notas?: string | null;
+    estado?: string;
   } = {};
+
+  // Aprobar un color pendiente (decisión 2026-09-16: "cualquiera propone, un
+  // Líder aprueba"). Solo admite ese sentido — no existe "rechazar": un
+  // color pendiente que no sirve se desactiva, mismo camino que ya existía.
+  if ("estado" in cuerpoObj) {
+    if (cuerpoObj.estado !== "aprobado") {
+      return Response.json({ error: "El único cambio de estado posible desde acá es aprobar." }, { status: 400 });
+    }
+    patch.estado = "aprobado";
+  }
 
   if ("nombre" in cuerpoObj) {
     const nombre = typeof cuerpoObj.nombre === "string" ? cuerpoObj.nombre.trim() : "";
@@ -192,7 +208,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas")
+    .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
     .single();
 
   if (error) {
