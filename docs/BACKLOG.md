@@ -30,10 +30,14 @@ reembolso en efectivo queda con `caja_id = null` — invisible para siempre en c
       `registrar_cambio`/`aprobar_devolucion` rechazan ahora (mismo mensaje que ya usa
       `registrar_venta`: "No hay una caja abierta…") cuando hay efectivo real moviéndose
       y no hay caja abierta; sin efectivo, siguen funcionando igual que antes. Mismas
-      firmas, sin columnas nuevas. Aplicada y probada **solo en local**
+      firmas, sin columnas nuevas. Probada en local
       (`pnpm pruebas:registrar-cambio` 13/13, `pnpm pruebas:aprobar-devolucion-caja` 2/2,
-      `typecheck`/`lint` limpios) — no en producción, sin ok de Felipe todavía.
-- [ ] **Aplicar en producción** — pendiente el ok puntual de Felipe.
+      `typecheck`/`lint` limpios).
+- [x] **En producción desde 2026-09-16** — pegada por Felipe en el SQL Editor de
+      `cayla-dynamic` (con `set search_path = retail, public, extensions;`, ya incluido
+      en el archivo); verificada contra `pg_proc` que `registrar_cambio` y
+      `aprobar_devolucion` quedaron con una sola sobrecarga cada una (conteo = 1, no el
+      hueco de ADR-0009/0004).
 - [ ] **Colisión de número de ADR (0063 y ahora también 0064) con la sesión concurrente
       `devoluciones-anular-ventas-e282dc`** (su propio `anular_venta`, migración
       `20260916172645_anular_venta.sql`, sin relación de código con este cambio — se

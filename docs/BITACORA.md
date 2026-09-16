@@ -3,6 +3,15 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (cierre — ADR-0064 en producción)
+
+Felipe pegó `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql` en el
+SQL Editor de `cayla-dynamic` y confirmó `pg_proc` con conteo = 1 en `registrar_cambio` y
+`aprobar_devolucion` (una sola sobrecarga cada una, no el hueco de ADR-0009/0004). BACKLOG
+y ADR-0064 actualizados a "en producción". Sesión de Cambios cerrada: pruebas
+automatizadas de `registrar_cambio` (ADR-0063) + el candado de caja (ADR-0064), ambas
+en producción, sin bugs pendientes conocidos en el módulo.
+
 ## 2026-09-16 (Cambio y devolución exigen caja si hay efectivo de por medio)
 
 Felipe preguntó qué quedaba pendiente en Cambios; se repasó código + BACKLOG completo y

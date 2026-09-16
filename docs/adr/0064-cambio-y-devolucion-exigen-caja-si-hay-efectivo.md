@@ -1,9 +1,9 @@
 # ADR-0064 — Cambio y devolución exigen caja abierta si hay efectivo de por medio
 
 **Fecha:** 2026-09-16
-**Estado:** Aplicado y probado en local. **No aplicado en producción** — falta el ok
-puntual de Felipe antes de pegar `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql`
-(mismo protocolo que ADR-0042/D-11).
+**Estado:** Aplicado y probado en local, **y en producción desde 2026-09-16** — pegado
+por Felipe en el SQL Editor de `cayla-dynamic`, verificado contra `pg_proc` (una sola
+sobrecarga por función, no el hueco de ADR-0009/0004).
 **Afecta:** `retail.registrar_cambio` y `retail.aprobar_devolucion` — mismas firmas, sin
 columnas ni tablas nuevas.
 **Nota de numeración:** puede colisionar con otra sesión concurrente
@@ -65,9 +65,5 @@ respuesta correcta es abrir la caja, no relajar el candado.
 
 ## Lo que falta
 
-1. **Aplicar en producción** — falta el ok puntual de Felipe antes de pegar
-   `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql` (con
-   `set search_path = retail, public, extensions;` o el prefijo `retail.` en el SQL
-   Editor, como manda CLAUDE.md).
-2. **Reconciliar el número de ADR** al fusionar con la rama de
+1. **Reconciliar el número de ADR** al fusionar con la rama de
    `devoluciones-anular-ventas-e282dc` (ver nota de numeración arriba).
