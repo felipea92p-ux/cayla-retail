@@ -4635,3 +4635,37 @@ commits por separado. Mismo límite que la sesión anterior para ver esto en el 
 este repo solo tiene login por contraseña (sin magic link/OTP en el frontend — se
 confirmó que no existe ninguna ruta `/auth/*`), así que no hay demo autenticada como
 líder; el `next dev` de este worktree sigue arriba en `localhost:3000`.
+
+## 2026-09-16 (Facturación: tarjetas para celular, y por fin una sesión de líder para verlo)
+
+Felipe confirmó que sí entra desde el teléfono a veces — construyo el ítem 5 que había
+quedado pendiente de su respuesta. `ComprobantesPanel.tsx`/`ProformasPanel.tsx`: la
+tabla (`min-w-[760px]`) se reserva para `sm:` (640px) y más ancho; por debajo, las
+mismas filas se pintan como tarjetas apiladas. Para no duplicar la decisión de qué
+botón mostrar (Transmitir/Anular/Consultar) y el motivo de rechazo/anulación en dos
+JSX distintos, se extrajo `accionComprobante()` — vive fuera del componente porque no
+tiene closure sobre los handlers, así que los recibe por parámetro. En Proformas, el
+`.sort()` que antes vivía inline en el `.map()` de la tabla pasó a `proformasOrdenadas`,
+calculado una vez y leído por los dos layouts.
+
+**Por fin se pudo ver en un navegador real, autenticado.** Los intentos anteriores
+(magic link sin ruta de callback en el frontend) se abandonaron; esta vez Felipe entró
+él mismo con su contraseña real en el pane compartido — cerrar la sesión de Micaela
+(botón "Salir" real, no forzado por código) fue lo único que hizo falta. Con él ya
+adentro como líder en Tienda Lima: se creó una proforma de prueba real (María Torres,
+S/185.50) para tener al menos una fila que ver, y resultó que Tienda Lima ya tenía 13
+comprobantes reales sembrados por otra sesión — de paso sirvieron para probar el
+layout con volumen real, no un caso de una sola fila. A 375px de ancho (iPhone
+chico): cero desborde horizontal, cada tarjeta con tipo+serie, cliente, total, estado
+y el botón de acción, legible sin agrandar nada. Los datos de prueba se dejaron en el
+local (Postgres local, no producción) — no hace falta limpiarlos, le sirven a la
+próxima sesión como fixture.
+
+De paso, con Felipe ya autenticado, quedaron confirmados en el navegador real los tres
+cambios de la sesión anterior que solo habían pasado por `tsc`/`lint`/tests: el link de
+Códigos de descuento en la fila del navegador de mes (con su divisor), los 4 tiles de
+Comprobantes con Rechazados aparte, y el formulario de Proformas ya con los campos de
+`campos.tsx` (Desplegable, CampoMonto con su "S/" grande) funcionando de punta a punta
+contra el RPC real.
+
+Verificado `tsc --noEmit`, `pnpm lint` y `pnpm test` (239/239) en verde.

@@ -1823,11 +1823,6 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       `p_items` en producción; `ComprobantesPanel.tsx:215-224` no los manda. Falta
       levantar el estado del modal "emitir" a un componente cliente que envuelva a
       los dos paneles hermanos (hoy conviven sueltos en `facturacion/page.tsx`).
-- [ ] **Facturación: tablas de Proformas/Comprobantes fuerzan scroll horizontal en
-      celular (`min-w-[760px]`) — sin decidir si vale la pena.** Solo importa si de
-      verdad se revisa Facturación desde el teléfono; preguntado a Felipe
-      2026-09-16, sin respuesta todavía. No construir sin confirmar el caso de uso
-      real — sería sobre-construir para un uso que quizás no existe (principio 5).
 
 - [ ] **Correlativo reservado que nunca se transmitió — sigue sin resolver (ADR-0016 lo
       dejó afuera a propósito), y ya no es hipotético: hay 2 casos reales en producción
@@ -2357,6 +2352,20 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-16 — **Facturación en tarjetas para celular (ítem 5 de la auditoría de
+      amigabilidad; Felipe confirmó que sí entra desde el teléfono a veces).**
+      `ComprobantesPanel.tsx` y `ProformasPanel.tsx`: la tabla (`min-w-[760px]`) queda
+      para `sm:` (640px) y más ancho; por debajo, las mismas filas se pintan como
+      tarjetas apiladas — mismo dato, sin columnas, sin scroll horizontal. Se extrajo
+      `accionComprobante()` (botón Transmitir/Anular/Consultar + motivo de rechazo o
+      anulación) y `proformasOrdenadas` para que tabla y tarjetas lean la misma lógica,
+      no dos copias que puedan desalinearse. **Verificado en el navegador real, con
+      Felipe autenticado como líder** (el límite de las sesiones anteriores — sin
+      sesión de líder disponible — se resolvió cuando entró él mismo con su
+      contraseña): 375px de ancho, con los 13 comprobantes y 1 proforma reales que ya
+      había en el local, sin ningún desborde horizontal. `tsc --noEmit`, `pnpm lint`,
+      `pnpm test` (239/239) en verde.
 
 - [x] 2026-09-16 — **Auditoría de amigabilidad de Facturación: 3 de 5 hallazgos
       construidos, con el visto bueno de Felipe (pidió todos menos "conectar Ventas
