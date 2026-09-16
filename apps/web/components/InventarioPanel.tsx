@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -9,16 +10,23 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import { textoOtrasSedes } from "@/lib/stock-por-sede";
-import {
-  ACCION_ESTADO_STOCK,
-  ETIQUETA_ESTADO_STOCK,
-  necesitaReponerPiso,
-  UMBRAL_REPOSICION_PISO,
-  type EstadoStock,
-} from "@/lib/inventario-reglas";
+import { resumenRed } from "@/lib/stock-por-sede";
+import { ACCION_ESTADO_STOCK, ETIQUETA_ESTADO_STOCK, UMBRAL_REPOSICION_PISO, type EstadoStock } from "@/lib/inventario-reglas";
 import type { FilaExistencias, ResumenExistencias } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
+
+// Silueta de perchero — el mismo trazo que ya usa IC.inventario en
+// AppShell.tsx — como marcador cuando el producto todavía no tiene foto
+// cargada. Nunca un roto de <img>, nunca un cuadro vacío sin explicación.
+function SinFoto() {
+  return (
+    <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tinta/10 bg-sand/50 text-tinta/25">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <path d="M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10" />
+      </svg>
+    </span>
+  );
+}
 
 // «Normal» no lleva chip: es la mayoría de las filas y un chip verde en cada
 // una sería decoración (brandbook: el semáforo nunca es adorno). Los tres
@@ -111,14 +119,16 @@ export function InventarioPanel({
   const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
 
-  // `minmax(12rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
+  // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
   // (que habilita min-width automático 0 en la pista), una ventana angosta
-  // dejaba "Prenda" en 0px — invisible, no acortado. El piso de 12rem es lo
-  // que ocupa «Casaca Ximena» más su SKU debajo antes de que la Tabla entre
-  // a scroll horizontal (ver `ui/Tabla.tsx`).
+  // dejaba "Prenda" en 0px — invisible, no acortado. El piso de 13.5rem es
+  // la miniatura (36px) más «Casaca Ximena» y su SKU debajo antes de que la
+  // Tabla entre a scroll horizontal (ver `ui/Tabla.tsx`). "En la red" subió
+  // a 10.5rem: ahora son dos líneas («Disponible en 3 sedes: 36 uds» y el
+  // detalle por sede), no una.
   const plantilla = separa
-    ? "sm:grid-cols-[minmax(12rem,1.4fr)_7.5rem_5rem_11rem_5.5rem_minmax(9rem,1fr)_4.5rem]"
-    : "sm:grid-cols-[minmax(12rem,1.4fr)_5rem_5.5rem_minmax(9rem,1fr)_4.5rem]";
+    ? "sm:grid-cols-[minmax(13.5rem,1.4fr)_7.5rem_5rem_11rem_5.5rem_minmax(10.5rem,1.2fr)_4.5rem]"
+    : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_5.5rem_minmax(10.5rem,1.2fr)_4.5rem]";
 
   return (
     <div className="space-y-6">
@@ -233,20 +243,37 @@ export function InventarioPanel({
             }
           />
           {filtradas.map((f) => {
-            const otras = textoOtrasSedes(f.enRed);
+            const red = resumenRed(f.enRed);
             return (
               <div key={f.varianteId} className={fila(plantilla)}>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm text-tinta" title={f.referencia}>
-                    {f.referencia}
-                  </span>
-                  {/* `overflow-visible`: la pastilla con el nombre del color flota
-                      fuera de la celda al pasar el mouse. */}
-                  <span className="flex items-center gap-1.5 overflow-visible text-xs text-tinta/65">
-                    <span className="font-mono">{f.sku}</span>
-                    {f.talla && <span>· {f.talla}</span>}
-                    <span>·</span>
-                    <MuestraColor nombre={f.color} hex={f.colorHex} />
+                {/* `items-start`, no `items-center`: con dos líneas de texto la
+                    miniatura se ve mejor alineada arriba, como una etiqueta
+                    colgada de la prenda, no flotando a media altura. */}
+                <span className="flex min-w-0 items-start gap-2.5">
+                  {f.fotoUrl ? (
+                    <Image
+                      src={f.fotoUrl}
+                      alt=""
+                      width={36}
+                      height={36}
+                      unoptimized
+                      className="h-9 w-9 shrink-0 rounded-md border border-tinta/10 object-cover"
+                    />
+                  ) : (
+                    <SinFoto />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-tinta" title={f.referencia}>
+                      {f.referencia}
+                    </span>
+                    {/* `overflow-visible`: la pastilla con el nombre del color flota
+                        fuera de la celda al pasar el mouse. */}
+                    <span className="flex items-center gap-1.5 overflow-visible text-xs text-tinta/65">
+                      <span className="font-mono">{f.sku}</span>
+                      {f.talla && <span>· {f.talla}</span>}
+                      <span>·</span>
+                      <MuestraColor nombre={f.color} hex={f.colorHex} />
+                    </span>
                   </span>
                 </span>
                 {separa && (
@@ -265,13 +292,19 @@ export function InventarioPanel({
                   <span className={celda("centro", "overflow-visible")}>
                     <span className="inline-flex items-center justify-center gap-2">
                       {f.estado === "normal" || f.estado === null ? (
-                        <span className="label-cayla text-[10px] text-tinta/45">Normal</span>
+                        <span className="label-cayla text-[10px] text-tinta/45" title={ACCION_ESTADO_STOCK.normal}>
+                          Normal
+                        </span>
                       ) : (
                         <Chip tono={TONO_ESTADO[f.estado]}>
                           <span title={ACCION_ESTADO_STOCK[f.estado]}>{ETIQUETA_ESTADO_STOCK[f.estado]}</span>
                         </Chip>
                       )}
-                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
+                      {/* Solo en el estado «Reponer piso»: es la única situación en
+                          que bajar del almacén es la acción correcta (diseño de
+                          Felipe, 2026-09-16) — en «Stock bajo» bajaría lo poco que
+                          queda de reserva sin arreglar el problema real. */}
+                      {puedeReponer && f.estado === "reponer_piso" && (
                         <button
                           type="button"
                           onClick={() => setReponiendo(f)}
@@ -287,9 +320,18 @@ export function InventarioPanel({
                   <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En camino</span>
                   {f.enTransito > 0 ? `+${f.enTransito}` : "—"}
                 </span>
-                <span className={celda("centro", `text-xs ${otras ? "text-tinta/75" : "text-tinta/35"}`)} title={otras ?? undefined}>
+                <span className={celda("centro", "text-xs")} title={red?.detalle}>
                   <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En la red</span>
-                  {otras ?? "—"}
+                  {red ? (
+                    <>
+                      <span className="block text-tinta">
+                        Disponible en {red.sedes} {red.sedes === 1 ? "sede" : "sedes"}: {red.total} {red.total === 1 ? "ud" : "uds"}
+                      </span>
+                      <span className="block truncate text-tinta/55">{red.detalle}</span>
+                    </>
+                  ) : (
+                    <span className="text-tinta/35">—</span>
+                  )}
                 </span>
                 <span className={celda("centro")}>
                   <button

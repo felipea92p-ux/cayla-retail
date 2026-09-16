@@ -28,11 +28,27 @@ export type FilaStock = {
   referencia: string;
   categoria: string | null;
   codigosBarras: string[];
+  /** La foto principal del PRODUCTO (`producto_fotos.es_principal`; si
+   *  ninguna está marcada, la de menor `orden`). Null si el producto no
+   *  tiene fotos todavía — la fila dibuja un marcador, no un roto. */
+  fotoUrl: string | null;
   total: number;
   piso: number | null;
   almacen: number | null;
   estado: EstadoStock | null;
 };
+
+type FotoCruda = { url: string; orden: number; es_principal: boolean };
+
+/** De las fotos de un producto (0 a N, en cualquier orden de llegada), la
+ *  que se muestra como miniatura: la marcada `es_principal`, o si ninguna
+ *  lo está, la de menor `orden` — mismo criterio que ya usan
+ *  `catalogo_crear_producto`/`catalogo_actualizar_producto` en SQL al
+ *  elegir cuál queda de `es_principal` por defecto. */
+function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | null {
+  if (!fotos || fotos.length === 0) return null;
+  return (fotos.find((f) => f.es_principal) ?? [...fotos].sort((a, b) => a.orden - b.orden)[0]).url;
+}
 
 export type ResumenInventario = {
   total: number;
@@ -53,7 +69,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
          variante:variantes (
            sku, talla,
            color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
+           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
            codigos_barras ( codigo )
          )`
       )
@@ -88,6 +104,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         referencia: f.variante?.producto?.referencia ?? "",
         categoria: f.variante?.producto?.categoria?.nombre ?? null,
         codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
+        fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
         total: 0,
         _piso: 0,
         _almacen: 0,
@@ -159,7 +176,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
          variante:variantes (
            sku, talla,
            color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
+           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
            codigos_barras ( codigo )
          )`
       )
@@ -198,6 +215,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       referencia: item.variante?.producto?.referencia ?? "",
       categoria: item.variante?.producto?.categoria?.nombre ?? null,
       codigosBarras: (item.variante?.codigos_barras ?? []).map((c) => c.codigo),
+      fotoUrl: fotoPrincipal(item.variante?.producto?.producto_fotos),
       total: 0,
       piso: separa ? 0 : null,
       almacen: separa ? 0 : null,
