@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { DevolucionFormV2 } from "@/components/DevolucionFormV2";
+import { AnularVentaForm } from "@/components/AnularVentaForm";
 import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
 import type { LineaVentaParaDevolucion, DevolucionPendiente } from "@/lib/devoluciones";
 
@@ -41,6 +42,8 @@ export function DevolucionesLista({
   busqueda: string;
 }) {
   const [enDevolucion, setEnDevolucion] = useState<LineaVentaParaDevolucion | null>(null);
+  const [enAnulacion, setEnAnulacion] = useState<LineaVentaParaDevolucion | null>(null);
+  const ventasConAnularMostrado = new Set<string>();
 
   return (
     <div className="space-y-8">
@@ -70,6 +73,11 @@ export function DevolucionesLista({
         <div className="card-cayla divide-y divide-tinta/10">
           {lineas.map((l) => {
             const disponible = l.cantidad - l.yaDevuelto;
+            // Anular es de la venta completa, no de esta línea — se muestra una sola
+            // vez por venta (la primera línea que aparece en la lista), no una vez por
+            // cada línea de una venta con varios ítems.
+            const mostrarAnular = esLider && !ventasConAnularMostrado.has(l.ventaId);
+            if (mostrarAnular) ventasConAnularMostrado.add(l.ventaId);
             return (
               <div key={l.ventaItemId} className="flex items-center gap-3 px-5 py-3">
                 <div className="min-w-0 flex-1">
@@ -82,14 +90,25 @@ export function DevolucionesLista({
                   </p>
                   <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
                 </div>
-                <button
-                  type="button"
-                  disabled={disponible <= 0}
-                  onClick={() => setEnDevolucion(l)}
-                  className="label-cayla text-[11px] text-tinta/65 hover:text-rojo disabled:text-tinta/30 disabled:hover:text-tinta/30"
-                >
-                  {disponible <= 0 ? "Sin devolución disponible" : "Devolver"}
-                </button>
+                <div className="flex shrink-0 items-center gap-3">
+                  {mostrarAnular && (
+                    <button
+                      type="button"
+                      onClick={() => setEnAnulacion(l)}
+                      className="label-cayla text-[11px] text-tinta/65 hover:text-rojo"
+                    >
+                      Anular
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={disponible <= 0}
+                    onClick={() => setEnDevolucion(l)}
+                    className="label-cayla text-[11px] text-tinta/65 hover:text-rojo disabled:text-tinta/30 disabled:hover:text-tinta/30"
+                  >
+                    {disponible <= 0 ? "Sin devolución disponible" : "Devolver"}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -100,6 +119,7 @@ export function DevolucionesLista({
       {enDevolucion && (
         <DevolucionFormV2 linea={enDevolucion} ubicacionId={ubicacionId} onClose={() => setEnDevolucion(null)} />
       )}
+      {enAnulacion && <AnularVentaForm linea={enAnulacion} onClose={() => setEnAnulacion(null)} />}
     </div>
   );
 }
