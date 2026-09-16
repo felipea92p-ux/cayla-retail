@@ -561,7 +561,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // Facturación queda adentro pero sigue líder-only, igual que siempre.
   const grupoVenta: ItemGrupo = {
     id: "venta",
-    etiqueta: "Venta",
+    etiqueta: "Ventas",
     icono: IC.venta,
     hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
   };
@@ -590,17 +590,17 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const grupos = [
     {
       titulo: null,
-      // Compras (ADR-0035) va después de Inventario: es de donde entra la
-      // mercadería.
+      // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
+      // Producción, Compras, Ventas, Movimientos, Inventario.
       items: [
         inicio,
-        grupoVenta,
-        grupoCatalogo,
-        inventario,
-        ...(esLider ? [grupoCompras] : []),
-        ...(veProduccion ? [produccion] : []),
-        movimientos,
         ...(esLider ? [colaboradores] : []),
+        grupoCatalogo,
+        ...(veProduccion ? [produccion] : []),
+        ...(esLider ? [grupoCompras] : []),
+        grupoVenta,
+        movimientos,
+        inventario,
       ],
     },
   ].filter((g) => g.items.length > 0);
