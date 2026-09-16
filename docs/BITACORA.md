@@ -3,6 +3,15 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (PR #55 fusionado + SQL de Loro confirmado en producción)
+
+Felipe llegó perdido con inventario/catálogo/taxonomía; auditoría mostró que el PR #55
+(rama `claude/taxonomia-loro-tucan-15eaf3`, ya verde) resolvía justo eso — se fusionó a
+`main` sin rehacerlo. Felipe pegó `SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en
+producción; comprobación final igual a la esperada en los 7 campos. Aprendizaje: antes de
+construir algo nuevo, revisar si otra sesión en paralelo ya lo dejó listo — con ~10
+sesiones tocando el mismo dominio el mismo día, es más probable de lo que parece.
+
 ## 2026-09-16 (Loro — prendas escaneables antes del censo)
 
 Felipe tomó Loro, Tucán, Golondrina y Halcón. Al medir producción, los documentos de

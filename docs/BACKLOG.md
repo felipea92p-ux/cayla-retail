@@ -37,11 +37,17 @@ pantalla de colores). Lo que quedaba se cerró aquí: regla de identidad con tal
 normalizada (ADR-0069), red de códigos para variantes activas y `/buscar` leyendo
 códigos de barras. Probado en local; tipos y 266 pruebas en verde.
 
-- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql` en producción
-      ANTES del censo.** Bloque 0 (pre-flight) tiene que dar 0. Archiva los 6 productos de
-      prueba (quedan con historial, 13 salidas y 5 ventas intactas), apaga la categoría
-      "Polos" fuera del vocabulario, retira Arena `ARE` (choca con el prefijo de Aretes) y
-      crea `ARN`, completa la familia de 5 colores y aplica la regla nueva.
+- [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-loro.sql`: pegado y confirmado en
+      producción 2026-09-16 — cerrado.** Felipe lo corrió completo, bloque 0
+      (pre-flight) dio 0 como se esperaba. Comprobación final (bloque 3), igual a lo
+      previsto: `activas_sin_codigo=0`, `activas_sin_codigo_barras=0`,
+      `productos_descontinuados=6`, `regla_nueva=1`, `regla_vieja=0`,
+      `colores_sin_familia=0`, `arena_activa=ARN`. Verificado además por consulta
+      directa (Supabase MCP, solo lectura): `retail.colores` tiene `ARE` inactivo
+      ("Arena (retirado)") y `ARN` activo ("Arena"). Las 37 variantes de producción
+      quedan escaneables (código + código de barras); los 6 productos de prueba
+      (BLU-001/PAN-001/VES-001/POL-001/CHO-001/FAL-001) descontinuados, con su
+      historial intacto.
 - [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
       catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
       Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
