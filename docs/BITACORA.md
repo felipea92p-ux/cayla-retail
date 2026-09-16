@@ -49,6 +49,10 @@ NO sirve para probar si una política RLS bloquea a alguien de verdad, porque la
 conexión pasa por encima de todas igual. Queda pendiente pegar en producción y una
 verificación en navegador con una cuenta de Colaborador real.
 
+## 2026-09-16 (Cambios: la prenda vendida se identifica por variante, no por sku)
+
+Cambios buscaba "la vendida" por sku; las prendas del censo nacen sin sku (viajaba como "") y con dos de ellas se escondía otra prenda y la vendida se ofrecía a sí misma — ahora es `varianteId` (`lib/cambios-reglas.ts`, con prueba) y la pantalla muestra `variantes.codigo` en vez de un sku vacío. Aprendizaje: un código legible no es una identidad; se compara por id y el código solo se muestra.
+
 ## 2026-09-16 (16 colaboradores de tienda dados de alta en producción)
 
 El censo dependía solo de Felipe porque ningún encargado de piso tenía cuenta en

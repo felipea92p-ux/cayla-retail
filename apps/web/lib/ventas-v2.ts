@@ -26,8 +26,13 @@ export async function buscarVentaIdsPorComprobante(ubicacionId: string, serie: s
 export type LineaVentaReciente = {
   ventaItemId: string;
   ventaId: string;
+  /** La identidad de la prenda vendida — nunca el sku: las prendas del censo nacen sin
+   *  él y "" calzaba con cualquier otra sin sku (ver `cambios-reglas.ts`). */
+  varianteId: string;
   creadoEn: string;
   sku: string;
+  /** Código de etiqueta (`variantes.codigo`); se muestra con `codigoPrenda`. */
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -61,9 +66,9 @@ export async function getLineasVentaRecientes(
   let query = supabase
     .from("venta_items")
     .select(
-      `id, venta_id, cantidad, precio_unitario,
+      `id, venta_id, variante_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+       variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
     )
     .eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
@@ -89,8 +94,10 @@ export async function getLineasVentaRecientes(
   return filas.map((f) => ({
     ventaItemId: f.id,
     ventaId: f.venta_id,
+    varianteId: f.variante_id,
     creadoEn: f.venta?.created_at ?? "",
     sku: f.variante?.sku ?? "",
+    codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
     talla: f.variante?.talla ?? null,
     color: f.variante?.color?.nombre ?? null,

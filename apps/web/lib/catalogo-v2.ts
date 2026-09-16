@@ -12,6 +12,9 @@ import { exigir } from "@/lib/resultado";
 export type VarianteCatalogo = {
   varianteId: string;
   sku: string;
+  /** Código de etiqueta (`variantes.codigo`) — lo que lee la pistola. El `sku` es
+   *  legado y las prendas del censo nacen sin él. */
+  codigo: string | null;
   talla: string | null;
   color: string | null;
   colorHex: string | null;
@@ -31,7 +34,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     await supabase
       .from("variantes")
       .select(
-        `id, sku, talla, color_codigo, precio, costo, activo,
+        `id, sku, codigo, talla, color_codigo, precio, costo, activo,
          producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
@@ -43,6 +46,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   return filas.map((v) => ({
     varianteId: v.id,
     sku: v.sku ?? "",
+    codigo: v.codigo,
     talla: v.talla,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
@@ -205,6 +209,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     p.variantes.push({
       varianteId: f.variante_id,
       sku: f.sku,
+      codigo: f.variante_codigo,
       talla: f.talla,
       color: f.color_nombre,
       colorHex: f.color_hex,

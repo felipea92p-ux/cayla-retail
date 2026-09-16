@@ -4,10 +4,12 @@ import { useState } from "react";
 import { CambioFormV2 } from "@/components/CambioFormV2";
 import { BuscarPorComprobante } from "@/components/BuscarPorComprobante";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
+import { codigoPrenda } from "@/lib/cambios-reglas";
 
 type VarianteCatalogo = {
   varianteId: string;
   sku: string;
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -58,7 +60,7 @@ export function CambiosLista({
                     {l.referencia} <span className="text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/")}</span>
                   </p>
                   <p className="mt-0.5 font-mono text-[11px] text-tinta/65">
-                    {l.sku} · comprada × {l.cantidad}
+                    {codigoPrenda(l)} · comprada × {l.cantidad}
                     {l.yaCambiado > 0 && ` · ya cambiada × ${l.yaCambiado}`}
                   </p>
                   <p className="mt-0.5 text-[11px] text-tinta/50">{formatearFecha(l.creadoEn)}</p>
