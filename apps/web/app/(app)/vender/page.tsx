@@ -36,15 +36,17 @@ async function Caja() {
   //   pantalla de Inventario: una venta descuenta el PISO, nunca el almacén en silencio
   //   (`inventario_piso_almacen.sql`), así que el tope que ve la cajera es el piso; en una
   //   ubicación sin piso/almacén (Taller, `piso === null`) sigue siendo el total.
-  // · «¿dónde más hay?» → las filas crudas de TODAS las sedes que RLS deje ver, sumadas
-  //   por sede (piso + almacén: para un traslado importa lo que la otra tienda tiene, no
-  //   lo que exhibe — decisión de Felipe, 2026-09-14). Una Líder ve todas; una
-  //   colaboradora con sede fija solo la suya, y `otrasSedes` llega vacío sin romperse.
-  //   Ver `lib/stock-por-sede.ts`.
+  // · «¿dónde más hay?» → `fn_stock_por_sede()` (20260914220001, security definer), no
+  //   `stock` directo: `stock_select` solo deja ver las sedes que la persona puede OPERAR,
+  //   así que una colaboradora con sede fija leía la tabla y recibía SOLO su propia sede —
+  //   `otrasSedes` le llegaba vacío. La RPC expone las cantidades por sede a cualquiera con
+  //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
+  //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
+  //   2026-09-14). Ver `lib/stock-por-sede.ts`.
   const [variantes, caja, resStock, ubicaciones, stockAqui] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    supabase.from("stock").select("variante_id, ubicacion_id, cantidad"),
+    supabase.rpc("fn_stock_por_sede"),
     getUbicaciones(),
     getStockPorUbicacion(persona.ubicacionId),
   ]);
