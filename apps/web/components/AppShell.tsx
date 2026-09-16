@@ -25,6 +25,16 @@ import { PerfilModal } from "@/components/PerfilModal";
 // abierta). El riel sigue sin medir el DOM: camina sobre las filas
 // REALMENTE visibles (cabecera + hijas si está abierto), no sobre el array
 // de datos — ver `GrupoLateral`. Rutas sin cambios.
+//
+// v3.4 (2026-09-16, pedido de Felipe): "Catálogo" agrupa Productos/
+// Categorías/Colores — hasta hoy Categorías y Colores no vivían en el
+// lateral, solo como pestañas de `ProductosNav.tsx` dentro de `/productos`
+// (ahora redundante, se retira de las 4 pantallas que la usaban). Con dos
+// grupos colapsables el estado por nombre de "Venta" (`ventaAbierto`/
+// `ventaTocado`) no alcanzaba sin duplicar variables por cada grupo nuevo:
+// `ItemVenta` pasa a `ItemGrupo` (con `id`) y el estado a un mapa por id
+// (`gruposAbiertos`/`gruposTocados`). Comportamiento idéntico al de Venta,
+// ahora servido para cualquier cantidad de grupos.
 
 // V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
 // ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
@@ -79,6 +89,13 @@ const IC = {
   // Bolsa, no carrito: el carrito ya es de "Punto de Venta" (IC.vender) — la
   // cabecera "Venta" necesita un trazo propio para no verse igual a su hija.
   venta: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
+  // Cuatro cuadros: "Catálogo" agrupa a Productos (una sola caja, IC.productos)
+  // — la cabecera necesita su propio trazo por el mismo motivo que "Venta".
+  catalogo: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+  // Etiqueta colgante: el vocabulario que clasifica una prenda.
+  categorias: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
+  // Gota: el color de la tela.
+  colores: "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z",
   chevron: "M9 6l6 6-6 6",
 };
 
@@ -94,10 +111,13 @@ const PASO_FILA = ALTO_FILA + AIRE_FILA;
 const ALTO_RIEL = 20; // px — la misma marca de canto del listbox de campos.tsx
 
 type Item = { href: string; etiqueta: string; icono: string };
-// Cabecera colapsable de "Venta": agrupa Items, no navega (sin href propio).
-type ItemVenta = { etiqueta: string; icono: string; hijos: Item[] };
-type FilaMenu = Item | ItemVenta;
-function esGrupoVenta(f: FilaMenu): f is ItemVenta {
+// Cabecera colapsable: agrupa Items bajo un nombre común, no navega (sin
+// href propio). `id` identifica el grupo en los mapas de estado de abajo
+// (gruposAbiertos/gruposTocados) — con un solo grupo ("Venta", al nacer)
+// alcanzaba una variable por nombre; con dos hace falta una clave.
+type ItemGrupo = { id: string; etiqueta: string; icono: string; hijos: Item[] };
+type FilaMenu = Item | ItemGrupo;
+function esGrupo(f: FilaMenu): f is ItemGrupo {
   return "hijos" in f;
 }
 
@@ -144,37 +164,41 @@ function BuscadorGlobal({ compacto = false }: { compacto?: boolean }) {
    un riel que salta al cargar la página.
    ------------------------------------------------------------------ */
 type FilaLateral =
-  | { tipo: "item"; item: Item; indentada: boolean; ordenEnGrupo: number }
-  | { tipo: "grupo"; item: ItemVenta };
+  | { tipo: "item"; item: Item; indentada: boolean; ordenEnGrupo: number; grupoId?: string }
+  | { tipo: "grupo"; item: ItemGrupo };
 
 function GrupoLateral({
   titulo,
   items,
+  pathname,
   activo,
-  ventaAbierto,
-  ventaTocado,
-  onToggleVenta,
+  gruposAbiertos,
+  gruposTocados,
+  onToggleGrupo,
 }: {
   titulo: string | null;
   items: FilaMenu[];
+  pathname: string;
   activo: (href: string) => boolean;
-  ventaAbierto: boolean;
-  /** Recién en `true` tras el primer toggle/auto-apertura: evita que las
-   *  hijas jueguen `anim-revelar` en la carga inicial, cuando ya arrancan
-   *  visibles (no es una revelación, es la foto de siempre). */
-  ventaTocado: boolean;
-  onToggleVenta: () => void;
+  gruposAbiertos: Record<string, boolean>;
+  /** Recién en `true` tras el primer toggle/auto-apertura de ESE grupo:
+   *  evita que sus hijas jueguen `anim-revelar` en la carga inicial, cuando
+   *  ya arrancan visibles (no es una revelación, es la foto de siempre). */
+  gruposTocados: Record<string, boolean>;
+  onToggleGrupo: (id: string) => void;
 }) {
   // Aplana cabecera + hijas (solo si está abierta) en las filas que de
   // verdad se van a pintar — el riel lee ESTE índice, nunca el del array
-  // original, así que nunca se desalinea aunque "Venta" cambie cuántas
+  // original, así que nunca se desalinea aunque un grupo cambie cuántas
   // filas ocupa al abrirse o cerrarse.
   const filas: FilaLateral[] = [];
   items.forEach((it) => {
-    if (esGrupoVenta(it)) {
+    if (esGrupo(it)) {
       filas.push({ tipo: "grupo", item: it });
-      if (ventaAbierto) {
-        it.hijos.forEach((h, idx) => filas.push({ tipo: "item", item: h, indentada: true, ordenEnGrupo: idx }));
+      if (gruposAbiertos[it.id]) {
+        it.hijos.forEach((h, idx) =>
+          filas.push({ tipo: "item", item: h, indentada: true, ordenEnGrupo: idx, grupoId: it.id })
+        );
       }
     } else {
       filas.push({ tipo: "item", item: it, indentada: false, ordenEnGrupo: 0 });
@@ -182,11 +206,26 @@ function GrupoLateral({
   });
 
   // Con el grupo cerrado, la cabecera hace de sustituto de sus hijas: si una
-  // de ellas es la ruta activa, el riel se queda en "Venta" (la única fila
-  // que representa a esa ruta mientras está colapsada).
-  const indiceActivo = filas.findIndex((f) =>
-    f.tipo === "item" ? activo(f.item.href) : f.item.hijos.some((h) => activo(h.href)) && !ventaAbierto
-  );
+  // de ellas es la ruta activa, el riel se queda en la cabecera (la única
+  // fila que representa a esa ruta mientras está colapsada).
+  //
+  // Coincidencia EXACTA primero. Un padre y su hija pueden compartir prefijo
+  // de ruta sin ser el mismo destino — "Productos" (`/productos`) y
+  // "Colores" (`/productos/colores`) son hermanos, no un padre conteniendo a
+  // su hija, pero `activo()` (prefijo, pensado para "esta ruta cuelga de
+  // esta otra") los confunde: en `/productos/colores` marcaba "Productos"
+  // como activo por venir primero en el array, nunca a "Colores" (mismo
+  // hueco latente ya existía entre "Punto de Venta" y "Facturación",
+  // `/vender` vs `/vender/facturacion` — se corrige acá para los dos).
+  // Si ninguna fila calza exacto (`/productos/nuevo`, que no es ninguna de
+  // las tres pestañas), recién ahí se cae a la coincidencia por prefijo.
+  const filaExacta = filas.findIndex((f) => f.tipo === "item" && f.item.href === pathname);
+  const indiceActivo =
+    filaExacta >= 0
+      ? filaExacta
+      : filas.findIndex((f) =>
+          f.tipo === "item" ? activo(f.item.href) : f.item.hijos.some((h) => activo(h.href)) && !gruposAbiertos[f.item.id]
+        );
 
   return (
     <div>
@@ -209,13 +248,14 @@ function GrupoLateral({
           const esActivo = n === indiceActivo;
 
           if (f.tipo === "grupo") {
+            const abierto = gruposAbiertos[f.item.id] ?? false;
             const contieneActivo = f.item.hijos.some((h) => activo(h.href));
             return (
               <button
-                key="venta"
+                key={f.item.id}
                 type="button"
-                onClick={onToggleVenta}
-                aria-expanded={ventaAbierto}
+                onClick={() => onToggleGrupo(f.item.id)}
+                aria-expanded={abierto}
                 style={{ height: ALTO_FILA }}
                 className={`group relative flex items-center gap-3.5 rounded-lg pl-4 pr-3 text-sm transition-colors ${
                   esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
@@ -231,13 +271,14 @@ function GrupoLateral({
                 <Icono
                   d={IC.chevron}
                   className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${
-                    ventaAbierto ? "rotate-90" : ""
+                    abierto ? "rotate-90" : ""
                   }`}
                 />
               </button>
             );
           }
 
+          const tocado = f.indentada && f.grupoId ? (gruposTocados[f.grupoId] ?? false) : false;
           return (
             <Link
               key={f.item.href}
@@ -245,12 +286,12 @@ function GrupoLateral({
               aria-current={esActivo ? "page" : undefined}
               style={{
                 height: ALTO_FILA,
-                animationDelay: f.indentada && ventaTocado ? `${f.ordenEnGrupo * 30}ms` : undefined,
+                animationDelay: tocado ? `${f.ordenEnGrupo * 30}ms` : undefined,
               }}
               className={`group relative flex items-center gap-3.5 rounded-lg pr-3 text-sm transition-colors ${
                 f.indentada ? "pl-9" : "pl-4"
               } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"} ${
-                f.indentada && ventaTocado ? "anim-revelar" : ""
+                tocado ? "anim-revelar" : ""
               }`}
             >
               {/* Marca fantasma: al pasar el mouse por una fila apagada aparece
@@ -445,11 +486,12 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
-  // "Venta" arranca desplegado (pedido de Felipe, 2026-09-15: Cambios y
-  // Devoluciones recién se hicieron visibles en el menú ESE MISMO día — un
-  // grupo colapsado por defecto las habría vuelto a esconder).
-  const [ventaAbierto, setVentaAbierto] = useState(true);
-  const [ventaTocado, setVentaTocado] = useState(false);
+  // Los dos grupos arrancan desplegados (pedido de Felipe, 2026-09-15, para
+  // "Venta": Cambios y Devoluciones recién se hicieron visibles en el menú
+  // ESE MISMO día — un grupo colapsado por defecto las habría vuelto a
+  // esconder; mismo criterio para "Catálogo" al nacer, 2026-09-16).
+  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({ venta: true, catalogo: true });
+  const [gruposTocados, setGruposTocados] = useState<Record<string, boolean>>({});
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
 
@@ -467,22 +509,27 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const activo = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
-  // Entrar a una pantalla de Venta por otra vía (un link de "+ Nuevo", un
-  // favorito) nunca debe dejarla escondida detrás de un grupo colapsado.
-  // Ajuste de estado durante el render, no en un efecto (mismo patrón que ya
-  // exige el linter del repo — BITÁCORA 2026-09-14, búfer de animación del
-  // ticket): comparar contra el valor del render anterior en vez de un
-  // `useEffect` también evita animar la revelación cuando alguien entra
-  // directo a `/cambios` (recarga o link externo) — ahí nunca "se abrió".
-  const enGrupoVenta = ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"].some((h) =>
-    activo(h),
-  );
-  const [entrabaAGrupoVenta, setEntrabaAGrupoVenta] = useState(enGrupoVenta);
-  if (enGrupoVenta !== entrabaAGrupoVenta) {
-    setEntrabaAGrupoVenta(enGrupoVenta);
-    if (enGrupoVenta) {
-      setVentaAbierto(true);
-      setVentaTocado(true);
+  // Entrar a una pantalla de un grupo colapsado por otra vía (un link de
+  // "+ Nuevo", un favorito) nunca debe dejarla escondida detrás del grupo
+  // cerrado. Ajuste de estado durante el render, no en un efecto (mismo
+  // patrón que ya exige el linter del repo — BITÁCORA 2026-09-14, búfer de
+  // animación del ticket): comparar contra el valor del render anterior en
+  // vez de un `useEffect` también evita animar la revelación cuando alguien
+  // entra directo a `/cambios` o `/productos/colores` (recarga o link
+  // externo) — ahí nunca "se abrió". La lista de rutas por grupo es la
+  // misma fuente que arma `hijos` más abajo, repetida a mano porque los
+  // grupos todavía no existen a esta altura de la función.
+  const RUTAS_POR_GRUPO: Record<string, string[]> = {
+    venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
+    catalogo: ["/productos", "/productos/categorias", "/productos/colores"],
+  };
+  const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
+  const [grupoActivoAnterior, setGrupoActivoAnterior] = useState(grupoActivo);
+  if (grupoActivo !== grupoActivoAnterior) {
+    setGrupoActivoAnterior(grupoActivo);
+    if (grupoActivo) {
+      setGruposAbiertos((g) => ({ ...g, [grupoActivo]: true }));
+      setGruposTocados((g) => ({ ...g, [grupoActivo]: true }));
     }
   }
 
@@ -492,6 +539,8 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
   const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
   const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
+  const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
+  const colores: Item = { href: "/productos/colores", etiqueta: "Colores", icono: IC.colores };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
@@ -517,10 +566,22 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // "Venta" agrupa el mostrador + lo legal del cobro (rediseño 2026-09-15):
   // Punto de Venta/Caja/Cambios/Devoluciones son de cualquier integrante;
   // Facturación queda adentro pero sigue líder-only, igual que siempre.
-  const grupoVenta: ItemVenta = {
+  const grupoVenta: ItemGrupo = {
+    id: "venta",
     etiqueta: "Venta",
     icono: IC.venta,
     hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
+  };
+  // "Catálogo" agrupa qué ES una prenda (Productos) y el vocabulario del que
+  // cuelga (Categorías, Colores) — pedido de Felipe, 2026-09-16, de
+  // mantenerlos separados del resto del menú. Categorías/Colores solo vivían
+  // como pestañas de `ProductosNav.tsx` dentro de `/productos`; esa nav
+  // queda redundante con el grupo y se retira de las 4 pantallas que la usaban.
+  const grupoCatalogo: ItemGrupo = {
+    id: "catalogo",
+    etiqueta: "Catálogo",
+    icono: IC.catalogo,
+    hijos: [productos, categorias, colores],
   };
 
   const grupos = [
@@ -531,7 +592,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
       items: [
         inicio,
         grupoVenta,
-        productos,
+        grupoCatalogo,
         inventario,
         ...(esLider ? [compras] : []),
         ...(veProduccion ? [produccion] : []),
@@ -590,12 +651,13 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
               key={g.titulo}
               titulo={grupos.length > 1 ? g.titulo : null}
               items={g.items}
+              pathname={pathname}
               activo={activo}
-              ventaAbierto={ventaAbierto}
-              ventaTocado={ventaTocado}
-              onToggleVenta={() => {
-                setVentaTocado(true);
-                setVentaAbierto((v) => !v);
+              gruposAbiertos={gruposAbiertos}
+              gruposTocados={gruposTocados}
+              onToggleGrupo={(id) => {
+                setGruposTocados((g) => ({ ...g, [id]: true }));
+                setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }));
               }}
             />
           ))}
