@@ -13,7 +13,7 @@
  *
  * Mismo mecanismo que `scripts/pruebas/registrar_cambio.mjs` (`docker exec ... psql` +
  * `set local request.jwt.claim.sub` + `ROLLBACK` siempre) — ver ese archivo para el
- * razonamiento completo y ADR-0063/ADR-0064.
+ * razonamiento completo y ADR-0066/ADR-0064.
  *
  * USO
  *   pnpm pruebas:aprobar-devolucion-caja    → necesita el stack local levantado

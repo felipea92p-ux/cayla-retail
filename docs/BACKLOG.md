@@ -63,7 +63,7 @@ verificación anterior fue manual ("verificado en psql"/"en el navegador"). Se r
 `docs/BACKLOG.md` (sección POS V2 de abajo) antes de empezar: no hay ningún ítem grande
 pendiente específico de Cambios — lo único de Cambios en esa sección ya está cerrado
 (ComboBuscable, ADR-0053). Detalle completo de la decisión de CÓMO probar una RPC en
-ADR-0063 (nuevo).
+ADR-0066 (nuevo).
 
 - [x] **`scripts/pruebas/registrar_cambio.mjs`** — 12 escenarios contra el Postgres local
       real (`docker exec ... psql`, `set local request.jwt.claim.sub`, siempre
@@ -74,11 +74,11 @@ ADR-0063 (nuevo).
       candado de sede (Micaela no puede cambiar en Lima — mismo candado que se pidió
       verificar para Vender, confirmado a nivel RPC) y que la diferencia en efectivo
       cuadra `cerrar_caja` (ADR-0053). Corre con `pnpm pruebas:registrar-cambio` — necesita
-      el stack local levantado, **no** corre desde `pnpm test`/CI (ver ADR-0063, no toca
+      el stack local levantado, **no** corre desde `pnpm test`/CI (ver ADR-0066, no toca
       base de datos). Verificado: 12/12 en verde, dos corridas seguidas, sin dejar rastro
       (`movimientos`/`cambios` de prueba en 0 después de cada corrida).
 - [ ] **Tienda Lima y Tienda Trujillo no tienen sububicaciones de piso/almacén en el
-      Postgres local compartido** (hallazgo de paso, no de este módulo — ver ADR-0063).
+      Postgres local compartido** (hallazgo de paso, no de este módulo — ver ADR-0066).
       `seed.sql` las crea pero solo corre en `db reset`; este Postgres se migró de más
       veces sin uno después de `20260914230000_inventario_piso_almacen.sql`. Hoy,
       cualquier venta/cambio real en el navegador contra este mismo Postgres compartido
@@ -87,7 +87,7 @@ ADR-0063 (nuevo).
       de `scripts/pruebas/registrar_cambio.mjs` — bloqueado para este agente por el
       clasificador de auto mode ("Modify Shared Resources", correcto: es una escritura
       persistente sobre un recurso de ~27 worktrees). Felipe decide si lo corre.
-- [ ] **El mismo patrón (ADR-0063) falta para el resto de RPC de escritura** —
+- [ ] **El mismo patrón (ADR-0066) falta para el resto de RPC de escritura** —
       `registrar_venta`, `crear_devolucion`, `cerrar_caja`, `transferir`,
       `mover_interno`… ninguna tiene pruebas automatizadas todavía. No es urgente, es el
       precedente a copiar cuando alguien las toque.
@@ -599,7 +599,7 @@ futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
       Devoluciones; (2) si el comprobante ya fue aceptado por SUNAT, **no se
       puede anular** — usar Cambio o Devolución; (3) el plazo es mientras la
       caja de esa venta siga abierta (no el día calendario); (4) solo un
-      Líder. `20260916172645_anular_venta.sql` (ADR-0063): `ventas.estado`
+      Líder. `20260916172645_anular_venta.sql` (ADR-0065): `ventas.estado`
       + tabla `venta_anulacion_items` + RPC `anular_venta`. Aplicada al
       Postgres local y verificada con 8 escenarios en una transacción
       revertida (detalle en el ADR). **Sin aplicar en producción todavía.**
@@ -624,7 +624,7 @@ futura pueda diseñarlas. Explorado (no supuesto) contra el esquema real el
       incluido** — sin precisar en el chat si lo desbloqueó con el backfill
       que se le ofreció o con otro ítem que ya tenía piso asignado. El camino
       feliz de `anular_venta` en sí ya estaba probado por SQL de todas formas
-      (ver ADR-0063 y la entrada de BITÁCORA de hoy: 9 escenarios en una
+      (ver ADR-0065 y la entrada de BITÁCORA de hoy: 9 escenarios en una
       transacción revertida).
 
 **Cerrado el 2026-09-15 — Tanda 1 del diagnóstico de Venta y Caja (6 arreglos, cada

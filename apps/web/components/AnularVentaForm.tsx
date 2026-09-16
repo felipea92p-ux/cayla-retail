@@ -25,7 +25,7 @@ type ItemVenta = {
 };
 
 // Anular deshace la venta COMPLETA, no una línea — a diferencia de Devolver,
-// que sí es por línea. anular_venta (ADR-0063) exige la condición de cada
+// que sí es por línea. anular_venta (ADR-0065) exige la condición de cada
 // ítem de la venta, así que este formulario carga todas las líneas al abrir,
 // no solo la que se clickeó en la lista.
 export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevolucion; onClose: () => void }) {

@@ -9,7 +9,7 @@ Felipe pegó `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql
 SQL Editor de `cayla-dynamic` y confirmó `pg_proc` con conteo = 1 en `registrar_cambio` y
 `aprobar_devolucion` (una sola sobrecarga cada una, no el hueco de ADR-0009/0004). BACKLOG
 y ADR-0064 actualizados a "en producción". Sesión de Cambios cerrada: pruebas
-automatizadas de `registrar_cambio` (ADR-0063) + el candado de caja (ADR-0064), ambas
+automatizadas de `registrar_cambio` (ADR-0066) + el candado de caja (ADR-0064), ambas
 en producción, sin bugs pendientes conocidos en el módulo.
 
 ## 2026-09-16 (Cambio y devolución exigen caja si hay efectivo de por medio)
@@ -54,7 +54,7 @@ que se pidió verificar para Vender con Micaela) y que la diferencia en efectivo
 `cerrar_caja` (ADR-0053). Técnica: `docker exec ... psql` + `set local
 request.jwt.claim.sub` + `ROLLBACK` siempre — el mismo patrón que ya documenta la cabecera
 de `supabase/seed.sql`, cero dependencias nuevas, y deliberadamente fuera de `pnpm test`
-(CI no tiene Postgres — ver ADR-0063 para el razonamiento completo). 12/12 en verde, dos
+(CI no tiene Postgres — ver ADR-0066 para el razonamiento completo). 12/12 en verde, dos
 corridas seguidas, cero rastro en la base compartida.
 
 Lo que Felipe se lleva: **Tienda Lima y Tienda Trujillo no tienen sububicaciones de
@@ -4974,7 +4974,7 @@ Respondió: stock depende de la condición (mismo selector de Devoluciones), blo
 si el comprobante ya fue aceptado por SUNAT (usar Cambio/Devolución en su lugar),
 plazo = mientras la caja de esa venta siga abierta, y solo Líder.
 
-`20260916172645_anular_venta.sql` (ADR-0063): `ventas` gana `estado`
+`20260916172645_anular_venta.sql` (ADR-0065): `ventas` gana `estado`
 (`completada`/`anulada`) + `motivo_anulacion`/`anulado_por`/`anulado_en`, mismo shape
 que ya usa `comprobantes` (ADR-0016) — no una tabla de estados inventada. Tabla nueva
 `venta_anulacion_items` (una fila por línea, con su condición). RPC `anular_venta`
@@ -5000,12 +5000,12 @@ dejar datos de prueba en la base compartida por las otras sesiones.
 **Sin aplicar en producción todavía** (falta el ok de Felipe y el
 `set search_path to retail, public;` de rigor). **Pendiente, sin resolver a propósito**
 (heredado de ADR-0016, no nuevo de esta migración): un comprobante `pendiente` de una
-venta anulada queda huérfano — ver ADR-0063, sección "Sin resolver".
+venta anulada queda huérfano — ver ADR-0065, sección "Sin resolver".
 
 **Segundo hallazgo antes de aplicar:** un ítem ya tocado por Cambios o Devoluciones
 podía anularse otra vez encima — `anular_venta` habría repuesto stock que ya había
 vuelto por ese otro camino, duplicándolo. No era una de las 4 preguntas de Felipe;
-criterio propio (documentado en ADR-0063, regla 5). Guardia agregada
+criterio propio (documentado en ADR-0065, regla 5). Guardia agregada
 (`retail.cambios`/`devolucion_items` con estado ≠ rechazada bloquean la venta
 completa), función re-aplicada con `create or replace` sobre la ya aplicada (sin volver
 a correr el `alter table`), y las 8 pruebas anteriores + 1 nueva (venta con un cambio ya

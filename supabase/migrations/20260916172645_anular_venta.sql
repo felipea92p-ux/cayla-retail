@@ -1,4 +1,4 @@
--- ADR-0063: anular una venta.
+-- ADR-0065: anular una venta.
 -- estado en ventas + RPC anular_venta. Reversa de stock por condición
 -- (mismo vocabulario que Devoluciones, misma regla de aprobar_devolucion:
 -- solo "vendible" repone piso). Bloqueada si el comprobante de la venta ya

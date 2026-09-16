@@ -54,7 +54,7 @@ mensaje esperado; los 12 anteriores, todos los que no involucran efectivo sin ca
 en verde) y 2 en el nuevo `scripts/pruebas/aprobar_devolucion_caja.mjs` (rechaza con
 efectivo sin caja; sigue funcionando sin caja cuando no hay reembolso). Los dos scripts
 corren con `pnpm pruebas:registrar-cambio` / `pnpm pruebas:aprobar-devolucion-caja`
-(mismo patrón psql + rollback de ADR-0063). `typecheck`/`lint` limpios.
+(mismo patrón psql + rollback de ADR-0066). `typecheck`/`lint` limpios.
 
 ## Se rompe si
 

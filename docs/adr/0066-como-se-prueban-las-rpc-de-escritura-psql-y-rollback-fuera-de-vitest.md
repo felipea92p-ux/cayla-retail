@@ -1,6 +1,10 @@
-# ADR-0063 — Cómo se prueban las RPC de escritura: `psql` + rollback, fuera de vitest
+# ADR-0066 — Cómo se prueban las RPC de escritura: `psql` + rollback, fuera de vitest
 
 **Fecha:** 2026-09-16
+**Numeración:** nació como ADR-0063 en su rama; al fusionar las 5 sesiones de "Venta" el
+mismo día, ese número ya lo tenían la cola de ventas offline (Vender) y "anular una
+venta" (Devoluciones) — pasó a 0066. Mismo patrón que ya resolvió ADR-0033/0036 y
+ADR-0051/0056 antes.
 **Estado:** Aplicado. `scripts/pruebas/registrar_cambio.mjs`, 12 escenarios, verde contra
 el Postgres local dos corridas seguidas sin dejar rastro.
 **Afecta:** cómo se prueba cualquier función `retail.*` que escribe (no solo

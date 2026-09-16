@@ -1,6 +1,10 @@
-# ADR-0063 — Anular una venta: estado en `ventas`, reversa de stock por condición, bloqueada si SUNAT ya aceptó, solo con la caja abierta, solo el líder
+# ADR-0065 — Anular una venta: estado en `ventas`, reversa de stock por condición, bloqueada si SUNAT ya aceptó, solo con la caja abierta, solo el líder
 
 **Fecha:** 2026-09-16
+**Numeración:** nació como ADR-0063 en su rama; al fusionar las 5 sesiones de "Venta" el
+mismo día, ese número ya lo tenían la cola de ventas offline (Vender) y "cómo se prueban
+las RPC de escritura" (Cambios) — pasó a 0065. Mismo patrón que ya resolvió ADR-0033/0036
+y ADR-0051/0056 antes.
 **Estado:** Aplicada al Postgres local compartido (2026-09-16) y verificada con 8
 escenarios en una transacción revertida (líder anula con condición mixta,
 stock repuesto solo en la línea vendible, reintento sobre venta ya anulada,
