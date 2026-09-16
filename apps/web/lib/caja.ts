@@ -47,6 +47,8 @@ export type MovimientoCaja = {
   tipo: "ingreso" | "egreso";
   monto: number;
   motivo: string;
+  nota: string | null;
+  esAjuste: boolean;
   creadoEn: string;
 };
 
@@ -186,7 +188,7 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
   const filas = exigir(
     await supabase
       .from("caja_movimientos")
-      .select("id, tipo, monto, motivo, created_at")
+      .select("id, tipo, monto, motivo, nota, es_ajuste, created_at")
       .eq("caja_id", cajaId)
       .order("created_at", { ascending: false }),
     "los movimientos de caja"
@@ -196,6 +198,8 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     tipo: m.tipo as "ingreso" | "egreso",
     monto: Number(m.monto),
     motivo: m.motivo,
+    nota: m.nota,
+    esAjuste: m.es_ajuste,
     creadoEn: m.created_at,
   }));
 }

@@ -25,6 +25,27 @@ el costo real de correr varias IAs contra el mismo Postgres local al mismo tiemp
 quedó commiteado en la rama local `fix/inventario-colaboradores-movimientos`, sin pushear
 — pendiente que Felipe decida cuándo subirla.
 
+## 2026-09-15 (alta de producto con matriz talla×color, prueba local, sku deja de ser obligatorio)
+
+Felipe pidió, tras comparar el modelo de variantes de CAYLA contra Lightspeed Retail, probar
+en local la pieza de mayor consecuencia que faltaba: la pantalla para dar de alta un
+producto con su matriz talla×color (hasta hoy, `/productos` era solo lectura). Se construyó
+`retail.crear_producto_con_variantes` (mismo patrón que `abrir_produccion`: candado
+`fn_es_lider()`, idempotencia por token, transacción única) y `/productos/nuevo`, con
+`categorias.tallas_sugeridas` repuesta (existía en V1, se perdió en el corte a V2) para
+guiar la carga sin forzarla. El costo real no fue la pantalla: fue que `variantes.sku`
+tenía que volverse nullable (es legado, `codigo` ya lo reemplaza) y un `grep` propio antes
+de tocar el esquema encontró que el buscador/escáner de Vender (`buscar-prenda-v2.ts` →
+`clave()`) rompía con cualquier `sku` null en el catálogo — no solo el del producto
+nuevo — corregido primero, en su propio commit (ADR-0056). Verificado en rojo/verde por SQL
+directo (alta, idempotencia, duplicado rechazado, colaborador sin rol líder rechazado) y
+después en el navegador real contra el `pnpm dev` que ya tenía otra sesión corriendo (no se
+levantó un segundo servidor — Next.js no deja sobre el mismo directorio): "Blusa Aurora"
+creada con 6 variantes, override de precio en una celda, y esa misma prenda buscada después
+en Vender sin romper nada. Rama propia (`feat/alta-producto-matriz-talla-color`), separada
+a propósito del trabajo de Inventario/Colaboradores de la sesión paralela (ver esa entrada
+en la rama `fix/inventario-colaboradores-movimientos` — no se duplica acá).
+
 ## 2026-09-15 (consolidación Vender + Caja: dos ramas cerradas suben juntas, migraciones a producción primero)
 
 Felipe pidió analizar todo lo hecho en otras sesiones sobre Caja/POS y subirlo de una
@@ -4118,3 +4139,55 @@ dos veces — invisible con `setModal(null)`, fatal con `router.back()` (retroce
 páginas). Ahora el temporizador va en un `useEffect`. Verificado en Chrome headless: 10
 escenarios (lista, por pagar, pestañas hermanas, carga directa, `desde=nueva`, móvil, pago
 anidado) sin errores de consola.
+
+## 2026-09-15 (depósito bancario y ajuste de efectivo — y el hallazgo de que Ventas/Finanzas/Facturación describían V1)
+
+Se partió de recomendar Garza (Finanzas) desde `07-GOBIERNO.md`, apoyado en el hueco 5 de
+`docs/datos/modulos/07-ventas-y-caja.md`. Investigar para implementarlo encontró que ese
+doc —y `11-finanzas-operativas.md`— describen V1, borrado por completo 6 minutos después
+de escribirse (`0af2f1b`, 2026-09-12 15:43). `docs/BACKLOG.md` ya lo había advertido el
+14-sep; esta sesión lo confirmó de primera mano contra el código y lo llevó hasta
+implementar sobre V2 real. `caja_movimientos` gana `nota` y `es_ajuste` (ADR-0056,
+`20260915202040_caja_deposito_y_ajuste.sql`); `registrar_movimiento_caja` pasa de 4 a 6
+parámetros, con default — los llamadores existentes siguen andando. El ajuste exige líder
+(decisión de Felipe), el depósito no. `cerrar_caja` no se tocó por esto: ya sumaba por
+`tipo`, no por `motivo` (aunque sí creció en paralelo por ADR-0052/0053 — reembolsos y
+cambios — sin tocar esa agrupación).
+
+**Nota al fusionar con `origin/main` (mismo día, PR #41):** el ADR nació como 0051; el PR
+ya había tomado 0051-0055, así que pasó a **ADR-0056**. El rename de
+`20260915120000_reparar_fk_transferencia_items.sql` a `120001` se deshizo — `main` ya
+había resuelto ese mismo choque moviendo la otra migración a `130000`. El conflicto real
+fue en `MovimientoCajaModal.tsx`: otra sesión le agregó una animación de
+`grid-template-rows` al mismo tiempo que esta le agregaba el campo de referencia y la
+lista de motivos de ingreso — se fusionaron a mano, conservando ambas.
+
+Verificado por SQL en transacción con `rollback` (colaboradora rechazada en el ajuste,
+aceptada en el depósito; líder aceptado en ambos; `cerrar_caja` cuadra la aritmética
+exacta) y en el navegador con la sesión de Felipe ya activa (ajuste registrado, resumen y
+lista de movimientos correctos). Sin ver la pantalla como Colaboradora — mismo hueco de
+siempre, sin sesión de Micaela a mano.
+
+De paso: dos huecos de entorno de este worktree corregidos para poder verificar
+(`.claude/launch.json` invocaba `npx pnpm`, no `pnpm`; faltaba `apps/web/.env.local`) y el
+choque de migraciones `20260915120000` (dos archivos, mismo timestamp) que ya traía
+`origin/main` — renombrado uno a `120001`, sin tocar contenido, mismo arreglo que
+`37968ed`/`063c4d7`. Pendiente, sin dueño: auditar el resto de `docs/datos/modulos/`
+contra V2 (esta sesión solo corrigió la sección de depósito/ajuste), y la contradicción sin
+resolver sobre si Facturación/SUNAT también quedó descrita como V1 (`docs/BACKLOG.md` dice
+que sí, el mensaje de `0af2f1b` dice que se rescató íntegra).
+
+## 2026-09-15 (el lateral agrupa Venta — ADR-0057)
+
+Felipe pidió agrupar Punto de Venta ("Vender", renombrado), Caja, Cambios, Devoluciones y
+Facturación bajo una cabecera colapsable "Venta" en el lateral, arrancando expandida
+(Cambios/Devoluciones se habían hecho visibles esa misma mañana — colapsarlas de entrada
+las hubiera vuelto a esconder). Preguntado y descartado sumar "Códigos de descuento" como
+6to ítem — Felipe prefirió dejarlo donde está. Lo único delicado: el riel rojo de ADR-0014
+se posiciona por índice de array sin medir el DOM, así que `GrupoLateral` ahora aplana
+cabecera+hijas (solo si está abierta) en las filas REALMENTE visibles antes de calcular esa
+posición — nunca se desalinea con el grupo abierto o cerrado. Auto-abre si la ruta activa es
+una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya exige el
+linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
+Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
+— sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.

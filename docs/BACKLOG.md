@@ -104,6 +104,33 @@ mío): la condición de carrera de "contar mientras se vende" en Conteo, que
 (header vs. `/inventario` local) — este último ya es una decisión consciente
 documentada en `AppShell.tsx:516-519`.
 
+## 🎯 Productos — alta con matriz talla×color — 2026-09-15 (noche)
+
+A pedido de Felipe, tras comparar el modelo de variantes contra Lightspeed Retail: la pieza
+que faltaba (`/productos` era solo lectura) para dar de alta un producto con su matriz
+talla×color, en una transacción atómica. **Aplicado y probado solo en local** (SQL directo +
+navegador logueado como Felipe; typecheck/lint/239 tests verdes) — **no aplicado en
+producción**, sin ok de Felipe todavía. Detalle completo: ADR-0056.
+
+- [x] **`retail.crear_producto_con_variantes`** — nueva, mismo patrón que
+      `abrir_produccion`: candado `fn_es_lider()`, idempotencia por `p_token`, valida toda
+      la matriz antes de insertar una fila. Inmune por diseño al bug de `AltaEnConteo`
+      (BITÁCORA 2026-09-10): no acepta `producto_id`, siempre crea uno nuevo.
+- [x] **`categorias.tallas_sugeridas` repuesta** (existía en V1, se perdió en el corte a V2)
+      — sugiere, no restringe; `variantes.talla` sigue siendo texto libre a propósito.
+- [x] **`variantes.sku` deja de ser `NOT NULL`** — y de paso, un `grep` propio encontró
+      (antes de aplicar el cambio, no después) que el buscador/escáner de Vender
+      (`lib/buscar-prenda-v2.ts`) y otros 4 sitios asumían `sku` siempre con valor;
+      corregidos en su propio commit antes de tocar el esquema.
+- [ ] **`productos.referencia` sigue sin constraint de unicidad** — detectado durante el
+      diseño, no resuelto a propósito (es decisión de negocio: ¿puede haber una reedición
+      con el mismo nombre?). Sugerencia si Felipe la quiere: aviso suave en la UI, sin
+      candado nuevo en el núcleo.
+- [ ] **Override de costo por celda** en la matriz — hoy solo el precio se puede
+      sobreescribir por celda; costo es un valor base único. Recorte deliberado, cambio de
+      UI nada más si hace falta después.
+- [ ] **Aplicar a producción** — pendiente el ok puntual de Felipe.
+
 ---
 
 ## 🔀 Consolidación Vender + Caja — 2026-09-15 (tarde)
