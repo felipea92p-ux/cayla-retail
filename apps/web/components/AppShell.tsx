@@ -486,12 +486,6 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
-  // Los dos grupos arrancan desplegados (pedido de Felipe, 2026-09-15, para
-  // "Venta": Cambios y Devoluciones recién se hicieron visibles en el menú
-  // ESE MISMO día — un grupo colapsado por defecto las habría vuelto a
-  // esconder; mismo criterio para "Catálogo" al nacer, 2026-09-16).
-  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({ venta: true, catalogo: true });
-  const [gruposTocados, setGruposTocados] = useState<Record<string, boolean>>({});
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
 
@@ -509,26 +503,45 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const activo = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
-  // Entrar a una pantalla de un grupo colapsado por otra vía (un link de
-  // "+ Nuevo", un favorito) nunca debe dejarla escondida detrás del grupo
-  // cerrado. Ajuste de estado durante el render, no en un efecto (mismo
-  // patrón que ya exige el linter del repo — BITÁCORA 2026-09-14, búfer de
-  // animación del ticket): comparar contra el valor del render anterior en
-  // vez de un `useEffect` también evita animar la revelación cuando alguien
-  // entra directo a `/cambios` o `/productos/colores` (recarga o link
-  // externo) — ahí nunca "se abrió". La lista de rutas por grupo es la
-  // misma fuente que arma `hijos` más abajo, repetida a mano porque los
-  // grupos todavía no existen a esta altura de la función.
+  // Grupos colapsables: arrancan CERRADOS por defecto (pedido de Felipe,
+  // 2026-09-16 — con "Catálogo" sumado a "Venta" se veía todo desplegado a
+  // la vez; antes, con un solo grupo, arrancar abierto no se notaba tanto).
+  // La única excepción es el grupo que CONTIENE la ruta en la que se
+  // aterriza: cargar directo `/vender` o `/productos/colores` (recarga, link
+  // externo, no un clic dentro de la app) tiene que abrir ESE grupo solo —
+  // si no, la fila activa quedaría escondida detrás de un grupo cerrado. La
+  // lista de rutas por grupo es la misma fuente que arma `hijos` más abajo,
+  // repetida a mano porque los grupos todavía no existen a esta altura de
+  // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/colores"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
+
+  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() =>
+    grupoActivo ? { [grupoActivo]: true } : {}
+  );
+  // Recién en `true` tras el primer toggle/auto-apertura DE ESE grupo: sigue
+  // en `false` al montar aunque `grupoActivo` ya lo haya abierto arriba —
+  // esa apertura inicial es la foto de siempre, no una revelación que deba
+  // animarse.
+  const [gruposTocados, setGruposTocados] = useState<Record<string, boolean>>({});
+
+  // Cambiar de sección DESPUÉS de montado (un link de "+ Nuevo", un
+  // favorito, sin recargar la página) tampoco debe dejar la ruta nueva
+  // escondida — y de paso cierra el grupo anterior (reemplaza el mapa
+  // entero, no lo combina): moverse de "Venta" a "Catálogo" no debe dejar
+  // los dos abiertos, o se vuelve a la queja original de "todo expandido".
+  // Ajuste de estado durante el render, no en un efecto (mismo patrón que ya
+  // exige el linter del repo — BITÁCORA 2026-09-14, búfer de animación del
+  // ticket): comparar contra el valor del render anterior evita re-disparar
+  // esto en cada render y evita animar la apertura inicial (ya cubierta arriba).
   const [grupoActivoAnterior, setGrupoActivoAnterior] = useState(grupoActivo);
   if (grupoActivo !== grupoActivoAnterior) {
     setGrupoActivoAnterior(grupoActivo);
     if (grupoActivo) {
-      setGruposAbiertos((g) => ({ ...g, [grupoActivo]: true }));
+      setGruposAbiertos({ [grupoActivo]: true });
       setGruposTocados((g) => ({ ...g, [grupoActivo]: true }));
     }
   }
