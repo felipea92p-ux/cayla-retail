@@ -12,27 +12,39 @@ export default async function CategoriasPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
 
+  // Trae activas E inactivas: las inactivas no se agrupan por familia (una
+  // sección aparte, al fondo, con "Reactivar" — mismo patrón que
+  // ProveedoresPanel), pero tienen que llegar a la pantalla para poder
+  // reactivarlas. Antes de esta pantalla de edición solo se leían las
+  // activas porque no había forma de volver de un desactivado.
   const res = await supabase
     .from("categorias")
-    .select("id, familia, nombre, prefijo")
-    .eq("activo", true)
+    .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
     .order("familia")
     .order("nombre");
   const filas = exigir(res, "las categorías del catálogo");
 
-  const porFamilia = Object.fromEntries(FAMILIAS.map((f) => [f, [] as { id: string; nombre: string; prefijo: string | null }[]])) as Record<
-    Familia,
-    { id: string; nombre: string; prefijo: string | null }[]
-  >;
-  for (const c of filas) {
-    // Categorías creadas antes de este vocabulario cerrado pueden no tener
+  type CategoriaFila = {
+    id: string;
+    nombre: string;
+    prefijo: string | null;
+    familia: Familia | null;
+    activo: boolean;
+    categoriaPadreId: string | null;
+    notas: string | null;
+  };
+  const categorias: CategoriaFila[] = filas.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    prefijo: c.prefijo,
+    // Categorías creadas antes del vocabulario cerrado pueden no tener
     // familia asignada todavía (0014: familia se agregó con ALTER, sin
-    // backfill de lo que no calzaba con las 37 de CAYLA) — esas no entran
-    // en ningún grupo de esta pantalla en vez de reventar.
-    if (c.familia && c.familia in porFamilia) {
-      porFamilia[c.familia as Familia].push({ id: c.id, nombre: c.nombre, prefijo: c.prefijo });
-    }
-  }
+    // backfill de lo que no calzaba con las 37 de CAYLA).
+    familia: c.familia && FAMILIAS.includes(c.familia as Familia) ? (c.familia as Familia) : null,
+    activo: c.activo,
+    categoriaPadreId: c.categoria_padre_id,
+    notas: c.notas,
+  }));
 
   return (
     <div className="space-y-6">
@@ -43,14 +55,16 @@ export default async function CategoriasPage() {
           <Ayuda titulo="Categorías">
             Las 6 familias del negocio son fijas; dentro de cada una, las categorías (con su
             prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
-            código de una prenda se pueda leer de un vistazo.
+            código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
+            tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
+            no las necesita y se sigue viendo igual que siempre.
           </Ayuda>
         </h1>
       </div>
 
       <ProductosNav />
 
-      <CategoriasLista porFamiliaInicial={porFamilia} puedeEditar={persona.rol === "lider"} />
+      <CategoriasLista categoriasIniciales={categorias} puedeEditar={persona.rol === "lider"} />
     </div>
   );
 }

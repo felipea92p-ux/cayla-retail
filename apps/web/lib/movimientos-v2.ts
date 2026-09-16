@@ -234,6 +234,35 @@ export async function listarMovimientos(
   return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
 }
 
+/** Historial de Producto (Sesión A3, 2026-09-15): los movimientos de TODAS
+ *  las variantes de un producto en una sede, sede por sede — mismo modelo de
+ *  permiso que `/movimientos` (`fn_puede_operar_ubicacion`), sin agregar por
+ *  toda la red. `fn_movimientos` resuelve `p_producto_id` a sus variantes
+ *  (20260915204457_movimientos_por_producto.sql). Sin filtros de URL: el
+ *  panel de un producto no necesita categoría/motivo/búsqueda, ya está
+ *  acotado a ESE producto. */
+export async function listarMovimientosProducto(
+  productoId: string,
+  ubicacionId: string,
+  opciones: { cursor?: CursorMovimientos | null; limite?: number } = {}
+): Promise<PaginaMovimientos> {
+  const supabase = await createClient();
+  const limite = opciones.limite ?? TAMANO_PAGINA;
+  const filas = exigir(
+    await supabase.rpc("fn_movimientos", {
+      p_ubicacion_id: ubicacionId,
+      p_producto_id: productoId,
+      ...(opciones.cursor ? { p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id } : {}),
+      p_limite: limite,
+    }),
+    "el historial del producto"
+  );
+  const hayMas = filas.length > limite;
+  const pagina = (hayMas ? filas.slice(0, limite) : filas).map((f) => aMovimiento(f as FilaRpc));
+  const ultima = pagina[pagina.length - 1];
+  return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
+}
+
 /** Totales por categoría del mismo filtro que la lista (sin categoría ni
  *  cursor: el resumen describe el período, no la página). Siempre trae las
  *  cinco categorías, en cero si no hubo nada. */

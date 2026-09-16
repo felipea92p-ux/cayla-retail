@@ -132,6 +132,35 @@ flowchart TB
   consulta). Las reglas de pantalla (categoría, signo, referencia por proceso) viven
   en `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
 
+**Productos (catálogo V2, integración final 2026-09-15)**
+- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
+  filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
+  `20260915160000_productos_listado_filtros.sql`) → `FiltrosProductos.tsx` +
+  `ProductosAgrupados.tsx` (una fila por producto, expandible a variantes;
+  checkboxes de selección y menú "..." por fila viven acá, es Server
+  Component el padre). El menú abre `AjustarInventarioModal.tsx` (RPC
+  `registrar_movimiento`, tipo='ajuste', piso/almacén vía
+  `lib/sububicaciones.ts`) como modal de `useState` normal, y "Ver
+  historial" navega a `/productos/[id]/historial`.
+- Historial de producto como modal (mismo mecanismo que el detalle de
+  factura de Compras): `/productos/layout.tsx` tiene el slot `@modal/`, con
+  la ruta interceptada `@modal/(.)[id]/historial`. Clic en "Ver historial"
+  desde la lista → la URL pasa a `/productos/<id>/historial` pero la lista
+  queda montada detrás y el panel se dibuja en `ui/ModalRuta.tsx`; recarga o
+  enlace directo → página completa `[id]/historial/page.tsx`. Ambas
+  reusan `HistorialProductoPanel.tsx`, que junta dos fuentes con historias
+  distintas: `lib/movimientos-v2.ts:listarMovimientosProducto` (stock, cursor,
+  por sede) y `lib/historial-producto.ts:getCambiosProducto` (RPC
+  `fn_historial_producto_cambios`: precio/categoría/estado, ledger
+  append-only `historial_producto_cambios`, trigger `fn_registrar_cambio_producto`
+  sobre `productos`/`variantes` — ADR-0059, ampliado en
+  `20260915223000_historial_producto_estado.sql` para no perder los cambios
+  de `estado`).
+- Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
+  de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
+  RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
+  arriba lo audita solo.
+
 **Producción (Taller)**
 - `/produccion` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
@@ -284,7 +313,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
   parcial), `ventas` (1 fila por checkout).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
-- **Producción** (V2 desde 2026-09-15, ADR-0051): `producciones` (por
+- **Producción** (V2 desde 2026-09-15, ADR-0052): `producciones` (por
   `ubicacion_id` del Taller —`ubicaciones.tipo = 'taller'`—; `cantidad_plan` vs
   `cantidad_buenas`; `costo_unitario` es **columna generada** sobre las buenas,
   no se puede desincronizar; `etapas` jsonb: patronaje → muestra → escalado
@@ -312,7 +341,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
 | `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
-| `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0051): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
+| `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
 
@@ -360,7 +389,7 @@ Integrante solo su sede (o su almacén asociado).
 - **ADR-0003** (sep-3) — 5 categorías nuevas agregadas *antes* de capturar
   el catálogo físico, basadas en historial real de compras — reclasificar
   después habría costado hacerlo prenda por prenda.
-- **ADR-0051** (sep-15) — Producción vuelve sobre V2; el Taller es
+- **ADR-0052** (sep-15) — Producción vuelve sobre V2; el Taller es
   `ubicaciones.tipo = 'taller'`; la migración se reconstruyó desde la base
   local porque el archivo se había perdido.
 - **ADR-0004** (sep-3, el más relevante hoy) — `retail.recibir_lote` en

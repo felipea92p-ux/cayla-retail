@@ -18,6 +18,246 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
+
+**El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**
+Esta sesión abrió sobre un fetch cacheado: `git log origin/DiegoN` mostraba
+`8d8e0ee` (la integración A1/A2+A3+B1+B2/C1/C2) como si fuera la punta, y con
+eso F1-F4 (fotos/temporada, colores tipo+muestra, subcategoría, densidad
+visual) parecían haberse perdido — archivos y migraciones enteras ausentes
+del árbol. Un `git fetch` explícito mostró la punta real: `7fed0c8`
+("resuelve colisiones de ADR y migración entre F1/F2/F3"), que sí trae las
+cuatro sesiones completas, ya fusionadas sobre A/B/C. `git merge --ff-only
+origin/DiegoN` en el checkout principal + `npx supabase migration up`
+(las 3 migraciones de F1/F2/F3) resolvió todo — no hubo ninguna regresión
+real, solo una caché local vieja. **Antes de asumir que "DiegoN perdió
+trabajo", siempre `git fetch` explícito primero.**
+
+Con eso resuelto, se verificaron en navegador real (Docker sí funciona en
+este Mac) los 5 puntos pendientes de la sesión remota anterior — detalle de
+cada uno en la sección de su propia sesión (F1/F2/F3) más abajo y en
+BITÁCORA de hoy. Cierre general: `tsc`/`eslint`/`vitest` (215/215) en verde
+sobre `7fed0c8`.
+
+**Hallazgo de infraestructura, no de código:** el stack local de
+`cayla-retail` (`supabase start` de este proyecto) no levanta el contenedor
+de Storage (`docker ps` no lo lista, a diferencia del stack de
+`cayla-dynamic`, que sí lo tiene). Cualquier subida real de archivo — foto
+de producto, muestra de color — no se puede probar de punta a punta en local
+hasta que eso se resuelva. Se verificó la lógica de cada pantalla igual,
+sembrando datos directo en Postgres en vez de subir por Storage; ver el
+detalle en cada ítem.
+
+**Ajuste de layout, pedido aparte por Felipe en la misma sesión:** contra
+capturas de referencia (`~/Downloads/Pantallas producto/`, un mockup de ERP
+genérico usado solo como referencia de densidad/ancho, no como spec literal
+— trae conceptos que no existen acá, como "Departamentos" o "Colección
+SS24"), dos quejas concretas:
+
+- [x] **Productos/Categorías/Colores no usaban el ancho completo del
+      `<main>`.** `AppShell.tsx` topa todo lo que no esté en
+      `SIN_TOPE_DE_ANCHO` a `max-w-5xl` — Vender y Compras ya estaban
+      exceptuados por necesitar el espacio; `/productos` no lo estaba.
+      Agregado a la lista (una línea, cubre `/productos` y todo lo que
+      cuelga: categorías, colores, ficha, historial).
+- [x] **"Agregar color"/"Agregar categoría" aparecían al final de una lista
+      larga**, no arriba como en la referencia. En `ColoresLista.tsx` y
+      `CategoriasLista.tsx`: el disparador pasó a un botón fijo arriba de la
+      grilla/lista (mismo estilo que "+ Nuevo producto" de `/productos`), y
+      el formulario de alta/edición —que vivía como una `<section>` empotrada
+      al fondo de la página— pasó a `<Modal>` (el mismo componente que ya
+      usa `ColorEditarModal`), así que aparece centrado sobre lo que se
+      esté mirando, no al fondo de un scroll largo. Sin cambios de datos ni
+      de RPC — puro reacomodo de layout.
+
+**Verificado:** `pnpm --filter web typecheck`/`lint` en verde; los tres
+archivos tocados (`AppShell.tsx`, `ColoresLista.tsx`, `CategoriasLista.tsx`)
+probados en navegador real contra un `pnpm dev` propio de este worktree
+(puerto aparte, mismo Postgres local compartido) — ancho completo y los 4
+modales (nuevo color, editar color, nueva categoría, editar categoría)
+abriendo arriba, no al fondo.
+
+**No se tocó el checkout principal ni se hizo commit.** El editor de este
+agente tiene bloqueado escribir fuera de su propio worktree (para no
+corromper el checkout principal desde una sesión aislada) — el fix vive sin
+commitear en la rama `claude/cayla-productos-integration-verify-59676d` de
+este worktree, ya con `origin/DiegoN` fusionado adentro. Pendiente de que
+Felipe lo traiga (merge/cherry-pick del worktree, o pedirle a este agente
+que commitee) antes de que se pierda.
+
+**Pendiente, sin tocar — decisión de Felipe:**
+
+- [ ] **PR #47 (`DiegoN` → `main`) sigue `CONFLICTING`/`DIRTY`**: 35 commits,
+      +7012/−369. `main` tiene 26 commits que `DiegoN` no tiene (la
+      consolidación Vender+Caja, PR #41-43) y `DiegoN` tiene 34 que `main` no
+      tiene (todo lo de Productos). Nadie lo tocó esta sesión — reconciliar
+      esto es una decisión de más de un módulo a la vez (gatillo explícito de
+      `CLAUDE.md`), no algo para resolver sin que Felipe elija el camino
+      (¿merge de `main` sobre `DiegoN` primero?, ¿al revés?, ¿rebase?).
+- [ ] **Los cabos sueltos que el resumen anterior daba por abiertos ya no lo
+      están** — verificado contra GitHub, no contra lo que decía el resumen:
+      PRs #44/#45/#46/#48 (las 4 ramas F1-F4 → DiegoN) ya están MERGED, no
+      quedó ninguno redundante por cerrar a mano. El hilo de F3 sobre
+      mergear su propio PR #46 también quedó resuelto solo (ya está
+      mergeado). Sin acción pendiente en ninguno de los dos.
+
+---
+
+## 🎯 Productos: fotos, temporada y venta sin stock (2026-09-15, Sesión F1)
+
+`/productos/nuevo` y `/productos/[id]/editar` ganan galería de fotos (varias,
+reordenables con flechas, una principal), `temporada` (texto libre) y
+`permitir_venta_sin_stock` (checkbox), más margen % de solo lectura junto a
+precio/costo de cada variante (`20260915224500_producto_fotos_temporada_venta_sin_stock.sql`,
+ADR-0060). Tabla nueva `retail.producto_fotos` + bucket público
+`retail-productos-fotos`; `catalogo_crear_producto`/`catalogo_actualizar_producto`
+ganan `p_temporada`/`p_permitir_venta_sin_stock`/`p_fotos` (reemplazo completo de la
+galería en el orden del array). La consigna asumía que `foto_url`/`temporada`
+seguían vivas (muertas) en `productos` de producción — verificado contra
+`docs/datos/generado/DICCIONARIO-RETAIL.md`: **no existen**, se agregan de cero
+(ver ADR-0060 para el porqué). Verificado con RPC reales contra un schema aislado
+(`f1_dryrun`) en el proyecto de producción, nunca contra `retail.*`: alta con 3
+fotos, reorden + recambio de principal + foto nueva en edición, borrado con
+reasignación de principal, `p_fotos = null` sin tocar la galería. `typecheck`/
+`lint`/215 tests en verde.
+
+**Pendiente:**
+
+- [ ] **`20260915224500_producto_fotos_temporada_venta_sin_stock.sql` no está en
+      producción.** Aplicada y probada solo contra el schema aislado de prueba
+      (nunca contra `retail.*` real). Pegar en el SQL Editor con
+      `set search_path = retail, public, extensions;` (CLAUDE.md). Es aditiva
+      (dos columnas nullable/con default, una tabla nueva, dos funciones
+      reemplazadas con parámetros nuevos al final con default) — nada que
+      preverificar antes de pegarla.
+- [x] **Verificado en navegador real (2026-09-15, noche, Claude Code Desktop —
+      Docker sí funciona en este Mac).** `FotosProducto.tsx` carga, reordena
+      ("Mover a la izquierda/derecha"), cambia de principal ("Marcar
+      principal") y persiste tras guardar+recargar — probado sobre "Blusa
+      Emma" con 3 fotos sembradas directo en `retail.producto_fotos` (no vía
+      la UI: el botón "Agregar foto" dispara un `<input type=file>` oculto, y
+      la herramienta de navegador de esta sesión no puede setear archivos en
+      un input de ese tipo — limitación de la herramienta, no del código).
+      `Temporada` se guarda y sigue ahí tras recargar. Fotos y temporada de
+      prueba se revirtieron al terminar (no quedan en la base).
+- [ ] **`permitir_venta_sin_stock` no tiene candado real en Vender/`registrar_venta`
+      todavía.** Esta sesión solo escribe y muestra el dato en la ficha
+      (fuera de alcance: F1 es dueña de la ficha de producto, no de Vender/POS,
+      que otras sesiones tocan en paralelo). Sin esto, el checkbox no cambia
+      todavía el comportamiento real de una venta con stock 0.
+- [ ] **La UI de arriba (integradora F5) debería revisar si `editar/page.tsx`
+      sigue con los `TODO(Sesión A2)`/`TODO(Sesión A3)` de "Ajustar inventario"/
+      "Ver historial" como tarjetas placeholder** — esas dos funciones ya existen
+      como modales desde el menú "..." de `/productos` (Sesión B2, 2026-09-15),
+      así que esas dos tarjetas en la ficha de edición están duplicadas/obsoletas.
+      No se tocó en esta sesión (fuera del alcance de F1: fotos/temporada/venta
+      sin stock), pero queda anotado para quien limpie al integrar.
+
+---
+
+## 🎯 Categorías: subcategoría opcional de un solo nivel (2026-09-15, Sesión F3)
+
+`categorias.categoria_padre_id` (self-FK, nullable) + `categorias.notas`
+(`20260915224501_categorias_subcategoria.sql`, ADR-0062). Candado real en un
+trigger (`retail.fn_valida_categoria_subcategoria`): un solo nivel (el padre
+no puede a su vez tener padre; quien ya tiene hijas no puede convertirse en
+hija) y familia siempre heredada del padre. `CategoriasLista.tsx`: "Nueva
+categoría" suma selector opcional de padre; "Editar categoría" de una raíz
+suma alta/lista de hijas; una categoría sin hijas se ve pixel-idéntica a
+antes. `retail.actualizar_categoria` pasó de 4 a 5 argumentos (se agregó
+`p_notas`, firma vieja dropeada en la misma migración).
+
+**Pendiente:**
+
+- [x] **Verificado en navegador real (2026-09-15, noche).** Se creó
+      "Vestidos largos" (VLA) con padre "Vestidos" desde la propia pantalla —
+      aparece en un clúster junto a "Vestidos", el resto de categorías sin
+      hijas (ej. "Pantalones") se sigue viendo igual. Se dejó tal cual (es
+      dato real, no de prueba) — Felipe decide si la renombra/borra.
+- [ ] **`20260915224501_categorias_subcategoria.sql` no está en producción.**
+      Aplicada solo en el archivo del repo (ni siquiera probada en local por
+      lo de arriba). Al pegar en el SQL Editor de producción: prefijo
+      `retail.` en cada tabla o `set search_path to retail, public;`
+      (CLAUDE.md). Es aditiva (dos columnas nullable, un trigger nuevo, y
+      `actualizar_categoria` se dropea/recrea con un 5º argumento opcional)
+      — nada que preverificar antes de pegar.
+- [ ] **`packages/database/src/types.ts` se editó a mano**, no con
+      `supabase gen types` (no hay base viva en este entorno). Cuando la
+      migración se aplique a un Postgres real, regenerar los tipos desde ahí
+      y confirmar que calzan con lo que se escribió a mano acá.
+- [ ] **Reasignar el padre de una categoría ya existente no tiene UI.** Se
+      puede elegir padre solo al crear; una categoría ya creada no se puede
+      mover de familia de primer nivel a subcategoría (o viceversa) desde la
+      pantalla — decisión de alcance de esta sesión, no una limitación de la
+      base (el trigger lo soportaría).
+
+---
+
+## 🎯 Productos: listado y filtros server-side (2026-09-15, Sesión B1)
+
+`/productos` pasó de filtrar/agrupar TODO el catálogo en memoria del cliente a
+filtros en la URL + Postgres (`fn_productos`/`fn_productos_resumen`,
+`20260915160000_productos_listado_filtros.sql`), mismo patrón que Movimientos.
+Paginado por NÚMERO DE PÁGINA (no cursor, decisión de Felipe — el catálogo no
+crece como un ledger) y por PRODUCTO (no por fila de variante). Filtros reales:
+categoría, color, estado, rango de precio, sin stock/stock bajo. Tarjetas de
+resumen (productos, variantes, stock bajo, sin stock) de una sola consulta
+agregada. Tabla con checkboxes de selección y menú "..." por fila (Editar
+enlaza a `/productos/[id]/editar` de la sesión A1, ruta todavía sin
+construir; Ajustar inventario/Ver historial cableados por la Sesión B2 el
+mismo día — ver el ítem de integración final más abajo; Duplicar/Archivar
+siguen como placeholder). Verificado con psql contra datos reales y con
+HTTP real (sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
+
+**Pendiente:**
+
+- [ ] **`20260915160000_productos_listado_filtros.sql` no está en producción.**
+      Aplicada y probada solo en local. Sin `retail.` en el archivo: pegar en
+      el SQL Editor con `set search_path to retail, public;` (CLAUDE.md).
+      Antes de pegar: nada que preverificar, es aditiva (una columna nullable
+      + tres funciones nuevas, ningún `drop`/cambio de firma existente).
+- [ ] **El campo `stock_minimo` no tiene UI todavía.** La columna existe
+      (`retail.productos.stock_minimo`, nullable — sin valor, ese producto
+      nunca entra en "stock bajo") pero el mantenedor de ficha
+      (`ProductoForm.tsx`, sesión A1) no tiene el campo para escribirla. Sin
+      eso, "stock bajo" en /productos queda siempre en 0 salvo que alguien
+      lo cargue por Studio/SQL.
+- [ ] **"Duplicar" y "Archivar" del menú "..." siguen sin RPC ni diseño**
+      (Archivar probablemente sea `productos.estado = 'descontinuado'` —
+      igual que ya hace la acción masiva "Desactivar" de la Sesión B2, pero
+      por fila; Duplicar no tiene diseño — decisión de Felipe antes de
+      construirla).
+- [ ] **Columna "Última actualización" en la tabla de /productos — no hay
+      dato que mostrar sin tocar esquema.** `productos`/`variantes` solo
+      tienen `created_at` (0002_esquema.sql), no `updated_at` — a diferencia
+      de `stock.updated_at`, que sí existe. `historial_producto_cambios`
+      (20260915204541) sí registra cuándo cambió precio/categoría/estado,
+      pero es un ledger append-only pensado para el panel de Historial, no
+      para un `JOIN` por fila en el listado sin agregar una columna a
+      `fn_productos`. Decidir "cuál timestamp cuenta como última
+      actualización" (¿solo precio/categoría/estado? ¿también alta de
+      variante?) es una decisión de esquema/negocio, no de polish de UI —
+      queda pendiente de que Felipe la resuelva. Sesión F4 (2026-09-15) no
+      la construyó a propósito.
+- [ ] **El menú de acciones masivas hoy solo tiene Activar/Desactivar** —
+      "cambiar categoría" y "exportar" en bloque, mencionados como parte del
+      menú de acciones masivas, no existen todavía en `ProductosAgrupados.tsx`.
+      No se construyeron en la sesión F4 (2026-09-15, polish de listado): la
+      primera toca `categoria_id` de varios productos a la vez, dominio de la
+      sesión que edita categorías en paralelo; la segunda es un export de
+      catálogo completo, distinto en alcance al reporte puntual que si se
+      agregó en Ajustar Inventario (ver abajo). Quedan para quien tome
+      acciones masivas end-to-end.
+
+**Hallazgo de coordinación, no de este módulo:** el Postgres local
+(`supabase_db_cayla-retail`, puerto 54422) lo comparte el checkout principal
+y las 7 sesiones en paralelo de Productos — no hay worktree con su propia
+base. Durante esta sesión el contenedor se reinició al menos dos veces en
+minutos (otra sesión corriendo `supabase db reset`/`stop`/`start`), borrando
+migraciones recién probadas y datos de prueba de otras sesiones sin aviso.
+No es un problema de esta migración — es un riesgo del momento (7 sesiones
+tocando `/productos` a la vez): vale la pena que Felipe decida si conviene
+un Postgres local por sesión mientras dure este tipo de paralelismo.
 ## 🩹 Inventario, Colaboradores, Movimientos — 2026-09-15 (noche)
 
 Batch de mejoras sobre los tres módulos, del reconocimiento hecho antes con 3 agentes
@@ -52,7 +292,7 @@ explícito de Felipe. Rama local: `fix/inventario-colaboradores-movimientos`.
       Colaborador — podía mostrar la sede equivocada. **`fn_colaboradores()` no
       filtraba `estado='activo'`** — alguien desactivado en Dynamic seguía
       apareciendo como vigente. Migración
-      `20260915230000_colaboradores_perfil_y_lista_correctos.sql`, misma firma en
+      `20260915230001_colaboradores_perfil_y_lista_correctos.sql`, misma firma en
       las dos funciones. Aplicada y verificada en local (una sola firma cada una).
 - [x] **"Quitar acceso" sin confirmación** — un clic y ya, sin paso de revisión.
       Se agregó un modal de confirmación (mismo patrón que "Agregar colaborador").
@@ -110,7 +350,7 @@ A pedido de Felipe, tras comparar el modelo de variantes contra Lightspeed Retai
 que faltaba (`/productos` era solo lectura) para dar de alta un producto con su matriz
 talla×color, en una transacción atómica. **Aplicado y probado solo en local** (SQL directo +
 navegador logueado como Felipe; typecheck/lint/239 tests verdes) — **no aplicado en
-producción**, sin ok de Felipe todavía. Detalle completo: ADR-0056.
+producción**, sin ok de Felipe todavía. Detalle completo: ADR-0058.
 
 - [x] **`retail.crear_producto_con_variantes`** — nueva, mismo patrón que
       `abrir_produccion`: candado `fn_es_lider()`, idempotencia por `p_token`, valida toda
@@ -520,14 +760,12 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       y que el escáner solo reconozca stock de esa sede. Sin dueño ni fecha; no bloquea
       nada de Vender.
 
-- [x] **El bloque 8 (`…231015_registrar_venta_piso_con_nota`) ya está en producción** —
-      cerrado, no es más un bloqueante. Verificado 2026-09-15 contra `pg_proc` en
-      `cayla-dynamic`: `registrar_venta` tiene una sola sobrecarga de 11 parámetros con
-      `fn_sububicacion_por_defecto` en el cuerpo, y `20260914231015` SÍ está registrada en
-      `supabase_migrations.schema_migrations` (a diferencia de lo que decía este ítem
-      hasta hoy). Sigue vigente la regla operativa: al activar piso/almacén en una tienda,
-      llevar antes el stock «sin sububicación» al piso con `mover_interno(…, null, piso,
-      …)`, prenda por prenda (decisión por tienda, no un script ciego).
+- [x] **(Cerrado 2026-09-15: `…231015_registrar_venta_piso_con_nota` YA está en producción**
+      — verificado contra la base: una sola `registrar_venta`, cuyo cuerpo llama a
+      `fn_sububicacion_por_defecto`; `fn_stock_por_sede` ya suma por sede; y ya hay
+      sububicaciones creadas. Sigue vigente lo operativo: al activar piso/almacén en una
+      tienda, llevar antes el stock «sin sububicación» al piso con
+      `mover_interno(…, null, piso, …)`, prenda por prenda, no con un script ciego.)
 
 **Pendiente de decisión de Felipe:**
 
@@ -792,6 +1030,41 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
       la búsqueda de prendas.
 
+## 🎯 Historial de Producto en V2 — movimientos por producto + precio/categoría (2026-09-15)
+
+**Cerrado esta sesión (Sesión A3), solo local** —
+`20260915204457_movimientos_por_producto.sql` (`fn_movimientos` gana `p_producto_id`,
+resuelve a las variantes del producto; `p_ubicacion_id` sigue obligatorio) +
+`20260915204541_historial_producto_cambios.sql` (tabla `historial_producto_cambios`,
+trigger en `productos`/`variantes` que la llena solo, `fn_historial_producto_cambios`
+para leerla) + `HistorialProductoPanel.tsx` (standalone, agrupable por fecha o por
+variante). ADR-0059. Ninguna tabla existente cambia de forma; ninguna escritura
+existente cambia de comportamiento. Verificado en Chrome headless contra datos
+reales (ver BITÁCORA 2026-09-15).
+
+**Integrado por la Sesión B2 (mismo día):** `HistorialProductoPanel` ya no vive
+en una ruta de demo — se monta en `/productos/[id]/historial` (página completa)
+y, desde el menú "..." de la lista, como modal con ruta interceptada
+`@modal/(.)[id]/historial` (mismo mecanismo que el detalle de factura de
+Compras). La ruta de demo `productos/dev/historial/[id]` se borró. De paso,
+`20260915223000_historial_producto_estado.sql` extiende el trigger para
+auditar también `estado` (ver la sección de Acciones masivas más abajo) — sin
+eso, activar/desactivar en bloque quedaba fuera del historial.
+
+**Pendiente de Felipe (producción):**
+
+- [ ] **Aplicar las tres migraciones en producción** (las dos de A3 más
+      `20260915223000_historial_producto_estado.sql` de B2, con el prefijo
+      `retail.`, ver CLAUDE.md) y correr `pnpm datos:generar:produccion` +
+      `pnpm datos:comparar` después. Hasta entonces el diccionario de
+      `docs/datos/` no describe `historial_producto_cambios` ni el
+      `p_producto_id` nuevo de `fn_movimientos`.
+- [ ] **`packages/database/src/types.ts` se editó a mano** (el Postgres local es un
+      checkout compartido entre 7 sesiones y no era seguro correr `db reset` para
+      regenerar tipos). Cuando alguien corra `generate_typescript_types` contra una base
+      estable con estas migraciones aplicadas, confirmar que coincide con lo escrito a
+      mano y no queda una edición manual suelta.
+
 ## 🎯 Inventario en V2 — piso de venta / almacén de tienda (2026-09-14)
 
 **Cerrado esta sesión, solo local** — `20260914210000_inventario_piso_almacen.sql`,
@@ -827,16 +1100,57 @@ incluida una fase entera de "Unificación" (9 pasos + fixes) sin documentar en
 ningún lado. Se cierra esa brecha aquí. Ver el hallazgo #1 de ARREGLAR: es el más
 importante que ha entrado a este archivo desde que existe.
 
+## 🎯 Productos en V2 — alta y edición de producto+variantes (2026-09-15)
+
+**Cerrado esta sesión, solo local** — `20260915150001_catalogo_alta_edicion.sql`
+(`catalogo_crear_producto`/`catalogo_actualizar_producto`), `/productos/nuevo`,
+`/productos/[id]/editar`, `ProductoForm.tsx`. Ver BITACORA de esta fecha para el
+diseño completo (por qué no reusa `crear_producto_con_variantes` de V1/producción,
+por qué sin `security definer`, por qué el SKU se sugiere y no se le pide a la
+persona).
+
+**Pendiente — para que enchufen las sesiones en paralelo:**
+
+- [ ] **Ajustar inventario (Sesión A2)** y **Ver historial (Sesión A3)**: la ficha
+      de edición (`app/(app)/productos/[id]/editar/page.tsx`) deja dos huecos con
+      `TODO(Sesión A2)`/`TODO(Sesión A3)` explícitos, debajo del form. Grep por esos
+      literales para encontrarlos.
+- [ ] **No hay pantalla para agregar un color desde el form de producto** — si
+      falta un color durante el alta, hay que ir a Productos → Colores aparte
+      (`/productos/colores`, ya existe) y volver. Aceptable por ahora (no lo pidió
+      Felipe), pero es la fricción más probable en uso real.
+- [ ] **Aplicar en producción** — sigue el patrón de siempre: prefijo `retail.` al
+      pegar en el SQL Editor (nunca en el archivo), y correr
+      `pnpm datos:generar:produccion` + `pnpm datos:comparar` después.
+
+**Hallazgo de infraestructura, no de este módulo — para la próxima sesión de
+planificación:** las 7 sesiones paralelas de esta tanda comparten un solo working
+directory y un solo `git HEAD` (no worktrees aislados). Un `git checkout` de una
+sesión mueve la rama activa para las otras seis, y un archivo generado compartido
+(`packages/database/src/types.ts`) se truncó a 0 bytes a mitad de sesión por dos
+`supabase gen types ... > src/types.ts` corriendo a la vez. Se resolvió sin perder
+trabajo (rama nueva desde el commit vivo + commit acotado + `git branch -f`), pero
+el próximo reparto de sesiones en paralelo debería usar worktrees separados
+(`EnterWorktree`/`isolation: "worktree"`) en vez de un directorio compartido.
+
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **Migración `20260915130000_produccion_del_taller` no está en producción** (ADR-0051).
-      Crea `producciones` + `produccion_lineas`, `movimientos.produccion_id`, las 5 RPC
-      (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
-      `revertir_produccion`) y **amplía** el check de `ubicaciones.tipo` a `taller`,
-      convirtiendo la fila «Taller» (verificado: en producción es `almacen`, una sola). Ya
-      lleva `retail.`; pegar tal cual. Hasta entonces `/produccion` en producción carga vacía
-      y «Abrir orden» falla con «function abrir_produccion does not exist» —
-      `pnpm datos:comparar` lo avisa. Después: `pnpm datos:generar:produccion`.
+- [ ] **`20260915130000_produccion_del_taller` — estado en producción contradictorio entre
+      `DiegoN` y `main`, sin verificar todavía al fusionar (2026-09-16).** `DiegoN` la daba
+      por aplicada y verificada («producciones, produccion_lineas, las 5 RPC, el check de
+      `ubicaciones.tipo` con `taller` y la fila «Taller · taller» presentes»); `main` la
+      daba por **no** aplicada («Hasta entonces `/produccion` en producción carga vacía y
+      «Abrir orden» falla con «function abrir_produccion does not exist»»). Los dos no
+      pueden ser ciertos a la vez — antes de tocar nada más, preguntarle a la base real
+      (`information_schema`/`pg_proc` en `cayla-dynamic`, schema `retail`) cuál de las dos
+      describe el estado actual, y borrar la otra. Ya lleva el prefijo `retail.`; pegar tal
+      cual si hace falta.
+- [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
+      (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
+      Productos V2 no crea variantes desde pantalla (nacen por importación), así que el
+      enlace de la matriz solo orienta. (b) ¿«tercerizado» se marca al abrir la orden o
+      basta en la tarjeta? (c) `productos.material` de V1 no existe en V2 — solo si Felipe
+      lo pide, y como cambio de catálogo, no de Producción.
 - [ ] **Producción: lo que quedó fuera del paso 1.** (a) Movimientos muestra
       `produccion`/`reversion_produccion` como texto crudo, sin enlace a la orden.
       (b) V1 tenía `RecibirLoteForm` para que el Taller reciba mercadería sin factura;
@@ -1992,7 +2306,111 @@ importante que ha entrado a este archivo desde que existe.
 
 ## ✅ CERRADO (últimos, con fecha)
 
-- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0051). Migración
+- [x] 2026-09-15 — **Colores: tipo visual y muestra real** (Sesión F2,
+      `feat/colores-tipo-muestra`, sobre `DiegoN`). `colores.tipo`
+      (sólido/textura/estampado — ortogonal a `familia_color`, que agrupa por
+      matiz, no por naturaleza), `colores.imagen_muestra_url` y
+      `colores.notas` internas (`20260915230000_colores_tipo_y_muestra.sql`).
+      Bucket propio `retail-colores-muestras`, PÚBLICO a diferencia de
+      `retail-compras-adjuntos` (privado) — decisión justificada en
+      ADR-0061: una muestra de tela no tiene el problema de confidencialidad
+      de una factura (RUC, montos), y público evita pedir URL firmada por
+      cada una de las ~30+ muestras en cada render de la grilla. Columna
+      simple en vez de tabla-aparte-con-RPC (como adjuntos de factura)
+      porque la relación es 1:1, no 1:N — el candado de negocio real ya
+      existe (`colores_write_lider`). `ColoresLista.tsx`: selector de tipo,
+      subida de muestra (`lib/colores-muestra.ts`, mismo patrón de subida
+      navegador→bucket que `lib/adjuntos-compra.ts`) y campo de notas en
+      alta y edición; el listado muestra la muestra real si existe, si no
+      el cuadradito de HEX de siempre (fallback intacto). Verificado en
+      este entorno: `typecheck`, `lint`, `next build` y `vitest run`
+      (215/215) limpios.
+
+      **Fallback visual verificado en navegador real (2026-09-15, noche).**
+      "Denim" del ejemplo original no existe — el vocabulario cerrado tiene
+      30 nombres fijos y ninguno se llama así; se probó con "Estampado"
+      (mismo mecanismo). Tipo=Textura + notas se guardan y persisten.
+      **La subida real de la muestra sigue sin probarse un extremo a otro**:
+      el contenedor `supabase_storage_cayla-retail` no está entre los que
+      levanta este proyecto local (`docker ps` solo trae
+      db/rest/auth/kong/studio/pg_meta/inbucket — Storage no corre acá), y
+      el botón "Subir muestra" usa un `<input type=file>` oculto que la
+      herramienta de navegador de esta sesión no puede completar. Se
+      verificó igual el mecanismo de display (URL en `imagen_muestra_url` →
+      se pinta la foto en vez del cuadrado de HEX) escribiendo una imagen de
+      prueba directo en la fila vía SQL, no por Storage — y se revirtió al
+      terminar. Antes de dar la subida por buena: levantar Storage local
+      (agregarlo a `supabase/config.toml` si no está declarado, o confirmar
+      por qué se excluyó) y subir una muestra real desde el botón.
+
+- [x] 2026-09-15 — **`AjustarInventarioModal.tsx`: ajuste manual de stock por
+      variante, con signo** (Sesión A2, `feat/productos-ajustar-inventario`).
+      Reusa `retail.registrar_movimiento` (tipo='ajuste', ya existente desde
+      `20260914230000_inventario_piso_almacen.sql`) — cero vías nuevas de
+      escritura a `stock`. Motivos `reposicion`/`merma`/`conteo_fisico`/`otro`
+      agregados a `ETIQUETA_PROCESO`/`PROCESOS_FILTRO` en `movimientos-reglas.ts`.
+      Valida el stock negativo en pantalla (ADR-0023) antes de llamar a la RPC.
+      Selector Piso de venta/Almacén de tienda cuando la ubicación los separa.
+      Probado en navegador contra Tienda Lima / Blusa Valentina, verificado en
+      `/movimientos`. Conectado al menú real de `/productos` por la Sesión B2
+      el mismo día (ver ítem de integración final abajo).
+
+- [x] 2026-09-15 — **Productos: integración final del bloque (Sesión B2,
+      `feat/productos-acciones-masivas`)** — cierra A2+A3+B1. Menú "..." de
+      cada fila: "Ajustar inventario" abre `AjustarInventarioModal` (modal de
+      `useState`, con `ubicacionId`/`sububicaciones` de la sede del
+      colaborador vía `persona.ubicacionId`); "Ver historial" navega a
+      `/productos/[id]/historial`, que se abre como modal con ruta
+      interceptada (`@modal/(.)[id]/historial`, mismo mecanismo que el
+      detalle de factura de Compras) o como página completa por enlace
+      directo/recarga. Acciones masivas sobre la selección: Activar/
+      Desactivar (solo líder) hacen un solo `UPDATE ... WHERE id IN (...)` de
+      `productos.estado` — sin RPC propia, ya alcanza con la RLS
+      `productos_write_lider`; el trigger de historial se extendió
+      (`20260915223000_historial_producto_estado.sql`) para no perderse esos
+      cambios (el propio comentario de A3 avisaba de este hueco). Borradas
+      las rutas de demo `productos/dev-ajustar-inventario` y
+      `productos/dev/historial/[id]`. De paso: arreglada una colisión de
+      timestamp entre dos migraciones de otra sesión anterior
+      (`20260915120000_produccion_del_taller.sql` /
+      `..._reparar_fk_transferencia_items.sql`, ambas ya en `main`) que
+      rompía `supabase db reset` para cualquiera — se renombró la segunda a
+      `20260915120001` (solo el archivo, sin tocar contenido). Verificado en
+      Chrome headless con Playwright (login real, ambos modales, recarga
+      directa del historial, acción masiva reflejada en el historial, las
+      tres rutas dev ya no sirven el demo).
+
+- [x] 2026-09-15 — **Categorías: editar y desactivar/reactivar** (Sesión C1,
+      `feat/categorias-crud`). `/productos/categorias` solo tenía listado + alta;
+      se agregó PUT/PATCH en `route.ts` con RPC `actualizar_categoria` /
+      `desactivar_categoria` / `reactivar_categoria` (security definer, mismo
+      patrón que `proveedores_administrables`). Decidido con Felipe: prefijo fijo
+      una vez que hay productos con esa categoría; desactivar se bloquea (no solo
+      avisa) si hay productos activos, con el conteo en el mensaje. De paso se
+      cerró un candado que faltaba: `categorias.nombre` era `unique` plano
+      (no bloqueaba "Blusas" vs "BLUSAS"); ahora usa `categorias_nombre_clave_unica`
+      (`fn_clave_texto`, igual que colores/proveedores) — reemplaza
+      `categorias_nombre_key`. Verificado en navegador contra Supabase local.
+      **No está en producción** (`20260915160001_categorias_editar_desactivar.sql`
+      pendiente de aplicar, junto con las demás migraciones del 2026-09-15 — el
+      timestamp pasó de `160000` a `160001` al integrar todo en `diegoN`: chocaba
+      con `productos_listado_filtros.sql`, mismo minuto exacto).
+
+- [x] 2026-09-15 — **Vocabulario de colores: editar, desactivar y reactivar** (rama
+      `feat/colores-crud`). El listado + alta ya existían; faltaba `PUT/PATCH` en
+      `apps/web/app/api/productos/colores/route.ts` (mismo guard de Líder que el POST) y
+      la pantalla para usarlo. Antes de desactivar cuenta `variantes` activas con ese
+      `color_codigo` y bloquea si hay alguna — decisión de Felipe: se bloquea del todo,
+      no se avisa y se deja seguir. El HEX no tiene candado técnico (nada en
+      `movimientos`/ventas guarda una copia; catálogo/inventario/producción lo resuelven
+      en vivo desde `colores.hex`) pero el formulario lo esconde detrás de "Cambiar
+      color" para que no se mueva sin querer. Verificado en el navegador (login sin
+      escribir contraseña, vía magic link del service role local): editar Amarillo,
+      candado `colores_clave_unica` sigue rechazando "Crudo" → "  Amarillo  ", bloqueo
+      de desactivar contra Azul marino (variantes activas reales), desactivar/reactivar
+      Amarillo. `tsc`/`eslint` en verde.
+
+- [x] 2026-09-15 — **Producción del Taller restaurada sobre V2** (ADR-0050). Migración
       reconstruida desde el Postgres local (el archivo se había perdido; tablas y RPC
       verificadas idénticas tras `db reset` + diff), `/produccion` con abrir / etapas /
       cerrar al inventario / anular / revertir, `lib/produccion-reglas.ts` con 8 tests,

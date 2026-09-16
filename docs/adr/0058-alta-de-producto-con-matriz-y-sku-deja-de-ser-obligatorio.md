@@ -1,4 +1,4 @@
-# ADR-0056 — Alta de producto con matriz talla×color, y `sku` deja de ser obligatorio
+# ADR-0058 — Alta de producto con matriz talla×color, y `sku` deja de ser obligatorio
 
 **Fecha:** 2026-09-15
 **Estado:** Aplicado y verificado en la base local. **No aplicado en producción** — es una

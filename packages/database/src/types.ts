@@ -245,29 +245,43 @@ export type Database = {
       categorias: {
         Row: {
           activo: boolean
+          categoria_padre_id: string | null
           familia: string | null
           id: string
           nombre: string
+          notas: string | null
           prefijo: string | null
           tallas_sugeridas: string[] | null
         }
         Insert: {
           activo?: boolean
+          categoria_padre_id?: string | null
           familia?: string | null
           id?: string
           nombre: string
+          notas?: string | null
           prefijo?: string | null
           tallas_sugeridas?: string[] | null
         }
         Update: {
           activo?: boolean
+          categoria_padre_id?: string | null
           familia?: string | null
           id?: string
           nombre?: string
+          notas?: string | null
           prefijo?: string | null
           tallas_sugeridas?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_categoria_padre_id_fkey"
+            columns: ["categoria_padre_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clientes: {
         Row: {
@@ -428,24 +442,33 @@ export type Database = {
           codigo: string
           familia_color: string | null
           hex: string | null
+          imagen_muestra_url: string | null
           nombre: string
+          notas: string | null
           orden: number
+          tipo: string
         }
         Insert: {
           activo?: boolean
           codigo: string
           familia_color?: string | null
           hex?: string | null
+          imagen_muestra_url?: string | null
           nombre: string
+          notas?: string | null
           orden?: number
+          tipo?: string
         }
         Update: {
           activo?: boolean
           codigo?: string
           familia_color?: string | null
           hex?: string | null
+          imagen_muestra_url?: string | null
           nombre?: string
+          notas?: string | null
           orden?: number
+          tipo?: string
         }
         Relationships: []
       }
@@ -1076,6 +1099,39 @@ export type Database = {
           },
         ]
       }
+      historial_producto_cambios: {
+        Row: {
+          campo: string
+          created_at: string
+          entidad: string
+          entidad_id: string
+          id: string
+          usuario_id: string | null
+          valor_anterior: string | null
+          valor_nuevo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          entidad: string
+          entidad_id: string
+          id?: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          entidad?: string
+          entidad_id?: string
+          id?: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Relationships: []
+      }
       lotes: {
         Row: {
           fecha_recepcion: string
@@ -1409,6 +1465,41 @@ export type Database = {
           },
         ]
       }
+      producto_fotos: {
+        Row: {
+          created_at: string
+          es_principal: boolean
+          id: string
+          orden: number
+          producto_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          orden?: number
+          producto_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          es_principal?: boolean
+          id?: string
+          orden?: number
+          producto_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_fotos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           categoria_id: string | null
@@ -1417,7 +1508,10 @@ export type Database = {
           descripcion: string | null
           estado: string
           id: string
+          permitir_venta_sin_stock: boolean
           referencia: string
+          stock_minimo: number | null
+          temporada: string | null
           token_cliente: string | null
         }
         Insert: {
@@ -1427,7 +1521,10 @@ export type Database = {
           descripcion?: string | null
           estado?: string
           id?: string
+          permitir_venta_sin_stock?: boolean
           referencia: string
+          stock_minimo?: number | null
+          temporada?: string | null
           token_cliente?: string | null
         }
         Update: {
@@ -1437,7 +1534,10 @@ export type Database = {
           descripcion?: string | null
           estado?: string
           id?: string
+          permitir_venta_sin_stock?: boolean
           referencia?: string
+          stock_minimo?: number | null
+          temporada?: string | null
           token_cliente?: string | null
         }
         Relationships: [
@@ -2144,6 +2244,16 @@ export type Database = {
         }
         Returns: string
       }
+      actualizar_categoria: {
+        Args: {
+          p_categoria_id: string
+          p_familia: string
+          p_nombre: string
+          p_notas?: string
+          p_prefijo: string
+        }
+        Returns: undefined
+      }
       actualizar_mi_foto_perfil: {
         Args: { p_foto_url: string }
         Returns: undefined
@@ -2200,6 +2310,56 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
+      catalogo_actualizar_producto:
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_producto_id: string
+              p_referencia: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
+      catalogo_crear_producto:
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_referencia: string
+              p_variantes: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_fotos?: Json
+              p_permitir_venta_sin_stock?: boolean
+              p_referencia: string
+              p_stock_minimo?: number
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: string
+          }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
         Returns: {
@@ -2277,6 +2437,10 @@ export type Database = {
         }
         Returns: string
       }
+      desactivar_categoria: {
+        Args: { p_categoria_id: string }
+        Returns: undefined
+      }
       desactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
@@ -2343,6 +2507,25 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_historial_producto_cambios: {
+        Args: { p_producto_id: string }
+        Returns: {
+          campo: string
+          categoria_anterior_nombre: string
+          categoria_nueva_nombre: string
+          created_at: string
+          entidad: string
+          id: string
+          usuario_id: string
+          usuario_nombre: string
+          valor_anterior: string
+          valor_nuevo: string
+          variante_color: string
+          variante_id: string
+          variante_sku: string
+          variante_talla: string
+        }[]
+      }
       fn_mi_perfil: {
         Args: never
         Returns: {
@@ -2368,6 +2551,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
           p_usuario_id?: string
@@ -2461,6 +2645,58 @@ export type Database = {
           ubicacion_id: string
           ubicacion_nombre: string
           ubicacion_tipo: string
+        }[]
+      }
+      fn_productos: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_color_codigo?: string
+          p_estado?: string
+          p_pagina?: number
+          p_por_pagina?: number
+          p_precio_max?: number
+          p_precio_min?: number
+          p_stock?: string
+        }
+        Returns: {
+          activo: boolean
+          categoria_id: string
+          categoria_nombre: string
+          codigo: string
+          codigos_barras: string[]
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          costo: number
+          estado: string
+          precio: number
+          producto_id: string
+          referencia: string
+          sku: string
+          stock_minimo: number
+          stock_total: number
+          talla: string
+          total_productos: number
+          variante_codigo: string
+          variante_id: string
+        }[]
+      }
+      fn_productos_buscar: { Args: { p_busqueda: string }; Returns: string[] }
+      fn_productos_resumen: {
+        Args: {
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_color_codigo?: string
+          p_estado?: string
+          p_precio_max?: number
+          p_precio_min?: number
+        }
+        Returns: {
+          sin_stock: number
+          stock_bajo: number
+          total_productos: number
+          total_variantes: number
         }[]
       }
       fn_proveedores: {
@@ -2601,6 +2837,10 @@ export type Database = {
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_categoria: {
+        Args: { p_categoria_id: string }
+        Returns: undefined
+      }
       reactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
@@ -2796,12 +3036,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2825,11 +3065,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2850,11 +3090,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2875,11 +3115,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2892,11 +3132,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

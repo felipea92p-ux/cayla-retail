@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260915230000_colaboradores_perfil_y_lista_correctos.sql — CAYLA V2
+-- 20260915230001_colaboradores_perfil_y_lista_correctos.sql — CAYLA V2
 --
 -- Dos correcciones puntuales encontradas leyendo el código real de
 -- `fn_mi_perfil` y `fn_colaboradores` (0014_perfil.sql, 0016_roles_colaborador.sql),

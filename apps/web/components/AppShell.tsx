@@ -439,7 +439,7 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 }
 
 // Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras"];
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos"];
 
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();
