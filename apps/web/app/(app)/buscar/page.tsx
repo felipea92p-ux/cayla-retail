@@ -47,6 +47,7 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
   const catalogo = await getCatalogo();
 
   const resultados = catalogo
+    .filter((v) => v.activo)
     .filter((v) =>
       `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.talla ?? ""} ${v.color ?? ""}`
         .toLowerCase()

@@ -187,6 +187,13 @@ const HUELLAS: Huella[] = [
     frase: "Tu sesión venció. Vuelve a entrar y repite la operación — no se guardó nada.",
   },
   {
+    // 0002_esquema.sql:58 — `check (costo >= 0)` sin nombre propio, Postgres
+    // la nombra `variantes_costo_check`. `RecepcionFormV2.tsx` ya recorta un
+    // costo negativo en el campo, esto es la red de seguridad si llega igual.
+    marca: "variantes_costo_check",
+    frase: "El costo no puede ser negativo. Corrígelo y vuelve a intentar.",
+  },
+  {
     // 20260912235500_vocabulario_cerrado.sql — el código son 3 mayúsculas y
     // es la clave primaria de retail.colores.
     marca: "colores_pkey",

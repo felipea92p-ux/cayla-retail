@@ -3,25 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Sub-navegación del mundo Inventario: catálogo, recepción y almacén viven juntos
-// (decisión de Felipe en el descubrimiento: "inventario y almacén son casi lo mismo").
-// Orden = orden de uso real del flujo, no alfabético ni por fecha de construcción:
-// Proveedores (a quién le compro) → Compras (pido, opcional) → Recibir (llega) →
-// Almacén (bajo a piso) → Catálogo (resultado, lo que ya se puede vender) →
-// Conteo (verifico que el catálogo diga la verdad) → Etiquetas (utilidad de
-// impresión, se usa en cualquier punto del camino).
+// Sub-navegación del mundo Inventario. Reescrita el 2026-09-15: la lista
+// original (Proveedores/Compras/Almacén/Etiquetas bajo /inventario/*) nunca se
+// actualizó cuando esas pantallas se mudaron a sus propios módulos (Compras,
+// ADR-0035) — apuntaba a 4 rutas que ya no existen, y ni mencionaba `/mover`,
+// que sí es real. Este componente nunca se había montado en ningún lado
+// (`grep` sobre apps/web confirmó cero usos), así que el enlace muerto nunca
+// se vio — hasta ahora, que se monta desde `layout.tsx`.
 //
-// Conteo va DESPUÉS de Catálogo y no antes: se cuenta contra lo que el sistema
-// dice, y de un conteo salen prendas nuevas que después hay que etiquetar. El
-// orden de las pestañas es el orden real del trabajo.
+// Orden = flujo real: Stock (qué hay) → Recibir (entra mercadería) → Mover
+// (se redistribuye entre piso/almacén/sedes) → Conteo (se verifica que el
+// stock diga la verdad).
 const SECCIONES = [
-  { href: "/inventario/proveedores", etiqueta: "Proveedores" },
-  { href: "/inventario/compras", etiqueta: "Compras" },
+  { href: "/inventario", etiqueta: "Stock" },
   { href: "/inventario/recibir", etiqueta: "Recibir" },
-  { href: "/inventario/almacen", etiqueta: "Almacén" },
-  { href: "/inventario", etiqueta: "Catálogo" },
+  { href: "/inventario/mover", etiqueta: "Mover" },
   { href: "/inventario/conteo", etiqueta: "Conteo" },
-  { href: "/inventario/etiquetas", etiqueta: "Etiquetas" },
 ];
 
 export function InventarioNav() {

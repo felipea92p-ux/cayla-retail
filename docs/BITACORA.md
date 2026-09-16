@@ -124,6 +124,28 @@ local y se canjeó por una sesión propia, sin tocar ninguna credencial real; de
 el bloqueo de Next a recursos de dev por origen cruzado (`127.0.0.1` vs `localhost`), que no
 tiene nada que ver con Colores pero hubiera bloqueado cualquier prueba headless futura contra
 este dev server.
+## 2026-09-15 (Inventario/Colaboradores/Movimientos: 14 arreglos del reconocimiento, todo en local)
+
+Felipe pidió ejecutar la propuesta de mejoras de esos 3 módulos, explícitamente "solo en
+local, nada de producción, ni github main ni supabase de producción". Se aplicaron los 14
+hallazgos de riesgo bajo/medio del reconocimiento anterior (3 agentes en paralelo + mi
+propia verificación) — se dejaron afuera a propósito 3 que necesitan una decisión de
+negocio, no un parche: la condición de carrera de contar-mientras-se-vende, cambiar
+`quitar_colaborador` de `DELETE` a archivado, y el selector de ubicación duplicado (ya es
+decisión consciente documentada). El hallazgo más nítido de arreglar: `cambio_diferencia`
+es `numeric`, Postgres/PostgREST lo manda como string, y `!== 0` nunca compara igual un
+string contra un number — ningún cambio "sin diferencia" se detectaba como tal, corregido
+en el origen (`movimientos-v2.ts`), no en el sitio de uso. Typecheck, `vitest` (239 tests)
+y lint verdes; probado a mano en el navegador local (Felipe, líder): Cargo especial ya no
+aparece en el selector de Recibir, la sub-navegación de Inventario (reescrita, apuntaba a
+4 rutas que ya no existen) navega bien, "Quitar acceso" confirma antes de ejecutar, y
+buscar "_" en Movimientos ya no trae las 49 variantes. Lo que aprendió Felipe: el local
+compartido entre sesiones paralelas se reseteó solo a mitad de la verificación
+(`auth.users` pasó de 2 filas a 0 y volvió a 2) — no fue nada que esta sesión rompiera, es
+el costo real de correr varias IAs contra el mismo Postgres local al mismo tiempo. Todo
+quedó commiteado en la rama local `fix/inventario-colaboradores-movimientos`, sin pushear
+— pendiente que Felipe decida cuándo subirla.
+
 ## 2026-09-15 (alta de producto con matriz talla×color, prueba local, sku deja de ser obligatorio)
 
 Felipe pidió, tras comparar el modelo de variantes de CAYLA contra Lightspeed Retail, probar
