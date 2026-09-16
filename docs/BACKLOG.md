@@ -28,6 +28,19 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧭 Taxonomía ideal — propuesta para decidir (2026-09-16, ADR-0072)
+
+Borrador de investigación, **no aprobado**. Nada aplicado. SQL y prueba en
+`docs/datos/investigacion/taxonomia-ideal-2026-09-16/` (fuera de `supabase/migrations/`).
+
+- [ ] **Decidir si la fase 0 (identidad: tallas con escala, modelo-color, estampados, códigos
+      inmutables, precio con vigencia) va antes o después del censo.** El ADR dice "antes";
+      la estimación es 6 a 8 sesiones.
+- [ ] Responder las 11 preguntas de negocio del ADR (precio por talla, apartados, tallas
+      clave, conjuntos, marcas, canal online, 500 UIT, cola sin red, D-40 contra ADR-0023).
+
+---
+
 ## 🎯 Colores: proponer/aprobar (2026-09-16, ADR-0070)
 
 Rama `claude/proponer-aprobar-color-20260916`. Cierra el punto que había quedado
