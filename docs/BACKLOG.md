@@ -18,6 +18,31 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Buscador global fuera de la cabecera (2026-09-16)
+
+A pedido de Felipe: `BuscadorGlobal` (la caja "Buscar o escanear prenda…" que
+vivía en la cabecera de TODAS las pantallas) se quitó de `AppShell.tsx` — no
+por estar roto (se verificó en navegador que funciona de punta a punta: busca
+por SKU/referencia/talla/color y muestra stock por ubicación), sino porque no
+tiene sentido un buscador de catálogo idéntico en pantallas como
+`/colaboradores` o `/producción` igual que en `/vender` o `/inicio`. De paso
+se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya estaba
+muerto de verdad (cero imports en todo el repo — probablemente un diseño
+anterior del Inicio que quedó huérfano).
+
+- [ ] **`/buscar/page.tsx` queda sin ningún punto de entrada en la UI.** La
+      pantalla en sí sigue intacta y funcional (búsqueda real con stock por
+      ubicación), solo alcanzable hoy por URL directa. Pendiente de que
+      Felipe decida: ¿se borra la pantalla también, o se reengancha en un
+      lugar puntual — ej. una tarjeta más en "Acciones" de Inicio — en vez de
+      vivir en la cabecera global?
+
+Verificado: `pnpm --filter web typecheck`/`lint` en verde; probado en
+navegador real (escritorio y celular) en `/` y `/productos` — la cabecera
+queda solo con el selector de ubicación, sin salto de layout.
+
+---
+
 ## 🔀 Verificación en navegador de F1-F4 + ajuste de layout (2026-09-15, noche — Claude Code Desktop)
 
 **El checkout de `diegoN` en el Mac estaba a un pull de distancia de lo real.**
@@ -123,13 +148,11 @@ reasignación de principal, `p_fotos = null` sin tocar la galería. `typecheck`/
 
 **Pendiente:**
 
-- [ ] **`20260915224500_producto_fotos_temporada_venta_sin_stock.sql` no está en
-      producción.** Aplicada y probada solo contra el schema aislado de prueba
-      (nunca contra `retail.*` real). Pegar en el SQL Editor con
-      `set search_path = retail, public, extensions;` (CLAUDE.md). Es aditiva
-      (dos columnas nullable/con default, una tabla nueva, dos funciones
-      reemplazadas con parámetros nuevos al final con default) — nada que
-      preverificar antes de pegarla.
+- [x] **`20260915224500_producto_fotos_temporada_venta_sin_stock.sql` sí está en
+      producción** (verificado 2026-09-16 contra `vovjyyiafkxteijimpuy`, no contra
+      docs: existe `retail.producto_fotos` y `catalogo_crear_producto`/
+      `catalogo_actualizar_producto` ya aceptan `p_temporada`/
+      `p_permitir_venta_sin_stock`/`p_fotos`).
 - [x] **Verificado en navegador real (2026-09-15, noche, Claude Code Desktop —
       Docker sí funciona en este Mac).** `FotosProducto.tsx` carga, reordena
       ("Mover a la izquierda/derecha"), cambia de principal ("Marcar
@@ -174,13 +197,10 @@ antes. `retail.actualizar_categoria` pasó de 4 a 5 argumentos (se agregó
       aparece en un clúster junto a "Vestidos", el resto de categorías sin
       hijas (ej. "Pantalones") se sigue viendo igual. Se dejó tal cual (es
       dato real, no de prueba) — Felipe decide si la renombra/borra.
-- [ ] **`20260915224501_categorias_subcategoria.sql` no está en producción.**
-      Aplicada solo en el archivo del repo (ni siquiera probada en local por
-      lo de arriba). Al pegar en el SQL Editor de producción: prefijo
-      `retail.` en cada tabla o `set search_path to retail, public;`
-      (CLAUDE.md). Es aditiva (dos columnas nullable, un trigger nuevo, y
-      `actualizar_categoria` se dropea/recrea con un 5º argumento opcional)
-      — nada que preverificar antes de pegar.
+- [x] **`20260915224501_categorias_subcategoria.sql` sí está en producción**
+      (verificado 2026-09-16 contra `vovjyyiafkxteijimpuy`: `actualizar_categoria`
+      ya tiene el 5º argumento `p_notas` y `retail.fn_valida_categoria_subcategoria`
+      existe).
 - [ ] **`packages/database/src/types.ts` se editó a mano**, no con
       `supabase gen types` (no hay base viva en este entorno). Cuando la
       migración se aplique a un Postgres real, regenerar los tipos desde ahí
@@ -211,11 +231,10 @@ HTTP real (sesión autenticada reconstruida a mano) — ver BITÁCORA de hoy.
 
 **Pendiente:**
 
-- [ ] **`20260915160000_productos_listado_filtros.sql` no está en producción.**
-      Aplicada y probada solo en local. Sin `retail.` en el archivo: pegar en
-      el SQL Editor con `set search_path to retail, public;` (CLAUDE.md).
-      Antes de pegar: nada que preverificar, es aditiva (una columna nullable
-      + tres funciones nuevas, ningún `drop`/cambio de firma existente).
+- [x] **`20260915160000_productos_listado_filtros.sql` sí está en producción**
+      (verificado 2026-09-16 contra `vovjyyiafkxteijimpuy`: `retail.fn_productos`/
+      `fn_productos_resumen` existen con los filtros — confirmado también en
+      navegador, `/productos` ya filtra server-side).
 - [ ] **El campo `stock_minimo` no tiene UI todavía.** La columna existe
       (`retail.productos.stock_minimo`, nullable — sin valor, ese producto
       nunca entra en "stock bajo") pero el mantenedor de ficha
@@ -1175,19 +1194,13 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       entrada manual aparte de la corrida. (c) Una orden cerrada no se edita (solo
       revertir + volver a cerrar): revisar con el Taller si eso les alcanza.
 
-- [ ] **Migración `20260914210000_compras_resumen_por_vencer` no está en producción.**
-      Agrega `por_vencer` y `por_vencer_monto` a `resumen_compras` (DROP + CREATE:
-      cambia el `returns table`). Pegar en el SQL Editor con el prefijo `retail.`
-      (ya lo lleva). Mientras tanto la tarjeta "Vence esta semana" de
-      `/compras/por-pagar` muestra S/ 0.00 (lee con `?? 0`), no rompe.
+- [x] **Migración `20260914210000_compras_resumen_por_vencer` sí está en
+      producción** (verificado 2026-09-16 contra `vovjyyiafkxteijimpuy`:
+      `retail.resumen_compras()` ya devuelve `por_vencer`/`por_vencer_monto`).
 
-- [ ] **Migración `20260914220000_compras_orden_por_creacion` no está en producción.**
-      Recrea `listar_compras` (DROP + CREATE: parámetro nuevo `p_cursor_creado_en`)
-      y los 4 índices de orden con `created_at` como desempate. Pegar con prefijo
-      `retail.` (ya lo lleva). Hasta entonces la primera página carga igual, pero
-      "Siguiente página →" en `/compras` y `/compras/recibir` falla con PGRST202
-      (la app manda un parámetro que producción no conoce). `pnpm datos:comparar`
-      lo avisa.
+- [x] **Migración `20260914220000_compras_orden_por_creacion` sí está en
+      producción** (verificado 2026-09-16: `retail.listar_compras` ya acepta
+      `p_cursor_creado_en`).
 
 - [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
       eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
@@ -1240,53 +1253,25 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       (`supabase/seed-taxonomia/*.sql`, ~1.5 MB, gitignored) se regenera con
       `node scripts/taxonomia/cargar.mjs` y lleva su propio `set search_path`.
 
-- [ ] **`20260914200000_compras_multipago` no está en producción.** Un pago
-      repartido en varios medios (5,000 transferencia + 3,000 efectivo) en un solo
-      acto, en las tres pantallas: registrar factura, detalle y Por pagar. RPC nueva
-      `registrar_pagos_compra(compra, [{monto, metodo, referencia}], fecha)` — todo o
-      nada; `registrar_pago_compra` pasa a ser su atajo; `registrar_compra` acepta en
-      `p_pago` objeto o arreglo (misma firma, sin DROP). Probada en local con 7 casos
-      por psql. **Va después de la `190000`** (redefine `registrar_compra` con
-      `p_total`). Hasta aplicarla, el modal de pago en producción falla con
-      "function registrar_pagos_compra does not exist" — la pantalla ya la llama.
-      Sin `retail.` en el archivo: pegar con `set search_path to retail, public;`.
+- [x] **`20260914200000_compras_multipago` sí está en producción** (verificado
+      2026-09-16: `retail.registrar_pagos_compra` existe).
 
-- [ ] **`20260914190000_compras_total_del_papel` no está en producción.** Aplicada y
-      probada solo en local (6 casos por psql: 1 × 8.47 con total 10.00 → igv 1.53;
-      3 líneas → 30.00; sin `p_total` sigue dando 9.99; dos rechazos; contado con
-      pago = total). `registrar_compra` gana `p_total` (el total del papel, solo
-      cuando "El precio incluye IGV") y la tabla el check `compras_total_cuadra`.
-      **Lleva `DROP FUNCTION`** (cambia la lista de parámetros): el SQL Editor va a
-      avisar "destructive"; es la función, se recrea en la línea siguiente. Antes
-      de pegar: `select count(*) from retail.compras where total <> subtotal + igv;`
-      debe dar 0. Hasta aplicarla, prender el interruptor en producción falla con
-      "function registrar_compra(... p_total) does not exist" — la pantalla ya
-      manda el parámetro.
+- [x] **`20260914190000_compras_total_del_papel` sí está en producción**
+      (verificado 2026-09-16: `retail.registrar_compra` ya acepta `p_total` y el
+      check `compras_total_cuadra` existe).
 
-- [ ] **`20260914180000_compras_adjuntos` no está en producción.** Adjuntos de
-      factura (ADR-0046): tabla `compra_adjuntos`, RPCs `registrar_adjunto_compra`
-      / `archivar_adjunto_compra`, y el bucket privado `retail-compras-adjuntos`
-      con sus políticas — todo en el mismo archivo; el bloque del bucket corre
-      solo donde existe `storage.buckets` (producción). Pegar con `retail.`
-      como siempre. **La subida real no se probó**: Storage local está apagado.
-      Primera prueba en producción: registrar una factura con un PDF, abrirlo
-      desde el detalle, quitarlo, y anularla después. Si prefieres probar antes,
-      `config.toml › [storage] enabled = true` con el stack de Dynamic apagado.
+- [x] **`20260914180000_compras_adjuntos` sí está en producción** (verificado
+      2026-09-16: tabla `retail.compra_adjuntos`, RPCs `registrar_adjunto_compra`/
+      `archivar_adjunto_compra` y el bucket `retail-compras-adjuntos` existen).
+      **La subida real sigue sin probarse de punta a punta** (Storage local
+      apagado) — eso no lo confirma una consulta a `information_schema`.
 
-- [ ] **`20260914150000_proveedores_administrables` no está en producción.**
-      Pantalla `/compras/proveedores` (alta/edición/desactivar, razón social
-      desde SUNAT) verificada solo en local. Antes de pegarla con prefijo
-      `retail.` en el SQL Editor hay que mirar si producción ya tiene
-      proveedores duplicados, porque los dos índices únicos revientan si los
-      hay (la consulta está en la cabecera de la migración). Hasta que se
-      aplique, el diccionario de `docs/datos/generado/` no la conoce — y **no
-      se regenera desde local** (ver CLAUDE.md §regla de oro, corregido hoy).
+- [x] **`20260914150000_proveedores_administrables` sí está en producción**
+      (verificado 2026-09-16: `retail.registrar_proveedor`/`actualizar_proveedor`/
+      `desactivar_proveedor`/`reactivar_proveedor` existen).
 
-- [ ] **`20260914160000_igv_solo_en_factura` no está en producción.** Check
-      `compras_igv_solo_factura`: boleta y nota de venta van con `igv = 0`. Antes
-      de pegarla, correr la consulta de la cabecera para ver si producción ya
-      tiene boletas/notas con IGV > 0 — si las hay, se corrigen fila por fila con
-      el papel a la vista (decisión de Felipe), nunca se relaja el candado.
+- [x] **`20260914160000_igv_solo_en_factura` sí está en producción** (verificado
+      2026-09-16: check `compras_igv_solo_factura` existe en `retail.compras`).
 
 - [ ] **`gen-types` sigue apuntando al proyecto viejo y ahora hay drift real
       medido.** `packages/database/package.json` usa `--project-id
