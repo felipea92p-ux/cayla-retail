@@ -938,6 +938,8 @@ export type Database = {
       conteos: {
         Row: {
           abierto_por: string | null
+          alcance: string
+          alcance_categoria_id: string | null
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
@@ -948,6 +950,8 @@ export type Database = {
         }
         Insert: {
           abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
@@ -958,6 +962,8 @@ export type Database = {
         }
         Update: {
           abierto_por?: string | null
+          alcance?: string
+          alcance_categoria_id?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
@@ -967,6 +973,13 @@ export type Database = {
           ubicacion_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conteos_alcance_categoria_id_fkey"
+            columns: ["alcance_categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conteos_sububicacion_pertenece_fk"
             columns: ["sububicacion_id", "ubicacion_id"]
@@ -979,6 +992,63 @@ export type Database = {
             columns: ["ubicacion_id"]
             isOneToOne: false
             referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      costo_historial: {
+        Row: {
+          cantidad_nueva: number
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at: string
+          id: string
+          movimiento_id: string
+          origen: string
+          stock_previo: number
+          usuario_id: string | null
+          variante_id: string
+        }
+        Insert: {
+          cantidad_nueva: number
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at?: string
+          id?: string
+          movimiento_id: string
+          origen: string
+          stock_previo: number
+          usuario_id?: string | null
+          variante_id: string
+        }
+        Update: {
+          cantidad_nueva?: number
+          costo_anterior?: number
+          costo_resultante?: number
+          costo_unitario_nuevo?: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string
+          origen?: string
+          stock_previo?: number
+          usuario_id?: string | null
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costo_historial_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "costo_historial_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
             referencedColumns: ["id"]
           },
         ]
@@ -1194,6 +1264,7 @@ export type Database = {
           sububicacion_id: string | null
           tipo: string
           transferencia_item_id: string | null
+          transferencia_recepcion_id: string | null
           ubicacion_destino_id: string | null
           ubicacion_id: string
           usuario_id: string | null
@@ -1216,6 +1287,7 @@ export type Database = {
           sububicacion_id?: string | null
           tipo: string
           transferencia_item_id?: string | null
+          transferencia_recepcion_id?: string | null
           ubicacion_destino_id?: string | null
           ubicacion_id: string
           usuario_id?: string | null
@@ -1238,6 +1310,7 @@ export type Database = {
           sububicacion_id?: string | null
           tipo?: string
           transferencia_item_id?: string | null
+          transferencia_recepcion_id?: string | null
           ubicacion_destino_id?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
@@ -1313,6 +1386,13 @@ export type Database = {
             columns: ["transferencia_item_id"]
             isOneToOne: false
             referencedRelation: "transferencia_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_transferencia_recepcion_fkey"
+            columns: ["transferencia_recepcion_id"]
+            isOneToOne: false
+            referencedRelation: "transferencia_recepciones"
             referencedColumns: ["id"]
           },
           {
@@ -1796,31 +1876,101 @@ export type Database = {
           },
         ]
       }
+      transferencia_recepciones: {
+        Row: {
+          cantidad_recibida: number
+          created_at: string
+          id: string
+          movimiento_id: string | null
+          registrado_por: string | null
+          transferencia_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad_recibida: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          registrado_por?: string | null
+          transferencia_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad_recibida?: number
+          created_at?: string
+          id?: string
+          movimiento_id?: string | null
+          registrado_por?: string | null
+          transferencia_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencia_recepciones_movimiento_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_recepciones_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_recepciones_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transferencias: {
         Row: {
+          cerrado_en: string | null
+          cerrado_por: string | null
+          confirmado_en: string | null
+          confirmado_por: string | null
           creado_por: string | null
           created_at: string
           estado: string
+          fecha_estimada_llegada: string | null
           id: string
           nota: string | null
+          nota_cierre: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Insert: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          confirmado_en?: string | null
+          confirmado_por?: string | null
           creado_por?: string | null
           created_at?: string
           estado?: string
+          fecha_estimada_llegada?: string | null
           id?: string
           nota?: string | null
+          nota_cierre?: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Update: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          confirmado_en?: string | null
+          confirmado_por?: string | null
           creado_por?: string | null
           created_at?: string
           estado?: string
+          fecha_estimada_llegada?: string | null
           id?: string
           nota?: string | null
+          nota_cierre?: string | null
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
         }
@@ -2280,7 +2430,12 @@ export type Database = {
         Returns: string
       }
       abrir_conteo: {
-        Args: { p_sububicacion_id?: string; p_ubicacion_id: string }
+        Args: {
+          p_alcance?: string
+          p_alcance_categoria_id?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+        }
         Returns: string
       }
       abrir_produccion: {
@@ -2422,6 +2577,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      cerrar_traslado_con_diferencia: {
+        Args: { p_nota?: string; p_transferencia_id: string }
+        Returns: {
+          lineas_recibidas: number
+          unidades_recibidas: number
+        }[]
+      }
+      confirmar_traslado: {
+        Args: { p_transferencia_id: string }
+        Returns: {
+          lineas_con_diferencia: number
+          lineas_ok: number
+          resultado: string
+        }[]
+      }
       conteo_contar: {
         Args: {
           p_cantidad_contada: number
@@ -2531,6 +2701,24 @@ export type Database = {
           rol: string
           sede: string
           ubicacion_asignada: string
+        }[]
+      }
+      fn_costo_historial: {
+        Args: { p_variante_id: string }
+        Returns: {
+          cantidad_nueva: number
+          compra_documento: string
+          costo_anterior: number
+          costo_resultante: number
+          costo_unitario_nuevo: number
+          created_at: string
+          id: string
+          lote_guia: string
+          origen: string
+          produccion_referencia: string
+          proveedor_nombre: string
+          stock_previo: number
+          usuario_nombre: string
         }[]
       }
       fn_dynamic_disponibles: {
@@ -2683,6 +2871,18 @@ export type Database = {
           ubicacion_tipo: string
         }[]
       }
+      fn_prioridad_conteo: {
+        Args: { p_alcance_categoria_id?: string; p_ubicacion_id: string }
+        Returns: {
+          color: string
+          dias_sin_contar: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+          ventas_30d: number
+        }[]
+      }
       fn_productos: {
         Args: {
           p_busqueda?: string
@@ -2705,10 +2905,14 @@ export type Database = {
           color_hex: string
           color_nombre: string
           costo: number
+          demanda_diaria: number
           estado: string
+          lead_time_dias: number
           precio: number
           producto_id: string
+          punto_reorden: number
           referencia: string
+          reponer_de_proveedor: boolean
           sku: string
           stock_minimo: number
           stock_total: number
@@ -2729,6 +2933,7 @@ export type Database = {
           p_precio_min?: number
         }
         Returns: {
+          reponer_de_proveedor: number
           sin_stock: number
           stock_bajo: number
           total_productos: number
@@ -2753,6 +2958,16 @@ export type Database = {
         Returns: boolean
       }
       fn_puede_registrar_compras: { Args: never; Returns: boolean }
+      fn_recalcular_costo_variante: {
+        Args: {
+          p_cantidad_nueva: number
+          p_costo_unitario_nuevo: number
+          p_movimiento_id: string
+          p_origen: string
+          p_variante_id: string
+        }
+        Returns: number
+      }
       fn_reservar_numero_serie: {
         Args: { p_tipo: string; p_ubicacion_id: string }
         Returns: {
@@ -2776,6 +2991,19 @@ export type Database = {
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
+      fn_traslado_lineas: {
+        Args: { p_transferencia_id: string }
+        Returns: {
+          cantidad_enviada: number
+          cantidad_recibida: number
+          color: string
+          diferencia: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
+      }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
@@ -2793,6 +3021,16 @@ export type Database = {
           vendedor: string
           venta_id: string
         }[]
+      }
+      iniciar_traslado: {
+        Args: {
+          p_fecha_estimada_llegada: string
+          p_items: Json
+          p_nota?: string
+          p_ubicacion_destino_id: string
+          p_ubicacion_origen_id: string
+        }
+        Returns: string
       }
       listar_compras: {
         Args: {
@@ -2998,6 +3236,14 @@ export type Database = {
         Args: { p_contacto?: string; p_nombre: string; p_ruc?: string }
         Returns: string
       }
+      registrar_recepcion_traslado: {
+        Args: {
+          p_cantidad_recibida: number
+          p_transferencia_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
       registrar_serie_comprobante: {
         Args: {
           p_serie: string
@@ -3045,15 +3291,6 @@ export type Database = {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
         Returns: undefined
       }
-      transferir: {
-        Args: {
-          p_items: Json
-          p_nota?: string
-          p_ubicacion_destino_id: string
-          p_ubicacion_origen_id: string
-        }
-        Returns: string
-      }
     }
     Enums: {
       [_ in never]: never
@@ -3072,12 +3309,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3101,11 +3338,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3126,11 +3363,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3151,11 +3388,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3168,11 +3405,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

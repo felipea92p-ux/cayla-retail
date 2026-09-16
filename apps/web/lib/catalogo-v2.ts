@@ -75,7 +75,10 @@ export type FiltrosProductos = {
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
-  stock?: "sin_stock" | "bajo";
+  /** "reponer" = punto de reorden (20260916100000): demanda × tiempo de
+   *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
+   *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
+  stock?: "sin_stock" | "bajo" | "reponer";
 };
 
 /** Parámetros de URL de /productos (ver `FiltrosProductos.tsx`). */
@@ -104,7 +107,8 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
     precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
     precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
-    stock: p.stock === "sin_stock" || p.stock === "bajo" ? p.stock : undefined,
+    stock:
+      p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
   };
 }
 
@@ -122,6 +126,14 @@ export type ProductoListado = {
   estado: string;
   stockMinimo: number | null;
   stockTotal: number;
+  /** Ventas/día promedio de los últimos 30 días, todas las sedes (20260916100000). */
+  demandaDiaria: number;
+  /** Proxy factura→recepción, en días; 14 si nunca hubo una recepción con factura. */
+  leadTimeDias: number;
+  /** ceil(demandaDiaria × leadTimeDias) + stockMinimo. */
+  puntoReorden: number;
+  /** stockTotal <= puntoReorden y demandaDiaria > 0 — la señal "Pedir a proveedor". */
+  reponerDeProveedor: boolean;
   variantes: VarianteCatalogo[];
 };
 
@@ -137,6 +149,7 @@ export type ResumenProductos = {
   totalVariantes: number;
   stockBajo: number;
   sinStock: number;
+  reponerDeProveedor: number;
 };
 
 /** Los `p_*` que `fn_productos` y `fn_productos_resumen` comparten. Se
@@ -181,6 +194,10 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
         estado: f.estado,
         stockMinimo: f.stock_minimo,
         stockTotal: f.stock_total,
+        demandaDiaria: Number(f.demanda_diaria),
+        leadTimeDias: Number(f.lead_time_dias),
+        puntoReorden: f.punto_reorden,
+        reponerDeProveedor: f.reponer_de_proveedor,
         variantes: [],
       };
       porProducto.set(f.producto_id, p);
@@ -225,6 +242,7 @@ export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock
     totalVariantes: Number(r?.total_variantes ?? 0),
     stockBajo: Number(r?.stock_bajo ?? 0),
     sinStock: Number(r?.sin_stock ?? 0),
+    reponerDeProveedor: Number(r?.reponer_de_proveedor ?? 0),
   };
 }
 

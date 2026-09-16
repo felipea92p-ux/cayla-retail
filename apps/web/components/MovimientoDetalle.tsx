@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import {
   ETIQUETA_CATEGORIA,
   ETIQUETA_ESTADO_DEVOLUCION,
+  ETIQUETA_ESTADO_TRASLADO,
   etiquetaDia,
   etiquetaEstadoComprobante,
   etiquetaProceso,
@@ -14,6 +15,7 @@ import {
   textoComprobante,
   textoDelta,
   tonoCategoria,
+  tonoEstadoTraslado,
   type Movimiento,
 } from "@/lib/movimientos-reglas";
 import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
@@ -106,7 +108,22 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
             {m.transferencia && (
               <>
-                <Dato etiqueta="Transferencia">{m.transferencia.estado === "completada" ? "Completada" : (m.transferencia.estado ?? "—")}</Dato>
+                <Dato etiqueta="Traslado">
+                  <span className="flex items-center gap-2">
+                    <Chip tono={tonoEstadoTraslado(m.transferencia.estado ?? "completada")}>
+                      {ETIQUETA_ESTADO_TRASLADO[m.transferencia.estado ?? "completada"] ?? m.transferencia.estado ?? "—"}
+                    </Chip>
+                    {m.transferencia.estado && m.transferencia.estado !== "completada" && (
+                      <Link
+                        href={`/inventario/traslados/${m.transferencia.id}`}
+                        className="text-xs text-rojo hover:underline"
+                        onClick={cerrar}
+                      >
+                        Ver traslado →
+                      </Link>
+                    )}
+                  </span>
+                </Dato>
                 {m.transferencia.nota && <Dato etiqueta="Nota">{m.transferencia.nota}</Dato>}
               </>
             )}

@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib/conteo-varianza";
-import type { ConteoAbierto } from "@/lib/conteos";
+import type { ConteoAbierto, PrioridadConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 
@@ -31,22 +31,61 @@ export function ConteoPanel({
   conteoAbierto,
   catalogo,
   sububicaciones,
+  categorias,
+  prioridad,
 }: {
   ubicacionId: string;
   esLider: boolean;
   conteoAbierto: ConteoAbierto | null;
   catalogo: VarianteConteo[];
   sububicaciones: Sububicacion[];
+  categorias: { id: string; nombre: string }[];
+  prioridad: PrioridadConteo[];
 }) {
   const router = useRouter();
   const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // "" = todo el catálogo; si no, el id de la categoría elegida. Solo
+  // cambia qué se SUGIERE contar primero — abrir_conteo sigue dejando
+  // contar cualquier variante después, esté o no en el alcance elegido.
+  const [categoriaId, setCategoriaId] = useState("");
+  const [sugerenciasPorCategoria, setSugerenciasPorCategoria] = useState<PrioridadConteo[] | null>(null);
+  const sugerencias = categoriaId ? (sugerenciasPorCategoria ?? []) : prioridad;
+
+  useEffect(() => {
+    if (!categoriaId) return;
+    let cancelado = false;
+    createClient()
+      .rpc("fn_prioridad_conteo", { p_ubicacion_id: ubicacionId, p_alcance_categoria_id: categoriaId })
+      .then(({ data, error }) => {
+        if (cancelado || error || !data) return;
+        setSugerenciasPorCategoria(
+          data.map((f) => ({
+            varianteId: f.variante_id,
+            sku: f.sku,
+            referencia: f.referencia,
+            talla: f.talla,
+            color: f.color,
+            diasSinContar: f.dias_sin_contar,
+            ventas30d: f.ventas_30d,
+          }))
+        );
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [categoriaId, ubicacionId]);
 
   async function abrir(sububicacionId: string | null) {
     setAbriendo(sububicacionId ?? "todo");
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("abrir_conteo", { p_ubicacion_id: ubicacionId, p_sububicacion_id: sububicacionId ?? undefined });
+    const { error } = await supabase.rpc("abrir_conteo", {
+      p_ubicacion_id: ubicacionId,
+      p_sububicacion_id: sububicacionId ?? undefined,
+      p_alcance: categoriaId ? "categoria" : "todo",
+      p_alcance_categoria_id: categoriaId || undefined,
+    });
     setAbriendo(null);
     if (error) {
       setError(traducirError(error, "abrir el conteo"));
@@ -66,32 +105,75 @@ export function ConteoPanel({
     const separaPisoAlmacen = Boolean(piso || almacen);
 
     return (
-      <div className="card-cayla space-y-3 p-6 text-center">
-        <p className="text-sm text-tinta/75">No hay ningún conteo abierto en esta ubicación.</p>
-        {error && <p className="text-sm text-rojo">{error}</p>}
-        {separaPisoAlmacen ? (
-          <div className="mx-auto flex w-fit flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => piso && abrir(piso.id)}
-              disabled={!piso || abriendo !== null}
-              className={`${botonPrimario} px-6`}
-            >
-              {abriendo === piso?.id ? "Abriendo…" : "Contar piso de venta"}
+      <div className="space-y-4">
+        <div className="card-cayla space-y-3 p-6 text-center">
+          <p className="text-sm text-tinta/75">No hay ningún conteo abierto en esta ubicación.</p>
+          {error && <p className="text-sm text-rojo">{error}</p>}
+          {categorias.length > 0 && (
+            <div className="mx-auto flex w-fit items-center gap-2 text-left">
+              <label htmlFor="conteo-alcance" className="label-cayla text-[11px] text-tinta/65">
+                Qué contar
+              </label>
+              <select
+                id="conteo-alcance"
+                value={categoriaId}
+                onChange={(e) => setCategoriaId(e.target.value)}
+                className="rounded-lg border border-tinta/15 bg-papel px-2.5 py-1.5 text-sm text-tinta"
+              >
+                <option value="">Todo el catálogo</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Solo {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {separaPisoAlmacen ? (
+            <div className="mx-auto flex w-fit flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => piso && abrir(piso.id)}
+                disabled={!piso || abriendo !== null}
+                className={`${botonPrimario} px-6`}
+              >
+                {abriendo === piso?.id ? "Abriendo…" : "Contar piso de venta"}
+              </button>
+              <button
+                type="button"
+                onClick={() => almacen && abrir(almacen.id)}
+                disabled={!almacen || abriendo !== null}
+                className={`${botonPrimario} px-6`}
+              >
+                {abriendo === almacen?.id ? "Abriendo…" : "Contar almacén de tienda"}
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className={`${botonPrimario} mx-auto w-fit px-6`}>
+              {abriendo === "todo" ? "Abriendo…" : "Abrir conteo"}
             </button>
-            <button
-              type="button"
-              onClick={() => almacen && abrir(almacen.id)}
-              disabled={!almacen || abriendo !== null}
-              className={`${botonPrimario} px-6`}
-            >
-              {abriendo === almacen?.id ? "Abriendo…" : "Contar almacén de tienda"}
-            </button>
+          )}
+        </div>
+
+        {sugerencias.length > 0 && (
+          <div className="card-cayla p-5">
+            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero</p>
+            <ul className="divide-y divide-tinta/10">
+              {sugerencias.slice(0, 8).map((s) => (
+                <li key={s.varianteId} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span className="min-w-0 truncate text-tinta">
+                    {s.referencia}
+                    {s.talla && ` · ${s.talla}`}
+                    {s.color && ` · ${s.color}`}
+                  </span>
+                  <span className="shrink-0 text-xs text-tinta/55">
+                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`}
+                    {s.ventas30d > 0 && ` · vende ${s.ventas30d}/mes`}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : (
-          <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className={`${botonPrimario} mx-auto w-fit px-6`}>
-            {abriendo === "todo" ? "Abriendo…" : "Abrir conteo"}
-          </button>
         )}
       </div>
     );

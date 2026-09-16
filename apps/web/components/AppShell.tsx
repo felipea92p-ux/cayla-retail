@@ -75,6 +75,7 @@ const IC = {
   productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
+  traslados: "M4 12h13M13 5l7 7-7 7",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
@@ -528,6 +529,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
   const colores: Item = { href: "/productos/colores", etiqueta: "Colores", icono: IC.colores };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
+  const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados };
   const movimientos: Item = { href: "/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
@@ -601,6 +603,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
         grupoVenta,
         movimientos,
         inventario,
+        traslados,
       ],
     },
   ].filter((g) => g.items.length > 0);

@@ -8,6 +8,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { Chip } from "@/components/ui/Chip";
+import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
 
@@ -168,6 +169,7 @@ export function ProductosAgrupados({
         const sinStock = p.stockTotal === 0;
         const stockBajo = !sinStock && p.stockMinimo != null && p.stockTotal < p.stockMinimo;
         const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
+        const rotacion = describirRotacion(p.demandaDiaria);
         return (
           <div key={p.productoId} className="card-cayla overflow-hidden">
             <div className={`flex items-center gap-3 px-5 py-3.5 hover:bg-sand/30 sm:grid sm:gap-x-3 sm:gap-y-2 ${PLANTILLA_FILA}`}>
@@ -224,6 +226,8 @@ export function ProductosAgrupados({
               <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
               {sinStock && <Chip tono="rojo">Sin stock</Chip>}
               {stockBajo && <Chip tono="ambar">Stock bajo</Chip>}
+              {p.reponerDeProveedor && <Chip tono="ambar">Pedir a proveedor</Chip>}
+              {rotacion && <span className="text-xs text-tinta/55">{rotacion}</span>}
             </div>
             {abierto && (
               <div className="border-t border-tinta/10 overflow-x-auto">

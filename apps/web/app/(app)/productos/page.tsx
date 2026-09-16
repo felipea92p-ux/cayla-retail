@@ -102,7 +102,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 // catálogo". "Stock bajo" y "sin stock" son también atajos: tocarlas aplica
 // ese filtro, mismo criterio que "Vence esta semana" en Compras.
 function Resumen({ resumen, params }: { resumen: ResumenProductos; params: ParamsProductosListado }) {
-  function hrefConStock(stock: "sin_stock" | "bajo") {
+  function hrefConStock(stock: "sin_stock" | "bajo" | "reponer") {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v && k !== "pagina" && k !== "stock") p.set(k, v);
     p.set("stock", stock);
@@ -111,7 +111,7 @@ function Resumen({ resumen, params }: { resumen: ResumenProductos; params: Param
 
   return (
     <div className="card-cayla px-5 py-4">
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
         <div>
           <dt className="label-cayla text-[11px] text-tinta/65">Productos</dt>
           <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta">{resumen.totalProductos.toLocaleString("es-PE")}</dd>
@@ -120,6 +120,12 @@ function Resumen({ resumen, params }: { resumen: ResumenProductos; params: Param
           <dt className="label-cayla text-[11px] text-tinta/65">Variantes</dt>
           <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta">{resumen.totalVariantes.toLocaleString("es-PE")}</dd>
         </div>
+        <Link href={hrefConStock("reponer")} className="group">
+          <dt className="label-cayla text-[11px] text-tinta/65 group-hover:text-ambar">Pedir a proveedor</dt>
+          <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta group-hover:text-ambar">
+            {resumen.reponerDeProveedor.toLocaleString("es-PE")}
+          </dd>
+        </Link>
         <Link href={hrefConStock("bajo")} className="group">
           <dt className="label-cayla text-[11px] text-tinta/65 group-hover:text-rojo">Stock bajo</dt>
           <dd className="font-display mt-0.5 text-2xl tabular-nums text-tinta group-hover:text-rojo">

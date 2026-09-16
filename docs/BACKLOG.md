@@ -28,6 +28,34 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 5 piezas inspiradas en NetSuite (2026-09-16)
+
+Rama `traslados-costeo-reorden-conteo`, todo verificado solo en LOCAL — nada
+tocado en producción. Las 5 piezas (costo promedio ponderado, punto de
+reorden, conteo por alcance, indicador de rotación, traslados en dos fases)
+quedaron cada una en su propio commit, con su propia migración. Detalle
+completo en BITÁCORA de esta fecha.
+
+- [ ] **Guía de Remisión Electrónica (SUNAT) para traslados entre
+      ubicaciones.** Hueco legal real, encontrado al investigar el traslado
+      en dos fases (no construido, a pedido explícito de Felipe — es una
+      integración aparte con su propia autorización, como Nubefact). Desde
+      2023, mover mercadería entre establecimientos la exige. Verificado por
+      grep: cero implementación en el repo hoy. Retomar cuando Felipe lo
+      decida, con su contador/asesor legal — no antes.
+- [ ] **Recuperar "fecha de pedido" real para el punto de reorden**, si el
+      proxy actual (factura→recepción) resulta muy impreciso en la práctica.
+      El campo existía en V1 y se borró a propósito en el corte a V2; Felipe
+      eligió el proxy por ahora, sabiendo que no es el dato real de tiempo de
+      entrega (pedido→llegada).
+- [ ] **Decidir si el diseño "censo" completo** (`supabase/unificacion/30_conteos.sql`
+      — conteo por familia/contenedor, alta de prenda al vuelo, escaneo
+      server-side) se recupera algún día, o se descarta a propósito. Hoy solo
+      se reactivó el campo `alcance` (categoría); el resto sigue perdido
+      desde el corte a V2, sin que nadie lo haya decidido con esos términos.
+
+---
+
 ## 🎯 Cambio y devolución exigen caja si hay efectivo de por medio (2026-09-16)
 
 Al escribir las pruebas de `registrar_cambio` (ítem siguiente) se encontró que ADR-0052
@@ -88,9 +116,10 @@ ADR-0066 (nuevo).
       clasificador de auto mode ("Modify Shared Resources", correcto: es una escritura
       persistente sobre un recurso de ~27 worktrees). Felipe decide si lo corre.
 - [ ] **El mismo patrón (ADR-0066) falta para el resto de RPC de escritura** —
-      `registrar_venta`, `crear_devolucion`, `cerrar_caja`, `transferir`,
+      `registrar_venta`, `crear_devolucion`, `cerrar_caja`, `iniciar_traslado`,
       `mover_interno`… ninguna tiene pruebas automatizadas todavía. No es urgente, es el
-      precedente a copiar cuando alguien las toque.
+      precedente a copiar cuando alguien las toque. (Nota al fusionar: `transferir` ya no
+      existe — lo reemplazó `iniciar_traslado`/`confirmar_traslado`, ADR-0068.)
 
 ---
 

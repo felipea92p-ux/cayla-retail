@@ -124,3 +124,42 @@ export async function getPrevisualizacionCierre(conteoId: string): Promise<FilaP
     "la vista previa del cierre"
   );
 }
+
+// ============================================================================
+// Alcance + cadencia (20260916110000): reactiva el campo `alcance` del
+// diseño "censo" (abandonado por accidente en el corte a V2) sobre la
+// pantalla que SÍ está viva — `alcance` solo FILTRA la sugerencia de abajo,
+// no cambia conteo_contar/cerrar_conteo.
+// ============================================================================
+
+export type PrioridadConteo = {
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  diasSinContar: number | null;
+  ventas30d: number;
+};
+
+/** Las 20 variantes que más conviene contar primero: nunca contadas antes,
+ *  después por venta reciente. Acotado a una categoría si se pasa `categoriaId`. */
+export async function getPrioridadConteo(ubicacionId: string, categoriaId?: string | null): Promise<PrioridadConteo[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase.rpc("fn_prioridad_conteo", {
+      p_ubicacion_id: ubicacionId,
+      ...(categoriaId ? { p_alcance_categoria_id: categoriaId } : {}),
+    }),
+    "qué conviene contar primero"
+  );
+  return filas.map((f) => ({
+    varianteId: f.variante_id,
+    sku: f.sku,
+    referencia: f.referencia,
+    talla: f.talla,
+    color: f.color,
+    diasSinContar: f.dias_sin_contar,
+    ventas30d: f.ventas_30d,
+  }));
+}
