@@ -64,6 +64,20 @@ export function MovimientosLista({ movimientos, hoyLima }: { movimientos: Movimi
 
   return (
     <>
+      {/* `?mov=<id>` compartido (por WhatsApp, por ejemplo) que ya no está en
+          esta página — normalmente porque cae fuera del rango de fechas
+          actual. No se dispara una consulta extra para ir a buscarlo (ver
+          comentario de arriba); esto es solo avisar que no apareció, en vez
+          de no decir nada. */}
+      {abiertoId && !abierto && (
+        <div className="card-cayla mb-4 flex items-center justify-between gap-3 px-4 py-3 text-sm text-tinta/75">
+          <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
+          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-tinta/55 underline underline-offset-2 hover:text-rojo">
+            Entendido
+          </button>
+        </div>
+      )}
+
       {/* Tabla centrada (Felipe, 2026-09-15) — mismo criterio que Inventario:
           encabezado y filas comparten `alinear: "centro"`, columna por columna. */}
       <Tabla>

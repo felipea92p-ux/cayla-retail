@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Colaborador, DynamicDisponible } from "@/lib/colaboradores";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
@@ -39,6 +40,18 @@ export function ColaboradoresPanel({
   const [ubicacionElegida, setUbicacionElegida] = useState(ubicaciones[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   const [quitandoId, setQuitandoId] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState<Colaborador | null>(null);
+
+  function abrirModalAgregar() {
+    // Se resetea al abrir, no una sola vez en el useState inicial: si ya se
+    // agregó a alguien en esta misma sesión, `disponibles` cambió (viene de
+    // `router.refresh()`) pero el estado viejo seguía apuntando a la persona
+    // que ya no está en la lista — el combo la mostraba vacía pero "Agregar"
+    // seguía habilitado y disparaba la RPC con un id que ya no correspondía.
+    setSeleccionado(disponibles[0]?.persona_id ?? "");
+    setUbicacionElegida(ubicaciones[0]?.id ?? "");
+    setModalAbierto(true);
+  }
 
   async function onAgregar(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +75,7 @@ export function ColaboradoresPanel({
   }
 
   async function onQuitar(persona_id: string) {
+    setConfirmando(null);
     setQuitandoId(persona_id);
     const supabase = createClient();
     const { error } = await supabase.rpc("quitar_colaborador", { p_persona_id: persona_id });
@@ -86,9 +100,14 @@ export function ColaboradoresPanel({
             qué sede queda fijo si entra como Colaborador.
           </p>
         </div>
-        <Boton peso="primario" onClick={() => setModalAbierto(true)} disabled={disponibles.length === 0}>
-          Agregar colaborador
-        </Boton>
+        <div className="text-right">
+          <Boton peso="primario" onClick={abrirModalAgregar} disabled={disponibles.length === 0}>
+            Agregar colaborador
+          </Boton>
+          {disponibles.length === 0 && (
+            <p className="mt-1 text-[11px] text-tinta/55">Todas las cuentas activas de Dynamic ya tienen acceso.</p>
+          )}
+        </div>
       </div>
 
       {colaboradores.length === 0 ? (
@@ -126,7 +145,7 @@ export function ColaboradoresPanel({
                         type="button"
                         peso="discreto"
                         cargando={quitandoId === c.persona_id}
-                        onClick={() => onQuitar(c.persona_id)}
+                        onClick={() => setConfirmando(c)}
                         className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
                       >
                         {quitandoId === c.persona_id ? "Quitando…" : "Quitar acceso"}
@@ -149,12 +168,16 @@ export function ColaboradoresPanel({
                 persona que buscas no aparece, primero debe existir y estar activa en Dynamic.
               </p>
 
-              <CampoSelect
-                etiqueta="Persona"
-                valor={seleccionado}
-                onValor={setSeleccionado}
-                opciones={disponibles.map((d) => ({ valor: d.persona_id, texto: `${d.nombre} — ${d.correo}` }))}
-              />
+              <Campo etiqueta="Persona" htmlFor="colaborador-persona">
+                <ComboBuscable
+                  id="colaborador-persona"
+                  etiquetaAccesible="Persona"
+                  marcador="Busca por nombre o correo…"
+                  valor={seleccionado}
+                  onValor={setSeleccionado}
+                  opciones={disponibles.map((d) => ({ valor: d.persona_id, texto: d.nombre, detalle: d.correo }))}
+                />
+              </Campo>
 
               <div className="space-y-1.5">
                 <CampoSelect
@@ -177,6 +200,32 @@ export function ColaboradoresPanel({
                 </Boton>
               </div>
             </form>
+          )}
+        </Modal>
+      )}
+
+      {confirmando && (
+        <Modal titulo="Quitar acceso" ancho="max-w-sm" onClose={() => setConfirmando(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <p className="text-sm leading-relaxed text-tinta/85">
+                <strong className="font-semibold text-tinta">{confirmando.nombre}</strong> ya no va a poder entrar
+                al sistema de retail. Puede volver a agregarse después desde Dynamic.
+              </p>
+              <div className="flex gap-2">
+                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  className="flex-1 bg-rojo hover:bg-rojo/90"
+                  onClick={() => onQuitar(confirmando.persona_id)}
+                >
+                  Sí, quitar acceso
+                </Boton>
+              </div>
+            </div>
           )}
         </Modal>
       )}

@@ -65,7 +65,16 @@ export function MoverMercaderiaFormV2({
       actual.map((l, n) => {
         if (n !== i) return l;
         const siguiente = { ...l, ...cambio };
-        const tope = stockDe(siguiente.varianteId);
+        // El tope de esta línea no es el stock total de la variante: hay que
+        // restar lo que OTRAS líneas del mismo formulario ya le piden a esa
+        // misma variante. Sin esto, la misma prenda con 10 unidades podía
+        // pedirse 10+10 en dos líneas — `transferir()` rechaza la segunda con
+        // "Stock insuficiente", pero el formulario nunca avisó por qué.
+        const usadoEnOtras = actual.reduce(
+          (acc, otra, m) => (m !== i && otra.varianteId === siguiente.varianteId ? acc + otra.cantidad : acc),
+          0
+        );
+        const tope = Math.max(0, stockDe(siguiente.varianteId) - usadoEnOtras);
         return { ...siguiente, cantidad: Math.max(1, Math.min(siguiente.cantidad, tope || 1)) };
       })
     );

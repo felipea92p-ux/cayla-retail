@@ -18,6 +18,92 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🩹 Inventario, Colaboradores, Movimientos — 2026-09-15 (noche)
+
+Batch de mejoras sobre los tres módulos, del reconocimiento hecho antes con 3 agentes
+en paralelo + verificación en código/base propia (no desde `.md`). Aplicado y probado
+**solo en local** (typecheck, `vitest`, lint verdes; probado a mano en el navegador
+local logueado como Felipe) — nada tocó `main` ni la Supabase de producción, a pedido
+explícito de Felipe. Rama local: `fix/inventario-colaboradores-movimientos`.
+
+**Inventario:**
+- [x] **`getCatalogo()` dejaba pasar la variante centinela "Cargo especial" y
+      productos inactivos** en los selectores de `/inventario/recibir`,
+      `/inventario/conteo` y `/buscar` — la propia migración de la centinela
+      (`20260912234726_cargo_especial_pos.sql:18-22`) ya avisaba del hueco por
+      escrito. Se agregó `.filter(v => v.activo)` en los 3 call sites (no dentro de
+      `getCatalogo()`: `ProductosAgrupados.tsx:145` SÍ necesita ver las inactivas,
+      atenuadas, para poder gestionarlas). Verificado en el navegador: Cargo especial
+      ya no aparece en el selector de Recibir (48 opciones, ninguna es la centinela).
+- [x] **`InventarioNav` nunca se montaba en ningún lado** — y además apuntaba a 4
+      rutas que ya no existen (`/inventario/proveedores`, `/compras`, `/almacen`,
+      `/etiquetas`, movidas a Compras hace tiempo) y no mencionaba `/inventario/mover`,
+      que sí es real. Se reescribió la lista de secciones contra las 4 rutas reales y
+      se montó desde un `layout.tsx` nuevo (mismo patrón que `compras/layout.tsx`).
+      Verificado: la pestaña Stock/Recibir/Mover/Conteo aparece y navega bien.
+- [x] **Piso/Almacén/Total sin etiqueta en la vista móvil** de `/inventario`
+      (`InventarioPanel.tsx`) — en celular la tabla se apila en tarjeta y esos tres
+      números quedaban sin decir cuál era cuál. Etiqueta `sm:hidden` agregada antes
+      de cada uno. Verificado en viewport 375px.
+
+**Colaboradores:**
+- [x] **`fn_mi_perfil()` resolvía la ubicación de cualquiera con la fórmula de
+      Líder** (`sede_dynamic_id`), nunca con `ubicacion_asignada_id` real de un
+      Colaborador — podía mostrar la sede equivocada. **`fn_colaboradores()` no
+      filtraba `estado='activo'`** — alguien desactivado en Dynamic seguía
+      apareciendo como vigente. Migración
+      `20260915230000_colaboradores_perfil_y_lista_correctos.sql`, misma firma en
+      las dos funciones. Aplicada y verificada en local (una sola firma cada una).
+- [x] **"Quitar acceso" sin confirmación** — un clic y ya, sin paso de revisión.
+      Se agregó un modal de confirmación (mismo patrón que "Agregar colaborador").
+      Verificado en el navegador.
+- [x] **Reabrir "Agregar colaborador" tras un alta podía disparar un intento
+      fantasma** — el `useState` de la persona elegida no se resincronizaba con
+      `disponibles`. Se resetea al abrir el modal, no una sola vez.
+- [x] **El picker de "Persona" era un `<select>` con toda la lista de Dynamic**, sin
+      buscador — se reemplazó por `ComboBuscable` (mismo componente que ya usan
+      Cambios y Compras). De paso, el botón "Agregar colaborador" deshabilitado ahora
+      explica por qué ("Todas las cuentas activas de Dynamic ya tienen acceso"),
+      verificado en el navegador.
+
+**Movimientos:**
+- [x] **Ningún cambio "sin diferencia de precio" se detectaba como tal** —
+      `cambio_diferencia` es `numeric` en Postgres, PostgREST la manda como string, y
+      `!== 0` nunca compara igual un string contra un number. Se corrige en el origen
+      (`movimientos-v2.ts`, `Number(...)` al armar el objeto `cambio`), no solo en el
+      sitio de uso.
+- [x] **La diferencia de un ajuste por conteo se volvía a calcular en el cliente**
+      (`MovimientoDetalle.tsx`) en vez de usar `m.delta`, que `fn_movimientos` ya
+      resuelve en SQL — misma regla en dos lugares. Ahora usa `m.delta` directo.
+- [x] **Búsqueda de Movimientos sin escapar `%`/`_`** en
+      `fn_movimientos_variantes` — un guion bajo literal en un SKU actuaba como
+      comodín. Migración `20260915231500_movimientos_busqueda_escapa_comodines.sql`,
+      misma firma, con `escape '\'`. Verificado: buscar "_" ya no trae las 49
+      variantes; buscar "blusa" sigue filtrando normal.
+- [x] **Un link `?mov=<id>` compartido (WhatsApp) fallaba en silencio** si el
+      movimiento caía fuera del rango de 30 días por defecto — sin tocar la premisa
+      de "nunca una consulta extra" (`MovimientosLista.tsx` ya lo documentaba así),
+      se agregó un aviso visible en vez de nada.
+
+**Sueltos, bajo riesgo:**
+- [x] `RecepcionFormV2.tsx`: `costoUnitario` ya no deja escribir un negativo (antes
+      solo `cantidad` se clampaba); se agregó la huella `variantes_costo_check` a
+      `error-escritura.ts` como red de seguridad.
+- [x] `ConteoPanel.tsx`: el escaneo de código de barras reimplementaba el matching a
+      mano, sensible a mayúsculas — ahora usa `resolverCodigoV2` de
+      `buscar-prenda-v2.ts`, igual que Vender. Se agregó `avisar.exito(...)` en
+      abrir/contar/cerrar conteo (antes ninguna acción confirmaba éxito).
+- [x] `MoverMercaderiaFormV2.tsx`: el tope de cada línea era el stock total de la
+      variante, sin restar lo que otras líneas del mismo formulario ya le pedían —
+      dos líneas de 10 sobre una prenda con 10 unidades no avisaban nada hasta que
+      la RPC rechazaba la segunda.
+
+**Fuera de este batch, a propósito** (necesitan una decisión de Felipe, no un fix
+mío): la condición de carrera de "contar mientras se vende" en Conteo, que
+`quitar_colaborador` borre en vez de archivar, y el selector de ubicación duplicado
+(header vs. `/inventario` local) — este último ya es una decisión consciente
+documentada en `AppShell.tsx:516-519`.
+
 ## 🎯 Productos — alta con matriz talla×color — 2026-09-15 (noche)
 
 A pedido de Felipe, tras comparar el modelo de variantes contra Lightspeed Retail: la pieza

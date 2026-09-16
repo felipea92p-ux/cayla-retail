@@ -23,7 +23,10 @@ import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 // comprobante; una recepción, la guía y el proveedor; un conteo, sistema vs
 // contado). Solo lectura: acá no hay nada que editar ni borrar, a propósito.
 export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movimiento; onClose: () => void }) {
-  const dif = m.conteo && m.conteo.sistema !== null && m.conteo.contado !== null ? m.conteo.contado - m.conteo.sistema : null;
+  // El delta ya lo calculó `fn_movimientos` en SQL (es `m.delta`, la misma
+  // fuente que decide el signo/color del chip) — no se vuelve a restar
+  // `contado - sistema` acá para no tener la misma regla en dos lugares.
+  const dif = m.conteo ? m.delta : null;
 
   return (
     <Modal
