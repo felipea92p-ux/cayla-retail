@@ -149,6 +149,21 @@ reorden, conteo por alcance, indicador de rotación, traslados en dos fases)
 quedaron cada una en su propio commit, con su propia migración. Detalle
 completo en BITÁCORA de esta fecha.
 
+- [x] **`fn_prioridad_conteo` pesaba por unidades vendidas, no por plata en
+      riesgo (2026-09-17).** El ABC clásico de cycle counting ordena por
+      cantidad × costo, no por volumen — una prenda cara de baja rotación
+      pesaba menos que un básico barato que vende mucho, justo al revés de
+      qué error cuesta más caro. Corregido en
+      `20260917150000_conteo_prioridad_por_valor.sql` (nueva migración,
+      `create or replace` no alcanzaba porque cambia el `RETURNS TABLE`):
+      el orden real sigue siendo "nunca contada"/"hace más tiempo sin
+      contar" primero, y ahí donde antes desempataba `ventas_30d desc` ahora
+      desempata `valor_stock desc`. `ventas_30d` se queda en la respuesta
+      como dato informativo ("vende N/mes"), la pantalla ahora también
+      muestra "S/ XXX en stock". Probado en navegador (Tienda Lima): las
+      variantes de mayor valor quedan primero entre las nunca contadas.
+      typecheck/lint/293 tests en verde. **Falta pegar en producción**, como
+      el resto de esta rama.
 - [ ] **Guía de Remisión Electrónica (SUNAT) para traslados entre
       ubicaciones.** Hueco legal real, encontrado al investigar el traslado
       en dos fases (no construido, a pedido explícito de Felipe — es una

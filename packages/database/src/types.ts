@@ -2920,6 +2920,7 @@ export type Database = {
           referencia: string
           sku: string
           talla: string
+          valor_stock: number
           variante_id: string
           ventas_30d: number
         }[]

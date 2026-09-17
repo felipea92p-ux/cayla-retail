@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Conteo prioriza por plata en riesgo, no por unidades vendidas)
+
+Worktree traído al día primero (528 commits atrás de main desde el 3-sep) — un conflicto trivial de `package.json` (scripts que este worktree nunca vio), resuelto tomando la versión de main. Registrado en `docs/SESIONES-ACTIVAS.md` (tablero nuevo, nacido justo del incidente de colisiones de ADR de ayer) antes de tocar código. De paso: la rama local sin pushear `claude/cayla-taxonomia-design-7e662b` (trabajo de otra sesión, otro día) choca de número de ADR-0072/0073 con lo que ya vive en main — anotado para renumerar al abrir su PR, no bloquea nada de hoy. `fn_prioridad_conteo` ("qué conviene contar primero" en Conteo físico) desempataba por `ventas_30d desc` — unidades vendidas, no plata en juego; el ABC clásico de cycle counting pesa por valor (cantidad × costo), porque una prenda cara de baja rotación es la que de verdad duele si el conteo la encuentra mal, no el básico barato que vende mucho. Nueva migración (no se reescribe una que ya viajó a main) agrega `valor_stock` al retorno y lo usa como desempate real; `ventas_30d` se queda como dato informativo. Probado en navegador como Líder: las variantes de mayor valor quedan primero entre las nunca contadas. Aprendizaje: un worktree que lleva semanas sin abrirse no es un atajo — es 528 commits de deuda que hay que pagar antes de que cualquier trabajo nuevo sea confiable.
+
 ## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
 
 Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
