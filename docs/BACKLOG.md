@@ -28,6 +28,57 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Revocar EXECUTE público de las funciones "motor" (2026-09-17, ADR-0078)
+
+`retail.fn_aplicar_movimiento(uuid)` (security definer, sin auto-chequeo) tenía EXECUTE
+otorgado a `anon` y `authenticated` — cualquiera podía reaplicar un movimiento de tipo
+`entrada` ya existente por RPC directo y duplicar stock sin sesión. Mismo patrón que ya se
+cerró para `fn_recalcular_costo_variante` (ADR-0067). Detalle completo, tabla de
+llamadores verificados contra `pg_proc` y smoke test en
+[docs/adr/0078-revocar-execute-publico-de-las-funciones-motor.md](adr/0078-revocar-execute-publico-de-las-funciones-motor.md).
+
+- [x] **Aplicado en LOCAL** (`docker exec`, no `db reset`):
+      `20260917150000_revocar_execute_fn_aplicar_movimiento.sql` y
+      `20260917150001_revocar_execute_correlativos_y_codigos.sql` — esta segunda también
+      cierra `fn_reservar_numero_serie`/`fn_siguiente_correlativo` (mismo patrón, y más
+      grave: llamarlas directo quema un número de serie SUNAT sin emitir nada) y
+      `fn_asignar_codigo_producto`/`fn_asignar_codigo_variante` (revoke angosto, solo de
+      `anon` — `authenticated` lo necesita vía un trigger que no es security definer).
+      Verificado con smoke test `psql`+`ROLLBACK`: los seis caminos anon/authenticated
+      directos quedan bloqueados, los dos caminos legítimos (wrapper security definer,
+      trigger de variantes) siguen funcionando.
+- [x] **Verificado contra producción (solo lectura) — el diagnóstico cambia.**
+      `fn_aplicar_movimiento` y `fn_recalcular_costo_variante` ya están cerradas ahí;
+      `fn_asignar_codigo_producto`/`variante` ya están en el estado angosto correcto. Pero
+      **`fn_reservar_numero_serie`/`fn_siguiente_correlativo` siguen con EXECUTE abierto a
+      `authenticated` en producción, hoy** — el hueco de numeración SUNAT es real y
+      vigente, no hipotético. Detalle en ADR-0078.
+- [x] **Aplicado en PRODUCCIÓN (2026-09-17), reverificado después.** Las dos migraciones
+      corrieron contra `vovjyyiafkxteijimpuy` (el primer intento lo frenó el clasificador de
+      auto mode, el segundo — con Felipe reconfirmando — sí pasó). Reverificado con
+      `has_function_privilege`: las cinco funciones quedaron en el estado esperado.
+      `get_advisors` no mostró nada nuevo. `20260917150000` fue no-op (ya estaba cerrada);
+      `20260917150001` cerró el hueco real de `fn_reservar_numero_serie`/
+      `fn_siguiente_correlativo` para `authenticated`.
+- [x] **Confirmado contra producción: `registrar_movimiento_una_sola_firma`
+      (20260916214600) en efecto colapsó las dos sobrecargas ambiguas** que localmente
+      todavía existen (el smoke test de esta tarea tropezó con la ambigüedad). Falta traer
+      ese parche a un archivo de este repo — sigue sin uno.
+- [x] **De paso, verificado el BLOQUE 1 de `docs/datos/SQL-PENDIENTE-PRODUCCION.sql`
+      (2026-09-12): `authenticated` con `TRUNCATE` sobre `retail`, el más grave de la lista
+      ("perder CAYLA entera").** Cero filas en producción hoy — ya no existe, para ningún
+      rol. El archivo sigue diciendo "nada ejecutado"; está desactualizado, no el riesgo. No
+      se revisaron los demás bloques del archivo.
+- [ ] **`pnpm datos:comparar` (corrido de paso, ritual de "Regla de oro") encontró 18
+      pantallas rotas en producción — sin relación con esta tarea.** Ninguna de las cinco
+      funciones de arriba aparece en la lista. Son funciones que existen en este código
+      (`iniciar_traslado`, `cerrar_produccion`, `crear_producto_con_variantes`,
+      `fn_prioridad_conteo`, mayormente Producción/Traslados/Conteos) pero nunca llegaron a
+      `vovjyyiafkxteijimpuy`. Detalle completo en `docs/datos/generado/DRIFT.md` (ya
+      regenerado). Merece su propia sesión — toca varios módulos a la vez.
+
+---
+
 ## 🎯 Productos — vista de grilla visual (2026-09-17, ADR-0077)
 
 `/productos` alterna grilla ⇄ tabla (`?vista=`), tarjeta con swatches de color
@@ -547,6 +598,13 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       contra el cual probarlo en vivo.
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
+      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
+      pegar en producción y la verificación en navegador que quedó anotada ahí — no
+      cerrado del todo todavía. Sigue pendiente el mismo mecanismo para Tucán
+      (taxonomía), no construido en esta pasada.
+- [x] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la
+      cabecera", más abajo) — resuelto 2026-09-17: tarjeta "Buscar" en Acciones
+      de Inicio + campo propio en la pantalla.
       cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. La
       verificación en navegador y el pegado en producción quedaron cerrados el
       mismo 2026-09-17. Sigue pendiente el mismo mecanismo para Tucán (taxonomía),
@@ -690,12 +748,21 @@ se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya estaba
 muerto de verdad (cero imports en todo el repo — probablemente un diseño
 anterior del Inicio que quedó huérfano).
 
-- [ ] **`/buscar/page.tsx` queda sin ningún punto de entrada en la UI.** La
-      pantalla en sí sigue intacta y funcional (búsqueda real con stock por
-      ubicación), solo alcanzable hoy por URL directa. Pendiente de que
-      Felipe decida: ¿se borra la pantalla también, o se reengancha en un
-      lugar puntual — ej. una tarjeta más en "Acciones" de Inicio — en vez de
-      vivir en la cabecera global?
+- [x] **`/buscar/page.tsx` quedaba sin ningún punto de entrada en la UI —
+      resuelto 2026-09-17.** Se tomó la opción ya sugerida acá: tarjeta
+      "Buscar" en "Acciones" de Inicio (`app/(app)/page.tsx`), sin tocar
+      `AppShell.tsx` (evita reabrir un buscador global en pantallas donde no
+      aplica, que es justo lo que esta sección existe para prevenir).
+      De paso apareció un bug más profundo: la pantalla dependía enteramente
+      del `BuscadorGlobal` ya eliminado para escribir `?q=` en la URL — sin
+      caja propia mostraba "escribe algo en el buscador de arriba", apuntando
+      a un "arriba" que ya no existe. Se agregó un `<form method="get">`
+      nativo (`CampoTexto`/`Boton`, sin "use client") en `buscar/page.tsx`: el
+      navegador arma `?q=...` solo, sin depender de JS.
+      Verificado: `pnpm --filter web typecheck`/`lint` en verde; navegador
+      real (escritorio y celular) — Inicio → tarjeta "Buscar" → `/buscar` con
+      el campo propio enfocado → "casaca" → 8 resultados con stock por
+      ubicación real; cabecera sigue solo con el selector de ubicación.
 
 Verificado: `pnpm --filter web typecheck`/`lint` en verde; probado en
 navegador real (escritorio y celular) en `/` y `/productos` — la cabecera
