@@ -280,6 +280,11 @@ export type PrendaDanada = {
   referencia: string;
   cantidad: number;
   creadoEn: string;
+  /** Precio de catálogo (`variantes.precio`) — solo un punto de partida para
+   *  que el líder no escriba el precio de liquidación desde cero; el precio
+   *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
+   *  piso ni lo valida contra este número. */
+  precioReferencia: number;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
@@ -289,7 +294,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       .from("prendas_danadas")
       .select(
         `id, cantidad, created_at,
-         variante:variantes ( id, sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( id, sku, talla, precio, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("ubicacion_id", ubicacionId)
       .eq("estado", "en_cuarentena")
@@ -305,5 +310,6 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     referencia: f.variante?.producto?.referencia ?? "",
     cantidad: f.cantidad,
     creadoEn: f.created_at,
+    precioReferencia: f.variante?.precio ?? 0,
   }));
 }

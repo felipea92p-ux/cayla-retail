@@ -241,6 +241,7 @@ export function partesOrigenDestino(m: Movimiento): { origen: string; destino: s
   }
   switch (m.motivo) {
     case "venta":
+    case "cuarentena_liquidada":
       return { origen: aqui, destino: "Clienta" };
     case "anulacion_venta":
     case "devolucion":
@@ -266,6 +267,7 @@ export function textoComprobante(c: NonNullable<Movimiento["venta"]>["comprobant
 export function textoReferencia(m: Movimiento): string | null {
   switch (m.motivo) {
     case "venta":
+    case "cuarentena_liquidada":
       return m.venta ? textoComprobante(m.venta.comprobante) : null;
     case "recepcion": {
       const partes: string[] = [];

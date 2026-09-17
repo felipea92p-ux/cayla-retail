@@ -244,6 +244,55 @@ aplicadas — `supabase/migrations/activacion-cuarentena-produccion.sql` (sembra
 sububicación «Cuarentena» en cada tienda) tampoco. Aplicar producción es un paso aparte,
 con confirmación explícita antes (regla del repo, no cambia por esta ADR).
 
+## Corrección 2026-09-17 (más tarde): "Liquidada" es una venta real, confirmado por Felipe
+
+La construcción de arriba dejó "Liquidada" como etiqueta + nota, marcada explícitamente
+para confirmar. Felipe respondió sin ambigüedad: *"sí, se tiene que tomar en cuenta
+liquidación como una venta, totalmente"*. Sobre el otro punto que se le nombró
+(`devolver_proveedor`, mismo bug de desaparecer sin dejar rastro): *"me parece que la
+manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
+entonces no"* — queda sin tocar, decisión suya, no mía.
+
+**DECIDÍ:** una función nueva, `retail.liquidar_prenda_danada` (migración
+`20260917150000_liquidar_prenda_danada_como_venta.sql`), en vez de ampliar
+`resolver_prenda_danada` o `registrar_venta`. Inserta directamente en
+`ventas`/`venta_items`/`venta_pagos` con la misma forma exacta que `registrar_venta` ya
+usa (así la liquidación aparece en caja y en reportes de ventas como lo que es), exige
+caja abierta (mismo candado que cualquier venta), y saca la prenda de `cuarentena` con un
+movimiento `salida` que lleva `venta_item_id` — trazable como venta y como resolución de
+cuarentena a la vez. `resolver_prenda_danada` dejó de aceptar `'liquidada'`: ahora es
+literal que esa fila no puede existir sin una venta real detrás, no un camino alterno sin
+pedir precio ni pago.
+**DESCARTÉ:** tocar `registrar_venta` para que acepte vender desde `cuarentena` — es el
+camino más transitado de todo el sistema, cada venta del piso pasa por ahí, y no tiene
+ninguna razón de negocio para saber que `cuarentena` existe (núcleo mínimo). También
+descarté forzar un comprobante (boleta/factura): `registrar_venta` ya trata "sin
+comprobante" como un camino completo y válido, y pedirle al líder los datos de la clienta
+en el momento de liquidar una prenda dañada infla la pantalla más de lo que Felipe pidió
+— si hace falta, es un `perform emitir_comprobante(...)` que se agrega sin tocar el resto.
+**SE ROMPE SI:** el precio de liquidación se valida contra `variantes.costo` como hace un
+descuento normal — a propósito NO se valida: la mercadería está dañada, el costo ya está
+perdido, y a veces recuperar algo por debajo del costo es mejor que nada.
+
+**Precio:** lo escribe el líder al momento de liquidar (sin piso de costo, a diferencia de
+un descuento normal). El campo se precarga con `variantes.precio` como punto de partida,
+no como validación — el líder puede bajarlo a lo que decida.
+**Cantidad:** siempre se liquida el lote completo de esa fila de `prendas_danadas` — no
+hay liquidación parcial (vender 2 de 5 y dejar 3 pendientes) en esta pasada; no hay
+precedente de eso en ningún otro punto de Cuarentena.
+**Forma de pago:** un solo método por liquidación (no pagos divididos) — simplifica la
+pantalla; una venta de liquidación es, en la práctica, una transacción simple.
+
+Verificado en local de punta a punta: liquidé "Pantalón Carla" (precio de catálogo
+S/99.90 precargado, bajado a S/25.00, efectivo) → toast "Venta registrada por S/25.00" →
+la cola de Dañado quedó en 0 → Movimientos muestra "Dañado — liquidada · Cuarentena →
+Clienta · Sin comprobante" (mismo formato que cualquier venta) → Caja reflejó el ingreso
+en "Ventas en efectivo". Se corrigieron también `partesOrigenDestino`/`textoReferencia`
+(`apps/web/lib/movimientos-reglas.ts`) para que una liquidación se lea en Movimientos
+exactamente como una venta — antes de este ajuste la fila era correcta en la base pero se
+veía distinta a una venta normal en pantalla, contradiciendo la propia decisión de
+tratarla como venta real.
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos

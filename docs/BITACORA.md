@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (más tarde) — "Liquidada" pasó a ser una venta real
+
+Objeción planteada al cerrar la entrada de abajo ("¿Liquidada debería ser una venta o
+solo una etiqueta?"), respondida por Felipe sin ambigüedad: "se tiene que tomar en cuenta
+liquidación como una venta, totalmente". Construida aparte de `resolver_prenda_danada`
+(que ahora solo acepta Se botó/Donada): `liquidar_prenda_danada` inserta
+`ventas`/`venta_items`/`venta_pagos` con la misma forma que `registrar_venta`, exige caja
+abierta, y no valida el precio contra el costo (a diferencia de un descuento normal — es
+mercadería dañada, recuperar algo por debajo del costo es la realidad, no un error). Sin
+comprobante por ahora, a propósito — no se le pidió, y `registrar_venta` ya trata "sin
+comprobante" como un camino completo. Verificado en local: liquidé una prenda a S/25
+(precio de catálogo S/99.90 precargado como referencia, no como piso), la venta quedó en
+Caja y en Movimientos exactamente como cualquier otra venta ("Cuarentena → Clienta · Sin
+comprobante"). Aprendizaje operativo: tras corregir la lógica de negocio, valía la pena
+revisar también CÓMO se ve en pantalla — la fila era correcta en la base antes de tocar
+`movimientos-reglas.ts`, pero se leía distinto a una venta normal, lo que hubiera
+contradicho la propia decisión de tratarla como una.
+
+Sobre `devolver_proveedor` (mismo bug de "desaparece sin rastro" que tenía Dañado, se le
+nombró a Felipe junto con la objeción de arriba): confirmó que no es prioridad ahora,
+"lo manejarán de otra manera" — queda sin tocar, es su decisión, no una tarea pendiente.
+
 ## 2026-09-17 (noche) — "Dañado"/Cuarentena: construido completo, con un límite explícito
 
 Felipe corrigió, el mismo día, la decisión de la entrada de abajo: "no la satures de

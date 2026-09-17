@@ -49,16 +49,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       un cuarto estado es una migración, no una pantalla. Felipe pidió que esto nazca
       chico y no se sobrecargue de funciones todavía. Preguntas reales que siguen
       abiertas (no se decidieron solas): ¿quién más allá de un líder podría necesitar
-      editar estos estados? ¿Solo el vocabulario, o también reglas de negocio por estado
-      (ej. si "Liquidada" pasa a registrar una venta real, ver el punto de abajo)?
+      editar estos estados?
 
-- [ ] **¿"Liquidada" debería registrar una venta real (con descuento, comprobante,
-      SUNAT), en vez de solo una etiqueta + nota?** Se construyó con el alcance más
-      chico y más seguro: hoy es una etiqueta + nota libre, sin pasar por caja ni por
-      Facturación — decisión documentada en el ADR-0071 (sección "Construcción
-      2026-09-17"), no una pregunta que Felipe haya contestado todavía. Si la respuesta
-      es sí, es un cambio que mueve dinero real y necesita confirmación explícita antes
-      de tocar `aprobar_devolucion`/`resolver_prenda_danada` de nuevo (regla del repo).
+- [x] ~~¿"Liquidada" debería registrar una venta real?~~ **Sí — confirmado por Felipe,
+      2026-09-17: "se tiene que tomar en cuenta liquidación como una venta, totalmente".**
+      Construido en `20260917150000_liquidar_prenda_danada_como_venta.sql`: nueva función
+      `liquidar_prenda_danada` (precio + forma de pago, exige caja abierta, sin comprobante
+      por ahora — ver ADR-0071 sección "Corrección 2026-09-17 (más tarde)" para el
+      detalle y lo que queda fuera a propósito).
+
+- [x] ~~`devolver_proveedor` — mismo bug de "desaparece sin dejar rastro" que tenía
+      Dañado~~ **decisión de Felipe, 2026-09-17: no es prioridad.** "Me parece que la
+      manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
+      entonces no." Sigue sin tocar — si en algún momento se vuelve relevante, retomar
+      desde `retail.aprobar_devolucion`, rama `devolver_proveedor`.
 
 ---
 

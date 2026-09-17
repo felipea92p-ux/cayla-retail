@@ -3154,6 +3154,15 @@ export type Database = {
         }
         Returns: string
       }
+      liquidar_prenda_danada: {
+        Args: {
+          p_id: string
+          p_metodo_pago: string
+          p_nota?: string
+          p_precio_unitario: number
+        }
+        Returns: string
+      }
       listar_compras: {
         Args: {
           p_busqueda?: string
