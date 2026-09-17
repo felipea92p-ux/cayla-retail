@@ -21,3 +21,4 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Felipe | `claude/buscar-entry-point-7aa994` | Punto de entrada a `/buscar`: tarjeta en Acciones de Inicio + campo propio (`buscar/page.tsx`, `page.tsx`, BACKLOG, BITACORA) | 2026-09-17 |

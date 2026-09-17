@@ -3,6 +3,19 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (`/buscar` recupera punto de entrada tras quitarse el buscador global)
+
+`/buscar/page.tsx` funcionaba (búsqueda real con stock por ubicación) pero desde que
+`BuscadorGlobal` se quitó de `AppShell.tsx` (16-sep) nadie podía llegar ahí salvo por
+URL directa — quedó anotado en BACKLOG sin resolver. Se agregó una tarjeta "Buscar" en
+"Acciones" de Inicio, sin tocar `AppShell.tsx`. Al verificar en navegador apareció un
+bug más profundo: la pantalla dependía del buscador ya eliminado para escribir `?q=`,
+así que sin término mostraba "escribe algo en el buscador de arriba" señalando a un
+"arriba" que ya no existe; se le dio campo propio con un `<form method="get">` nativo
+(`CampoTexto`/`Boton`, sin "use client"). Aprendizaje: al borrar un componente
+compartido, `grep` por quién más dependía de su efecto secundario (acá, quién más
+escribía `?q=` sin su propia UI), no solo por sus imports directos.
+
 ## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
