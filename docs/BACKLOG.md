@@ -100,11 +100,15 @@ ascendente/descendente (`p_orden` en `fn_productos`,
 completas, sin tocar en ninguna pasada. Todo construido y verificado en el navegador
 local (10 productos reales, incluido el orden por precio funcionando de punta a punta).
 
-- [ ] **Aplicar a producción `20260917180000_productos_ordenar_por_precio.sql`** —
-      pendiente el ok puntual de Felipe (prefijo `retail.` en el SQL Editor, mismo
-      protocolo de siempre). Sin esto, `fn_productos` en producción se queda sin
-      `p_orden` — la píldora "Ordenar" fallaría ahí (no rompe nada más: es un
-      parámetro nuevo con default `null`, aditivo).
+- [x] **`20260917180000_productos_ordenar_por_precio.sql` — resuelto indirectamente, con
+      un incidente en el medio (2026-09-17, ver BITÁCORA "`/productos` caído en
+      producción").** No se pegó nunca sola: solo llegó `20260917190000` (fotos por
+      color), que ya traía el mismo `p_orden` en su propio cuerpo — pero como su `DROP`
+      apuntaba a la firma de 10 parámetros y no a la de 9, la sobrecarga vieja quedó
+      viva y `/productos` se cayó por ambigüedad de RPC. Cerrado con
+      `20260917200000_fn_productos_dropea_sobrecarga_vieja.sql` (ok puntual de Felipe:
+      "Si hazlo"). Verificado: una sola sobrecarga, `fn_productos` responde con datos
+      reales.
 
 - [x] **`producto_fotos` gana `color_codigo` y `fn_productos` devuelve `foto_url` por
       variante — construido y verificado en local (2026-09-17, ADR-0077 addenda 7).**

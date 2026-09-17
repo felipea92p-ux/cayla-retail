@@ -47,6 +47,30 @@ parámetros) se leyó en vivo con `pg_get_functiondef` contra Postgres local, no
 Aprendizaje: "el candado de sede" de la consigna resultó ser dos cosas distintas — uno de
 PERSONA (existe, `fn_puede_operar_ubicacion`, ya probado) y uno de VARIANTE (no existe en
 el código) — antes de probar un candado hay que confirmar cuál de los dos es.
+## 2026-09-17 (`/productos` caído en producción: dos sobrecargas de `fn_productos` peleando)
+
+Felipe reportó `/productos` mostrando la pantalla genérica de error justo después de que
+el PR #81 (Grilla, ADR-0077) llegara a producción vía Vercel. Causa raíz, confirmada
+contra `cayla-dynamic` (no supuesta): `retail.fn_productos` tenía DOS sobrecargas vivas —
+9 parámetros (la original) y 10 (con `p_orden`/`foto_url`) — porque de mis dos
+migraciones pendientes solo se pegó `20260917190000_producto_fotos_por_color.sql`;
+`20260917180000_productos_ordenar_por_precio.sql` (cuyo `DROP` limpiaba la de 9) nunca
+se aplicó sola, y el `DROP ... IF EXISTS` de `20260917190000` apuntaba a una firma de 10
+que todavía no existía — no encontró nada que borrar. Mismo hueco de siempre
+(ADR-0009/0004): agregar un parámetro sin dropear la firma vieja deja dos sobrecargas
+conviviendo, y `supabase.rpc()` con parámetros nombrados no puede elegir entre ellas.
+Verificado antes de tocar nada: la sobrecarga de 10 ya tenía el cuerpo completo y
+correcto (orden por precio + foto_url + punto de reorden) — no hacía falta reconstruir
+nada, solo dropear la sobrante. Aplicado con el MCP de Supabase (`apply_migration`
+contra `vovjyyiafkxteijimpuy`, ok puntual de Felipe: "Si hazlo"),
+`20260917200000_fn_productos_dropea_sobrecarga_vieja.sql` documenta el fix. Verificado
+después: `count(*) = 1` sobrecarga, `fn_productos(p_pagina:=1, p_por_pagina:=24)`
+devuelve 84 filas reales sin error. Aprendizaje: cuando una persona (no una sesión con
+el flujo de verificación de "una sola sobrecarga") pega migraciones a mano en el SQL
+Editor, aplicar solo una de dos migraciones relacionadas puede dejar el candado
+ADR-0009/0004 a medio cerrar — vale la pena, al pedir el ok puntual, listar las
+migraciones pendientes como un paquete y no una por una.
+
 ## 2026-09-17 (`/almacen` y `/almacen/recibir` pasan a `redirects()` — y salió un 404 de un día que nadie había visto)
 
 Tarea concreta del ítem de `✨ MEJORAR`: las dos páginas-stub que solo llamaban
