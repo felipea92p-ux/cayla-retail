@@ -25,14 +25,24 @@ import { soles, type CompraResumen } from "@/lib/compras-reglas";
 export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraResumen; tieneRecepciones: boolean }) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
+  const puedeRecibir = compra.estado === "vigente" && compra.estadoRecepcion !== "recibida";
   const puedePagar = compra.estado === "vigente" && compra.saldo > 0;
   const puedeAnular = compra.estado === "vigente" && compra.pagado === 0 && !tieneRecepciones;
 
-  if (!puedePagar && !puedeAnular) return null;
+  if (!puedeRecibir && !puedePagar && !puedeAnular) return null;
 
   return (
     <>
       <div className="flex flex-wrap gap-3">
+        {/* Atajo al pie, junto a Pagar/Anular — antes solo vivía como enlace
+            de texto dentro de la sección "Recepciones", más abajo en la
+            página: para una factura recién abierta (todo por recibir), esa
+            era la acción más probable y quedaba fuera de la vista. */}
+        {puedeRecibir && (
+          <Boton peso="fantasma" onClick={() => router.push(`/compras/recibir?compra=${compra.id}`)}>
+            Recibir mercadería
+          </Boton>
+        )}
         {puedePagar && (
           <Boton peso="primario" onClick={() => router.push(`/compras/por-pagar?pagar=${compra.id}`)}>
             Registrar pago · saldo {soles(compra.saldo)}
