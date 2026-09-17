@@ -15,14 +15,19 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Felipe (sesión Claude) | `claude/supabase-unificacion-audit-0887f5` | ADR-0063 (venta sin red): cerrar el hueco de verificación del camino feliz (sube sola → aparece en Ventas de hoy). Toca `retail.stock` de mi Postgres local (backfill de `sububicacion_id`), no `main`. | 2026-09-17 |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
-| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0076) | 2026-09-17 |
-| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — migración local + RPCs (ADR-0074, bloqueada para producción, ver addendum) | 2026-09-17 |
-| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0077) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0080) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0078, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0081) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 4: exportar CSV en `InventarioPanel.tsx` | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 5: prueba `scripts/pruebas/fn_aplicar_movimiento.mjs` | 2026-09-17 |
-| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 6: ADR de la unificación retail↔dynamic (ADR-0075) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 6: ADR de la unificación retail↔dynamic (ADR-0079) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Fusión con `main` (48 commits) + renumeración de ADR 0074-0077→0078-0081 (colisión con 3 sesiones concurrentes) + ejecución en producción de `registrar_consumo_insumo` y `marcar_comprobante_no_emitido`, con ok explícito de Felipe (excepción puntual a D-11) | 2026-09-17 |
+| Claude (sesión Danytristee) | `claude/compras-rls-location-lock-7a8b0c` (worktree `cuervo-colibri-modulos-170de6`) | RLS de `retail.compras`/`compra_items`/`compra_pagos`/`compra_adjuntos` + `resumen_compras()` acotados a `fn_puede_operar_ubicacion` (ADR-0075, decidido con Felipe vía `/decide`). Aplicado y verificado en local; pendiente producción con ok de Felipe. No tocó `compras_multipago.sql`/`anular_compra`/`movimientos` RLS/`ventas-v2.ts`/`movimientos-reglas.ts`/`fn_prioridad_conteo`. | 2026-09-17 |
+| Claude (worktree `mejorar-modulo-por-pagar-48008c`) | `claude/mejorar-modulo-por-pagar-48008c` | UX de `/compras/por-pagar` en celular (tarjetas de resumen + `FiltrosCompras.tsx` compartido) — ver worktree `payable-module-review-db60ea`, sin commits/cambios | 2026-09-17 |
+| Claude (worktree `productos-fuera-factura-f85f65`) | `claude/productos-fuera-factura-f85f65` | `recibir_compras` acepta productos fuera de factura (ADR-0075) — ya en producción; PR #78 abierto, esperando que Felipe le dé merge desde GitHub (el entorno bloquea el merge desde el chat). Reconciliado con `main` 3 veces por sesiones concurrentes, sin perder contenido de nadie. | 2026-09-17 |

@@ -1,5 +1,5 @@
 # 10 · Producción del Taller
-> **Pájaro:** GALLITO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** GALLITO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-17
 
 > **Nota 2026-09-17, sobre el resto de este documento (no sobre la sección de insumos
 > del final, que sí está al día):** las tablas `producciones`/`produccion_lineas`/
@@ -9,7 +9,7 @@
 > modelo V2 (`ubicaciones`, `sububicaciones`, `ubicacion_id`, RPC `abrir_produccion`/
 > `set_etapa_produccion`/`cerrar_produccion`/`anular_produccion`/`revertir_produccion`,
 > estados `en_proceso`/`terminada`/`anulada`), verificado directo contra el Postgres
-> local al escribir ADR-0074. Este documento no se reescribió entero bajo esa tarea
+> local al escribir ADR-0078. Este documento no se reescribió entero bajo esa tarea
 > (alcance: solo la sección de insumos) — queda pendiente un refresco completo.
 ## Para qué existe
 
@@ -21,393 +21,353 @@ donde el stock **nace** en vez de llegar de un proveedor: aquí se decide cuánt
 la prenda que después se vende en tienda. Si el costo de aquí sale mal, el margen de
 toda la cadena sale mal.
 
+**Nota de versión.** Todo lo de abajo describe la reconstrucción sobre V2
+(ADR-0051, 2026-09-15). El corte V1→V2 (`0af2f1b`, 2026-09-12) había borrado el
+módulo entero a propósito — 8 migraciones (`0018`…`0031`) y tres componentes,
+incluido `RecetaCosto.tsx` — porque no tenía pantalla propia y su data era de
+prueba. Lo que sigue no es un refresh de nombres sobre el V1 que describía la
+revisión anterior de este documento: es un módulo **reconstruido de cero** sobre
+`ubicaciones`/`sububicaciones`/`movimientos` inmutables, no sobre `sedes`/`unidad_id`.
+
 ## El mapa
 
 ```mermaid
 erDiagram
-    sedes             ||--o{ producciones       : "unidad_id · el Taller"
-    productos         ||--o{ producciones       : "producto_id · el modelo"
-    personas          ||--o{ producciones       : "creado_por"
-    producciones      ||--o{ produccion_lineas  : "produccion_id · cascade"
-    variantes         ||--o{ produccion_lineas  : "variante_id · cuantas por SKU"
-    productos         ||--o{ variantes          : "talla y color"
-    productos         ||--o{ bom_items          : "receta de insumos · LEGADO"
-    variantes         ||--o{ ordenes_produccion : "MUERTO"
-    sedes             ||--o{ ordenes_produccion : "MUERTO"
-    ordenes_produccion ||--o{ lotes             : "orden_produccion_id · solo local"
+    ubicaciones   ||--o{ producciones      : "ubicacion_id · solo tipo='taller'"
+    productos     ||--o{ producciones      : "producto_id · NOT NULL, nace en Productos"
+    producciones  ||--o{ produccion_lineas : "produccion_id · SIN cascade"
+    variantes     ||--o{ produccion_lineas : "variante_id · debe preexistir"
+    productos     ||--o{ variantes         : "talla y color"
+    producciones  ||--o{ movimientos       : "produccion_id · entrada real / reversión"
 ```
+
+`bom_items` y `ordenes_produccion` —las dos tablas "legado" que la revisión anterior
+de este documento describía en detalle— **ya no existen**. El corte V1→V2 las borró
+con el resto del árbol viejo de Producción y nadie las reconstruyó: no había pantalla
+viva que las necesitara (`RecetaCosto.tsx` también desapareció) y su data era de
+prueba, no operación real. Quien busque "receta de costo por insumo" hoy no
+encuentra nada — es exactamente el vacío que `10-ROADMAP-DATOS.md` (Prioridad 2 ·
+Materia prima del Taller) propone llenar, todavía sin construir en esta rama.
 
 Ciclo de vida de una orden de producción:
 
 ```mermaid
 stateDiagram-v2
-    state "en_proceso · inventariado_at NULL" as abierta
-    state "terminado · inventariado_at con hora" as inventariada
-    state "terminado · inventariado_at NULL" as muestra
-    [*] --> abierta : registrar_produccion
-    abierta --> abierta : set_etapa_produccion
-    abierta --> [*] : eliminar_produccion
-    abierta --> inventariada : cerrar_produccion · entrada en movimientos
-    abierta --> muestra : cerrar_produccion con es_muestra · no toca stock
-    inventariada --> abierta : revertir_produccion_inventario · salida en movimientos
-    muestra --> [*] : queda ahi para siempre
+    state "terminada · inventariado_at con hora" as terminada
+    state "terminada · es_muestra, inventariado_at NULL" as muestra
+    [*] --> en_proceso : abrir_produccion · token idempotente
+    en_proceso --> en_proceso : set_etapa_produccion
+    en_proceso --> anulada : anular_produccion · nunca tocó stock
+    en_proceso --> terminada : cerrar_produccion · entrada en movimientos
+    en_proceso --> muestra : cerrar_produccion con es_muestra · no toca stock
+    terminada --> en_proceso : revertir_produccion · salida en movimientos
+    anulada --> [*]
+    muestra --> [*] : queda ahí para siempre
 ```
 
-`inventariado_at` es el candado del doble conteo: mientras tenga fecha, `cerrar_produccion`
-se niega a cerrar otra vez. Es lo único que impide que un doble clic sume las mismas 80
-prendas dos veces al stock del Taller.
+`inventariado_at` sigue siendo el candado del doble conteo: mientras tenga fecha,
+`cerrar_produccion` se niega a cerrar otra vez. Lo nuevo es que la base también hace
+imposible la fila incoherente por construcción (`producciones_terminada_coherente`,
+ver Candados) — en V1 eso dependía de que cada RPC se comportara bien; en V2 es un
+CHECK.
 
 ## Las tablas
 
-### `producciones` — la cabecera de una corrida: qué modelo, cuánto costó, en qué etapa va
+### `producciones` — la cabecera de una corrida: qué modelo, en qué Taller, cuánto costó
 
-**Existe en:** local y producción
-**Quién escribe:** `registrar_produccion` (abre) · `cerrar_produccion` (costo real + inventario)
-· `set_etapa_produccion` (etapas) · `revertir_produccion_inventario` · `eliminar_produccion`.
-Ninguna pantalla la escribe directo — pero la policy la deja abierta para un Líder (ver Candados).
+**Existe en:** local y producción, tabla y 4 de sus 5 RPC (verificado 2026-09-15 por
+Felipe contra la base de producción — ADR-0051). La única pieza que **no** llegó a
+producción todavía es el cuerpo nuevo de `cerrar_produccion` (ver más abajo).
+**Quién escribe:** `abrir_produccion` (abre) · `cerrar_produccion` (costo real +
+inventario) · `set_etapa_produccion` (etapas) · `revertir_produccion` ·
+`anular_produccion`. Ninguna pantalla la escribe directo, y a diferencia de V1 **no
+hay policy que lo permita**: ver Candados.
 
 | Columna | Tipo | Vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | no | `gen_random_uuid()` | Identifica la corrida; su prefijo de 8 caracteres queda escrito en la nota del movimiento de stock. |
-| `unidad_id` | uuid → `sedes(id)` | no | — | La sede que produce: el Taller. Es lo que decide quién puede tocar la orden. |
-| `variante_id` | uuid → `variantes(id)` | sí | — | **MUERTO.** Resto del modelo por talla-color de la `0024`; desde la `0026` ningún RPC la llena. Sigue viva porque borrarla implicaría tocar el núcleo. |
-| `producto_id` | uuid → `productos(id)` | sí | — | El modelo que se fabrica. Nullable por herencia de la `0026`, pero en la práctica todo RPC lo llena. |
-| `fecha` | date | no | `current_date` | **MUERTO.** Fecha de la corrida; nadie la escribe fuera del default y ninguna pantalla la lee. |
-| `cantidad` | integer | no | — | Cuántas prendas. Al abrir es el plan; al cerrar `cerrar_produccion` la pisa con las que salieron buenas. |
-| `costo_tela` | numeric(12,2) | no | `0` | Soles de tela de toda la corrida (no por prenda). |
-| `costo_avios` | numeric(12,2) | no | `0` | Botones, cierres, etiquetas, hilo: el resto del material directo. |
-| `costo_maquila` | numeric(12,2) | no | `0` | Lo que se mandó afuera en esa corrida (planchado, corte tercerizado). |
-| `precio_taller` | numeric(12,2) | no | `0` | Precio al que el Taller "le vende" a la tienda. **Contradice D-31** (ver Huecos 6). |
-| `costo_unitario` | numeric(12,2) **generada** | sí | `round((costo_tela+costo_avios+costo_maquila)/nullif(cantidad,0), 2)` stored | El costo por prenda. No se escribe: la base lo recalcula sola cada vez que cambia un costo o la cantidad. Por eso cerrar con menos prendas buenas sube el costo unitario solo: la merma queda absorbida. |
-| `es_muestra` | boolean | no | `false` | Si es desarrollo del modelo (patrón, prototipo) y no producción vendible. Una muestra nunca entra al inventario. |
-| `estado` | text | no | `'terminado'` · check `('en_proceso','terminado')` | En qué punto está. Ojo: el default dice `terminado`, pero `registrar_produccion` inserta `'en_proceso'` a mano. Un insert directo caería en `terminado` con `inventariado_at` vacío — o sea, alarma inmediata. |
-| `etapas` | jsonb | no | `'{}'` | Mapa `{etapa: estado}` — ej. `{"corte":"hecho","confeccion":"tercerizado"}`. Es el tablero de avance del Taller. |
-| `detalle` | text | sí | — | Texto libre con las tallas/colores de la corrida ("S/M/L · negro, arena"). Es lo que se ve en la bandeja de pendientes. |
-| `fecha_entrega` | date | sí | — | Para cuándo se comprometió. Alimenta la alarma de "orden pasada de fecha". |
-| `inventariado_at` | timestamptz | sí | — | Cuándo entró al stock. `NULL` = todavía no. Es el candado contra el doble conteo. |
-| `nota` | text | sí | — | Observación libre. Hoy la UI nunca la manda (`OrdenesProduccion.tsx:513` envía `undefined`). |
-| `creado_por` | uuid → `personas(id)` | sí | — | Quién abrió la corrida. |
-| `created_at` | timestamptz | no | `now()` | Cuándo se abrió. Es el orden del tablero. |
+| `id` | uuid | no | `gen_random_uuid()` | Identifica la corrida. |
+| `ubicacion_id` | uuid → `ubicaciones(id)` | no | — | El Taller que produce. `abrir_produccion` rechaza cualquier ubicación cuyo `tipo` no sea `'taller'` — ya no basta con que la fila se *llame* Taller. |
+| `producto_id` | uuid → `productos(id)` | **no** | — | El modelo que se fabrica. En V1 era nullable "por herencia"; en V2 es obligatorio desde el diseño: no hay corrida sin modelo. |
+| `estado` | text | no | `'en_proceso'` · check `('en_proceso','terminada','anulada')` | Tres valores, no dos. El default ya no contradice lo que inserta `abrir_produccion` (en V1 el default decía `'terminado'` mientras el RPC insertaba `'en_proceso'`). |
+| `es_muestra` | boolean | no | `false` | Desarrollo del modelo, no producción vendible. Nunca entra al inventario. |
+| `etapas` | jsonb | no | `'{}'` | Mapa `{etapa: estado}`. Igual que en V1. |
+| `costo_tela` / `costo_avios` / `costo_maquila` | numeric(12,2) | no | `0` | Los tres costos directos de la corrida, cada uno con `check (>= 0)` — nuevo respecto a V1, que no lo tenía. |
+| `cantidad_plan` | integer | no | — | Cuántas prendas se planearon al abrir. Reemplaza a la `cantidad` única de V1: ahora plan y buenas son dos columnas. |
+| `cantidad_buenas` | integer | sí | — | Cuántas salieron buenas. `NULL` hasta que `cerrar_produccion` la llena; ya cerrada, nunca es `NULL` (ver el CHECK de coherencia). |
+| `costo_unitario` | numeric(12,2) **generada** | sí | `round((costo_tela+costo_avios+costo_maquila) / coalesce(cantidad_buenas, cantidad_plan), 2)` stored | El costo por prenda: divide entre las buenas si ya cerró, entre el plan si no. Sin `nullif` protegiendo la división — no hace falta, `cantidad_plan > 0` y `cantidad_buenas > 0` son CHECK, nunca hay un cero ahí. |
+| `fecha_entrega` | date | sí | — | Para cuándo se comprometió. |
+| `nota` | text | sí | — | Observación libre. `anular_produccion` le concatena el motivo de anulación (`concat_ws`) en vez de tener una columna aparte. |
+| `inventariado_at` | timestamptz | sí | — | Cuándo entró al stock. El candado contra el doble conteo, igual que en V1. |
+| `token_cliente` | uuid **unique** | sí | — | **Nuevo.** Idempotencia: `abrir_produccion(p_token := …)` con un token ya usado devuelve la misma corrida en vez de crear otra. Mismo patrón que `registrar_venta` (ADR-0032/33). Cierra el hueco de idempotencia que V1 nunca tuvo. |
+| `creado_por` | uuid → `public.personas(id)` | sí | — | Quién abrió la corrida. Nota el schema: `personas` ya no es de `retail` — vive en `public`, compartida con la identidad de Dynamic desde el corte V1→V2. |
+| `created_at` | timestamptz | no | `now()` | Cuándo se abrió. |
+
+Columnas que **ya no existen** y sí existían en V1: `variante_id` (era el resto muerto
+de la `0024`), `fecha` (nadie la leía), `precio_taller` (el precio de transferencia
+interno — ver más abajo) y `detalle` (texto libre de tallas/colores; ahora
+`produccion_lineas` lo modela de verdad).
 
 **Candados** (lo que la base impide que pase):
-- `producciones_estado_check` — el estado solo puede ser `en_proceso` o `terminado`. No existe una corrida "a medio estado".
-- `producciones_cantidad_check` (`cantidad > 0`) — **solo local**. Imposible registrar una corrida de 0 prendas. En producción esa fila no tiene check: `cantidad` solo es `not null`.
-- `costo_unitario` generada con `nullif(cantidad, 0)` — el costo por prenda nunca es una división por cero ni un número tecleado a mano que no cuadre con los costos.
-- FK `unidad_id → sedes(id)` — una corrida no puede pertenecer a una sede que no existe.
-- Índices `producciones_unidad_idx`, `producciones_variante_idx`, `producciones_producto_idx` — **solo local** (`0024`, `0026`). `unificacion/06_contabilidad_produccion.sql` no crea ninguno.
-- No hay candado contra editar `inventariado_at` a mano: la policy `producciones_all_lider` es `for all`.
+- `producciones_estado_check` — el estado es uno de tres: `en_proceso`, `terminada`, `anulada`.
+- `producciones_terminada_coherente` (**nuevo**) — `check ((estado = 'terminada' and cantidad_buenas is not null) or (estado <> 'terminada' and cantidad_buenas is null and inventariado_at is null))`. Hace imposible por construcción una fila "terminada sin buenas" o "en proceso con fecha de inventario" — en V1 esto dependía de que cada RPC se portara bien.
+- `producciones_cantidad_plan_check` (`> 0`) y `producciones_cantidad_buenas_check` (`is null or > 0`) — en las dos bases por igual (la migración que las crea es la misma en local y producción).
+- FK `ubicacion_id → ubicaciones(id)` **más** la validación en `abrir_produccion` de que esa ubicación sea `tipo = 'taller'`: no basta con que exista, tiene que ser el Taller de verdad.
+- `token_cliente` único — dos aperturas con el mismo token son la misma corrida, no dos.
+- Índices `producciones_ubicacion_estado_idx (ubicacion_id, estado, created_at desc)` y `producciones_producto_idx (producto_id)` — en las dos bases (mismo archivo).
+- **RLS solo de lectura.** `producciones_select` es la única policy — no existe un `for all` como el `producciones_all_lider` de V1. Insert/update/delete están otorgados a nivel de tabla (`grant`) pero sin policy RLS que los autorice, así que **ninguna sesión autenticada puede escribir la tabla si no es a través de una RPC `security definer`**. Esto cierra el hueco que V1 dejaba abierto (ver "Pantallas que escriben directo", más abajo — ya no aplica).
 
-**Diferencias local vs producción:**
-- El check `cantidad > 0` existe solo en local.
-- Los tres índices existen solo en local.
-- El orden de declaración de columnas difiere; el conjunto de columnas es el mismo.
-- Las policies se llaman igual pero llaman helpers distintos: local `fn_es_lider()` (rol `lider`) y `fn_sede_actual_persona()`; producción `retail.es_lider()` (rol `admin` de Dynamic) y `retail.mi_sede()`.
+**Diferencias local vs producción: ninguna, verificado en vivo el 2026-09-17.**
+Las tablas, los índices, los checks y las 5 RPC —incluido el cuerpo de
+`cerrar_produccion`— son idénticos en las dos bases. El encabezado de
+`20260916090000_costo_promedio_ponderado.sql` dice *"Solo LOCAL. No aplicar en
+producción sin autorización explícita de Felipe"*, pero eso ya no describe la
+realidad: `pg_get_functiondef` contra el proyecto de producción
+(`vovjyyiafkxteijimpuy`) muestra que `cerrar_produccion` ya llama
+`fn_recalcular_costo_variante`, y `costo_historial` /
+`fn_recalcular_costo_variante` / `fn_costo_historial` **existen en producción**.
+Alguien lo aplicó sin actualizar el comentario del archivo — el mismo patrón que ya
+había pasado antes con `produccion_del_taller` (ADR-0051) y con otras 10 migraciones
+el 2026-09-16 (ver `commits-y-migraciones-en-produccion` en memoria): los
+encabezados y los ADR dicen "no aplicado" horas o días después de que sí se aplicó.
+**No confiar en el comentario de cabecera de una migración para saber si algo está
+en producción — preguntarle a la base.**
+
+Esto significa que D-45 (promedio ponderado) **ya se subió**, no está pendiente de
+subir. Ver Decisiones.
 
 ---
 
-### `produccion_lineas` — el desglose: cuántas unidades de cada talla y color lleva la corrida
+### `produccion_lineas` — el desglose: cuántas unidades de cada talla y color
 
-**Existe en:** local y producción
-**Quién escribe:** `registrar_produccion` (inserta con `on conflict do update`) y `cerrar_produccion`
-(ajusta a lo que salió bueno, y **borra** la línea que quedó en 0). Ninguna pantalla la escribe directo —
-y no podría: no hay policy de INSERT en ninguna de las dos bases.
+**Existe en:** local y producción, mismo archivo.
+**Quién escribe:** `abrir_produccion` (inserta agrupando por variante — dos líneas
+del formulario con la misma talla se suman, no se duplican, gracias al `unique`) y
+`cerrar_produccion` (llena `cantidad_buenas`). Ninguna pantalla la escribe directo:
+no tiene policy de insert/update/delete en ninguna base.
 
 | Columna | Tipo | Vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | no | `gen_random_uuid()` | Identifica la línea. |
-| `produccion_id` | uuid → `producciones(id)` **on delete cascade** | no | — | A qué corrida pertenece. Borrar la corrida se lleva sus líneas. |
-| `variante_id` | uuid → `variantes(id)` | no | — | Qué SKU exacto (talla + color). Es el que recibe la entrada de stock al cerrar. |
-| `cantidad` | integer | no | — | Cuántas unidades de ese SKU. Al abrir es el plan; al cerrar, las buenas. |
-| `created_at` | timestamptz | no | `now()` | Cuándo se agregó la línea. |
+| `produccion_id` | uuid → `producciones(id)` **sin cascade** | no | — | A qué corrida pertenece. |
+| `variante_id` | uuid → `variantes(id)` | no | — | Qué SKU exacto. Tiene que pertenecer al `producto_id` de la corrida — `abrir_produccion` lo valida línea por línea. |
+| `cantidad_plan` | integer | no | — | Cuánto se planeó de ese SKU. |
+| `cantidad_buenas` | integer | sí | — | Cuánto salió bueno. A diferencia del total en `producciones.cantidad_buenas` (que nunca es cero), **una línea sí puede quedar en cero** — toda una talla puede salir mala mientras otras de la misma corrida están bien. |
+| `created_at` | timestamptz | no | `now()` | Cuándo se agregó. |
 
 **Candados:**
-- `produccion_lineas_produccion_id_variante_id_key` (unique `(produccion_id, variante_id)`) — la misma talla-color no puede aparecer dos veces en la misma corrida. Sin esto, un reintento del formulario duplicaría las unidades de un SKU.
-- `produccion_lineas_cantidad_check` (`cantidad > 0`) — no existe una línea de 0 prendas. Por eso `cerrar_produccion` **borra** la línea en vez de ponerla en cero.
-- `on delete cascade` — imposible que quede una línea huérfana apuntando a una corrida borrada.
-- Sin policy de INSERT/UPDATE/DELETE en ninguna base: la única puerta de escritura son las RPC `security definer`.
+- `produccion_lineas_produccion_id_variante_id_key` (unique `(produccion_id, variante_id)`) — la misma talla-color no aparece dos veces en la misma corrida.
+- `produccion_lineas_cantidad_plan_check` (`> 0`) y `produccion_lineas_cantidad_buenas_check` (`is null or >= 0`, **admite cero**).
+- Sin policy de INSERT/UPDATE/DELETE: la única puerta de escritura son las RPC.
 
-**Diferencias local vs producción:** ninguna en la forma de la tabla. Solo cambia el nombre de la policy de lectura (`produccion_lineas_select` en local, `pl_select` en producción) y el helper que usa.
+**Cambio de comportamiento respecto a V1:** en V1, `cerrar_produccion` **borraba** la
+línea que quedaba en cero (el CHECK de V1 exigía `cantidad > 0`, así que cero no
+podía guardarse). En V2 el CHECK de `cantidad_buenas` es `>= 0`: una talla que salió
+completamente mala **se guarda en cero**, no se borra. Es un cambio de diseño
+deliberado, no un descuido — deja ver en el desglose que esa talla se intentó y no
+salió, en vez de que desaparezca de la corrida.
+
+**Sin FK `on delete cascade`:** V1 sí la tenía. En V2 no hace falta: nada hace un
+`DELETE` real sobre `producciones` (`anular_produccion` es un `UPDATE` de estado, no
+un borrado), así que la ausencia de cascade no es un hueco — es que el borrado físico
+que la justificaba ya no existe en el flujo.
 
 ---
 
-### `bom_items` — la receta de costo del modelo: qué insumos lleva y cuánto vale cada uno
+### Las tablas de insumos (`bom_items`, y su reemplazo) — no están en ningún git de esta auditoría, pero sí en producción
 
-**Existe en:** local y producción
-**Quién escribe:** **la pantalla, directo, sin RPC.** `apps/web/components/RecetaCosto.tsx:49` (insert)
-y `:64` (delete). Es superficie de riesgo — ver "Cómo se escribe".
+La revisión anterior de este documento describía `bom_items` como "legado, pero
+viva": tenía pantalla propia (`RecetaCosto.tsx`) y algo de uso. Eso ya no es cierto
+en ningún sentido — la tabla **no existe**, la pantalla **no existe**. Lo que
+reemplaza el concepto (`retail.insumos`, `recibir_insumo`, `ajustar_insumo_por_conteo`)
+**existe en producción** (verificado 2026-09-17) pero no hay un `.sql` para eso en
+`supabase/migrations/` de esta rama ni de `main` — ver Hueco 2 para el detalle
+completo, incluida la tercera versión distinta que vive en otro worktree sin
+mergear. `10-ROADMAP-DATOS.md` (Prioridad 2 · Materia prima del Taller) describe
+esto como una propuesta todavía sin construir; no es exacto — está construido,
+solo que en un lugar que ningún branch de git refleja.
 
-Es **legado**: nació en la Fase 1 (`0001_init.sql:113`) como ficha de consumo, la `0024` le agregó
-precio para convertirla en calculadora de costo, y el modelo real de producción (`producciones`)
-se construyó después sin tocarla. **Pero no está muerta: tiene pantalla propia y viva** — el botón
-"Receta de costo" en la ficha del producto (`apps/web/app/(app)/producto/[varianteId]/page.tsx:165-177`),
-visible solo para un Líder. Lo que nunca pasó es que la receta alimente a `registrar_produccion`:
-los dos caminos calculan costo y no se hablan.
+## Columnas de otras tablas que este módulo escribe
 
-| Columna | Tipo | Vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | no | `gen_random_uuid()` | Identifica la línea de receta. |
-| `producto_id` | uuid → `productos(id)` **on delete cascade** | no | — | De qué modelo es la receta. Borrar el modelo borra su receta. |
-| `insumo` | text | no | — | Cómo se llama el insumo ("Lino crudo", "Botón 4 huecos"). Texto libre: no hay catálogo de insumos. |
-| `cantidad_requerida` | numeric(12,4) local · **numeric(12,3) producción** | no | — | Cuánto entra en una prenda. |
-| `unidad` | text | no | — | En qué se mide ("m", "und"). Texto libre, sin vocabulario cerrado. |
-| `precio_unitario` | numeric(12,4) local · **numeric(12,2) producción** | sí | — | Precio de referencia del insumo. Vacío = la línea no suma al costo sugerido. |
-| `created_at` | timestamptz | no | `now()` | Cuándo se agregó. Es el orden en pantalla. |
+- `variantes.costo` — la promedia (las dos bases, desde el 2026-09-16) tanto
+  `cerrar_produccion` como `recibir_lote`/`recibir_compras`: las tres funciones
+  comparten `fn_recalcular_costo_variante`. También dispara
+  `historial_producto_cambios` (rama agregada por la misma migración del 2026-09-16):
+  el cambio de costo se audita gratis en `/productos/[id]/historial`.
+- `movimientos.produccion_id` (**nuevo**) — cada entrada o reversión de una corrida
+  apunta a su orden con una FK real. En V1 esto se resolvía escribiendo el prefijo de
+  8 caracteres del id en el texto libre de `nota`; ahora es una columna consultable.
+- `movimientos` recibe la entrada/salida real vía `fn_aplicar_movimiento`, siempre en
+  la sububicación `almacen_tienda` del Taller (`fn_sububicacion_por_defecto(·,
+  'entrada')` para cerrar, `'venta'` → `piso_venta` para revertir — ver Huecos sobre
+  esa asimetría). **Esto resuelve** el hueco de V1 donde la producción entraba al
+  piso de venta en vez de al almacén (D-42): hoy `cerrar_produccion` entra a
+  `almacen_tienda`, no a `piso_venta`.
 
-**Candados:**
-- FK `producto_id` con `on delete cascade` — no quedan recetas colgando de modelos borrados.
-- Policy única `bom_items_all_lider` / `bom_all_lider` (`for all`) — un Integrante no ve ni toca la receta, ni siquiera la del Taller donde trabaja.
-- No hay unique sobre `(producto_id, insumo)`: el mismo insumo se puede cargar dos veces y el costo sugerido se dobla sin que nada avise.
-
-**Diferencias local vs producción:** la precisión decimal de las dos columnas numéricas no coincide
-(`12,4` local contra `12,3` y `12,2` en producción). Una receta con 3 decimales de consumo de tela se
-redondea distinto en cada base.
-
----
-
-### `ordenes_produccion` — **MUERTO**: el rastreador de órdenes de la Fase 1, reemplazado por `producciones`
-
-**Existe en:** local y producción
-**Quién escribe:** nadie desde la app. Solo la toca `recibir_lote` **en local** (`0018`/`0031`), que
-al recibir un lote con `p_orden_produccion_id` la marca `completada`. En producción ni eso: `retail.recibir_lote`
-no tiene ese parámetro (`unificacion/14_recibir_lote_produccion.sql`).
-
-**Por qué sigue viva:** `lotes.orden_produccion_id` la referencia (solo en local), y `recibir_lote`
-todavía la actualiza. Borrarla implicaría reescribir `recibir_lote` en las dos bases. La reconciliación
-de los dos modelos está declarada como tarea aparte en `apps/web/app/(app)/inventario/recibir/page.tsx:59-66`.
-Ninguna pantalla la lee: la única mención en `apps/web` es ese comentario.
-
-| Columna | Tipo | Vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | no | `gen_random_uuid()` | Identifica la orden vieja. |
-| `variante_id` | uuid → `variantes(id)` | no | — | Qué SKU se iba a producir. El modelo viejo era por talla-color, no por corrida. |
-| `sede_id` | uuid → `sedes(id)` | no | — | Dónde se produce. |
-| `cantidad_planeada` | integer | no | — | Cuántas se pidieron. |
-| `cantidad_producida` | integer | no | `0` | Cuántas salieron. Nadie la actualiza nunca. |
-| `estado` | text | no | `'planeada'` · check `('planeada','en_proceso','completada','cancelada')` | En qué punto está. Solo `recibir_lote` local la mueve a `completada`. |
-| `fecha_inicio` | date | sí | — | Cuándo arrancó. |
-| `fecha_fin` | date | sí | — | Cuándo terminó. `recibir_lote` local la llena al recibir. |
-| `created_at` | timestamptz | no | `now()` | Cuándo se creó. |
-| `updated_at` | timestamptz | no | `now()` | Última edición; la mantiene un trigger. |
-| `etapa` | text | sí | `'corte'` | Etapa del modelo viejo. **Check `('corte','confeccion','acabado')` solo en local**; en producción la columna no tiene check. |
-| `destino_sede_id` | uuid → `sedes(id)` | sí | — | A qué tienda iba la mercadería. |
-| `nota` | text | sí | — | Observación libre. |
-
-**Candados:**
-- `ordenes_produccion_estado_check` — el estado es uno de los cuatro, en las dos bases.
-- Check de `etapa` — **solo local**.
-- Trigger `ordenes_produccion_set_updated_at` (local) / `op_updated` (producción) — `updated_at` no se puede falsear a mano.
-- Cinco policies (`all_lider`, `select_sede`, `select_destino`, `insert_sede`, `update_sede`): la tienda destino ve lo que viene hacia ella.
-
-**Diferencias local vs producción:**
-- El check de `etapa` existe solo en local.
-- `lotes.orden_produccion_id` existe **solo en local** (`0018`). `retail.lotes` (`unificacion/05_operacion.sql:165-177`) no tiene esa columna, así que en producción una recepción no se puede ligar a una orden de producción ni de la forma vieja.
-- Las policies de insert/update usan `fn_sede_actual_persona() or fn_es_lider()` en local y `retail.puede_operar_sede(sede_id)` en producción.
-
----
-
-**Columnas de otras tablas que este módulo escribe** (fichas completas en sus módulos):
-`variantes.costo` y `variantes.precio_taller` (las pisa `registrar_produccion` en cada corrida),
-`productos.costo_mano_obra` (la escribe `RecetaCosto.tsx:70`), `productos.material`
-(**solo producción**, `unificacion/11`), y `movimientos` + `stock` (entrada al cerrar, salida al revertir).
+Lo que este módulo **ya no escribe**, porque las columnas o las pantallas
+desaparecieron: `variantes.precio_taller` (columna eliminada), `productos.material`
+(no existe en el esquema V2 — ADR-0051 lo dice explícito: "no se agrega desde
+Producción"), `productos.costo_mano_obra` (la escribía `RecetaCosto.tsx`, que ya no
+existe).
 
 ## Cómo se escribe (la única puerta)
 
-Las cinco RPC son `security definer` con `set search_path`. Ninguna exige rol de Líder:
-**el candado es de sede**, vía `fn_puede_operar_sede(unidad_id)` en local y
-`retail.puede_operar_sede(unidad_id)` en producción. Quien trabaja en el Taller puede
-abrir, avanzar, cerrar, revertir y eliminar corridas del Taller; quien trabaja en una
-tienda no puede tocar ninguna.
+Las cinco RPC son `security definer` con `set search_path`. El candado sigue siendo
+de ubicación, no de rol: `fn_puede_operar_ubicacion(ubicacion_id)` — que es
+`fn_es_lider() or ubicacion_id = fn_ubicacion_actual_persona()`, el reemplazo directo
+de `fn_puede_operar_sede`. Quien trabaja en el Taller puede abrir, avanzar, cerrar,
+revertir y anular corridas del Taller; quien trabaja en una tienda no puede tocar
+ninguna — y además, desde el 2026-09-17, ni siquiera puede **entrar a la pantalla**
+aunque sea Líder (ver "Quién ve y quién toca").
 
 | Función | Firma | Candado | Idempotente |
 |---|---|---|---|
-| `registrar_produccion` | **local, 15 args:** `(p_unidad_id uuid, p_cantidad integer, p_costo_tela numeric, p_costo_avios numeric, p_costo_maquila numeric, p_precio_taller numeric, p_variantes jsonb default '[]', p_producto_id uuid default null, p_referencia text default null, p_categoria_id uuid default null, p_detalle text default null, p_es_muestra boolean default false, p_fecha_entrega date default null, p_marcar_terminado boolean default false, p_nota text default null) returns uuid`<br>**producción, 16 args:** lo mismo **+ `p_material text default null`** al final | sede (`puede_operar_sede`) | **No.** No hay token ni clave única: un reintento crea una segunda corrida. Si venía con `p_marcar_terminado`, entra dos veces al stock. |
-| `set_etapa_produccion` | `(p_produccion_id uuid, p_etapa text, p_estado text) returns void` | sede | **Sí.** Hace `etapas || jsonb_build_object(...)`: marcar dos veces lo mismo deja el mismo jsonb. |
-| `cerrar_produccion` | `(p_produccion_id uuid, p_costo_tela numeric, p_costo_avios numeric, p_costo_maquila numeric, p_buenas jsonb) returns void` | sede | **Sí, por guarda.** Si `inventariado_at` ya tiene fecha, lanza *"Esta orden ya está cerrada en el inventario"*. Ese es el candado del doble conteo. |
-| `eliminar_produccion` | `(p_produccion_id uuid) returns void` | sede | **Sí, por guarda.** Se niega si `inventariado_at` no es null. El segundo intento falla con "La producción no existe". |
-| `revertir_produccion_inventario` | `(p_produccion_id uuid) returns void` | sede | **Sí, por guarda.** Se niega si `inventariado_at` es null. Y si ya vendiste o trasladaste parte de esas prendas, `fn_aplicar_movimiento` frena la salida y no revierte nada: todo o nada. |
+| `abrir_produccion` | `(p_ubicacion_id uuid, p_producto_id uuid, p_lineas jsonb, p_costo_tela numeric default 0, p_costo_avios numeric default 0, p_costo_maquila numeric default 0, p_es_muestra boolean default false, p_fecha_entrega date default null, p_nota text default null, p_token uuid default null) returns uuid` | ubicación + `tipo='taller'` | **Sí.** `p_token` repetido devuelve la misma corrida (`token_cliente` unique). `NuevaOrdenProduccionForm.tsx:97` ya lo manda. |
+| `set_etapa_produccion` | `(p_produccion_id uuid, p_etapa text, p_estado text) returns void` | ubicación | **Sí.** `etapas \|\| jsonb_build_object(...)`: repetir no cambia nada. |
+| `cerrar_produccion` | `(p_produccion_id uuid, p_buenas jsonb, p_costo_tela numeric, p_costo_avios numeric, p_costo_maquila numeric) returns void` | ubicación | **Sí, por guarda.** Se niega si `estado <> 'en_proceso'` o `inventariado_at` ya tiene fecha: *"Esta orden ya está cerrada"*. |
+| `anular_produccion` | `(p_produccion_id uuid, p_motivo text default null) returns void` | ubicación | **Sí, por guarda.** Solo anula una orden `en_proceso`; nunca tocó stock, así que no hay nada que deshacer. |
+| `revertir_produccion` | `(p_produccion_id uuid) returns void` | ubicación | **Sí, por guarda.** Solo revierte una orden `terminada`. Si ya se vendió parte de esas prendas, `fn_aplicar_movimiento` frena la salida: todo o nada. |
 
-`p_etapa` acepta `'corte' | 'confeccion' | 'acabado'` **en local** y las seis
-`'patronaje' | 'muestra' | 'escalado' | 'corte' | 'confeccion' | 'acabado'` **en producción**
-(`unificacion/11_produccion_material_etapas.sql`). `p_estado` acepta `'pendiente' | 'hecho' | 'tercerizado'`
-en las dos.
+`p_etapa` acepta las seis en las dos bases desde el mismo día: `'patronaje' |
+'muestra' | 'escalado' | 'corte' | 'confeccion' | 'acabado'`. `p_estado` acepta
+`'pendiente' | 'hecho' | 'tercerizado'`. El drift de 15-vs-16 argumentos de
+`registrar_produccion` que dominaba la revisión anterior de este documento **ya no
+existe como problema**: esa función no existe más — `abrir_produccion` es una
+función distinta, con una sola firma de 10 argumentos, la misma en local y
+producción, y sin el equivalente a `p_material` (que nunca se reconstruyó — ver
+arriba).
 
-`marcar_produccion_terminada(uuid)` ya no existe: la `0029` la borró a propósito para dejar un solo
-camino de cierre. En producción nunca se creó.
+`registrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` y
+`marcar_produccion_terminada` — los cuatro nombres que usaba V1 — **no existen en
+ningún branch de esta rama**. Quien encuentre esos nombres en un ADR viejo, en
+`packages/database/src/types.ts` desactualizado o en una captura de pantalla vieja
+está viendo V1.
 
-**Drift de firma — el más caro del módulo.** `registrar_produccion` tiene **16 argumentos en producción
-y 15 en local**. El argumento de más es `p_material`, que la `unificacion/11` agregó (y que borra la
-firma vieja de 15 para no dejar dos versiones vivas, la lección de ADR-0026). Ese paso **nunca se subió
-al riel numerado de `supabase/migrations/`**: no hay migración local gemela. Consecuencias reales:
+**Las variantes nunca nacen desde una orden (decisión de ADR-0051).** V1 dejaba
+tipear tallas y colores libres en el formulario y `registrar_produccion` creaba la
+variante al vuelo — eso producía prendas sin precio y colores duplicados
+("Negro"/"negro"). `abrir_produccion` exige que la variante ya exista y pertenezca al
+`producto_id` elegido; la pantalla (`NuevaOrdenProduccionForm.tsx`) muestra una
+matriz color × talla donde una combinación sin variante se ve como "—" con un enlace
+a Productos. Es un candado de diseño, no solo de base.
 
-- `OrdenesProduccion.tsx:512` manda `p_material` cuando se crea un modelo nuevo. Contra el Postgres local esa llamada no resuelve: no existe una función con ese parámetro. Registrar un modelo nuevo con su tela no se puede probar en local — se prueba directo contra la base de las tiendas.
-- Los tipos generados (`packages/database/src/types.ts:2700-2718`) declaran `p_material`. TypeScript afirma que existe; el Postgres local dice que no. Los tipos se generaron contra producción, así que el compilador no protege del drift, lo esconde.
-- `supabase/unificacion/31_una_sola_firma_por_funcion.sql:45,72-75` declara que la firma que se queda tiene **15** argumentos. Ya son 16. Si ese archivo se corriera hoy, su candado no encontraría la de 15 y dejaría las dos viejas vivas con un `warning`.
-
-**Pantallas que escriben DIRECTO a una tabla, sin RPC** (superficie de riesgo):
-
-1. `apps/web/components/RecetaCosto.tsx:49` — `from("bom_items").insert(...)`. Sin validación de negocio: el mismo insumo se puede cargar dos veces.
-2. `apps/web/components/RecetaCosto.tsx:64` — `from("bom_items").delete().eq("id", id)`. Borrado físico, sin rastro.
-3. `apps/web/components/RecetaCosto.tsx:70` — `from("productos").update({ costo_mano_obra })`. La mano de obra del modelo se edita sin pasar por ninguna función.
-4. `apps/web/components/RecetaCosto.tsx:77` — `from("variantes").update({ costo: sugerido }).eq("producto_id", productoId)`. **El peor de los cuatro:** reescribe el costo de **todas** las variantes del modelo de un golpe, incluidas las que ya se vendieron, sin dejar un movimiento ni una fecha. Es la puerta trasera al costo de la prenda, que es justamente lo que D-31 quiere que sea automático.
-5. La policy `producciones_all_lider` es `for all`: con la llave anónima y una sesión de Líder se puede insertar, editar `inventariado_at` o borrar una corrida sin pasar por ninguna RPC y sin la validación de stock. Hoy ninguna pantalla lo hace; la puerta está abierta igual.
+**Pantallas que escribían directo a una tabla, sin RPC — resuelto.** La revisión
+anterior de este documento dedicaba una sección entera a esto: `RecetaCosto.tsx`
+escribiendo `bom_items`/`productos.costo_mano_obra`/`variantes.costo` sin pasar por
+ninguna función, más la policy `producciones_all_lider` (`for all`) que dejaba
+escribir `producciones` directo con la llave anónima. Los dos huecos están cerrados
+en V2: `RecetaCosto.tsx` no existe, y `producciones`/`produccion_lineas` no tienen
+ninguna policy de escritura — sin excepción, ni para Líder.
 
 ## Quién ve y quién toca
 
-Advertencia antes de leer la tabla: la base **no conoce los cuatro niveles de D-12**. Conoce uno
-elevado y uno normal. `fn_es_lider()` es `rol = 'lider'` en local; `retail.es_lider()` es
-`fn_rol_actual() = 'admin'` en producción; y `mapearRol` (`apps/web/lib/persona.ts:49-51`) colapsa
-`admin` y `lider` en "líder", y `supervisor_sede` e `integrante` en "integrante". **Admin y Líder de
-equipo son la misma fila en este módulo. Solo lectura no existe: no hay rol, ni policy, ni pantalla.**
+El vocabulario de rol cambió: `retail.colaboradores.rol` acepta `'lider'` o
+`'colaborador'` (no `'integrante'` — ese era el valor en la tabla `personas` propia
+de V1, que ya no existe). La identidad (`public.personas`: `auth_user_id`, `estado`)
+vive separada del perfil de retail (`retail.colaboradores`: `rol`,
+`ubicacion_asignada_id`), unidas por `persona_id`.
 
-| Operación | Admin | Líder de equipo | Integrante | Solo lectura |
-|---|---|---|---|---|
-| Entrar a `/produccion` | Sí | Sí | Solo si su sede es el Taller (`produccion/page.tsx:19-22`) | — |
-| Ver las corridas (`producciones`) | Sí | Sí | Solo las de su propia sede (`producciones_select_propia`) | — |
-| Ver el desglose (`produccion_lineas`) | Sí | Sí | Solo las de una corrida de su sede (`produccion_lineas_select`) | — |
-| Abrir una orden · avanzar etapas · cerrar al inventario | Sí | Sí | Sí, si la corrida es de su sede | — |
-| Revertir o eliminar una corrida | Sí | Sí | Sí, si la corrida es de su sede | — |
-| Ver y editar la receta (`bom_items`) | Sí | Sí | **No**, ni la de su propio Taller (`bom_items_all_lider`) | — |
-| Escribir `producciones` sin pasar por RPC | Sí (policy `for all`) | Sí (policy `for all`) | No (solo SELECT) | — |
-| Ver `ordenes_produccion` (muerto) | Sí | Sí | Su sede, o si es la sede destino | — |
+| Operación | Líder de equipo | Colaborador | Solo lectura |
+|---|---|---|---|
+| Entrar a `/produccion` | **Solo si su propia ubicación es el Taller** (`persona.ubicacionTipo !== "taller"` → `redirect("/")`, sin excepción de rol) | Igual: solo si su ubicación es el Taller | — |
+| Abrir, avanzar, cerrar, revertir, anular una corrida (vía RPC) | Sí, desde cualquier ubicación (`fn_es_lider()` pasa el candado) | Sí, si la corrida es del Taller y esa es su ubicación | — |
+| Ver las corridas (`producciones`, `produccion_lineas`) | Sí | Solo las del Taller si esa es su ubicación | — |
 
-Un detalle que cambia entre bases: `fn_puede_operar_sede` en local también deja operar el almacén
-asociado a la tienda propia (`0012_rpc_valida_sede.sql:15-26`); `retail.puede_operar_sede`
-(`unificacion/36_candados_no_null.sql:51-54`) solo compara contra la sede propia. Para este módulo
-casi no pesa —la unidad siempre es el Taller— pero es la misma función que decide, y no dice lo mismo.
+**El dato que vale la pena resaltar:** desde el 2026-09-17
+(`app/(app)/produccion/page.tsx`, comentario en el propio archivo), un Líder de
+equipo cuya ubicación asignada es una tienda **ya no puede entrar a la pantalla de
+Producción**, ni siquiera por URL directa — la excepción "líder desde cualquier
+ubicación" duró dos días y Felipe pidió revertirla. Pero si ese mismo Líder llamara
+la RPC directo (por ejemplo, desde la consola), `fn_puede_operar_ubicacion` **sí lo
+dejaría pasar**, porque `fn_es_lider()` sigue estando en el OR. Es una asimetría
+consciente entre la pantalla (más estricta) y la base (la de siempre) — no es un
+hueco de seguridad, porque el candado real es el de la base y ese no se relajó, pero
+vale saber que la pantalla es hoy más restrictiva que la RPC que llama.
+
+Los cuatro niveles de D-12 (Admin / Líder / Colaborador / Solo lectura) siguen sin
+existir como tales en este módulo: la base solo distingue Líder de todo lo demás,
+igual que antes del corte V1→V2.
 
 ## Qué se rompe sin esto
 
-Sin este módulo el Taller produce a ciegas: nadie sabe qué hay en la mesa, qué está pasado de
-fecha, ni cuánto costó la corrida que salió ayer. Las prendas fabricadas dejan de entrar al
-inventario, así que el stock del Taller queda en cero para siempre y las tiendas no ven mercadería
-que existe físicamente — todo lo que se calcula sobre stock (alertas de reposición, valorización,
-"qué se está quedando") queda mal mientras dure. El costo de la prenda deja de actualizarse: cada
-venta de un modelo del Taller se registra con el costo viejo, y el margen por sede que exige D-30
-se vuelve un número inventado. Y como este es el único lugar del ERP donde el stock nace en vez de
-llegar comprado, no hay ninguna otra puerta por la que esas prendas puedan entrar al sistema.
+Sin este módulo el Taller produce a ciegas: nadie sabe qué hay en la mesa, qué está
+pasado de fecha, ni cuánto costó la corrida que salió ayer. Las prendas fabricadas
+dejan de entrar al inventario, así que el stock del Taller queda en cero para siempre
+y las tiendas no ven mercadería que existe físicamente — todo lo que se calcula sobre
+stock (alertas de reposición, valorización, "qué se está quedando") queda mal
+mientras dure. El costo de la prenda deja de actualizarse: cada venta de un modelo
+del Taller se registra con el costo viejo, y el margen por sede que exige D-30 se
+vuelve un número inventado. Y como este es el único lugar del ERP donde el stock nace
+en vez de llegar comprado, no hay ninguna otra puerta por la que esas prendas puedan
+entrar al sistema.
 
 ## Huecos conocidos
 
-1. **El drift de firma de `registrar_produccion` (16 args en producción, 15 en local).**
-   `unificacion/11_produccion_material_etapas.sql:38-46` agregó `p_material`; no existe migración
-   local gemela. Se ve en `apps/web/components/OrdenesProduccion.tsx:512` y en
-   `packages/database/src/types.ts:2700-2718`, que declaran un parámetro que el Postgres local no
-   tiene. **Consecuencia:** abrir una orden con un modelo nuevo y su tela no se puede probar en
-   local; se prueba en la base de las tiendas, con la clienta a un clic de distancia.
+1. ~~`cerrar_produccion` calcula el costo distinto en local y en producción~~ —
+   **resuelto, verificado 2026-09-17.** D-45 (promedio ponderado) ya está en las dos
+   bases. Se deja tachado en vez de borrado: el comentario de cabecera de la
+   migración todavía dice "Solo LOCAL", así que alguien que lea el archivo sin este
+   documento va a creer que sigue pendiente.
 
-2. **Las 6 etapas solo existen en producción.** `set_etapa_produccion` de `0029_orden_produccion.sql:44-50`
-   acepta tres; la de `unificacion/11:22-33` acepta seis. La UI ofrece las seis siempre
-   (`OrdenesProduccion.tsx:33-42`). **Consecuencia:** en local, marcar "Patronaje" en una orden de
-   muestra devuelve *"Etapa inválida"*. El desarrollo de modelos no se puede seguir fuera de producción.
+2. **Insumos ya existe en producción, con una forma que no coincide con ningún
+   archivo de este repo — y sin conectar todavía con el costo de la corrida.**
+   `retail.insumos` (`codigo`, `nombre`, `tipo`, `unidad_medida`, `proveedor_id`,
+   `merma_pct`, `stock_minimo`, `archivado_at`, `nota`) y las funciones
+   `recibir_insumo`, `ajustar_insumo_por_conteo` **existen en producción**
+   (verificado 2026-09-17), pero no en `supabase/migrations/` de esta rama ni de
+   `main` — es el mismo patrón que ya le pasó una vez a `produccion_del_taller`
+   (ADR-0051): se escribió y aplicó sin dejar el `.sql` en git. Y aunque existiera
+   acá, sería una implementación **distinta** a la que se ve en el worktree
+   `cayla-invoices-module-review-451aa5` (`insumos.unidad`/`activo`, funciones
+   `recibir_insumos`/`registrar_consumo_insumos` — nombres y columnas distintos):
+   hay al menos tres versiones de "insumos" dando vueltas y ninguna es la otra.
+   **Lo que sigue igual:** `cerrar_produccion` (ver arriba, cuerpo completo) no
+   llama nada de `insumos` — sigue recibiendo `costo_tela`/`costo_avios`/
+   `costo_maquila` como números sueltos. El catálogo de insumos existe; el puente
+   que D-47 pide entre "lo que se consumió" y "lo que costó la corrida" no. Ver
+   `10-ROADMAP-DATOS.md`, Prioridad 2 — que describe esto como "no construido
+   todavía", y tampoco es exacto.
 
-3. **`productos.material` solo existe en producción.** `unificacion/11:17`. La pantalla la pide en
-   `apps/web/app/(app)/produccion/page.tsx:50` y `:55`. **Consecuencia:** contra el Postgres local esa
-   consulta falla por columna inexistente, `exigir` lanza, y el tablero del Taller no abre en local.
+3. **No existe la referencia de maquila externa que D-31 exige.** `costo_maquila` es
+   el gasto real tercerizado de esa corrida, no una cotización de comparación. No hay
+   tabla, columna ni pantalla que guarde "cuánto me cobraría un taller de afuera por
+   esta prenda". **Consecuencia:** la mitad del criterio de medición del Taller
+   (D-31) sigue sin dónde guardarse. (Sin cambios respecto a la revisión anterior.)
 
-4. **Cada muestra cerrada queda como alarma permanente.** `cerrar_produccion` se niega a meter una
-   muestra al inventario a propósito (`0029_orden_produccion.sql:101-110`), así que queda
-   `estado='terminado'` con `inventariado_at` en null. Pero `apps/web/lib/taller.ts:72-74` y
-   `apps/web/lib/pendientes.ts:158-160` filtran exactamente esa combinación como "producción terminada
-   sin inventariar", sin excluir `es_muestra`. **Consecuencia:** el Inicio del Taller y la bandeja de
-   pendientes del Líder acumulan una alarma roja por cada muestra que el Taller desarrolló, y nadie
-   puede apagarla. Una bandeja que miente se deja de mirar.
+4. **No existe la medición de eficiencia del Taller que D-31 pide** ("lo que gastó
+   contra lo que absorbió en las prendas que produjo"). `grep -rn "eficiencia"
+   apps/web` sigue sin devolver nada. (Sin cambios respecto a la revisión anterior.)
 
-5. **El costo real del cierre nunca llega a la prenda.** `registrar_produccion` escribe
-   `variantes.costo` con el costo **estimado de apertura** (`0029:246-258`). `cerrar_produccion`
-   recalcula `producciones.costo_unitario` con el costo real y las prendas buenas
-   (`0029:130-138`) y **no toca `variantes.costo`**. **Consecuencia:** D-31 dice *"el costo real de
-   producción se pega a la prenda y viaja con ella"* — hoy viaja el estimado. Si la corrida costó
-   más o salieron menos buenas, el margen de cada venta de ese modelo está mal y nada lo avisa.
+5. **Nada de lo que fabrica el Taller llega al libro contable.** Ninguna RPC de este
+   módulo llama a `registrar_asiento`. (Sin cambios respecto a la revisión anterior —
+   D-35 sigue sin empezar por acá.)
 
-6. **El precio de transferencia interno está vivo, y D-31 lo descarta explícitamente.**
-   `variantes.precio_taller` (`0024_produccion_costeo.sql:11`), `producciones.precio_taller`
-   (`0026:11`), el semáforo de `OrdenesProduccion.tsx:54-61` y las etiquetas *"Precio a tienda (c/u)"*
-   (`:610`) y *"Deja para taller"* (`:421`). **Promesa incumplida, con cita:** `0024_produccion_costeo.sql:10`
-   dice *"Precio al que el Taller le vende a las tiendas (paridad competitiva), por variante"*.
-   D-31: *"El Taller NO le vende a las tiendas"* y *"Descartado explícitamente: el precio de
-   transferencia interno (lo fija Felipe, así que el resultado también lo fijaría Felipe)."*
-   **Consecuencia:** el semáforo verde/ámbar/rojo que el Taller mira todos los días mide un margen
-   contra un precio que Felipe inventó — exactamente el circuito cerrado que D-31 prohíbe.
+6. **La pantalla es más estricta que la base sobre quién entra a Producción — ver
+   "Quién ve y quién toca".** No es un hueco de seguridad (el candado real sigue en
+   la RPC), pero es una asimetría reciente (2026-09-17) que vale la pena que quien
+   toque este módulo conozca antes de "corregirla" sin saber que fue a propósito.
 
-7. **No existe la referencia de maquila externa que D-31 exige.** `costo_maquila` es el gasto real
-   tercerizado de esa corrida, no una cotización de comparación. No hay tabla, columna ni pantalla
-   que guarde "cuánto me cobraría un taller de afuera por esta prenda". **Consecuencia:** la mitad
-   del criterio de medición del Taller (D-31) no tiene dónde guardarse.
-
-8. **No existe la medición de eficiencia del Taller.** D-31 la define como *"lo que gastó contra lo
-   que absorbió en las prendas que produjo"*. `grep -rn "eficiencia" apps/web` no devuelve nada.
-   **Promesa incumplida, con cita:** la cabecera de `0024_produccion_costeo.sql:4-7` dice *"La mano
-   de obra y los gastos del taller son costos de producción FIJOS del mes → van al resultado mensual
-   del Taller"*. Ese resultado mensual del Taller no se calcula en ninguna parte.
-
-9. **El inventario de insumos de D-47 no existe.** `bom_items` es una calculadora, no stock: no
-   descuenta tela al cortar ni avisa cuando falta. **Promesa incumplida, con cita:**
-   `0024_produccion_costeo.sql:17-18` — *"NO es inventario de insumos (eso quedó para después): es
-   una calculadora honesta."* **Consecuencia:** `costo_tela` lo teclea una persona en el formulario.
-   Si se equivoca en un cero, el costo de la prenda y el margen quedan mal y no hay nada contra qué
-   contrastarlos. D-47 es la condición para que D-31 sea medición y no estimación.
-
-10. **La receta y la producción calculan costo por caminos separados que no se hablan.** La receta
-    (`RecetaCosto.tsx`) suma insumos × precio + mano de obra y la aplicas con un botón;
-    `registrar_produccion` pide tela y avíos a mano y pisa `variantes.costo` con lo suyo.
-    **Consecuencia:** el que aplicó la receta ayer ve su costo borrado por la corrida de hoy, sin
-    aviso. **Promesa incumplida, con cita:** `0018_produccion.sql:3` dice *"costo calculado por
-    receta (sin inventario de insumos aún)"*; la receta nunca entra en el cálculo real.
-
-11. **Cuatro escrituras directas a tabla en `RecetaCosto.tsx`** (`:49`, `:64`, `:70`, `:77`). La de
-    `:77` hace `update variantes set costo` filtrando por `producto_id`: **reescribe el costo de
-    todas las variantes del modelo a la vez**, incluidas las de prendas ya vendidas, sin movimiento
-    ni fecha. **Consecuencia:** el costo histórico se puede reescribir sin dejar rastro, que es lo
-    contrario de D-21/D-22.
-
-12. **`registrar_produccion` no es idempotente.** `registrar_venta` tiene `p_token` desde la `0054`
-    (ADR-0032/0033); `registrar_produccion` no tiene nada. **Consecuencia:** un reintento por red
-    lenta abre una segunda corrida con el mismo costo; y si el formulario venía con
-    `p_marcar_terminado` marcado, las mismas prendas entran dos veces al stock. **Promesa
-    incumplida, con cita:** `0027_produccion_variantes_inventario.sql:11-12` dice *"Idempotencia:
-    `producciones.inventariado_at` evita que un doble clic sume el stock dos veces"*. Es cierto para
-    el **cierre**; es falso para la **apertura con cierre inmediato**, que es el camino que más usa
-    el Taller.
-
-13. **La producción entra al piso de venta, no al almacén (contra D-42).** `cerrar_produccion` inserta
-    el movimiento sin `contenedor_id` (`0029:140-148`), así que `fn_aplicar_movimiento`
-    (`0045_ajuste_con_signo.sql:127-143`) lo rutea a `stock`, no a `stock_almacen`.
-    **Consecuencia:** D-42 dice *"la mercadería nueva entra al almacén, y de ahí se baja al piso"*.
-    Las 80 prendas recién cosidas aparecen como exhibidas en el Taller, que no tiene piso de venta.
-
-14. **Nada de lo que fabrica el Taller llega al libro contable.** Las cuentas `211` "Productos
-    terminados (Taller)" y `231` "Productos en proceso" existen desde
-    `0020_contabilidad_cimientos.sql:56-57`, y ninguna RPC de este módulo llama a `registrar_asiento`.
-    **Consecuencia:** el mayor tiene los cajones vacíos con el nombre puesto. D-35 (que el libro se
-    llene solo) no empieza por aquí.
-
-15. **`ordenes_produccion` está muerta pero sigue amarrada al riel de recepción, y distinto en cada
-    base.** `lotes.orden_produccion_id` existe solo en local (`0018`); `retail.lotes`
-    (`unificacion/05_operacion.sql:165-177`) no la tiene, y `retail.recibir_lote`
-    (`unificacion/14`) no acepta `p_orden_produccion_id`. `RecibirLoteForm.tsx:436` sí lo manda.
-    **Consecuencia:** hoy no explota solo porque la lista de producciones pendientes está vacía a
-    propósito (`inventario/recibir/page.tsx:67`). El día que alguien la llene, "recibir ligado a una
-    producción" falla en producción y funciona en local — el mismo patrón de ADR-0004. Ojo con el
-    comentario de `inventario/recibir/page.tsx:61-63`: dice *"`lotes` no tiene columna para ligar una
-    producción nueva"*, y eso es cierto en producción y falso en local.
-
-16. **Producción no tiene índices ni el check de `cantidad > 0`.** `unificacion/06_contabilidad_produccion.sql`
-    no crea `producciones_unidad_idx` ni los otros dos, y declara `cantidad integer not null` sin
-    check. **Consecuencia:** el tablero del Taller escanea la tabla entera en cada render, y la base
-    real acepta una corrida de 0 o de −5 prendas que la base de pruebas rechaza. Lo mismo con el
-    check de `ordenes_produccion.etapa`, que existe solo en local.
-
-17. **Columnas muertas dentro de una tabla viva:** `producciones.variante_id` (resto de la `0024`,
-    ningún RPC la llena desde la `0026`) y `producciones.fecha` (nadie la escribe fuera del default,
-    nadie la lee). Siguen vivas porque tocarlas es tocar el núcleo. **Consecuencia:** quien lea el
-    esquema sin este documento va a creer que una corrida tiene una variante y una fecha propias.
+**Resueltos desde la revisión anterior (2026-09-12), y por qué ya no aparecen
+arriba:** el drift de 15-vs-16 argumentos de `registrar_produccion` (la función no
+existe más); las 6 etapas solo en producción (mismo archivo en las dos bases ahora);
+`productos.material` requerido por la pantalla en local (no existe en el esquema V2,
+ninguna pantalla lo pide); la alarma permanente de muestras cerradas en
+`pendientes.ts` (el archivo no existe); las cuatro escrituras directas de
+`RecetaCosto.tsx` y la policy `producciones_all_lider` (ambas desaparecieron); la
+falta de idempotencia en la apertura (`token_cliente`); el precio de transferencia
+interno `precio_taller` contradiciendo D-31 (la columna no existe, y el semáforo de
+margen en `produccion-reglas.ts` ahora compara contra el precio de venta real, no
+contra un precio inventado); la producción entrando al piso de venta en vez del
+almacén (D-42 — ahora entra a `almacen_tienda`); `ordenes_produccion` muerta pero
+amarrada a `recibir_lote` (la tabla no existe, y el `recibir_lote` de V2 nunca tuvo
+ese parámetro); las columnas muertas `producciones.variante_id`/`fecha` (no existen
+en la tabla V2, que se creó desde cero).
 
 ## Materia prima del Taller (D-47) — esquema huérfano de producción, adoptado 2026-09-17
 
 Primera versión construida hoy desde cero (commit `fd3488f`), descartada el mismo día
 al descubrir que producción ya tenía un esquema para esto — huérfano, 0 filas, sin
 código de `apps/web` que lo use, del volcado de unificación con Dynamic de julio-2026.
-Felipe decidió adoptarlo tal cual en vez de seguir con el diseño propio. `ADR-0074`
+Felipe decidió adoptarlo tal cual en vez de seguir con el diseño propio. `ADR-0078`
 tiene la historia completa y la verificación; acá solo el estado actual. Resuelve el
 hueco 9: hasta acá, `costo_tela`/`costo_avios` eran montos tecleados sin nada real
 detrás.
@@ -415,7 +375,7 @@ detrás.
 **Migraciones:** `supabase/migrations/20260917140000_insumos_taller_reconstruido.sql`
 (SOLO local — recrea lo que producción ya tiene, para poder desarrollar contra algo
 real sin tocar producción; reconstruido de forma independiente por dos sesiones el
-mismo día, ver ADR-0074 "Reconciliación") +
+mismo día, ver ADR-0078 "Reconciliación") +
 `supabase/migrations/20260917141500_registrar_consumo_insumo.sql` (la única pieza
 nueva de verdad; migración normal, SÍ pendiente de aplicar en producción). Usa
 `ubicacion_id`/`fn_puede_operar_ubicacion` (el modelo real, ver nota al inicio de este
@@ -428,7 +388,7 @@ versión de hoy).
 | `insumos` | local (espejo) y producción | Catálogo: `codigo`, `nombre`, `tipo` (`tela`\|`avio`), `unidad_medida` (`metro`\|`unidad`\|`kilo`\|`cono`\|`par`\|`docena`), `proveedor_id`, `merma_pct`, `stock_minimo`, `archivado_at` | Hermana de `productos`, nunca entra a `variantes`. Select autenticado, insert/update líder (policies `insumos_select_autenticado`/`insumos_insert_lider`/`insumos_update_lider`, verificadas contra producción) — sin policy de DELETE, se archiva. |
 | `insumo_lotes` | local (espejo) y producción | Una fila por ENTRADA: `insumo_id`, `ubicacion_id`, `codigo_lote`, `proveedor_id`, `cantidad_ingresada`, `costo_unitario`, `documento`, `fecha_ingreso`, `origen` (`compra`\|`saldo_inicial`) | Seguimiento por lote, no un promedio global — la diferencia principal contra el diseño descartado. Unique parcial `(insumo_id, codigo_lote) where codigo_lote is not null`. Solo `select` vía RLS (`fn_puede_operar_ubicacion`); se escribe solo por RPC. |
 | `movimientos_insumo` | local (espejo) y producción | Historial append-only: `tipo` (`compra`\|`consumo`\|`devolucion`\|`merma`\|`ajuste`), `cantidad`, `costo_unitario`, `insumo_lote_id`, `produccion_id`, `usuario_id`, `motivo` | `produccion_id` liga consumo↔corrida directo — no existe (ni hace falta) una tabla puente tipo `produccion_insumos`: el constraint `movimientos_insumo_produccion_segun_tipo` ya exige ese vínculo para `consumo`/`devolucion` y lo prohíbe para el resto. Solo `select` vía RLS; se escribe solo por RPC. |
-| `v_insumo_saldos` | local (espejo) y producción | Vista: `sum` de `movimientos_insumo` con signo, agrupado por insumo+ubicación → `fisico`, `valor` | Stock derivado, nunca una tabla a mano. **Sin `security_invoker`** (confirmado contra producción) — si algún día una pantalla la consulta directo con la sesión del usuario, no filtra por ubicación (el dueño de la vista tiene `BYPASSRLS`). Hoy inerte (0 filas, solo la consultan funciones `security definer`), pero real — ver ADR-0074. |
+| `v_insumo_saldos` | local (espejo) y producción | Vista: `sum` de `movimientos_insumo` con signo, agrupado por insumo+ubicación → `fisico`, `valor` | Stock derivado, nunca una tabla a mano. **Sin `security_invoker`** (confirmado contra producción) — si algún día una pantalla la consulta directo con la sesión del usuario, no filtra por ubicación (el dueño de la vista tiene `BYPASSRLS`). Hoy inerte (0 filas, solo la consultan funciones `security definer`), pero real — ver ADR-0078. |
 
 **RPC (`security definer`, `fn_puede_operar_ubicacion` como candado, `EXECUTE` revocado
 de `PUBLIC`):**
@@ -437,7 +397,7 @@ de `PUBLIC`):**
 |---|---|---|---|
 | `recibir_insumo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad numeric, p_costo_total numeric, p_codigo_lote text default null, p_proveedor_id uuid default null, p_documento text default null, p_origen text default 'compra', p_nota text default null) returns uuid` | Entrada de materia prima: crea el lote y su movimiento `compra` gemelo. Devuelve el id del lote. |
 | `ajustar_insumo_por_conteo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad_contada numeric, p_motivo text) returns uuid` | Ajuste por conteo físico: compara contra `v_insumo_saldos`, inserta un `movimientos_insumo` tipo `ajuste` con la diferencia (con motivo obligatorio). Sin diferencia, no inserta nada (`returns null`). |
-| `registrar_consumo_insumo` | **solo local — pendiente en producción** | `(p_produccion_id uuid, p_insumo_id uuid, p_cantidad numeric, p_nota text default null) returns uuid` | La pieza nueva: consumo real al cortar. Elige el lote MÁS ANTIGUO con saldo > 0 (`for update` sobre esa fila — no hay tabla de stock que bloquear en este esquema), recalcula su saldo después del lock, y NO parte el consumo entre lotes (rechaza con el saldo exacto si no alcanza). **Exige `producciones.estado = 'en_proceso'`** — se registra antes de cerrar, nunca después. Recalcula `producciones.costo_tela`/`costo_avios` (según `insumos.tipo`) sumando el consumo real de esa producción, pero solo el campo cuyo tipo tuvo al menos una fila. También bloquea `producciones` desde el inicio (protege el recálculo de costo de una carrera entre dos consumos concurrentes de la misma corrida). Ver ADR-0074 para los 10 escenarios verificados, incluida concurrencia real con dos procesos. |
+| `registrar_consumo_insumo` | **solo local — pendiente en producción** | `(p_produccion_id uuid, p_insumo_id uuid, p_cantidad numeric, p_nota text default null) returns uuid` | La pieza nueva: consumo real al cortar. Elige el lote MÁS ANTIGUO con saldo > 0 (`for update` sobre esa fila — no hay tabla de stock que bloquear en este esquema), recalcula su saldo después del lock, y NO parte el consumo entre lotes (rechaza con el saldo exacto si no alcanza). **Exige `producciones.estado = 'en_proceso'`** — se registra antes de cerrar, nunca después. Recalcula `producciones.costo_tela`/`costo_avios` (según `insumos.tipo`) sumando el consumo real de esa producción, pero solo el campo cuyo tipo tuvo al menos una fila. También bloquea `producciones` desde el inicio (protege el recálculo de costo de una carrera entre dos consumos concurrentes de la misma corrida). Ver ADR-0078 para los 10 escenarios verificados, incluida concurrencia real con dos procesos. |
 
 **No conectado todavía:** `NuevaOrdenProduccionForm.tsx` sigue mandando `costo_tela`/
 `costo_avios` tecleados a `abrir_produccion`, sin pasar por `recibir_insumo`/
@@ -447,18 +407,39 @@ columna existe, la lectura no se construyó.
 
 ## Decisiones que lo gobiernan
 
-- **D-31** — El Taller se mide por costo absorbido + referencia de maquila, nunca por precio de transferencia interno. Hoy el esquema hace lo contrario (huecos 5, 6, 7, 8).
-- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y avisa cuando falta. **Esquema huérfano de producción adoptado 2026-09-17** (hueco 9 cerrado en local — ver sección "Materia prima del Taller" arriba y ADR-0074; falta pegar en producción solo `registrar_consumo_insumo` y conectar la pantalla). Es la condición para que D-31 sea medición.
-- **D-15** — El Taller es una sede con poderes especiales. Aquí se ve en que `unidad_id` apunta a `sedes` como cualquier tienda.
-- **D-16** — Cada tabla dice en qué base existe, y cada diferencia va en su fila.
-- **D-07** — `ordenes_produccion` y las columnas muertas van marcadas con el motivo por el que siguen vivas.
-- **D-12** — Los cuatro niveles de permiso. En este módulo la base solo conoce dos, y Solo lectura no existe.
-- **D-42** — La mercadería nueva entra al almacén. La producción entra al piso (hueco 13).
-- **D-45** (abierta) — Un solo costo por variante, el nuevo pisa al viejo. Aquí se ve crudo: cada corrida reescribe `variantes.costo` de todas las tallas del modelo.
-- **D-35** — El libro contable se llena solo, por etapas. Producción todavía no aporta ningún asiento (hueco 14).
-- **D-24** — Las promesas incumplidas se documentan con la cita de dónde se prometen. Aquí hay seis.
-- **ADR-0004** — `recibir_lote` divergió en la unificación; es la raíz del hueco 15.
-- **ADR-0026** — Una sola firma por función, y cómo se sabe qué corrió en producción. Explica por qué el drift de `p_material` es peligroso y por qué `unificacion/31` quedó desactualizado.
-- **ADR-0010** — El entorno local vive en `public` y producción en el schema `retail`; por eso cada archivo de `unificacion/` califica con `retail.`.
-- **ADR-0022** — Los errores de escritura hablan idioma CAYLA: `OrdenesProduccion.tsx` pasa cada error por `traducirError`.
-- **ADR-0032 / ADR-0033** — Idempotencia de `registrar_venta` con token. Es el patrón que `registrar_produccion` todavía no adopta (hueco 12).
+- **D-31** — El Taller se mide por costo absorbido + referencia de maquila, nunca por
+  precio de transferencia interno. `precio_taller` ya no existe (resuelto); la
+  referencia de maquila y la eficiencia siguen sin construirse (huecos 3 y 4).
+- **D-45** — Costeo del inventario. Estaba **abierta** en `DECISIONES-2026-09-12.md`;
+  el 2026-09-16 se decidió **promedio ponderado**, y al 2026-09-17 ya está aplicado
+  en local **y en producción** (hueco 1, resuelto). `10-ROADMAP-DATOS.md` todavía la
+  describe como abierta — desactualizado en ese punto específico.
+- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y
+  avisa cuando falta. **Resuelto en local 2026-09-17** (hueco 9 cerrado): el esquema
+  huérfano de producción se adoptó tal cual (catálogo + recepción + ajuste por
+  conteo, ya en producción desde julio) y se construyó la pieza que faltaba,
+  `registrar_consumo_insumo` — ver sección "Materia prima del Taller" arriba y
+  ADR-0078. Falta pegar esa única función en producción y conectar la pantalla.
+- **D-15** — El Taller es una ubicación con poderes especiales: ahora modelado de
+  verdad con `ubicaciones.tipo = 'taller'`, no solo por convención de nombre como en
+  V1.
+- **D-42** — La mercadería nueva entra al almacén, no al piso. Resuelto para este
+  módulo: `cerrar_produccion` entra a `almacen_tienda`.
+- **D-16 / D-07** — Cada tabla dice en qué base existe; lo que se borra se documenta
+  con el motivo. `bom_items` y `ordenes_produccion` pasaron de "muerto pero vive" a
+  "borrado, sin sucesor todavía" — este documento es el registro de ese paso.
+- **D-12** — Los cuatro niveles de permiso. Este módulo sigue conociendo solo dos
+  (Líder / Colaborador).
+- **D-24** — Las promesas incumplidas se documentan con la cita de dónde se
+  prometen.
+- **ADR-0051** — La decisión completa de esta reconstrucción: por qué sobre V2 y no
+  resucitando V1, por qué las variantes no nacen desde una orden, y la lista de "lo
+  que la base vuelve imposible" que este documento reorganiza por tabla.
+- **ADR-0067 / ADR-0072** — Costo de variante a promedio ponderado, y por qué el
+  vocabulario se porta pero no se fusiona entre V1 y V2 (explica por qué no se
+  intentó "reconciliar" nombres viejos y nuevos en este módulo).
+- **ADR-0032 / ADR-0033** — Idempotencia por token, el patrón que `abrir_produccion`
+  ya adoptó (a diferencia de `registrar_produccion`, que nunca lo tuvo).
+- **ADR-0078** — Inventario de insumos del Taller: por qué se adoptó el esquema
+  huérfano de producción en vez de un diseño nuevo, y la reconciliación entre dos
+  sesiones que llegaron a la misma reconstrucción por separado el mismo día.

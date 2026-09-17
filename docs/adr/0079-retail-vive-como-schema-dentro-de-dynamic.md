@@ -1,4 +1,4 @@
-# ADR-0075 — Retail vive como schema dentro del proyecto de Dynamic
+# ADR-0079 — Retail vive como schema dentro del proyecto de Dynamic
 
 **Fecha:** 2026-09-17
 **Estado:** Decisión tomada y ejecutada en producción en julio de 2026, confirmada

@@ -60,7 +60,7 @@ function accionComprobante(
 ) {
   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
   const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
-  // ADR-0077: solo "pendiente" — nunca se transmitió a SUNAT, así que liberar el
+  // ADR-0081: solo "pendiente" — nunca se transmitió a SUNAT, así que liberar el
   // correlativo no le avisa nada a nadie. Un "rechazado" SÍ llegó a SUNAT y tiene
   // una respuesta real: su único camino sigue siendo reintentar "Transmitir" con
   // el mismo número, no una segunda salida acá.
@@ -220,7 +220,7 @@ export function ComprobantesPanel({
     setModal("anular");
   }
 
-  // Liberar un "pendiente" que nunca se transmitió (ADR-0077). A diferencia de
+  // Liberar un "pendiente" que nunca se transmitió (ADR-0081). A diferencia de
   // anular, esto NUNCA habla con Lucode/SUNAT — el número no se reutiliza, solo
   // deja de contar como pendiente — así que es una RPC directa desde el cliente
   // (mismo patrón que `onEmitir`/`onRegistrarSerie` en este mismo componente, no
@@ -799,7 +799,7 @@ export function ComprobantesPanel({
         </Modal>
       )}
 
-      {/* ==================== Modal: liberar (ADR-0077) ==================== */}
+      {/* ==================== Modal: liberar (ADR-0081) ==================== */}
       {modal === "liberar" && liberando && (
         <Modal titulo="Liberar comprobante" onClose={cerrarModal}>
           {(cerrar) => (

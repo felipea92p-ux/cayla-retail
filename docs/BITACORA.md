@@ -3,6 +3,199 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (aún más tarde) — "Nuevo producto": la pista pegada a la etiqueta
+
+Felipe mostró una captura de producción: "DESCRIPCIÓNOPCIONAL", "PRECIO BASESE
+APLICA A TODA LA MATRIZ" y "COSTO BASEOPCIONAL" en `/productos/nuevo` — la
+etiqueta en versalitas y su pista quedaban pegadas sin espacio. Causa raíz:
+`Campo.ayuda` (`apps/web/components/ui/campos.tsx`, v3.1) es el slot
+reservado para el botón `<Ayuda>` ("!"), que trae su propio margen (`ml-1`) —
+`NuevoProductoForm.tsx` era el único lugar del repo que le pasaba texto plano
+("Opcional", "Se aplica a toda la matriz") en vez de un botón. El slot
+correcto para un hint de una línea bajo el campo es `pie`, que ya reserva su
+propio alto y tipografía normal — no hacía falta tocar el componente
+compartido, solo dejar de usarlo mal. Verificado con una reproducción
+aislada (HTML estático, sin tocar la app) porque el Postgres local
+compartido tiene drift de esquema (`categorias.tallas_sugeridas` no existe
+ahí) y un `db reset` para probarlo en vivo habría afectado otras sesiones en
+paralelo — no se tocó esa base. `pnpm --filter web typecheck` limpio.
+Mergeado a producción de una vez, a pedido explícito de Felipe (fix de una
+línea × 3 campos, sin esquema ni dinero de por medio): [[pull request #90]].
+
+Aparte, hallazgo de sesión: el worktree donde Felipe pidió esto
+(`produccion-inmediata-617a3b`) estaba 565 commits detrás de `main` —
+describía el ERP de antes de la reescritura V2 del 12-sep. El fix real se
+hizo en un worktree nuevo partido de `main` al día. Vale la pena una poda de
+los ~65 worktrees viejos bajo `.claude/worktrees/` — la mayoría en la punta
+de commits ya mergeados hace días, puro peso muerto en el checkout.
+
+## 2026-09-17 (más tarde) — "Liquidada" pasó a ser una venta real
+
+Objeción planteada al cerrar la entrada de abajo ("¿Liquidada debería ser una venta o
+solo una etiqueta?"), respondida por Felipe sin ambigüedad: "se tiene que tomar en cuenta
+liquidación como una venta, totalmente". Construida aparte de `resolver_prenda_danada`
+(que ahora solo acepta Se botó/Donada): `liquidar_prenda_danada` inserta
+`ventas`/`venta_items`/`venta_pagos` con la misma forma que `registrar_venta`, exige caja
+abierta, y no valida el precio contra el costo (a diferencia de un descuento normal — es
+mercadería dañada, recuperar algo por debajo del costo es la realidad, no un error). Sin
+comprobante por ahora, a propósito — no se le pidió, y `registrar_venta` ya trata "sin
+comprobante" como un camino completo. Verificado en local: liquidé una prenda a S/25
+(precio de catálogo S/99.90 precargado como referencia, no como piso), la venta quedó en
+Caja y en Movimientos exactamente como cualquier otra venta ("Cuarentena → Clienta · Sin
+comprobante"). Aprendizaje operativo: tras corregir la lógica de negocio, valía la pena
+revisar también CÓMO se ve en pantalla — la fila era correcta en la base antes de tocar
+`movimientos-reglas.ts`, pero se leía distinto a una venta normal, lo que hubiera
+contradicho la propia decisión de tratarla como una.
+
+Sobre `devolver_proveedor` (mismo bug de "desaparece sin rastro" que tenía Dañado, se le
+nombró a Felipe junto con la objeción de arriba): confirmó que no es prioridad ahora,
+"lo manejarán de otra manera" — queda sin tocar, es su decisión, no una tarea pendiente.
+
+## 2026-09-17 (noche) — "Dañado"/Cuarentena: construido completo, con un límite explícito
+
+Felipe corrigió, el mismo día, la decisión de la entrada de abajo: "no la satures de
+funciones" no era "no construyas nada" — lo único pendiente era la EDITABILIDAD de los
+3 estados desde un futuro panel de administrador, no los 3 estados en sí ("ahora mismo
+necesito los 3 estados"). Se construyó completo: `cuarentena` como tercer tipo de
+sububicación (solo tiendas); `aprobar_devolucion` mueve ahí `danada_reparacion`/
+`danada_donar` en vez de hacerlas desaparecer; tabla `retail.prendas_danadas` + RPC
+`resolver_prenda_danada` (solo líder, mismo criterio que `cerrar_conteo`) resuelven cada
+una como Liquidada/Se botó/Donada — fijos en un `check`, no en una tabla editable, esa
+parte sigue en 🔖 Pendientes Benja. Existencias reemplazó la tarjeta "Piden atención" por
+"Dañado" sin tocar el semáforo de piso/almacén (son ejes distintos). Decisión propia,
+marcada para confirmar: "Liquidada" es una etiqueta + nota, NO una venta — no pasa por
+caja ni SUNAT; si Felipe quiere que sí lo sea sería un cambio de dinero real aparte, con
+su propio "detente y confirma". Verificado en vivo en local: devolución dañada → aparece
+en Existencias → se resuelve → sale del stock con movimiento auditable en Movimientos.
+Producción queda sin tocar (migración + script de activación listos, sin aplicar).
+Aprendizaje operativo (no de negocio): otra sesión concurrente reseteó la base local
+compartida a mitad de la verificación — mismo riesgo ya documentado de sesiones
+paralelas, resuelto re-corriendo `db reset` desde este worktree.
+
+## 2026-09-17 ("Dañado" — decisión tomada, construcción a propósito pendiente)
+
+Felipe decidió la Opción A para reemplazar "Piden atención" por "Dañado": una
+sububicación `cuarentena` (tercer tipo, junto a piso_venta/almacen_tienda), reusando la
+misma maquinaria de stock que ya prueban esos dos. Investigado antes de proponer:
+"dañado" hoy es solo un `condicion` en `devolucion_items` en el momento de una
+devolución — `aprobar_devolucion` no escribe ningún movimiento para esos casos, la
+prenda simplemente desaparece de cualquier lectura de stock. Al decidir, Felipe agregó
+un requisito nuevo (historial + estado de salida: Liquidada/Se botó/Donada) y pidió
+explícitamente NO construir nada de esto todavía — ni la sububicación ni el historial —
+solo dejarlo anotado para revisar con Benja antes de tocar `aprobar_devolucion`/Merma
+(mercadería y dinero real). Registrado en `docs/adr/0071-...md` ("Decisión sin construir
+2026-09-17") y en `docs/BACKLOG.md`, sección nueva "🔖 Pendientes Benja" — una cola
+separada a propósito, para decisiones de negocio que esperan conversación antes de
+volverse código. Aprendizaje: "decido la opción A" no siempre significa "constrúyela
+ya" — en el mismo mensaje puede venir el motivo para esperar.
+
+## 2026-09-17 (Mover mercadería: el campo de cantidad no dejaba borrar para escribir de nuevo)
+
+Bug real reportado por Felipe probando Traslados: el input de cantidad (`MoverMercaderiaFormV2.tsx`)
+estaba controlado con `onChange={(e) => ... Number(e.target.value) || 1 ...}` — al borrar el campo,
+`Number("") || 1` volvía a "1" en la MISMA tecla, así que nunca se podía vaciar para escribir un
+número nuevo. Se corrigió con el mismo patrón que ya usaba `ConteoPanel.tsx`: la cantidad es texto
+mientras se escribe (sin coerción en el `onChange`), y el tope de stock se aplica recién en `onBlur`
+y otra vez al enviar — nunca a mitad de tecla. Encontrado el mismo patrón roto en otros 4
+formularios (Recibir, Cambios, Devoluciones, Compras) — no se tocaron (Felipe solo reportó este),
+quedó como tarea aparte sugerida.
+
+## 2026-09-17 (Existencias con datos reales en producción: 16 productos nuevos + 3 correcciones de semáforo)
+
+Dos pasos seguidos, ambos con Felipe mirando producción en vivo.
+
+**Primero (16-sep tarde, sin registrar hasta ahora):** Felipe pidió limpiar el catálogo
+de práctica de producción (6 productos ya `descontinuado`/`inactivo`, con 305
+movimientos y 5 ventas de prueba) para poder validar operaciones reales él mismo. No se
+pudo "eliminar todo" tal cual lo pidió — `movimientos` tiene un trigger que bloquea
+cualquier DELETE/UPDATE, a propósito, para que una venta real nunca pueda desaparecer;
+se verificó primero que las 5 ventas de producción eran 100% de práctica (ninguna real
+en juego) y se le explicó por qué el borrado total no es posible por diseño, no por
+elección. Sí se limpiaron 109 filas de `stock` en cero (snapshot, sin historial) que
+seguían apareciendo en Existencias. Se sembraron 15 productos nuevos (45 variantes, 445
+unidades) repartidos entre Taller/Tienda TRU/Tienda AQP vía `crear_producto_con_variantes`
+y `movimientos` con `motivo='carga_inicial'` — mismo mecanismo que `supabase/seed.sql`,
+porque el MCP de Supabase no lleva `auth.uid()` y la RPC exige `fn_es_lider()`. Todo el
+stock nuevo entró al almacén, nunca al piso, para que "Reponer piso" fuera la primera
+operación manual real de Felipe. Encontrado en el camino: los productos nuevos quedan con
+`sku` null (el trigger de la base solo llena `codigo`, ninguna RPC llena `sku`) —
+corregido a mano para estos 16, y otra sesión ya lo está resolviendo de raíz en el código
+(`11d4cdc`/`54ddf58`/`55dc78d`).
+
+**Después (17-sep, probando la pantalla con esos datos reales):** tres correcciones más,
+documentadas completas en ADR-0071 sección "Corrección 2026-09-17": umbral de "Stock
+bajo" de 20 a 10 (con 20, cualquier lote chico de boutique caía ahí de entrada); el botón
+"Reponer" vuelve a ser independiente del chip de estado (`necesitaReponerPiso()`, retirada
+el 16, revive) — pedir traslado y reponer lo que quede no se excluyen; y un bug real (no
+solo confusión) en la tarjeta "Piden atención": el número sumaba `reponer_piso +
+stock_bajo` pero su propio texto de abajo ya incluía "sin stock" — la tarjeta se
+contradecía a sí misma. Se agregó además "Blusa Valeria" (color Lila, Tienda TRU) con
+cantidades elegidas para mostrar de entrada los dos estados recién corregidos.
+Aprendizaje: probar un umbral con datos reales, no con la intuición de quien lo escribió,
+es la única forma de encontrar estos dos (el umbral y el acoplamiento chip↔botón) — los
+tests unitarios no los iban a atrapar porque probaban exactamente lo que el código ya
+hacía, no lo que Felipe esperaba ver.
+
+## 2026-09-17 (venta_precio_cambiado_sku_nulo: aplicada en producción con el MCP)
+
+Felipe dio el ok puntual para correr `20260916223000_venta_precio_cambiado_sku_nulo.sql`
+(la única migración que la auditoría de más abajo encontró genuinamente pendiente) — y
+pidió explícitamente que la corriera yo mismo, no que se la dejara para pegar a mano.
+Antes de aplicar: chequeo de sobrecargas de `retail.registrar_venta` (1 sola, firma
+idéntica a la migración — sin eso, `create or replace` arma un overload nuevo en vez de
+reemplazar, el mismo hueco que ya tuvo `registrar_cambio`/`aprobar_devolucion`,
+ADR-0009/0004). Aplicada con `apply_migration` del MCP de Supabase contra
+`vovjyyiafkxteijimpuy`. Verificado después, no antes: sigue con 1 sola sobrecarga, y
+`pg_get_functiondef` confirma que `v_sku` ya sale de
+`coalesce(v.codigo, v.sku, 'sin código')`, no del `select` original que rompía con
+`RAISE statement option cannot be null`. BACKLOG actualizado en sus dos secciones (la
+del bug original y la de la auditoría de hoy). Sin regenerar
+`docs/datos/generado/` — esta migración no agrega tabla/columna ni cambia la firma de
+`registrar_venta`, el diccionario sigue describiendo lo mismo.
+
+## 2026-09-17 (auditoría de migraciones pendientes: BACKLOG desactualizado en dos direcciones)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción.
+Cada una se verificó en vivo contra `vovjyyiafkxteijimpuy` (schema `retail`,
+`execute_sql`/`list_migrations` de solo lectura) — nunca contra BACKLOG/ADR, siguiendo
+[[commits-y-migraciones-en-produccion]]. Resultado: de ~69 archivos en
+`supabase/migrations/`, **una sola sigue pendiente de verdad**:
+`20260916223000_venta_precio_cambiado_sku_nulo.sql` (confirmado leyendo el cuerpo real
+de `retail.registrar_venta` con `pg_get_functiondef` — todavía arma `v_sku` con el
+`select` original, sin el `coalesce` del fix). El resto de lo que el propio BACKLOG
+tenía marcado "pendiente" —el SQL de colores proponer/aprobar (2026-09-16) y
+`numeracion_traslados_conteos`— **ya estaban aplicados**, y las 7 piezas de la ronda
+"NetSuite" (costo promedio ponderado, punto de reorden, conteo por alcance, traslados en
+dos fases, cambio/devolución exigen caja, anular venta, variantes identidad única)
+también, las 7 confirmadas por columna/función/índice real, dos de ellas ($registrar_cambio$/
+$registrar_venta$) por el cuerpo de la función, no solo por si existía. BACKLOG corregido
+en sus 3 secciones correspondientes (Inventario, Colores, y una sección nueva que resume
+la auditoría completa con las 4 migraciones que viven en producción sin archivo local —
+informativo, parches sueltos de Felipe, no bloquean nada). No se aplicó nada en
+producción: la única pendiente queda lista para pegar (prefijo `retail.`) esperando el ok
+puntual de Felipe — es una función `security definer` que corre en cada venta.
+
+## 2026-09-17 (Por pagar: la lista quedaba enterrada en celular)
+
+Felipe pidió hacer `/compras/por-pagar` más intuitivo. Verificado en navegador real
+(Chrome, local con datos sembrados), no solo código: en celular las 3 tarjetas de
+resumen (Deuda total/Vencido/Vence esta semana) se apilaban a ancho completo —el `grid`
+solo tenía `grid-cols-3` desde `sm:`, sin nada propio para celular— y el primer tramo de
+facturas recién aparecía a ~830px de scroll (medido con `getBoundingClientRect`, no a
+ojo): una pantalla entera de puro número antes de ver qué pagar. Ahora "Deuda total"
+ocupa las dos columnas de una grilla `grid-cols-2` siempre activa, Vencido/Vence esta
+semana se emparejan debajo — el tramo "Vencidas" entra en el primer viewport (744px)
+sin scrollear. Mismo arreglo en `FiltrosCompras.tsx` (compartido con `/compras`):
+Buscar a ancho completo, el resto de filtros (Proveedor/Vencimiento/Pago/Condición) se
+empareja de a dos en vez de apilarse uno por fila. De paso, "Vencido"/"Vence esta
+semana" pasan a ser enlaces (`#tramo-vencidas`/`#tramo-semana`, `scroll-mt-24` como ya
+usa `RecepcionCompraFormV2` contra la cabecera fija) que saltan directo a su tramo en la
+tabla — solo cuando hay algo detrás; con deuda en cero siguen siendo texto simple, no
+hay adónde saltar. Verificado en Chrome real a 375px y 1440px, en `/compras/por-pagar` y
+en `/compras` (el componente de filtros es compartido) para descartar regresión;
+`typecheck`/`lint`/293 tests en verde. Sin cambios de esquema ni de RPC — nada que
+aplicar en producción, es solo el `apps/web` desplegado.
+
 ## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
@@ -5252,6 +5445,22 @@ Postgres local compartido): antes de la fix revienta con el error de Postgres, d
 lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
 producción todavía — pendiente el ok de Felipe.
 
+## 2026-09-17 (Compras: listado, nueva factura y detalle sobre un mockup de referencia)
+
+Felipe pasó capturas de un ERP genérico ("Kipus", ajeno a CAYLA) como referencia de
+layout para Facturas de proveedores. Se tomó la estructura — KPIs con punto de estado,
+RUC y condición de pago visibles por fila, N.° de documento en su propia columna,
+secciones numeradas en "Registrar factura", arrastrar-y-soltar en adjuntos, barra de
+progreso por línea y acceso directo a "Recibir mercadería" en el detalle — y se aplicó
+sobre el brandbook real de CAYLA (crema/tinta/rojo, EB Garamond + DM Sans), nunca sobre
+los colores del mockup. A propósito NO se copiaron: el check de SUNAT dentro del
+formulario (ya vive al dar de alta al proveedor, ADR-0035), un estado "borrador" (no
+existe en el esquema) ni pestañas de navegación duplicadas (Felipe ya las había sacado
+del layout de Compras el 2026-09-16 a favor del grupo del lateral). Sin cambios de
+esquema ni de RPC: `compras/page.tsx`, `CompraFormV2.tsx`, `CompraDetalle.tsx`,
+`CompraDetallePanel.tsx`, `AdjuntosCompra.tsx`. Verificado en navegador (desktop,
+900px y móvil 375px) contra datos reales del seed local; `typecheck`/`lint` en verde.
+
 ## 2026-09-17 (Facturación: auditoría de flujo completo, sin código)
 
 Felipe preguntó qué le falta al módulo de Facturación (ventas/SUNAT, no facturas de
@@ -5314,22 +5523,22 @@ nunca `db reset`. Las 6 quedaron sin commitear y sin tocar BACKLOG/BITACORA/
 SESIONES-ACTIVAS — eso se centralizó al final, revisando cada diff antes de commitear.
 
 **Lo que quedó, tarea por tarea:** (1) `CerrarCajaModalV2`/`CajaAbiertaPanel.tsx` avisan
-y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0076; el agente
+y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0080; el agente
 encontró un segundo punto de montaje del modal (`CajaAbiertaPanel.tsx`) que no estaba en
 el encargo original y lo arregló ahí también, no solo en Vender. (2) Inventario de
-insumos del Taller — ADR-0074, migración local nueva — **pero con un hallazgo serio al
+insumos del Taller — ADR-0078, migración local nueva — **pero con un hallazgo serio al
 cerrar el día**: ya existe en producción un esquema huérfano y más completo
 (`retail.insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos`, 0 filas, del
 volcado de unificación de julio, con seguimiento por lote) que nadie sabía que existía —
 choca de nombre con la migración nueva, así que ésta NO se puede pegar en producción tal
-cual. Queda como decisión de Felipe (ADR-0074, Addendum), no se resolvió sola. (3)
-`retail.marcar_comprobante_no_emitido` — ADR-0077 — libera un comprobante `pendiente`
+cual. Queda como decisión de Felipe (ADR-0078, Addendum), no se resolvió sola. (3)
+`retail.marcar_comprobante_no_emitido` — ADR-0081 — libera un comprobante `pendiente`
 sin tocar SUNAT; el agente encontró que el Postgres local estaba 10 migraciones atrás
 (`20260916*` nunca aplicadas) y las sincronizó con cuidado antes de aplicar la propia.
 (4) Botón "Exportar CSV" en Existencias, conectando `descargarCsv` que ya existía. (5)
 `scripts/pruebas/fn_aplicar_movimiento.mjs`, 11 escenarios incluida una prueba de
 concurrencia real con dos procesos `docker exec` en paralelo — sin bugs encontrados en
-la función. (6) ADR-0075 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
+la función. (6) ADR-0079 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
 huérfanas más (`sede_meta` real vs. `retail_sede_meta` con guion, trampa de nombre;
 `sede_datos_fiscales`; `configuracion_empresa`) que tampoco están en el repo.
 
@@ -5371,7 +5580,310 @@ daba `true` pero el INSERT igual fallaba) resultó ser un hueco del propio scrip
 prueba — faltaba fijar `request.jwt.claim.role` además de `.sub`; el patrón
 `fn_es_lider()` como policy ya se usa sin problema en otras 16 tablas.
 
-ADR-0074, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
+ADR-0078, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
 final. Sigue pendiente: aplicar `20260917141500_registrar_consumo_insumo.sql` en
 producción (la del espejo ya está allá, no se toca), y conectar el frontend — ninguna
 de las dos estaba en el alcance de hoy.
+
+## 2026-09-17 (Fusión con main: colisión de ADR 0074-0077 con 3 sesiones concurrentes, y despliegue a producción)
+
+Felipe pidió llevar todo a `main` y ejecutar las migraciones pendientes en producción.
+`origin/main` había avanzado 48 commits desde que arrancó esta rama — al menos 4
+sesiones activas en paralelo el mismo día (compras-rls-location-lock, mejorar-por-pagar,
+productos-fuera-factura, y otra auditando esta misma unificación). Antes de fusionar a
+ciegas, se le mostró a Felipe el choque real que había en `InventarioPanel.tsx` (mi
+botón de CSV contra la feature "Dañado/cuarentena" de otra sesión) y el hecho de que el
+archivo de insumos en `main` ya lo había reescrito otra sesión — confirmó seguir.
+
+**Hallazgo serio durante el merge, no visible en los marcadores de conflicto de git:**
+mis 4 ADR de hoy (0074-0077) chocaban de NÚMERO con 4 ADR completamente distintos que
+otras 3 sesiones ya habían fusionado a `main` (0074 = prioridad de conteo por valor,
+0075 = compras lectura acotada por sede, 0076 = recibir_compras fuera de factura, 0077 =
+grilla de productos — este último ya no existe en la punta de `main`, historia propia de
+esa rama). Como son archivos con nombres distintos, git no lo marca como conflicto — solo
+se detectó revisando `docs/adr/` a mano. Renumerados: 0074→**0078**, 0075→**0079**,
+0076→**0080**, 0077→**0081** — 4 archivos + cada referencia cruzada en BACKLOG, este
+mismo archivo, el doc del módulo, el roadmap, y el código (`ComprobantesPanel.tsx`,
+`CerrarCajaModalV2.tsx`, `CajaAbiertaPanel.tsx`, `comprobantes-reglas.ts`, las 3
+migraciones de insumos/comprobante), con cuidado de NO tocar las referencias legítimas
+de las otras 3 sesiones a sus propios ADR-0074/75/76. Es exactamente el incidente que
+`SESIONES-ACTIVAS.md` se creó para evitar (2026-09-16), repetido — el tablero avisa
+sobre archivos/tablas en curso, pero cuatro sesiones reservando "el próximo número libre"
+casi al mismo tiempo, sin verse entre sí hasta el momento de fusionar, es un hueco que
+el tablero por sí solo no cierra.
+
+**Segundo hallazgo, mismo patrón:** dos pares de migraciones con el mismo timestamp de
+14 dígitos (`20260917100000` y `20260917140000`, cada uno con 2 archivos distintos) —
+`supabase migration list --local` lo mostraba pero no fallaba hasta intentar aplicarlas
+de verdad (`duplicate key value violates unique constraint schema_migrations_pkey`,
+mismo error que ya había dado mi propio choque con `registrar_consumo_insumo` horas
+antes). Renombrados a `...100001`/`...140001` los dos archivos que todavía no estaban
+aplicados en ningún lado. Las 6 migraciones nuevas de otras sesiones auditadas una por
+una (sin `drop table`/`truncate`/`delete`) y aplicadas con `--include-all`.
+
+Verificado tras la fusión: `pnpm --filter web typecheck`/`lint` limpios,
+`pnpm --filter database typecheck` limpio, 295/295 pruebas en verde (subieron de 293:
+las nuevas features trajeron las suyas). Con el ok explícito de Felipe (excepción
+puntual a D-11, "solo Felipe pega SQL en producción"), se aplicaron en producción
+`retail.registrar_consumo_insumo` (ADR-0078) y `retail.marcar_comprobante_no_emitido`
+(ADR-0081) — detalle de esa parte en la entrada que sigue.
+
+## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
+
+Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la
+lógica del trigger se había probado contra producción, pero las dos políticas RLS
+nunca por un canal que de verdad pasara por RLS (el MCP de Supabase conecta como
+`postgres` con `rolbypassrls=true`, que pasa por encima de cualquier política
+siempre). Se armó el mismo escenario contra el Postgres LOCAL compartido (migración
+`20260916220000` confirmada aplicada vía `supabase_migrations.schema_migrations`):
+sesión de navegador real (`supabase.auth.signInWithPassword`, no impersonación) como
+Micaela (Colaboradora, Tienda Trujillo) propuso un color en `/productos/colores` —
+quedó `pendiente`, usable al instante. Su intento de aprobarlo se probó por dos
+caminos que no son "confiar en que el botón no está": PATCH directo a PostgREST
+(`/rest/v1/colores`, sin pasar por la app) con su JWT real — `colores_update_lider`
+lo dejó pasar como consulta válida pero sin tocar ninguna fila (`200`, `[]`) — y PATCH
+directo a `/api/productos/colores`, que devolvió `403` por el guard propio de la
+ruta. Postgres (lectura directa, sin RLS) confirmó que el color siguió `pendiente`
+después de ambos intentos. Felipe (Líder, Tienda Lima) inició sesión aparte, vio el
+botón "Aprobar" (que Micaela nunca vio), lo usó, y Postgres confirmó
+`estado='aprobado'`, `propuesto_por=Micaela`, `aprobado_por=Felipe`. Color de prueba
+borrado al cerrar (cero variantes lo usaban, sin historial que proteger).
+
+**Hallazgo aparte, no relacionado con lo que se buscaba pero que le hubiera costado
+tiempo a la próxima sesión:** `retail.fn_es_lider()` ya no es la función que
+`0003_funciones.sql` define en el repo (esa versión leía `personas.rol = 'lider'` de
+una tabla `retail.personas` que ya no existe — confirmado `to_regclass('retail.personas')
+= null`). La versión viva hoy (confirmado con `pg_get_functiondef` contra el Postgres
+local) hace `join retail.colaboradores c on c.persona_id = p.id ... and c.rol =
+'lider'` contra `public.personas` + `retail.colaboradores`, post-integración con
+Dynamic (`0009_integracion_dynamic.sql`). Quien busque "por qué Felipe es líder" y
+solo grepee `fn_es_lider` en migraciones sin revisar cuál definición quedó vigente en
+la base puede terminar mirando `public.personas.rol` (que para Felipe vale `'admin'`,
+un campo de identidad de Dynamic, no el rol de retail) y concluir algo equivocado.
+
+**Por qué así:** verificar RLS por un canal que de verdad la aplique (navegador +
+PostgREST directo) en vez de confiar en la inferencia por patrón o en un canal con
+`rolbypassrls=true` — exactamente el hueco que `security-review` de este repo ya
+penaliza. **Qué se rompería sin esto:** un bug real en `colores_update_lider` (o un
+RLS mal escrito a futuro que reutilice este patrón) podía pasar desapercibido hasta
+que una Colaboradora real lo explotara en producción; el canal de prueba anterior
+(ROLLBACK + `rolbypassrls`) nunca lo habría detectado.
+
+`docs/BACKLOG.md` actualizado (checkbox cerrado con evidencia) y ADR-0070 actualizado
+("Cómo se verificó"). Pendiente: repetir la misma verificación en producción una vez
+que Felipe pegue `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` — local
+y producción corren el mismo código, pero como dice el principio 7, se prueba, no se
+asume.
+
+**Cierre del mismo día: Felipe pegó el SQL en producción y probó en persona.** Los 3
+bloques de `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` corrieron
+limpios en `cayla-dynamic`; la comprobación (bloque 4) dio los 5 valores de
+estructura esperados. El único número que no calzó con el comentario del script fue
+`colores_ya_aprobados=31` en vez de "32+" — se verificó por consulta directa
+(`select estado, count(*) from retail.colores group by estado`) que 31 es el conteo
+real de hoy (los 31 en `aprobado`, cero inválidos): el "32+" era una estimación del
+16-sep, no una regla que 31 estuviera incumpliendo. Felipe confirmó en persona, con
+una cuenta de Colaboradora real, que las mismas situaciones de la prueba local
+(proponer, no poder aprobar, un Líder sí puede) funcionan igual en producción — sin
+más detalle que ese registrado en el chat. ADR-0070 y BACKLOG.md actualizados;
+queda cerrado del todo.
+## 2026-09-17 (Recibir mercadería: lista de recepciones + botón, sobre la auditoría del mismo día)
+
+Felipe pidió hacer la pantalla más intuitiva y poder ver recepciones ya hechas — ninguna
+de las dos rutas (`/compras/recibir` con factura, `/inventario/recibir` sin ella) lo
+permitía. `getRecepcionesRecientes()` generaliza `getRecepcionesCompra` sin acotar a una
+factura, sobre `retail.lotes` (ya existía, nadie la leía así); `/inventario/recibir` pasó
+a lista + "+ Nueva recepción" en `Modal` (patrón de Colores/Categorías); `/compras/recibir`
+ganó pestaña "Recibidas recientemente". Sin migraciones. Detalle, lo verificado en
+navegador (Felipe y Micaela) y los 3 pendientes (incluida la pregunta de negocio sobre
+qué pantalla es el default del Inicio) en BACKLOG, sección de hoy.
+
+De paso: `packages/database/src/types.ts` no tenía `personas` como tabla — encontrado al
+typecheckear. Primer diagnóstico (equivocado, corregido la misma sesión): se pensó que
+era drift del Postgres local. Verificado después contra producción
+(`vovjyyiafkxteijimpuy`): NO existe `retail.personas` ahí tampoco — la identidad de
+personas está unificada con Dynamic (`public.personas`, su tabla de RR.HH. completa,
+columnas `nombres`/`apellidos`/`sede_base_id`, no `nombre`/`ubicacion_id`) desde la
+unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids uuid[])`
+(`0009_integracion_dynamic.sql`), que `caja.ts`/`conteos.ts`/`traslados.ts`/
+`devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
+revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
+ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (noche — prioridad de conteo por valor, desplegado a producción)
+
+Cierre del ciclo completo de ADR-0074 (ver entrada de la tarde, misma fecha): con ok
+puntual de Felipe para cada paso — PR #77 (`feat/conteo-plata-en-riesgo-v2` → `main`,
+commit `33045b0`) fusionado después de resolver un conflicto real pero trivial en
+`docs/BACKLOG.md` (mi sección "Pendientes de Benja" y la de otra sesión, "Recibir
+mercadería", se insertaban en el mismo punto del archivo — se conservaron ambas, la mía
+primero, sin perder nada). Vercel confirmó el despliegue (`gh api .../status`, esperado
+con un monitor en background, no a mano) antes de tocar la base — orden explícito para
+que código y esquema nunca queden descalzados: una base ya corregida sirviendo a un
+frontend viejo que todavía lee `ventas_30d` repite el mismo bug "−S/NaN" que ya apareció
+una vez en local.
+
+Migración aplicada contra `vovjyyiafkxteijimpuy` vía Supabase MCP (`apply_migration`,
+nunca a mano en el SQL Editor), con `set search_path to retail, public` al inicio del
+script por protocolo del repo — aunque en este caso puntual no hacía falta (toda
+referencia de nivel superior ya iba calificada con `retail.`), se mantiene igual porque
+cuesta cero y es la regla, no una excepción a criterio propio. Verificado después contra
+la base real, no solo que no tirara error: mismo cuerpo/firma que en local
+(`pg_get_function_result`/`pg_get_function_identity_arguments`), y una llamada real
+simulando sesión de un líder de Tienda Trujillo (`set local request.jwt.claim.sub`, JWT
+real, no `rolbypassrls`) devolvió "Jean Paula" (S/1,548.00, nunca contada) primero —
+datos reales de producción, no del seed local.
+
+Advertencia de seguridad del linter de Supabase sobre `fn_prioridad_conteo` revisada:
+genérica de cualquier función `security definer` con `grant ... to authenticated`, el
+mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
+interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.
+
+## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0076)
+
+Felipe, sobre `/compras/recibir`: la recepción solo se rige respecto a las facturas — si
+una prenda no está en ninguna factura de la guía pero de verdad se envió o se recibió,
+no había dónde anotarla sin salir a `/inventario/recibir` y perder que llegó en el mismo
+paquete. Se leyó primero ADR-0035 completo (la regla dura vive en `recibir_compras`: lo
+recibido nunca supera lo facturado, la variante siempre pertenece al producto de la
+línea) y se confirmó que `movimientos.compra_item_id` ya era nullable desde esa misma
+migración — el hueco era de la RPC, no de esquema.
+
+`20260917100000_recibir_compras_fuera_de_factura.sql`: un ítem de `p_items` con
+`compra_item_id = null` entra al mismo lote que los facturados, sin tope, sin tocar
+`compra_pagos` (no inventa deuda que el papel no respalda), costo opcional (mismo
+criterio que `recibir_lote`, ADR-0067 para el promedio ponderado). Se exige al menos un
+ítem SÍ facturado — 100 % fuera de factura es el caso de `/inventario/recibir`, no de
+esta pantalla; mensaje de rechazo apunta ahí, con el mismo candado repetido en el cliente
+(botón deshabilitado) y en la RPC. Aplicada al Postgres local compartido vía
+`docker exec ... psql` directo (no `supabase migration up`: la base compartida tenía dos
+migraciones de otra sesión concurrente sin archivo en este worktree —
+`20260917124059`/`20260917130050` — corregir eso no era mi tarea, y `create or replace
+function` es aditivo/no rompe nada de otra sesión). Verificada con 4 escenarios en
+transacciones con `rollback` (impersonando al líder del seed): mixto factura+extra en un
+mismo lote, 100% extra rechazado, tope original sigue rechazando lo que excede lo
+facturado, costo omitido no toca `variantes.costo` — el detalle completo, con los IDs
+reales usados, está en ADR-0076.
+
+Pantalla: nueva sección "¿Llegó algo que no está en la factura?" en
+`RecepcionCompraFormV2.tsx`, siempre visible una vez elegida al menos una factura.
+Reutiliza el `ComboBuscable` que ya usa `CompraFormV2.tsx` para buscar cualquier producto
+del catálogo completo (no solo lo de las facturas de la guía) — para eso, `variantes`
+ganó `referencia` en la prop que le pasa `compras/recibir/page.tsx` (el catálogo ya la
+traía, solo faltaba pasarla). Primer intento de layout fue un `grid` de columnas fijas
+igual al de las líneas de factura — **se desbordaba horizontalmente en el navegador a
+1024×768** (encontrado recién al probar, no en el diseño): 5 controles con anchos fijos
+más el gap no entran en el ancho real de la tarjeta de la derecha. Corregido a
+`flex flex-wrap` (mismo patrón que ya usa `RecepcionFormV2.tsx` para sus líneas de
+recibir_lote) — sin overflow, los controles bajan de línea en vez de desbordar.
+
+Segundo hallazgo probando: la barra fija de resumen decía "X unidades **de una
+factura**" incluyendo las unidades fuera de factura en el mismo número — technically
+correcto en el total pero engañoso en la frase (parecía que TODO contaba como facturado).
+Corregida a "X unidades (A de la factura, B fuera de factura)" cuando hay extras.
+
+Verificado en navegador real (`felipe@cayla.local`, líder, Tienda Lima) contra
+F002-001045 (Confecciones del Sur EIRL, seed real): 3 u. reales de "Casaca Ximena S
+Negro" (línea de la factura) + "Blusa Emma S/Negro" 2 u. a S/ 25.50 fuera de factura, en
+un solo envío. Toast y pantalla de éxito: "5 unidades... contra una factura (1 fuera de
+factura)". Confirmado después contra Postgres (no solo que no tirara error): el lote
+nuevo tiene los 2 movimientos esperados (uno con `compra_item_id`, uno sin), la línea de
+factura bajó de 90 a 87 pendientes (no 85 — la extra no contó contra ella), y
+`BLU-EMMA-NEG-S` quedó en costo 31.41 (promedio ponderado con los 25.50 nuevos). **Queda
+como dato real en el Postgres local compartido, no se revirtió** — mismo criterio que la
+recepción sin factura de la sesión anterior el mismo día (principio 4).
+
+De paso: el comentario de `getRecepcionesRecientes` (`lib/compras.ts`) que afirmaba "un
+lote es entero de un tipo u otro, nunca mixto" quedó falso con este cambio — corregido;
+el código en sí ya toleraba lotes mixtos sin cambios (suma todo, marca `conFactura` con
+lo que sí tiene `compra_item_id`).
+
+`pnpm --filter web typecheck`/`lint` en verde. **Sin aplicar en producción todavía** —
+solo función, sin cambio de esquema, sin pre-flight especial pendiente.
+
+## 2026-09-17 (fuera de factura: integración con main y con producción, ok de Felipe)
+
+Felipe pidió, en el mismo hilo, llevar esto a `main` y correr la migración en
+producción. Primer paso: renumerar ADR-0074→0075 — mientras se armaba esto, otra sesión
+(`feat/conteo-plata-en-riesgo-v2`, PR #77) ya había usado 0074 en `main` para su propio
+tema (prioridad de conteo), mismo patrón de colisión que ya pasó con 0063/0064.
+
+`git fetch` + reconciliar con la punta de `main` mostró 2 diferencias reales pero
+triviales en `docs/BACKLOG.md` y `docs/BITACORA.md` — las dos sesiones habían escrito al
+cierre en el mismo punto del archivo. Se conservó todo, de ambos lados, sin perder
+contenido. `apps/web/lib/compras.ts` (el otro archivo que las dos sesiones tocaron)
+resolvió solo, sin conflicto: mi cambio era un comentario; el de la otra sesión era
+estructural (agregó `detalle`/`nota` a `getRecepcionesRecientes` para ver el contenido de
+una recepción al hacer clic en la fila) — zonas suficientemente distintas del mismo
+archivo. `pnpm --filter web typecheck`/`lint`/293 tests en verde después de reconciliar.
+
+Rama subida como PR #78, con CI en verde (Vercel + "Tipos, lint y pruebas"). Completar el
+último paso — la integración a `main` en sí desde GitHub — quedó para Felipe: el entorno
+de este agente no deja completar esa acción puntual directo desde el chat.
+
+Migración `20260917100000_recibir_compras_fuera_de_factura.sql` **aplicada en
+producción** vía Supabase MCP (`apply_migration` contra `vovjyyiafkxteijimpuy`, con
+`set search_path to retail, public, extensions;` al inicio del script por protocolo del
+repo, aunque los statements de nivel superior ya iban calificados con `retail.`). Antes
+de aplicar se leyó el cuerpo real vigente en producción (una sola sobrecarga, versión
+`costo_promedio_ponderado`, sin `v_con_factura`) para tener con qué comparar. Después de
+aplicar: sigue una sola sobrecarga (candado ADR-0009/0004), el cuerpo real ya tiene
+`v_con_factura`, y quedó registrada en `list_migrations` como
+`20260917193606_recibir_compras_fuera_de_factura`. `get_advisors` (security): la única
+advertencia sobre esta función es la genérica de cualquier `security definer` +
+`authenticated` — ya la tenía antes de este cambio, no es una regresión. **No se ejecutó
+la RPC contra producción para probarla** (a diferencia de una lectura, escribiría
+`movimientos`/`lotes` reales de mercadería que no existió) — la confianza viene de los 4
+escenarios ya corridos en local con el mismo cuerpo, más la comparación de firma/cuerpo
+antes/después contra la base real.
+
+De paso, `list_migrations` mostró producción con varias migraciones de otras sesiones
+aplicadas hoy en paralelo (`compras_candado_de_sede`, `prioridad_conteo_por_valor`, y una
+`revocar_execute_fn_aplicar_movimiento` aplicada 45 segundos después de la mía) — no se
+investigó ninguna, no era la tarea de hoy.
+
+## 2026-09-17 (noche, más tarde — cancelar conteo y "Seguir contando", desplegado)
+
+Felipe encontró dos bugs probando lo de arriba en producción real: "Seguir contando →"
+no llevaba a ningún lado (`<Link>` de Next.js para un salto de ancla `#contar` en la
+misma página — no siempre dispara el scroll nativo; cambiado a `<a>`), y no existía
+forma de cancelar un conteo abierto por error — "Revisar y cerrar" queda deshabilitado
+hasta contar al menos una prenda, así que ni servía de salida. El esquema original ya
+reservaba el estado `'anulado'` (`0002_esquema.sql`) sin conectar nunca a ninguna RPC.
+Nueva `retail.anular_conteo(p_conteo_id)`: no toca `stock`/`movimientos` (solo
+`cerrar_conteo` los toca), mismo permiso que `abrir_conteo` (no exige líder, a
+diferencia de cerrar). PR #80, mismo protocolo que la tarde: verificado en navegador
+(dos veces — la base local compartida se reseteó por otra sesión en el medio, detectado
+y corregido antes de seguir), PR fusionado, Vercel confirmado desplegado, y recién ahí
+`apply_migration` contra `vovjyyiafkxteijimpuy` con ok puntual de Felipe otra vez.
+
+Verificado después contra producción: firma/cuerpo correctos
+(`pg_get_function_result`/`identity_arguments`). No se forzó una prueba en vivo de punta
+a punta — Tienda TRU tenía un conteo real y abierto en el momento (el propio de Felipe
+probando), así que se evitó tocarlo; la confianza vino de la firma confirmada, las
+columnas de `conteos`/`personas` ya verificadas contra ese mismo proyecto horas antes, y
+la misma lógica ya probada dos veces en local.
+
+De paso, al traer `origin/main` (12 commits de otras sesiones — cuarentena de prendas
+dañadas, insumos del Taller, inventario en 4 pantallas): otra sesión creó
+`20260917140000_insumos_taller_reconstruido.sql`, mismo timestamp que
+`20260917140000_anular_conteo.sql` de esta sesión. No choca — son archivos distintos,
+temas sin relación — pero es la señal exacta que motivó `docs/SESIONES-ACTIVAS.md` esta
+mañana. Sin acción: ya fusionado en `origin/main`, renombrar ahora sería solo ruido.
+
+## 2026-09-17 (fuera de factura: tercer y cuarto round de conflictos con main)
+
+Felipe pidió resolver los conflictos que quedaron después de que otras dos sesiones más
+fusionaran a `main` mientras se armaba lo de arriba — `main` se movió 4 veces en total
+mientras duró esta sesión, todas por trabajo real de otras personas, ninguna relacionada
+con Compras/recepción. Ronda 3: conflicto real en `BITACORA.md` (dos sesiones anotando su
+cierre en el mismo punto del archivo, se conservó todo). Ronda 4: **colisión de ADR-0075
+otra vez** — esta vez con `0075-compras-lectura-acotada-por-sede.md` (sesión
+`compras-rls-location-lock-7a8b0c`, candado de sede en las RLS de `compras`/
+`compra_items`/`compra_pagos`/`compra_adjuntos`, decidido con Felipe vía `/decide`).
+Renumerado a **ADR-0076** — verificado que esa migración (`compras_candado_de_sede.sql`)
+no toca `recibir_compras` en absoluto (solo políticas de SELECT + `resumen_compras()`),
+así que no hay conflicto de fondo, solo de numeración. Me agregué a
+`docs/SESIONES-ACTIVAS.md` (creado hoy mismo por otra sesión, después de exactamente este
+tipo de colisión) para que la próxima sesión vea que esta rama sigue con un PR abierto.
+`pnpm --filter web typecheck`/`lint`/295 tests en verde después de cada ronda.

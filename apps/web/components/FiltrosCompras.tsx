@@ -114,16 +114,24 @@ export function FiltrosCompras({
 
   return (
     <div className="card-cayla p-4">
-      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+      {/* `grid-cols-2` ya desde celular (antes solo desde `sm:`): con un solo
+          campo por fila, "Buscar" + "Proveedor" + "Vencimiento" (los tres
+          `principales` de Por pagar) apilados a ancho completo empujaban la
+          tabla casi 300px más abajo. Buscar ocupa las dos columnas en
+          celular (escribir en la mitad de un campo de texto es incómodo);
+          los `<select>` sí se emparejan bien a media columna. */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
         {ver("busqueda") && (
-          <CampoTexto
-            etiqueta="Buscar"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Número de documento o proveedor"
-            autoComplete="off"
-            type="search"
-          />
+          <div className="col-span-2 sm:col-span-1">
+            <CampoTexto
+              etiqueta="Buscar"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Número de documento o proveedor"
+              autoComplete="off"
+              type="search"
+            />
+          </div>
         )}
         {ver("proveedor") && (
           <CampoSelectNativo etiqueta="Proveedor" value={params.get("prov") ?? ""} onChange={(e) => aplicar({ prov: e.target.value })}>

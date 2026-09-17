@@ -1,4 +1,4 @@
-# ADR-0076 — Cerrar caja avisa si hay ventas offline sin subir (y bloquea solo con red)
+# ADR-0080 — Cerrar caja avisa si hay ventas offline sin subir (y bloquea solo con red)
 
 **Fecha:** 2026-09-17
 **Estado:** Construido. Verificado con `tsc --noEmit`, `eslint` y toda la suite de tests

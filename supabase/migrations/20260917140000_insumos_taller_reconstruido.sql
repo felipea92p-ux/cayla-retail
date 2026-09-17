@@ -1,21 +1,61 @@
 -- ============================================================================
 -- 20260917140000_insumos_taller_reconstruido.sql — CAYLA V2
 --
--- retail.insumos/insumo_lotes/movimientos_insumo/v_insumo_saldos +
--- recibir_insumo/ajustar_insumo_por_conteo ya corren en producción
--- (vovjyyiafkxteijimpuy) pero no existían como .sql en ningún branch de este
--- repo — mismo patrón que ya documentó ADR-0051 para produccion_del_taller.
--- Reconstruida leyendo information_schema/pg_constraint/pg_policies/
--- pg_get_functiondef directo de la base real. Dos sesiones distintas la
--- reconstruyeron el mismo día, de forma independiente, y coincidieron
--- columna por columna — ver ADR-0074 para la reconciliación completa.
+-- Insumos del Taller (D-47 · materia prima) YA EXISTE en producción — verificado
+-- el 2026-09-17 consultando directo `vovjyyiafkxteijimpuy` (information_schema,
+-- pg_constraint, pg_policies, pg_get_functiondef). Igual que le pasó una vez a
+-- Producción del Taller (ADR-0051): alguien lo escribió y lo aplicó sin dejar el
+-- `.sql` en ningún branch de git. Este archivo se reconstruyó desde la base real,
+-- carácter por carácter en lo que a Postgres le importa; los comentarios de
+-- cabecera y de sección son nuevos, agregados en la reconstrucción — no venían
+-- con la migración original.
 --
--- ESTADO: SOLO LOCAL. Estos objetos YA EXISTEN en producción desde julio
--- (huérfanos del volcado de unificación con Dynamic) — este archivo es un
--- espejo para desarrollo local, NUNCA se pega en producción tal cual: un
--- `create table retail.insumos` ahí chocaría contra la tabla que ya existe.
+-- RESUELTO 2026-09-17: dos sesiones distintas (este worktree y
+-- `cayla-invoices-module-review-451aa5`) reconstruyeron este mismo esquema de
+-- forma independiente el mismo día y coincidieron exactamente — buena
+-- confirmación cruzada. La otra sesión había construido antes, por separado, un
+-- esquema paralelo incompatible (`insumo_stock`, `recibir_insumos` con 's',
+-- commit `fd3488f`); Felipe decidió adoptar ESTE (el huérfano real) en vez de
+-- ese, y esa sesión ya lo dropeó de su Postgres local. Detalle completo de la
+-- reconciliación en ADR-0078.
+--
+-- Qué hace:
+--   · `insumos` — el catálogo: tela o avío, con proveedor de referencia, unidad
+--     de medida cerrada, % de merma esperado (nunca 50% o más: sería un error de
+--     tipeo, no un dato real) y stock mínimo. Se archiva (`archivado_at`), nunca
+--     se borra (D-07).
+--   · `insumo_lotes` — cada entrada es un lote con su propio costo: PEPS por
+--     lote, no promedio. Es la opción "costo por lote" de D-45 aplicada a
+--     materia prima — distinta de `fn_recalcular_costo_variante` (promedio
+--     ponderado), que es la que se usa para `variantes.costo`.
+--   · `movimientos_insumo` — el ledger append-only, calcado de `movimientos`
+--     (D-22: no se edita ni se borra, se corrige con signo contrario y motivo).
+--     El CHECK `movimientos_insumo_produccion_segun_tipo` ya anticipa los tipos
+--     `consumo`/`devolucion` ligados a una `producciones.id`.
+--   · `v_insumo_saldos` — cuánto hay y cuánto vale, por insumo y ubicación,
+--     sumando el ledger. Nunca una columna que alguien pise (mismo principio que
+--     `stock` sobre `movimientos`).
+--   · `recibir_insumo` — entra un lote (de compra o saldo inicial), con su
+--     propio costo unitario.
+--   · `ajustar_insumo_por_conteo` — reconcilia el físico contado contra
+--     `v_insumo_saldos`; valoriza la diferencia al costo promedio de lo que hay
+--     hoy, no al de un lote puntual (el conteo no distingue de qué rollo salió
+--     la diferencia).
+--
+-- El consumo real al cortar (lo único que faltaba de D-47) YA SE CONSTRUYÓ —
+-- `retail.registrar_consumo_insumo`, en
+-- `20260917141500_registrar_consumo_insumo.sql` (migración separada, la única
+-- pieza que producción todavía no tiene). Detalle completo en ADR-0078.
+--
+-- ESTADO: verificado en producción el 2026-09-17. Este archivo (el espejo) NUNCA
+-- se pega en producción tal cual — esos objetos ya existen allá; pegarlo
+-- fallaría de entrada. Aplicado en local para poder desarrollar
+-- `registrar_consumo_insumo` contra algo real.
 -- ============================================================================
 
+set search_path = retail, public, extensions;
+
+-- ---------- insumos ----------
 create table retail.insumos (
   id            uuid primary key default gen_random_uuid(),
   codigo        text not null unique,
@@ -30,6 +70,7 @@ create table retail.insumos (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
 comment on table retail.insumos is
   'Catálogo de materia prima del Taller: tela y avíos. No es vendible, no cuelga de `variantes` — hermana de `productos`, no la misma tabla.';
 
@@ -42,20 +83,26 @@ begin
   return new;
 end
 $$;
+
 create trigger insumos_set_updated_at
   before update on retail.insumos
   for each row execute function retail.fn_insumos_set_updated_at();
 
 alter table retail.insumos enable row level security;
+
 create policy insumos_select_autenticado on retail.insumos
   for select using (auth.role() = 'authenticated');
+
 create policy insumos_insert_lider on retail.insumos
   for insert with check (retail.fn_es_lider());
+
 create policy insumos_update_lider on retail.insumos
   for update using (retail.fn_es_lider());
+
 grant select, insert, update, delete on retail.insumos to authenticated;
 grant all on retail.insumos to service_role;
 
+-- ---------- insumo_lotes ----------
 create table retail.insumo_lotes (
   id                 uuid primary key default gen_random_uuid(),
   insumo_id          uuid not null references retail.insumos (id),
@@ -70,15 +117,22 @@ create table retail.insumo_lotes (
   nota               text,
   created_at         timestamptz not null default now()
 );
+
 comment on table retail.insumo_lotes is
   'Cada fila es un lote propio con su costo — PEPS por lote, no promedio. Es la mitad de D-45 que le toca a la materia prima.';
 
+create unique index insumo_lotes_codigo_unico on retail.insumo_lotes (insumo_id, codigo_lote) where codigo_lote is not null;
+create index insumo_lotes_insumo_ubicacion_idx on retail.insumo_lotes (insumo_id, ubicacion_id);
+
 alter table retail.insumo_lotes enable row level security;
+
 create policy insumo_lotes_select on retail.insumo_lotes
   for select using (retail.fn_puede_operar_ubicacion(ubicacion_id));
+
 grant select, insert, update, delete on retail.insumo_lotes to authenticated;
 grant all on retail.insumo_lotes to service_role;
 
+-- ---------- movimientos_insumo ----------
 create table retail.movimientos_insumo (
   id             uuid primary key default gen_random_uuid(),
   insumo_id      uuid not null references retail.insumos (id),
@@ -113,15 +167,26 @@ create table retail.movimientos_insumo (
     or (tipo in ('compra', 'merma', 'ajuste') and produccion_id is null)
   )
 );
+
 comment on table retail.movimientos_insumo is
-  'Ledger append-only del consumo de materia prima, calcado de `movimientos`. Los tipos consumo/devolucion existen en el CHECK pero, hasta 20260917141500_registrar_consumo_insumo.sql, ninguna función los escribía.';
+  'Ledger append-only del consumo de materia prima, calcado de `movimientos`. Los tipos consumo/devolucion los escribe `registrar_consumo_insumo` (20260917141500).';
+
+create index movimientos_insumo_insumo_ubicacion_idx on retail.movimientos_insumo (insumo_id, ubicacion_id);
+create index movimientos_insumo_lote_idx on retail.movimientos_insumo (insumo_lote_id, tipo);
+create index movimientos_insumo_produccion_idx on retail.movimientos_insumo (produccion_id) where produccion_id is not null;
 
 alter table retail.movimientos_insumo enable row level security;
+
 create policy movimientos_insumo_select on retail.movimientos_insumo
   for select using (retail.fn_puede_operar_ubicacion(ubicacion_id));
+
 grant select, insert, update, delete on retail.movimientos_insumo to authenticated;
 grant all on retail.movimientos_insumo to service_role;
 
+-- ---------- v_insumo_saldos ----------
+-- Cuánto hay y cuánto vale, por insumo y ubicación. Nunca una columna que
+-- alguien pise: se recalcula sola sumando el ledger, igual que `stock` sobre
+-- `movimientos`.
 create view retail.v_insumo_saldos as
 select
   i.id as insumo_id,
@@ -143,8 +208,8 @@ select
 from retail.insumos i
 join retail.movimientos_insumo m on m.insumo_id = i.id
 group by i.id, i.codigo, i.nombre, i.tipo, i.unidad_medida, m.ubicacion_id;
-grant select on retail.v_insumo_saldos to authenticated, service_role;
 
+-- ---------- recibir_insumo ----------
 create or replace function retail.recibir_insumo(
   p_insumo_id uuid,
   p_ubicacion_id uuid,
@@ -200,6 +265,7 @@ begin
 end;
 $$;
 
+-- ---------- ajustar_insumo_por_conteo ----------
 create or replace function retail.ajustar_insumo_por_conteo(
   p_insumo_id uuid,
   p_ubicacion_id uuid,
@@ -258,10 +324,9 @@ $$;
 -- Producción ya tiene estas dos sin EXECUTE de PUBLIC (verificado por consulta
 -- directa a pg_proc.proacl). Este Postgres local otorga EXECUTE a PUBLIC por
 -- default al crear una función — sin este revoke, el espejo local quedaría MÁS
--- permisivo que producción, exactamente el tipo de diferencia que hace que algo
--- "funcione en local y no en producción" (o peor: al revés, un agujero que solo
--- existe en local y nadie nota hasta que alguien lo copia).
+-- permisivo que producción.
 revoke execute on function retail.recibir_insumo(uuid, uuid, numeric, numeric, text, uuid, text, text, text) from public;
 revoke execute on function retail.ajustar_insumo_por_conteo(uuid, uuid, numeric, text) from public;
+
 grant execute on function retail.recibir_insumo(uuid, uuid, numeric, numeric, text, uuid, text, text, text) to authenticated;
 grant execute on function retail.ajustar_insumo_por_conteo(uuid, uuid, numeric, text) to authenticated;

@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelectNativo, CampoTexto, SelectNativo } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { compararTallas } from "@/lib/tallas";
 import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
@@ -33,11 +34,18 @@ type Variante = {
   talla: string | null;
   color: string | null;
   productoId: string;
+  referencia: string;
 };
 type Ubicacion = { id: string; nombre: string };
 
 // Por línea de factura: cuántas unidades de cada variante llegan.
 type Reparto = Record<string /* lineaId */, Record<string /* varianteId */, number>>;
+
+// Fuera de factura (ADR-0076): una prenda que llegó en la misma guía pero
+// ninguna factura seleccionada la lista. Va en un array aparte, no en
+// `Reparto` — ese tipo está indexado por línea de factura, y esto no tiene
+// una.
+type Extra = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string };
 
 const NUMERO =
   "w-16 border-b bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none [appearance:textfield] focus:border-b-2 focus:border-rojo [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
@@ -62,18 +70,34 @@ export function RecepcionCompraFormV2({
   const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
   const [reparto, setReparto] = useState<Reparto>(() => precargar(inicial, lineas, {}));
+  const [extras, setExtras] = useState<Extra[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [numeroGuia, setNumeroGuia] = useState("");
   const [nota, setNota] = useState("");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number; facturas: number } | null>(null);
+  const [ok, setOk] = useState<{ unidades: number; facturas: number; extras: number } | null>(null);
 
   const variantesPorProducto = useMemo(() => {
     const m = new Map<string, Variante[]>();
     for (const v of variantes) m.set(v.productoId, [...(m.get(v.productoId) ?? []), v]);
     return m;
   }, [variantes]);
+
+  // Catálogo completo, agrupado por producto — mismo patrón que
+  // `opcionesProducto` de CompraFormV2.tsx ("Registrar factura"). A
+  // diferencia de las líneas de la izquierda, esto no depende de qué
+  // factura esté seleccionada: cualquier prenda del catálogo puede llegar
+  // fuera de factura.
+  const opcionesProducto = useMemo(
+    () =>
+      [...variantesPorProducto.entries()].map(([productoId, vs]) => ({
+        valor: productoId,
+        texto: vs[0].referencia,
+        detalle: `${vs.length} ${vs.length === 1 ? "variante" : "variantes"}`,
+      })),
+    [variantesPorProducto],
+  );
 
   const proveedorActivo = seleccionadas.length ? (compras.find((c) => c.id === seleccionadas[0])?.proveedorId ?? null) : null;
   const proveedorNombre = seleccionadas.length ? (compras.find((c) => c.id === seleccionadas[0])?.proveedorNombre ?? "") : "";
@@ -106,10 +130,12 @@ export function RecepcionCompraFormV2({
     if (typeof window !== "undefined" && window.innerWidth < 1024) panel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // Tocar una factura arma una guía nueva con ella sola.
+  // Tocar una factura arma una guía nueva con ella sola — incluido lo fuera
+  // de factura que se hubiera agregado a la guía anterior.
   function elegir(c: CompraResumen) {
     setSeleccionadas([c.id]);
     setReparto(precargar([c.id], lineas, {}));
+    setExtras([]);
     irAlPanel();
   }
 
@@ -121,12 +147,38 @@ export function RecepcionCompraFormV2({
   }
 
   function quitar(compraId: string) {
-    setSeleccionadas((s) => s.filter((id) => id !== compraId));
+    const resto = seleccionadas.filter((id) => id !== compraId);
+    setSeleccionadas(resto);
     setReparto((r) => {
       const copia = { ...r };
       lineas.filter((l) => l.compraId === compraId).forEach((l) => delete copia[l.id]);
       return copia;
     });
+    // Sin ninguna factura seleccionada no hay guía — lo fuera de factura
+    // tampoco tiene dónde vivir.
+    if (resto.length === 0) setExtras([]);
+  }
+
+  // Fuera de factura: mismo trío agregar/quitar/actualizar que ya usa
+  // RecepcionFormV2.tsx (recibir_lote) para sus líneas — acá el array
+  // empieza vacío porque, a diferencia de esa pantalla, esto es la
+  // excepción, no el motivo de estar en /compras/recibir.
+  function agregarExtra() {
+    setExtras((actual) => [...actual, { productoId: "", varianteId: "", cantidad: 1, costoUnitario: "" }]);
+  }
+
+  function quitarExtra(i: number) {
+    setExtras((actual) => actual.filter((_, n) => n !== i));
+  }
+
+  function actualizarExtra(i: number, cambio: Partial<Extra>) {
+    setExtras((actual) => actual.map((e, n) => (n === i ? { ...e, ...cambio } : e)));
+  }
+
+  // Cambiar de producto olvida la variante elegida — la talla/color de la
+  // prenda anterior casi nunca aplica a la nueva.
+  function elegirProductoExtra(i: number, productoId: string) {
+    actualizarExtra(i, { productoId, varianteId: "" });
   }
 
   function fijar(lineaId: string, varianteId: string, valor: number) {
@@ -154,7 +206,7 @@ export function RecepcionCompraFormV2({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const items = lineasActivas.flatMap((l) =>
+    const itemsFactura = lineasActivas.flatMap((l) =>
       Object.entries(reparto[l.id] ?? {})
         .filter(([, n]) => n > 0)
         .map(([varianteId, n]) => ({
@@ -163,8 +215,23 @@ export function RecepcionCompraFormV2({
           cantidad: n,
         })),
     );
+    // Fuera de factura (ADR-0076): mismo criterio de "línea completa" que
+    // RecepcionFormV2.tsx — sin producto o sin variante elegida, la fila
+    // todavía no cuenta, no es un error.
+    const itemsExtra = extras
+      .filter((ex) => ex.varianteId && ex.cantidad > 0)
+      .map((ex) => ({
+        compra_item_id: null as string | null,
+        variante_id: ex.varianteId,
+        cantidad: ex.cantidad,
+        ...(ex.costoUnitario ? { costo_unitario: Number(ex.costoUnitario) } : {}),
+      }));
+
     if (seleccionadas.length === 0) return void avisar.error("Elige al menos una factura.", { enfocar: "recibir-buscar" });
-    if (items.length === 0) return void avisar.error("Indica cuántas unidades llegaron — al menos una línea con cantidad.", { enfocar: panel.current });
+    if (itemsFactura.length === 0)
+      return void avisar.error("Indica cuánto llegó de la factura — al menos una línea con cantidad. Si nada llegó facturado, usa «Recibir sin factura».", {
+        enfocar: panel.current,
+      });
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
@@ -174,7 +241,7 @@ export function RecepcionCompraFormV2({
     const supabase = createClient();
     const { error } = await supabase.rpc("recibir_compras", {
       p_ubicacion_id: ubicacionId,
-      p_items: items,
+      p_items: [...itemsFactura, ...itemsExtra],
       ...(numeroGuia.trim() ? { p_numero_guia: numeroGuia.trim() } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
     });
@@ -184,19 +251,24 @@ export function RecepcionCompraFormV2({
       avisar.error(traducirError(error, "recibir la mercadería"));
       return;
     }
-    const unidades = items.reduce((a, i) => a + i.cantidad, 0);
+    const unidades = itemsFactura.reduce((a, i) => a + i.cantidad, 0) + itemsExtra.reduce((a, i) => a + i.cantidad, 0);
     avisar.exito(`${unidades} unidades recibidas en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la ubicación"}`, {
-      detalle: seleccionadas.length === 1 ? "Contra una factura." : `Contra ${seleccionadas.length} facturas.`,
+      detalle: [seleccionadas.length === 1 ? "Contra una factura." : `Contra ${seleccionadas.length} facturas.`, itemsExtra.length > 0 ? `+${itemsExtra.length} fuera de factura.` : null]
+        .filter(Boolean)
+        .join(" "),
     });
     setOk({
       unidades,
       facturas: seleccionadas.length,
+      extras: itemsExtra.length,
     });
     router.refresh();
   }
 
   const ubicacionNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "";
-  const unidadesRecibiendo = lineasActivas.reduce((a, l) => a + cantidadLinea(l), 0);
+  const unidadesFactura = lineasActivas.reduce((a, l) => a + cantidadLinea(l), 0);
+  const unidadesExtra = extras.filter((ex) => ex.varianteId && ex.cantidad > 0).reduce((a, ex) => a + ex.cantidad, 0);
+  const unidadesRecibiendo = unidadesFactura + unidadesExtra;
   const lineasExcedidas = lineasActivas.filter((l) => cantidadLinea(l) > l.pendiente).length;
 
   if (ok) {
@@ -205,7 +277,8 @@ export function RecepcionCompraFormV2({
         <p className="label-cayla text-[11px] text-tinta/65">Mercadería recibida</p>
         <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
         <p className="text-sm text-tinta/70">
-          Ya suman al stock de {ubicacionNombre}, contra {ok.facturas === 1 ? "una factura" : `${ok.facturas} facturas`}.
+          Ya suman al stock de {ubicacionNombre}, contra {ok.facturas === 1 ? "una factura" : `${ok.facturas} facturas`}
+          {ok.extras > 0 && ` (${ok.extras} fuera de factura)`}.
         </p>
         <div className="flex justify-center gap-3 pt-2">
           <Boton
@@ -214,6 +287,7 @@ export function RecepcionCompraFormV2({
               setOk(null);
               setSeleccionadas([]);
               setReparto({});
+              setExtras([]);
               setNumeroGuia("");
               setNota("");
             }}
@@ -455,6 +529,80 @@ export function RecepcionCompraFormV2({
                 </section>
               );
             })}
+
+            {/* ================= fuera de factura (ADR-0076) ================= */}
+            <section className="card-cayla space-y-3 p-5">
+              <div>
+                <p className="font-display text-lg text-tinta">¿Llegó algo que no está en la factura?</p>
+                <p className="mt-1 text-xs text-tinta/65">
+                  A veces el proveedor manda una prenda de más, o la factura llega incompleta. Se recibe igual, en esta misma guía — no cuenta contra ninguna factura ni genera una deuda nueva.
+                </p>
+              </div>
+
+              {/* `flex flex-wrap`, no grid: mismo patrón que RecepcionFormV2.tsx
+                  (recibir_lote) — con 5 controles por fila, un grid de
+                  columnas fijas se sale del ancho de la tarjeta en pantallas
+                  angostas; flex-wrap los baja de línea en vez de desbordar. */}
+              {extras.map((ex, i) => {
+                const variantesDelProducto = ex.productoId ? variantesPorProducto.get(ex.productoId) ?? [] : [];
+                return (
+                  <div key={i} className="flex flex-wrap items-end gap-2 border-b border-tinta/10 pb-3 last:border-0">
+                    <ComboBuscable
+                      etiquetaAccesible="Producto fuera de factura"
+                      id={`recibir-extra-${i}-producto`}
+                      valor={ex.productoId}
+                      onValor={(id) => elegirProductoExtra(i, id)}
+                      opciones={opcionesProducto}
+                      marcador="Busca la prenda…"
+                      className="min-w-[12rem] flex-1"
+                    />
+                    <SelectNativo
+                      aria-label="Talla y color"
+                      value={ex.varianteId}
+                      onChange={(e) => actualizarExtra(i, { varianteId: e.target.value })}
+                      disabled={!ex.productoId}
+                      className="w-32 shrink-0"
+                    >
+                      <option value="">{ex.productoId ? "Elige…" : "—"}</option>
+                      {variantesDelProducto.map((v) => (
+                        <option key={v.varianteId} value={v.varianteId}>
+                          {[v.talla, v.color].filter(Boolean).join(" / ") || v.sku}
+                        </option>
+                      ))}
+                    </SelectNativo>
+                    <input
+                      type="number"
+                      min={1}
+                      aria-label="Cantidad"
+                      value={ex.cantidad}
+                      onChange={(e) => actualizarExtra(i, { cantidad: Math.max(1, Number(e.target.value) || 1) })}
+                      onFocus={(e) => e.target.select()}
+                      className="w-16 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.10"
+                      placeholder="Costo (opc.)"
+                      aria-label="Costo unitario"
+                      value={ex.costoUnitario}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        actualizarExtra(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
+                      }}
+                      className="w-24 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
+                    />
+                    <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 text-[10px] text-tinta/55 hover:text-rojo">
+                      Quitar
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button type="button" onClick={agregarExtra} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                + Agregar producto fuera de factura
+              </button>
+            </section>
           </>
         )}
       </div>
@@ -465,7 +613,10 @@ export function RecepcionCompraFormV2({
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-10">
             <div className="text-sm text-tinta/75">
               <span className="font-display text-2xl tabular-nums text-tinta">{unidadesRecibiendo.toLocaleString("es-PE")}</span>{" "}
-              {unidadesRecibiendo === 1 ? "unidad" : "unidades"} de {seleccionadas.length === 1 ? "una factura" : `${seleccionadas.length} facturas`}
+              {unidadesRecibiendo === 1 ? "unidad" : "unidades"}{" "}
+              {unidadesExtra > 0
+                ? `(${unidadesFactura} de ${seleccionadas.length === 1 ? "la factura" : `${seleccionadas.length} facturas`}, ${unidadesExtra} fuera de factura)`
+                : `de ${seleccionadas.length === 1 ? "una factura" : `${seleccionadas.length} facturas`}`}
               {ubicacionNombre && (
                 <>
                   {" "}
@@ -477,7 +628,10 @@ export function RecepcionCompraFormV2({
               )}
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Boton type="submit" peso="primario" cargando={loading} disabled={unidadesRecibiendo === 0 || lineasExcedidas > 0}>
+              {/* El tope es `unidadesFactura`, no el total: una guía solo con
+                  ítems fuera de factura la rechaza la RPC (necesita al menos
+                  uno atado a una línea real). */}
+              <Boton type="submit" peso="primario" cargando={loading} disabled={unidadesFactura === 0 || lineasExcedidas > 0}>
                 Recibir en {ubicacionNombre}
               </Boton>
             </div>

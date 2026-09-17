@@ -94,6 +94,38 @@ export type RecepcionCompra = {
   unidades: number;
 };
 
+// Un lote (`retail.lotes`) es la unidad real de "una recepción" — con
+// factura (ADR-0035, `/compras/recibir`) o sin ella (`/inventario/recibir`).
+// A diferencia de `RecepcionCompra` (acotado a la factura de un detalle ya
+// conocido), este tipo es para el listado cruzado — "qué se recibió
+// últimamente, venga de donde venga" — que hasta el 2026-09-17 ninguna
+// pantalla mostraba.
+/** Una línea dentro del detalle de una recepción: qué variante, cuánto llegó. */
+export type LineaRecepcion = {
+  referencia: string;
+  sku: string | null;
+  talla: string | null;
+  color: string | null;
+  cantidad: number;
+};
+
+export type RecepcionReciente = {
+  loteId: string;
+  fecha: string;
+  ubicacion: string;
+  proveedorNombre: string;
+  numeroGuia: string | null;
+  nota: string | null;
+  recibidoPor: string | null;
+  unidades: number;
+  lineas: number;
+  conFactura: boolean;
+  /** Solo si `conFactura`: para enlazar al detalle de la factura. */
+  compraId: string | null;
+  documento: string | null;
+  detalle: LineaRecepcion[];
+};
+
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
   pendiente: "Por pagar",
   parcial: "Pago parcial",

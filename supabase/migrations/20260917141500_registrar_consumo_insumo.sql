@@ -8,14 +8,14 @@
 -- `20260917140000_insumos_taller_reconstruido.sql`). Lo único que de verdad
 -- faltaba construir es ESTO: el consumo real al cortar. Decisiones completas
 -- (por qué se adoptó el esquema huérfano en vez del construido más temprano
--- hoy, por qué el candado de concurrencia es por LOTE) en ADR-0074.
+-- hoy, por qué el candado de concurrencia es por LOTE) en ADR-0078.
 --
 -- Qué hace: `retail.registrar_consumo_insumo(p_produccion_id, p_insumo_id,
 -- p_cantidad, p_nota)` — UN consumo de UN insumo en UNA producción por
 -- llamada (sin lote a elegir a mano: la función elige el lote más antiguo con
 -- saldo). Sin bridge table: `movimientos_insumo.produccion_id` ya liga
 -- consumo↔corrida, así que no hace falta una `produccion_insumos` aparte
--- (esa tabla existía en el diseño de hoy que se descartó — ver ADR-0074).
+-- (esa tabla existía en el diseño de hoy que se descartó — ver ADR-0078).
 --
 -- El candado de concurrencia es un `for update` sobre la FILA DE
 -- `insumo_lotes` elegida (no hay una tabla de "stock" materializada que
@@ -30,7 +30,7 @@
 -- historial de esa producción: sin ese lock, dos consumos concurrentes del
 -- MISMO tipo (dos telas distintas, misma corrida) podrían pisarse el costo
 -- uno al otro (cada UPDATE vería solo su propia fila todavía no comprometida
--- del otro). Ver ADR-0074 para el detalle completo de esta decisión, que el
+-- del otro). Ver ADR-0078 para el detalle completo de esta decisión, que el
 -- encargo original no pedía explícitamente pero principio 2 (cero estados
 -- inconsistentes) sí.
 --
@@ -51,7 +51,7 @@
 -- solo 'tela'/'avio' en el esquema huérfano, sin 'empaque') sumando TODO el
 -- historial de `movimientos_insumo` tipo 'consumo' de esa producción para
 -- ese tipo — pero solo pisa el campo cuyo tipo tuvo al menos una fila (mismo
--- criterio que ya documentó ADR-0074 hoy: no borra en silencio un costo
+-- criterio que ya documentó ADR-0078 hoy: no borra en silencio un costo
 -- tecleado a mano de un tipo que esta producción todavía no consumió por
 -- insumo).
 --
@@ -193,9 +193,9 @@ end;
 $$;
 
 comment on function retail.registrar_consumo_insumo(uuid, uuid, numeric, text) is
-  'La pieza que D-47 tenía pendiente: consumo real de insumos al cortar. Elige el lote más antiguo con saldo (sin partir entre lotes), recalcula costo_tela/costo_avios de la producción solo para el tipo consumido. Ver ADR-0074.';
+  'La pieza que D-47 tenía pendiente: consumo real de insumos al cortar. Elige el lote más antiguo con saldo (sin partir entre lotes), recalcula costo_tela/costo_avios de la producción solo para el tipo consumido. Ver ADR-0078.';
 
--- Mismo hallazgo que ya documentó ADR-0074 hoy para fn_aplicar_movimiento_insumo
+-- Mismo hallazgo que ya documentó ADR-0078 hoy para fn_aplicar_movimiento_insumo
 -- (y que se reconfirmó igual para recibir_insumo/ajustar_insumo_por_conteo al
 -- construir el espejo local): este Postgres otorga EXECUTE a PUBLIC por
 -- default al crear una función, y 0005_grants.sql además otorga EXECUTE a

@@ -24,7 +24,7 @@ alter table retail.comprobantes
 
 -- ---------- el estado nuevo entra al candado que ya limitaba los valores
 -- posibles de `estado` — nunca fue "text libre sin CHECK", como sí lo es
--- hoy en producción por una razón histórica aparte (ver ADR-0077) ----------
+-- hoy en producción por una razón histórica aparte (ver ADR-0081) ----------
 alter table retail.comprobantes drop constraint comprobantes_estado_check;
 alter table retail.comprobantes add constraint comprobantes_estado_check
   check (estado in ('pendiente', 'enviado', 'aceptado', 'rechazado', 'anulado', 'no_emitido'));
@@ -60,7 +60,7 @@ alter table retail.comprobantes add constraint comprobantes_no_emitido_tiene_mot
 -- respondió) y su único camino sigue siendo reintentar "Transmitir" con el
 -- mismo número — mezclar un segundo camino ahí no es parte de esta
 -- decisión de Felipe ("nunca transmitió, no hay nada que avisarle a
--- SUNAT"); ver ADR-0077 para el razonamiento completo.
+-- SUNAT"); ver ADR-0081 para el razonamiento completo.
 create function retail.marcar_comprobante_no_emitido(p_comprobante_id uuid, p_motivo text)
 returns void
 language plpgsql

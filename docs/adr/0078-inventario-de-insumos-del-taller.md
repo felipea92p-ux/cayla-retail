@@ -1,4 +1,4 @@
-# ADR-0074 — Inventario de insumos del Taller: entra, se descuenta al cortar, avisa cuando falta
+# ADR-0078 — Inventario de insumos del Taller: entra, se descuenta al cortar, avisa cuando falta
 
 **Fecha:** 2026-09-17. Reescrita dos veces el mismo día — ver "Qué pasó antes de esta
 versión" y "Reconciliación con la otra sesión" más abajo.

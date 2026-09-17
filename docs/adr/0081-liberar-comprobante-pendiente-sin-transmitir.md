@@ -1,4 +1,4 @@
-# ADR-0077 — Liberar un comprobante pendiente que nunca se transmitió ("sin espera")
+# ADR-0081 — Liberar un comprobante pendiente que nunca se transmitió ("sin espera")
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado en local (`20260917130050_comprobante_no_emitido.sql`), verificado con
@@ -147,8 +147,8 @@ mezcla "reintentar vs. abandonar" que se descartó a propósito.
 ## Cómo se verificó
 
 6 escenarios en una transacción `psql` con `request.jwt.claim.sub` simulado (mismo patrón
-que ADR-0066/ADR-0074), cada uno terminado en `ROLLBACK`; confirmado después que
-`select count(*) from retail.comprobantes where cliente_nombre like 'ADR-0077 escenario%'`
+que ADR-0066/ADR-0078), cada uno terminado en `ROLLBACK`; confirmado después que
+`select count(*) from retail.comprobantes where cliente_nombre like 'ADR-0081 escenario%'`
 devuelve 0 — nada quedó escrito en el Postgres compartido:
 
 1. Comprobante `pendiente` (Felipe, líder) → `marcar_comprobante_no_emitido` con motivo →
@@ -171,7 +171,7 @@ actualizó `packages/database/src/types.ts` a mano con las 3 columnas nuevas y l
 nueva — no se corrió `gen-types`: habría traído de regalo el esquema de otras ~9
 migraciones que otras sesiones dejaron sin aplicar en este mismo Postgres compartido, ver
 "Nota al margen" abajo). `pnpm --filter web lint`: limpio. `pnpm --filter web test`:
-293/293 en verde, mismo número que reporta ADR-0076 el mismo día — sin regresión.
+293/293 en verde, mismo número que reporta ADR-0080 el mismo día — sin regresión.
 
 ## Nota al margen: el Postgres local estaba 10 migraciones atrás
 
@@ -196,6 +196,6 @@ en un worktree/branch que todavía no tenía esas 10 migraciones en su propio
 2. **Verificación visual en navegador** — no se hizo en esta sesión (esta tarea llegó sin
    `apps/web/.env.local` en este worktree, así que un servidor local no tendría con qué
    Supabase hablar sin configurarlo primero; fuera del alcance pedido). Mismo trade-off
-   explícito que ya tomó ADR-0076 el mismo día.
+   explícito que ya tomó ADR-0080 el mismo día.
 3. Si algún día se decide que `'rechazado'` también debería ser liberable, es una decisión
    de producto nueva — ver "Se rompe si".
