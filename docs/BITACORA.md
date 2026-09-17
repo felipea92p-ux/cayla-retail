@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (El efectivo offline ya entra al cierre de caja)
+
+`totalEfectivoEncolado()` (`ventas-offline.ts`) ya calculaba cuánto de la cola sin subir era efectivo, pero nada lo conectaba con `CerrarCajaModalV2.tsx` — una venta en efectivo atrapada en la cola hacía que el conteo físico (que sí tiene ese billete) se leyera como un sobrante sin explicación. Se agrega `ubicacionId` como prop nueva del modal (ya vivía en `caja.ubicacionId`/`ubicacionId` en los dos lugares que lo montan) para poder leer la misma llave de `localStorage` que usa `PuntoDeVenta.tsx`, y se muestra el aviso recién en el panel de RESULTADO — nunca antes de contar, que rompería el conteo ciego (ADR-0042: si la Encargada ve el esperado antes de contar, deja de ser una medición). Probado en navegador inyectando una venta encolada real en `localStorage` y cerrando caja: el sobrante mostrado (S/45.50) calzó exacto con el efectivo encolado, y el aviso lo explica en vez de dejarlo como una diferencia sin causa.
+
+Un detalle real de JSX se coló y se atrapó en la propia verificación: `{money(...)} de ventas...` con el texto partido en varias líneas de JSX renderizó sin el espacio entre el monto y "de" en el DOM real — visible solo leyendo el texto accesible de la página, no el código fuente (que sí tenía el espacio). Se resolvió con un template string en vez de texto JSX multilínea, que no depende de cómo React colapsa espacios entre un `{expr}` y el texto vecino.
+
 ## 2026-09-17 (Cambios y Devoluciones ya pueden buscar la venta en otra sede)
 
 `registrar_cambio`/`crear_devolucion` nunca exigieron que la venta original fuera de la sede activa — el único bloqueo real era el buscador de pantalla (`buscarVentaIdsPorComprobante`, compartida por ambos módulos), que filtraba por `ubicacion_id` sin que nadie lo hubiera decidido como regla de negocio. Se agrega un toggle "Buscar en todas las sedes" (opt-in, no default) en `BuscarPorComprobante.tsx` — un componente compartido, así que Cambios y Devoluciones lo ganan con un solo cambio. Confirmado el mecanismo con SQL directo contra el seed real (la boleta B001-1 de Tienda Lima es invisible filtrando por Trujillo, visible sin ese filtro) y en navegador (el toggle escribe `&todas=1` en la URL y el mensaje de "no encontrado" cambia según esté marcado). `db reset`, typecheck, lint y 295 tests en verde.

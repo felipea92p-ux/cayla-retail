@@ -76,7 +76,7 @@ export function CajaAbiertaPanel({
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
       {modal === "cerrar" && (
-        <CerrarCajaModalV2 cajaId={caja.id} onClose={() => setModal(null)} />
+        <CerrarCajaModalV2 cajaId={caja.id} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />
       )}
     </div>
   );

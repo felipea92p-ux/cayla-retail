@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { claveLocal, leer } from "@/lib/almacen-local";
+import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -21,9 +23,11 @@ function money(n: number) {
  */
 export function CerrarCajaModalV2({
   cajaId,
+  ubicacionId,
   onClose,
 }: {
   cajaId: string;
+  ubicacionId: string;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -33,6 +37,11 @@ export function CerrarCajaModalV2({
     sistema: number;
     contado: number;
     diferencia: number;
+    /** Efectivo de ventas offline todavía sin subir al servidor (BACKLOG) — no
+     *  entra en `sistema` porque `cerrar_caja` solo ve lo que ya está en la
+     *  base. Se lee al cerrar, no antes: mostrarlo junto al monto a contar
+     *  sería revelar parte del esperado (ADR-0042, conteo ciego). */
+    efectivoEnCamino: number;
   } | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -55,6 +64,7 @@ export function CerrarCajaModalV2({
       sistema: Number(data.monto_sistema),
       contado: Number(data.monto_real),
       diferencia,
+      efectivoEnCamino: totalEfectivoEncolado(leer<VentaEncolada[]>(claveLocal(ubicacionId, "cola"), [])),
     });
   }
 
@@ -100,6 +110,11 @@ export function CerrarCajaModalV2({
               <dd className="tabular-nums">{money(resultado.contado)}</dd>
             </div>
           </dl>
+          {resultado.efectivoEnCamino > 0 && (
+            <p className="mx-auto max-w-[18rem] rounded-md bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
+              {`Ojo: ${money(resultado.efectivoEnCamino)} de ventas hechas sin internet todavía no subieron al sistema — ese efectivo ya está en el cajón, pero "el sistema esperaba" no lo cuenta todavía.`}
+            </p>
+          )}
           <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
             Listo
           </button>
