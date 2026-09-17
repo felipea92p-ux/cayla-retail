@@ -36,7 +36,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
 
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
+  const [categoriaId, setCategoriaId] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tallaNueva, setTallaNueva] = useState("");
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
@@ -157,6 +157,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
             onChange={(e) => setReferencia(e.target.value)}
           />
           <CampoSelectNativo etiqueta="Categoría" value={categoriaId} onChange={(e) => elegirCategoria(e.target.value)}>
+            <option value="">Elige una categoría…</option>
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}
