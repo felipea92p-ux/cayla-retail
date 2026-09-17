@@ -73,7 +73,7 @@ export function ConteoPanel({
             talla: f.talla,
             color: f.color,
             diasSinContar: f.dias_sin_contar,
-            ventas30d: f.ventas_30d,
+            valorEnRiesgo: Number(f.valor_en_riesgo),
           }))
         );
       });
@@ -163,7 +163,7 @@ export function ConteoPanel({
 
         {sugerencias.length > 0 && (
           <div className="card-cayla p-5">
-            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero</p>
+            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
             <ul className="divide-y divide-tinta/10">
               {sugerencias.slice(0, 8).map((s) => (
                 <li key={s.varianteId} className="flex items-center justify-between gap-3 py-2 text-sm">
@@ -173,8 +173,7 @@ export function ConteoPanel({
                     {s.color && ` · ${s.color}`}
                   </span>
                   <span className="shrink-0 text-xs text-tinta/55">
-                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`}
-                    {s.ventas30d > 0 && ` · vende ${s.ventas30d}/mes`}
+                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
                   </span>
                 </li>
               ))}

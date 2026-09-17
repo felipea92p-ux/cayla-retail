@@ -1,18 +1,24 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { RecepcionFormV2 } from "@/components/RecepcionFormV2";
+import { getRecepcionesRecientes } from "@/lib/compras";
+import { RecibirLotePanel } from "@/components/RecibirLotePanel";
 
 // Fase UI 1 (2026-09-11): rediseño completo — ver `RecepcionFormV2.tsx` para
 // el porqué no es una adaptación de la pantalla V1.
+// 2026-09-17: lista de recepciones recientes + el formulario detrás de
+// "+ Nueva recepción" (`RecibirLotePanel`) — antes esta pantalla era
+// siempre el formulario en blanco, sin forma de ver qué se había recibido.
 export default async function RecibirLotePage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
 
-  const [proveedoresRes, catalogo] = await Promise.all([
+  const [proveedoresRes, catalogo, recepciones] = await Promise.all([
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getCatalogo(),
+    getRecepcionesRecientes({ conFactura: false }),
   ]);
   const proveedores = exigir(proveedoresRes, "el directorio de proveedores");
 
@@ -23,6 +29,13 @@ export default async function RecibirLotePage() {
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
         <p className="mt-1 text-sm text-tinta/65">
           Cada prenda que entra queda registrada como movimiento — no se edita el stock a mano.
+        </p>
+        <p className="mt-1 text-xs text-tinta/55">
+          ¿Tienes la factura del proveedor?{" "}
+          <Link href="/compras/recibir" className="hover:text-rojo">
+            Recibir con factura
+          </Link>
+          .
         </p>
       </div>
 
@@ -35,7 +48,7 @@ export default async function RecibirLotePage() {
           Todavía no hay productos en el catálogo — revisa Productos primero.
         </p>
       ) : (
-        <RecepcionFormV2
+        <RecibirLotePanel
           ubicacionId={persona.ubicacionId}
           ubicacionEtiqueta={persona.ubicacionEtiqueta}
           variantes={catalogo
@@ -48,6 +61,7 @@ export default async function RecibirLotePage() {
               color: v.color,
             }))}
           proveedores={proveedores}
+          recepciones={recepciones}
         />
       )}
     </div>
