@@ -34,6 +34,18 @@ De rebote quedó otro hallazgo, no tocado por ser más ancho que esta sesión:
 limpiar en el doc. Aprendizaje: un ítem de BACKLOG escrito un día puede describir un
 mundo que ya cambió al día siguiente — verificar contra el código vivo, no copiar el
 destino literal que traía el ticket, ni siquiera uno tan simple como un redirect.
+## 2026-09-17 (`/buscar` recupera punto de entrada tras quitarse el buscador global)
+
+`/buscar/page.tsx` funcionaba (búsqueda real con stock por ubicación) pero desde que
+`BuscadorGlobal` se quitó de `AppShell.tsx` (16-sep) nadie podía llegar ahí salvo por
+URL directa — quedó anotado en BACKLOG sin resolver. Se agregó una tarjeta "Buscar" en
+"Acciones" de Inicio, sin tocar `AppShell.tsx`. Al verificar en navegador apareció un
+bug más profundo: la pantalla dependía del buscador ya eliminado para escribir `?q=`,
+así que sin término mostraba "escribe algo en el buscador de arriba" señalando a un
+"arriba" que ya no existe; se le dio campo propio con un `<form method="get">` nativo
+(`CampoTexto`/`Boton`, sin "use client"). Aprendizaje: al borrar un componente
+compartido, `grep` por quién más dependía de su efecto secundario (acá, quién más
+escribía `?q=` sin su propia UI), no solo por sus imports directos.
 ## 2026-09-17 (Productos: primera pieza de la grilla visual — ADR-0077)
 
 `/productos` gana una vista de grilla alternable con la tabla (`?vista=grilla|tabla`, grilla
@@ -5689,6 +5701,25 @@ decidir por él: PDF a la clienta primero (barato), después decidir qué hacer 
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
 
+## 2026-09-17 (Stock fantasma de productos de prueba: ya resuelto sin script; filtro defensivo agregado)
+
+Encargo: construir y probar en local un script idempotente para llevar a 0 el stock
+fantasma de los 6 productos de prueba archivados el 16-sep (~1.600 unidades, 900 en
+Taller, BACKLOG). Antes de escribir nada, la consulta a producción (Supabase MCP, solo
+lectura) mostró `retail.stock` en 0 filas para las 36 variantes: alguien ya lo había
+corregido a mano el 2026-09-16 21:44 UTC (108 movimientos `ajuste`/`otro` por
+exactamente -1604, sin script ni registro en BACKLOG ni acá). No se construyó el script
+porque no había nada que limpiar — y local nunca tuvo este catálogo de prueba sembrado
+(`datos-prueba-catalogo-produccion.sql` excluido a propósito de `db reset`), así que
+tampoco había forma de probarlo ahí. Sí se agregó el filtro defensivo que el mismo ítem
+pedía: `getStockPorUbicacion` (`apps/web/lib/inventario-v2.ts`) ahora excluye variantes
+con `activo=false` (`variante:variantes!inner` + `.eq("variante.activo", true)`, mismo
+flag que ya oculta de caja/catálogo/conteo), para que la próxima vez que se archive un
+producto con stock residual ningún reporte lo arrastre en silencio. Typecheck, lint y
+293 pruebas en verde; verificado en el navegador local en Tienda Lima (piso/almacén) y
+Taller (sin separación), sin regresión — no se pudo probar en vivo el caso que sí oculta
+porque hoy no existe ningún producto inactivo con stock real, ni en local ni en
+producción.
 ## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
 
 Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la
@@ -5770,6 +5801,50 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 `devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (Revocar EXECUTE público de fn_aplicar_movimiento y afines — ADR-0078)
+
+`fn_aplicar_movimiento` (security definer, sin auto-chequeo) tenía EXECUTE abierto a
+`anon`/`authenticated` — RPC directo con un `movimiento_id` de tipo `entrada` ya existente
+duplicaba stock sin sesión. Mismo patrón que ADR-0067 (`fn_recalcular_costo_variante`).
+Confirmé contra `pg_proc` que los 13 llamadores actuales son todos security definer, aplique
+el revoke de dos pasos (PUBLIC + `authenticated`, 20260917150000) y extendí la revisión a
+`fn_reservar_numero_serie`/`fn_siguiente_correlativo` (mismo hueco, más grave: quema
+numeración SUNAT sin emitir nada) y `fn_asignar_codigo_producto`/`variante` (revoke angosto,
+solo `anon` — `authenticated` lo necesita vía un trigger que no es security definer,
+20260917150001). Smoke test `psql`+`ROLLBACK` (ADR-0066): los 6 caminos directos quedan
+bloqueados, los 2 caminos legítimos siguen funcionando.
+
+Felipe autorizó llevarlo a producción en el mismo mensaje. Verificar producción antes de
+escribir (solo lectura) cambió el diagnóstico: `fn_aplicar_movimiento`/
+`fn_recalcular_costo_variante` ya estaban cerradas ahí y `fn_asignar_codigo_producto`/
+`variante` ya en el estado angosto correcto — pero `fn_reservar_numero_serie`/
+`fn_siguiente_correlativo` seguían abiertas a `authenticated`: el hueco de numeración SUNAT
+era real y vigente, no hipotético. El primer intento de escribir en producción lo bloqueó el
+clasificador de auto mode de Claude Code; Felipe reconfirmó y el segundo intento sí corrió
+(`apply_migration` × 2 contra `vovjyyiafkxteijimpuy`). Reverificado después:
+las cinco funciones quedaron en el estado esperado, `get_advisors` sin nada nuevo.
+
+Felipe pidió además que quedara "todo mapeado" — corrí el ritual completo de
+`docs/datos/` (`pnpm datos:generar:produccion` + `pnpm datos:comparar`) aunque un cambio de
+solo permisos no toca ninguna de las 7 fuentes que alimentan el diccionario (confirmado: cero
+diff). De paso salieron dos cosas grandes y ajenas a esta tarea: (1) el BLOQUE 1 de
+`docs/datos/SQL-PENDIENTE-PRODUCCION.sql` (2026-09-12, `authenticated` con `TRUNCATE` sobre
+`retail` — "perder CAYLA entera") ya no existe en producción, verificado hoy; el archivo
+quedó desactualizado, no el riesgo. (2) `datos:comparar` encontró 18 pantallas rotas en
+producción (Producción del Taller, Traslados, Conteos — ninguna de las 5 funciones de este
+ADR) — código que nunca llegó a desplegarse, sin relación con este cambio. Ninguna de las dos
+se tocó — quedan en BACKLOG/ADR-0078 para su propia sesión.
+
+De paso: este Postgres local compartido resultó tener aplicada
+`20260917124059_materia_prima_taller` (de otro worktree, no está en este árbol) y le faltan
+las 10 migraciones de 16-sep que sí están en este worktree — la sección "Auditoría de
+migraciones pendientes en producción" de hoy mismo ya confirmó que production SÍ las tiene
+todas, así que es un atraso de este Postgres de desarrollo, no de producción. No lo corregí
+(traer 10 migraciones de golpe es decisión de Felipe, no algo para improvisar dentro de esta
+tarea). También de paso: `registrar_movimiento` tiene dos sobrecargas ambiguas con 6
+argumentos — probablemente ya resuelto en producción vía el parche sin archivo local
+`registrar_movimiento_una_sola_firma` que BACKLOG ya listaba.
 
 ## 2026-09-17 (noche — prioridad de conteo por valor, desplegado a producción)
 
@@ -5948,3 +6023,16 @@ así que no hay conflicto de fondo, solo de numeración. Me agregué a
 `docs/SESIONES-ACTIVAS.md` (creado hoy mismo por otra sesión, después de exactamente este
 tipo de colisión) para que la próxima sesión vea que esta rama sigue con un PR abierto.
 `pnpm --filter web typecheck`/`lint`/295 tests en verde después de cada ronda.
+
+## 2026-09-17 (revocar EXECUTE: PR #93, colisión de ADR-0077 esta vez con Productos)
+
+GitHub marcó el PR #93 con conflictos en `docs/BACKLOG.md`/`docs/SESIONES-ACTIVAS.md` —
+mientras esperaba el merge de Felipe, se fusionó el PR #92 (grilla de Productos con
+swatches de color, ADR-0077). Mismo patrón de todo el día: se había renumerado esta rama de
+ADR-0074 a ADR-0077 en la ronda anterior, y para cuando llegó a `main` ese número ya lo
+tenía la otra sesión. Renumerado otra vez, ahora a **ADR-0078** (primero libre confirmado
+contra el `main` ya fusionado) — archivo, título, y las cuatro referencias propias en
+BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra sesión a su
+propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
+siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
+en verde después de reconciliar.
