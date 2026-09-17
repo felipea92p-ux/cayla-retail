@@ -208,8 +208,16 @@ export function ProductosAgrupados({
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
               <span className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>{p.stockTotal}</span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{rangoCosto(p.variantes)}</span>
-              <span className="hidden sm:block">
+              <span className="hidden items-center gap-1.5 sm:flex">
                 <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+                {/* Sin chequeo de rol: un colaborador de sede nunca recibe un
+                    producto con estadoPublicacion distinto de "activo" —
+                    candado real en filtrosProductosDesdeParams. */}
+                {p.estadoPublicacion !== "activo" && (
+                  <Chip tono={p.estadoPublicacion === "borrador" ? "neutro" : "apagado"}>
+                    {p.estadoPublicacion === "borrador" ? "Borrador" : "Archivado"}
+                  </Chip>
+                )}
               </span>
               <span className="justify-self-end">
                 <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} />
@@ -224,6 +232,11 @@ export function ProductosAgrupados({
               <span className={`text-xs font-semibold tabular-nums ${tonoStock}`}>Stock {p.stockTotal}</span>
               <span className="text-xs tabular-nums text-tinta/65">{rangoCosto(p.variantes)}</span>
               <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+              {p.estadoPublicacion !== "activo" && (
+                <Chip tono={p.estadoPublicacion === "borrador" ? "neutro" : "apagado"}>
+                  {p.estadoPublicacion === "borrador" ? "Borrador" : "Archivado"}
+                </Chip>
+              )}
               {sinStock && <Chip tono="rojo">Sin stock</Chip>}
               {stockBajo && <Chip tono="ambar">Stock bajo</Chip>}
               {p.reponerDeProveedor && <Chip tono="ambar">Pedir a proveedor</Chip>}

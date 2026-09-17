@@ -61,6 +61,16 @@ const ESTADOS = [
   { valor: "descontinuado", texto: "Descontinuado" },
 ] as const;
 
+// Eje DISTINTO de ESTADOS (20260917201500): "Estado" arriba responde "¿se
+// sigue vendiendo?"; esto responde "¿ya se muestra en el catálogo/Vender?".
+// Un producto puede estar Activo (vende) y en Borrador (nadie lo ve) a la
+// vez — recién cargado, sin fotos/variantes terminadas todavía.
+const ESTADOS_PUBLICACION = [
+  { valor: "borrador", texto: "Borrador" },
+  { valor: "activo", texto: "Publicado" },
+  { valor: "archivado", texto: "Archivado" },
+] as const;
+
 /** Referencia → token estable para el SKU sugerido: sin acentos, sin
  *  espacios, mayúsculas, cortado — no es `codigo` (eso lo arma el trigger
  *  con el correlativo real de la categoría; esto es solo una sugerencia
@@ -120,6 +130,9 @@ export function ProductoForm({
   const [referencia, setReferencia] = useState(producto?.referencia ?? "");
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
+  const [estadoPublicacion, setEstadoPublicacion] = useState<(typeof ESTADOS_PUBLICACION)[number]["valor"]>(
+    producto?.estadoPublicacion ?? "borrador"
+  );
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
   const [temporada, setTemporada] = useState(producto?.temporada ?? "");
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
@@ -223,6 +236,7 @@ export function ProductoForm({
           p_producto_id: producto!.id,
           p_referencia: referencia.trim(),
           p_estado: estado,
+          p_estado_publicacion: estadoPublicacion,
           p_variantes: payloadVariantes,
           p_permitir_venta_sin_stock: permitirVentaSinStock,
           p_fotos: payloadFotos,
@@ -277,7 +291,16 @@ export function ProductoForm({
             </Campo>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
             {editando && (
-              <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
+              <>
+                <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
+                <Segmentado
+                  etiqueta="Publicación"
+                  pie="Borrador: solo Líderes lo ven en /productos, nadie puede venderlo en Vender. Publicado: visible para cualquier colaborador de sede."
+                  valor={estadoPublicacion}
+                  onValor={setEstadoPublicacion}
+                  opciones={ESTADOS_PUBLICACION}
+                />
+              </>
             )}
             <CampoTexto
               etiqueta="Stock mínimo (opcional)"

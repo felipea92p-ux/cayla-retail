@@ -1910,6 +1910,7 @@ export type Database = {
           created_at: string
           descripcion: string | null
           estado: string
+          estado_publicacion: string
           id: string
           permitir_venta_sin_stock: boolean
           referencia: string
@@ -1923,6 +1924,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_publicacion?: string
           id?: string
           permitir_venta_sin_stock?: boolean
           referencia: string
@@ -1936,6 +1938,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_publicacion?: string
           id?: string
           permitir_venta_sin_stock?: boolean
           referencia?: string
@@ -2885,6 +2888,7 @@ export type Database = {
           p_categoria_id?: string
           p_descripcion?: string
           p_estado: string
+          p_estado_publicacion?: string
           p_fotos?: Json
           p_permitir_venta_sin_stock?: boolean
           p_producto_id: string
@@ -3269,6 +3273,7 @@ export type Database = {
           p_categoria_id?: string
           p_color_codigo?: string
           p_estado?: string
+          p_estado_publicacion?: string
           p_orden?: string
           p_pagina?: number
           p_por_pagina?: number
@@ -3288,6 +3293,7 @@ export type Database = {
           costo: number
           demanda_diaria: number
           estado: string
+          estado_publicacion: string
           foto_url: string
           lead_time_dias: number
           precio: number
@@ -3311,6 +3317,7 @@ export type Database = {
           p_categoria_id?: string
           p_color_codigo?: string
           p_estado?: string
+          p_estado_publicacion?: string
           p_precio_max?: number
           p_precio_min?: number
         }

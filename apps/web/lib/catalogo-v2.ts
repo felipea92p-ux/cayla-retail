@@ -30,9 +30,20 @@ export type VarianteCatalogo = {
   referencia: string;
   categoria: string | null;
   codigosBarras: string[];
+  /** Publicación del PRODUCTO (20260917201500), no de esta variante —
+   *  borrador/activo/archivado, sin tipar como unión literal a propósito
+   *  (viene de una consulta/RPC genérica — mismo criterio que `estado` en
+   *  este mismo tipo). Vender (`/vender/page.tsx`) filtra por esto además
+   *  de `activo`: una variante activa de un producto todavía en borrador
+   *  sigue sin venderse. */
+  estadoPublicacion: string;
 };
 
-/** Todo el catálogo activo, para la pantalla de Productos. */
+/** Todo el catálogo, para flujos internos (Compras, Inventario, Cambios) que
+ *  necesitan CUALQUIER producto sin importar si ya se publicó — recibir o
+ *  contar stock de un producto en borrador es normal (se compra antes de
+ *  publicarlo). Quien SÍ necesita ocultar los borradores (Vender) filtra
+ *  por `estadoPublicacion` él mismo, no acá — ver `vender/page.tsx`. */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
   const filas = exigir(
@@ -40,7 +51,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
       .from("variantes")
       .select(
         `id, sku, codigo, talla, color_codigo, precio, costo, activo,
-         producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
+         producto:productos ( id, referencia, estado_publicacion, categoria:categorias ( nombre ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
       )
@@ -63,6 +74,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     referencia: v.producto?.referencia ?? "(sin referencia)",
     categoria: v.producto?.categoria?.nombre ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
+    estadoPublicacion: v.producto?.estado_publicacion ?? "activo",
   }));
 }
 
@@ -83,6 +95,11 @@ export type FiltrosProductos = {
   categoriaId?: string;
   colorCodigo?: string;
   estado?: "activo" | "descontinuado";
+  /** Borrador/activo/archivado (20260917201500) — eje distinto de `estado`.
+   *  Un colaborador de sede SIEMPRE llega acá con "activo" (page.tsx lo fuerza,
+   *  sin importar la URL); solo un Líder puede pedir otro valor o `undefined`
+   *  (= sin filtro, ve los tres). */
+  estadoPublicacion?: "borrador" | "activo" | "archivado";
   precioMin?: number;
   precioMax?: number;
   /** "reponer" = punto de reorden (20260916100000): demanda × tiempo de
@@ -101,6 +118,10 @@ export type ParamsProductosListado = {
   cat?: string;
   color?: string;
   estado?: string;
+  /** Nombre corto en la URL a propósito ("pub", no "estadoPublicacion") —
+   *  mismo criterio que el resto de estos params. Solo un Líder puede
+   *  llegar a fijar esto de verdad: ver `filtrosProductosDesdeParams`. */
+  pub?: string;
   precioMin?: string;
   precioMax?: string;
   stock?: string;
@@ -115,13 +136,24 @@ export const PRODUCTOS_POR_PAGINA = 24;
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 const esNumeroPositivo = (v?: string) => !!v && /^\d+(\.\d+)?$/.test(v);
 
-/** Traduce la URL a filtros, descartando cualquier valor que no calce con su forma. */
-export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosProductos {
+/** Traduce la URL a filtros, descartando cualquier valor que no calce con su
+ *  forma. `esLider` decide `estadoPublicacion` — NO es un default que la URL
+ *  pueda pisar: un colaborador de sede llega siempre con "activo" así
+ *  manipule la URL a mano, porque el candado real es este `if`, no que la
+ *  UI no muestre el filtro (esa es solo la primera capa, ver
+ *  FiltrosProductos.tsx). Mismo criterio que ya usa el resto del repo para
+ *  "qué puede ver un colaborador" (no hay RLS por rol en `productos_select`
+ *  — 0004_rls.sql lo deja abierto a cualquier autenticado — así que sin
+ *  este `if` un colaborador vería borradores con solo escribir
+ *  `?pub=borrador` en la barra de direcciones). */
+export function filtrosProductosDesdeParams(p: ParamsProductosListado, esLider: boolean): FiltrosProductos {
+  const pub = p.pub === "borrador" || p.pub === "activo" || p.pub === "archivado" ? p.pub : undefined;
   return {
     busqueda: p.q?.trim() || undefined,
     categoriaId: esUuid(p.cat) ? p.cat : undefined,
     colorCodigo: p.color?.trim() || undefined,
     estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
+    estadoPublicacion: esLider ? pub : "activo",
     precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
     precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
     stock:
@@ -142,6 +174,12 @@ export type ProductoListado = {
   categoriaId: string | null;
   categoria: string | null;
   estado: string;
+  /** Borrador/activo/archivado (20260917201500), sin tipar como unión
+   *  literal (viene de `fn_productos`, mismo criterio que `estado` acá
+   *  arriba). Solo llega distinto de "activo" cuando quien pidió el
+   *  listado es Líder — un colaborador de sede siempre recibe el catálogo
+   *  ya acotado a "activo" (ver `filtrosProductosDesdeParams`). */
+  estadoPublicacion: string;
   stockMinimo: number | null;
   stockTotal: number;
   /** Ventas/día promedio de los últimos 30 días, todas las sedes (20260916100000). */
@@ -181,6 +219,7 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
     ...(filtros.colorCodigo ? { p_color_codigo: filtros.colorCodigo } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
+    ...(filtros.estadoPublicacion ? { p_estado_publicacion: filtros.estadoPublicacion } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
   };
@@ -213,6 +252,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
         estado: f.estado,
+        estadoPublicacion: f.estado_publicacion,
         stockMinimo: f.stock_minimo,
         stockTotal: f.stock_total,
         demandaDiaria: Number(f.demanda_diaria),
@@ -238,6 +278,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       referencia: f.referencia,
       categoria: f.categoria_nombre,
       codigosBarras: f.codigos_barras ?? [],
+      estadoPublicacion: f.estado_publicacion,
     });
   }
 
@@ -303,6 +344,9 @@ export type ProductoDetalle = {
   referencia: string;
   descripcion: string | null;
   estado: "activo" | "descontinuado";
+  /** Borrador/activo/archivado (20260917201500) — eje distinto de `estado`,
+   *  lo edita `ProductoForm.tsx` vía `catalogo_actualizar_producto`. */
+  estadoPublicacion: "borrador" | "activo" | "archivado";
   codigo: string | null;
   /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
   stockMinimo: number | null;
@@ -321,7 +365,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   const { data, error } = await supabase
     .from("productos")
     .select(
-      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
+      `id, categoria_id, referencia, descripcion, estado, estado_publicacion, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
        variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
          codigos_barras ( codigo ) ),
@@ -339,6 +383,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     referencia: data.referencia,
     descripcion: data.descripcion,
     estado: data.estado as ProductoDetalle["estado"],
+    estadoPublicacion: data.estado_publicacion as ProductoDetalle["estadoPublicacion"],
     codigo: data.codigo,
     stockMinimo: data.stock_minimo,
     temporada: data.temporada,
