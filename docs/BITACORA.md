@@ -3,6 +3,160 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Productos: primera pieza de la grilla visual — ADR-0077)
+
+`/productos` gana una vista de grilla alternable con la tabla (`?vista=grilla|tabla`, grilla
+por defecto): tarjeta con el tinte del color activo como placeholder (cero fotos reales en
+producción, verificado antes de construir), swatches por color con hover de vista previa y
+clic para fijar, y una vista rápida (mismo `<Modal>` del sistema) con el detalle de
+variantes, Editar y Ajustar inventario — cero cambios de esquema ni de RPC, mismo
+`ProductoListado[]` que ya usaba la tabla. Probado en navegador local (10 productos reales):
+hover/clic de color, vista rápida con Ajustar inventario, tabla intacta. Aprendizaje: la
+nomenclatura de prendas ya estaba bien resuelta (ADR-0025/0069) — lo que faltaba era la
+presentación; y un canvas de diseño (Artifacts) permite probar una interacción real
+(clicable, no solo dibujada) con Felipe antes de escribir una sola línea del repo.
+
+## 2026-09-17 (Productos: cada foto sabe de qué color es — ADR-0077, addenda 7)
+
+Felipe preguntó cómo agregar fotos antes de salir a fotografiar el piloto — la
+respuesta destapó que el formulario ya subía fotos (Sesión F1) pero sin saber de qué
+color eran, justo la pieza que el swatch interactivo necesita para mostrar la foto
+real en vez del tinte. `producto_fotos` gana `color_codigo`
+(`20260917190000_producto_fotos_por_color.sql`); `catalogo_crear_producto`/
+`catalogo_actualizar_producto` lo leen de cada foto sin cambiar de firma;
+`fn_productos` sí cambió de forma (foto_url nueva) y se dropeó primero, esta vez
+partiendo de la versión correcta (`20260917180000` — la lección de la addenda 5 sirvió).
+El join usa `IS NOT DISTINCT FROM` para que una variante sin color combine con una
+foto sin color (`NULL = NULL` da NULL en SQL, no verdadero). `FotosProducto.tsx` gana
+un selector de color por foto (reusa `ComboBuscable`, ya usado para el color de cada
+variante en el mismo formulario). `ProductosGrilla.tsx` muestra la foto real
+(`next/image unoptimized`) cuando el color activo tiene una, tinte cuando no.
+
+Verificado sin poder simular la subida de un archivo real (la herramienta de
+navegador no elige archivos del disco): la RPC probada directo por SQL
+(`catalogo_actualizar_producto` con una foto + color, la fila quedó bien escrita), y
+todo lo demás de punta a punta en el navegador — el formulario de edición precarga el
+color de cada foto, la Grilla muestra foto real en Beige y tinte en Negro para la
+misma prenda, cambia correctamente al clickear cada swatch. Error de la propia
+prueba, no del código: la llamada SQL de prueba no mandó `p_categoria_id` y la
+función lo sobreescribe siempre — le borró la categoría a Blusa Emma hasta que se
+notó y se corrigió a mano (el formulario real no tiene este problema, siempre manda
+el valor vigente). Aprendizaje: al simular una RPC de escritura a mano, mandar
+siempre el valor ACTUAL de cada campo que la función sobreescribe sin condición, no
+solo el que se está probando.
+
+## 2026-09-17 (Productos: el orden por precio pasa de desplegable a dos flechas — ADR-0077, addenda 6)
+
+Felipe: nada de la palabra "Relevancia" — quería dos flechas clicables por separado,
+que se sepa que ordenan por precio ascendente/descendente. `BotonesOrdenPrecio`
+reemplaza al desplegable de la addenda 5: dos botones ícono-solo (`ArrowUp`/`ArrowDown`),
+color rojo cuando están activos, tooltip (mismo patrón que `PuntoDeVentaCatalogo.tsx`)
+al pasar el mouse. Clic en la activa la apaga, clic en la otra la reemplaza. Nada
+cambió del lado de la base — solo el control. Verificado en navegador: cada flecha
+ordena por separado, clic repetido apaga, el chip sigue mostrando el texto completo.
+
+## 2026-09-17 (Productos: orden por precio + panel plomo/tipografía de "Filtros" — ADR-0077, addenda 5, con un casi-error de RPC corregido a tiempo)
+
+Felipe pidió que el panel de filtros dejara el fondo blanco por un "plomo que combine
+más", que el texto de las píldoras usara la tipografía de "Filtros" (versalitas), y
+sumar orden por precio ascendente/descendente a la izquierda. Lo visual: `bg-sand/50`
+sin borde en vez de `card-cayla` (papel+borde), y `label-cayla text-[11px]` en vez de
+`text-sm` en cada píldora. Lo nuevo: `p_orden` en `fn_productos`
+(`20260917180000_productos_ordenar_por_precio.sql`), ordena por el precio mínimo del
+producto con un `case when` (nunca SQL armado a mano), nueva píldora "Ordenar" primera
+en la fila.
+
+**El error que casi se cuela:** armé la migración sobre `20260915160000` (la primera
+definición de `fn_productos`), no sobre `20260916100000_punto_reorden.sql` — la que de
+verdad estaba viva, con demanda/lead time/punto de reorden y `p_stock='reponer'`.
+Aplicarla tal cual habría revertido esa pieza en el Postgres local compartido (~30
+worktrees lo usan). Se notó ANTES de abrir el navegador — el propio cliente
+(`catalogo-v2.ts`) ya leía `f.demanda_diaria`/`f.punto_reorden`/etc. de la respuesta, un
+tipo desalineado que hubiera fallado en silencio (`Number(undefined)` = `NaN`, no una
+excepción). Corregido rehaciendo la migración sobre la base real; verificado con
+`pg_proc` (una sola sobrecarga, 10 argumentos) y SQL directo que `p_orden` y el punto
+de reorden conviven sin pisarse. De paso, el `migration up` de este worktree traía
+otro hueco ya documentado (memoria): faltaba el stub `0000_local_stub_dynamic.sql`
+(gitignored, copiado desde el checkout principal) y 4 migraciones de OTRA sesión
+paralela (`cuervo-colibri-modulos-170de6`, módulo Gastos/Compras) que ya estaban
+aplicadas al Postgres compartido pero no como archivo en este worktree — copiadas
+también, sin tocar su contenido. Regenerados los tipos de `packages/database`
+(`pnpm gen-types`, quedó tomando de paso el punto de reorden que tampoco estaba
+reflejado ahí). Verificado en navegador: la grilla ordena Falda Ariana (S/64.90) →
+Blusa Valentina → Falda Renata → ... correctamente ascendente, chip y contador
+"FILTROS · 1" correctos, Tabla intacta. Aprendizaje: antes de escribir
+`create or replace function` sobre una RPC que ya existe, `grep` el nombre en TODAS
+las migraciones — la primera definición que aparece casi nunca es la última, y
+confiar en ella sin mirar más habría sido un bug real en producción, no solo local.
+
+## 2026-09-17 (Productos: sin cajas en los filtros de la Grilla, el hilo vivo hace de marca — ADR-0077, addenda 4)
+
+Felipe: "no me gusta que estén encapsulados en esos rectángulos blancos, quiero que
+sigan la estética del sistema" — pero seguía gustándole el botón "Filtros". La
+diferencia real: todo campo del sistema (`CampoTexto`/`SelectNativo`) usa el hilo vivo
+(línea de 1px, se enciende en rojo al enfocar) — nunca una caja con borde propio; el
+botón "Filtros" es una acción, no un campo, y ahí sí corresponde verse como botón. Las
+píldoras de las addendas 2/3 tenían borde+fondo cada una — un patrón genérico de
+"chip de filtro", no el idioma de CAYLA. Se les sacó la caja: ahora es ícono+texto
+sobre el panel, con el mismo `Hilo` de `campos.tsx` (reusado tal cual, sin reescribir
+nada) prendiéndose al abrir el desplegable. El panel pasó de "caja grande con cajas
+chicas adentro" a una sola tarjeta con separadores de 1px (`divide-x`), como una barra
+de herramientas. El valor activo se nota por peso tipográfico, no por fondo. Verificado
+en navegador: el hilo se dibuja al abrir "Categoría", elegir "Blusas" deja el texto en
+negrita+tinta llena (las demás siguen en gris, sin caja), filtra a 2 productos, chip y
+contador "FILTROS · 1" correctos. Tabla, sin tocar. Aprendizaje: cuando el usuario dice
+"que siga la estética del sistema", conviene ir a mirar qué hace el componente
+hermano más cercano (acá, `CampoTexto`) en vez de inventar un lenguaje nuevo que
+"se vea bien" en aislado.
+
+## 2026-09-17 (Productos: vuelve el panel plegable, los desplegables ganan estilo propio — ADR-0077, addenda 3)
+
+Felipe: le gustaba más el panel "Filtros" plegable de la addenda 1 y el buscador con
+etiqueta — pidió volver a eso, pero con las píldoras con ícono de la addenda 2, "con
+más estilo", y pidió vestir también los desplegables. Un `<select>` nativo no se puede
+vestir por dentro (la lista la dibuja el sistema operativo), así que
+Categoría/Color/Estado/Stock pasaron de `<select>` nativo a Radix Select (mismo
+`radix-ui` ya instalado) — ahí sí se viste la lista abierta, no solo el botón cerrado.
+De regalo: Color ahora muestra el swatch real de cada opción (sumé `hex` a la consulta
+de `colores` en `page.tsx`), y ese swatch queda en el botón una vez elegido. Botón
+"Filtros" y panel plegable, buscador con etiqueta: como en la addenda 1. Verificado en
+navegador: el dropdown de Color abre con tarjeta propia (borde, sombra, swatches por
+punto), elegir "Negro" aplica al instante (`?color=NEG`, sin esperar el debounce — es
+una selección discreta, no texto), la píldora del disparador queda mostrando el
+swatch negro + "Negro", el chip aparece, la grilla filtra a 4 productos. Tabla, sin
+tocar. Aprendizaje: cuando piden "dale estilo al dropdown", primero preguntarse si el
+control de base ADMITE ese estilo — un `<select>` nativo no, y ningún ajuste de CSS
+lo iba a resolver; había que cambiar de primitiva, no de clases.
+
+## 2026-09-17 (Productos: filtros de la Grilla pasan a píldoras con ícono y precio de arrastre — ADR-0077, addenda 2)
+
+Felipe vio el panel plegable de la pasada anterior y no le gustó: "ocupa demasiado
+espacio y se ve mal". Los 6 campos pasaron de tarjeta-de-formulario a píldoras
+(ícono de `lucide-react` + `<select>` sin caja), siempre visibles en una fila que
+envuelve — se sacó el botón "Filtros" entero, ya no hace falta abrir nada. El precio
+pasó de dos casillas de texto a un rango de arrastre (`Slider` de `radix-ui`, ya
+instalado en el repo — sin dependencia nueva). Verificado en navegador: foco por
+teclado + flechas en el thumb "Precio máximo" bajó el valor a 900, `location.search`
+confirmó `?precioMax=900` tras el debounce, y el chip "Quitar filtro Hasta S/900"
+apareció y funciona. Tabla, sin tocar (mismo screenshot que antes). Aprendizaje: la
+primera respuesta a "ocupa mucho espacio" (esconder detrás de un clic) resuelve el
+síntoma pero no la causa — la causa era el tamaño de cada campo, no que estuvieran
+visibles.
+
+## 2026-09-17 (Productos: la Grilla le quita la tarjeta de filtros y de resumen a la ropa — ADR-0077, addenda)
+
+Felipe vio la primera pieza de la grilla y pidió un paso más: el Resumen (5 cifras) y
+`FiltrosProductos` (6 campos) tapaban la ropa antes de que apareciera una sola tarjeta.
+En `vista=grilla`: el Resumen pasó a una línea bajo el título, muda cuando no hay nada
+que atender; los filtros quedaron detrás de un botón "Filtros" con contador, mismo
+estado/URL/debounce de siempre — sin lógica duplicada, `compacto` es solo otra forma de
+mostrar lo mismo. La Tabla no se tocó. Verificado en navegador local: contador de
+filtros activos, chip "Quitar filtro Blusas" filtrando de 10 a 2 productos, Tabla con
+sus dos tarjetas intactas. Aprendizaje de herramienta, no de producto: con el panel del
+navegador oculto, un clic simulado a veces no llega (aria-expanded se queda en `false`)
+aunque el elemento y el handler estén bien — `element.click()` por DOM sí lo dispara
+siempre; ya estaba en memoria, quedó reconfirmado con un caso real.
+
 ## 2026-09-17 (aún más tarde) — "Nuevo producto": la pista pegada a la etiqueta
 
 Felipe mostró una captura de producción: "DESCRIPCIÓNOPCIONAL", "PRECIO BASESE

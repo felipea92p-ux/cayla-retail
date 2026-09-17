@@ -28,6 +28,50 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos — vista de grilla visual (2026-09-17, ADR-0077)
+
+`/productos` alterna grilla ⇄ tabla (`?vista=`), tarjeta con swatches de color
+interactivos (hover = vista previa, clic = fijo) y una vista rápida con detalle de
+variantes + Ajustar inventario. Sin fotos reales — ninguna en producción — usa un tinte
+del color como placeholder honesto en vez de un ícono de "sin foto". Segunda pasada el
+mismo día: en Grilla, el Resumen pasa a una línea muda salvo que haya algo que atender.
+Tercera pasada: los filtros pasan a píldoras con ícono, y el botón "Filtros" plegable
+vuelve (a Felipe le gustaba más así) — Categoría/Color/Estado/Stock dejan el `<select>`
+nativo por Radix Select (mismo `radix-ui` ya instalado): la lista abierta también tiene
+estilo propio. Color muestra el swatch real de cada opción (`colores.hex`, sumado a la
+consulta). Cuarta pasada: las píldoras pierden la caja con borde — ícono+texto sueltos
+con el mismo hilo vivo que ya usa `CampoTexto` en el resto del sistema, el panel que
+las agrupa pasa a una sola tarjeta con separadores finos en vez de una caja de cajas.
+Quinta pasada: el panel pasa de fondo blanco (`papel`) a `sand/50` ("plomo"), las
+píldoras ganan la tipografía versalita de "Filtros", y se suma orden por precio
+ascendente/descendente (`p_orden` en `fn_productos`,
+`20260917180000_productos_ordenar_por_precio.sql`). La Tabla conserva las dos tarjetas
+completas, sin tocar en ninguna pasada. Todo construido y verificado en el navegador
+local (10 productos reales, incluido el orden por precio funcionando de punta a punta).
+
+- [ ] **Aplicar a producción `20260917180000_productos_ordenar_por_precio.sql`** —
+      pendiente el ok puntual de Felipe (prefijo `retail.` en el SQL Editor, mismo
+      protocolo de siempre). Sin esto, `fn_productos` en producción se queda sin
+      `p_orden` — la píldora "Ordenar" fallaría ahí (no rompe nada más: es un
+      parámetro nuevo con default `null`, aditivo).
+
+- [x] **`producto_fotos` gana `color_codigo` y `fn_productos` devuelve `foto_url` por
+      variante — construido y verificado en local (2026-09-17, ADR-0077 addenda 7).**
+      `FotosProducto.tsx` (`/productos/[id]/editar`) tiene ahora un selector de color
+      por foto. Lo único que falta es que Felipe fotografíe el piloto (guía de estilo
+      ya dada) y suba/etiquete las fotos — el sistema ya está listo para recibirlas.
+- [ ] **Aplicar a producción `20260917190000_producto_fotos_por_color.sql`** —
+      pendiente el ok puntual de Felipe. Aditiva (columna nullable, RPC con default),
+      no rompe nada existente; sin ella, subir una foto en producción la guarda pero
+      sin color, y el swatch de la Grilla no tiene con qué mostrarla.
+- [ ] **Verificar en navegador como colaboradora, no solo como líder.** Esta sesión probó
+      con la sesión de Felipe en local; falta confirmar que "Ajustar inventario"/"Editar"
+      desde la vista rápida se comportan igual para un integrante sin rol de líder.
+- [ ] **Sin cambios de esquema en esta pieza** — nada que aplicar a producción todavía; el
+      toggle y el componente nuevo son 100% código de front.
+
+---
+
 ## 🎯 Recibir mercadería: productos fuera de factura (2026-09-17, ADR-0076)
 
 Felipe: "recibir mercadería" solo se rige respecto a las facturas — si algo

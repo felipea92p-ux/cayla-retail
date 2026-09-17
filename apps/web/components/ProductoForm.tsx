@@ -124,7 +124,14 @@ export function ProductoForm({
   const [temporada, setTemporada] = useState(producto?.temporada ?? "");
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [fotos, setFotos] = useState<FotoLocal[]>(
-    () => producto?.fotos.map((f) => ({ clientKey: f.id ?? `${f.url}-${Math.random()}`, id: f.id, url: f.url, esPrincipal: f.esPrincipal })) ?? []
+    () =>
+      producto?.fotos.map((f) => ({
+        clientKey: f.id ?? `${f.url}-${Math.random()}`,
+        id: f.id,
+        url: f.url,
+        esPrincipal: f.esPrincipal,
+        colorCodigo: f.colorCodigo,
+      })) ?? []
   );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
     if (!producto) return [filaVacia("")];
@@ -207,6 +214,7 @@ export function ProductoForm({
       ...(f.id ? { id: f.id } : {}),
       url: f.url,
       es_principal: f.esPrincipal,
+      color_codigo: f.colorCodigo || null,
     }));
 
     const supabase = createClient();
@@ -303,7 +311,7 @@ export function ProductoForm({
 
         {/* ---------- fotos ---------- */}
         <section className="card-cayla p-5">
-          <FotosProducto fotos={fotos} onFotos={setFotos} disabled={loading} />
+          <FotosProducto fotos={fotos} onFotos={setFotos} colores={colores} disabled={loading} />
         </section>
 
         {/* ---------- variantes ---------- */}
