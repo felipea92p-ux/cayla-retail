@@ -36,6 +36,18 @@
 //     Verificar con una nota_debito real en sandbox antes de confiar en esto.
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
+//   - Anulación (paso c): PROBADA contra el sandbox real el 2026-09-09, y la
+//     prueba encontró que la documentación pública miente en la forma del
+//     cuerpo de los DOS endpoints. Lo que funciona de verdad está escrito en
+//     cada función. Los dos caminos devuelven PENDIENTE, no ACEPTADO: SUNAT
+//     procesa la baja después, para boletas Y para facturas.
+//     El plazo sigue sin confirmarse: una página dice 3 días, otra 5, y SUNAT
+//     habla de 7 — por eso el sistema no bloquea por fecha, deja que el
+//     proveedor rechace y muestra su motivo.
+//   - La forma de la RESPUESTA de /voided sigue sin entenderse del todo:
+//     devuelve 200 con todo en null (sin hash, sin mensaje). `traducirEstado`
+//     lo lee como PENDIENTE, que es la lectura conservadora — nunca da por
+//     anulado lo que no le confirmaron.
 
 export type EntornoLucode = "sandbox" | "produccion";
 
@@ -76,6 +88,10 @@ export type ResultadoLucode =
   | {
       ok: true;
       estado: "ACEPTADO" | "PENDIENTE" | "RECHAZADO";
+      /** Ambiente contra el que se transmitió. Viaja pegado al resultado y no
+       *  se vuelve a leer del entorno más adelante: entre la llamada y el
+       *  guardado nadie puede cambiar de ambiente sin que el dato mienta. */
+      entorno: EntornoLucode;
       hash: string | null;
       xmlUrl: string | null;
       cdrUrl: string | null;
@@ -155,7 +171,9 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
   return base;
 }
 
-function entorno(): EntornoLucode {
+/** Ambiente activo. `sandbox` es el default deliberado: si falta la variable,
+ *  lo que se emite es una prueba, nunca un documento legal por accidente. */
+export function entornoLucode(): EntornoLucode {
   return process.env.LUCODE_ENTORNO === "produccion" ? "produccion" : "sandbox";
 }
 
@@ -172,7 +190,7 @@ async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
     // 15s: transmitir a SUNAT es más lento que consultar un padrón — no se
     // corta tan agresivo como padron.ts (5s), pero tampoco se deja colgado
     // indefinidamente a quien está cerrando una venta.
-    respuesta = await fetch(`${BASE_URL[entorno()]}${ruta}`, {
+    respuesta = await fetch(`${BASE_URL[entornoLucode()]}${ruta}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -213,6 +231,7 @@ function traducirEstado(json: Record<string, unknown>): ResultadoLucode {
   return {
     ok: true,
     estado,
+    entorno: entornoLucode(),
     hash: typeof payload.hash === "string" ? payload.hash : null,
     xmlUrl: typeof payload.xml === "string" ? payload.xml : null,
     cdrUrl: typeof payload.cdr === "string" ? payload.cdr : null,
@@ -231,19 +250,106 @@ export async function emitirDocumentoLucode(c: DatosComprobante): Promise<Result
   return traducirEstado(r.json);
 }
 
+/** Estados de ANULACIÓN de Lucode. Son un vocabulario aparte del de emisión
+ *  (ACEPTADO/PENDIENTE/RECHAZADO) y por eso NO se leen con `traducirEstado`:
+ *  ese mapea a PENDIENTE todo lo que no reconoce, así que un "ANULADO" real
+ *  se leería como "sigue en trámite" para siempre. */
+export type EstadoAnulacion = "confirmada" | "en_tramite" | "no_anulado";
+
+/** Traduce el `payload.estado` crudo de /status al vocabulario de anulación.
+ *  Pura a propósito: es la única parte de esto que se puede probar sin red.
+ *
+ *  Solo `ANULADO` cuenta como confirmada — y de forma deliberada, cualquier
+ *  cosa que no reconozcamos NO se da por anulada. Equivocarse hacia
+ *  "todavía no" cuesta una consulta más; equivocarse hacia "ya está" deja un
+ *  documento vivo ante SUNAT marcado como dado de baja.
+ *
+ *  Verificado contra producción el 2026-09-09: `ANULANDO` es el estado real
+ *  que devuelve mientras SUNAT procesa el resumen diario. `ANULADO` es la
+ *  contraparte esperada y todavía no se vio con los ojos. */
+export function interpretarEstadoAnulacion(estadoCrudo: string | null | undefined): EstadoAnulacion {
+  const e = String(estadoCrudo ?? "").trim().toUpperCase();
+  if (e === "ANULADO") return "confirmada";
+  if (e === "ANULANDO") return "en_tramite";
+  return "no_anulado";
+}
+
+export type ResultadoAnulacionConsultada =
+  | { ok: true; anulacion: EstadoAnulacion; estadoCrudo: string; mensaje: string | null }
+  | { ok: false; motivo: MotivoErrorLucode; detalle: string };
+
+/** Consulta si una baja ya pedida terminó. Solo lee: no vuelve a pedir la
+ *  baja, porque reenviar un resumen diario ya enviado es otro documento
+ *  tributario, no un reintento. */
+export async function consultarAnulacionLucode(
+  tipo: TipoDocumentoLucode,
+  serie: string,
+  numero: number
+): Promise<ResultadoAnulacionConsultada> {
+  const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
+  if (!r.ok) return r;
+  const payload = (r.json.payload as Record<string, unknown>) ?? {};
+  const estadoCrudo = String(payload.estado ?? "");
+  return {
+    ok: true,
+    anulacion: interpretarEstadoAnulacion(estadoCrudo),
+    estadoCrudo,
+    mensaje: typeof r.json.message === "string" ? r.json.message : null,
+  };
+}
+
 export async function consultarEstadoLucode(tipo: TipoDocumentoLucode, serie: string, numero: number): Promise<ResultadoLucode> {
   const r = await llamar("/api/v3/status", { documento: tipo, serie, numero });
   if (!r.ok) return r;
   return traducirEstado(r.json);
 }
 
+/** Comunicación de Baja — el camino de SUNAT para anular facturas y notas.
+ *  NO sirve para boletas: esas van por el resumen diario, ver
+ *  `anularBoletaLucode`. El tipo lo hace imposible, no es una convención. */
 export async function anularDocumentoLucode(
   tipo: Exclude<TipoDocumentoLucode, "boleta">,
   serie: string,
   numero: number,
   motivo: string
 ): Promise<ResultadoLucode> {
-  const r = await llamar("/api/v3/voided", { documento: tipo, serie, numero, motivo_de_anulacion: motivo });
+  // La forma NO es plana. El `documento` de la raíz es el tipo del documento
+  // que se está EMITIENDO —una comunicación de baja es un documento tributario
+  // propio— y el comprobante que se da de baja va anidado en
+  // `documento_afectado` (singular, objeto; el resumen diario de boletas usa
+  // una lista, este no). Mandarlo plano devuelve "El campo documento
+  // seleccionado no es válido". Verificado contra el sandbox real el
+  // 2026-09-09. El campo del motivo es `motivo` y va en la raíz, no adentro.
+  const r = await llamar("/api/v3/voided", {
+    documento: "comunicacion_baja",
+    motivo,
+    documento_afectado: { documento: tipo, serie, numero: String(numero) },
+  });
+  if (!r.ok) return r;
+  return traducirEstado(r.json);
+}
+
+/** Resumen Diario — el ÚNICO camino para dar de baja una boleta. SUNAT no
+ *  acepta comunicación de baja individual para boletas, y el resumen se
+ *  procesa de forma diferida: por eso la respuesta puede volver PENDIENTE y
+ *  quien llama no debe leer eso como "ya está anulada".
+ *
+ *  La forma del cuerpo NO es la de /voided: el resumen es un documento propio
+ *  ("resumen_diario") que ENVUELVE una lista de documentos afectados. Mandarlo
+ *  plano —serie/numero en la raíz, como hacía la primera versión de esto—
+ *  devuelve `Undefined array key "documentos_afectados"`. Verificado contra el
+ *  sandbox real el 2026-09-09, no solo contra la documentación.
+ *
+ *  Se manda UN documento por llamada aunque el campo sea una lista: agrupar
+ *  varias bajas en un mismo resumen ataría el resultado de todas a una sola
+ *  respuesta, y no se sabría cuál falló. */
+export async function anularBoletaLucode(serie: string, numero: number): Promise<ResultadoLucode> {
+  const r = await llamar("/api/v3/daily-summary", {
+    documento: "resumen_diario",
+    documentos_afectados: [
+      { accion_resumen: "anular", documento: "boleta", serie, numero: String(numero) },
+    ],
+  });
   if (!r.ok) return r;
   return traducirEstado(r.json);
 }

@@ -109,7 +109,7 @@ openai_api_key = "env(OPENAI_API_KEY)"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-[local_smtp]
+[inbucket]
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54424
@@ -120,16 +120,18 @@ port = 54424
 # sender_name = "Admin"
 
 [storage]
-# Apagado a propósito (2026-09-05). Es el único servicio que queda "unhealthy"
-# al levantar el stack local, y `supabase start` aborta y borra TODOS los
-# contenedores si uno solo falla — por eso el entorno local nunca llegaba a
-# existir. Sus propios logs muestran que arranca bien: lo que falla es el
-# healthcheck, con dos stacks de Supabase (retail + dynamic) compitiendo en la
-# misma máquina.
-# QUÉ SE PIERDE EN LOCAL: subir fotos de producto (lib/catalogo, bucket `fotos`).
-# Todo lo demás —catálogo, ventas, finanzas, facturación— funciona igual.
-# Para probar fotos: poner esto en `true` y apagar el stack de cayla-dynamic.
-enabled = false
+# Reactivado 2026-09-14 para "Mi perfil" (subida de foto vía el bucket
+# fotos-perfil, que imita al real de Dynamic — ver
+# supabase/migrations/0000_local_stub_dynamic.sql). Había quedado apagado
+# desde el 2026-09-05: era el único servicio que quedaba "unhealthy" al
+# levantar el stack local, y `supabase start` aborta y borra TODOS los
+# contenedores si uno solo falla. La causa real (confirmada, no solo sospecha)
+# es el healthcheck compitiendo con el OTRO stack de Supabase de esta máquina
+# (cayla-dynamic, puertos 54321-54323) cuando los dos corren a la vez — sus
+# logs siempre mostraron que Storage arrancaba bien.
+# SI VUELVE A FALLAR: confirmar con `docker ps` que no hay contenedores
+# `supabase_*_cayla-dynamic` corriendo, y apagar ese stack si los hay.
+enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 

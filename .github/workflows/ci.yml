@@ -1,0 +1,76 @@
+# CI — los tres verificadores que Vercel no corre.
+#
+# POR QUÉ EXISTE. Hasta el 2026-09-09 el único gate real de este repo era `pnpm build`, y
+# se corría cuando alguien se acordaba. `pnpm typecheck` existía pero devolvía verde sin
+# revisar nada (0 tareas; arreglado en `afab818`). Un gate que depende de la memoria de una
+# persona no es un gate: es una intención.
+#
+# POR QUÉ NO CORRE `build`. Vercel ya construye en cada push a main, con el mismo Next y el
+# mismo lockfile, y `next.config.ts` no tiene `ignoreBuildErrors`. Repetirlo acá agrega
+# minutos y no agrega señal. Lo que Vercel NO corre —y por eso está acá— es lint y pruebas.
+#
+# LO QUE ESTE CI NO PUEDE DECIR. No toca base de datos: `migraciones:verificar` necesita el
+# Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint y las
+# 79 pruebas pasan", nunca "las migraciones están aplicadas" ni "la pantalla se ve bien".
+# Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
+
+name: CI
+
+# Felipe trabaja directo sobre main, así que el push es el disparo que importa. El de PR
+# queda armado para el día que haya ramas — no cuesta nada hoy.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Dos pushes seguidos: el primero se cancela. Sin esto, corregir un typo hace correr lo
+# mismo dos veces y el resultado que llega segundo puede ser el del commit viejo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # La versión de pnpm sale de `packageManager` en package.json — no se repite acá.
+      # Dos números que hay que acordarse de mover juntos terminan distintos.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - id: instalar
+        run: pnpm install --frozen-lockfile
+
+      # `apps/web/tsconfig.json` incluye `.next/types/**`, que solo existe después de un
+      # build o un `dev`. En un clon limpio —o sea acá— esos archivos no están, así que
+      # `tsc` no vería los tipos de ruta de Next y el verde cubriría menos que en la
+      # máquina de Felipe. `next typegen` los genera en 3,5 s sin construir nada.
+      - name: Tipos de ruta de Next
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: pnpm --filter web exec next typegen
+
+      # Los tres corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
+      # (si no hay node_modules, los tres fallarían por la misma razón y el informe sería
+      # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
+      # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
+      - name: Tipos
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: pnpm typecheck
+
+      - name: Lint
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: pnpm lint
+
+      - name: Pruebas
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: pnpm test
