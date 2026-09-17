@@ -15,7 +15,9 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ejemplo, bórralo al agregar el primero real)_ Felipe | `claude/happy-ptolemy-dcb2c5` | Documento "El Método CAYLA" | 2026-09-17 |
+| Claude | `claude/ecstatic-booth-676259` | Clasificación ABC por valor en `retail.fn_prioridad_conteo` (`supabase/migrations/20260916110000_conteo_alcance_y_cadencia.sql`) | 2026-09-17 |
+
+**Nota:** hay una rama local, sin pushear todavía, `claude/cayla-taxonomia-design-7e662b`, con un día completo de trabajo sobre ADR-0072/0073 propios (taxonomía de tallas/tejidos/patrones/etiquetas, familias/categorías reales) — **choca de número** con los ADR-0072/0073 que ya existen en `main` (vocabulario portado / importador). Falta renumerar antes de abrir PR. No toca `fn_prioridad_conteo` ni Compras/Ventas/Producción, así que no colisiona con las tareas paralelas de abajo — pero cualquiera que agregue un ADR nuevo hoy debe partir de 0074, no de 0072.
 
 ## Cerradas hoy
 
