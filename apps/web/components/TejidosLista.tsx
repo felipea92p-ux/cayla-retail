@@ -5,7 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
- * Vocabulario cerrado de tejidos (ADR-0072/0073) — mismo mecanismo que
+ * Vocabulario cerrado de tejidos (ADR-0075/0076) — mismo mecanismo que
  * Colores: cualquiera con sesión propone, cualquiera de los Líderes aprueba
  * o rechaza. A diferencia de Colores, tejido no tiene código de 3 letras
  * (no se inyecta en el código de barras — es atributo del PRODUCTO, no de

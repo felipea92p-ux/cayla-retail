@@ -33,7 +33,7 @@ se perdió. La única copia era la base.
 1. **Restaurar sobre V2, no resucitar V1.** V1 producía contra `sedes.unidad_id`,
    `stock` por sede y `precio_taller`; V2 tiene `ubicaciones`, `sububicaciones` y
    `movimientos` inmutables. Portar los 8 archivos de V1 habría revivido las dos
-   generaciones del núcleo a la vez (lo que ADR-0035 descartó para el vocabulario).
+   generaciones del núcleo a la vez (lo que ADR-0075 descartó para el vocabulario).
 2. **Reconstruir la migración desde la base local, no reescribirla de memoria.**
    `pg_dump --schema-only` de las dos tablas + `pg_get_functiondef` de las 5 RPC +
    `pg_policies` + grants → un archivo con cabecera nueva y cuerpo idéntico. Se verificó

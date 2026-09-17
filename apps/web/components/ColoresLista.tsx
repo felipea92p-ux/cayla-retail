@@ -10,7 +10,7 @@ import { subirMuestraColor } from "@/lib/colores-muestra";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
- * (V1) tras ADR-0035: V2 ya tiene el candado real (`colores_clave_unica`) y
+ * (V1) tras ADR-0075: V2 ya tiene el candado real (`colores_clave_unica`) y
  * los 30 colores de CAYLA en la base, pero hasta ahora ninguna pantalla
  * dejaba agregar uno nuevo a mano.
  *
@@ -129,7 +129,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [cambiandoCodigo, setCambiandoCodigo] = useState<string | null>(null);
   const [aprobandoCodigo, setAprobandoCodigo] = useState<string | null>(null);
   // Rechazar abre un campo de motivo inline, no un modal — mismo peso visual
-  // que el resto de acciones rápidas de esta pantalla (ADR-0072 de referencia).
+  // que el resto de acciones rápidas de esta pantalla (ADR-0075 de referencia).
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoCodigo, setRechazandoCodigo] = useState<string | null>(null);
@@ -252,7 +252,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   }
 
   // Rechazar solo es válido desde 'pendiente' (lo hace cumplir el trigger).
-  // El motivo es opcional (ADR-0072 de referencia: "aprobar es de un clic
+  // El motivo es opcional (ADR-0075 de referencia: "aprobar es de un clic
   // sin fricción, el mismo criterio aplica al espejo").
   async function rechazar(c: Color) {
     setRechazandoCodigo(c.codigo);

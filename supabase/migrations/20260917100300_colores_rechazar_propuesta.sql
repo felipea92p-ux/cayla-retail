@@ -10,7 +10,7 @@
 --
 -- Dos implementaciones reales de esto se escribieron en paralelo el
 -- 2026-09-16 (ADR-0072 y ADR-0078, cada una en una rama sin fusionar).
--- Felipe eligió ADR-0072 (2026-09-17): cierra un estado inconsistente real
+-- Felipe eligió ADR-0075 (2026-09-17): cierra un estado inconsistente real
 -- (bloquea rechazar si ya hay una variante activa con el color) y resuelve
 -- la carrera entre 2 Líderes con el mismo UPDATE atómico que ya usan
 -- tejidos/patrones/etiquetas/tallas. Esta migración construye esa versión

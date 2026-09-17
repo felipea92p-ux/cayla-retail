@@ -4,7 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EtiquetasLista } from "@/components/EtiquetasLista";
 
-// Vocabulario cerrado de etiquetas de catálogo (ADR-0072) — folksonomy tipo
+// Vocabulario cerrado de etiquetas de catálogo (ADR-0075) — folksonomy tipo
 // "Oferta"/"Verano 2026" por VARIANTE, distinto de la etiqueta física de
 // código de barras. `sedes_permitidas` es opcional: sin elegir ninguna
 // sede, la etiqueta no restringe nada.

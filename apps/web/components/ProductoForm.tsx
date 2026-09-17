@@ -16,12 +16,12 @@ import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
    Usado solo por /productos/[id]/editar — el alta vive en
    NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
-   patrones pasaron a vocabulario cerrado (ADR-0072). Antes de esa fecha
+   patrones pasaron a vocabulario cerrado (ADR-0075). Antes de esa fecha
    era un único componente para alta y edición; ese reparto es el que
    sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
    detalle — no porque ambas rutas todavía lo compartan.
 
-   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0072). Aplicar/quitar una
+   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0075). Aplicar/quitar una
    etiqueta de catálogo ("última unidad") a una variante puntual se
    guarda en la MISMA acción que el resto del formulario — nunca un
    botón de guardar aparte. Dos formas de guardar en el mismo formulario

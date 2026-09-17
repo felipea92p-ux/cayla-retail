@@ -4,7 +4,7 @@
 --
 -- QUÉ FALTABA
 --   `retail.variante_etiquetas` y su candado de sede existen desde
---   20260917100200 (ADR-0072), pero nadie tenía cómo escribir en esa tabla
+--   20260917100200 (ADR-0075), pero nadie tenía cómo escribir en esa tabla
 --   sin SQL directo — el vocabulario de etiquetas (qué etiquetas existen)
 --   ya tenía pantalla, "qué variante tiene qué etiqueta" no.
 --

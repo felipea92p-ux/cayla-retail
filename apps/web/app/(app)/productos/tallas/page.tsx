@@ -4,7 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { TallasLista } from "@/components/TallasLista";
 
-// Vocabulario cerrado de tallas (ADR-0072/0073) — reemplaza el texto libre
+// Vocabulario cerrado de tallas (ADR-0075/0076) — reemplaza el texto libre
 // que tenía `variantes.talla` antes del censo real. Aprobar exige un
 // comentario, a diferencia de colores/tejidos/patrones/etiquetas.
 export default async function TallasPage() {

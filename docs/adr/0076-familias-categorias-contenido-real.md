@@ -1,4 +1,4 @@
-# ADR-0073 — El contenido de familias y categorías, no solo el mecanismo
+# ADR-0076 — El contenido de familias y categorías, no solo el mecanismo
 
 **Fecha:** 2026-09-17
 **Estado:** Construido y verificado en local (ver "Cómo se verificó").
@@ -9,7 +9,7 @@ Producción: pendiente de que Felipe pegue el SQL correspondiente.
 
 ## El problema
 
-ADR-0072 construyó el mecanismo (vocabulario cerrado, propone/aprueba,
+ADR-0075 construyó el mecanismo (vocabulario cerrado, propone/aprueba,
 filtro por categoría). Pero cuando se propuso confirmar las 6 familias tal
 cual ya existían, Felipe frenó: le había dado ejemplos casuales para
 ilustrar, no una decisión — y pidió investigar primero qué venden

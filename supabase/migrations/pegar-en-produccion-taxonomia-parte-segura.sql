@@ -48,7 +48,7 @@
 --     etiqueta): son las funciones que procesan CADA venta y traslado
 --     real ahora mismo — se reescriben junto con el resto, no sueltas,
 --     y con el cuerpo actual de producción en la mano, no a ciegas.
---   - Los 9 renombres/fusiones de categorías de ADR-0073 (Blusas→Camisas,
+--   - Los 9 renombres/fusiones de categorías de ADR-0076 (Blusas→Camisas,
 --     etc.): no rompen código, pero cambian lo que ve una encargada de
 --     sede en el desplegable AHORA MISMO — se quedan para cuando se
 --     coordine con Felipe el momento, no la seguridad técnica.
@@ -80,7 +80,7 @@ create table retail.tallas (
 );
 
 comment on table retail.tallas is
-  'Vocabulario cerrado de tallas. variantes.talla (texto libre) sigue viva hasta que el frontend V2 se fusione a main — ver ADR-0072. Qué categorías la ofrecen vive en retail.categoria_tallas.';
+  'Vocabulario cerrado de tallas. variantes.talla (texto libre) sigue viva hasta que el frontend V2 se fusione a main — ver ADR-0075. Qué categorías la ofrecen vive en retail.categoria_tallas.';
 comment on column retail.tallas.notas is
   'A diferencia de colores/tejidos/patrones/etiquetas: OBLIGATORIO al aprobar (fn_tallas_estado_trigger lo exige). Opcional al rechazar.';
 

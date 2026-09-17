@@ -1,5 +1,13 @@
 # 08 · Facturación electrónica SUNAT
-> **Pájaro:** CUERVO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** CUERVO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-17
+
+**Auditoría de flujo completo 2026-09-17** (Felipe preguntó qué le falta al módulo):
+huecos 3 y 6 de abajo ya estaban resueltos y quedaron marcados; huecos 14-16 son
+nuevos, encontrados en esa auditoría. Detalle completo en BACKLOG de esa fecha.
+Ojo: este doc todavía usa `sede_id`/`fn_puede_operar_sede` en varios ejemplos —
+el código real renombró todo a `ubicacion_id`/`fn_puede_operar_ubicacion` en
+`0010_facturacion.sql` (12-sep, mismo día que este doc). La lógica descrita sigue
+siendo correcta; el vocabulario de columnas no.
 
 ## Para qué existe
 
@@ -286,6 +294,15 @@ Una capa más, que no es permiso pero acota quién llega: la pantalla
 ve la pantalla, pero sí podría llamar las RPC directo** por PostgREST. Una pantalla no
 es un permiso: solo `anular_comprobante` repite la regla en la base.
 
+**Ojo con `fn_es_lider()` hoy (0012_control_total_temporal.sql, decisión de Felipe
+12-sep):** mientras retail esté en etapa de pruebas, esa función devuelve `true` para
+*cualquier persona activa* de Dynamic, no solo líderes. En este módulo eso tiene un
+radio de impacto mayor que en Catálogo o Inventario: cualquier colaborador activo
+puede hoy `anular_comprobante` (dar de baja algo ya aceptado por SUNAT) o
+`registrar_serie_comprobante` (reapuntar la serie de cualquier ubicación) — las dos
+operaciones más sensibles del módulo. Intencional y documentado en su propia
+migración; vale tenerlo presente específicamente acá.
+
 ## Qué se rompe sin esto
 
 Sin este módulo CAYLA no puede entregar un documento legal por una venta, y en Perú
@@ -325,6 +342,13 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
    sistema que es **irreversible ante un tercero**— es la que se quedó sin ese candado.
    Lo mismo aplica a `emitir_nota` y a `convertir_proforma_a_comprobante`, aunque esta
    última se salva por el `for update` + `estado = 'vigente'`.
+   **Matiz 2026-09-17:** desde `0011_venta_con_comprobante.sql` (12-sep), toda emisión
+   que nace DENTRO de `registrar_venta` (o sea, todo lo que emite Vender/POS) hereda
+   gratis la idempotencia por `p_token` de la venta — un reintento con el mismo token
+   no vuelve a llamar `emitir_comprobante`, retorna la venta ya existente. El hueco
+   real hoy está acotado al panel manual de Facturación (`ComprobantesPanel.tsx:272`,
+   `onEmitir` llama a `emitir_comprobante` sin ningún token) — sigue siendo grave ahí,
+   ya no en el flujo normal de venta.
 
 2. **El IGV se despeja en el navegador con `total - total/1.18`.** GRAVE.
    `apps/web/components/ComprobantesPanel.tsx:238` y
@@ -342,18 +366,28 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
    el que SUNAT recibió difieren en céntimos, y una declaración mensual que no cuadra
    contra el sistema. Lo correcto es que el IGV lo despeje la base, en una sola línea,
    igual que el correlativo.
+   **Matiz 2026-09-17:** `0011_venta_con_comprobante.sql:134` ya mueve el cálculo a SQL
+   para lo que emite Vender (`v_igv := round((v_total_items - v_total_items / 1.18) *
+   100) / 100`) — mismo 18% hardcodeado, ahora en dos archivos en vez de uno, pero al
+   menos ya no confía en lo que mande el navegador para esa ruta. El panel manual
+   (`ComprobantesPanel.tsx:270`) sigue calculando y mandando el IGV desde el cliente sin
+   ninguna verificación del lado de la base — (b) sigue completo ahí.
 
-3. **`comprobantes.venta_id` existe pero nunca se llena: la boleta y la venta siguen
-   sueltas (D-34 incumplido).** Ninguna de las dos pantallas que emiten manda
-   `p_venta_id`: `ComprobantesPanel.tsx:240-249` y `ProformasPanel.tsx:126-132` lo
-   omiten, y `RegistrarVentaModal.tsx` no llama a `emitir_comprobante` en ningún punto.
-   El índice `comprobantes_venta_id_idx` existe sobre una columna vacía. La promesa
-   está escrita en el propio SQL, `supabase/migrations/0041_anular_comprobante.sql`:
-   *«un comprobante en este esquema no mueve inventario (`venta_id` es opcional y
-   Facturación todavía no está conectada a `ventas`, ADR-0009)»*. Consecuencia: no se
-   puede saber qué se vendió en una boleta, y por lo tanto **las devoluciones de
-   clientas no se pueden construir** (D-43 depende de esto), ni se puede cruzar lo
-   facturado contra lo vendido para el estado de resultados por sede (D-30).
+3. **RESUELTO 2026-09-12, mismo día de este doc — `supabase/migrations/0011_venta_con_comprobante.sql`.**
+   `registrar_venta` gana `p_tipo_comprobante`/`p_cliente_tipo_doc`/`p_cliente_num_doc`/
+   `p_cliente_nombre` y emite el comprobante DENTRO de la misma transacción que la venta
+   (si `emitir_comprobante` revienta —ej. sin serie registrada—, la venta entera se
+   revierte, stock incluido). Verificado contra el código real 2026-09-17:
+   `PuntoDeVenta.tsx:647-650` los manda siempre (`tipoComprobante` por defecto
+   `"boleta"`, nunca queda sin mandarse). D-34 ya se cumple para toda venta hecha por
+   Vender. **Lo que sigue sin resolver:** el panel manual de Facturación
+   (`ComprobantesPanel.tsx`, "Emitir comprobante" suelto) NO manda `p_venta_id` — es
+   correcto que no lo haga cuando el comprobante no corresponde a una venta registrada
+   en el sistema, pero significa que "Ventas de hoy" y "Emitir comprobante" siguen sin
+   conectarse entre sí para el caso de re-facturar una venta ya hecha (ver BACKLOG
+   2026-09-16, "Ventas de hoy no conecta con Emitir comprobante" — pospuesto por
+   Felipe). Devoluciones de clientas (D-43) siguen sin construirse, pero ya no por
+   falta de `venta_id` — ver hueco 5, que es la causa real.
 
 4. **`comprobantes.motivo` se declara texto libre pero se transmite como CÓDIGO del
    catálogo de SUNAT.** GRAVE.
@@ -385,17 +419,25 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
    esquema, el trigger y el conector ya están listos esperándola. Consecuencia hoy: una
    devolución de clienta no tiene forma de registrarse como nota de crédito y se
    disfraza de ajuste de stock.
+   **Confirmado 2026-09-17, ya con Devoluciones y Cambios construidos (ADR-0052/0053) y
+   Anular Venta también (ADR-0065):** `apps/web/lib/devoluciones.ts` usa
+   `parsearComprobante`/`buscarVentaIdsPorComprobante` solo para ENCONTRAR la venta
+   original por su número de boleta/factura — nunca para emitir una nota. `grep -rl
+   "emitir_nota" apps/web` sigue devolviendo solo la ruta Lucode y los tipos, cero
+   llamadores reales. Con Devoluciones ya en producción, este hueco pasó de teórico a
+   activo: cada devolución sobre una venta con **factura** (RUC, crédito fiscal) deja el
+   IGV de esa venta declarado de más ante SUNAT, indefinidamente.
 
-6. **La proforma guarda sus ítems con una forma que nadie puede leer después.**
-   `apps/web/components/ProformasPanel.tsx:104` guarda
-   `p_items: [{ descripcion: "Venta", cantidad: 1, precio: total }]` — la clave es
-   `precio`, no `precio_unitario`, y el monto **incluye IGV**, cuando el contrato de
-   `ItemComprobante` (`apps/web/lib/lucode.ts:61-66`) exige `precio_unitario` **sin
-   IGV**. Hoy no rompe nada porque `convertir_proforma_a_comprobante` **no pasa los
-   ítems** al comprobante: el comprobante nace con el ítem genérico "Venta de
-   mercadería". O sea que lo que se cotizó no viaja al documento legal. El día que
-   alguien conecte esos ítems, `itemsValidos` (`app/api/lucode/emitir/route.ts:39-56`)
-   los rechaza y devuelve un 500 con el mensaje "Esto no debería pasar".
+6. **RESUELTO 2026-09-12, mismo día de este doc — `0010_facturacion.sql`.**
+   `ProformasPanel.tsx:114` ya guarda `{ descripcion, cantidad, precio_unitario }` (la
+   clave correcta) y `convertir_proforma_a_comprobante` ya reenvía `v_proforma.items`
+   reales al comprobante nuevo en vez de caer siempre al genérico — el propio SQL lo
+   dice: *"a diferencia de producción, que los perdía y caía siempre al genérico (bug
+   confirmado leyendo el código real; se corrige acá de una vez)"*. Verificado contra
+   el código 2026-09-17: sigue así. Lo que sí sigue sin resolver es que el monto
+   **incluye IGV** en vez de ser el valor unitario sin IGV — no se profundizó si eso
+   ya se corrigió también, revisar antes de conectar una proforma con ítems reales
+   (no genéricos) a una transmisión real.
 
 7. **Los estados `vencida` y `anulada` de una proforma no los escribe nadie.**
    El check de `proformas.estado` los declara
@@ -465,6 +507,42 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     mirando el panel de Lucode y escribiendo el ambiente real (solo Felipe puede pegar
     ese SQL, D-11), y recién después `validate constraint`.
 
+14. **El PDF/XML/CDR que Lucode devuelve se guarda y nunca se muestra a nadie —
+    encontrado 2026-09-17.** GRAVE. `emitirDocumentoLucode` devuelve `pdfUrl`/`xmlUrl`/
+    `cdrUrl` (`apps/web/lib/lucode.ts:236-238`) y `app/api/lucode/emitir/route.ts:189-191`
+    los guarda dentro de `comprobantes.respuesta_sunat`. Verificado con `grep -rn
+    "pdfUrl\|respuesta_sunat" apps/web --include=*.tsx`: cero pantallas los leen —
+    `ComprobantesPanel.tsx` no tiene ni un botón "Descargar" ni "Ver PDF".
+    Consecuencia: el sistema transmite el documento legal a SUNAT correctamente, pero
+    no tiene forma de ENTREGÁRSELO a la clienta — ese último paso pasa hoy por fuera
+    del sistema (¿el panel de Lucode directamente?), lo cual es justo el tipo de paso
+    manual que este módulo existe para eliminar.
+
+15. **Un comprobante `pendiente` que nadie transmite queda huérfano para siempre — sin
+    camino de salida, y ya no es hipotético.** GRAVE. `anular_comprobante` exige
+    `estado = 'aceptado'` (línea 314 de `emitir_comprobante`/`anular_comprobante` en
+    `0010_facturacion.sql`) — no hay ninguna RPC que libere un correlativo reservado y
+    nunca transmitido. Dos casos reales confirmados en producción 2026-09-16:
+    **B004-000004** (S/655.50, 14-sep) y **B004-000005** (S/185.30, 15-sep). Además,
+    `anular_venta` (ADR-0065, `20260916172645_anular_venta.sql`) solo BLOQUEA la
+    anulación si el comprobante de la venta ya está `enviado`/`aceptado` (línea 79) —
+    si está `pendiente`, la venta se anula y el comprobante queda huérfano igual, sin
+    que la función lo toque (`grep "update comprobantes"` sobre ese archivo: sin
+    resultado). O sea que hay dos caminos activos produciendo el mismo estado
+    imposible — uno por olvido operativo (nadie aprieta "Transmitir"), otro
+    estructural (anular una venta con comprobante sin transmitir). Pregunta de negocio
+    para Felipe, no técnica: ¿se puede soltar un `pendiente` sin avisar a SUNAT (nunca
+    salió de acá, no hay nada que darle de baja allá)? ¿Y debería `anular_venta`
+    hacerlo automático cuando el comprobante que deja atrás está `pendiente`?
+
+16. **El cliente de un comprobante no está ligado a la tabla `clientes` — encontrado
+    2026-09-17.** `comprobantes.cliente_nombre`/`cliente_num_doc` son texto libre sin
+    FK, a diferencia de `ventas.cliente_id → clientes(id)`. Consecuencia: no se puede
+    ver "cuánto le facturamos a esta persona" ni cruzar el historial de compras con el
+    de comprobantes, y el mismo cliente puede quedar escrito con variaciones distintas
+    en cada emisión. Menor prioridad que 14/15 — es una limitación de reporting, no un
+    riesgo de datos.
+
 ## Decisiones que lo gobiernan
 
 - **D-34** · Boleta y venta se unen. **Incumplida hoy**: `venta_id` existe y nadie lo llena (hueco 3).
@@ -474,7 +552,7 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 - **D-11** · Solo Felipe pega SQL en producción y queda anotado — aplica al arreglo de B004-000002 (hueco 13).
 - **D-12** · Cuatro niveles de permiso. **Incumplida hoy**: la base solo conoce dos (hueco 8).
 - **D-16** · Cada tabla marcada con en qué base existe. Las tres del módulo: local y producción.
-- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 1, 3, 4, 6 y 10.
+- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 1, 4, 10, 14 y 15.
 - **D-46** · Prioridad 1 es cuentas por pagar e IGV (CAYLA al 72% de las 300 UIT). El hueco 2 (IGV calculado en el navegador) pega directo ahí.
 - **ADR-0005** — Facturación electrónica se construye en dos partes separadas: reservar el número (nuestro) y transmitir (del PSE). Superado el 05-09: el proveedor es Lucode.
 - **ADR-0007** — Esquema legal completo: la proforma no es comprobante, la nota solo sobre un original aceptado, `nota_debito` como cuarto tipo.

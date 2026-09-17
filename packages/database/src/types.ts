@@ -3242,8 +3242,8 @@ export type Database = {
           referencia: string
           sku: string
           talla: string
+          valor_en_riesgo: number
           variante_id: string
-          ventas_30d: number
         }[]
       }
       fn_productos: {

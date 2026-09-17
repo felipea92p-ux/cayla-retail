@@ -8,7 +8,7 @@ import { FAMILIAS } from "@cayla-retail/shared";
 // (`categoriaPadreId` apunta a una categoría de primer nivel ya existente):
 // es la misma alta, solo que queda anidada bajo su padre.
 //
-// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0035.
+// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0075.
 //
 // PROMETE: la categoría queda disponible de inmediato en Productos.
 // ASUME: sesión válida y rol de Líder — la policy de escritura de

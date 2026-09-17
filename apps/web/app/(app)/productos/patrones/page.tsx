@@ -4,7 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { PatronesLista } from "@/components/PatronesLista";
 
-// Vocabulario cerrado de patrones (ADR-0072/0073) — atributo del PRODUCTO
+// Vocabulario cerrado de patrones (ADR-0075/0076) — atributo del PRODUCTO
 // (no cambia entre tallas de la misma prenda), mismo mecanismo que Colores.
 export default async function PatronesPage() {
   const persona = await requirePersonaActualV2();

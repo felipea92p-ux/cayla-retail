@@ -17,7 +17,7 @@
 --   segundo esquema de claves solo para esta tabla.
 --
 -- REJECT DESDE EL DÍA UNO, NO RETROFITEADO
---   Colores construyó "proponer/aprobar" (ADR-0070) y "rechazar" (ADR-0072)
+--   Colores construyó "proponer/aprobar" (ADR-0070) y "rechazar" (ADR-0075)
 --   en dos pasadas separadas. Acá se construyen juntos: 'rechazado' es un
 --   tercer valor de `estado` desde la primera migración, mismo patrón ya
 --   probado, sin la ventana intermedia donde una propuesta mala solo se

@@ -267,7 +267,7 @@ export type VarianteDetalle = {
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
-  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0072) —
+  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0075) —
    *  distinto del vocabulario en sí, que vive en `retail.etiquetas`. */
   etiquetaIds: string[];
 };

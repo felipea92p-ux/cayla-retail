@@ -5,7 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
- * Vocabulario cerrado de tallas (ADR-0072/0073) — mismo mecanismo que
+ * Vocabulario cerrado de tallas (ADR-0075/0076) — mismo mecanismo que
  * Colores/Tejidos/Patrones, con UNA diferencia real: aprobar acá exige un
  * comentario (a qué categoría aplica, por qué es distinta de las que ya
  * existen) — el trigger de la base (`fn_tallas_estado_trigger`) lo hace

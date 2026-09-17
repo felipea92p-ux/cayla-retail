@@ -158,6 +158,12 @@ export async function getPrevisualizacionCierre(conteoId: string): Promise<FilaP
 // diseño "censo" (abandonado por accidente en el corte a V2) sobre la
 // pantalla que SÍ está viva — `alcance` solo FILTRA la sugerencia de abajo,
 // no cambia conteo_contar/cerrar_conteo.
+//
+// Criterio de la sugerencia (20260917130000): ordena por plata en riesgo
+// (stock.cantidad × precio), no por ventas del mes — una prenda cara de
+// baja rotación puede tener más plata parada en la percha que un básico
+// barato que vende mucho, y antes perdía siempre contra él. Especificación
+// completa en la migración y en ADR-0074.
 // ============================================================================
 
 export type PrioridadConteo = {
@@ -167,11 +173,12 @@ export type PrioridadConteo = {
   talla: string | null;
   color: string | null;
   diasSinContar: number | null;
-  ventas30d: number;
+  valorEnRiesgo: number;
 };
 
 /** Las 20 variantes que más conviene contar primero: nunca contadas antes,
- *  después por venta reciente. Acotado a una categoría si se pasa `categoriaId`. */
+ *  después por plata en riesgo (stock × precio). Acotado a una categoría si
+ *  se pasa `categoriaId`. */
 export async function getPrioridadConteo(ubicacionId: string, categoriaId?: string | null): Promise<PrioridadConteo[]> {
   const supabase = await createClient();
   const filas = exigir(
@@ -188,7 +195,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     talla: f.talla,
     color: f.color,
     diasSinContar: f.dias_sin_contar,
-    ventas30d: f.ventas_30d,
+    valorEnRiesgo: Number(f.valor_en_riesgo),
   }));
 }
 

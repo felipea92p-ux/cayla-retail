@@ -1,4 +1,9 @@
-# ADR-0035 — El vocabulario cerrado de V1 se porta a V2; la rama entera no se fusiona
+# ADR-0072 — El vocabulario cerrado de V1 se porta a V2; la rama entera no se fusiona
+
+**Nota de renumeración (2026-09-16):** nació como ADR-0035, mismo número que
+`0035-la-factura-de-compra-es-el-eje-de-recepcion-y-pago.md` (colisión de dos
+sesiones paralelas asignando "el siguiente libre" el mismo 2026-09-12). Compras
+se queda con 0035 por ser la decisión más antigua; esta pasa a 0072.
 
 **Fecha:** 2026-09-12
 **Estado:** Construido y verificado en local (navegador + consulta directa a Postgres).

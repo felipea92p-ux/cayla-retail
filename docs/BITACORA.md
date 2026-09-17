@@ -29,27 +29,115 @@ Aprendizaje: "estado real de producción" no es lo que dice el historial de migr
 
 ## 2026-09-17 (Etiqueta por variante puntual — dos bugs reales encontrados antes de commitear)
 
-Cierre del último pendiente explícito de ADR-0072: el vocabulario de etiquetas y su candado de sede ya existían, pero nadie podía marcar una variante concreta como "última unidad" sin SQL directo. Se agregó dentro de "Editar producto" (`ProductoForm.tsx`), reutilizando el `SelectorMultiple` que ya se había extraído para categoría↔ejes, con un RPC nuevo (`retail.actualizar_variantes_etiquetas`) que guarda todas las variantes tocadas en una sola llamada. Misma disciplina de "un solo botón de guardar" que la corrección de esta misma tarde en categoría↔ejes.
+Cierre del último pendiente explícito de ADR-0075: el vocabulario de etiquetas y su candado de sede ya existían, pero nadie podía marcar una variante concreta como "última unidad" sin SQL directo. Se agregó dentro de "Editar producto" (`ProductoForm.tsx`), reutilizando el `SelectorMultiple` que ya se había extraído para categoría↔ejes, con un RPC nuevo (`retail.actualizar_variantes_etiquetas`) que guarda todas las variantes tocadas en una sola llamada. Misma disciplina de "un solo botón de guardar" que la corrección de esta misma tarde en categoría↔ejes.
 
 La revisión adversarial de 3 ángulos (la misma que ya había atrapado un bug en la sesión anterior) encontró que la propia disciplina de "una sola acción de guardado" se había roto de una forma más sutil, en dos frentes reales: (1) el RPC de etiquetas se disparaba en CADA guardado del producto, así nadie hubiera tocado el panel de etiquetas — pisando silenciosamente `variante_etiquetas.created_at` de etiquetas que nadie movió (una regresión de auditoría, no solo de eficiencia), y exponiendo un guardado de solo precio a un error de etiquetas que no venía al caso; (2) togglear una etiqueta MIENTRAS el guardado principal seguía en vuelo (un `await` real de red) se perdía en silencio — el panel de etiquetas no estaba deshabilitado durante el guardado, así que el clic quedaba en un estado de React ya capturado por el cierre (closure) del envío anterior, y el usuario veía "Guardado" con éxito sin que el cambio hubiera llegado a la base. Se corrigieron ambos: el RPC de etiquetas ahora solo se llama para variantes cuyas etiquetas de verdad cambiaron contra lo que había al abrir el formulario (comparando contra una foto tomada al montar), y el panel de etiquetas se deshabilita mientras `loading` es verdadero — mismo criterio que ya usaba `FotosProducto`. La misma ronda encontró y corrigió tres huecos menores: el RPC no validaba la forma de sus parámetros antes de castear/iterar (tiraba errores crudos de Postgres en vez de un mensaje propio), el botón "Etiquetas" no avisaba su estado a lectores de pantalla (`aria-expanded`), y una variante ya etiquetada no se distinguía visualmente de una sin etiquetar hasta abrir el panel. Probado en navegador de punta a punta, incluyendo guardar dos veces seguidas sin tocar etiquetas para confirmar por SQL que `created_at` no se mueve. `db reset`, typecheck, lint y 293 tests en verde.
 
 ## 2026-09-17 (Mapeo categoría↔talla/tejido/patrón, con pantalla — y una ronda de revisión adversarial que encontró un bug real)
 
-Cierre de otro pendiente de ADR-0072: `categoria_tejidos`/`categoria_patrones` existían desde la migración de esa tarde pero sin una sola fila cargada — el selector de tejido/patrón que ya vivía en `NuevoProductoForm.tsx` estaba vacío para las 39 categorías, siempre, porque nadie tenía cómo llenarlas sin SQL directo (solo tallas tenía contenido, por el backfill de `tallas_sugeridas`). Se agregó dentro del modal "Editar categoría" de `CategoriasLista.tsx` — no una pantalla aparte, porque ahí es donde ya se edita todo lo demás de una categoría, y una matriz de 39 categorías × ~20 valores por eje sería difícil de usar como formulario. Escribir los 3 ejes juntos necesitaba ser atómico, así que se armó un RPC nuevo (`retail.actualizar_categoria_ejes`) que hace los 3 delete+insert dentro de una sola función — de paso se extrajo `SelectorMultiple` a `campos.tsx` (antes vivía duplicado como `SelectorSedes` solo dentro de `EtiquetasLista.tsx`).
+Cierre de otro pendiente de ADR-0075: `categoria_tejidos`/`categoria_patrones` existían desde la migración de esa tarde pero sin una sola fila cargada — el selector de tejido/patrón que ya vivía en `NuevoProductoForm.tsx` estaba vacío para las 39 categorías, siempre, porque nadie tenía cómo llenarlas sin SQL directo (solo tallas tenía contenido, por el backfill de `tallas_sugeridas`). Se agregó dentro del modal "Editar categoría" de `CategoriasLista.tsx` — no una pantalla aparte, porque ahí es donde ya se edita todo lo demás de una categoría, y una matriz de 39 categorías × ~20 valores por eje sería difícil de usar como formulario. Escribir los 3 ejes juntos necesitaba ser atómico, así que se armó un RPC nuevo (`retail.actualizar_categoria_ejes`) que hace los 3 delete+insert dentro de una sola función — de paso se extrajo `SelectorMultiple` a `campos.tsx` (antes vivía duplicado como `SelectorSedes` solo dentro de `EtiquetasLista.tsx`).
 
 La primera versión tenía un botón de guardado propio para tallas/tejidos/patrones, separado del "Guardar cambios" principal del modal (mismo criterio, mal aplicado, que "Guardar sedes" en Etiquetas). Antes de commitear se corrió una revisión adversarial de 3 ángulos en paralelo (estado de React, la migración SQL, UX) con verificación independiente de cada hallazgo — encontró que el botón grande "Guardar cambios" (o Cancelar, o cerrar el modal) descartaba en silencio los toggles de tallas/tejidos/patrones sin guardarlos, mostrando igual un aviso de éxito ("Categoría X actualizada") que hacía creer que todo había quedado guardado. Se corrigió juntando los dos guardados en una sola acción (principio 12: el error era del diseño de la pantalla, no de quien hacía clic en el botón equivocado), no agregando una advertencia. La misma ronda encontró y se corrigieron dos huecos menores: el RPC no deduplicaba ids repetidos dentro de un mismo eje (agregado `distinct`) y los chips de `SelectorMultiple` no comunicaban su estado a lectores de pantalla (agregado `aria-pressed`). Probado de punta a punta en navegador tras la corrección: togglear una talla, guardar con el único botón, confirmar en SQL que quedó escrita. `db reset`, typecheck, lint y 293 tests en verde.
 
 ## 2026-09-17 (4 pantallas de administración del vocabulario cerrado)
 
-Cierre de lo que ADR-0072 había dejado pendiente: sin pantalla, proponer o aprobar una talla/tejido/patrón/etiqueta exigía SQL directo. Se construyeron `/productos/tallas`, `/productos/tejidos`, `/productos/patrones` y `/productos/etiquetas`, mismo patrón que `ColoresLista.tsx` (proponer/aprobar/rechazar/reactivar/desactivar), agregadas al grupo "Catálogo" del nav. Etiquetas suma un campo propio, `sedes_permitidas`, como botones multi-select de `retail.ubicaciones` — no había un primitivo de checkbox-group en `campos.tsx` (`Interruptor` es un solo booleano, `CampoSelect` es de un solo valor), así que se armó a mano con el mismo lenguaje visual que ya usan Tallas/Tejidos/Patrones. Un bug real apareció al escribir la API: el trigger de `etiquetas` (a diferencia del de `tallas`) solo bloquea "en uso" en la transición pendiente→rechazado, nunca en aprobado→desactivado directo — ese candado tuvo que escribirse en la ruta (`/api/productos/etiquetas`), consultando `variante_etiquetas` a mano, y se verificó en vivo (aplicar la etiqueta a una variante por SQL, confirmar que el botón "Desactivar" lo bloquea con el mensaje correcto). Aprendizaje de la sesión de pruebas: al automatizar clics en el navegador, un clic por coordenada de pantalla puede fallar silenciosamente si el viewport real (1024×768) no coincide en escala con la captura (800×600) — un primer intento de guardar `sedes_permitidas` pareció perder la selección, y no era un bug del código: era un clic que aterrizó en el elemento equivocado. Repetido con referencias de elemento en vez de coordenadas, y confirmado leyendo el cuerpo real de la petición de red, sí guardó las dos sedes. `db reset`, typecheck y lint en verde.
+Cierre de lo que ADR-0075 había dejado pendiente: sin pantalla, proponer o aprobar una talla/tejido/patrón/etiqueta exigía SQL directo. Se construyeron `/productos/tallas`, `/productos/tejidos`, `/productos/patrones` y `/productos/etiquetas`, mismo patrón que `ColoresLista.tsx` (proponer/aprobar/rechazar/reactivar/desactivar), agregadas al grupo "Catálogo" del nav. Etiquetas suma un campo propio, `sedes_permitidas`, como botones multi-select de `retail.ubicaciones` — no había un primitivo de checkbox-group en `campos.tsx` (`Interruptor` es un solo booleano, `CampoSelect` es de un solo valor), así que se armó a mano con el mismo lenguaje visual que ya usan Tallas/Tejidos/Patrones. Un bug real apareció al escribir la API: el trigger de `etiquetas` (a diferencia del de `tallas`) solo bloquea "en uso" en la transición pendiente→rechazado, nunca en aprobado→desactivado directo — ese candado tuvo que escribirse en la ruta (`/api/productos/etiquetas`), consultando `variante_etiquetas` a mano, y se verificó en vivo (aplicar la etiqueta a una variante por SQL, confirmar que el botón "Desactivar" lo bloquea con el mensaje correcto). Aprendizaje de la sesión de pruebas: al automatizar clics en el navegador, un clic por coordenada de pantalla puede fallar silenciosamente si el viewport real (1024×768) no coincide en escala con la captura (800×600) — un primer intento de guardar `sedes_permitidas` pareció perder la selección, y no era un bug del código: era un clic que aterrizó en el elemento equivocado. Repetido con referencias de elemento en vez de coordenadas, y confirmado leyendo el cuerpo real de la petición de red, sí guardó las dos sedes. `db reset`, typecheck y lint en verde.
 
-## 2026-09-17 (Familias y categorías: el contenido real — ADR-0073)
+## 2026-09-17 (Familias y categorías: el contenido real — ADR-0076)
 
-Después de construir el mecanismo (ADR-0072), Felipe frenó al confirmar las 6 familias tal cual ya existían: le había dado un ejemplo casual para ilustrar, no una decisión, y pidió investigar primero qué venden marcas de moda reales (Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH) antes de tocar nombres — "no repitas como un loro lo que yo dije". 3 rondas de investigación en vivo (con capturas de pantalla que Felipe mismo trajo de Ralph Lauren España) y una ronda extra en Platanitos (zapatería peruana real) para terminología local ("Mulas" no "Mules" en Perú). Resultado: familia "Accesorios" pasa a mostrarse "Accesorios y Complementos" (fusión validada por Zara), Blusas se fusiona con Camisas (Ralph Lauren y Zara las tratan como una sola), Calzado suma Botines/Mocasines/Bailarinas con respaldo de 4-5 marcas cada una, y de paso se limpió una categoría huérfana "Polos" (familia null, basura de V1) que tenía un producto de prueba colgando. Aprendizaje real de esta sesión: cuando el usuario da un ejemplo para ilustrar una idea, no es lo mismo que una decisión — confirmarlo tal cual sin investigar es "repetir como loro", no ayudar.
+Después de construir el mecanismo (ADR-0075), Felipe frenó al confirmar las 6 familias tal cual ya existían: le había dado un ejemplo casual para ilustrar, no una decisión, y pidió investigar primero qué venden marcas de moda reales (Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH) antes de tocar nombres — "no repitas como un loro lo que yo dije". 3 rondas de investigación en vivo (con capturas de pantalla que Felipe mismo trajo de Ralph Lauren España) y una ronda extra en Platanitos (zapatería peruana real) para terminología local ("Mulas" no "Mules" en Perú). Resultado: familia "Accesorios" pasa a mostrarse "Accesorios y Complementos" (fusión validada por Zara), Blusas se fusiona con Camisas (Ralph Lauren y Zara las tratan como una sola), Calzado suma Botines/Mocasines/Bailarinas con respaldo de 4-5 marcas cada una, y de paso se limpió una categoría huérfana "Polos" (familia null, basura de V1) que tenía un producto de prueba colgando. Aprendizaje real de esta sesión: cuando el usuario da un ejemplo para ilustrar una idea, no es lo mismo que una decisión — confirmarlo tal cual sin investigar es "repetir como loro", no ayudar.
 
-## 2026-09-17 (Taxonomía de variante: tallas/tejidos/patrones/etiquetas cerrados — ADR-0072)
+## 2026-09-17 (Taxonomía de variante: tallas/tejidos/patrones/etiquetas cerrados — ADR-0075)
 
 Sesión de diseño formal (protocolo de pregunta completo, bloque por bloque) que terminó descubriendo que este worktree estaba 520 commits atrás de `main` — con `main` ya teniendo colores propone/aprueba (ADR-0070), subcategoría (ADR-0062) y la capa de taxonomía universal (ADR-0030) construidos, y otras 3 sesiones paralelas con tejidos/patrones/etiquetas/rechazar-color a medio construir en ramas sin fusionar. Se puso este worktree al día con `main`, se resolvió la contradicción real que Felipe pidió detectar (ADR-0030 diseña multi-tenant explícito, su propia decisión del 16-sep dice "solo CAYLA" — se separaron las dos capas), y se construyó de cero (no cherry-pick) el vocabulario cerrado de talla/tejido/patrón/etiqueta con rechazar incluido desde el día uno, más el filtro por categoría que Felipe pidió (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`). Tocar `variantes.talla` (núcleo) reveló que **10 funciones SQL más** (Movimientos, Ventas, Conteo, Traslados, Producción) y **10 archivos TypeScript más** leían esa columna directo — se encontraron todas consultando `pg_proc.prosrc` contra la base real, no adivinando por migración, y el compilador de tipos generados marcó los 10 archivos de TS uno por uno. Un bug real de verdad (el trigger de talla pisaba `estado='aprobado'` del backfill porque `fn_es_lider()` no tiene sesión durante una migración) se encontró navegando `/productos/nuevo`, no leyendo SQL. Flujo completo probado en navegador como Líder: crear producto con 2 tallas × 2 colores, editar, guardar — los 293 tests + typecheck + lint quedaron en verde. Aprendizaje: "cambiar una columna del núcleo" nunca es local — el radio real solo aparece grepeando el código real, no imaginándolo.
+
+## 2026-09-17 (venta_precio_cambiado_sku_nulo: aplicada en producción con el MCP)
+
+Felipe dio el ok puntual para correr `20260916223000_venta_precio_cambiado_sku_nulo.sql`
+(la única migración que la auditoría de más abajo encontró genuinamente pendiente) — y
+pidió explícitamente que la corriera yo mismo, no que se la dejara para pegar a mano.
+Antes de aplicar: chequeo de sobrecargas de `retail.registrar_venta` (1 sola, firma
+idéntica a la migración — sin eso, `create or replace` arma un overload nuevo en vez de
+reemplazar, el mismo hueco que ya tuvo `registrar_cambio`/`aprobar_devolucion`,
+ADR-0009/0004). Aplicada con `apply_migration` del MCP de Supabase contra
+`vovjyyiafkxteijimpuy`. Verificado después, no antes: sigue con 1 sola sobrecarga, y
+`pg_get_functiondef` confirma que `v_sku` ya sale de
+`coalesce(v.codigo, v.sku, 'sin código')`, no del `select` original que rompía con
+`RAISE statement option cannot be null`. BACKLOG actualizado en sus dos secciones (la
+del bug original y la de la auditoría de hoy). Sin regenerar
+`docs/datos/generado/` — esta migración no agrega tabla/columna ni cambia la firma de
+`registrar_venta`, el diccionario sigue describiendo lo mismo.
+
+## 2026-09-17 (auditoría de migraciones pendientes: BACKLOG desactualizado en dos direcciones)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción.
+Cada una se verificó en vivo contra `vovjyyiafkxteijimpuy` (schema `retail`,
+`execute_sql`/`list_migrations` de solo lectura) — nunca contra BACKLOG/ADR, siguiendo
+[[commits-y-migraciones-en-produccion]]. Resultado: de ~69 archivos en
+`supabase/migrations/`, **una sola sigue pendiente de verdad**:
+`20260916223000_venta_precio_cambiado_sku_nulo.sql` (confirmado leyendo el cuerpo real
+de `retail.registrar_venta` con `pg_get_functiondef` — todavía arma `v_sku` con el
+`select` original, sin el `coalesce` del fix). El resto de lo que el propio BACKLOG
+tenía marcado "pendiente" —el SQL de colores proponer/aprobar (2026-09-16) y
+`numeracion_traslados_conteos`— **ya estaban aplicados**, y las 7 piezas de la ronda
+"NetSuite" (costo promedio ponderado, punto de reorden, conteo por alcance, traslados en
+dos fases, cambio/devolución exigen caja, anular venta, variantes identidad única)
+también, las 7 confirmadas por columna/función/índice real, dos de ellas ($registrar_cambio$/
+$registrar_venta$) por el cuerpo de la función, no solo por si existía. BACKLOG corregido
+en sus 3 secciones correspondientes (Inventario, Colores, y una sección nueva que resume
+la auditoría completa con las 4 migraciones que viven en producción sin archivo local —
+informativo, parches sueltos de Felipe, no bloquean nada). No se aplicó nada en
+producción: la única pendiente queda lista para pegar (prefijo `retail.`) esperando el ok
+puntual de Felipe — es una función `security definer` que corre en cada venta.
+
+## 2026-09-17 (Por pagar: la lista quedaba enterrada en celular)
+
+Felipe pidió hacer `/compras/por-pagar` más intuitivo. Verificado en navegador real
+(Chrome, local con datos sembrados), no solo código: en celular las 3 tarjetas de
+resumen (Deuda total/Vencido/Vence esta semana) se apilaban a ancho completo —el `grid`
+solo tenía `grid-cols-3` desde `sm:`, sin nada propio para celular— y el primer tramo de
+facturas recién aparecía a ~830px de scroll (medido con `getBoundingClientRect`, no a
+ojo): una pantalla entera de puro número antes de ver qué pagar. Ahora "Deuda total"
+ocupa las dos columnas de una grilla `grid-cols-2` siempre activa, Vencido/Vence esta
+semana se emparejan debajo — el tramo "Vencidas" entra en el primer viewport (744px)
+sin scrollear. Mismo arreglo en `FiltrosCompras.tsx` (compartido con `/compras`):
+Buscar a ancho completo, el resto de filtros (Proveedor/Vencimiento/Pago/Condición) se
+empareja de a dos en vez de apilarse uno por fila. De paso, "Vencido"/"Vence esta
+semana" pasan a ser enlaces (`#tramo-vencidas`/`#tramo-semana`, `scroll-mt-24` como ya
+usa `RecepcionCompraFormV2` contra la cabecera fija) que saltan directo a su tramo en la
+tabla — solo cuando hay algo detrás; con deuda en cero siguen siendo texto simple, no
+hay adónde saltar. Verificado en Chrome real a 375px y 1440px, en `/compras/por-pagar` y
+en `/compras` (el componente de filtros es compartido) para descartar regresión;
+`typecheck`/`lint`/293 tests en verde. Sin cambios de esquema ni de RPC — nada que
+aplicar en producción, es solo el `apps/web` desplegado.
+
+## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
+
+Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
+flujo completo de ERP — sin cambios de código, solo lectura de repo + producción. El
+diseño (costeo promedio ponderado, tope contra lo facturado, piso/almacén, adjuntos) es
+sólido; los huecos reales son de alcance: mercadería dañada/corta sin salida, devolución
+a proveedor es una etiqueta sin efecto real, insumos del Taller viven en tablas huérfanas
+de la unificación con Dynamic sin ninguna pantalla en `apps/web`. El hallazgo que más
+cambia la prioridad: **`retail.compras` tiene 0 filas en producción — ni `recibir_compras`
+ni `recibir_lote` se ejecutaron nunca de verdad**, verificado contra la base, no contra
+BACKLOG (que además tenía a D-45 sin cerrar en el documento pese a estar resuelta en
+código desde el 16-sep). Detalle completo con archivo:línea en BACKLOG de esta fecha.
+
+## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
+
+Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
+reales ya detectados con ese número) encontró dos problemas más, verificados con
+`git log --all` antes de tocar nada: (1) 4 citas en `docs/datos/` a un ADR de "la IA
+compila el mapeo" que no existía en el árbol — nació 0031, pasó a 0035 el 11-sep, y el
+corte V1→V2 (`0af2f1b`, 12-sep) lo borró completo junto con todo el importador; recuperado
+del historial y restaurado como **ADR-0073**, con nota de restauración; (2) 3 citas
+(BITACORA y ADR-0045) que atribuían el corte V1→V2 mismo a "ADR-0035", como si el corte
+tuviera su propio ADR — no lo tiene, se quitó el número y quedó solo el hash del commit.
+De paso, el vocabulario cerrado (que compartía 0035 con la factura de compra) pasó a
+**ADR-0072**. Aprendizaje: no asumir un número de ADR por contexto ("debe ser el 0030
+porque ahí está lo relacionado") sin `git log --all` — el archivo puede haber existido de
+verdad y haberse borrado en otro commit, que es exactamente lo que pasó acá.
 
 ## 2026-09-16 (Vender, Devoluciones y Anular muestran el código de etiqueta, no un sku vacío)
 
@@ -1675,7 +1763,7 @@ la cola offline que V2 perdió respecto de V1 y el "control total temporal" sin 
 Felipe pidió retomar el trabajo local en Vender/Caja (POS) y verificar el entorno antes
 de tocar código (rama `claude/local-pos-setup-2bab48`, sin commits propios todavía). La
 auditoría de apertura de sesión (BACKLOG.md + BITACORA.md) mostró un hallazgo que cambia
-cómo leer ambos documentos: el corte V1→V2 (`0af2f1b`, 2026-09-12, ADR-0035) borró
+cómo leer ambos documentos: el corte V1→V2 (`0af2f1b`, 2026-09-12) borró
 Finanzas, Producción y buena parte de Inventario V1 — así que casi todo lo que
 BACKLOG.md describe en detalle (Facturación con Lucode/SUNAT, EERR, Producción del
 Taller) es sobre un V1 que ya no está en el código; solo la entrada de BITÁCORA del
@@ -5256,3 +5344,129 @@ cerrado del lado de Devoluciones**: esquema, RPC y pantalla construidos, verific
 por SQL, por navegador (camino de rechazo) y ahora por Felipe en persona (camino
 completo). Sin commitear y sin aplicar en producción — ambos a la espera de que
 Felipe lo pida explícitamente.
+
+## 2026-09-16 (registrar_venta: v_sku nulo reventaba venta_precio_cambiado)
+
+Bug de un `raise ... using detail = ... || v_sku || ...` en `registrar_venta`: con una
+prenda del censo (`sku` nullable desde el 20260915221633), `v_sku` llega `NULL`,
+concatenar con `||` da `NULL` y Postgres corta el `raise` con su propio error ("RAISE
+statement option cannot be null") en vez del `venta_precio_cambiado` esperado — la
+colaboradora veía un error crudo de Postgres sin traducir. Corregido en
+`20260916223000_venta_precio_cambiado_sku_nulo.sql`: mismo criterio que
+`prenda-reglas.ts` (`codigoPrenda`) — código de etiqueta primero, sku de respaldo,
+texto fijo si faltan los dos. Reproducido y verificado con `npx supabase db reset` +
+una variante sin sku real, en una transacción con `rollback` (sin dejar huella en el
+Postgres local compartido): antes de la fix revienta con el error de Postgres, después
+lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
+producción todavía — pendiente el ok de Felipe.
+
+## 2026-09-17 (Compras: listado, nueva factura y detalle sobre un mockup de referencia)
+
+Felipe pasó capturas de un ERP genérico ("Kipus", ajeno a CAYLA) como referencia de
+layout para Facturas de proveedores. Se tomó la estructura — KPIs con punto de estado,
+RUC y condición de pago visibles por fila, N.° de documento en su propia columna,
+secciones numeradas en "Registrar factura", arrastrar-y-soltar en adjuntos, barra de
+progreso por línea y acceso directo a "Recibir mercadería" en el detalle — y se aplicó
+sobre el brandbook real de CAYLA (crema/tinta/rojo, EB Garamond + DM Sans), nunca sobre
+los colores del mockup. A propósito NO se copiaron: el check de SUNAT dentro del
+formulario (ya vive al dar de alta al proveedor, ADR-0035), un estado "borrador" (no
+existe en el esquema) ni pestañas de navegación duplicadas (Felipe ya las había sacado
+del layout de Compras el 2026-09-16 a favor del grupo del lateral). Sin cambios de
+esquema ni de RPC: `compras/page.tsx`, `CompraFormV2.tsx`, `CompraDetalle.tsx`,
+`CompraDetallePanel.tsx`, `AdjuntosCompra.tsx`. Verificado en navegador (desktop,
+900px y móvil 375px) contra datos reales del seed local; `typecheck`/`lint` en verde.
+
+## 2026-09-17 (Facturación: auditoría de flujo completo, sin código)
+
+Felipe preguntó qué le falta al módulo de Facturación (ventas/SUNAT, no facturas de
+compra de Compras) para un flujo completo de ERP. Solo lectura: se leyó
+`docs/datos/modulos/08-facturacion-sunat.md` completo, las migraciones reales
+(`0010_facturacion.sql`, `0011_venta_con_comprobante.sql`, `0012_control_total_temporal.sql`),
+y el código vivo (`ComprobantesPanel.tsx`, `ProformasPanel.tsx`, `lucode.ts`,
+`PuntoDeVenta.tsx`, `devoluciones.ts`, `anular_venta` de ADR-0065) contra lo que el doc
+de módulo (fechado 12-sep) todavía daba por pendiente.
+
+**Primer hallazgo: el doc de módulo estaba desactualizado en dos huecos, ambos
+resueltos ese mismo 12-sep por `0011_venta_con_comprobante.sql`** — venta↔comprobante sí
+están conectados (`PuntoDeVenta.tsx:647-650`) y la proforma sí guarda `precio_unitario`
+correcto. Quedaron marcados RESUELTO en el doc, con cita, para que nadie los
+reconstruya. De paso se confirmó que el código real renombró `sede_id`→`ubicacion_id`
+en todo el módulo (`0010_facturacion.sql`) — el doc de módulo todavía usa el vocabulario
+viejo en varios ejemplos; se anotó al pie, no se reescribió el doc entero (esa reescritura
+ya está pendiente de agendar con Felipe por otra razón, ver aviso al inicio de BACKLOG).
+
+**Tres hallazgos nuevos, no documentados antes, quedaron como huecos 14-16 del doc de
+módulo y como los 3 ítems del BACKLOG de hoy:** (1) el PDF/XML/CDR que Lucode devuelve
+se guarda en `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra — SUNAT recibe
+el documento pero la clienta nunca lo ve; (2) un comprobante `pendiente` sin transmitir
+queda huérfano para siempre (2 casos reales confirmados en producción,
+B004-000004/000005) y `anular_venta` (16-sep) puede sumar más sin darse cuenta — no
+toca `comprobantes` al anular una venta con comprobante `pendiente`; (3) con
+Devoluciones ya en producción (ADR-0052), se confirmó que ninguna devolución emite
+Nota de Crédito — `devoluciones.ts` solo usa `parsearComprobante` para buscar la venta,
+`emitir_nota` sigue sin llamador real en todo el repo, así que una devolución sobre una
+venta con factura deja el IGV declarado de más ante SUNAT indefinidamente. Los tres
+huecos 1/2 (idempotencia/IGV) se reverificaron: siguen abiertos para el panel manual de
+Facturación, ya no para lo que emite Vender (que heredó protección de
+`registrar_venta` al conectarse el 12-sep).
+
+Núcleo del módulo confirmado sólido: reserva de correlativo con `for update`,
+`unique(tipo,serie,numero)` como segunda red, proforma que nunca se promociona con
+UPDATE, anulación en dos tiempos correcta según SUNAT. Ya emite boletas reales en
+Trujillo. Sin cambios de código ni de esquema en esta sesión — todo quedó en los tres
+documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el chat, sin
+decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
+`pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
+devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
+
+## 2026-09-17 (Recibir mercadería: lista de recepciones + botón, sobre la auditoría del mismo día)
+
+Felipe pidió hacer la pantalla más intuitiva y poder ver recepciones ya hechas — ninguna
+de las dos rutas (`/compras/recibir` con factura, `/inventario/recibir` sin ella) lo
+permitía. `getRecepcionesRecientes()` generaliza `getRecepcionesCompra` sin acotar a una
+factura, sobre `retail.lotes` (ya existía, nadie la leía así); `/inventario/recibir` pasó
+a lista + "+ Nueva recepción" en `Modal` (patrón de Colores/Categorías); `/compras/recibir`
+ganó pestaña "Recibidas recientemente". Sin migraciones. Detalle, lo verificado en
+navegador (Felipe y Micaela) y los 3 pendientes (incluida la pregunta de negocio sobre
+qué pantalla es el default del Inicio) en BACKLOG, sección de hoy.
+
+De paso: `packages/database/src/types.ts` no tenía `personas` como tabla — encontrado al
+typecheckear. Primer diagnóstico (equivocado, corregido la misma sesión): se pensó que
+era drift del Postgres local. Verificado después contra producción
+(`vovjyyiafkxteijimpuy`): NO existe `retail.personas` ahí tampoco — la identidad de
+personas está unificada con Dynamic (`public.personas`, su tabla de RR.HH. completa,
+columnas `nombres`/`apellidos`/`sede_base_id`, no `nombre`/`ubicacion_id`) desde la
+unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids uuid[])`
+(`0009_integracion_dynamic.sql`), que `caja.ts`/`conteos.ts`/`traslados.ts`/
+`devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
+revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
+ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (noche — prioridad de conteo por valor, desplegado a producción)
+
+Cierre del ciclo completo de ADR-0074 (ver entrada de la tarde, misma fecha): con ok
+puntual de Felipe para cada paso — PR #77 (`feat/conteo-plata-en-riesgo-v2` → `main`,
+commit `33045b0`) fusionado después de resolver un conflicto real pero trivial en
+`docs/BACKLOG.md` (mi sección "Pendientes de Benja" y la de otra sesión, "Recibir
+mercadería", se insertaban en el mismo punto del archivo — se conservaron ambas, la mía
+primero, sin perder nada). Vercel confirmó el despliegue (`gh api .../status`, esperado
+con un monitor en background, no a mano) antes de tocar la base — orden explícito para
+que código y esquema nunca queden descalzados: una base ya corregida sirviendo a un
+frontend viejo que todavía lee `ventas_30d` repite el mismo bug "−S/NaN" que ya apareció
+una vez en local.
+
+Migración aplicada contra `vovjyyiafkxteijimpuy` vía Supabase MCP (`apply_migration`,
+nunca a mano en el SQL Editor), con `set search_path to retail, public` al inicio del
+script por protocolo del repo — aunque en este caso puntual no hacía falta (toda
+referencia de nivel superior ya iba calificada con `retail.`), se mantiene igual porque
+cuesta cero y es la regla, no una excepción a criterio propio. Verificado después contra
+la base real, no solo que no tirara error: mismo cuerpo/firma que en local
+(`pg_get_function_result`/`pg_get_function_identity_arguments`), y una llamada real
+simulando sesión de un líder de Tienda Trujillo (`set local request.jwt.claim.sub`, JWT
+real, no `rolbypassrls`) devolvió "Jean Paula" (S/1,548.00, nunca contada) primero —
+datos reales de producción, no del seed local.
+
+Advertencia de seguridad del linter de Supabase sobre `fn_prioridad_conteo` revisada:
+genérica de cualquier función `security definer` con `grant ... to authenticated`, el
+mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
+interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.

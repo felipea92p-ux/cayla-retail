@@ -1,4 +1,4 @@
-# ADR-0072 — Taxonomía de variante cerrada: tallas, tejidos, patrones,
+# ADR-0075 — Taxonomía de variante cerrada: tallas, tejidos, patrones,
 etiquetas, y por qué colores por fin puede rechazar
 
 **Fecha:** 2026-09-17
