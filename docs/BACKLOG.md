@@ -34,6 +34,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > Sección aparte a propósito — no es un ítem de 🎯/🩹 más, es una cola visible de
 > "esto necesita una conversación de negocio antes de volverse código". Se lee al
 > abrir sesión junto con el resto de este archivo.
+>
+> **Nota de fusión (2026-09-17):** otra sesión creó en paralelo una sección equivalente
+> ("👤 Pendientes de Benja", mismo concepto, mismo día) — se fusionó acá para no tener
+> dos colas del mismo tipo con nombres distintos (mismo criterio que ya aplicó este
+> archivo antes con secciones duplicadas de auditoría de migraciones).
 
 - [x] ~~Cuarentena — historial y estado de salida de una prenda dañada~~ **construido
       2026-09-17 (noche)** — Felipe aclaró que lo pendiente era solo la editabilidad,
@@ -63,6 +68,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
       entonces no." Sigue sin tocar — si en algún momento se vuelve relevante, retomar
       desde `retail.aprobar_devolucion`, rama `devolver_proveedor`.
+
+- [ ] **Reporte de valor en riesgo, cruzando las 3 sedes a la vez (2026-09-17).** Surgió
+      al corregir `fn_prioridad_conteo` (ADR-0074, § "Descartado") — esa función sugiere
+      qué contar primero para UNA sede, pensada para el colaborador que va a contar hoy.
+      Lo que Benja tendría que construir es distinto: una vista para Felipe/líderes que
+      responda "¿cuánta plata sin contar hay expuesta ahora mismo, en las 3 sedes y el
+      Taller, ordenada de mayor a menor?" — sin acción de conteo asociada, es solo
+      visibilidad para decidir dónde presionar. No reusar `fn_prioridad_conteo` tal cual:
+      está `security definer` con `fn_puede_operar_ubicacion` (una sola sede por llamada)
+      — una versión cross-sede necesita su propio RPC y probablemente reservarse a
+      líder/Felipe, no a cualquier colaborador autenticado. Sin fecha, sin dueño todavía.
 
 ---
 
