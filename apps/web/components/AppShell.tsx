@@ -106,7 +106,7 @@ export function AppShell({ persona, sedesOperativas, children }: Props) {
     { href: "/", etiqueta: "Inicio", icono: IC.inicio, movil: true },
     { href: "/vender", etiqueta: "Vender", icono: IC.vender, movil: true },
     { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario, movil: true },
-    ...(esLider || esTaller ? [{ href: "/produccion", etiqueta: "Producción", icono: IC.produccion, movil: false }] : []),
+    ...(esTaller ? [{ href: "/produccion", etiqueta: "Producción", icono: IC.produccion, movil: false }] : []),
     ...(esLider ? [{ href: "/comercial", etiqueta: "Comercial", icono: IC.comercial, movil: false }] : []),
     ...(esLider ? [{ href: "/finanzas", etiqueta: "Finanzas", icono: IC.finanzas, movil: false }] : []),
     { href: "/mas", etiqueta: "Más", icono: IC.mas, movil: true, soloMovil: true },

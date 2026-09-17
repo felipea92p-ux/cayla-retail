@@ -14,11 +14,13 @@ export default async function ProduccionPage() {
 
   const sedes = await getSedes();
   const taller = sedes.find((s) => s.tipo === "fabrica");
-
-  const esLider = persona.rol === "lider";
-  const esTaller = taller != null && persona.sedeId === taller.id;
-  if (!esLider && !esTaller) redirect("/");
   if (!taller) redirect("/");
+
+  // Producción es una herramienta operativa del Taller (como Vender lo es de una tienda):
+  // se ve y se opera parado en esa sede, no por ser Líder — un Líder parado en una tienda
+  // no la ve ni puede entrar por URL directa.
+  const esTaller = persona.sedeId === taller.id;
+  if (!esTaller) redirect("/");
 
   const [{ data: producciones }, { data: modelosData }] = await Promise.all([
     supabase
