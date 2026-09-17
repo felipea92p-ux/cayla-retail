@@ -313,10 +313,14 @@ export function SelectorMultiple<T extends string>({
   opciones,
   seleccionadas,
   onCambio,
+  disabled = false,
 }: {
   opciones: readonly Opcion<T>[];
   seleccionadas: T[];
   onCambio: (valores: T[]) => void;
+  /** Ej. mientras el formulario que lo contiene está guardando — evita que
+   *  un cambio hecho a mitad de un guardado en vuelo se pierda en silencio. */
+  disabled?: boolean;
 }) {
   function alternar(valor: T) {
     onCambio(seleccionadas.includes(valor) ? seleccionadas.filter((v) => v !== valor) : [...seleccionadas, valor]);
@@ -330,8 +334,9 @@ export function SelectorMultiple<T extends string>({
             key={o.valor}
             type="button"
             aria-pressed={elegida}
+            disabled={disabled}
             onClick={() => alternar(o.valor)}
-            className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
+            className={`rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 ${
               elegida ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/65 hover:border-tinta/35"
             }`}
           >

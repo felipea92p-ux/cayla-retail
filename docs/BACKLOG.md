@@ -37,7 +37,7 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917130000`, con
+- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917140000`, con
       el prefijo `retail.` (o `set search_path`). Backfill de `categorias.tallas_sugeridas`
       incluido — revisar que el trigger de `tallas` quede DESACTIVADO durante ese bloque
       (ver ADR-0072, el bug real que esta sesión encontró).
@@ -51,10 +51,17 @@ verde.
       aplicada — ese candado vive en la API, no en el trigger de la base, porque el
       trigger de `etiquetas` solo cubre la transición pendiente→rechazado, no
       aprobado→desactivado). `db reset`, typecheck y lint en verde.
-- [ ] **Aplicar/quitar una etiqueta de una VARIANTE puntual no tiene pantalla.** Lo de
-      arriba administra el vocabulario (qué etiquetas existen); falta conectarlo a
-      `ProductoForm.tsx` para que un Líder marque una variante concreta con una etiqueta
-      ya aprobada.
+- [x] **Aplicar/quitar una etiqueta de una VARIANTE puntual ya tiene pantalla.** Dentro
+      de "Editar producto" (`ProductoForm.tsx`) — un toggle "Etiquetas" por fila de
+      variante, respaldado por un RPC nuevo (`retail.actualizar_variantes_etiquetas`) que
+      guarda todas las variantes tocadas en una sola llamada, en la MISMA acción de
+      "Guardar cambios" (nunca un botón aparte). Solo manda al RPC las variantes cuyas
+      etiquetas de verdad cambiaron contra lo que había al abrir el formulario — evita
+      pisar `variante_etiquetas.created_at` en cada guardado del producto y evita exponer
+      un guardado de solo precio a un error de etiquetas que no viene al caso. Probado en
+      navegador de punta a punta: aplicar una etiqueta, guardar, confirmar por SQL que
+      solo esa variante tiene fila nueva; guardar de nuevo sin tocar etiquetas y confirmar
+      que `created_at` no se mueve. `db reset`, typecheck, lint y 293 tests en verde.
 - [x] **Mapear categoría↔eje ya tiene UI.** Dentro del modal "Editar categoría"
       (`CategoriasLista.tsx`) — 3 grupos de chips (Tallas/Tejidos/Patrones), un botón de
       guardado propio (RPC `retail.actualizar_categoria_ejes`, atómico entre los 3 ejes).

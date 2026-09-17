@@ -1,25 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, Campo, CampoTexto, Interruptor, Segmentado } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
-import type { EjesPorCategoria, ProductoDetalle } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
 /* ====================================================================
-   ProductoForm · alta y edición de producto+variantes (V2, 2026-09-15)
+   ProductoForm · edición de producto+variantes (V2, 2026-09-15)
 
-   Un solo componente para /productos/nuevo y /productos/[id]/editar: la
-   diferencia entre "crear" y "editar" es si llega `producto` — mismos
-   campos, misma grilla de variantes, RPC distinta al guardar. Partirlo en
-   dos componentes hubiera duplicado la grilla de variantes, que es la
-   parte que de verdad tiene lógica (sugerir SKU, no dejar tocar la
-   identidad de una variante que ya existe).
+   Usado solo por /productos/[id]/editar — el alta vive en
+   NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
+   patrones pasaron a vocabulario cerrado (ADR-0072). Antes de esa fecha
+   era un único componente para alta y edición; ese reparto es el que
+   sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
+   detalle — no porque ambas rutas todavía lo compartan.
+
+   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0072). Aplicar/quitar una
+   etiqueta de catálogo ("última unidad") a una variante puntual se
+   guarda en la MISMA acción que el resto del formulario — nunca un
+   botón de guardar aparte. Dos formas de guardar en el mismo formulario
+   ya costó un bug real esta sesión (mapeo categoría↔ejes): el botón
+   grande descartaba en silencio lo que el chico no había guardado
+   todavía. Solo aparece para variantes que ya existen (`v.id`) — una
+   fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
+   principal la cree, y esta sesión no intenta adivinar ese id.
 
    SKU: se sugiere solo (referencia + talla + color, ver `sugerirSku`) y
    queda editable — decidido con Felipe 2026-09-15. Si la persona lo toca,
@@ -50,6 +60,8 @@ type FilaVariante = {
   precio: string;
   costo: string;
   activo: boolean;
+  /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
+  etiquetaIds: string[];
 };
 
 const NUMERO =
@@ -100,20 +112,32 @@ function margenPorcentaje(precio: string, costo: string): number | null {
   return ((p - c) / p) * 100;
 }
 
+/** Compara dos listas de ids sin importar el orden — para saber si
+ *  `etiquetaIds` de verdad cambió, no si solo se reordenó. */
+function mismoConjunto(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const ordenA = [...a].sort();
+  const ordenB = [...b].sort();
+  return ordenA.every((id, i) => id === ordenB[i]);
+}
+
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [] };
 }
 
 export function ProductoForm({
   categorias,
   colores,
   ejes,
+  etiquetas,
   producto,
 }: {
   categorias: Categoria[];
   colores: Color[];
   /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
   ejes: EjesPorCategoria;
+  /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
+  etiquetas: ValorVocabulario[];
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
 }) {
@@ -145,9 +169,19 @@ export function ProductoForm({
         precio: String(v.precio),
         costo: String(v.costo),
         activo: v.activo,
+        etiquetaIds: v.etiquetaIds,
       }));
   });
   const [loading, setLoading] = useState(false);
+  // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
+  // resto de las pantallas de admin (una edición inline visible por vez).
+  const [etiquetasAbiertoEn, setEtiquetasAbiertoEn] = useState<number | null>(null);
+  const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto }));
+  // Foto de lo que YA estaba guardado en el servidor al abrir el formulario
+  // — para mandar el RPC de etiquetas solo cuando de verdad cambió algo, no
+  // en cada guardado del producto (evitaría escribir sobre variantes cuyas
+  // etiquetas nadie tocó, pisando su `created_at` sin motivo).
+  const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
@@ -257,12 +291,38 @@ export function ProductoForm({
           ...(patronId ? { p_patron_id: patronId } : {}),
         });
 
-    cerrarProceso();
-    setLoading(false);
-
     if (error) {
+      cerrarProceso();
+      setLoading(false);
       avisar.error(traducirError(error, editando ? "guardar el producto" : "crear el producto"));
       return;
+    }
+
+    // Etiquetas por variante se guardan en la MISMA acción, después del
+    // guardado principal — nunca un botón aparte (ver comentario del
+    // encabezado del archivo). Solo variantes que YA existían antes de
+    // este envío tienen id real para asignarles etiquetas, y de esas, solo
+    // las que de verdad cambiaron contra lo que había al abrir el
+    // formulario — mandar las 6 variantes en cada guardado (así nadie haya
+    // tocado "Etiquetas") pisaría `variante_etiquetas.created_at` de
+    // etiquetas que nadie movió, y expondría un guardado de solo precio a
+    // un error que no tiene nada que ver con lo que la persona hizo.
+    const asignacionesEtiquetas = variantes
+      .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
+      .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
+    if (editando && asignacionesEtiquetas.length > 0) {
+      const { error: errorEtiquetas } = await supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas });
+      cerrarProceso();
+      setLoading(false);
+      if (errorEtiquetas) {
+        avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
+        });
+        return;
+      }
+    } else {
+      cerrarProceso();
+      setLoading(false);
     }
 
     avisar.exito(editando ? `${referencia.trim()} guardado` : `${referencia.trim()} creado`, {
@@ -358,7 +418,8 @@ export function ProductoForm({
             ))}
           </div>
           {variantes.map((v, i) => (
-            <div key={i} className={`grid gap-2 border-b border-tinta/10 pb-3 last:border-0 sm:items-center ${PLANTILLA}`}>
+            <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
+            <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
               <ComboBuscable
                 etiquetaAccesible="Color"
                 valor={v.colorCodigo}
@@ -417,6 +478,37 @@ export function ProductoForm({
                   </button>
                 )}
               </span>
+            </div>
+            {v.id && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  aria-expanded={etiquetasAbiertoEn === i}
+                  onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
+                  className={`label-cayla text-[11px] disabled:opacity-50 ${
+                    v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
+                  }`}
+                >
+                  Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
+                </button>
+                {etiquetasAbiertoEn === i && (
+                  <div className="mt-2 space-y-1.5">
+                    {opcionesEtiqueta.length > 0 ? (
+                      <SelectorMultiple
+                        opciones={opcionesEtiqueta}
+                        seleccionadas={v.etiquetaIds}
+                        onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
+                        disabled={loading}
+                      />
+                    ) : (
+                      <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+                    )}
+                    <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           ))}
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">

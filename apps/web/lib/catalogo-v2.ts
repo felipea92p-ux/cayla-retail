@@ -267,6 +267,9 @@ export type VarianteDetalle = {
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
+  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0072) —
+   *  distinto del vocabulario en sí, que vive en `retail.etiquetas`. */
+  etiquetaIds: string[];
 };
 
 /** Una foto de la galería del producto (20260915224500). `id` ausente =
@@ -312,7 +315,8 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
        variantes ( id, color_codigo, talla_id, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
          talla:tallas ( valor ),
-         codigos_barras ( codigo ) ),
+         codigos_barras ( codigo ),
+         variante_etiquetas ( etiqueta_id ) ),
        producto_fotos ( id, url, orden, es_principal )`
     )
     .eq("id", id)
@@ -350,6 +354,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
+      etiquetaIds: (v.variante_etiquetas ?? []).map((e) => e.etiqueta_id),
     })),
   };
 }

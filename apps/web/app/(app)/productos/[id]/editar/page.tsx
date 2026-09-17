@@ -15,7 +15,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
   if (persona.rol !== "lider") redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true).order("familia").order("nombre"),
@@ -23,7 +23,9 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
     ),
     exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
     getEjesPorCategoria(),
+    supabase.from("etiquetas").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
   ]);
+  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({ id: e.id, texto: e.nombre }));
 
   if (!producto) notFound();
 
@@ -42,7 +44,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
         </h1>
       </div>
 
-      <ProductoForm categorias={categorias} colores={colores} ejes={ejes} producto={producto} />
+      <ProductoForm categorias={categorias} colores={colores} ejes={ejes} etiquetas={etiquetas} producto={producto} />
 
       {/* TODO(Sesión A2): acá va "Ajustar inventario" — modal standalone que
           recibe productoId (y, para preseleccionar la fila, varianteId) y

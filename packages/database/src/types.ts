@@ -2816,6 +2816,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      actualizar_variantes_etiquetas: {
+        Args: { p_asignaciones: Json }
+        Returns: undefined
+      }
       agregar_colaborador: {
         Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
