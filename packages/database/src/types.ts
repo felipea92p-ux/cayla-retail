@@ -671,6 +671,7 @@ export type Database = {
           serie: string
           subtotal: number
           tipo: string
+          token_cliente: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
@@ -697,6 +698,7 @@ export type Database = {
           serie: string
           subtotal: number
           tipo?: string
+          token_cliente?: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
@@ -723,6 +725,7 @@ export type Database = {
           serie?: string
           subtotal?: number
           tipo?: string
+          token_cliente?: string | null
           total?: number
           ubicacion_destino_id?: string
           usuario_id?: string | null
@@ -1184,6 +1187,75 @@ export type Database = {
           },
         ]
       }
+      gastos: {
+        Row: {
+          categoria: string
+          created_at: string
+          documento_numero: string | null
+          documento_serie: string | null
+          documento_tipo: string
+          especificacion: string | null
+          id: string
+          igv: number
+          metodo_pago: string
+          proveedor_id: string | null
+          subtotal: number
+          token_cliente: string | null
+          total: number
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          documento_numero?: string | null
+          documento_serie?: string | null
+          documento_tipo?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          metodo_pago: string
+          proveedor_id?: string | null
+          subtotal?: number
+          token_cliente?: string | null
+          total: number
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          documento_numero?: string | null
+          documento_serie?: string | null
+          documento_tipo?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          metodo_pago?: string
+          proveedor_id?: string | null
+          subtotal?: number
+          token_cliente?: string | null
+          total?: number
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historial_producto_cambios: {
         Row: {
           campo: string
@@ -1216,6 +1288,133 @@ export type Database = {
           valor_nuevo?: string | null
         }
         Relationships: []
+      }
+      insumo_lotes: {
+        Row: {
+          cantidad_ingresada: number
+          codigo_lote: string | null
+          costo_unitario: number
+          created_at: string
+          documento: string | null
+          fecha_ingreso: string
+          id: string
+          insumo_id: string
+          nota: string | null
+          origen: string
+          proveedor_id: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          cantidad_ingresada: number
+          codigo_lote?: string | null
+          costo_unitario: number
+          created_at?: string
+          documento?: string | null
+          fecha_ingreso?: string
+          id?: string
+          insumo_id: string
+          nota?: string | null
+          origen?: string
+          proveedor_id?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          cantidad_ingresada?: number
+          codigo_lote?: string | null
+          costo_unitario?: number
+          created_at?: string
+          documento?: string | null
+          fecha_ingreso?: string
+          id?: string
+          insumo_id?: string
+          nota?: string | null
+          origen?: string
+          proveedor_id?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumo_lotes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_insumo_saldos"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insumos: {
+        Row: {
+          archivado_at: string | null
+          codigo: string
+          created_at: string
+          id: string
+          merma_pct: number
+          nombre: string
+          nota: string | null
+          proveedor_id: string | null
+          stock_minimo: number | null
+          tipo: string
+          unidad_medida: string
+          updated_at: string
+        }
+        Insert: {
+          archivado_at?: string | null
+          codigo: string
+          created_at?: string
+          id?: string
+          merma_pct?: number
+          nombre: string
+          nota?: string | null
+          proveedor_id?: string | null
+          stock_minimo?: number | null
+          tipo: string
+          unidad_medida: string
+          updated_at?: string
+        }
+        Update: {
+          archivado_at?: string | null
+          codigo?: string
+          created_at?: string
+          id?: string
+          merma_pct?: number
+          nombre?: string
+          nota?: string | null
+          proveedor_id?: string | null
+          stock_minimo?: number | null
+          tipo?: string
+          unidad_medida?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lotes: {
         Row: {
@@ -1440,6 +1639,168 @@ export type Database = {
           },
         ]
       }
+      movimientos_insumo: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          created_at: string
+          id: string
+          insumo_id: string
+          insumo_lote_id: string | null
+          motivo: string | null
+          nota: string | null
+          produccion_id: string | null
+          tipo: string
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          insumo_id: string
+          insumo_lote_id?: string | null
+          motivo?: string | null
+          nota?: string | null
+          produccion_id?: string | null
+          tipo: string
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          insumo_lote_id?: string | null
+          motivo?: string | null
+          nota?: string | null
+          produccion_id?: string | null
+          tipo?: string
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_insumo_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_insumo_saldos"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_insumo_lote_id_fkey"
+            columns: ["insumo_lote_id"]
+            isOneToOne: false
+            referencedRelation: "insumo_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_produccion_id_fkey"
+            columns: ["produccion_id"]
+            isOneToOne: false
+            referencedRelation: "producciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prendas_danadas: {
+        Row: {
+          cantidad: number
+          created_at: string
+          devolucion_item_id: string
+          estado: string
+          id: string
+          movimiento_entrada_id: string
+          movimiento_salida_id: string | null
+          nota: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          devolucion_item_id: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          devolucion_item_id?: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id?: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prendas_danadas_devolucion_item_id_fkey"
+            columns: ["devolucion_item_id"]
+            isOneToOne: true
+            referencedRelation: "devolucion_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_entrada_id_fkey"
+            columns: ["movimiento_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_salida_id_fkey"
+            columns: ["movimiento_salida_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produccion_lineas: {
         Row: {
           cantidad_buenas: number | null
@@ -1562,6 +1923,7 @@ export type Database = {
       }
       producto_fotos: {
         Row: {
+          color_codigo: string | null
           created_at: string
           es_principal: boolean
           id: string
@@ -1570,6 +1932,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          color_codigo?: string | null
           created_at?: string
           es_principal?: boolean
           id?: string
@@ -1578,6 +1941,7 @@ export type Database = {
           url: string
         }
         Update: {
+          color_codigo?: string | null
           created_at?: string
           es_principal?: boolean
           id?: string
@@ -1586,6 +1950,13 @@ export type Database = {
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "producto_fotos_color_codigo_fkey"
+            columns: ["color_codigo"]
+            isOneToOne: false
+            referencedRelation: "colores"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "producto_fotos_producto_id_fkey"
             columns: ["producto_id"]
@@ -2441,6 +2812,27 @@ export type Database = {
           },
         ]
       }
+      v_insumo_saldos: {
+        Row: {
+          codigo: string | null
+          fisico: number | null
+          insumo_id: string | null
+          nombre: string | null
+          tipo: string | null
+          ubicacion_id: string | null
+          unidad_medida: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_insumo_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       abrir_caja: {
@@ -2508,6 +2900,15 @@ export type Database = {
         Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
+      ajustar_insumo_por_conteo: {
+        Args: {
+          p_cantidad_contada: number
+          p_insumo_id: string
+          p_motivo: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -2521,6 +2922,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -2920,8 +3322,8 @@ export type Database = {
           referencia: string
           sku: string
           talla: string
+          valor_en_riesgo: number
           variante_id: string
-          ventas_30d: number
         }[]
       }
       fn_productos: {
@@ -2930,6 +3332,7 @@ export type Database = {
           p_categoria_id?: string
           p_color_codigo?: string
           p_estado?: string
+          p_orden?: string
           p_pagina?: number
           p_por_pagina?: number
           p_precio_max?: number
@@ -2948,6 +3351,7 @@ export type Database = {
           costo: number
           demanda_diaria: number
           estado: string
+          foto_url: string
           lead_time_dias: number
           precio: number
           producto_id: string
@@ -3073,6 +3477,15 @@ export type Database = {
         }
         Returns: string
       }
+      liquidar_prenda_danada: {
+        Args: {
+          p_id: string
+          p_metodo_pago: string
+          p_nota?: string
+          p_precio_unitario: number
+        }
+        Returns: string
+      }
       listar_compras: {
         Args: {
           p_busqueda?: string
@@ -3175,6 +3588,20 @@ export type Database = {
         }
         Returns: string
       }
+      recibir_insumo: {
+        Args: {
+          p_cantidad: number
+          p_codigo_lote?: string
+          p_costo_total: number
+          p_documento?: string
+          p_insumo_id: string
+          p_nota?: string
+          p_origen?: string
+          p_proveedor_id?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       recibir_lote: {
         Args: {
           p_items: Json
@@ -3219,8 +3646,25 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
+          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
+        }
+        Returns: string
+      }
+      registrar_gasto: {
+        Args: {
+          p_categoria: string
+          p_documento_numero?: string
+          p_documento_serie?: string
+          p_documento_tipo?: string
+          p_especificacion?: string
+          p_igv?: number
+          p_metodo_pago: string
+          p_proveedor_id?: string
+          p_token?: string
+          p_total: number
+          p_ubicacion_id: string
         }
         Returns: string
       }
@@ -3310,6 +3754,10 @@ export type Database = {
         }
         Returns: string
       }
+      resolver_prenda_danada: {
+        Args: { p_estado: string; p_id: string; p_nota?: string }
+        Returns: undefined
+      }
       resumen_compras: {
         Args: never
         Returns: {
@@ -3350,12 +3798,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3379,11 +3827,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3404,11 +3852,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3429,11 +3877,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3446,11 +3894,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
