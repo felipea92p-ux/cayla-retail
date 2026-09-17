@@ -111,14 +111,14 @@ local (10 productos reales, incluido el orden por precio funcionando de punta a 
       reales.
 
 - [x] **`producto_fotos` gana `color_codigo` y `fn_productos` devuelve `foto_url` por
-      variante — construido y verificado en local (2026-09-17, ADR-0077 addenda 7).**
-      `FotosProducto.tsx` (`/productos/[id]/editar`) tiene ahora un selector de color
-      por foto. Lo único que falta es que Felipe fotografíe el piloto (guía de estilo
-      ya dada) y suba/etiquete las fotos — el sistema ya está listo para recibirlas.
-- [ ] **Aplicar a producción `20260917190000_producto_fotos_por_color.sql`** —
-      pendiente el ok puntual de Felipe. Aditiva (columna nullable, RPC con default),
-      no rompe nada existente; sin ella, subir una foto en producción la guarda pero
-      sin color, y el swatch de la Grilla no tiene con qué mostrarla.
+      variante — construido, en producción y con las primeras 20 fotos reales
+      (2026-09-17, ADR-0077 addenda 7; ver BITÁCORA "Primeras 20 fotos reales del
+      catálogo").** `FotosProducto.tsx` (`/productos/[id]/editar`) tiene el selector de
+      color por foto. El piloto que faltaba ya se hizo: 20 productos nuevos (Blusa/
+      Casaca/Chompa/Pantalón/Short × Blanco/Naranja/Negro/Verde), cada uno con su foto
+      real en `retail-productos-fotos`, confirmado con `fn_productos` devolviendo
+      `foto_url`. `20260917190000_producto_fotos_por_color.sql` está en producción
+      (verificado directo contra `pg_proc`, no solo por lo que decía este BACKLOG).
 - [ ] **Verificar en navegador como colaboradora, no solo como líder.** Esta sesión probó
       con la sesión de Felipe en local; falta confirmar que "Ajustar inventario"/"Editar"
       desde la vista rápida se comportan igual para un integrante sin rol de líder.

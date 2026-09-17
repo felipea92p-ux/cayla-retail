@@ -3,6 +3,37 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Primeras 20 fotos reales del catálogo — productos nuevos, no relleno de los existentes)
+
+Felipe trajo 20 fotos reales (`prenda color.webp`: Blusa/Casaca/Chompa/Pantalón/Short ×
+Blanco/Naranja/Negro/Verde) y pidió agregarlas "con nombres, SKU y códigos definidos por
+mí". Antes de tocar nada se auditó el catálogo real: los 16 productos activos hoy usan
+nombre de persona + UN color cada uno (Blusa Camila=Blanco, Casaca Mariana=Verde oliva,
+etc.) — ninguno coincide con las 20 fotos. Se preguntó (dos decisiones, no asumidas):
+nada del catálogo real se borra, y cada foto es un PRODUCTO nuevo separado (no un color
+nuevo de los 5 existentes) — sigue el mismo patrón real (prenda+color = un producto).
+
+20 productos nuevos (nombre de mujer sin repetir ninguno de los 16 ya en uso), 3 tallas
+cada uno (S/M/L, o 28/30/32 para Pantalones — mismo esquema que el producto real de esa
+categoría), precio/costo igual al producto existente de la misma categoría (mismo
+diseño, otro color). Creados por INSERT directo en `productos`/`variantes` (no por
+`crear_producto_con_variantes`: esa RPC exige `fn_es_lider()` y el MCP no lleva
+`auth.uid()` — mismo hueco ya documentado cuando otra sesión sembró los 16 originales),
+dejando `codigo`/`sku` en NULL para que el trigger `variantes_asignar_codigo` los arme
+solo — mismo mecanismo que usa el resto del catálogo, cero código inventado a mano
+(`BLU-0004`, `PAN-0002`, etc.).
+
+**Las fotos**, aparte: no había manera de subir bytes a Storage con las herramientas de
+esta sesión (ninguna sube archivos, y este worktree solo tiene credenciales de Supabase
+LOCAL). Felipe compartió la `service_role` key de producción por archivo local (nunca
+tipeada en el chat) para que este agente subiera las 20 directo al bucket público
+`retail-productos-fotos` (ruta `{producto_id}/{color}.webp`) vía la API REST de
+Storage — key usada solo en memoria de la sesión, nunca escrita a ningún archivo del
+repo. Verificado con `HEAD` real sobre una URL pública (200, `image/webp`, 198KB) antes
+de darlo por bueno, no solo que el INSERT no tirara error. Total: 20 productos, 60
+variantes, 20 `producto_fotos` con `color_codigo`, confirmado con `fn_productos` (la
+misma RPC que usa `/productos`) devolviendo `foto_url` real para el nuevo catálogo.
+
 ## 2026-09-17 (CI: job piloto que sí levanta Postgres real, `continue-on-error` hasta
 confirmarlo)
 
