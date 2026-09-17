@@ -73,7 +73,7 @@ export function ConteoPanel({
             talla: f.talla,
             color: f.color,
             diasSinContar: f.dias_sin_contar,
-            ventas30d: f.ventas_30d,
+            valorEnRiesgo: Number(f.valor_en_riesgo),
           }))
         );
       });
@@ -163,7 +163,7 @@ export function ConteoPanel({
 
         {sugerencias.length > 0 && (
           <div className="card-cayla p-5">
-            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero</p>
+            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
             <ul className="divide-y divide-tinta/10">
               {sugerencias.slice(0, 8).map((s) => (
                 <li key={s.varianteId} className="flex items-center justify-between gap-3 py-2 text-sm">
@@ -173,8 +173,7 @@ export function ConteoPanel({
                     {s.color && ` · ${s.color}`}
                   </span>
                   <span className="shrink-0 text-xs text-tinta/55">
-                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`}
-                    {s.ventas30d > 0 && ` · vende ${s.ventas30d}/mes`}
+                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
                   </span>
                 </li>
               ))}
@@ -206,6 +205,21 @@ function ConteoEnCurso({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [revisando, setRevisando] = useState(false);
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+
+  async function cancelarConteo() {
+    setCancelando(true);
+    const { error } = await createClient().rpc("anular_conteo", { p_conteo_id: conteo.id });
+    setCancelando(false);
+    if (error) {
+      setError(traducirError(error, "cancelar el conteo"));
+      setConfirmarCancelar(false);
+      return;
+    }
+    avisar.exito("Conteo cancelado");
+    router.refresh();
+  }
 
   const coincidencias = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -263,6 +277,25 @@ function ConteoEnCurso({
               {conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? ` · solo ${conteo.alcanceCategoriaNombre}` : " · todo el catálogo"} ·{" "}
               {conteo.abiertoPorNombre} · {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
             </p>
+            {!confirmarCancelar ? (
+              <button
+                type="button"
+                onClick={() => setConfirmarCancelar(true)}
+                className="mt-1.5 text-xs text-tinta/45 underline underline-offset-2 hover:text-rojo"
+              >
+                Cancelar este conteo
+              </button>
+            ) : (
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-tinta/65">¿Cancelar? Se pierde lo contado — el stock no se toca.</span>
+                <button type="button" onClick={cancelarConteo} disabled={cancelando} className="font-semibold text-rojo hover:underline disabled:opacity-50">
+                  {cancelando ? "Cancelando…" : "Sí, cancelar"}
+                </button>
+                <button type="button" onClick={() => setConfirmarCancelar(false)} className="text-tinta/55 hover:underline">
+                  Seguir contando
+                </button>
+              </div>
+            )}
           </div>
           {avance && (
             <div className="min-w-[12rem] flex-1 sm:max-w-xs">

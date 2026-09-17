@@ -100,12 +100,22 @@ export type RecepcionCompra = {
 // conocido), este tipo es para el listado cruzado — "qué se recibió
 // últimamente, venga de donde venga" — que hasta el 2026-09-17 ninguna
 // pantalla mostraba.
+/** Una línea dentro del detalle de una recepción: qué variante, cuánto llegó. */
+export type LineaRecepcion = {
+  referencia: string;
+  sku: string | null;
+  talla: string | null;
+  color: string | null;
+  cantidad: number;
+};
+
 export type RecepcionReciente = {
   loteId: string;
   fecha: string;
   ubicacion: string;
   proveedorNombre: string;
   numeroGuia: string | null;
+  nota: string | null;
   recibidoPor: string | null;
   unidades: number;
   lineas: number;
@@ -113,6 +123,7 @@ export type RecepcionReciente = {
   /** Solo si `conFactura`: para enlazar al detalle de la factura. */
   compraId: string | null;
   documento: string | null;
+  detalle: LineaRecepcion[];
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {

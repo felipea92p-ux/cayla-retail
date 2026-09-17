@@ -92,6 +92,7 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
               talla: v.talla,
               color: v.color,
               productoId: v.productoId,
+              referencia: v.referencia,
             }))}
           ubicaciones={ubicacionesPermitidas.map((u) => ({
             id: u.id,
