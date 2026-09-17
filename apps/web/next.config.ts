@@ -27,6 +27,20 @@ const nextConfig: NextConfig = {
     // línea que la vuelve un bug visible. — ADR-0013, Fase 1.
     staleTimes: { dynamic: 30 },
   },
+
+  // El almacén se mudó dentro de Inventario el 2026-07-18; estos dos alias solo
+  // existen para no romper enlaces guardados de antes del rediseño. Un alias de
+  // ruta es config, no una pantalla — antes eran `page.tsx` que solo llamaban a
+  // `redirect()` sin dibujar nada (se descubrió intentando cacheComponents, que
+  // rompía con ese patrón). `permanent: false` (307/308 temporal) a propósito: un
+  // redirect permanente se cachea en el navegador de cada quien, y recuperar estas
+  // rutas después costaría explicar cómo limpiar esa caché.
+  async redirects() {
+    return [
+      { source: "/almacen", destination: "/inventario/almacen", permanent: false },
+      { source: "/almacen/recibir", destination: "/inventario/recibir", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

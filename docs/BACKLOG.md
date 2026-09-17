@@ -2456,8 +2456,11 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       dropear la vieja?), una columna nueva en `lotes` para el vínculo, y
       reescribir la consulta de "producciones pendientes de recibir" contra el
       modelo nuevo. Reversible: sí, nada de esto se ha tocado todavía.
-- [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide
-      `proxy.ts`). Solo un warning en build, no rompe nada. Reversible: sí.
+- [x] **Ya resuelto — no era de esta sesión.** `web`: `middleware.ts` usa convención
+      deprecada de Next.js 16 (pide `proxy.ts`). Verificado 2026-09-16: el archivo ya
+      es `apps/web/proxy.ts` desde el commit `1835b1f` ("migra middleware.ts a la
+      convención proxy de Next 16"), `pnpm build` no muestra el warning. Este ítem
+      quedó desactualizado en el backlog.
 - [x] **ARREGLADOS 2026-09-10, cada uno como pedía su caso — `pnpm lint` en verde.**
       El `:95` quedó con `eslint-disable-next-line` y el motivo escrito (leer
       `localStorage` durante el render devuelve `[]` en el servidor y la cola real en el
@@ -2520,13 +2523,16 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       tiempo, la cache del router entrega 6-7 ms en pantalla repetida y el armazon llega en
       124 ms. **Solo se revisa si la navegacion deja de depender del rol por una razon de
       producto**, nunca por rendimiento.
-- [ ] **Mover `/almacen` y `/almacen/recibir` a `redirects()` de la config.** Hoy son
-      paginas de React que solo llaman a `redirect()` -- pantallas que no dibujan nada. Un
-      alias de ruta pertenece a la config, no al arbol de paginas. Se descubrio intentando
-      cacheComponents (ahi rompian el prerender) y se revirtio con el resto; el arreglo
-      sigue siendo correcto por su cuenta. Usar `permanent: false`: un 308 se queda cacheado
-      en el navegador de cada quien y recuperar esas rutas despues costaria explicar como
-      limpiar la cache.
+- [x] **Movido `/almacen` y `/almacen/recibir` a `redirects()` de la config
+      (2026-09-16).** Eran páginas de React que solo llamaban a `redirect()` —
+      pantallas que no dibujan nada; un alias de ruta pertenece a la config, no al
+      árbol de páginas. `next.config.ts` gana `async redirects()` con las dos rutas,
+      `permanent: false` (un 308 se queda cacheado en el navegador de cada quien, y
+      recuperar la ruta después costaría explicar cómo limpiar esa caché). Las dos
+      carpetas `app/(app)/almacen` y `app/(app)/almacen/recibir` se borraron —
+      contenían solo ese `page.tsx`, nada más. Verificado: `pnpm build` limpio (las
+      rutas ya no aparecen como páginas) y en navegador, `/almacen` → `/inventario/almacen`
+      y `/almacen/recibir` → `/inventario/recibir`.
 - [ ] `inteligencia`: umbral de estancado (45d) y lead time (14d) siguen siendo
       constantes globales, no por categoría/sede. Sigue sin justificarse afinarlo:
       no hay datos reales de venta todavía (depende de `catalogo real` arriba).

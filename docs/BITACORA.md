@@ -5223,3 +5223,12 @@ una variante sin sku real, en una transacción con `rollback` (sin dejar huella 
 Postgres local compartido): antes de la fix revienta con el error de Postgres, después
 lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
 producción todavía — pendiente el ok de Felipe.
+
+## 2026-09-16 (dos ítems chicos del BACKLOG: alias de /almacen a config, y uno que ya estaba resuelto)
+
+`/almacen` y `/almacen/recibir` eran `page.tsx` que solo llamaban `redirect()` —
+movidos a `async redirects()` en `next.config.ts` (`permanent: false`) y las dos
+carpetas borradas; verificado con `pnpm build` (limpio, ya no aparecen como rutas) y en
+navegador (las dos redirigen bien). De paso, el ítem de `middleware.ts`/convención
+`proxy.ts` de Next 16 resultó ya resuelto desde `1835b1f` — el backlog estaba
+desactualizado, se cerró sin tocar código.
