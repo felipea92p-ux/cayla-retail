@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/tejidos → vocabulario cerrado de tejidos
-// (ADR-0075/0076), mismo mecanismo y misma forma que
+// (ADR-0095/0096), mismo mecanismo y misma forma que
 // /api/productos/colores: cualquiera con sesión propone (nace 'pendiente'
 // y usable al instante, salvo `fn_es_lider()`), un Líder aprueba/rechaza.
 // El estado real lo decide el trigger en la base

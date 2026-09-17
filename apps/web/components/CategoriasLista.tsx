@@ -9,7 +9,7 @@ import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
 /**
  * Las 6 familias fijas, cada una con sus categorías (BLU, POL, JEA…).
- * Portado de V1 (ADR-0075) — a diferencia de V1, en V2 `categorias.nombre`
+ * Portado de V1 (ADR-0095) — a diferencia de V1, en V2 `categorias.nombre`
  * es único GLOBAL (no por familia): dos familias no pueden tener una
  * categoría con el mismo nombre, a propósito, para no repetir el error que
  * V1 sí permitía.
@@ -30,7 +30,7 @@ import { FAMILIAS, type Familia } from "@cayla-retail/shared";
  * categoría que ya tiene hijas propias, pero el candado real vive en la
  * base, no acá.
  *
- * TALLAS/TEJIDOS/PATRONES QUE OFRECE (2026-09-17, ADR-0075).
+ * TALLAS/TEJIDOS/PATRONES QUE OFRECE (2026-09-17, ADR-0095).
  * `categoria_tallas`/`categoria_tejidos`/`categoria_patrones` reemplazan,
  * no amplían: una subcategoría tiene su propia lista, nunca hereda la del
  * padre — por eso el selector vive para CUALQUIER categoría en edición,

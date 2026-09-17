@@ -7,13 +7,14 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
-// Encontrado en producción: el buscador del header (`BuscadorGlobal` en
-// AppShell.tsx) quedó activo al recortar la navegación de Fase 1, pero seguía
-// apuntando a esta ruta sin adaptar — un enlace que compilaba y rompía al usarse,
-// justo lo que la Fase 1 prohibía dejar pasar. Bug real reportado por Felipe.
+// `BuscadorGlobal` (el campo de la cabecera que escribía `?q=` acá) se quitó de
+// `AppShell.tsx` el 2026-09-16 — esta pantalla ahora trae su propio campo, un
+// `<form method="get">` nativo (sin "use client"): el navegador arma `?q=...`
+// solo, sin depender de JS ni de un buscador ajeno.
 export default async function BuscarPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const term = (q ?? "").trim();
@@ -31,8 +32,22 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           </Ayuda>
         </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
-          {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
+          {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
         </h1>
+        <form method="get" className="mt-4 flex items-end gap-3">
+          <div className="max-w-sm flex-1">
+            <CampoTexto
+              name="q"
+              etiqueta="Buscar"
+              defaultValue={q ?? ""}
+              placeholder="SKU, referencia, talla, color…"
+              autoFocus
+            />
+          </div>
+          <Boton type="submit" peso="primario">
+            Buscar
+          </Boton>
+        </form>
       </div>
 
       {term === "" ? null : (

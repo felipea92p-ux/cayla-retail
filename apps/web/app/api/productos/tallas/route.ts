@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/tallas → vocabulario cerrado de tallas
-// (ADR-0075/0076). Mismo mecanismo que colores/tejidos/patrones, con una
+// (ADR-0095/0096). Mismo mecanismo que colores/tejidos/patrones, con una
 // diferencia real: aprobar exige `notas` no vacío — el trigger
 // (`fn_tallas_estado_trigger`) lo rechaza si llega vacío, este endpoint
 // solo pasa lo que mandó la persona, no valida el contenido del comentario.

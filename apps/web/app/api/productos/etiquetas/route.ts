@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
-// (ADR-0075). Mismo mecanismo que tejidos/patrones, con un campo propio:
+// (ADR-0095). Mismo mecanismo que tejidos/patrones, con un campo propio:
 // `sedes_permitidas` — un dato que solo `registrar_venta`/`transferir`
 // hacen cumplir de verdad, este endpoint no valida su contenido más allá
 // de la forma (array de uuid o null).

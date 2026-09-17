@@ -16,12 +16,12 @@ import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
    Usado solo por /productos/[id]/editar — el alta vive en
    NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
-   patrones pasaron a vocabulario cerrado (ADR-0075). Antes de esa fecha
+   patrones pasaron a vocabulario cerrado (ADR-0095). Antes de esa fecha
    era un único componente para alta y edición; ese reparto es el que
    sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
    detalle — no porque ambas rutas todavía lo compartan.
 
-   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0075). Aplicar/quitar una
+   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0095). Aplicar/quitar una
    etiqueta de catálogo ("última unidad") a una variante puntual se
    guarda en la MISMA acción que el resto del formulario — nunca un
    botón de guardar aparte. Dos formas de guardar en el mismo formulario
@@ -154,7 +154,14 @@ export function ProductoForm({
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
-    () => producto?.fotos.map((f) => ({ clientKey: f.id ?? `${f.url}-${Math.random()}`, id: f.id, url: f.url, esPrincipal: f.esPrincipal })) ?? []
+    () =>
+      producto?.fotos.map((f) => ({
+        clientKey: f.id ?? `${f.url}-${Math.random()}`,
+        id: f.id,
+        url: f.url,
+        esPrincipal: f.esPrincipal,
+        colorCodigo: f.colorCodigo,
+      })) ?? []
   );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
     if (!producto) return [filaVacia("")];
@@ -260,6 +267,7 @@ export function ProductoForm({
       ...(f.id ? { id: f.id } : {}),
       url: f.url,
       es_principal: f.esPrincipal,
+      color_codigo: f.colorCodigo || null,
     }));
 
     const supabase = createClient();
@@ -404,7 +412,7 @@ export function ProductoForm({
 
         {/* ---------- fotos ---------- */}
         <section className="card-cayla p-5">
-          <FotosProducto fotos={fotos} onFotos={setFotos} disabled={loading} />
+          <FotosProducto fotos={fotos} onFotos={setFotos} colores={colores} disabled={loading} />
         </section>
 
         {/* ---------- variantes ---------- */}

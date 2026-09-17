@@ -2,7 +2,7 @@
 -- 20260916220000_colores_proponer_aprobar.sql — CAYLA V2 · módulo 02 (Loro)
 --
 -- EL PROBLEMA
---   Agregar un color al vocabulario cerrado (`/productos/colores`, ADR-0075)
+--   Agregar un color al vocabulario cerrado (`/productos/colores`, ADR-0095)
 --   exigía Líder — RLS (`colores_write_lider`) y el propio API route lo
 --   bloqueaban igual. Durante el censo (16 al 20 de septiembre), quien
 --   escanea una prenda de un color que falta no puede seguir: tiene que

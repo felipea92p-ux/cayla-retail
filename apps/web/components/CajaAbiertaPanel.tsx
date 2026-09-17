@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Boton } from "@/components/ui/campos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja } from "@/lib/caja";
+import { claveLocal, leer } from "@/lib/almacen-local";
+import type { VentaEncolada } from "@/lib/ventas-offline";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -20,6 +22,18 @@ export function CajaAbiertaPanel({
   movimientos: MovimientoCaja[];
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | null>(null);
+  // Cola de ventas offline de ESTA sede (ADR-0092): esta pantalla (/caja) es una
+  // segunda puerta a "Cerrar caja" además de Vender, y comparte el mismo riesgo —
+  // efectivo cobrado sin red que el "esperado" del servidor todavía no ve. NO corre
+  // el trío de sincronización (mount/online/latido): por ADR-0043 ese estado vive
+  // solo en `PuntoDeVenta.tsx`. Acá basta una lectura de una sola vez, igual que
+  // `enEspera` se hidrata en Vender: no existe `localStorage` en el servidor, así
+  // que se lee después de montar para no desincronizar la hidratación.
+  const [cola, setCola] = useState<VentaEncolada[]>([]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCola(leer<VentaEncolada[]>(claveLocal(caja.ubicacionId, "cola"), []));
+  }, [caja.ubicacionId]);
 
   return (
     <div className="space-y-6">
@@ -76,7 +90,7 @@ export function CajaAbiertaPanel({
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
       {modal === "cerrar" && (
-        <CerrarCajaModalV2 cajaId={caja.id} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />
+        <CerrarCajaModalV2 cajaId={caja.id} cola={cola} onClose={() => setModal(null)} />
       )}
     </div>
   );

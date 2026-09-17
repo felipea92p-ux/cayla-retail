@@ -13,6 +13,16 @@
 # Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint y las
 # 79 pruebas pasan", nunca "las migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
+#
+# PILOTO DESDE 2026-09-17 (Felipe pidió revisitar ADR-0026/ADR-0066 al crecer a 4 scripts
+# de RPC sin cubrir por este job). `pruebas-postgres`, abajo, SÍ levanta Postgres real
+# (`npx supabase start`) y corre `caja:verificar` + `scripts/pruebas/*.mjs` contra él.
+# ADR-0066 los había dejado fuera de CI a propósito ("cada PR futuro saldría rojo por
+# Docker, no por el código") sin haberse visto correr nunca en un runner real — por eso
+# el job entero lleva `continue-on-error: true`: no bloquea ningún push mientras se
+# confirma que la mecánica funciona igual que en el Postgres local de cada quien (y
+# `main` hoy no exige ningún check para mergear de todos modos — CONTRIBUTING.md §2). Se
+# saca esa línea cuando haya 2-3 corridas verdes reales.
 
 name: CI
 
@@ -74,3 +84,50 @@ jobs:
       - name: Pruebas
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+  pruebas-postgres:
+    name: Pruebas de RPC contra Postgres (piloto, no bloquea)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - id: instalar
+        run: pnpm install --frozen-lockfile
+
+      # Gitignored a propósito (CONTRIBUTING.md §1, ADR-0033): sin este stub, `retail` no
+      # tiene la identidad mínima de Dynamic que necesita para resolver personas/auth.
+      - name: Stub local de Dynamic
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
+
+      - id: supabase
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: npx supabase start
+
+      # Los cuatro corren siempre que Postgres haya levantado, aunque uno falle — mismo
+      # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
+      # en una vuelta, no uno por uno.
+      - name: caja:verificar
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm caja:verificar
+
+      - name: pruebas:registrar-cambio
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:registrar-cambio
+
+      - name: pruebas:aprobar-devolucion-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:aprobar-devolucion-caja
+
+      - name: pruebas:registrar-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:registrar-venta

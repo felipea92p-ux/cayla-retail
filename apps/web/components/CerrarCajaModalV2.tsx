@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import { claveLocal, leer } from "@/lib/almacen-local";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
 
 function money(n: number) {
@@ -20,14 +20,22 @@ function money(n: number) {
  * El esperado sale de la respuesta de `cerrar_caja`, no de una prop: el servidor
  * lo calcula en el instante del cierre, así que incluye las ventas que hayan
  * entrado mientras la pantalla estaba abierta.
+ *
+ * `cola` (ADR-0092): las ventas offline de esta sede que aún no subieron al
+ * servidor. `cerrar_caja` calcula el "esperado" leyendo solo `venta_pagos` ya
+ * persistidas — nunca ve esta cola — así que efectivo ya cobrado en el mostrador
+ * pero todavía encolado infla el conteo físico sin que el esperado lo sepa, y se
+ * lee como un sobrante que no es error de nadie. Prop obligatoria a propósito:
+ * si mañana un tercer lugar monta este modal, TypeScript exige decidir de dónde
+ * sale `cola` en vez de dejarlo caer en `[]` en silencio y resucitar el bug.
  */
 export function CerrarCajaModalV2({
   cajaId,
-  ubicacionId,
+  cola,
   onClose,
 }: {
   cajaId: string;
-  ubicacionId: string;
+  cola: VentaEncolada[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -37,15 +45,32 @@ export function CerrarCajaModalV2({
     sistema: number;
     contado: number;
     diferencia: number;
-    /** Efectivo de ventas offline todavía sin subir al servidor (BACKLOG) — no
-     *  entra en `sistema` porque `cerrar_caja` solo ve lo que ya está en la
-     *  base. Se lee al cerrar, no antes: mostrarlo junto al monto a contar
-     *  sería revelar parte del esperado (ADR-0042, conteo ciego). */
-    efectivoEnCamino: number;
+    efectivoEncoladoAlCerrar: number;
   } | null>(null);
+
+  const efectivoEncolado = totalEfectivoEncolado(cola);
+  // `navigator.onLine` solo promete "hay una interfaz de red arriba", no "el
+  // servidor responde" — por eso el bloqueo de abajo es temporal (le da tiempo al
+  // latido de 30 s de `PuntoDeVenta.tsx` para subir la venta sola) y nunca
+  // definitivo: si el navegador se equivoca y en realidad no hay conexión real,
+  // la rama offline igual deja cerrar, con el aviso puesto.
+  const enLinea = typeof navigator !== "undefined" && navigator.onLine;
+  // Bloquea SOLO con red Y plata encolada: si hay conexión, más vale esperar los
+  // ~30s del reintento automático que forzar un cierre con un sobrante fantasma.
+  // Sin red, esperar no sirve de nada (nada va a subir hasta que vuelva) — se
+  // deja cerrar con el aviso bien visible, y el resultado repite el monto para
+  // que la diferencia se explique sola.
+  const bloqueaCierre = efectivoEncolado > 0 && enLinea;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Refuerza el `disabled` del botón: un Enter con foco en el campo puede
+    // disparar el submit del <form> en algunos navegadores aunque el botón esté
+    // deshabilitado (envío implícito, fuera del control de React).
+    if (bloqueaCierre) {
+      avisar.error("Hay ventas offline subiendo al sistema todavía — espera unos segundos y vuelve a intentar.");
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
     const { data, error } = await supabase
@@ -64,7 +89,7 @@ export function CerrarCajaModalV2({
       sistema: Number(data.monto_sistema),
       contado: Number(data.monto_real),
       diferencia,
-      efectivoEnCamino: totalEfectivoEncolado(leer<VentaEncolada[]>(claveLocal(ubicacionId, "cola"), [])),
+      efectivoEncoladoAlCerrar: efectivoEncolado,
     });
   }
 
@@ -109,10 +134,22 @@ export function CerrarCajaModalV2({
               <dt className="text-tinta/60">Contaste</dt>
               <dd className="tabular-nums">{money(resultado.contado)}</dd>
             </div>
+            {resultado.efectivoEncoladoAlCerrar > 0 && (
+              <div className="flex justify-between text-ambar-profundo">
+                <dt>Ventas offline sin subir</dt>
+                <dd className="tabular-nums">{money(resultado.efectivoEncoladoAlCerrar)}</dd>
+              </div>
+            )}
           </dl>
-          {resultado.efectivoEnCamino > 0 && (
-            <p className="mx-auto max-w-[18rem] rounded-md bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
-              {`Ojo: ${money(resultado.efectivoEnCamino)} de ventas hechas sin internet todavía no subieron al sistema — ese efectivo ya está en el cajón, pero "el sistema esperaba" no lo cuenta todavía.`}
+          {/* No afirma que esto explica TODA la diferencia (podría haber, además, un
+              faltante real) — solo pone el dato al lado para que quien lee no salte
+              directo a "falta plata" o "alguien se equivocó" sin saber que había ventas
+              offline en camino (ver Don Norman, tarea original del ADR-0092). */}
+          {resultado.efectivoEncoladoAlCerrar > 0 && (
+            <p className="mx-auto max-w-[18rem] text-xs text-ambar-profundo">
+              De esta diferencia, {money(resultado.efectivoEncoladoAlCerrar)} son ventas que ya cobraste sin
+              conexión — el sistema todavía no las sumó. No es un error tuyo: suben solas apenas vuelva el
+              internet.
             </p>
           )}
           <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
@@ -132,6 +169,24 @@ export function CerrarCajaModalV2({
     >
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* Antes del campo de conteo a propósito — no dentro del "esperado" del
+            servidor (eso rompería el conteo ciego, ver el comentario de arriba): esto
+            es contexto para la persona, no un número que entra al cálculo. */}
+        {efectivoEncolado > 0 && (
+          <div className="anim-revelar space-y-1.5 rounded-lg border border-ambar/30 bg-ambar/10 px-3 py-2.5 text-xs text-ambar-profundo">
+            <p className="flex items-center gap-2">
+              <CloudOff className="h-4 w-4 shrink-0" aria-hidden />
+              Hay {money(efectivoEncolado)} en ventas offline que todavía no subieron al sistema — no van a
+              estar incluidas en el esperado.
+            </p>
+            {bloqueaCierre && (
+              <p className="pl-6 text-tinta/70">
+                Tu sede tiene conexión: espera unos segundos a que esas ventas suban solas (reintentan cada
+                30&nbsp;s) antes de cerrar caja.
+              </p>
+            )}
+          </div>
+        )}
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="cierre-monto">
             Cuenta el efectivo físico y escribe el total
@@ -152,8 +207,8 @@ export function CerrarCajaModalV2({
           <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={loading} className={botonPrimario}>
-            {loading ? "Cerrando…" : "Cerrar caja"}
+          <button type="submit" disabled={loading || bloqueaCierre} className={botonPrimario}>
+            {loading ? "Cerrando…" : bloqueaCierre ? "Esperando ventas offline…" : "Cerrar caja"}
           </button>
         </div>
       </form>

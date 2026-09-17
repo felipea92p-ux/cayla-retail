@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/patrones → vocabulario cerrado de patrones
-// (ADR-0075/0076), mismo mecanismo y misma forma que
+// (ADR-0095/0096), mismo mecanismo y misma forma que
 // /api/productos/tejidos: cualquiera con sesión propone (nace 'pendiente'
 // y usable al instante, salvo `fn_es_lider()`), un Líder aprueba/rechaza.
 export async function POST(request: Request) {

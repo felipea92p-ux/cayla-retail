@@ -18,6 +18,11 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** Foto de ESTA variante, por su color (20260917190000) — null si ese
+   *  color todavía no tiene foto, o si la consulta no las trae
+   *  (`getCatalogo()`, que no las necesita). El cliente cae a un tinte del
+   *  color cuando falta, nunca a un ícono de "sin foto". */
+  fotoUrl: string | null;
   precio: number;
   costo: number;
   activo: boolean;
@@ -51,6 +56,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
+    fotoUrl: null,
     precio: Number(v.precio),
     costo: Number(v.costo),
     activo: v.activo,
@@ -84,6 +90,10 @@ export type FiltrosProductos = {
    *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
    *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
   stock?: "sin_stock" | "bajo" | "reponer";
+  /** Orden del catálogo (20260917180000) — null/undefined = por referencia,
+   *  el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen`
+   *  no pagina, así que nunca le llega (ver `paramsFiltrosProductos`). */
+  orden?: "precio_asc" | "precio_desc";
 };
 
 /** Parámetros de URL de /productos (ver `FiltrosProductos.tsx`). */
@@ -96,6 +106,9 @@ export type ParamsProductosListado = {
   precioMax?: string;
   stock?: string;
   pagina?: string;
+  /** Grilla ⇄ tabla (ADR-0077) — no es un filtro, no pasa por `fn_productos`. */
+  vista?: string;
+  orden?: string;
 };
 
 export const PRODUCTOS_POR_PAGINA = 24;
@@ -114,6 +127,7 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
     stock:
       p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
+    orden: p.orden === "precio_asc" || p.orden === "precio_desc" ? p.orden : undefined,
   };
 }
 
@@ -159,8 +173,10 @@ export type ResumenProductos = {
 
 /** Los `p_*` que `fn_productos` y `fn_productos_resumen` comparten. Se
  *  omite la clave en vez de mandar `null`: los Args generados los tipan
- *  `string | undefined` (opcionales), no `string | null`. */
-function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock">) {
+ *  `string | undefined` (opcionales), no `string | null`. `orden` se excluye
+ *  a propósito (como `stock`): `fn_productos_resumen` no lo acepta — no
+ *  pagina, no hay nada que "ordenar". */
+function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">) {
   return {
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
@@ -178,6 +194,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     await supabase.rpc("fn_productos", {
       ...paramsFiltrosProductos(filtros),
       ...(filtros.stock ? { p_stock: filtros.stock } : {}),
+      ...(filtros.orden ? { p_orden: filtros.orden } : {}),
       p_pagina: pagina,
       p_por_pagina: PRODUCTOS_POR_PAGINA,
     }),
@@ -214,6 +231,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       talla: f.talla,
       color: f.color_nombre,
       colorHex: f.color_hex,
+      fotoUrl: f.foto_url,
       precio: Number(f.precio),
       costo: Number(f.costo),
       activo: f.activo,
@@ -233,10 +251,11 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
 }
 
 /** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`
- *  menos `stock`: esas dos cifras (stock bajo/sin stock) son lo que el
- *  resumen calcula, no algo que ya llega filtrado (igual que Movimientos no
- *  le pasa la categoría a su propio resumen). */
-export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock">): Promise<ResumenProductos> {
+ *  menos `stock`/`orden`: esas dos cifras (stock bajo/sin stock) son lo que
+ *  el resumen calcula, no algo que ya llega filtrado (igual que Movimientos
+ *  no le pasa la categoría a su propio resumen), y "orden" no significa nada
+ *  sin paginado. */
+export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">): Promise<ResumenProductos> {
   const supabase = await createClient();
   const filas = exigir(
     await supabase.rpc("fn_productos_resumen", paramsFiltrosProductos(filtros)),
@@ -267,17 +286,20 @@ export type VarianteDetalle = {
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
-  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0075) —
+  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0095) —
    *  distinto del vocabulario en sí, que vive en `retail.etiquetas`. */
   etiquetaIds: string[];
 };
 
 /** Una foto de la galería del producto (20260915224500). `id` ausente =
- *  recién subida en esta sesión de edición, todavía no tiene fila. */
+ *  recién subida en esta sesión de edición, todavía no tiene fila.
+ *  `colorCodigo` (20260917190000): a qué color pertenece — null = sin
+ *  color (accesorio, o foto general sin etiquetar). */
 export type FotoProducto = {
   id: string | null;
   url: string;
   esPrincipal: boolean;
+  colorCodigo: string | null;
 };
 
 export type ProductoDetalle = {
@@ -317,7 +339,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
          talla:tallas ( valor ),
          codigos_barras ( codigo ),
          variante_etiquetas ( etiqueta_id ) ),
-       producto_fotos ( id, url, orden, es_principal )`
+       producto_fotos ( id, url, orden, es_principal, color_codigo )`
     )
     .eq("id", id)
     .maybeSingle();
@@ -341,7 +363,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     patron: data.patron?.nombre ?? null,
     fotos: [...(data.producto_fotos ?? [])]
       .sort((a, b) => a.orden - b.orden)
-      .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal })),
+      .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal, colorCodigo: f.color_codigo })),
     variantes: (data.variantes ?? []).map((v) => ({
       id: v.id,
       colorCodigo: v.color_codigo,

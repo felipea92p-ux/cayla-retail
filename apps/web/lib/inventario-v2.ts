@@ -72,7 +72,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       .select(
         `variante_id, cantidad,
          sububicacion:sububicaciones ( tipo ),
-         variante:variantes (
+         variante:variantes!inner (
            sku, talla:tallas ( valor ),
            color:colores ( nombre, hex ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
@@ -84,6 +84,13 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
       // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
       .neq("variante_id", ID_CARGO_ESPECIAL)
+      // Una variante descontinuada (`variantes.activo = false`, el mismo
+      // flag que ya la oculta de caja/catálogo/conteo) no debe reaparecer
+      // acá con stock: 6 productos de prueba archivados el 2026-09-16
+      // dejaron ~1.600 unidades fantasma en este reporte hasta que un
+      // ajuste manual las llevó a 0 (BACKLOG). `!inner` para que el filtro
+      // excluya la fila entera, no solo el embed de `variante`.
+      .eq("variante.activo", true)
       .order("variante_id"),
     "el inventario de esta ubicación"
   );

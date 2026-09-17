@@ -4,7 +4,7 @@ import { traducirError } from "@/lib/error-escritura";
 
 // POST /api/productos/colores → agrega un color al vocabulario cerrado.
 //
-// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0075: el candado real
+// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: el candado real
 // (`colores_clave_unica`, `retail.fn_clave_texto`) y los 30 colores de CAYLA
 // ya viven en `retail.colores` — a esta pantalla le tocaba nacer.
 //

@@ -62,7 +62,7 @@ const HUELLAS: Huella[] = [
   },
   {
     // 20260917100700_movimientos_respetan_restriccion_sede.sql — una etiqueta con
-    // `sedes_permitidas` (ADR-0075) restringe en qué sede se puede VENDER una variante. El
+    // `sedes_permitidas` (ADR-0095) restringe en qué sede se puede VENDER una variante. El
     // detalle es «referencia (sku)», mismo formato que venta_precio_cambiado.
     marca: "venta_variante_restringida_a_otra_sede",
     frase: (prenda) => `${prenda} está restringida a otra sede — no se puede vender desde acá.`,
