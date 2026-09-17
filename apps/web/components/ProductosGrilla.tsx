@@ -102,7 +102,23 @@ function SwatchesColor({
 }) {
   if (colores.length === 0) return null;
   return (
-    <div role="radiogroup" aria-label="Color" className="flex items-center gap-1.5">
+    // onMouseLeave/onBlur van en el GRUPO, no en cada botón: `mouseleave` no
+    // burbujea entre hermanos, así que mover el mouse de un swatch al
+    // vecino nunca pasa por un instante "sin hover" — antes, con el
+    // handler en cada botón, ese instante hacía caer `activo` al primer
+    // color de la lista (el fallback de `nombreActivo`) y el anillo
+    // "saltaba" ahí antes de asentarse en el nuevo, un parpadeo que se
+    // sentía trabado. Mismo motivo para el blur por teclado: `relatedTarget`
+    // decide si el foco se fue del grupo entero, no solo del botón actual.
+    <div
+      role="radiogroup"
+      aria-label="Color"
+      className="flex items-center gap-1.5"
+      onMouseLeave={() => onHover(null)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
+      }}
+    >
       {colores.map((c) => (
         <button
           key={c.nombre}
@@ -111,9 +127,7 @@ function SwatchesColor({
           aria-checked={c.nombre === activo}
           aria-label={c.nombre}
           onMouseEnter={() => onHover(c.nombre)}
-          onMouseLeave={() => onHover(null)}
           onFocus={() => onHover(c.nombre)}
-          onBlur={() => onHover(null)}
           onClick={() => onFijar(c.nombre)}
           className={`${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
             c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
