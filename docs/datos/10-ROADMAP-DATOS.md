@@ -25,10 +25,10 @@ Lo de arriba habilita lo de abajo. Empezar por el medio cuesta rehacerlo.
 flowchart TD
   P0["PASO 0 · Que el repo reproduzca producción<br/>7 funciones sin cuerpo · 2 tablas sin archivo<br/>2 pantallas rotas hoy · 0 pruebas del núcleo"]
 
-  P0 --> A1["1a · Factura del proveedor<br/>falta: compras_comprobantes"]
-  A1 --> A2["1b · Pagos al proveedor<br/>falta: pagos_proveedor"]
-  A2 --> A3["1c · Saldo y antigüedad<br/>vista, nunca columna"]
-  A3 --> PLE["Paquete mensual para el contador<br/>D-36 · él arma el PLE"]
+  P0 --> A1["1a · Factura del proveedor<br/>construido en local: compras (ADR-0035)"]
+  A1 --> A2["1b · Pagos al proveedor<br/>construido en local: compra_pagos"]
+  A2 --> A3["1c · Saldo y antigüedad<br/>generada en compras + resumen_compras"]
+  A3 --> PLE["Paquete mensual para el contador<br/>D-36 · falta armar el export, no la data"]
   VTA["comprobantes de venta<br/>YA EXISTE"] --> PLE
   PLE --> SL["Solo lectura para el contador<br/>D-12 · hoy no existe el rol"]
 
@@ -81,16 +81,26 @@ da **una base distinta a la real**. Y eso es exactamente lo que D-50 exige que
 funcione el día que otra marca use el sistema: cada marca, su propia base, levantada
 desde el repo.
 
-**Las dos llamadas rotas en las tiendas hoy** (`generado/DRIFT.md`, regenerable con
-`pnpm datos:comparar`):
+**Esta tabla describía un estado que el corte V1→V2 ya dejó atrás — corregido
+2026-09-17, verificado directo contra el Postgres local.** `generado/DRIFT.md` es
+anterior a `0af2f1b` (V1→V2, 2026-09-12): ni `RegistrarGastoModal.tsx` ni
+`RecibirLoteForm.tsx` existen ya, y `registrar_gasto` **no existe en el esquema** —
+`gastos` tampoco. El concepto de "gasto operativo suelto" fue reemplazado de raíz
+por el eje factura-de-proveedor (`compras`, ADR-0035); ver la Prioridad 1 más abajo,
+que por esto mismo cambia de diagnóstico. `recibir_lote` sigue viva pero con una
+firma nueva y más chica:
 
-| Pantalla | Qué manda de más | Qué acepta producción |
-|---|---|---|
-| `apps/web/components/RegistrarGastoModal.tsx:57` | `p_metodo_pago` | `registrar_gasto` acepta **6** parámetros: `p_sede_id`, `p_categoria`, `p_subtotal`, `p_igv`, `p_total`, `p_especificacion` |
-| `apps/web/components/RecibirLoteForm.tsx:431` | `p_orden_produccion_id` | `recibir_lote` acepta **7**: `p_sede_id`, `p_origen`, `p_items`, `p_proveedor`, `p_numero_guia`, `p_nota`, `p_orden_compra_id` |
+```
+recibir_lote(p_ubicacion_id uuid, p_proveedor_id uuid, p_items jsonb,
+             p_numero_guia text default null, p_nota text default null)
+```
 
-No son intermitentes: fallan siempre. Y la de gastos es la puerta por donde entra el
-IGV de compra — la prioridad 1 empieza por una pantalla que hoy no graba.
+5 argumentos, ninguno `p_orden_produccion_id` — la llama correctamente
+`RecepcionFormV2.tsx:70`, para mercadería que entra sin factura registrada (la que sí
+tiene factura entra por `recibir_compras`, ligada a `compra_items`). Ninguna de las
+dos pantallas nombradas en la versión anterior de esta tabla existe hoy, así que
+ninguna de las dos falla: `DRIFT.md` está desactualizado y conviene regenerarlo
+(`pnpm datos:comparar`) antes de volver a citarlo.
 
 **Las pruebas del núcleo (D-25).** Hoy hay 15 archivos `apps/web/lib/*.test.ts` y
 **todos prueban TypeScript puro**. Pruebas sobre las funciones de la base: **0**
@@ -108,7 +118,9 @@ aplicado — y esa prueba lo encuentra antes que una clienta parada en el mostra
 
 # Prioridad 1 · Cuentas por pagar e IGV
 
-**DECIDIDA** — D-46 la puso primera.
+**DECIDIDA** — D-46 la puso primera. **Actualización 2026-09-17: esto ya se construyó
+en local, con otros nombres que los que propone el resto de esta sección —** ver "Qué
+hay en LOCAL hoy" más abajo antes de planear esta prioridad como si no existiera nada.
 
 ## El problema
 
@@ -122,7 +134,11 @@ ser caro pronto: **CAYLA proyecta ~72% del umbral de 300 UIT en 2026**
 el de compra es plata que sale todos los meses. **Un IGV de compra no registrado es
 un impuesto que se paga dos veces.**
 
-## Qué hay hoy, verificado contra producción
+## Qué había en producción al 2026-09-12 (sin reverificar en esta pasada)
+
+Esta era la foto contra producción del acta original. No se volvió a chequear contra
+producción ahora — lo que sigue siendo cierto, salvo que alguien confirme lo
+contrario, porque nada indica que producción se haya movido de acá:
 
 | Tabla | Filas | Qué guarda de verdad |
 |---|---|---|
@@ -133,18 +149,61 @@ un impuesto que se paga dos veces.**
 | `gastos` | 0 | `sede_id`, `categoria`, `subtotal`, `igv`, `total`, `metodo_pago`. Tiene `igv`; **no tiene `proveedor_id`, ni número de factura, ni vencimiento** |
 | `comprobantes` | 2 | Es solo de **venta**. `tipo` acepta `boleta`/`factura`/`nota_credito`/`nota_debito`, con serie y número **propios de CAYLA** (`series_comprobantes`) |
 
-La pieza que falta salta a la vista: `monto_estimado` es una **intención de compra**,
-no una deuda. Y **no existe ninguna tabla para el comprobante que emite el
-proveedor.** `comprobantes` no sirve para eso: su `UNIQUE (tipo, serie, numero)`
-(`supabase/migrations/0032_comprobantes.sql:48`) es sobre la numeración de CAYLA. Dos
-proveedores distintos pueden emitir la misma serie-número el mismo día, y ese UNIQUE
-rechazaría la segunda como si fuera un duplicado.
+La pieza que faltaba saltaba a la vista: `monto_estimado` es una **intención de
+compra**, no una deuda. Y no había ninguna tabla para el comprobante que emite el
+proveedor — `comprobantes` no sirve para eso: su `UNIQUE (tipo, serie, numero)`
+(`supabase/migrations/0032_comprobantes.sql:48`) es sobre la numeración de CAYLA.
 
-El detalle tabla por tabla de lo que sí existe está en
-`modulos/09-compras-y-proveedores.md` y `modulos/11-finanzas-operativas.md`. Acá va
-solo lo que falta.
+El detalle tabla por tabla de lo que sí existe (en esta foto vieja) está en
+`modulos/09-compras-y-proveedores.md` y `modulos/11-finanzas-operativas.md` — esos dos
+módulos tampoco se revisaron en esta pasada; si describen `gastos`/`ordenes_compra`
+como el estado actual, tienen el mismo drift que esta sección tenía.
+
+## Qué hay en LOCAL hoy, verificado 2026-09-17 contra el Postgres local
+
+**El corte V1→V2 (`0af2f1b`, 2026-09-12) reemplazó `gastos` y hasta cierto punto
+`ordenes_compra` por un módulo de compras nuevo, construido el mismo día
+(`20260912231956_compras_desde_factura.sql`, ADR-0035 "la factura de compra es el eje
+de recepción y pago") y ampliado desde entonces con adjuntos, multipago y filtros.**
+`gastos` y `registrar_gasto` **ya no existen** — ni la tabla ni la función — y
+`RegistrarGastoModal.tsx` tampoco. Esto no es un cambio de nombre menor: es
+prácticamente todo lo que esta prioridad pedía, ya construido, bajo otro nombre.
+
+| Lo que esta sección proponía | Lo que existe en local, hoy |
+|---|---|
+| `compras_comprobantes` (factura del proveedor) | **`retail.compras`** — `proveedor_id`, `tipo` (`factura`/`boleta`/`nota_venta`), `serie`+`numero` (unique junto a `proveedor_id`), `fecha_emision`, `fecha_vencimiento`, `condicion` (`contado`/`credito`, con CHECK cruzado: crédito exige vencimiento), `subtotal`/`igv`/`total` (con CHECK `total = subtotal + igv`), `estado` (`vigente`/`anulada`), `ubicacion_destino_id` |
+| "El saldo: calculado, nunca guardado" | **Columnas generadas** en `compras`: `saldo` (`total - pagado`), `estado_pago` (`pendiente`/`parcial`/`pagada`/`anulada`), `estado_recepcion` (`sin_recibir`/`parcial`/`recibida`) y `documento` (`serie-numero`). Nunca un valor tecleado — se recalculan solas, más estricto que lo que esta sección pedía |
+| `pagos_proveedor` (cada pago, una fila) | **`retail.compra_pagos`** — `compra_id`, `fecha`, `monto` (`> 0`), `metodo` (transferencia/yape/plin/efectivo/depósito/otro), `referencia`, `usuario_id`. Sin policy de update/delete: append-only de hecho, igual que se pedía |
+| "Una vista o función `saldo_por_proveedor`" | **`resumen_compras()`** — `registradas, vigentes, por_recibir, deuda, con_saldo, vencido, vencidas, por_vencer, por_vencer_monto`. Es función, como esta sección ya permitía |
+| "Solo la cabecera, sin desglosar por prenda" (la recomendación de alcance) | **Se construyó con desglose real:** `compra_items` (`compra_id`, `producto_id`, `variante_id` opcional, `cantidad`, `costo_unitario`, `subtotal` generado) — más completo que lo recomendado, no menos |
+| RPC de escritura (no propuesta explícitamente, pero implícita) | `registrar_compra`, `registrar_pago_compra`/`registrar_pagos_compra`, `recibir_compras` (recibe contra una línea de factura, valida que no se reciba más de lo facturado), `anular_compra`, `resumen_compras`, `listar_compras`, más adjuntos (`registrar_adjunto_compra`) |
+| Pantalla | `CompraFormV2.tsx` (llama `registrar_compra`), `RecepcionCompraFormV2.tsx` (llama `recibir_compras`), `CompraDetallePanel.tsx`, `AdjuntosCompra.tsx`, `FiltrosCompras.tsx`, ruta `/compras` con modal de factura — todo verificado como código presente y llamando las RPC correctas, no solo el esquema |
+
+**Lo que sigue sin existir, ni en local:** el rol Solo lectura para el contador (D-12
+— `retail.colaboradores.rol` solo acepta `lider`/`colaborador`), la alarma diaria de
+comprobantes trabados (D-37), y un export armado específicamente para el contador
+(hay `apps/web/lib/exportar-csv.ts` de uso general; no se verificó que arme el
+"registro de compras del mes" en el formato que pide el paquete PLE). Esos tres siguen
+siendo trabajo real.
+
+**Actualización, minutos después de escrito lo de arriba: sí llegó a producción.**
+Se verificó directo contra `vovjyyiafkxteijimpuy` (proyecto real, confirmado por
+`list_projects`): `compras`, `compra_items`, `compra_pagos` y `registrar_compra`
+**existen y están vigentes en producción**, no solo en local. La cautela del párrafo
+anterior era la correcta a tener — y resultó que la respuesta real era "sí, ya está",
+no "no se sabe". Esto es consistente con un patrón ya visto dos veces antes (memoria
+`commits-y-migraciones-en-produccion`): las migraciones se aplican en producción más
+rápido de lo que cualquier documento, ADR o comentario de cabecera puede reflejar.
+**Cualquiera que use esta sección para decidir "¿ya puedo usar esto en las tiendas?"
+debe volver a preguntarle a la base ese mismo día, no confiar en esta fecha.**
 
 ## Qué tablas y columnas exigiría
+
+**Esta propuesta ya se construyó en local — ver la tabla de mapeo arriba
+("propuesta" → "lo que existe").** Se deja el diseño original tal cual se pensó,
+porque el razonamiento (por qué un UNIQUE así, por qué el saldo nunca es una
+columna) sigue siendo válido y es el mismo que terminó aplicado; solo el punto 4
+(las columnas nuevas en `gastos`) quedó obsoleto porque `gastos` ya no existe.
 
 **1 · `compras_comprobantes`** — la factura que llega del proveedor.
 
@@ -192,8 +251,10 @@ hace uno que lo revierte.
 mano: principio 4 de `CLAUDE.md`, y la frase 1 de `00-MAPA.md`. El saldo es la suma
 del historial, no un número que alguien pisa.
 
-**4 · Dos columnas nuevas en `gastos`:** `proveedor_id` y `compra_comprobante_id`.
-Sin ellas, un gasto que ya tiene factura registrada se cuenta dos veces en el mes.
+**4 · Dos columnas nuevas en `gastos` — obsoleto.** `gastos` ya no existe: el corte
+V1→V2 la reemplazó por `compras`, que nace con `proveedor_id` desde su primera
+migración. El problema que este punto 4 quería resolver (un gasto contado dos veces
+si ya tiene factura) no aplica porque no hay dos caminos paralelos — solo `compras`.
 
 ## El paquete mensual para el contador (D-36)
 
@@ -205,16 +266,17 @@ datos limpios**, por sede y consolidados.
 | Lista | Estado | De dónde sale |
 |---|---|---|
 | **Registro de ventas del mes** | **Se puede hoy** | `comprobantes`: `created_at`, `tipo`, `serie`, `numero`, `cliente_tipo_doc`, `cliente_num_doc`, `cliente_nombre`, `subtotal`, `igv`, `total`, `estado`; para las notas, `comprobante_original_id` + `motivo`. Los anulados van **marcados, no borrados** — la base ya lo exige (`comprobantes_anulado_tiene_motivo`) |
-| **Registro de compras del mes** | **Imposible hoy** | No existe la tabla. Es exactamente lo que construye esta prioridad, más el RUC del proveedor |
-| **Resumen** | Imposible hoy | IGV cobrado − IGV pagado. La segunda mitad no existe |
+| **Registro de compras del mes** | **La data ya existe en local; el export no está armado** | `compras` + `compra_items` + `proveedores.ruc` tienen todo lo que pide un registro de compras — falta solo el reporte que lo arme en CSV/Excel por sede y consolidado |
+| **Resumen** | La mitad ya existe | IGV cobrado (de `comprobantes`) menos IGV pagado (de `compras.igv`, ya registrado) — antes la segunda mitad no existía; hoy es armar la resta, no inventar dónde vive el dato |
 
 Formato: CSV o Excel, una pestaña por lista. **PDF no** — el contador lo tiene que
 poder pegar en su sistema, no volver a tipearlo.
 
 Dos cosas que este paquete necesita y todavía no existen:
 
-- **El rol Solo lectura** (D-12). Hoy `personas.rol` en retail solo conoce `lider` e
-  `integrante`. Ver la sección de roles más abajo.
+- **El rol Solo lectura** (D-12). Hoy `retail.colaboradores.rol` solo conoce `lider`
+  y `colaborador` (el vocabulario cambió con el corte V1→V2 — antes era
+  `personas.rol` con `lider`/`integrante`). Ver la sección de roles más abajo.
 - **La alarma diaria de comprobantes trabados** (D-37): revisar `comprobantes` en
   estado `pendiente` o `rechazado` con horas encima y avisar. Un comprobante trabado
   que nadie ve es un hueco en el registro de ventas del mes, y el contador lo
@@ -225,19 +287,27 @@ Dos cosas que este paquete necesita y todavía no existen:
 - **De que `proveedores.ruc` esté lleno.** Hoy es nullable y son 4 proveedores: media
   hora de trabajo. **Sin RUC no hay crédito fiscal** — para SUNAT esa factura no
   existe.
-- **De que `registrar_gasto` deje de estar rota** (Paso 0). Es la pantalla por la que
-  entra el IGV de compra.
-- **De poder comprar para el Taller y para CCO.**
-  `apps/web/app/(app)/inventario/compras/page.tsx:27` filtra `s.tipo === "tienda"`:
-  el desplegable "Llega a" solo ofrece TRU/AQP/LIM. La tela del Taller no tiene por
-  dónde pedirse, y un gasto de CCO tampoco.
+- ~~De que `registrar_gasto` deje de estar rota~~ — **obsoleto.** Esa pantalla y esa
+  función no existen más; el IGV de compra entra por `registrar_compra`, que sí
+  graba (ver arriba).
+- **De poder comprar para el Taller y para CCO — sin reverificar.** La ruta se movió
+  de `inventario/compras/page.tsx` (ya no existe) a `apps/web/app/(app)/compras/`;
+  no encontré el filtro `tipo === "tienda"` en el mismo lugar dentro de esta pasada.
+  No se puede afirmar si la limitación de "solo TRU/AQP/LIM en el desplegable"
+  sigue viva o se resolvió con la reconstrucción — hay que mirar `CompraFormV2.tsx`
+  directo antes de asumir cualquiera de las dos.
 - **No depende de las otras dos prioridades.** Se construye en paralelo con los
   insumos, y de hecho se cruzan: la misma factura que crea la deuda es la que trae
   los metros de tela.
 
 ## Qué se rompe si alguien improvisa un esquema paralelo
 
-El atajo tentador es meter la factura del proveedor dentro de `comprobantes` con un
+**Queda como referencia, no como advertencia sobre algo pendiente:** `compras` no
+tomó ninguno de estos atajos — ni metió la factura en `comprobantes` ni guardó la
+deuda como columna en `proveedores`. Se deja el razonamiento para el día que a
+alguien se le ocurra "simplificar" hacia uno de estos dos caminos más adelante.
+
+El atajo tentador era meter la factura del proveedor dentro de `comprobantes` con un
 `tipo` nuevo, o guardar la deuda como una columna en `proveedores`.
 
 - **Meterla en `comprobantes`** rompe el correlativo legal de CAYLA. Esa tabla
@@ -253,21 +323,25 @@ El atajo tentador es meter la factura del proveedor dentro de `comprobantes` con
   quién lo actualizó por última vez, y cuando llegue la tabla real hay que migrar
   filas sin `proveedor_id` ni fecha de vencimiento.
 
-## Cómo se ve hecho a medias
+## Cómo se ve hecho a medias — no fue el caso
 
-Registrar las facturas y no los pagos. Queda una pantalla que muestra una deuda que
-nunca baja, todo el mundo deja de mirarla en dos semanas, y el número es **peor** que
-no tener número, porque se ve oficial.
+**Esta sección advertía contra registrar las facturas y no los pagos, y recomendaba
+arrancar solo por la cabecera, sin desglosar por prenda. Lo que se construyó fue más
+completo que la recomendación, no menos:** `compra_pagos` existe desde el mismo día
+que `compras` (no quedó para después), y `compra_items` sí desglosa por producto y
+variante. El "Pagas" que se anticipaba acá —quedarse sin pagos o sin desglose— no
+pasó. Se deja el texto original abajo porque el razonamiento sigue siendo válido
+como criterio para priorizar, aunque en los hechos no hizo falta cortar tan corto.
 
-Sobre el alcance sí hay un corte razonable: **solo la cabecera de la factura, sin
-desglosar por prenda.**
+Registrar las facturas y no los pagos habría dejado una pantalla que muestra una
+deuda que nunca baja, todo el mundo deja de mirarla en dos semanas, y el número es
+**peor** que no tener número, porque se ve oficial. Sobre el alcance había un corte
+razonable propuesto —solo la cabecera de la factura, sin desglosar por prenda— con
 **Ganas:** el saldo por proveedor, la antigüedad de la deuda y el IGV de compra
-registrado desde el día uno, con la mitad del trabajo.
-**Pagas:** el costo de cada prenda sigue saliendo de lo que se teclea en "Recibir
-mercadería"; la factura no lo corrige sola.
-
-Recomendación: empezar por la cabecera. Lo que duele hoy es el saldo, no la
-conciliación línea por línea.
+registrado desde el día uno, con la mitad del trabajo; **Pagas:** el costo de cada
+prenda seguiría saliendo de lo que se teclea en "Recibir mercadería". La
+recomendación original era empezar por la cabecera; lo que se construyó no se quedó
+ahí.
 
 ---
 
