@@ -51,6 +51,35 @@ Después de construir el mecanismo (ADR-0095), Felipe frenó al confirmar las 6 
 
 Sesión de diseño formal (protocolo de pregunta completo, bloque por bloque) que terminó descubriendo que este worktree estaba 520 commits atrás de `main` — con `main` ya teniendo colores propone/aprueba (ADR-0070), subcategoría (ADR-0062) y la capa de taxonomía universal (ADR-0030) construidos, y otras 3 sesiones paralelas con tejidos/patrones/etiquetas/rechazar-color a medio construir en ramas sin fusionar. Se puso este worktree al día con `main`, se resolvió la contradicción real que Felipe pidió detectar (ADR-0030 diseña multi-tenant explícito, su propia decisión del 16-sep dice "solo CAYLA" — se separaron las dos capas), y se construyó de cero (no cherry-pick) el vocabulario cerrado de talla/tejido/patrón/etiqueta con rechazar incluido desde el día uno, más el filtro por categoría que Felipe pidió (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`). Tocar `variantes.talla` (núcleo) reveló que **10 funciones SQL más** (Movimientos, Ventas, Conteo, Traslados, Producción) y **10 archivos TypeScript más** leían esa columna directo — se encontraron todas consultando `pg_proc.prosrc` contra la base real, no adivinando por migración, y el compilador de tipos generados marcó los 10 archivos de TS uno por uno. Un bug real de verdad (el trigger de talla pisaba `estado='aprobado'` del backfill porque `fn_es_lider()` no tiene sesión durante una migración) se encontró navegando `/productos/nuevo`, no leyendo SQL. Flujo completo probado en navegador como Líder: crear producto con 2 tallas × 2 colores, editar, guardar — los 293 tests + typecheck + lint quedaron en verde. Aprendizaje: "cambiar una columna del núcleo" nunca es local — el radio real solo aparece grepeando el código real, no imaginándolo.
 
+## 2026-09-17 (SKU no se generaba solo al editar — bug real + segunda sobrecarga duplicada de RPC)
+
+Felipe, mirando el formulario de edición de Blusa Ximena: el SKU debería armarse solo,
+no quedar en blanco. Causa raíz en `ProductoForm.tsx` (no en la base): al cargar
+variantes YA EXISTENTES para editar, el código marcaba `skuManual: true` sin mirar si
+`v.sku` de verdad tenía algo — apagaba el auto-sugerido (`sugerirSku`, que ya existía y
+funcionaba bien para filas nuevas) justo para las filas que más lo necesitaban. Corregido:
+`skuManual` ahora depende de si `v.sku` trae contenido; si no, se sugiere igual que una
+fila nueva. Verificado en local con un producto de prueba (sku null) — antes vacío,
+después `PRENDA-M-COLOR`, y el guardado ya no revienta la validación "Cada variante
+necesita un SKU".
+
+De paso: guardar reveló que las variantes YA EXISTENTES no persisten el SKU nuevo
+igual — es a propósito (`catalogo_actualizar_producto`: color/talla/sku/codigo son la
+identidad de una variante ya etiquetada, solo precio/costo/activo cambian en edición).
+Así que el fix del cliente ayuda a partir de ahora, pero no rellenaba lo ya creado —
+se hizo un backfill puntual por SQL (mismo cálculo que `sugerirSku`) para los 60
+variantes de las 5 prendas de hoy (Blusa Ximena, Casaca Emilia, Chompa Josefina,
+Pantalón Milagros, Short Ivanna), con ok de Felipe.
+
+**Segunda sobrecarga duplicada del mismo bug de hoy**, encontrada al revisar la RPC:
+`catalogo_actualizar_producto` también tenía dos firmas vivas en producción (9 y 11
+parámetros — la de 11 con `tejido_id`/`patrón_id`, ya completa). Mismo mecanismo que
+tumbó `/productos` esta tarde (ver entrada "`/productos` caído en producción"), esta vez
+sin haber reventado nada visible todavía — se encontró proactivamente, no por un error
+de Felipe. Dropeada la de 9 con su ok explícito ("Sí, hazlo"). Barrido completo del
+esquema (`group by proname having count(*) > 1`): cero sobrecargas duplicadas
+restantes en todo `retail` — verificado, no asumido.
+
 ## 2026-09-17 (Corrección: las 20 fotos eran 4 colores de 5 prendas, no 20 prendas — y stock real)
 
 Felipe corrigió el paso anterior mirando la Grilla: las 20 fotos no eran 20 prendas

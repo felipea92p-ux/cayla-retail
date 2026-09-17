@@ -167,17 +167,27 @@ export function ProductoForm({
     if (!producto) return [filaVacia("")];
     return [...producto.variantes]
       .sort((a, b) => compararTallas(a.talla ?? "", b.talla ?? ""))
-      .map((v) => ({
-        id: v.id,
-        colorCodigo: v.colorCodigo ?? "",
-        tallaId: v.tallaId ?? "",
-        sku: v.sku,
-        skuManual: true,
-        precio: String(v.precio),
-        costo: String(v.costo),
-        activo: v.activo,
-        etiquetaIds: v.etiquetaIds,
-      }));
+      .map((v) => {
+        const colorCodigo = v.colorCodigo ?? "";
+        const talla = v.talla ?? "";
+        // Una variante que ya trae SKU (alguien lo tocó a mano antes) se
+        // respeta tal cual. Una que llegó sin él (censo, o creada fuera del
+        // formulario) se trata como recién agregada: el sugerido corre solo,
+        // igual que en una fila nueva — no se deja en blanco esperando que
+        // alguien lo escriba a mano.
+        const skuManual = !!v.sku.trim();
+        return {
+          id: v.id,
+          colorCodigo,
+          tallaId: v.tallaId ?? "",
+          sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
+          skuManual,
+          precio: String(v.precio),
+          costo: String(v.costo),
+          activo: v.activo,
+          etiquetaIds: v.etiquetaIds,
+        };
+      });
   });
   const [loading, setLoading] = useState(false);
   // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
