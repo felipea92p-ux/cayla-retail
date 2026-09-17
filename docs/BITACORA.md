@@ -3,6 +3,65 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Fotos subidas a Blusa Ximena no se mostraban — otra sesión perdió color_codigo al sumar tejido/patrón)
+
+Felipe subió 3 fotos reales a Blusa Ximena (Blanco/Naranja/Negro) desde el formulario de
+edición — ninguna se mostraba en la Grilla, solo seguía la de Verde (la única que no
+tocó). Confirmado contra producción antes de suponer nada: las 3 SÍ llegaron a Storage y
+SÍ quedaron en `producto_fotos`, pero con `color_codigo = NULL` — `fn_productos` nunca
+las emparejaba con ninguna variante (todas tienen color real).
+
+Causa: `20260917190000_producto_fotos_por_color.sql` (esta sesión, más temprano hoy) sí
+dejó `catalogo_actualizar_producto` leyendo `color_codigo` de cada foto en sus dos ramas.
+Otra sesión (Taxonomía de variante — tejido/patrón, PR todavía sin mergear, aplicada
+directo a producción con su propio ok puntual) recreó la misma función para sumarle
+`p_tejido_id`/`p_patron_id`, pero partió de una versión anterior a la mía — perdió sin
+querer el manejo de `color_codigo` en fotos. Distinto del incidente de hace un rato
+(sobrecarga duplicada): acá la firma es una sola, el bug estaba en el cuerpo.
+
+Corregido con `CREATE OR REPLACE` sobre la misma firma de 11 parámetros (sin `DROP`,
+no cambia la firma, cero riesgo de sobrecarga) — se restauró `color_codigo` en las dos
+ramas de fotos sin tocar nada de tejido/patrón. Ok puntual de Felipe ("Sí, hazlo").
+Reconectadas las 3 fotos ya subidas (UPDATE por nombre de archivo). Verificado con
+`fn_productos`: los 4 colores de Blusa Ximena resuelven a su propia foto.
+`20260917210000_catalogo_actualizar_producto_recupera_color_codigo_fotos.sql` es el
+registro — no se aplicó en local: `productos.tejido_id`/`patron_id` no existen ahí
+todavía (esquema de la otra sesión, sin mergear), se reconcilia solo cuando esa PR
+llegue a `main`. Aprendizaje: dos sesiones tocando la MISMA función RPC el mismo día,
+aunque en features sin relación, pueden pisarse el cuerpo aunque las firmas no choquen —
+vale la pena, al reescribir una función completa por `CREATE OR REPLACE`, partir SIEMPRE
+de `pg_get_functiondef` en vivo, no de un archivo de migración propio que puede haber
+quedado atrás.
+
+## 2026-09-17 (SKU no se generaba solo al editar — bug real + segunda sobrecarga duplicada de RPC)
+
+Felipe, mirando el formulario de edición de Blusa Ximena: el SKU debería armarse solo,
+no quedar en blanco. Causa raíz en `ProductoForm.tsx` (no en la base): al cargar
+variantes YA EXISTENTES para editar, el código marcaba `skuManual: true` sin mirar si
+`v.sku` de verdad tenía algo — apagaba el auto-sugerido (`sugerirSku`, que ya existía y
+funcionaba bien para filas nuevas) justo para las filas que más lo necesitaban. Corregido:
+`skuManual` ahora depende de si `v.sku` trae contenido; si no, se sugiere igual que una
+fila nueva. Verificado en local con un producto de prueba (sku null) — antes vacío,
+después `PRENDA-M-COLOR`, y el guardado ya no revienta la validación "Cada variante
+necesita un SKU".
+
+De paso: guardar reveló que las variantes YA EXISTENTES no persisten el SKU nuevo
+igual — es a propósito (`catalogo_actualizar_producto`: color/talla/sku/codigo son la
+identidad de una variante ya etiquetada, solo precio/costo/activo cambian en edición).
+Así que el fix del cliente ayuda a partir de ahora, pero no rellenaba lo ya creado —
+se hizo un backfill puntual por SQL (mismo cálculo que `sugerirSku`) para los 60
+variantes de las 5 prendas de hoy (Blusa Ximena, Casaca Emilia, Chompa Josefina,
+Pantalón Milagros, Short Ivanna), con ok de Felipe.
+
+**Segunda sobrecarga duplicada del mismo bug de hoy**, encontrada al revisar la RPC:
+`catalogo_actualizar_producto` también tenía dos firmas vivas en producción (9 y 11
+parámetros — la de 11 con `tejido_id`/`patrón_id`, ya completa). Mismo mecanismo que
+tumbó `/productos` esta tarde (ver entrada "`/productos` caído en producción"), esta vez
+sin haber reventado nada visible todavía — se encontró proactivamente, no por un error
+de Felipe. Dropeada la de 9 con su ok explícito ("Sí, hazlo"). Barrido completo del
+esquema (`group by proname having count(*) > 1`): cero sobrecargas duplicadas
+restantes en todo `retail` — verificado, no asumido.
+
 ## 2026-09-17 (Corrección: las 20 fotos eran 4 colores de 5 prendas, no 20 prendas — y stock real)
 
 Felipe corrigió el paso anterior mirando la Grilla: las 20 fotos no eran 20 prendas
