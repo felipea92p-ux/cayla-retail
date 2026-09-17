@@ -402,42 +402,53 @@ llegar comprado, no hay ninguna otra puerta por la que esas prendas puedan entra
     nadie la lee). Siguen vivas porque tocarlas es tocar el núcleo. **Consecuencia:** quien lea el
     esquema sin este documento va a creer que una corrida tiene una variante y una fecha propias.
 
-## Materia prima del Taller (D-47) — construido 2026-09-17, solo local
+## Materia prima del Taller (D-47) — esquema huérfano de producción, adoptado 2026-09-17
 
-`docs/datos/10-ROADMAP-DATOS.md:274-423` tenía el diseño; `ADR-0074` tiene las
-decisiones y la verificación completa. Resuelve el hueco 9: hasta acá, `costo_tela`/
-`costo_avios` eran montos tecleados sin nada real detrás.
+Primera versión construida hoy desde cero (commit `fd3488f`), descartada el mismo día
+al descubrir que producción ya tenía un esquema para esto — huérfano, 0 filas, sin
+código de `apps/web` que lo use, del volcado de unificación con Dynamic de julio-2026.
+Felipe decidió adoptarlo tal cual en vez de seguir con el diseño propio. `ADR-0074`
+tiene la historia completa y la verificación; acá solo el estado actual. Resuelve el
+hueco 9: hasta acá, `costo_tela`/`costo_avios` eran montos tecleados sin nada real
+detrás.
 
-**Migración:** `supabase/migrations/20260917124059_materia_prima_taller.sql`. Usa
+**Migraciones:** `supabase/migrations/20260917140000_insumos_taller_reconstruido.sql`
+(SOLO local — recrea lo que producción ya tiene, para poder desarrollar contra algo
+real sin tocar producción; reconstruido de forma independiente por dos sesiones el
+mismo día, ver ADR-0074 "Reconciliación") +
+`supabase/migrations/20260917141500_registrar_consumo_insumo.sql` (la única pieza
+nueva de verdad; migración normal, SÍ pendiente de aplicar en producción). Usa
 `ubicacion_id`/`fn_puede_operar_ubicacion` (el modelo real, ver nota al inicio de este
-documento) — a diferencia del resto de `docs/datos/10-ROADMAP-DATOS.md`, que lo diseñó
-contra `sede_id`.
+documento) — a diferencia del resto de `docs/datos/10-ROADMAP-DATOS.md`, que diseñó
+esta misma idea contra `sede_id` (ese diseño quedó descartado junto con la primera
+versión de hoy).
 
-| Tabla | Qué guarda | Notas |
-|---|---|---|
-| `insumos` | Catálogo: `codigo`, `nombre`, `tipo` (`tela`\|`avio`\|`empaque`), `unidad` (`m`\|`und`\|`kg`), `stock_minimo`, `activo` | Hermana de `productos`, nunca entra a `variantes` (ensuciaría el buscador de caja, truncaría decimales). Select autenticado, escritura líder — mismo patrón que `productos`/`colores`. |
-| `insumo_stock` | `(insumo_id, ubicacion_id)` → `cantidad numeric(12,3)` | Snapshot derivado, como `stock`. Con decimales a propósito: `stock.cantidad` es `integer` y truncaría 2,35 m a 2. |
-| `insumo_movimientos` | Historial append-only: `tipo` (`entrada`\|`salida`\|`ajuste`), `cantidad`, `costo_unitario`, `produccion_id`, `compra_id`, `usuario_id` | Calcado de `movimientos`, mismo check de cantidad válida (`ajuste` con signo, el resto positivo). `compra_id → compras(id)` es el puente con Prioridad 1 cuando la tela viene facturada — a nivel de factura, no de línea (`compra_items` es de prendas). |
-| `produccion_insumos` | `produccion_id`, `insumo_id`, `cantidad_consumida`, `costo_unitario`, `costo_total` (generada) | El puente: qué se cortó y a qué costo, por corrida. Append-only sin unique — una orden puede cortarse en varias sesiones antes de cerrar. |
+| Tabla / vista | Existe en | Qué guarda | Notas |
+|---|---|---|---|
+| `insumos` | local (espejo) y producción | Catálogo: `codigo`, `nombre`, `tipo` (`tela`\|`avio`), `unidad_medida` (`metro`\|`unidad`\|`kilo`\|`cono`\|`par`\|`docena`), `proveedor_id`, `merma_pct`, `stock_minimo`, `archivado_at` | Hermana de `productos`, nunca entra a `variantes`. Select autenticado, insert/update líder (policies `insumos_select_autenticado`/`insumos_insert_lider`/`insumos_update_lider`, verificadas contra producción) — sin policy de DELETE, se archiva. |
+| `insumo_lotes` | local (espejo) y producción | Una fila por ENTRADA: `insumo_id`, `ubicacion_id`, `codigo_lote`, `proveedor_id`, `cantidad_ingresada`, `costo_unitario`, `documento`, `fecha_ingreso`, `origen` (`compra`\|`saldo_inicial`) | Seguimiento por lote, no un promedio global — la diferencia principal contra el diseño descartado. Unique parcial `(insumo_id, codigo_lote) where codigo_lote is not null`. Solo `select` vía RLS (`fn_puede_operar_ubicacion`); se escribe solo por RPC. |
+| `movimientos_insumo` | local (espejo) y producción | Historial append-only: `tipo` (`compra`\|`consumo`\|`devolucion`\|`merma`\|`ajuste`), `cantidad`, `costo_unitario`, `insumo_lote_id`, `produccion_id`, `usuario_id`, `motivo` | `produccion_id` liga consumo↔corrida directo — no existe (ni hace falta) una tabla puente tipo `produccion_insumos`: el constraint `movimientos_insumo_produccion_segun_tipo` ya exige ese vínculo para `consumo`/`devolucion` y lo prohíbe para el resto. Solo `select` vía RLS; se escribe solo por RPC. |
+| `v_insumo_saldos` | local (espejo) y producción | Vista: `sum` de `movimientos_insumo` con signo, agrupado por insumo+ubicación → `fisico`, `valor` | Stock derivado, nunca una tabla a mano. **Sin `security_invoker`** (confirmado contra producción) — si algún día una pantalla la consulta directo con la sesión del usuario, no filtra por ubicación (el dueño de la vista tiene `BYPASSRLS`). Hoy inerte (0 filas, solo la consultan funciones `security definer`), pero real — ver ADR-0074. |
 
-**RPC (security definer, `fn_puede_operar_ubicacion` como candado, igual que el resto del módulo):**
+**RPC (`security definer`, `fn_puede_operar_ubicacion` como candado, `EXECUTE` revocado
+de `PUBLIC`):**
 
-| Función | Firma | Qué hace |
-|---|---|---|
-| `recibir_insumos` | `(p_ubicacion_id uuid, p_items jsonb, p_compra_id uuid default null, p_nota text default null) returns integer` | Entrada de materia prima. `p_items`: `[{insumo_id, cantidad, costo_unitario}, …]`. |
-| `registrar_consumo_insumos` | `(p_produccion_id uuid, p_items jsonb, p_nota text default null) returns void` | Consumo real al cortar. **Exige `producciones.estado = 'en_proceso'`** — se registra ANTES de cerrar, nunca después (ver ADR-0074, por qué). Recalcula `producciones.costo_tela`/`costo_avios` sumando el consumo real, pero solo el balde que tocó (no pisa a 0 un costo tecleado si esa corrida no registró ese tipo de insumo). |
-| `fn_aplicar_movimiento_insumo` | `(p_movimiento_id uuid) returns void` | Motor mecánico compartido por las dos RPC de arriba — mismo patrón que `fn_aplicar_movimiento` (`20260914230000`): `entrada` es upsert aditivo, `salida`/`ajuste` bloquean la fila con `for update` antes de leer, para que dos corridas cortando la misma tela a la vez se serialicen en vez de pisarse. |
+| Función | Existe en | Firma | Qué hace |
+|---|---|---|---|
+| `recibir_insumo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad numeric, p_costo_total numeric, p_codigo_lote text default null, p_proveedor_id uuid default null, p_documento text default null, p_origen text default 'compra', p_nota text default null) returns uuid` | Entrada de materia prima: crea el lote y su movimiento `compra` gemelo. Devuelve el id del lote. |
+| `ajustar_insumo_por_conteo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad_contada numeric, p_motivo text) returns uuid` | Ajuste por conteo físico: compara contra `v_insumo_saldos`, inserta un `movimientos_insumo` tipo `ajuste` con la diferencia (con motivo obligatorio). Sin diferencia, no inserta nada (`returns null`). |
+| `registrar_consumo_insumo` | **solo local — pendiente en producción** | `(p_produccion_id uuid, p_insumo_id uuid, p_cantidad numeric, p_nota text default null) returns uuid` | La pieza nueva: consumo real al cortar. Elige el lote MÁS ANTIGUO con saldo > 0 (`for update` sobre esa fila — no hay tabla de stock que bloquear en este esquema), recalcula su saldo después del lock, y NO parte el consumo entre lotes (rechaza con el saldo exacto si no alcanza). **Exige `producciones.estado = 'en_proceso'`** — se registra antes de cerrar, nunca después. Recalcula `producciones.costo_tela`/`costo_avios` (según `insumos.tipo`) sumando el consumo real de esa producción, pero solo el campo cuyo tipo tuvo al menos una fila. También bloquea `producciones` desde el inicio (protege el recálculo de costo de una carrera entre dos consumos concurrentes de la misma corrida). Ver ADR-0074 para los 10 escenarios verificados, incluida concurrencia real con dos procesos. |
 
 **No conectado todavía:** `NuevaOrdenProduccionForm.tsx` sigue mandando `costo_tela`/
-`costo_avios` tecleados a `abrir_produccion`, sin pasar por `recibir_insumos`/
-`registrar_consumo_insumos` — cablear la pantalla es otra sesión. Tampoco hay pantalla
-de alerta de stock mínimo (`insumo_stock.cantidad < insumos.stock_minimo`): la columna
-existe, la lectura no se construyó.
+`costo_avios` tecleados a `abrir_produccion`, sin pasar por `recibir_insumo`/
+`registrar_consumo_insumo` — cablear la pantalla es otra sesión. Tampoco hay pantalla
+de alerta de stock mínimo (`insumos.stock_minimo` contra `v_insumo_saldos.fisico`): la
+columna existe, la lectura no se construyó.
 
 ## Decisiones que lo gobiernan
 
 - **D-31** — El Taller se mide por costo absorbido + referencia de maquila, nunca por precio de transferencia interno. Hoy el esquema hace lo contrario (huecos 5, 6, 7, 8).
-- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y avisa cuando falta. **Construido 2026-09-17, solo local** (hueco 9 cerrado en local — ver sección "Materia prima del Taller" arriba y ADR-0074; falta producción y conectar la pantalla). Es la condición para que D-31 sea medición.
+- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y avisa cuando falta. **Esquema huérfano de producción adoptado 2026-09-17** (hueco 9 cerrado en local — ver sección "Materia prima del Taller" arriba y ADR-0074; falta pegar en producción solo `registrar_consumo_insumo` y conectar la pantalla). Es la condición para que D-31 sea medición.
 - **D-15** — El Taller es una sede con poderes especiales. Aquí se ve en que `unidad_id` apunta a `sedes` como cualquier tienda.
 - **D-16** — Cada tabla dice en qué base existe, y cada diferencia va en su fila.
 - **D-07** — `ordenes_produccion` y las columnas muertas van marcadas con el motivo por el que siguen vivas.

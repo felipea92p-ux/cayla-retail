@@ -5338,3 +5338,40 @@ huérfanas más (`sede_meta` real vs. `retail_sede_meta` con guion, trampa de no
 y la primera además está bloqueada por la decisión pendiente del punto (2). Verificación
 en navegador: no se hizo en esta sesión (ningún agente tenía `apps/web/.env.local`
 configurado en este worktree) — pendiente antes de dar por buena la parte visual.
+
+## 2026-09-17 (Insumos del Taller: Felipe decide adoptar el esquema huérfano — y aparece una segunda sesión con el mismo hallazgo)
+
+Felipe respondió a la decisión pendiente del punto (2) de arriba: "adoptemos el esquema
+huérfano." Se rehizo la migración de insumos sobre `retail.insumos`/`insumo_lotes`/
+`movimientos_insumo`/`v_insumo_saldos` (ya en producción, 0 filas) en vez del esquema
+paralelo construido más temprano hoy (commit `fd3488f`, dropeado del Postgres local).
+Se descubrió que `recibir_insumo`/`ajustar_insumo_por_conteo` **ya existen en
+producción, completas** — la única pieza genuinamente nueva era el consumo al cortar:
+`retail.registrar_consumo_insumo` (elige el lote más antiguo con saldo, sin partir
+entre lotes; candado `for update` sobre la fila del lote, no sobre una fila de stock
+que este esquema no tiene).
+
+**Mientras se hacía esto, apareció `git log --all` con una segunda sesión** (worktree
+distinto, branch `claude/strange-golick-420bb9`, ya fusionada a `main` como commit
+`b8a8a05`) que había reconstruido el MISMO esquema huérfano, de forma independiente, el
+mismo día — su propio commit nombraba este worktree explícitamente y pedía la misma
+decisión que Felipe ya había dado acá. Comparadas línea por línea, las dos
+reconstrucciones coincidieron exactamente (columnas, CHECK, RLS, grants, cuerpos de
+función) — se adoptó la de `main` como canónica (ya fusionada, mejor comentada), con un
+agregado propio (`revoke execute` de `PUBLIC`, verificado que producción también lo
+tiene así). Se descartó el archivo propio sin timestamp y se renombró
+`registrar_consumo_insumo` para no compartir el timestamp `20260917140000` con el
+archivo de `main`.
+
+Verificado end-to-end en `psql` tras la reconciliación (huella cero): `recibir_insumo`
+10m → `registrar_consumo_insumo` 3.5m → `costo_tela` = 29.75 (exacto) → saldo derivado
+vía `v_insumo_saldos` = 6.5m/S/55.25 (exacto) → pedir 100 sobre un lote de 6.5 rechaza
+limpio, sin partir. De paso: un hallazgo de RLS que parecía un bug real (`fn_es_lider()`
+daba `true` pero el INSERT igual fallaba) resultó ser un hueco del propio script de
+prueba — faltaba fijar `request.jwt.claim.role` además de `.sub`; el patrón
+`fn_es_lider()` como policy ya se usa sin problema en otras 16 tablas.
+
+ADR-0074, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
+final. Sigue pendiente: aplicar `20260917141500_registrar_consumo_insumo.sql` en
+producción (la del espejo ya está allá, no se toca), y conectar el frontend — ninguna
+de las dos estaba en el alcance de hoy.

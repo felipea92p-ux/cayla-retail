@@ -53,23 +53,24 @@ huecos son de alcance, no de correctitud.
       ningún movimiento ni ajuste de deuda con el proveedor — la fila queda marcada y ahí
       termina. Conecta directo con el punto anterior: mercadería dañada no tiene cómo
       salir del sistema hacia el proveedor ni descontarse de lo que se le debe.
-- [ ] **Insumos/materia prima del Taller: dominio fantasma — construida una versión
-      NUEVA 2026-09-17 (ADR-0074), pero con una decisión pendiente antes de producción.**
-      `retail.insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos` siguen
-      existiendo en producción, 0 filas, huérfanas del volcado de unificación (jul-2026)
-      — nada las creó desde este repo. En vez de conectarlas, el 2026-09-17 se construyó
-      un esquema paralelo (`insumos`/`insumo_stock`/`insumo_movimientos`/
-      `produccion_insumos`, migración `20260917124059_materia_prima_taller.sql`, SOLO
-      LOCAL) con `recibir_insumos`/`registrar_consumo_insumos` — sin saber, al momento de
-      diseñarlo, que el esquema huérfano ya existía (no se leyó este ítem antes). **Choca
-      de nombre con la tabla huérfana `retail.insumos`** — no se puede pegar en
-      producción tal cual. Decisión de Felipe (ver ADR-0074, Addendum): ¿adoptar el
-      esquema huérfano (tiene seguimiento por lote, más completo) o quedarse con el nuevo
-      y dar de baja el huérfano como LEGADO (mismo trato que `bom_items`)? Aparte de eso,
-      `compra_items.producto_id` sigue siendo `not null references productos` (catálogo
-      vendible) — estructuralmente no se puede recibir tela/avíos contra una factura por
-      `/compras/recibir` todavía; y conectar `NuevaOrdenProduccionForm.tsx` al nuevo stock
-      queda pendiente a propósito (fuera del alcance de esa tarea).
+- [ ] **Insumos/materia prima del Taller: dominio fantasma — RESUELTO 2026-09-17
+      (ADR-0074), pendiente aplicar en producción.** `retail.insumos`/`insumo_lotes`/
+      `movimientos_insumo`/`v_insumo_saldos` (+ `recibir_insumo`/
+      `ajustar_insumo_por_conteo`, YA funcionando) son huérfanas del volcado de
+      unificación (jul-2026), 0 filas, sin conectar. Primer intento del día construyó un
+      esquema paralelo por no leer este ítem antes — chocaba de nombre, se descartó
+      (commit `fd3488f`, historia en ADR-0074). Versión final: **adoptado el esquema
+      huérfano tal cual** (dos sesiones distintas lo reconstruyeron el mismo día, de
+      forma independiente, y coincidieron columna por columna — buena confirmación
+      cruzada), más la única pieza que faltaba, `retail.registrar_consumo_insumo`
+      (elige el lote más antiguo con saldo, sin partir entre lotes; recalcula
+      `costo_tela`/`costo_avios` real). **Local:** `20260917140000_insumos_taller_reconstruido.sql`
+      (espejo, ya en `main`) + `20260917141500_registrar_consumo_insumo.sql` (la pieza
+      nueva) — verificados end-to-end. **Solo falta pegar la segunda en producción**
+      (con el prefijo `retail.`, cuando Felipe decida) — la primera ya existe allá, no
+      se toca. Fuera de alcance a propósito: `compra_items.producto_id` sigue sin poder
+      recibir tela/avíos contra una factura por `/compras/recibir`, y
+      `NuevaOrdenProduccionForm.tsx` sigue sin conectar al nuevo stock.
 - [ ] **Etiquetado físico (código de barras) al recibir no existe hoy.**
       `EtiquetasGenerator.tsx` ya no está en el árbol; quedan huérfanos `Codigo128.tsx`/
       `codigo128.ts` sin ningún importador (verificado con grep — cero componentes los
