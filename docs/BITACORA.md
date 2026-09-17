@@ -3,6 +3,17 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Mover mercadería: el campo de cantidad no dejaba borrar para escribir de nuevo)
+
+Bug real reportado por Felipe probando Traslados: el input de cantidad (`MoverMercaderiaFormV2.tsx`)
+estaba controlado con `onChange={(e) => ... Number(e.target.value) || 1 ...}` — al borrar el campo,
+`Number("") || 1` volvía a "1" en la MISMA tecla, así que nunca se podía vaciar para escribir un
+número nuevo. Se corrigió con el mismo patrón que ya usaba `ConteoPanel.tsx`: la cantidad es texto
+mientras se escribe (sin coerción en el `onChange`), y el tope de stock se aplica recién en `onBlur`
+y otra vez al enviar — nunca a mitad de tecla. Encontrado el mismo patrón roto en otros 4
+formularios (Recibir, Cambios, Devoluciones, Compras) — no se tocaron (Felipe solo reportó este),
+quedó como tarea aparte sugerida.
+
 ## 2026-09-17 (Existencias con datos reales en producción: 16 productos nuevos + 3 correcciones de semáforo)
 
 Dos pasos seguidos, ambos con Felipe mirando producción en vivo.
