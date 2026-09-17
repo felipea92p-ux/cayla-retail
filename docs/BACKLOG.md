@@ -56,6 +56,146 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Auditoría de migraciones pendientes en producción (2026-09-17)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción,
+antes de correrlas. **Nada contra docs — cada fila de abajo se verificó en vivo contra
+`vovjyyiafkxteijimpuy` schema `retail`** (`execute_sql`/`list_migrations`, solo lectura):
+columnas/funciones/índices reales, y para dos casos el cuerpo de la función (no alcanza
+con que la función exista — hay que ver qué hace). El propio BACKLOG venía desactualizado
+en dos direcciones — otra vez el patrón de [[commits-y-migraciones-en-produccion]]:
+`20260916200000_numeracion_traslados_conteos.sql` y el SQL de colores del 16-sep
+**ya estaban aplicados** (corregidos arriba, en sus propias secciones) aunque sus
+checkboxes seguían sin marcar. Las 7 migraciones "de las 5 piezas inspiradas en NetSuite"
+más `cambio_y_devolucion_exigen_caja`/`anular_venta`/`variantes_identidad_unica` — 7
+chequeos directos contra columnas/funciones reales — también están todas aplicadas.
+
+- [x] **`20260916223000_venta_precio_cambiado_sku_nulo.sql` — aplicada en producción
+      2026-09-17, con ok puntual de Felipe.** Corrida con el MCP de Supabase
+      (`apply_migration` contra `vovjyyiafkxteijimpuy`), no a mano en el SQL Editor.
+      Verificado después contra la base, no solo que no tirara error: una sola
+      sobrecarga de `retail.registrar_venta` (sin dejar el candado ADR-0009/0004
+      roto) y su cuerpo real ya arma `v_sku` con
+      `coalesce(v.codigo, v.sku, 'sin código')`, no con el `select` original.
+- [ ] **Producción tiene migraciones sin registro local** (informativo, no bloquea nada):
+      `list_migrations` muestra `historial_candado_completo` (20260916200000),
+      `historial_producto_estado_restaurado` (20260916201742),
+      `anular_venta_sin_huecos` (20260916214500) y
+      `registrar_movimiento_una_sola_firma` (20260916214600) aplicadas en producción sin
+      un archivo `supabase/migrations/*.sql` con ese nombre en este repo — probablemente
+      parches que Felipe escribió directo en el SQL Editor. No se investigó qué cambian
+      exactamente (no era la pregunta de hoy); si alguna corrige algo que un archivo local
+      "deshace" al pegarse encima, vale la pena migrar el fix a un archivo del repo antes
+      de la próxima ronda de producción.
+- [ ] **`benja-migracion.sql` sigue como estaba: NO ejecutar.** El propio archivo se
+      marca "PENDIENTE DE REVISIÓN — NO EJECUTADO EN PRODUCCIÓN. NO CORRER TAL CUAL" — es
+      un `pg_dump --schema-only` de referencia, no una migración incremental. No se tocó.
+
+---
+
+## 🔍 Revisión: Recibir mercadería — huecos para flujo completo de ERP (2026-09-17)
+
+Auditoría pedida por Felipe sobre `/compras/recibir` (RPC `recibir_compras`, ADR-0035) y
+`/inventario/recibir` (RPC `recibir_lote`, sin factura) — sin cambios de código, solo
+lectura de repo + producción (`vovjyyiafkxteijimpuy`). El diseño en sí está sólido (costo
+promedio ponderado con `costo_historial` auditable, tope contra lo facturado con
+`select ... for update`, piso/almacén, adjuntos de factura, paginado por cursor) — los
+huecos son de alcance, no de correctitud.
+
+- [ ] **El flujo nunca corrió en producción de verdad.** `retail.compras` = 0 filas
+      (verificado contra la base, no contra docs). De 160 movimientos `tipo='entrada'`,
+      156 son `carga_inicial`, 3 `siembra_cargo_especial`, 1 `devolucion` — ninguno
+      `motivo='recepcion'`. Ni `recibir_compras` ni `recibir_lote` se ejecutaron nunca en
+      producción. Antes de agregar nada más, correr una recepción real es lo que más
+      destapa fricción de verdad (principio 7).
+- [ ] **Mercadería corta o dañada no tiene adónde ir** — ya admitido en el propio
+      ADR-0035 (docs/adr/0035-la-factura-de-compra-es-el-eje-de-recepcion-y-pago.md:92-93,
+      "falta decidir si se agrega 'cerrar línea con faltante'"). Sin eso, una factura con
+      3 prendas rotas queda `parcial` para siempre.
+- [ ] **Devolución a proveedor es una etiqueta hueca.** `devolucion_items.condicion =
+      'devolver_proveedor'` existe (`0002_esquema.sql:269`) pero en `aprobar_devolucion`
+      (`20260914230000_inventario_piso_almacen.sql:596-604`) esa condición no genera
+      ningún movimiento ni ajuste de deuda con el proveedor — la fila queda marcada y ahí
+      termina. Conecta directo con el punto anterior: mercadería dañada no tiene cómo
+      salir del sistema hacia el proveedor ni descontarse de lo que se le debe.
+- [ ] **Insumos/materia prima del Taller: dominio fantasma.** Existen `retail.insumos`/
+      `insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos` en producción, pero NINGUNA
+      migración de este repo los crea — viven en `supabase/unificacion/06_contabilidad_produccion.sql`
+      y `11_produccion_material_etapas.sql` (el volcado de la unificación con Dynamic,
+      jul-2026) — y cero rutas/componentes de `apps/web` los tocan.
+      `compra_items.producto_id` es `not null references productos` (catálogo vendible) —
+      estructuralmente no se puede recibir tela/avíos contra una factura por
+      `/compras/recibir`. `abrir_produccion` tipea `costo_tela`/`costo_avios`/
+      `costo_maquila` a mano, sin descontar ningún inventario de materia prima. Decisión
+      de Felipe: ¿entra al alcance de este ERP, o queda deliberadamente afuera?
+- [ ] **Etiquetado físico (código de barras) al recibir no existe hoy.**
+      `EtiquetasGenerator.tsx` ya no está en el árbol; quedan huérfanos `Codigo128.tsx`/
+      `codigo128.ts` sin ningún importador (verificado con grep — cero componentes los
+      usan). Este mismo BACKLOG decía que `/etiquetas` se "movió a Compras hace tiempo"
+      (línea ~546 de este archivo), pero no existe ninguna carpeta `etiquetas` bajo
+      `apps/web/app/(app)/compras` — el traslado nunca se completó.
+- [ ] **Piso vs. almacén al recibir es 100% fijo.** `fn_sububicacion_por_defecto('entrada')`
+      (`20260914230000_inventario_piso_almacen.sql:74-87`) siempre devuelve
+      `almacen_tienda`, calculado una sola vez antes del loop; ni la RPC ni la pantalla
+      dejan mandar parte de una recepción directo al piso de venta. Probablemente
+      intencional (se mueve después por separado vía `/inventario/mover`), vale
+      confirmarlo con Felipe si alguna vez pesa en la operación real.
+- [ ] **Sin pruebas automatizadas** para `recibir_compras`/`recibir_lote` (`scripts/pruebas/`
+      solo tiene `registrar_cambio.mjs` y `aprobar_devolucion_caja.mjs`) — mismo patrón de
+      deuda que ya tienen `registrar_venta`/`iniciar_traslado`/`cerrar_caja` (ver sección
+      "Cambios: primeras pruebas automatizadas" más abajo), todavía no le tocó el turno a
+      este RPC.
+- [ ] **D-45 (`docs/datos/DECISIONES-2026-09-12.md:275`, costeo del inventario) sigue
+      listada como abierta pese a que ya se resolvió en código** (promedio ponderado,
+      `20260916090000_costo_promedio_ponderado.sql`, confirmado en producción hoy) — el
+      documento de decisiones nunca se actualizó para cerrarla. Corregir la tabla de
+      "Decisiones que quedaron abiertas" en ese archivo.
+
+---
+
+## 🎯 Facturación: auditoría de flujo completo (2026-09-17)
+
+Felipe preguntó qué le falta al módulo para un flujo completo de ERP. Solo auditoría —
+sin cambios de código. Detalle completo, con cita de archivo/línea de cada hallazgo, en
+`docs/datos/modulos/08-facturacion-sunat.md` (huecos 1-16, actualizado hoy). Primer
+hallazgo, antes que nada: el doc de módulo (fechado 12-sep) tenía **dos huecos ya
+resueltos ese mismo día** por `0011_venta_con_comprobante.sql` — venta↔comprobante SÍ
+están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre) y la
+proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
+con cita, para que nadie los reconstruya.
+
+- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
+      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
+      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
+      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
+- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
+      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
+      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
+      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
+      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
+      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
+      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
+      `anular_venta` liberarlo automático?
+- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
+      en producción (antes era teórico).** `devoluciones.ts` solo usa
+      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
+      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
+      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
+      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
+      Fase 0, esperando pantalla desde entonces.
+
+Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
+repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
+emite Vender, el panel manual de Facturación sigue expuesto a doble emisión (hueco 1);
+`registrar_serie_comprobante` no valida ubicación, un líder puede reapuntar la serie de
+otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `clientes`
+(hueco 16); cero pruebas de las RPC del módulo contra Postgres real (a diferencia de
+`registrar_cambio`/`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de
+"Monto facturado" sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
+
+---
+
 ## 🐛 `registrar_venta`: `venta_precio_cambiado` revienta con una prenda sin SKU (2026-09-16)
 
 - [x] **`v_sku` llegaba `NULL` a un `raise ... using detail = ... || v_sku || ...`**
@@ -73,8 +213,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       verificado en local (`npx supabase db reset` + una prenda sin sku real): antes
       revienta con el error de Postgres, después lanza `venta_precio_cambiado` con el
       código de etiqueta en el `detail`.
-      **Aplicar a producción — pendiente el ok puntual de Felipe** (mismo protocolo
-      que el resto de `registrar_venta`: prefijo `retail.` en el SQL Editor).
+      **En producción desde 2026-09-17** — aplicada con el MCP de Supabase (ok
+      puntual de Felipe), no a mano en el SQL Editor. Verificado contra
+      `vovjyyiafkxteijimpuy`: `retail.registrar_venta` sigue con una sola sobrecarga
+      (mismo candado que se chequeó antes de pegar, ADR-0009/0004) y su cuerpo real
+      ya arma `v_sku` con `coalesce(v.codigo, v.sku, 'sin código')`, no con el
+      `select` original.
 
 ---
 
@@ -86,9 +230,12 @@ rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral
 líder (Lima) y como colaboradora (Trujillo).
 
 - [x] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`** —
-      hecho el 2026-09-16 vía MCP de Supabase, verificado contra `pg_proc`/
-      `information_schema` (`numero`/`fn_conteos_resumen` confirmados en
-      `cayla-dynamic`). PR #60 ya fusionado.
+      hecho el 2026-09-16 vía MCP de Supabase (PR #60 ya fusionado), y confirmado de
+      nuevo el 2026-09-17 por otra auditoría independiente: `numero`,
+      `fn_conteos_resumen`, `conteos.alcance` existen en `vovjyyiafkxteijimpuy`
+      (`list_migrations` la muestra pegada con timestamp `20260916231541`). Este
+      checkbox se quedó sin marcar en las dos sesiones hasta ahora — dos veces la
+      misma verificación, misma respuesta.
 - [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
       (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
       `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
@@ -123,8 +270,11 @@ después. `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobad
 el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
 `fn_es_lider()`, no el cliente. `typecheck`/`lint`/266 tests en verde.
 
-- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en
-      producción.** Tres bloques, todos repetibles.
+- [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` sí está en producción**
+      (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
+      `retail.colores.estado`/`propuesto_por` y `fn_colores_estado_trigger`
+      existen). Este BACKLOG no reflejaba que ya se aplicó — la verificación de
+      abajo (colaboradora real en el navegador) sigue abierta, es un punto aparte.
 - [ ] **Verificación pendiente, con dueño claro:** la lógica del trigger se probó de
       verdad contra producción (impersonando a Felipe y a Angie Chávez, una de las 16
       colaboradoras dadas de alta hoy, en una transacción con ROLLBACK). Las dos

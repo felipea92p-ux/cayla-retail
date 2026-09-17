@@ -62,6 +62,17 @@ function sumarDias(iso: string, dias: number) {
   return d.toISOString().slice(0, 10);
 }
 
+// El número de paso: documento → líneas → pago, en ese orden, siempre. Solo
+// tinta (ningún color nuevo) y sin `label-cayla` heredado (mayúsculas y
+// tracking se ven mal en un solo dígito) — se resetea a mano.
+function NumeroSeccion({ n }: { n: number }) {
+  return (
+    <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-tinta/25 text-[10px] font-semibold normal-case tracking-normal text-tinta/70">
+      {n}
+    </span>
+  );
+}
+
 export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, variantes }: { proveedores: Proveedor[]; ubicaciones: Ubicacion[]; ubicacionInicialId: string; variantes: Variante[] }) {
   const router = useRouter();
 
@@ -267,7 +278,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       <div className="min-w-0 space-y-6">
         {/* ---------- cabecera ---------- */}
         <section className="card-cayla space-y-4 p-5">
-          <p className={campoEtiqueta}>Documento</p>
+          <p className={`${campoEtiqueta} flex items-center gap-2`}>
+            <NumeroSeccion n={1} />
+            Documento
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo
               etiqueta="Proveedor"
@@ -348,7 +362,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
         {/* ---------- líneas ---------- */}
         <section className="card-cayla space-y-3 p-5">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1">
-            <p className={campoEtiqueta}>Líneas de la factura</p>
+            <p className={`${campoEtiqueta} flex items-center gap-2`}>
+              <NumeroSeccion n={2} />
+              Líneas de la factura
+            </p>
             {igvEfectivo > 0 && <span aria-hidden className="hidden h-4 w-px bg-tinta/15 sm:block" />}
             {igvEfectivo > 0 ? (
               <Interruptor
@@ -434,7 +451,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
         {/* ---------- pago ---------- */}
         <section className="card-cayla space-y-4 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className={campoEtiqueta}>{condicion === "contado" ? "Pago (obligatorio al contado)" : "Pago"}</p>
+            <p className={`${campoEtiqueta} flex items-center gap-2`}>
+              <NumeroSeccion n={3} />
+              {condicion === "contado" ? "Pago (obligatorio al contado)" : "Pago"}
+            </p>
             {condicion === "credito" && (
               <label className="flex items-center gap-2 text-sm text-tinta/75">
                 <input type="checkbox" checked={pagarAhora} onChange={(e) => setPagarAhora(e.target.checked)} className="accent-rojo" />
@@ -478,11 +498,11 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
             <p className="mt-1 text-xs text-tinta/55">Queda en Por pagar hasta el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </div>
-        {/* La nota va en el resumen y no al final de la columna larga: es lo
-            último que se escribe antes de registrar, y así queda al lado del
-            botón (pedido de Felipe, 2026-09-14). */}
-        <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
         <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
+        {/* La nota va en el resumen y no al final de la columna larga, y
+            DESPUÉS de los adjuntos: es lo último que se escribe antes de
+            registrar, así queda pegada al botón (pedido de Felipe, 2026-09-14). */}
+        <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
         <div className="flex flex-col gap-2">
           <Boton type="submit" peso="primario" cargando={loading} className="w-full">
             {loading && adjuntos.length

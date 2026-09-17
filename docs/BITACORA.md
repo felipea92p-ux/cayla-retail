@@ -67,6 +67,79 @@ es la única forma de encontrar estos dos (el umbral y el acoplamiento chip↔bo
 tests unitarios no los iban a atrapar porque probaban exactamente lo que el código ya
 hacía, no lo que Felipe esperaba ver.
 
+## 2026-09-17 (venta_precio_cambiado_sku_nulo: aplicada en producción con el MCP)
+
+Felipe dio el ok puntual para correr `20260916223000_venta_precio_cambiado_sku_nulo.sql`
+(la única migración que la auditoría de más abajo encontró genuinamente pendiente) — y
+pidió explícitamente que la corriera yo mismo, no que se la dejara para pegar a mano.
+Antes de aplicar: chequeo de sobrecargas de `retail.registrar_venta` (1 sola, firma
+idéntica a la migración — sin eso, `create or replace` arma un overload nuevo en vez de
+reemplazar, el mismo hueco que ya tuvo `registrar_cambio`/`aprobar_devolucion`,
+ADR-0009/0004). Aplicada con `apply_migration` del MCP de Supabase contra
+`vovjyyiafkxteijimpuy`. Verificado después, no antes: sigue con 1 sola sobrecarga, y
+`pg_get_functiondef` confirma que `v_sku` ya sale de
+`coalesce(v.codigo, v.sku, 'sin código')`, no del `select` original que rompía con
+`RAISE statement option cannot be null`. BACKLOG actualizado en sus dos secciones (la
+del bug original y la de la auditoría de hoy). Sin regenerar
+`docs/datos/generado/` — esta migración no agrega tabla/columna ni cambia la firma de
+`registrar_venta`, el diccionario sigue describiendo lo mismo.
+
+## 2026-09-17 (auditoría de migraciones pendientes: BACKLOG desactualizado en dos direcciones)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción.
+Cada una se verificó en vivo contra `vovjyyiafkxteijimpuy` (schema `retail`,
+`execute_sql`/`list_migrations` de solo lectura) — nunca contra BACKLOG/ADR, siguiendo
+[[commits-y-migraciones-en-produccion]]. Resultado: de ~69 archivos en
+`supabase/migrations/`, **una sola sigue pendiente de verdad**:
+`20260916223000_venta_precio_cambiado_sku_nulo.sql` (confirmado leyendo el cuerpo real
+de `retail.registrar_venta` con `pg_get_functiondef` — todavía arma `v_sku` con el
+`select` original, sin el `coalesce` del fix). El resto de lo que el propio BACKLOG
+tenía marcado "pendiente" —el SQL de colores proponer/aprobar (2026-09-16) y
+`numeracion_traslados_conteos`— **ya estaban aplicados**, y las 7 piezas de la ronda
+"NetSuite" (costo promedio ponderado, punto de reorden, conteo por alcance, traslados en
+dos fases, cambio/devolución exigen caja, anular venta, variantes identidad única)
+también, las 7 confirmadas por columna/función/índice real, dos de ellas ($registrar_cambio$/
+$registrar_venta$) por el cuerpo de la función, no solo por si existía. BACKLOG corregido
+en sus 3 secciones correspondientes (Inventario, Colores, y una sección nueva que resume
+la auditoría completa con las 4 migraciones que viven en producción sin archivo local —
+informativo, parches sueltos de Felipe, no bloquean nada). No se aplicó nada en
+producción: la única pendiente queda lista para pegar (prefijo `retail.`) esperando el ok
+puntual de Felipe — es una función `security definer` que corre en cada venta.
+
+## 2026-09-17 (Por pagar: la lista quedaba enterrada en celular)
+
+Felipe pidió hacer `/compras/por-pagar` más intuitivo. Verificado en navegador real
+(Chrome, local con datos sembrados), no solo código: en celular las 3 tarjetas de
+resumen (Deuda total/Vencido/Vence esta semana) se apilaban a ancho completo —el `grid`
+solo tenía `grid-cols-3` desde `sm:`, sin nada propio para celular— y el primer tramo de
+facturas recién aparecía a ~830px de scroll (medido con `getBoundingClientRect`, no a
+ojo): una pantalla entera de puro número antes de ver qué pagar. Ahora "Deuda total"
+ocupa las dos columnas de una grilla `grid-cols-2` siempre activa, Vencido/Vence esta
+semana se emparejan debajo — el tramo "Vencidas" entra en el primer viewport (744px)
+sin scrollear. Mismo arreglo en `FiltrosCompras.tsx` (compartido con `/compras`):
+Buscar a ancho completo, el resto de filtros (Proveedor/Vencimiento/Pago/Condición) se
+empareja de a dos en vez de apilarse uno por fila. De paso, "Vencido"/"Vence esta
+semana" pasan a ser enlaces (`#tramo-vencidas`/`#tramo-semana`, `scroll-mt-24` como ya
+usa `RecepcionCompraFormV2` contra la cabecera fija) que saltan directo a su tramo en la
+tabla — solo cuando hay algo detrás; con deuda en cero siguen siendo texto simple, no
+hay adónde saltar. Verificado en Chrome real a 375px y 1440px, en `/compras/por-pagar` y
+en `/compras` (el componente de filtros es compartido) para descartar regresión;
+`typecheck`/`lint`/293 tests en verde. Sin cambios de esquema ni de RPC — nada que
+aplicar en producción, es solo el `apps/web` desplegado.
+
+## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
+
+Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
+flujo completo de ERP — sin cambios de código, solo lectura de repo + producción. El
+diseño (costeo promedio ponderado, tope contra lo facturado, piso/almacén, adjuntos) es
+sólido; los huecos reales son de alcance: mercadería dañada/corta sin salida, devolución
+a proveedor es una etiqueta sin efecto real, insumos del Taller viven en tablas huérfanas
+de la unificación con Dynamic sin ninguna pantalla en `apps/web`. El hallazgo que más
+cambia la prioridad: **`retail.compras` tiene 0 filas en producción — ni `recibir_compras`
+ni `recibir_lote` se ejecutaron nunca de verdad**, verificado contra la base, no contra
+BACKLOG (que además tenía a D-45 sin cerrar en el documento pese a estar resuelta en
+código desde el 16-sep). Detalle completo con archivo:línea en BACKLOG de esta fecha.
+
 ## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
 
 Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
@@ -5302,3 +5375,62 @@ una variante sin sku real, en una transacción con `rollback` (sin dejar huella 
 Postgres local compartido): antes de la fix revienta con el error de Postgres, después
 lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
 producción todavía — pendiente el ok de Felipe.
+
+## 2026-09-17 (Compras: listado, nueva factura y detalle sobre un mockup de referencia)
+
+Felipe pasó capturas de un ERP genérico ("Kipus", ajeno a CAYLA) como referencia de
+layout para Facturas de proveedores. Se tomó la estructura — KPIs con punto de estado,
+RUC y condición de pago visibles por fila, N.° de documento en su propia columna,
+secciones numeradas en "Registrar factura", arrastrar-y-soltar en adjuntos, barra de
+progreso por línea y acceso directo a "Recibir mercadería" en el detalle — y se aplicó
+sobre el brandbook real de CAYLA (crema/tinta/rojo, EB Garamond + DM Sans), nunca sobre
+los colores del mockup. A propósito NO se copiaron: el check de SUNAT dentro del
+formulario (ya vive al dar de alta al proveedor, ADR-0035), un estado "borrador" (no
+existe en el esquema) ni pestañas de navegación duplicadas (Felipe ya las había sacado
+del layout de Compras el 2026-09-16 a favor del grupo del lateral). Sin cambios de
+esquema ni de RPC: `compras/page.tsx`, `CompraFormV2.tsx`, `CompraDetalle.tsx`,
+`CompraDetallePanel.tsx`, `AdjuntosCompra.tsx`. Verificado en navegador (desktop,
+900px y móvil 375px) contra datos reales del seed local; `typecheck`/`lint` en verde.
+
+## 2026-09-17 (Facturación: auditoría de flujo completo, sin código)
+
+Felipe preguntó qué le falta al módulo de Facturación (ventas/SUNAT, no facturas de
+compra de Compras) para un flujo completo de ERP. Solo lectura: se leyó
+`docs/datos/modulos/08-facturacion-sunat.md` completo, las migraciones reales
+(`0010_facturacion.sql`, `0011_venta_con_comprobante.sql`, `0012_control_total_temporal.sql`),
+y el código vivo (`ComprobantesPanel.tsx`, `ProformasPanel.tsx`, `lucode.ts`,
+`PuntoDeVenta.tsx`, `devoluciones.ts`, `anular_venta` de ADR-0065) contra lo que el doc
+de módulo (fechado 12-sep) todavía daba por pendiente.
+
+**Primer hallazgo: el doc de módulo estaba desactualizado en dos huecos, ambos
+resueltos ese mismo 12-sep por `0011_venta_con_comprobante.sql`** — venta↔comprobante sí
+están conectados (`PuntoDeVenta.tsx:647-650`) y la proforma sí guarda `precio_unitario`
+correcto. Quedaron marcados RESUELTO en el doc, con cita, para que nadie los
+reconstruya. De paso se confirmó que el código real renombró `sede_id`→`ubicacion_id`
+en todo el módulo (`0010_facturacion.sql`) — el doc de módulo todavía usa el vocabulario
+viejo en varios ejemplos; se anotó al pie, no se reescribió el doc entero (esa reescritura
+ya está pendiente de agendar con Felipe por otra razón, ver aviso al inicio de BACKLOG).
+
+**Tres hallazgos nuevos, no documentados antes, quedaron como huecos 14-16 del doc de
+módulo y como los 3 ítems del BACKLOG de hoy:** (1) el PDF/XML/CDR que Lucode devuelve
+se guarda en `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra — SUNAT recibe
+el documento pero la clienta nunca lo ve; (2) un comprobante `pendiente` sin transmitir
+queda huérfano para siempre (2 casos reales confirmados en producción,
+B004-000004/000005) y `anular_venta` (16-sep) puede sumar más sin darse cuenta — no
+toca `comprobantes` al anular una venta con comprobante `pendiente`; (3) con
+Devoluciones ya en producción (ADR-0052), se confirmó que ninguna devolución emite
+Nota de Crédito — `devoluciones.ts` solo usa `parsearComprobante` para buscar la venta,
+`emitir_nota` sigue sin llamador real en todo el repo, así que una devolución sobre una
+venta con factura deja el IGV declarado de más ante SUNAT indefinidamente. Los tres
+huecos 1/2 (idempotencia/IGV) se reverificaron: siguen abiertos para el panel manual de
+Facturación, ya no para lo que emite Vender (que heredó protección de
+`registrar_venta` al conectarse el 12-sep).
+
+Núcleo del módulo confirmado sólido: reserva de correlativo con `for update`,
+`unique(tipo,serie,numero)` como segunda red, proforma que nunca se promociona con
+UPDATE, anulación en dos tiempos correcta según SUNAT. Ya emite boletas reales en
+Trujillo. Sin cambios de código ni de esquema en esta sesión — todo quedó en los tres
+documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el chat, sin
+decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
+`pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
+devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
