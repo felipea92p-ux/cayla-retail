@@ -1,4 +1,4 @@
-# ADR-0095 — Etiquetado legal del producto: país de origen, fabricante y material
+# ADR-0097 — Etiquetado legal del producto: país de origen, fabricante y material
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado y verificado en local (`20260917210000_producto_etiquetado_legal.sql`).

@@ -28,14 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Producto: etiquetado legal — país de origen, fabricante, material (2026-09-17, ADR-0095)
+## 🎯 Producto: etiquetado legal — país de origen, fabricante, material (2026-09-17, ADR-0097)
 
 Ley 28405 (Rotulado de Productos Industriales Manufacturados) y el Reglamento Técnico
 Andino de Etiquetado de Confecciones exigen declarar país de origen, fabricante/
 importador y composición del material en toda prenda — ninguno existía en
 `retail.productos`. Detalle completo, incluido un hallazgo sobre qué RPC de alta es la
 que realmente usa la UI hoy, en
-[docs/adr/0095-producto-etiquetado-legal-pais-fabricante-material.md](adr/0095-producto-etiquetado-legal-pais-fabricante-material.md).
+[docs/adr/0097-producto-etiquetado-legal-pais-fabricante-material.md](adr/0097-producto-etiquetado-legal-pais-fabricante-material.md).
 
 - [x] **Migración `20260917210000_producto_etiquetado_legal.sql`** — 3 columnas
       nullable en `productos` (`pais_origen`, `fabricante_declarado`, `material`), sin
@@ -49,10 +49,95 @@ que realmente usa la UI hoy, en
       persistidos en Postgres → ficha de edición los precarga → un producto existente sin
       estos datos se ve limpio (placeholder, no `"null"`).
 - [x] `pnpm --filter web typecheck`/`lint` en verde.
+- [x] **Reconciliado con la rama de taxonomía de tejidos/patrones (ADR-0095/0096,
+      `crear_producto_con_variantes` ya con `p_tejido_id`/`p_patron_id` en `main`)** — mi
+      DROP+CREATE parte de esa firma de 7 parámetros, no de la vieja de 5.
 - [ ] **Aplicar en producción** — pendiente de que Felipe decida.
-- [ ] **Reconciliar con la rama de taxonomía de tejidos/patrones** al fusionar contra
-      `main` — ambas agregan parámetros nuevos a `crear_producto_con_variantes` por
-      separado (ver ADR-0095, "Se rompe si").
+
+---
+
+## 🎯 Taxonomía de variante: tallas/tejidos/patrones/etiquetas (2026-09-17, ADR-0095)
+
+Worktree `cayla-taxonomia-design`. Vocabulario cerrado (propone/aprueba/rechaza, mismo
+mecanismo que colores) para talla, tejido, patrón y etiquetas de catálogo, con filtro
+por categoría (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`) y candado de
+sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
+probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
+verde.
+
+- [ ] **Pegar en producción — actualizado tras verificar el estado real (2026-09-17
+      tarde).** Producción NO está vacía de taxonomía: `retail.tejidos`/`patrones`/
+      `etiquetas`/`variante_etiquetas` y `productos.tejido_id`/`patron_id` ya existen,
+      creados por otra rama nunca fusionada a `main` — con una versión vieja del
+      trigger (tejidos/patrones/etiquetas no pueden rechazar; ninguno de los 5 tiene
+      el fix de "reactivar retira el rechazo"). `retail.tallas` NO existe.
+      `variantes.talla` sigue siendo texto libre (NO `talla_id`) y
+      `categorias.tallas_sugeridas` sigue viva — confirmado leyendo `origin/main`
+      directo: el frontend desplegado todavía las usa tal cual.
+      - [x] **Parte segura ya armada**: `supabase/migrations/pegar-en-produccion-taxonomia-parte-segura.sql`
+            — crea `tallas`, arregla los 5 triggers, crea `categoria_tallas/tejidos/
+            patrones` con su backfill (solo LEE `tallas_sugeridas`, no la toca), y los
+            2 RPC nuevos de hoy. Cero riesgo: nada de esto lo toca `main` todavía. Falta
+            que alguien con acceso lo pegue en el SQL Editor — Claude Code no puede
+            aplicar SQL a producción directo (el modo del entorno lo bloquea).
+      - [ ] **Parte que espera el merge a `main`** (rompería la app en vivo si se
+            aplica sola): `variantes.talla_id` + borrar `talla`, borrar
+            `tallas_sugeridas`, el candado de sede en `registrar_venta`/`transferir`
+            (tocan cada venta/traslado real — reescribir con el cuerpo actual de
+            producción en la mano, no a ciegas), las firmas de
+            `catalogo_actualizar_producto`/`crear_producto_con_variantes` con
+            `talla_id`, y los 9 renombres/fusiones de categorías de ADR-0096 (no
+            rompen código, pero cambian el desplegable que ve una encargada de sede
+            ahora mismo — coordinar el momento con Felipe, no una decisión técnica).
+- [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
+      `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
+      que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
+      (`AppShell.tsx`). Etiquetas suma un campo propio, `sedes_permitidas` (multi-select
+      de `retail.ubicaciones`, opcional). Probado en navegador como Líder: proponer,
+      aprobar (con comentario obligatorio en Tallas), rechazar, reactivar, desactivar, y
+      el candado "en uso" de Etiquetas (bloquea desactivar si alguna variante la tiene
+      aplicada — ese candado vive en la API, no en el trigger de la base, porque el
+      trigger de `etiquetas` solo cubre la transición pendiente→rechazado, no
+      aprobado→desactivado). `db reset`, typecheck y lint en verde.
+- [x] **Aplicar/quitar una etiqueta de una VARIANTE puntual ya tiene pantalla.** Dentro
+      de "Editar producto" (`ProductoForm.tsx`) — un toggle "Etiquetas" por fila de
+      variante, respaldado por un RPC nuevo (`retail.actualizar_variantes_etiquetas`) que
+      guarda todas las variantes tocadas en una sola llamada, en la MISMA acción de
+      "Guardar cambios" (nunca un botón aparte). Solo manda al RPC las variantes cuyas
+      etiquetas de verdad cambiaron contra lo que había al abrir el formulario — evita
+      pisar `variante_etiquetas.created_at` en cada guardado del producto y evita exponer
+      un guardado de solo precio a un error de etiquetas que no viene al caso. Probado en
+      navegador de punta a punta: aplicar una etiqueta, guardar, confirmar por SQL que
+      solo esa variante tiene fila nueva; guardar de nuevo sin tocar etiquetas y confirmar
+      que `created_at` no se mueve. `db reset`, typecheck, lint y 293 tests en verde.
+- [x] **Mapear categoría↔eje ya tiene UI.** Dentro del modal "Editar categoría"
+      (`CategoriasLista.tsx`) — 3 grupos de chips (Tallas/Tejidos/Patrones), un botón de
+      guardado propio (RPC `retail.actualizar_categoria_ejes`, atómico entre los 3 ejes).
+      Antes de esto, tejido/patrón estaban vacíos para TODA categoría (nadie había cargado
+      `categoria_tejidos`/`categoria_patrones`) — el selector ya existía en
+      `NuevoProductoForm.tsx` pero no tenía nada para ofrecer. Probado en navegador de
+      punta a punta: mapear Denim a Jeans en Categorías, confirmar que aparece en el
+      selector de tejido al crear un producto de esa categoría. `db reset`, typecheck,
+      lint y 293 tests en verde.
+
+---
+
+## 🎯 Familias y categorías: el contenido real (2026-09-17, ADR-0096)
+
+Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Platanitos
+(terminología peruana). 6 familias (Accesorios pasa a mostrarse "Accesorios y
+Complementos"), 39 categorías activas + 2 archivadas (Blusas fusionada con Camisas,
+Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
+
+- [ ] **`familia` sigue siendo un `CHECK constraint` fijo de 6 valores, no una tabla.**
+      Felipe pidió una pantalla de configuración para agregar familias/categorías nuevas
+      a futuro — eso exige convertir `familia` al mismo mecanismo que tallas/tejidos/
+      patrones (tabla propia, propone/aprueba), no solo agregar una pantalla sobre el
+      constraint actual. Decisión estructural real, pendiente de diseñar con Felipe antes
+      de construirla (no es continuación directa de lo ya hecho).
+- [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
+      Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
+      prueba de hoy) muestre que sí hay volumen ahí.
 
 ---
 
@@ -223,7 +308,7 @@ facturado; este es sobre-entrega sin factura. No se tocan entre sí.
 
 - [ ] **Panel de administrador para editar los 3 estados de Cuarentena.** Hoy Liquidada/
       Se botó/Donada están fijos en un `check` de `retail.prendas_danadas` (migración
-      `20260917100000_cuarentena_prendas_danadas.sql`) — cambiar el vocabulario o agregar
+      `20260917095000_cuarentena_prendas_danadas.sql`) — cambiar el vocabulario o agregar
       un cuarto estado es una migración, no una pantalla. Felipe pidió que esto nazca
       chico y no se sobrecargue de funciones todavía. Preguntas reales que siguen
       abiertas (no se decidieron solas): ¿quién más allá de un líder podría necesitar
@@ -1995,16 +2080,12 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **`20260915130000_produccion_del_taller` — estado en producción contradictorio entre
-      `DiegoN` y `main`, sin verificar todavía al fusionar (2026-09-16).** `DiegoN` la daba
-      por aplicada y verificada («producciones, produccion_lineas, las 5 RPC, el check de
-      `ubicaciones.tipo` con `taller` y la fila «Taller · taller» presentes»); `main` la
-      daba por **no** aplicada («Hasta entonces `/produccion` en producción carga vacía y
-      «Abrir orden» falla con «function abrir_produccion does not exist»»). Los dos no
-      pueden ser ciertos a la vez — antes de tocar nada más, preguntarle a la base real
-      (`information_schema`/`pg_proc` en `cayla-dynamic`, schema `retail`) cuál de las dos
-      describe el estado actual, y borrar la otra. Ya lleva el prefijo `retail.`; pegar tal
-      cual si hace falta.
+- [x] **`20260915130000_produccion_del_taller` — resuelta la contradicción (2026-09-17
+      tarde).** Consultado directo contra `information_schema`/`pg_proc` en `cayla-dynamic`
+      (schema `retail`): `abrir_produccion`, `cerrar_produccion`, `set_etapa_produccion` y
+      `revertir_produccion` **sí existen** en producción. `DiegoN` tenía razón, `main` no —
+      Producción del Taller ya está aplicada y operable en producción, no hace falta pegar
+      nada de esa migración de nuevo.
 - [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
       (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
       Productos V2 no crea variantes desde pantalla (nacen por importación), así que el

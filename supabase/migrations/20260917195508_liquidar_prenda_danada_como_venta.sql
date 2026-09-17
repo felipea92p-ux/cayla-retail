@@ -1,7 +1,7 @@
 -- ============================================================================
 -- "LIQUIDADA" ES UNA VENTA REAL, NO UNA ETIQUETA (corrección de Felipe, 2026-09-17)
 --
--- La migración anterior (20260917100000_cuarentena_prendas_danadas.sql) dejó
+-- La migración anterior (20260917095000_cuarentena_prendas_danadas.sql) dejó
 -- "Liquidada" como una etiqueta + nota, a propósito, con el aviso explícito
 -- de que si Felipe quería que fuera una venta real había que confirmarlo
 -- antes de tocar dinero de verdad. Confirmó que sí, sin ambigüedad: "se

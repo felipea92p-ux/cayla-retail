@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260917210000_producto_etiquetado_legal.sql — CAYLA V2
+-- 20260917220000_producto_etiquetado_legal.sql — CAYLA V2
 --
 -- La Ley 28405 (Ley de Rotulado de Productos Industriales Manufacturados) y
 -- el Reglamento Técnico Andino de Etiquetado de Confecciones exigen que toda
@@ -26,6 +26,17 @@
 -- libre a nivel de producto, asumiendo que todas las variantes de un mismo
 -- producto comparten material. Si eso deja de ser cierto, esto se mueve a
 -- `variantes` en una migración aparte, no se fuerza acá.
+--
+-- RENUMERADA de 20260917210000 a 20260917220000: ese timestamp ya lo tenía
+-- `20260917210000_catalogo_actualizar_producto_recupera_color_codigo_fotos.sql`
+-- (main, PR #75/#101/#102). Las 3 funciones de abajo parten de la versión
+-- YA FUSIONADA en main (20260917210001 para catalogo_crear/actualizar_producto
+-- — talla_id + tejido/patrón + color_codigo en fotos ya reconciliados;
+-- 20260917100600 para crear_producto_con_variantes — mismo tejido/patrón),
+-- no de una copia local desactualizada: agregarle los 3 parámetros nuevos a
+-- una versión vieja habría revivido `talla` (columna que ya no existe) y
+-- perdido los candados de tejido/patrón/talla por categoría, exactamente el
+-- bug que 20260917210001 ya tuvo que corregir una vez hoy mismo.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -44,16 +55,16 @@ comment on column retail.productos.material is
   'Composición del material declarada en la etiqueta (ej. "100% algodón", "60% algodón / 40% poliéster") — exigido por el Reglamento Técnico Andino de Etiquetado de Confecciones. Texto libre, no enum: la variedad real de composiciones textiles no calza en un vocabulario cerrado. Nullable por la misma razón que pais_origen. Ver nota "SE ROMPE SI" arriba si algún día compone distinto que otra variante del mismo producto.';
 
 -- ---------------------------------------------------------------------------
--- `catalogo_crear_producto`/`catalogo_actualizar_producto` (última versión:
--- 20260917190000) ganan los 3 parámetros, todos opcionales al final de la
--- firma. A diferencia de 20260917190000 (que solo tocaba el CUERPO), acá SÍ
--- cambia la LISTA de parámetros — Postgres no reemplaza una función cuando
--- cambia el número de argumentos, crea una segunda función sobrecargada y
--- dos candidatos ambiguos para `supabase.rpc(...)`. Por eso se dropea la
--- firma vieja primero.
+-- `catalogo_crear_producto`/`catalogo_actualizar_producto` — parte de la
+-- firma ya fusionada en main (20260917210001: p_tejido_id/p_patron_id +
+-- talla_id + color_codigo en fotos), le suma los 3 parámetros de etiquetado
+-- legal al final. Cambia la LISTA de parámetros → DROP antes de CREATE
+-- (Postgres no reemplaza una función cuando cambia el número de argumentos,
+-- crea una segunda sobrecargada y dos candidatos ambiguos para
+-- `supabase.rpc(...)`).
 -- ---------------------------------------------------------------------------
-drop function if exists retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb);
-drop function if exists retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb);
+drop function if exists retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid);
+drop function if exists retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid);
 
 create or replace function retail.catalogo_crear_producto(
   p_referencia text,
@@ -64,6 +75,8 @@ create or replace function retail.catalogo_crear_producto(
   p_temporada text default null,
   p_permitir_venta_sin_stock boolean default false,
   p_fotos jsonb default '[]'::jsonb,
+  p_tejido_id uuid default null,
+  p_patron_id uuid default null,
   p_pais_origen text default null,
   p_fabricante_declarado text default null,
   p_material text default null
@@ -76,6 +89,7 @@ declare
   v_variante jsonb;
   v_fila record;
   v_ya_principal boolean := false;
+  v_talla_id uuid;
 begin
   if p_referencia is null or trim(p_referencia) = '' then
     raise exception 'Falta la referencia del producto.';
@@ -86,8 +100,18 @@ begin
   if p_stock_minimo is not null and p_stock_minimo < 0 then
     raise exception 'El stock mínimo no puede ser negativo.';
   end if;
+  if p_tejido_id is not null and not exists (
+    select 1 from categoria_tejidos where categoria_id = p_categoria_id and tejido_id = p_tejido_id
+  ) then
+    raise exception 'Ese tejido no está habilitado para la categoría elegida.';
+  end if;
+  if p_patron_id is not null and not exists (
+    select 1 from categoria_patrones where categoria_id = p_categoria_id and patron_id = p_patron_id
+  ) then
+    raise exception 'Ese patrón no está habilitado para la categoría elegida.';
+  end if;
 
-  insert into productos (categoria_id, referencia, descripcion, stock_minimo, temporada, permitir_venta_sin_stock, pais_origen, fabricante_declarado, material)
+  insert into productos (categoria_id, referencia, descripcion, stock_minimo, temporada, permitir_venta_sin_stock, tejido_id, patron_id, pais_origen, fabricante_declarado, material)
   values (
     p_categoria_id,
     trim(p_referencia),
@@ -95,6 +119,8 @@ begin
     p_stock_minimo,
     nullif(trim(coalesce(p_temporada, '')), ''),
     coalesce(p_permitir_venta_sin_stock, false),
+    p_tejido_id,
+    p_patron_id,
     nullif(trim(coalesce(p_pais_origen, '')), ''),
     nullif(trim(coalesce(p_fabricante_declarado, '')), ''),
     nullif(trim(coalesce(p_material, '')), '')
@@ -110,20 +136,24 @@ begin
       raise exception 'Cada variante necesita un precio.';
     end if;
 
-    insert into variantes (producto_id, color_codigo, talla, sku, precio, costo)
+    v_talla_id := nullif(v_variante->>'talla_id', '')::uuid;
+    if v_talla_id is not null and not exists (
+      select 1 from categoria_tallas where categoria_id = p_categoria_id and talla_id = v_talla_id
+    ) then
+      raise exception 'Esa talla no está habilitada para la categoría elegida.';
+    end if;
+
+    insert into variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
     values (
       v_producto_id,
       nullif(v_variante->>'color_codigo', ''),
-      nullif(v_variante->>'talla', ''),
+      v_talla_id,
       trim(v_variante->>'sku'),
       (v_variante->>'precio')::numeric,
       coalesce((v_variante->>'costo')::numeric, 0)
     );
   end loop;
 
-  -- Fotos: se insertan en el orden del array (el cliente ya las reordenó
-  -- localmente); a lo más la primera marcada `es_principal` gana, y si
-  -- ninguna llegó marcada, la primera de la lista queda principal.
   for v_fila in
     select f.value as foto, (f.ordinality - 1)::integer as orden
     from jsonb_array_elements(coalesce(p_fotos, '[]'::jsonb)) with ordinality as f(value, ordinality)
@@ -153,12 +183,9 @@ begin
 end;
 $$;
 
-comment on function retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, text, text, text) is
-  'Alta de producto+variantes+fotos para /productos/nuevo (V2). Sin security definer: corre con los permisos de quien llama; productos_write_lider/variantes_write_lider/producto_fotos_write_lider (RLS) son el único candado de permiso. p_stock_minimo: umbral de "stock bajo" (20260915160000). p_temporada/p_permitir_venta_sin_stock: 20260915224500. p_fotos: reemplazo completo en el orden del array, [{url, es_principal?, color_codigo?}] (20260917190000: color_codigo); sin id porque el producto todavía no existe. p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917210000), todos opcionales.';
+comment on function retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid, text, text, text) is
+  'Alta de producto+variantes+fotos+tejido/patrón/talla_id para /productos/nuevo vía ProductoForm.tsx (V2). p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917220000), todos opcionales.';
 
--- ---------------------------------------------------------------------------
--- `catalogo_actualizar_producto` — igual
--- ---------------------------------------------------------------------------
 create or replace function retail.catalogo_actualizar_producto(
   p_producto_id uuid,
   p_referencia text,
@@ -169,8 +196,9 @@ create or replace function retail.catalogo_actualizar_producto(
   p_stock_minimo integer default null,
   p_temporada text default null,
   p_permitir_venta_sin_stock boolean default false,
-  -- null = no tocar la galería (llamada que no trae fotos); [] = vaciarla.
   p_fotos jsonb default null,
+  p_tejido_id uuid default null,
+  p_patron_id uuid default null,
   p_pais_origen text default null,
   p_fabricante_declarado text default null,
   p_material text default null
@@ -185,12 +213,23 @@ declare
   v_foto_id uuid;
   v_ids_mantener uuid[];
   v_ya_principal boolean := false;
+  v_talla_id uuid;
 begin
   if p_referencia is null or trim(p_referencia) = '' then
     raise exception 'Falta la referencia del producto.';
   end if;
   if p_stock_minimo is not null and p_stock_minimo < 0 then
     raise exception 'El stock mínimo no puede ser negativo.';
+  end if;
+  if p_tejido_id is not null and not exists (
+    select 1 from categoria_tejidos where categoria_id = p_categoria_id and tejido_id = p_tejido_id
+  ) then
+    raise exception 'Ese tejido no está habilitado para la categoría elegida.';
+  end if;
+  if p_patron_id is not null and not exists (
+    select 1 from categoria_patrones where categoria_id = p_categoria_id and patron_id = p_patron_id
+  ) then
+    raise exception 'Ese patrón no está habilitado para la categoría elegida.';
   end if;
 
   update productos
@@ -201,6 +240,8 @@ begin
         stock_minimo = p_stock_minimo,
         temporada = nullif(trim(coalesce(p_temporada, '')), ''),
         permitir_venta_sin_stock = coalesce(p_permitir_venta_sin_stock, false),
+        tejido_id = p_tejido_id,
+        patron_id = p_patron_id,
         pais_origen = nullif(trim(coalesce(p_pais_origen, '')), ''),
         fabricante_declarado = nullif(trim(coalesce(p_fabricante_declarado, '')), ''),
         material = nullif(trim(coalesce(p_material, '')), '')
@@ -222,20 +263,24 @@ begin
     v_id := nullif(v_variante->>'id', '')::uuid;
 
     if v_id is not null then
-      -- Variante existente: solo precio, costo y activo cambian. Color,
-      -- talla, sku y codigo son la identidad de la prenda — ver el
-      -- encabezado de 20260915150000_catalogo_alta_edicion.sql.
       update variantes
         set precio = (v_variante->>'precio')::numeric,
             costo = coalesce((v_variante->>'costo')::numeric, 0),
             activo = coalesce((v_variante->>'activo')::boolean, true)
         where id = v_id and producto_id = p_producto_id;
     else
-      insert into variantes (producto_id, color_codigo, talla, sku, precio, costo)
+      v_talla_id := nullif(v_variante->>'talla_id', '')::uuid;
+      if v_talla_id is not null and not exists (
+        select 1 from categoria_tallas where categoria_id = p_categoria_id and talla_id = v_talla_id
+      ) then
+        raise exception 'Esa talla no está habilitada para la categoría elegida.';
+      end if;
+
+      insert into variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
       values (
         p_producto_id,
         nullif(v_variante->>'color_codigo', ''),
-        nullif(v_variante->>'talla', ''),
+        v_talla_id,
         trim(v_variante->>'sku'),
         (v_variante->>'precio')::numeric,
         coalesce((v_variante->>'costo')::numeric, 0)
@@ -254,10 +299,6 @@ begin
       where producto_id = p_producto_id
         and not (id = any(v_ids_mantener));
 
-    -- Todas a false antes de volver a marcar como mucho una — el índice
-    -- único parcial de arriba no es diferible, y actualizar fila por fila
-    -- sin este paso deja un instante con dos `true` a la vez si la
-    -- principal nueva no es la misma fila que la principal vieja.
     update producto_fotos set es_principal = false
       where producto_id = p_producto_id;
 
@@ -300,17 +341,16 @@ begin
 end;
 $$;
 
-comment on function retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, text, text, text) is
-  'Edición de producto+variantes+fotos para /productos/[id]/editar (V2). Fotos: p_fotos null = no tocar la galería; [] = vaciarla; con elementos = reemplazo completo (id presente = fila existente, ausente = nueva), en el orden del array, cada una con color_codigo? opcional (20260917190000). p_temporada/p_permitir_venta_sin_stock: 20260915224500. p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917210000), todos opcionales.';
+comment on function retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid, text, text, text) is
+  'Edición de producto+variantes+fotos+tejido/patrón/talla_id para /productos/[id]/editar (V2). p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917220000), todos opcionales.';
 
 -- ---------------------------------------------------------------------------
--- `crear_producto_con_variantes` (20260915221633) — la RPC REAL que usa hoy
--- /productos/nuevo (NuevoProductoForm.tsx). `catalogo_crear_producto` de
--- arriba quedó sin ruta que la llame desde que existe esta (confirmado por
--- grep, 2026-09-17) — se actualiza igual por prolijidad de la pareja
--- alta/edición, pero el alta real pasa por acá.
+-- `crear_producto_con_variantes` (20260917100600, la RPC REAL que usa hoy
+-- /productos/nuevo — NuevoProductoForm.tsx) — mismo criterio: parte de la
+-- firma de 7 parámetros ya fusionada (con p_tejido_id/p_patron_id), le suma
+-- los 3 de etiquetado legal al final.
 -- ---------------------------------------------------------------------------
-drop function if exists retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid);
+drop function if exists retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid);
 
 create or replace function retail.crear_producto_con_variantes(
   p_referencia text,
@@ -318,6 +358,8 @@ create or replace function retail.crear_producto_con_variantes(
   p_variantes jsonb,
   p_descripcion text default null,
   p_token uuid default null,
+  p_tejido_id uuid default null,
+  p_patron_id uuid default null,
   p_pais_origen text default null,
   p_fabricante_declarado text default null,
   p_material text default null
@@ -330,7 +372,7 @@ as $$
 declare
   v_producto_id uuid;
   v_item jsonb;
-  v_talla text;
+  v_talla_id uuid;
   v_color text;
   v_precio numeric;
   v_costo numeric;
@@ -351,13 +393,30 @@ begin
     raise exception 'El producto necesita al menos una variante (talla y/o color)';
   end if;
 
+  if p_tejido_id is not null then
+    if not exists (select 1 from tejidos where id = p_tejido_id and activo) then
+      raise exception 'Uno de los tejidos elegidos ya no está activo en el vocabulario';
+    end if;
+    if not exists (select 1 from categoria_tejidos where categoria_id = p_categoria_id and tejido_id = p_tejido_id) then
+      raise exception 'Ese tejido no está habilitado para la categoría elegida';
+    end if;
+  end if;
+  if p_patron_id is not null then
+    if not exists (select 1 from patrones where id = p_patron_id and activo) then
+      raise exception 'Uno de los patrones elegidos ya no está activo en el vocabulario';
+    end if;
+    if not exists (select 1 from categoria_patrones where categoria_id = p_categoria_id and patron_id = p_patron_id) then
+      raise exception 'Ese patrón no está habilitado para la categoría elegida';
+    end if;
+  end if;
+
   if p_token is not null then
     select id into v_producto_id from productos where token_cliente = p_token;
     if found then return v_producto_id; end if;
   end if;
 
   for v_item in select * from jsonb_array_elements(p_variantes) loop
-    v_talla := nullif(trim(v_item ->> 'talla'), '');
+    v_talla_id := nullif(v_item ->> 'talla_id', '')::uuid;
     v_color := nullif(trim(v_item ->> 'color_codigo'), '');
     v_precio := (v_item ->> 'precio')::numeric;
     v_costo := coalesce((v_item ->> 'costo')::numeric, 0);
@@ -373,31 +432,40 @@ begin
     ) then
       raise exception 'Uno de los colores elegidos ya no está activo en el vocabulario';
     end if;
+    if v_talla_id is not null then
+      if not exists (select 1 from tallas where id = v_talla_id and activo) then
+        raise exception 'Una de las tallas elegidas ya no está activa en el vocabulario';
+      end if;
+      if not exists (select 1 from categoria_tallas where categoria_id = p_categoria_id and talla_id = v_talla_id) then
+        raise exception 'Una de las tallas elegidas no está habilitada para esta categoría';
+      end if;
+    end if;
 
-    v_clave := coalesce(v_talla, '') || '|' || coalesce(v_color, '');
+    v_clave := coalesce(v_talla_id::text, '') || '|' || coalesce(v_color, '');
     if v_clave = any(v_claves) then
-      raise exception 'Repetiste talla "%" y color "%" — cada celda de la matriz va una sola vez',
-        coalesce(v_talla, '(sin talla)'), coalesce(v_color, '(sin color)');
+      raise exception 'Repetiste la misma combinación de talla y color — cada celda de la matriz va una sola vez';
     end if;
     v_claves := array_append(v_claves, v_clave);
   end loop;
 
-  insert into productos (categoria_id, referencia, descripcion, token_cliente, pais_origen, fabricante_declarado, material)
+  insert into productos (categoria_id, referencia, descripcion, token_cliente, tejido_id, patron_id, pais_origen, fabricante_declarado, material)
     values (
       p_categoria_id,
       trim(p_referencia),
       nullif(trim(p_descripcion), ''),
       p_token,
+      p_tejido_id,
+      p_patron_id,
       nullif(trim(coalesce(p_pais_origen, '')), ''),
       nullif(trim(coalesce(p_fabricante_declarado, '')), ''),
       nullif(trim(coalesce(p_material, '')), '')
     )
     returning id into v_producto_id;
 
-  insert into variantes (producto_id, talla, color_codigo, precio, costo)
+  insert into variantes (producto_id, talla_id, color_codigo, precio, costo)
   select
     v_producto_id,
-    nullif(trim(item ->> 'talla'), ''),
+    nullif(item ->> 'talla_id', '')::uuid,
     nullif(trim(item ->> 'color_codigo'), ''),
     (item ->> 'precio')::numeric,
     coalesce((item ->> 'costo')::numeric, 0)
@@ -407,7 +475,7 @@ begin
 end;
 $$;
 
-grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, text, text, text) to authenticated;
+grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, text, text, text) to authenticated;
 
-comment on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, text, text, text) is
-  'Alta de producto+matriz de variantes en una transacción, para /productos/nuevo (NuevoProductoForm.tsx) — la RPC real de creación (20260915221633). p_token: idempotencia de reintento de red. p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917210000), todos opcionales.';
+comment on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, text, text, text) is
+  'Alta de producto+matriz de variantes+tejido/patrón en una transacción, para /productos/nuevo (NuevoProductoForm.tsx) — la RPC real de creación (20260915221633, ejes nuevos en 20260917100600). p_token: idempotencia de reintento de red. p_pais_origen/p_fabricante_declarado/p_material: etiquetado legal (Ley 28405 / RTA, 20260917220000), todos opcionales.';
