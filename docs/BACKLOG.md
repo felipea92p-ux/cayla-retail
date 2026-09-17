@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Recibir mercadería: productos fuera de factura (2026-09-17, ADR-0074)
+## 🎯 Recibir mercadería: productos fuera de factura (2026-09-17, ADR-0075)
 
 Felipe: "recibir mercadería" solo se rige respecto a las facturas — si algo
 llegó (o se envió) pero ninguna factura de la guía lo lista, no había dónde
@@ -41,7 +41,7 @@ algo que no está en la factura?" en `RecepcionCompraFormV2.tsx`, con el mismo
 `ComboBuscable` que ya usa "Registrar factura" para buscar cualquier producto
 del catálogo — no solo lo que está en las facturas seleccionadas. Detalle
 completo, incluida la verificación por SQL (4 escenarios, con `rollback`) y en
-navegador real, en ADR-0074.
+navegador real, en ADR-0075.
 
 Distinto del hueco "mercadería corta o dañada no tiene adónde ir" de la
 auditoría más abajo (2026-09-17, misma fecha) — ese es sub-entrega contra lo
@@ -53,7 +53,7 @@ facturado; este es sobre-entrega sin factura. No se tocan entre sí.
 - [ ] **Sin pruebas automatizadas para el camino nuevo** — mismo patrón de
       deuda que el resto de RPC de escritura (ver "Cambios: primeras pruebas
       automatizadas" más abajo). Si alguien escribe
-      `scripts/pruebas/recibir_compras.mjs`, los 4 escenarios de ADR-0074 son
+      `scripts/pruebas/recibir_compras.mjs`, los 4 escenarios de ADR-0075 son
       el punto de partida.
 - [ ] **Dato de prueba real en el Postgres local compartido.** La recepción
       de "Blusa Emma S/Negro" (2 u., costo 25.50, fuera de factura) + 3 u.

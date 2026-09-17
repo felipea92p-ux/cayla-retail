@@ -41,7 +41,7 @@ type Ubicacion = { id: string; nombre: string };
 // Por línea de factura: cuántas unidades de cada variante llegan.
 type Reparto = Record<string /* lineaId */, Record<string /* varianteId */, number>>;
 
-// Fuera de factura (ADR-0074): una prenda que llegó en la misma guía pero
+// Fuera de factura (ADR-0075): una prenda que llegó en la misma guía pero
 // ninguna factura seleccionada la lista. Va en un array aparte, no en
 // `Reparto` — ese tipo está indexado por línea de factura, y esto no tiene
 // una.
@@ -215,7 +215,7 @@ export function RecepcionCompraFormV2({
           cantidad: n,
         })),
     );
-    // Fuera de factura (ADR-0074): mismo criterio de "línea completa" que
+    // Fuera de factura (ADR-0075): mismo criterio de "línea completa" que
     // RecepcionFormV2.tsx — sin producto o sin variante elegida, la fila
     // todavía no cuenta, no es un error.
     const itemsExtra = extras
@@ -530,7 +530,7 @@ export function RecepcionCompraFormV2({
               );
             })}
 
-            {/* ================= fuera de factura (ADR-0074) ================= */}
+            {/* ================= fuera de factura (ADR-0075) ================= */}
             <section className="card-cayla space-y-3 p-5">
               <div>
                 <p className="font-display text-lg text-tinta">¿Llegó algo que no está en la factura?</p>

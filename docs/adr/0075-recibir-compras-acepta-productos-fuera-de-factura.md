@@ -1,4 +1,4 @@
-# ADR-0074 — `recibir_compras` acepta productos fuera de factura
+# ADR-0075 — `recibir_compras` acepta productos fuera de factura
 
 **Fecha:** 2026-09-17
 **Estado:** Decidido y construido. Migración `20260917100000_recibir_compras_fuera_de_factura.sql`

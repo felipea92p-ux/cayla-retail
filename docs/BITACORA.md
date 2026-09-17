@@ -5394,7 +5394,7 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
 
-## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0074)
+## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0075)
 
 Felipe, sobre `/compras/recibir`: la recepción solo se rige respecto a las facturas — si
 una prenda no está en ninguna factura de la guía pero de verdad se envió o se recibió,
@@ -5418,7 +5418,7 @@ function` es aditivo/no rompe nada de otra sesión). Verificada con 4 escenarios
 transacciones con `rollback` (impersonando al líder del seed): mixto factura+extra en un
 mismo lote, 100% extra rechazado, tope original sigue rechazando lo que excede lo
 facturado, costo omitido no toca `variantes.costo` — el detalle completo, con los IDs
-reales usados, está en ADR-0074.
+reales usados, está en ADR-0075.
 
 Pantalla: nueva sección "¿Llegó algo que no está en la factura?" en
 `RecepcionCompraFormV2.tsx`, siempre visible una vez elegida al menos una factura.
