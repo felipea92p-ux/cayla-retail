@@ -35,12 +35,14 @@ export function DevolucionesLista({
   ubicacionId,
   esLider,
   busqueda,
+  todasLasSedes = false,
 }: {
   lineas: LineaVentaParaDevolucion[];
   pendientes: DevolucionPendiente[];
   ubicacionId: string;
   esLider: boolean;
   busqueda: string;
+  todasLasSedes?: boolean;
 }) {
   const [enDevolucion, setEnDevolucion] = useState<LineaVentaParaDevolucion | null>(null);
   const [enAnulacion, setEnAnulacion] = useState<LineaVentaParaDevolucion | null>(null);
@@ -62,13 +64,17 @@ export function DevolucionesLista({
       )}
 
       <div className="space-y-3">
-        <BuscarPorComprobante valorInicial={busqueda} />
+        <BuscarPorComprobante valorInicial={busqueda} todasInicial={todasLasSedes} />
         <p className="label-cayla text-[11px] text-tinta/65">
           {busqueda ? `Resultado de "${busqueda}"` : "Ventas recientes"}
         </p>
         {lineas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/75">
-            {busqueda ? "No encontramos esa boleta o factura en esta sede." : "Todavía no hay ventas recientes."}
+            {busqueda
+              ? todasLasSedes
+                ? "No encontramos esa boleta o factura en ninguna sede."
+                : "No encontramos esa boleta o factura en esta sede — prueba marcando \"Buscar en todas las sedes\"."
+              : "Todavía no hay ventas recientes."}
           </p>
         ) : (
         <div className="card-cayla divide-y divide-tinta/10">

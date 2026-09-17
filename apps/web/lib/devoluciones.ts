@@ -27,9 +27,9 @@ export type LineaVentaParaDevolucion = {
 
 export async function getLineasVentaParaDevolucion(
   ubicacionId: string,
-  opts: { busqueda?: string; limite?: number } = {}
+  opts: { busqueda?: string; limite?: number; todasLasSedes?: boolean } = {}
 ): Promise<LineaVentaParaDevolucion[]> {
-  const { busqueda, limite = 30 } = opts;
+  const { busqueda, limite = 30, todasLasSedes = false } = opts;
   const supabase = await createClient();
 
   // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
@@ -38,7 +38,7 @@ export async function getLineasVentaParaDevolucion(
   if (busqueda && busqueda.trim()) {
     const { serie, numero } = parsearComprobante(busqueda);
     if (numero === null) return [];
-    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero);
+    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero, todasLasSedes);
     if (ventaIdsBuscados.length === 0) return [];
   }
 
@@ -48,8 +48,10 @@ export async function getLineasVentaParaDevolucion(
       `id, venta_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
        variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
-    )
-    .eq("venta.ubicacion_id", ubicacionId);
+    );
+  // "Todas las sedes" solo tiene sentido junto a una búsqueda puntual — el
+  // listado de ventas recientes sin buscar sigue siendo el de esta sede.
+  if (!(ventaIdsBuscados && todasLasSedes)) query = query.eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
   const todas = exigir(await query, "las ventas recientes");
   const filas = ventaIdsBuscados

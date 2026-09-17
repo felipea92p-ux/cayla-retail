@@ -14,10 +14,24 @@ import { parsearComprobante } from "@/lib/comprobantes-reglas";
  * su propio correlativo (`series_comprobantes`, único por `ubicacion_id, tipo`), así que
  * se devuelven TODAS las que calcen: rara vez es más de una, y si lo es, la Encargada ve
  * las prendas de cada una y elige.
+ *
+ * `todasLasSedes` (2026-09-17): el candado de negocio no existe — `registrar_cambio` y
+ * `crear_devolucion` nunca comparan contra la sede de la venta original, solo contra la
+ * sede DONDE se está parada la Encargada. El filtro de acá era el único bloqueo real,
+ * sin que nadie lo hubiera decidido como regla: una clienta que compró en Lima no
+ * aparecía al buscar su boleta desde Trujillo. Opt-in, no default: la mayoría de
+ * búsquedas sí son de la sede propia, y ampliar sin pedirlo mostraría boletas de otras
+ * ventas ambiguas (mismo número, sede distinta) sin que la Encargada lo pidiera.
  */
-export async function buscarVentaIdsPorComprobante(ubicacionId: string, serie: string | null, numero: number): Promise<string[]> {
+export async function buscarVentaIdsPorComprobante(
+  ubicacionId: string,
+  serie: string | null,
+  numero: number,
+  todasLasSedes = false
+): Promise<string[]> {
   const supabase = await createClient();
-  let query = supabase.from("comprobantes").select("venta_id").eq("ubicacion_id", ubicacionId).eq("numero", numero).not("venta_id", "is", null);
+  let query = supabase.from("comprobantes").select("venta_id").eq("numero", numero).not("venta_id", "is", null);
+  if (!todasLasSedes) query = query.eq("ubicacion_id", ubicacionId);
   if (serie) query = query.eq("serie", serie);
   const filas = exigir(await query, "el comprobante buscado");
   return [...new Set(filas.map((f) => f.venta_id as string))];
@@ -43,9 +57,9 @@ export type LineaVentaReciente = {
 
 export async function getLineasVentaRecientes(
   ubicacionId: string,
-  opts: { busqueda?: string; limite?: number } = {}
+  opts: { busqueda?: string; limite?: number; todasLasSedes?: boolean } = {}
 ): Promise<LineaVentaReciente[]> {
-  const { busqueda, limite = 30 } = opts;
+  const { busqueda, limite = 30, todasLasSedes = false } = opts;
   const supabase = await createClient();
 
   // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
@@ -54,7 +68,7 @@ export async function getLineasVentaRecientes(
   if (busqueda && busqueda.trim()) {
     const { serie, numero } = parsearComprobante(busqueda);
     if (numero === null) return [];
-    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero);
+    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero, todasLasSedes);
     if (ventaIdsBuscados.length === 0) return [];
   }
 
@@ -69,8 +83,11 @@ export async function getLineasVentaRecientes(
       `id, venta_id, variante_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
        variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
-    )
-    .eq("venta.ubicacion_id", ubicacionId);
+    );
+  // "Todas las sedes" solo tiene sentido junto a una búsqueda puntual (ver
+  // buscarVentaIdsPorComprobante) — el listado de "ventas recientes" sin
+  // buscar sigue siendo siempre el de esta sede, nunca de todas.
+  if (!(ventaIdsBuscados && todasLasSedes)) query = query.eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
   const todas = exigir(await query, "las ventas recientes");
   const filas = ventaIdsBuscados
