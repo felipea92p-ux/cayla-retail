@@ -118,14 +118,16 @@ export async function PATCH(request: Request) {
     estado?: string;
   } = {};
 
-  // Aprobar un color pendiente (decisión 2026-09-16: "cualquiera propone, un
-  // Líder aprueba"). Solo admite ese sentido — no existe "rechazar": un
-  // color pendiente que no sirve se desactiva, mismo camino que ya existía.
+  // Aprobar (pendiente→aprobado, o rechazado→aprobado = "reactivar retira
+  // el rechazo") o rechazar (pendiente→rechazado, con motivo opcional en
+  // notas) — el candado real de qué transición es válida vive en el
+  // trigger (`fn_colores_estado_trigger`, 20260917120000), esto solo pasa
+  // el valor que pidió la persona.
   if ("estado" in cuerpoObj) {
-    if (cuerpoObj.estado !== "aprobado") {
-      return Response.json({ error: "El único cambio de estado posible desde acá es aprobar." }, { status: 400 });
+    if (cuerpoObj.estado !== "aprobado" && cuerpoObj.estado !== "rechazado") {
+      return Response.json({ error: "El estado solo puede pasar a 'aprobado' o 'rechazado'." }, { status: 400 });
     }
-    patch.estado = "aprobado";
+    patch.estado = cuerpoObj.estado;
   }
 
   if ("nombre" in cuerpoObj) {

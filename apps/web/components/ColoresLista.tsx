@@ -37,7 +37,7 @@ type Color = {
   tipo: string;
   imagenMuestraUrl: string | null;
   notas: string | null;
-  estado: "pendiente" | "aprobado";
+  estado: "pendiente" | "aprobado" | "rechazado";
 };
 
 const FAMILIAS_COLOR = [
@@ -128,6 +128,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [editando, setEditando] = useState<Color | null>(null);
   const [cambiandoCodigo, setCambiandoCodigo] = useState<string | null>(null);
   const [aprobandoCodigo, setAprobandoCodigo] = useState<string | null>(null);
+  // Rechazar abre un campo de motivo inline, no un modal — mismo peso visual
+  // que el resto de acciones rápidas de esta pantalla (ADR-0072 de referencia).
+  const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [rechazandoCodigo, setRechazandoCodigo] = useState<string | null>(null);
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -220,26 +225,58 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   // Reactivar no pasa por el modal (mismo criterio que Proveedores): es una
   // sola acción, sin campos que llenar, y no hace falta el candado de
-  // variantes que sí aplica al desactivar.
+  // variantes que sí aplica al desactivar. Si el color estaba rechazado, el
+  // mismo clic retira el rechazo (manda estado:'aprobado', que el trigger ya
+  // deja también activo=true) — nunca queda "aprobado pero rechazado" a la
+  // vez, ese estado imposible lo bloquea un CHECK en la base.
   async function reactivar(c: Color) {
     setCambiandoCodigo(c.codigo);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: c.codigo, activo: true }),
+        body: JSON.stringify(c.estado === "rechazado" ? { codigo: c.codigo, estado: "aprobado" } : { codigo: c.codigo, activo: true }),
       });
       const datos = await res.json();
       if (!res.ok) {
         avisar.error(datos.error ?? "No se pudo reactivar el color.");
         return;
       }
-      setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: true } : x))));
+      setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: true, estado: "aprobado" as const } : x))));
       avisar.exito(`${c.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir color en una prenda." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setCambiandoCodigo(null);
+    }
+  }
+
+  // Rechazar solo es válido desde 'pendiente' (lo hace cumplir el trigger).
+  // El motivo es opcional (ADR-0072 de referencia: "aprobar es de un clic
+  // sin fricción, el mismo criterio aplica al espejo").
+  async function rechazar(c: Color) {
+    setRechazandoCodigo(c.codigo);
+    try {
+      const res = await fetch("/api/productos/colores", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: c.codigo, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo rechazar el color.");
+        return;
+      }
+      setColores((actual) =>
+        ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: false, estado: "rechazado" as const } : x)))
+      );
+      avisar.exito(`${c.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
+      setRechazandoAbierto(null);
+      setMotivoRechazo("");
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setRechazandoCodigo(null);
     }
   }
 
@@ -284,9 +321,45 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     Aprobar
                   </Boton>
                 )}
+                {c.estado === "pendiente" && (
+                  <Boton
+                    peso="discreto"
+                    className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
+                    onClick={() => {
+                      setRechazandoAbierto(rechazandoAbierto === c.codigo ? null : c.codigo);
+                      setMotivoRechazo("");
+                    }}
+                  >
+                    Rechazar
+                  </Boton>
+                )}
                 <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
                   Editar
                 </Boton>
+              </div>
+            )}
+            {rechazandoAbierto === c.codigo && (
+              <div className="space-y-1.5 border-t border-tinta/10 pt-2.5">
+                <input
+                  autoFocus
+                  value={motivoRechazo}
+                  onChange={(e) => setMotivoRechazo(e.target.value)}
+                  placeholder="Motivo (opcional)"
+                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
+                />
+                <div className="flex gap-2">
+                  <Boton
+                    peso="primario"
+                    className="flex-1 px-2.5 py-1.5 text-[11px]"
+                    cargando={rechazandoCodigo === c.codigo}
+                    onClick={() => rechazar(c)}
+                  >
+                    Confirmar rechazo
+                  </Boton>
+                  <Boton peso="fantasma" className="px-2.5 py-1.5 text-[11px]" onClick={() => setRechazandoAbierto(null)}>
+                    Cancelar
+                  </Boton>
+                </div>
               </div>
             )}
           </div>
@@ -365,7 +438,12 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             {desactivados.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
                 <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
-                <p className="text-sm font-medium text-tinta">{c.nombre}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
+                  {c.estado === "rechazado" && (
+                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
+                  )}
+                </div>
                 <div className="flex justify-between text-[11px] text-tinta/65">
                   <span className="font-mono">{c.codigo}</span>
                   <span>
