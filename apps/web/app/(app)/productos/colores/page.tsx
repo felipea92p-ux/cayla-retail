@@ -4,7 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { ColoresLista } from "@/components/ColoresLista";
 
-// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0072: el vocabulario
+// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: el vocabulario
 // cerrado de colores ya vive en `retail.colores`, esta es la pantalla que
 // le faltaba para poder crecer sin pegar SQL a mano.
 export default async function ColoresPage() {

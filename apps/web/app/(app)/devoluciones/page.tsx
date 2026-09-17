@@ -2,11 +2,12 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getLineasVentaParaDevolucion, getDevolucionesPendientes } from "@/lib/devoluciones";
 import { DevolucionesLista } from "@/components/DevolucionesLista";
 
-export default async function DevolucionesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function DevolucionesPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string }> }) {
   const persona = await requirePersonaActualV2();
-  const { q } = await searchParams;
+  const { q, todas } = await searchParams;
+  const todasLasSedes = todas === "1";
   const [lineas, pendientes] = await Promise.all([
-    getLineasVentaParaDevolucion(persona.ubicacionId, { busqueda: q }),
+    getLineasVentaParaDevolucion(persona.ubicacionId, { busqueda: q, todasLasSedes }),
     getDevolucionesPendientes(persona.ubicacionId),
   ]);
 
@@ -27,6 +28,7 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
           ubicacionId={persona.ubicacionId}
           esLider={persona.rol === "lider"}
           busqueda={q ?? ""}
+          todasLasSedes={todasLasSedes}
         />
       )}
     </div>

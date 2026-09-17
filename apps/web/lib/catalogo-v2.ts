@@ -39,7 +39,8 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     await supabase
       .from("variantes")
       .select(
-        `id, sku, codigo, talla, color_codigo, precio, costo, activo,
+        `id, sku, codigo, color_codigo, precio, costo, activo,
+         talla:tallas ( valor ),
          producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
@@ -52,7 +53,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     varianteId: v.id,
     sku: v.sku ?? "",
     codigo: v.codigo,
-    talla: v.talla,
+    talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
     fotoUrl: null,
@@ -277,6 +278,7 @@ export type VarianteDetalle = {
   id: string;
   colorCodigo: string | null;
   color: string | null;
+  tallaId: string | null;
   talla: string | null;
   sku: string;
   precio: number;
@@ -284,6 +286,9 @@ export type VarianteDetalle = {
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
+  /** Etiquetas de catálogo aplicadas a ESTA variante puntual (ADR-0095) —
+   *  distinto del vocabulario en sí, que vive en `retail.etiquetas`. */
+  etiquetaIds: string[];
 };
 
 /** Una foto de la galería del producto (20260915224500). `id` ausente =
@@ -310,6 +315,11 @@ export type ProductoDetalle = {
   temporada: string | null;
   /** Si es true, el producto puede venderse aunque el stock marque 0 (20260915224500). */
   permitirVentaSinStock: boolean;
+  /** Atributo del producto, no de la variante — no cambia entre tallas (20260917100100). */
+  tejidoId: string | null;
+  tejido: string | null;
+  patronId: string | null;
+  patron: string | null;
   /** Ya en el orden de la galería (`orden` ascendente). */
   fotos: FotoProducto[];
   variantes: VarianteDetalle[];
@@ -322,9 +332,13 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     .from("productos")
     .select(
       `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
-       variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
+       tejido_id, patron_id,
+       tejido:tejidos ( nombre ), patron:patrones ( nombre ),
+       variantes ( id, color_codigo, talla_id, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
-         codigos_barras ( codigo ) ),
+         talla:tallas ( valor ),
+         codigos_barras ( codigo ),
+         variante_etiquetas ( etiqueta_id ) ),
        producto_fotos ( id, url, orden, es_principal, color_codigo )`
     )
     .eq("id", id)
@@ -343,6 +357,10 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     stockMinimo: data.stock_minimo,
     temporada: data.temporada,
     permitirVentaSinStock: data.permitir_venta_sin_stock,
+    tejidoId: data.tejido_id,
+    tejido: data.tejido?.nombre ?? null,
+    patronId: data.patron_id,
+    patron: data.patron?.nombre ?? null,
     fotos: [...(data.producto_fotos ?? [])]
       .sort((a, b) => a.orden - b.orden)
       .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal, colorCodigo: f.color_codigo })),
@@ -350,13 +368,62 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       id: v.id,
       colorCodigo: v.color_codigo,
       color: v.color?.nombre ?? null,
-      talla: v.talla,
+      tallaId: v.talla_id,
+      talla: v.talla?.valor ?? null,
       sku: v.sku ?? "",
       precio: Number(v.precio),
       costo: Number(v.costo),
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
+      etiquetaIds: (v.variante_etiquetas ?? []).map((e) => e.etiqueta_id),
     })),
+  };
+}
+
+export type ValorVocabulario = { id: string; texto: string };
+
+/** Qué tallas/tejidos/patrones ofrece el formulario según la categoría
+ *  elegida (20260917100400) — reemplaza `categorias.tallas_sugeridas`.
+ *  Cada tabla puente reemplaza, no hereda, entre categoría y subcategoría
+ *  (decisión de Felipe, 2026-09-17): la fila vive contra la categoría
+ *  exacta, así que agrupar por `categoria_id` ya respeta eso solo. */
+export type EjesPorCategoria = {
+  tallas: Record<string, ValorVocabulario[]>;
+  tejidos: Record<string, ValorVocabulario[]>;
+  patrones: Record<string, ValorVocabulario[]>;
+};
+
+function agrupar(filas: { categoria_id: string; id: string; texto: string }[]): Record<string, ValorVocabulario[]> {
+  const out: Record<string, ValorVocabulario[]> = {};
+  for (const f of filas) (out[f.categoria_id] ??= []).push({ id: f.id, texto: f.texto });
+  return out;
+}
+
+/** Solo vocabulario `aprobado` y `activo` — un valor pendiente todavía no
+ *  se ofrece para elegir en el alta (a diferencia de colores/etiquetas, que
+ *  sí se ofrecen pendientes; decisión explícita del 2026-09-17: acá el
+ *  colaborador que arma el catálogo real es siempre un Líder). */
+export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
+  const supabase = await createClient();
+  const [tallas, tejidos, patrones] = await Promise.all([
+    exigir(
+      await supabase.from("categoria_tallas").select("categoria_id, talla:tallas!inner ( id, valor )").eq("tallas.activo", true).eq("tallas.estado", "aprobado"),
+      "las tallas por categoría"
+    ),
+    exigir(
+      await supabase.from("categoria_tejidos").select("categoria_id, tejido:tejidos!inner ( id, nombre )").eq("tejidos.activo", true).eq("tejidos.estado", "aprobado"),
+      "los tejidos por categoría"
+    ),
+    exigir(
+      await supabase.from("categoria_patrones").select("categoria_id, patron:patrones!inner ( id, nombre )").eq("patrones.activo", true).eq("patrones.estado", "aprobado"),
+      "los patrones por categoría"
+    ),
+  ]);
+
+  return {
+    tallas: agrupar(tallas.map((f) => ({ categoria_id: f.categoria_id, id: f.talla.id, texto: f.talla.valor }))),
+    tejidos: agrupar(tejidos.map((f) => ({ categoria_id: f.categoria_id, id: f.tejido.id, texto: f.tejido.nombre }))),
+    patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
 }

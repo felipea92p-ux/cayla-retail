@@ -61,6 +61,19 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `El precio de ${prenda} cambió: quítala del ticket y vuelve a agregarla.`,
   },
   {
+    // 20260917100700_movimientos_respetan_restriccion_sede.sql — una etiqueta con
+    // `sedes_permitidas` (ADR-0095) restringe en qué sede se puede VENDER una variante. El
+    // detalle es «referencia (sku)», mismo formato que venta_precio_cambiado.
+    marca: "venta_variante_restringida_a_otra_sede",
+    frase: (prenda) => `${prenda} está restringida a otra sede — no se puede vender desde acá.`,
+  },
+  {
+    // Misma migración — el mismo candado, del lado de Traslados: no se puede sacar de una
+    // sede una variante que una etiqueta restringe a otra.
+    marca: "traslado_variante_restringida_a_otra_sede",
+    frase: (prenda) => `${prenda} está restringida a otra sede — no se puede trasladar desde acá.`,
+  },
+  {
     // 20260914220804_nota_en_ventas.sql — la nota del ticket tiene tope; la pantalla ya
     // corta en 200, esto es por si llega por otro camino.
     marca: "ventas_nota_corta",

@@ -27,9 +27,9 @@ export type LineaVentaParaDevolucion = {
 
 export async function getLineasVentaParaDevolucion(
   ubicacionId: string,
-  opts: { busqueda?: string; limite?: number } = {}
+  opts: { busqueda?: string; limite?: number; todasLasSedes?: boolean } = {}
 ): Promise<LineaVentaParaDevolucion[]> {
-  const { busqueda, limite = 30 } = opts;
+  const { busqueda, limite = 30, todasLasSedes = false } = opts;
   const supabase = await createClient();
 
   // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
@@ -38,7 +38,7 @@ export async function getLineasVentaParaDevolucion(
   if (busqueda && busqueda.trim()) {
     const { serie, numero } = parsearComprobante(busqueda);
     if (numero === null) return [];
-    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero);
+    ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero, todasLasSedes);
     if (ventaIdsBuscados.length === 0) return [];
   }
 
@@ -47,9 +47,11 @@ export async function getLineasVentaParaDevolucion(
     .select(
       `id, venta_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
-    )
-    .eq("venta.ubicacion_id", ubicacionId);
+       variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
+    );
+  // "Todas las sedes" solo tiene sentido junto a una búsqueda puntual — el
+  // listado de ventas recientes sin buscar sigue siendo el de esta sede.
+  if (!(ventaIdsBuscados && todasLasSedes)) query = query.eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
   const todas = exigir(await query, "las ventas recientes");
   const filas = ventaIdsBuscados
@@ -86,7 +88,7 @@ export async function getLineasVentaParaDevolucion(
     sku: f.variante?.sku ?? "",
     codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
-    talla: f.variante?.talla ?? null,
+    talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
     cantidad: f.cantidad,
     precioUnitario: Number(f.precio_unitario),
@@ -133,7 +135,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       .from("devolucion_items")
       .select(
         `devolucion_id, cantidad, condicion,
-         venta_item:venta_items ( variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) ) )`
+         venta_item:venta_items ( variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) )`
       )
       .in("devolucion_id", ids),
     supabase.rpc("fn_nombres_personas", {
@@ -156,7 +158,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
         sku: i.venta_item?.variante?.sku ?? "",
         codigo: i.venta_item?.variante?.codigo ?? null,
         referencia: i.venta_item?.variante?.producto?.referencia ?? "",
-        talla: i.venta_item?.variante?.talla ?? null,
+        talla: i.venta_item?.variante?.talla?.valor ?? null,
         color: i.venta_item?.variante?.color?.nombre ?? null,
         cantidad: i.cantidad,
         condicion: i.condicion,

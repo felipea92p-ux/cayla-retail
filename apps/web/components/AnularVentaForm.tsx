@@ -47,7 +47,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
       const { data, error } = await supabase
         .from("venta_items")
         .select(
-          `id, cantidad, variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+          `id, cantidad, variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
         )
         .eq("venta_id", linea.ventaId);
       if (cancelado) return;
@@ -60,7 +60,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
         sku: f.variante?.sku ?? "",
         codigo: f.variante?.codigo ?? null,
         referencia: f.variante?.producto?.referencia ?? "",
-        talla: f.variante?.talla ?? null,
+        talla: f.variante?.talla?.valor ?? null,
         color: f.variante?.color?.nombre ?? null,
         cantidad: f.cantidad,
       }));
