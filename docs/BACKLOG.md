@@ -28,6 +28,44 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos gana `estado_publicacion` — un eje distinto de si vende (2026-09-17, ADR-0094)
+
+`productos.estado` respondía solo "¿se sigue vendiendo?" (activo/descontinuado); no
+existía forma de decir "¿está listo para mostrarse?" — un producto recién creado, sin
+fotos ni variantes completas, aparecía en `/productos` y `/vender` igual que uno
+terminado, visible para cualquier colaborador de sede. Columna nueva
+`estado_publicacion` (borrador/activo/archivado, default borrador, backfill activo para
+el catálogo existente) — eje separado a propósito, mismo criterio que ADR-0007 ya
+sentó para comprobantes/proformas. Detalle completo en
+[docs/adr/0094-producto-estado-publicacion.md](adr/0094-producto-estado-publicacion.md).
+
+- [x] **Migración + RPCs** — `fn_productos`/`fn_productos_resumen`/
+      `catalogo_actualizar_producto` ganan `p_estado_publicacion` (drop+create
+      explícito, no solo `create or replace` — mismo incidente de sobrecargas
+      duplicadas que ya documentó `20260917200000` el mismo día). Verificado con
+      `db reset` limpio + consultas directas contra Postgres local.
+- [x] **`/productos` bloquea a un colaborador de sede a "activo" en el SERVIDOR**, no
+      solo ocultando el filtro en la UI — un Líder puede filtrar/ver borrador y
+      archivado explícitamente (píldora nueva "Publicación", solo si `esLider`).
+- [x] **`/vender` excluye borrador/archivado para cualquiera**, líder o no — nadie
+      vende por accidente un producto que no está listo. `getCatalogo()` en sí NO
+      filtra (7 llamadores internos como Compras/Inventario necesitan CUALQUIER
+      producto, publicado o no); solo Vender agrega el filtro.
+- [x] **Campo de Publicación en `ProductoForm.tsx`** (edición) — es por donde un Líder
+      publica un producto ya creado.
+- [ ] **Verificación en navegador (click-through) — bloqueada, no por esta pieza.** El
+      tooling de preview de esta sesión corre en un worktree distinto al real
+      (`producto-estado-publicacion-e3c13e`, varios cientos de commits atrás de `main`
+      — ni siquiera tiene la carpeta `/productos`), y el Postgres local compartido
+      estuvo cambiando de esquema varias veces en minutos por otras 5+ sesiones
+      corriendo `db reset` en paralelo. Se verificó el candado real (servidor) por
+      consulta directa a las RPCs; falta el click-through humano/visual cuando alguien
+      tenga un worktree al día y el tooling de preview apuntando ahí.
+- [ ] **Aplicar en producción** — pendiente de que Felipe decida (prefijo `retail.` en
+      el SQL Editor, ver `/CLAUDE.md`).
+
+---
+
 ## 🎯 Revocar EXECUTE público de las funciones "motor" (2026-09-17, ADR-0078)
 
 `retail.fn_aplicar_movimiento(uuid)` (security definer, sin auto-chequeo) tenía EXECUTE
