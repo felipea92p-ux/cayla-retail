@@ -3,6 +3,32 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (aún más tarde) — "Nuevo producto": la pista pegada a la etiqueta
+
+Felipe mostró una captura de producción: "DESCRIPCIÓNOPCIONAL", "PRECIO BASESE
+APLICA A TODA LA MATRIZ" y "COSTO BASEOPCIONAL" en `/productos/nuevo` — la
+etiqueta en versalitas y su pista quedaban pegadas sin espacio. Causa raíz:
+`Campo.ayuda` (`apps/web/components/ui/campos.tsx`, v3.1) es el slot
+reservado para el botón `<Ayuda>` ("!"), que trae su propio margen (`ml-1`) —
+`NuevoProductoForm.tsx` era el único lugar del repo que le pasaba texto plano
+("Opcional", "Se aplica a toda la matriz") en vez de un botón. El slot
+correcto para un hint de una línea bajo el campo es `pie`, que ya reserva su
+propio alto y tipografía normal — no hacía falta tocar el componente
+compartido, solo dejar de usarlo mal. Verificado con una reproducción
+aislada (HTML estático, sin tocar la app) porque el Postgres local
+compartido tiene drift de esquema (`categorias.tallas_sugeridas` no existe
+ahí) y un `db reset` para probarlo en vivo habría afectado otras sesiones en
+paralelo — no se tocó esa base. `pnpm --filter web typecheck` limpio.
+Mergeado a producción de una vez, a pedido explícito de Felipe (fix de una
+línea × 3 campos, sin esquema ni dinero de por medio): [[pull request #90]].
+
+Aparte, hallazgo de sesión: el worktree donde Felipe pidió esto
+(`produccion-inmediata-617a3b`) estaba 565 commits detrás de `main` —
+describía el ERP de antes de la reescritura V2 del 12-sep. El fix real se
+hizo en un worktree nuevo partido de `main` al día. Vale la pena una poda de
+los ~65 worktrees viejos bajo `.claude/worktrees/` — la mayoría en la punta
+de commits ya mergeados hace días, puro peso muerto en el checkout.
+
 ## 2026-09-17 (más tarde) — "Liquidada" pasó a ser una venta real
 
 Objeción planteada al cerrar la entrada de abajo ("¿Liquidada debería ser una venta o
