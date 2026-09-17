@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Ventas: primeras pruebas automatizadas de `registrar_venta`)
+
+`registrar_venta` (la RPC más tocada del repo — cada venta real de las 3 tiendas) tenía
+cero pruebas; cerrado con `scripts/pruebas/registrar_venta.mjs` (22 escenarios, mismo
+patrón ROLLBACK de `registrar_cambio.mjs`/ADR-0066), incluyendo las 10 ramas del
+escalonado de descuento por rol (R-45) y el candado de sede. La firma real (11
+parámetros) se leyó en vivo con `pg_get_functiondef` contra Postgres local, no de
+`docs/datos/generado/RPCS.md` (describe la V1 de 4 parámetros, desactualizada).
+Aprendizaje: "el candado de sede" de la consigna resultó ser dos cosas distintas — uno de
+PERSONA (existe, `fn_puede_operar_ubicacion`, ya probado) y uno de VARIANTE (no existe en
+el código) — antes de probar un candado hay que confirmar cuál de los dos es.
+
 ## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un

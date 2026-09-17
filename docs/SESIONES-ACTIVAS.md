@@ -21,3 +21,4 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude | `claude/pruebas-registrar-venta-cd2119` | Pruebas: `registrar_venta` (`scripts/pruebas/registrar_venta.mjs`, nuevo, 22/22) | 2026-09-17 |
