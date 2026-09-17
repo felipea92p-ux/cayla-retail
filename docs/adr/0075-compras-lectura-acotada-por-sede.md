@@ -65,10 +65,12 @@ Migración: `supabase/migrations/20260917173000_compras_candado_de_sede.sql`.
   `compra_pagos`/`compra_adjuntos` directo (no por la vista `compras_resumen`),
   RLS no la protege sola — tiene que repetir el chequeo de
   `fn_puede_operar_ubicacion` a mano, como ya hace `resumen_compras`.
-- Pendiente: aplicar la migración en producción (SQL Editor, con prefijo
-  `retail.`, ver CLAUDE.md "Cómo aplicar SQL a producción") — requiere el ok
-  puntual de Felipe antes de pegarla, por ser un cambio de esquema de
-  seguridad en producción.
+- Aplicado en producción el 2026-09-17 por Felipe (SQL Editor). Verificado
+  después contra `pg_policies`/`pg_proc` de `cayla-dynamic`: las 4 políticas
+  y `resumen_compras()` quedaron idénticas a lo aplicado en local. Registrado
+  a mano en `supabase_migrations.schema_migrations` (pegar en el SQL Editor
+  no lo hace solo) para que el historial de producción siga contando lo
+  mismo que `supabase/migrations/`.
 - Sin verificar: si la misma auditoría de accesos del 2026-09-14 encontró el
   mismo patrón débil en tablas de Catálogo (no solo Compras), sigue sin
   tocar — esta sesión solo cubrió Compras.

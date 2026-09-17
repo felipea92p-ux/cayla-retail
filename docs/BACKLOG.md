@@ -1448,8 +1448,11 @@ mercadería" corregidos para no ofrecer stock que el RPC va a rechazar.
       acotar TODO a `fn_puede_operar_ubicacion`, igual que ventas/movimientos
       — no dejarlo compañía-completa ni partir lectura/escritura. Ver
       ADR-0075 y `supabase/migrations/20260917173000_compras_candado_de_sede.sql`.
-      **Pendiente: aplicar en producción** (SQL Editor con prefijo `retail.`,
-      requiere ok puntual de Felipe — cambio de esquema de seguridad).
+      **Aplicado en producción el 2026-09-17** (Felipe, SQL Editor) —
+      verificado después contra `pg_policies`/`pg_proc` de `cayla-dynamic`:
+      idéntico a local. Registrado a mano en
+      `supabase_migrations.schema_migrations` (pegar en el SQL Editor no lo
+      hace solo).
       De paso, corregido un supuesto de la auditoría original del 09-14: el
       bypass de `0012_control_total_temporal.sql` ("cualquier persona
       activa") ya NO está vigente ni en local ni en producción —

@@ -1536,7 +1536,7 @@
         {
           "nombre": "compra_adjuntos_select",
           "operacion": "SELECT",
-          "condicion": "(auth.role() = 'authenticated'::text)",
+          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
           "condicion_escritura": null
         }
       ],
@@ -1666,7 +1666,7 @@
         {
           "nombre": "compra_items_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
           "condicion_escritura": null
         }
       ],
@@ -1896,7 +1896,7 @@
         {
           "nombre": "compra_pagos_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
           "condicion_escritura": null
         }
       ],
@@ -2229,7 +2229,7 @@
         {
           "nombre": "compras_select",
           "operacion": "SELECT",
-          "condicion": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+          "condicion": "retail.fn_puede_operar_ubicacion(ubicacion_destino_id)",
           "condicion_escritura": null
         }
       ],

@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Compras: candado de sede aplicado en producción)
+
+Felipe pegó `20260917173000_compras_candado_de_sede.sql` en el SQL Editor de
+`cayla-dynamic`. Verificado después contra `pg_policies`/`pg_get_functiondef`
+en vivo: las 4 políticas y `resumen_compras()` quedaron idénticas a lo
+probado en local. Pegar en el SQL Editor no registra la migración sola —
+quedó registrada a mano en `supabase_migrations.schema_migrations` (mismo
+patrón que otras sesiones ya usaron antes) para que el historial de
+producción no se desalinee del repo.
+
 ## 2026-09-17 (Compras: RLS de lectura sin candado de sede — decidido y aplicado en local)
 
 Auditoría con evidencia de código (RLS `auth.role() = 'authenticated'` en `compras`/
