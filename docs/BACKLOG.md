@@ -1399,16 +1399,19 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **`20260915130000_produccion_del_taller` — estado en producción contradictorio entre
-      `DiegoN` y `main`, sin verificar todavía al fusionar (2026-09-16).** `DiegoN` la daba
-      por aplicada y verificada («producciones, produccion_lineas, las 5 RPC, el check de
-      `ubicaciones.tipo` con `taller` y la fila «Taller · taller» presentes»); `main` la
-      daba por **no** aplicada («Hasta entonces `/produccion` en producción carga vacía y
-      «Abrir orden» falla con «function abrir_produccion does not exist»»). Los dos no
-      pueden ser ciertos a la vez — antes de tocar nada más, preguntarle a la base real
-      (`information_schema`/`pg_proc` en `cayla-dynamic`, schema `retail`) cuál de las dos
-      describe el estado actual, y borrar la otra. Ya lleva el prefijo `retail.`; pegar tal
-      cual si hace falta.
+- [x] **RESUELTO 2026-09-17 — `20260915130000_produccion_del_taller` SÍ está aplicada en
+      producción.** Contradicción entre `DiegoN` (la daba por aplicada) y `main` (la daba
+      por no aplicada) verificada contra la base real (Supabase MCP, `execute_sql` envuelto
+      en `begin transaction read only`, proyecto `vovjyyiafkxteijimpuy` = cayla-dynamic,
+      schema `retail`): `producciones` y `produccion_lineas` existen; las 5 RPC
+      (`abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`,
+      `revertir_produccion`) existen en `pg_proc`; el check de `ubicaciones.tipo` acepta
+      `'taller'`; la fila "Taller · taller" existe. Gana la versión de `DiegoN`. Pendiente,
+      sin urgencia (housekeeping de docs, no bug): el volcado versionado en
+      `docs/datos/generado/` quedó congelado el 2026-09-15 11:43 (commit `95ecebb`), ANTES
+      de que se completara la aplicación — sigue afirmando que estas tablas/RPC no existen
+      en producción. Se corrige la próxima vez que alguien corra
+      `docs/datos/generado/COMO-REFRESCAR.md` contra producción.
 - [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
       (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
       Productos V2 no crea variantes desde pantalla (nacen por importación), así que el
