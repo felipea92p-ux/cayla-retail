@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Claude | `claude/ecstatic-booth-676259` | Producto: auditar costo en historial (trigger `fn_registrar_cambio_producto`) | 2026-09-17 |
 
 **Nota:** hay una rama local, sin pushear todavía, `claude/cayla-taxonomia-design-7e662b`, con un día completo de trabajo sobre ADR-0072/0073 propios (taxonomía de tallas/tejidos/patrones/etiquetas, familias/categorías reales) — **choca de número** con los ADR-0072/0073 que ya existen en `main` (vocabulario portado / importador). Falta renumerar antes de abrir PR. Cualquiera que agregue un ADR nuevo hoy debe partir de 0074, no de 0072.
 
