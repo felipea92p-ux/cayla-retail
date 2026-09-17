@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Fusión con main: el fix de color_codigo perdido no se podía pegar tal cual — talla_id vs talla)
+
+Al fusionar `main` (que ya traía `20260917210000`, el arreglo de otra sesión para el
+`color_codigo` de fotos perdido en `catalogo_actualizar_producto`) apareció un problema
+real: ese arreglo restaura `color_codigo` usando `insert into variantes (..., talla, ...)`
+— la columna de texto que esta misma rama ya reemplazó por `talla_id` (ADR-0095,
+20260917100500). Pegarlo tal cual habría revivido una columna que ya no existe acá y
+vuelto a perder el candado "esa talla/tejido/patrón no está habilitada para la categoría
+elegida" que `20260917100600` ya tenía. Se armó `20260917210001` como versión definitiva:
+mismo cuerpo con `talla_id` + candados por categoría, con `color_codigo` restaurado en
+las dos ramas de fotos, igual que dejó `20260917210000` para el resto del repo.
+
+De paso, mismo bug encontrado en `catalogo_crear_producto` (no reportado por Felipe
+todavía — el incidente de la otra sesión fue al EDITAR, no al crear): `20260917190000`
+(main) le había agregado `color_codigo` a las dos funciones, y `20260917100600` (esta
+rama) perdió el de las dos al recrearlas partiendo de una versión anterior. Corregido
+en el mismo archivo, antes de que alguien suba una foto por color a un producto nuevo y
+se repita el mismo síntoma. Aprendizaje: al fusionar el fix de otra sesión para una RPC
+que esta rama también reescribió, no basta con "tomar su versión" — hay que releer el
+cuerpo completo contra los propios cambios de esquema, y revisar si el mismo bug se
+coló en cualquier función hermana que haya pasado por el mismo `CREATE OR REPLACE`
+descuidado.
+
 ## 2026-09-17 (El efectivo offline ya entra al cierre de caja)
 
 `totalEfectivoEncolado()` (`ventas-offline.ts`) ya calculaba cuánto de la cola sin subir era efectivo, pero nada lo conectaba con `CerrarCajaModalV2.tsx` — una venta en efectivo atrapada en la cola hacía que el conteo físico (que sí tiene ese billete) se leyera como un sobrante sin explicación. Se agrega `ubicacionId` como prop nueva del modal (ya vivía en `caja.ubicacionId`/`ubicacionId` en los dos lugares que lo montan) para poder leer la misma llave de `localStorage` que usa `PuntoDeVenta.tsx`, y se muestra el aviso recién en el panel de RESULTADO — nunca antes de contar, que rompería el conteo ciego (ADR-0042: si la Encargada ve el esperado antes de contar, deja de ser una medición). Probado en navegador inyectando una venta encolada real en `localStorage` y cerrando caja: el sobrante mostrado (S/45.50) calzó exacto con el efectivo encolado, y el aviso lo explica en vez de dejarlo como una diferencia sin causa.
@@ -50,6 +73,36 @@ Después de construir el mecanismo (ADR-0095), Felipe frenó al confirmar las 6 
 ## 2026-09-17 (Taxonomía de variante: tallas/tejidos/patrones/etiquetas cerrados — ADR-0095)
 
 Sesión de diseño formal (protocolo de pregunta completo, bloque por bloque) que terminó descubriendo que este worktree estaba 520 commits atrás de `main` — con `main` ya teniendo colores propone/aprueba (ADR-0070), subcategoría (ADR-0062) y la capa de taxonomía universal (ADR-0030) construidos, y otras 3 sesiones paralelas con tejidos/patrones/etiquetas/rechazar-color a medio construir en ramas sin fusionar. Se puso este worktree al día con `main`, se resolvió la contradicción real que Felipe pidió detectar (ADR-0030 diseña multi-tenant explícito, su propia decisión del 16-sep dice "solo CAYLA" — se separaron las dos capas), y se construyó de cero (no cherry-pick) el vocabulario cerrado de talla/tejido/patrón/etiqueta con rechazar incluido desde el día uno, más el filtro por categoría que Felipe pidió (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`). Tocar `variantes.talla` (núcleo) reveló que **10 funciones SQL más** (Movimientos, Ventas, Conteo, Traslados, Producción) y **10 archivos TypeScript más** leían esa columna directo — se encontraron todas consultando `pg_proc.prosrc` contra la base real, no adivinando por migración, y el compilador de tipos generados marcó los 10 archivos de TS uno por uno. Un bug real de verdad (el trigger de talla pisaba `estado='aprobado'` del backfill porque `fn_es_lider()` no tiene sesión durante una migración) se encontró navegando `/productos/nuevo`, no leyendo SQL. Flujo completo probado en navegador como Líder: crear producto con 2 tallas × 2 colores, editar, guardar — los 293 tests + typecheck + lint quedaron en verde. Aprendizaje: "cambiar una columna del núcleo" nunca es local — el radio real solo aparece grepeando el código real, no imaginándolo.
+
+## 2026-09-17 (Fotos subidas a Blusa Ximena no se mostraban — otra sesión perdió color_codigo al sumar tejido/patrón)
+
+Felipe subió 3 fotos reales a Blusa Ximena (Blanco/Naranja/Negro) desde el formulario de
+edición — ninguna se mostraba en la Grilla, solo seguía la de Verde (la única que no
+tocó). Confirmado contra producción antes de suponer nada: las 3 SÍ llegaron a Storage y
+SÍ quedaron en `producto_fotos`, pero con `color_codigo = NULL` — `fn_productos` nunca
+las emparejaba con ninguna variante (todas tienen color real).
+
+Causa: `20260917190000_producto_fotos_por_color.sql` (esta sesión, más temprano hoy) sí
+dejó `catalogo_actualizar_producto` leyendo `color_codigo` de cada foto en sus dos ramas.
+Otra sesión (Taxonomía de variante — tejido/patrón, PR todavía sin mergear, aplicada
+directo a producción con su propio ok puntual) recreó la misma función para sumarle
+`p_tejido_id`/`p_patron_id`, pero partió de una versión anterior a la mía — perdió sin
+querer el manejo de `color_codigo` en fotos. Distinto del incidente de hace un rato
+(sobrecarga duplicada): acá la firma es una sola, el bug estaba en el cuerpo.
+
+Corregido con `CREATE OR REPLACE` sobre la misma firma de 11 parámetros (sin `DROP`,
+no cambia la firma, cero riesgo de sobrecarga) — se restauró `color_codigo` en las dos
+ramas de fotos sin tocar nada de tejido/patrón. Ok puntual de Felipe ("Sí, hazlo").
+Reconectadas las 3 fotos ya subidas (UPDATE por nombre de archivo). Verificado con
+`fn_productos`: los 4 colores de Blusa Ximena resuelven a su propia foto.
+`20260917210000_catalogo_actualizar_producto_recupera_color_codigo_fotos.sql` es el
+registro — no se aplicó en local: `productos.tejido_id`/`patron_id` no existen ahí
+todavía (esquema de la otra sesión, sin mergear), se reconcilia solo cuando esa PR
+llegue a `main`. Aprendizaje: dos sesiones tocando la MISMA función RPC el mismo día,
+aunque en features sin relación, pueden pisarse el cuerpo aunque las firmas no choquen —
+vale la pena, al reescribir una función completa por `CREATE OR REPLACE`, partir SIEMPRE
+de `pg_get_functiondef` en vivo, no de un archivo de migración propio que puede haber
+quedado atrás.
 
 ## 2026-09-17 (SKU no se generaba solo al editar — bug real + segunda sobrecarga duplicada de RPC)
 
