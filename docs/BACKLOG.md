@@ -28,6 +28,64 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Recibir mercadería: lista de recepciones + "+ Nueva recepción" (2026-09-17)
+
+Felipe lo pidió tras la auditoría de huecos de más abajo (misma fecha): la pantalla no
+dejaba ver nada de lo ya recibido, solo lo pendiente o un formulario en blanco. Sin
+cambios de esquema — `retail.lotes` ya guardaba cada recepción (con o sin factura,
+ADR-0035); nadie la leía todavía fuera del detalle de una factura puntual
+(`getRecepcionesCompra`). Nuevo: `getRecepcionesRecientes()` (`lib/compras.ts`) generaliza
+esa misma consulta sin acotar a una factura, y `RecepcionesRecientes.tsx` (reusa
+`Tabla`/`Encabezado` de `components/ui/Tabla.tsx`) la dibuja en las dos pantallas:
+
+- **`/inventario/recibir` (sin factura):** pasó de ser siempre el formulario a lista +
+  botón — mismo patrón que Colores/Categorías (2026-09-15): `RecibirLotePanel.tsx`
+  (nuevo) pone el formulario (`RecepcionFormV2`, lógica de escritura intacta, solo le
+  quité el `card-cayla` propio para que no quede una tarjeta dentro de otra) detrás de
+  "+ Nueva recepción" en un `Modal`.
+- **`/compras/recibir` (con factura, ADR-0035):** pestañas "Pendientes"/"Recibidas
+  recientemente" por `?vista=`, server-driven (sin estado de cliente nuevo) para no
+  tocar `RecepcionCompraFormV2` (615 líneas, ya maneja bastante estado propio). Cada
+  fila de "Recibidas" enlaza a `/compras/factura/[compraId]`.
+- Enlace cruzado en los dos sentidos: antes solo `/compras/recibir` mencionaba (y solo
+  en su estado vacío) la ruta sin factura; ahora los dos headers se referencian entre sí
+  siempre, no solo cuando la lista está vacía.
+
+Verificado en navegador real: recepción sin factura completa (Confecciones del Sur
+EIRL, Tienda Lima, 1 unidad, 17/09/2026 — queda como dato real en el Postgres local
+compartido, no se borra, principio 4) aparece al instante en la lista tras
+`router.refresh()`; pestaña "Recibidas" de Compras muestra las 2 facturas ya recibidas
+del seed y enlaza bien al detalle; como Micaela (colaboradora, Tienda Trujillo) la
+lista sin factura sale vacía y scoped a su sede — RLS de `lotes`/`movimientos`
+(`fn_puede_operar_ubicacion`) ya lo resolvía, no hizo falta acotar nada a mano.
+`pnpm --filter web typecheck`/`lint` en verde.
+
+- [ ] **Pregunta de negocio para Felipe, no técnica — cuál pantalla es el default.**
+      La tarjeta "Recibir mercadería" del Inicio (`AppShell.tsx`, sección `acciones`)
+      manda a `/inventario/recibir` (sin factura); el menú global "+ Nuevo" manda a
+      `/compras/recibir` (con factura, el camino principal según ADR-0035). Los dos
+      accesos más visibles de la app hoy no coinciden. No lo cambié — decidir cuál es
+      el más común en la operación real es suyo, no de Postgres/Next.js.
+- [ ] **`retail.personas` vive en `public` en el Postgres local COMPARTIDO, no en
+      `retail`** (verificado con `\d retail.personas` → "no encontrada"; `\dt
+      *.personas` → está en `public`). Ninguna migración lo mueve — es drift de este
+      Postgres local (mismo patrón ya visto con sububicaciones/colores en sesiones
+      previas), no algo real en producción. Efecto colateral: `packages/database/src/
+      types.ts` nunca tuvo `personas` como tabla (probablemente generado alguna vez
+      contra un local con el mismo drift) — se la agregué a mano (mismas columnas que
+      `0002_esquema.sql` + `0006_colaboradores.sql`) junto con el FK que le faltaba a
+      `lotes.recibido_por`, siguiendo el mismo criterio ya usado para Colores/
+      Categorías en este archivo. La consulta nueva de todos modos NO depende de que
+      esto ande: si falla, la fila de recepción sale igual, solo sin "Recibido por"
+      (mismo criterio que `getAdjuntosCompra` con Storage). Mover la tabla de vuelta a
+      `retail` es una escritura a un recurso que comparten ~27 worktrees — no la hice;
+      Felipe decide si vale la pena o se espera a un `db reset` coordinado.
+- [ ] **Sin pruebas automatizadas** para `getRecepcionesRecientes` — mismo patrón de
+      deuda que el resto de RPC/consultas de este módulo (ver sección de huecos de
+      más abajo, mismo día).
+
+---
+
 ## 🔍 Revisión: Recibir mercadería — huecos para flujo completo de ERP (2026-09-17)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` (RPC `recibir_compras`, ADR-0035) y

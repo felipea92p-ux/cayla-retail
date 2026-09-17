@@ -1254,6 +1254,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lotes_recibido_por_fkey"
+            columns: ["recibido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lotes_ubicacion_id_fkey"
             columns: ["ubicacion_id"]
             isOneToOne: false
@@ -1436,6 +1443,44 @@ export type Database = {
             columns: ["venta_item_id"]
             isOneToOne: false
             referencedRelation: "venta_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personas: {
+        Row: {
+          activo: boolean
+          auth_user_id: string
+          created_at: string
+          id: string
+          nombre: string
+          rol: string
+          ubicacion_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          auth_user_id: string
+          created_at?: string
+          id?: string
+          nombre: string
+          rol?: string
+          ubicacion_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          rol?: string
+          ubicacion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]

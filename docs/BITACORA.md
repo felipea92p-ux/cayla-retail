@@ -5294,3 +5294,21 @@ documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el c
 decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
+
+## 2026-09-17 (Recibir mercadería: lista de recepciones + botón, sobre la auditoría del mismo día)
+
+Felipe pidió hacer la pantalla más intuitiva y poder ver recepciones ya hechas — ninguna
+de las dos rutas (`/compras/recibir` con factura, `/inventario/recibir` sin ella) lo
+permitía. `getRecepcionesRecientes()` generaliza `getRecepcionesCompra` sin acotar a una
+factura, sobre `retail.lotes` (ya existía, nadie la leía así); `/inventario/recibir` pasó
+a lista + "+ Nueva recepción" en `Modal` (patrón de Colores/Categorías); `/compras/recibir`
+ganó pestaña "Recibidas recientemente". Sin migraciones. Detalle, lo verificado en
+navegador (Felipe y Micaela) y los 3 pendientes (incluida la pregunta de negocio sobre
+qué pantalla es el default del Inicio) en BACKLOG, sección de hoy.
+
+De paso: `packages/database/src/types.ts` no tenía `personas` como tabla — encontrado al
+typecheckear, causado por el mismo Postgres local compartido teniendo `personas` en
+`public` en vez de `retail` (drift de entorno, no de las migraciones ni de producción).
+Se agregó a mano con las columnas reales de `0002_esquema.sql`/`0006_colaboradores.sql`
+en vez de correr `gen-types` completo (hubiera fijado ESE drift en el archivo generado).
+No se tocó el Postgres compartido — ver BACKLOG para la razón.

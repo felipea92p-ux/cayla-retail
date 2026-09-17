@@ -10,6 +10,7 @@ import {
   type LineaCompra,
   type PagoCompra,
   type RecepcionCompra,
+  type RecepcionReciente,
   type ProveedorResumen,
 } from "@/lib/compras-reglas";
 
@@ -349,6 +350,90 @@ export async function getRecepcionesCompra(compraId: string): Promise<RecepcionC
     }
   }
   return [...porLote.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+/**
+ * Últimos lotes recibidos, con o sin factura (`retail.lotes`, ver
+ * `RecepcionReciente`). A diferencia de `getRecepcionesCompra` (una
+ * factura ya elegida), esto es el feed cruzado que ni `/compras/recibir`
+ * ni `/inventario/recibir` mostraban antes del 2026-09-17 — ninguna de las
+ * dos pantallas dejaba ver qué se había recibido, solo qué faltaba o un
+ * formulario en blanco.
+ *
+ * Se trae una ventana más grande que `limite` porque el filtro por
+ * `conFactura` ocurre en memoria (un lote es entero de un tipo u otro,
+ * nunca mixto: lo crea una sola llamada a `recibir_compras` o a
+ * `recibir_lote|recibir_lote más viejo`) — con el volumen real de CAYLA
+ * (3 tiendas + 1 taller) esto nunca compite con un índice; no vale una
+ * vista SQL nueva para algo que dos consultas resuelven igual de bien
+ * (principio 3, mismo criterio que `getLineasCompra`).
+ */
+export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; limite?: number } = {}): Promise<RecepcionReciente[]> {
+  const limite = opciones.limite ?? 15;
+  const supabase = await createClient();
+  const lotes = exigir(
+    await supabase
+      .from("lotes")
+      .select("id, fecha_recepcion, numero_guia, recibido_por, ubicacion:ubicaciones ( nombre ), proveedor:proveedores ( nombre )")
+      .order("fecha_recepcion", { ascending: false })
+      .limit(Math.max(limite * 2, 30)),
+    "las recepciones recientes"
+  );
+  if (lotes.length === 0) return [];
+  const loteIds = lotes.map((l) => l.id);
+
+  // `recibido_por` no se embebe directo (mismo motivo que `getLineasCompra`
+  // separa productos/variantes en su propia consulta): se resuelve el
+  // nombre en una segunda pasada, por id.
+  const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
+  const movimientos = exigir(
+    await supabase
+      .from("movimientos")
+      .select("lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) )")
+      .in("lote_id", loteIds),
+    "las líneas de las recepciones recientes"
+  );
+  // Quién recibió es un dato de cortesía, no el eje de la fila (ese es
+  // proveedor/fecha/unidades) — mismo criterio que `getAdjuntosCompra` con
+  // Storage: si la consulta falla, la lista sale igual, solo sin ese dato.
+  const personas = new Map<string, string>();
+  if (personaIds.length > 0) {
+    try {
+      const { data } = await supabase.from("personas").select("id, nombre").in("id", personaIds);
+      for (const p of data ?? []) personas.set(p.id, p.nombre);
+    } catch {
+      // Sin nombre no se pierde la recepción; la fila queda sin "Recibido por".
+    }
+  }
+  const porLote = new Map<string, { unidades: number; lineas: number; conFactura: boolean; compraId: string | null; documento: string | null }>();
+  for (const m of movimientos) {
+    if (!m.lote_id) continue;
+    const actual = porLote.get(m.lote_id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null };
+    actual.unidades += m.cantidad;
+    actual.lineas += 1;
+    if (m.compra_item_id) {
+      actual.conFactura = true;
+      actual.compraId = m.compra_item?.compra_id ?? actual.compraId;
+      actual.documento = m.compra_item?.compra?.documento ?? actual.documento;
+    }
+    porLote.set(m.lote_id, actual);
+  }
+
+  return lotes
+    .map((l) => {
+      const agg = porLote.get(l.id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null };
+      return {
+        loteId: l.id,
+        fecha: l.fecha_recepcion,
+        ubicacion: l.ubicacion?.nombre ?? "",
+        proveedorNombre: l.proveedor?.nombre ?? "",
+        numeroGuia: l.numero_guia,
+        recibidoPor: l.recibido_por ? personas.get(l.recibido_por) ?? null : null,
+        ...agg,
+      };
+    })
+    .filter((r) => opciones.conFactura === undefined || r.conFactura === opciones.conFactura)
+    .slice(0, limite);
 }
 
 export async function getProveedoresActivos(): Promise<ProveedorResumen[]> {

@@ -91,7 +91,7 @@ export function RecepcionFormV2({
 
   if (ok) {
     return (
-      <div className="card-cayla space-y-3 p-5 text-center">
+      <div className="space-y-3 text-center">
         <p className="label-cayla text-[11px] text-tinta/65">Lote recibido</p>
         <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
         <p className="text-sm text-tinta/70">Ya suman al stock de {ubicacionEtiqueta}.</p>
@@ -111,7 +111,7 @@ export function RecepcionFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card-cayla space-y-5 p-5">
+    <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="recepcion-proveedor">
