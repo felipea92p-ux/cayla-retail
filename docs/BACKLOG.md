@@ -37,10 +37,30 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917140000`, con
-      el prefijo `retail.` (o `set search_path`). Backfill de `categorias.tallas_sugeridas`
-      incluido — revisar que el trigger de `tallas` quede DESACTIVADO durante ese bloque
-      (ver ADR-0072, el bug real que esta sesión encontró).
+- [ ] **Pegar en producción — actualizado tras verificar el estado real (2026-09-17
+      tarde).** Producción NO está vacía de taxonomía: `retail.tejidos`/`patrones`/
+      `etiquetas`/`variante_etiquetas` y `productos.tejido_id`/`patron_id` ya existen,
+      creados por otra rama nunca fusionada a `main` — con una versión vieja del
+      trigger (tejidos/patrones/etiquetas no pueden rechazar; ninguno de los 5 tiene
+      el fix de "reactivar retira el rechazo"). `retail.tallas` NO existe.
+      `variantes.talla` sigue siendo texto libre (NO `talla_id`) y
+      `categorias.tallas_sugeridas` sigue viva — confirmado leyendo `origin/main`
+      directo: el frontend desplegado todavía las usa tal cual.
+      - [x] **Parte segura ya armada**: `supabase/migrations/pegar-en-produccion-taxonomia-parte-segura.sql`
+            — crea `tallas`, arregla los 5 triggers, crea `categoria_tallas/tejidos/
+            patrones` con su backfill (solo LEE `tallas_sugeridas`, no la toca), y los
+            2 RPC nuevos de hoy. Cero riesgo: nada de esto lo toca `main` todavía. Falta
+            que alguien con acceso lo pegue en el SQL Editor — Claude Code no puede
+            aplicar SQL a producción directo (el modo del entorno lo bloquea).
+      - [ ] **Parte que espera el merge a `main`** (rompería la app en vivo si se
+            aplica sola): `variantes.talla_id` + borrar `talla`, borrar
+            `tallas_sugeridas`, el candado de sede en `registrar_venta`/`transferir`
+            (tocan cada venta/traslado real — reescribir con el cuerpo actual de
+            producción en la mano, no a ciegas), las firmas de
+            `catalogo_actualizar_producto`/`crear_producto_con_variantes` con
+            `talla_id`, y los 9 renombres/fusiones de categorías de ADR-0073 (no
+            rompen código, pero cambian el desplegable que ve una encargada de sede
+            ahora mismo — coordinar el momento con Felipe, no una decisión técnica).
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
