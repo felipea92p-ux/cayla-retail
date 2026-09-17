@@ -166,6 +166,33 @@ ajustes más:
    definición, no el concepto (una cuenta rápida de "cuánto necesita acción hoy" sigue
    siendo útil para quien abre la pantalla en la mañana).
 
+## Decisión sin construir 2026-09-17 (tarde): "Dañado" reemplaza a "Piden atención"
+
+La corrección de arriba (punto 3) resultó ser un parche temporal, no el destino final:
+Felipe pidió que "Piden atención" se reemplace por "Dañado" — visibilidad de mercadería
+defectuosa, no un resumen de reposición. Investigado antes de proponer nada (no hay
+supuestos): hoy "dañado" existe SOLO como un valor de `devolucion_items.condicion`
+(`danada_reparacion`/`danada_donar`) en el momento de una devolución — y en ese momento,
+`aprobar_devolucion` (línea ~155 de `20260916180000_...sql`) **no escribe ningún
+movimiento** para esas condiciones. La prenda quedó marcada en un registro histórico de
+ESA devolución, pero desaparece de cualquier lectura de stock — no hay ninguna fila en
+`stock` ni en ningún lado que diga "esto está dañado, está acá, ahora". Se le presentaron
+3 opciones con Ganas/Pagas (sububicación `cuarentena` reusando piso/almacén; un log de
+solo lectura sobre movimientos históricos; una tabla paralela a `stock`) — Felipe **eligió
+la primera**: `cuarentena` como tercer tipo de sububicación, mismo patrón que ya prueban
+`piso_venta`/`almacen_tienda`.
+
+**No se construyó todavía.** Dos razones, ambas de Felipe: (1) toca `aprobar_devolucion` y
+el ajuste "Merma" de `AjustarInventarioModal` — RPCs con mercadería y dinero real de por
+medio, mismo criterio de "detente y confirma primero" que ya rige para producción; (2) al
+decidir, agregó un requisito nuevo — historial + estado de salida de cada prenda dañada
+(Liquidada / Se botó / Donada) — y pidió explícitamente NO construir esa parte todavía,
+solo dejarla anotada para revisar con Benja (`docs/BACKLOG.md`, sección "🔖 Pendientes
+Benja") antes de tocar código. Construir `cuarentena` sin resolver primero cómo SALE una
+prenda de ahí dejaría un contador que solo crece, sin salida — el mismo tipo de estado a
+medias que el principio 4 de CLAUDE.md pide evitar. Se espera esa conversación antes de
+escribir la migración.
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos

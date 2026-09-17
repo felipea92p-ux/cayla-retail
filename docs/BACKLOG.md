@@ -28,6 +28,34 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔖 Pendientes Benja
+
+> Felipe: "recuérdame esto para revisarlo luego con Benja, no lo construyas todavía."
+> Sección aparte a propósito — no es un ítem de 🎯/🩹 más, es una cola visible de
+> "esto necesita una conversación de negocio antes de volverse código". Se lee al
+> abrir sesión junto con el resto de este archivo.
+
+- [ ] **Cuarentena — historial y estado de salida de una prenda dañada (2026-09-17).**
+      Al decidir la Opción A de "Dañado" (ver más abajo, sección Inventario), Felipe
+      pidió que además de mover el stock a `cuarentena`, quede un **historial** de las
+      prendas que pasaron por ahí, cada una con un **estado de salida**. Los tres
+      estados que dio, tal cual:
+      - Liquidada
+      - Se botó
+      - Donada
+
+      Pidió explícitamente **no construir esto todavía** — ni el historial ni los
+      estados — y que más adelante estos estados sean **editables/actualizables desde
+      un módulo de administrador** (para decisiones de negocio como esta, sin que
+      cada cambio de vocabulario sea un despliegue de código). Con una sola advertencia
+      suya, textual: no sobrecargar ese módulo de funciones todavía — nace chico.
+      Preguntas reales que quedan abiertas para esa conversación (no las decidí yo):
+      ¿"Liquidada" registra una venta con precio especial, o solo una nota de que se
+      vendió afuera del sistema? ¿Quién puede cambiar el estado — cualquier líder, o
+      alguien más arriba? ¿El historial vive por unidad o por lote de cuarentena?
+
+---
+
 ## 🐛 `registrar_venta`: `venta_precio_cambiado` revienta con una prenda sin SKU (2026-09-16)
 
 - [x] **`v_sku` llegaba `NULL` a un `raise ... using detail = ... || v_sku || ...`**
@@ -57,11 +85,10 @@ rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral
 4 como pestañas. Tipos, lint, 282 pruebas y build en verde; recorrido en navegador como
 líder (Lima) y como colaboradora (Trujillo).
 
-- [ ] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`**
-      (`numero` + sequence en `transferencias` y `conteos`, y `fn_conteos_resumen`).
-      Con `set search_path = retail, public, extensions;` al inicio, como las 4
-      anteriores. Sin esto, Traslados y Conteo en producción fallan al leer `numero`
-      — **no fusionar la rama sin aplicarla antes.** Espera el ok puntual de Felipe.
+- [x] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`** —
+      hecho el 2026-09-16 vía MCP de Supabase, verificado contra `pg_proc`/
+      `information_schema` (`numero`/`fn_conteos_resumen` confirmados en
+      `cayla-dynamic`). PR #60 ya fusionado.
 - [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
       (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
       `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
@@ -72,6 +99,18 @@ líder (Lima) y como colaboradora (Trujillo).
       WhatsApp. Una "solicitud de traslado" desde la sede destino (que la sede origen
       convierte en `iniciar_traslado`) cerraría el ciclo. Es modelo de datos nuevo:
       pedir a Felipe con Ganas/Pagas antes de tocarlo.
+- [ ] **"Dañado" (2026-09-17) — decidido: Opción A, sin construir todavía.** Felipe
+      eligió agregar `cuarentena` como tercer tipo de sububicación (junto a
+      `piso_venta`/`almacen_tienda`), reusando la misma maquinaria de stock —
+      Devoluciones y Merma dejarían de hacer desaparecer una prenda dañada y la
+      moverían ahí en vez de a ningún lado. Existencias ganaría una tarjeta "Dañado"
+      = suma de cuarentena de esa ubicación, reemplazando la lógica vieja de "Piden
+      atención". **No construido**: toca `aprobar_devolucion` y el ajuste "Merma"
+      de `AjustarInventarioModal` — mercadería y dinero real de por medio — y hace
+      falta resolver primero cómo SALE una prenda de cuarentena (ver "🔖 Pendientes
+      Benja" más abajo: Felipe ya adelantó los 3 estados de salida, pero pidió
+      explícitamente no construirlos todavía). Sesión propia, no una coda de otra
+      tarea. Ver ADR-0071, sección "Decisión sin construir 2026-09-17".
 
 ---
 

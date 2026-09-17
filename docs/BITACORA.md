@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 ("Dañado" — decisión tomada, construcción a propósito pendiente)
+
+Felipe decidió la Opción A para reemplazar "Piden atención" por "Dañado": una
+sububicación `cuarentena` (tercer tipo, junto a piso_venta/almacen_tienda), reusando la
+misma maquinaria de stock que ya prueban esos dos. Investigado antes de proponer:
+"dañado" hoy es solo un `condicion` en `devolucion_items` en el momento de una
+devolución — `aprobar_devolucion` no escribe ningún movimiento para esos casos, la
+prenda simplemente desaparece de cualquier lectura de stock. Al decidir, Felipe agregó
+un requisito nuevo (historial + estado de salida: Liquidada/Se botó/Donada) y pidió
+explícitamente NO construir nada de esto todavía — ni la sububicación ni el historial —
+solo dejarlo anotado para revisar con Benja antes de tocar `aprobar_devolucion`/Merma
+(mercadería y dinero real). Registrado en `docs/adr/0071-...md` ("Decisión sin construir
+2026-09-17") y en `docs/BACKLOG.md`, sección nueva "🔖 Pendientes Benja" — una cola
+separada a propósito, para decisiones de negocio que esperan conversación antes de
+volverse código. Aprendizaje: "decido la opción A" no siempre significa "constrúyela
+ya" — en el mismo mensaje puede venir el motivo para esperar.
+
 ## 2026-09-17 (Mover mercadería: el campo de cantidad no dejaba borrar para escribir de nuevo)
 
 Bug real reportado por Felipe probando Traslados: el input de cantidad (`MoverMercaderiaFormV2.tsx`)
