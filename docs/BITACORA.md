@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Compras: RLS de lectura sin candado de sede — decidido y aplicado en local)
+
+Auditoría con evidencia de código (RLS `auth.role() = 'authenticated'` en `compras`/
+`compra_items`/`compra_pagos`/`compra_adjuntos`, sin `fn_puede_operar_ubicacion`,
+a diferencia de ventas/movimientos) terminó en protocolo `/decide`: Felipe eligió
+acotar TODO a ese mismo patrón, no dejarlo compañía-completa ni partir
+lectura/escritura. Verificado en local con transacción de prueba (rollback, sin
+escribir nada): Micaela (integrante, Trujillo) veía las 3 facturas de Taller/Lima
+antes del fix y 0 después (1 cuando se le inserta una propia); Felipe (líder) sigue
+viendo las 3. Corrección a la auditoría original del 09-14: el bypass de
+`0012_control_total_temporal.sql` ya no está vigente (`0013`/`0016` lo
+reemplazaron por rol real de líder), así que el registro de compras ya era
+solo-líder — el hueco real era solo de lectura. ADR-0075,
+`20260917173000_compras_candado_de_sede.sql`, aplicado en local — pendiente
+producción con ok puntual de Felipe.
+
 ## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
