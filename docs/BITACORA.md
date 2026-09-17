@@ -5670,6 +5670,25 @@ decidir por él: PDF a la clienta primero (barato), después decidir qué hacer 
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
 
+## 2026-09-17 (Stock fantasma de productos de prueba: ya resuelto sin script; filtro defensivo agregado)
+
+Encargo: construir y probar en local un script idempotente para llevar a 0 el stock
+fantasma de los 6 productos de prueba archivados el 16-sep (~1.600 unidades, 900 en
+Taller, BACKLOG). Antes de escribir nada, la consulta a producción (Supabase MCP, solo
+lectura) mostró `retail.stock` en 0 filas para las 36 variantes: alguien ya lo había
+corregido a mano el 2026-09-16 21:44 UTC (108 movimientos `ajuste`/`otro` por
+exactamente -1604, sin script ni registro en BACKLOG ni acá). No se construyó el script
+porque no había nada que limpiar — y local nunca tuvo este catálogo de prueba sembrado
+(`datos-prueba-catalogo-produccion.sql` excluido a propósito de `db reset`), así que
+tampoco había forma de probarlo ahí. Sí se agregó el filtro defensivo que el mismo ítem
+pedía: `getStockPorUbicacion` (`apps/web/lib/inventario-v2.ts`) ahora excluye variantes
+con `activo=false` (`variante:variantes!inner` + `.eq("variante.activo", true)`, mismo
+flag que ya oculta de caja/catálogo/conteo), para que la próxima vez que se archive un
+producto con stock residual ningún reporte lo arrastre en silencio. Typecheck, lint y
+293 pruebas en verde; verificado en el navegador local en Tienda Lima (piso/almacén) y
+Taller (sin separación), sin regresión — no se pudo probar en vivo el caso que sí oculta
+porque hoy no existe ningún producto inactivo con stock real, ni en local ni en
+producción.
 ## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
 
 Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la

@@ -572,11 +572,30 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       quedan escaneables (código + código de barras); los 6 productos de prueba
       (BLU-001/PAN-001/VES-001/POL-001/CHO-001/FAL-001) descontinuados, con su
       historial intacto.
-- [ ] **Stock fantasma de los productos de prueba.** Archivarlos los saca de caja,
-      catálogo y conteo, pero sus ~1.600 unidades siguen en `retail.stock` (900 en Taller).
-      Todo reporte que sume `stock` sin filtrar `variantes.activo` las cuenta. Decidir si
-      se llevan a 0 con movimientos de ajuste (motivo explícito "retiro de datos de
-      prueba", nunca merma).
+- [x] **Stock fantasma de los productos de prueba — ya no existe, se arregló sin
+      script ni registro (verificado 2026-09-17).** Archivarlos los sacaba de
+      caja, catálogo y conteo, pero dejaba sus ~1.600 unidades vivas en
+      `retail.stock` (900 en Taller) porque archivar nunca escribió movimientos
+      que las llevaran a 0. Al ir a construir el script de limpieza idempotente
+      (`registrar_movimiento` con `p_tipo='ajuste'`, motivo explícito) que este
+      ítem pedía, la consulta directa a producción (Supabase MCP, solo lectura)
+      mostró `retail.stock` en 0 filas para las 36 variantes de los 6 productos:
+      alguien ya lo había corregido a mano — 108 movimientos `ajuste`/`otro` el
+      2026-09-16 21:44 UTC por exactamente -1604 (cuadra con 1620 carga_inicial +
+      1 devolución − 17 ventas), sin dejar script, sin motivo descriptivo y sin
+      anotarlo acá ni en BITACORA. No se construyó el script de limpieza porque
+      no había nada que limpiar. Local nunca tuvo este catálogo de prueba
+      sembrado (`datos-prueba-catalogo-produccion.sql` excluido a propósito de
+      `db reset`), así que tampoco había forma de probar el script ahí.
+- [x] **Filtro defensivo en `getStockPorUbicacion` (2026-09-17).** Para que la
+      próxima vez que se archive un producto con stock residual ningún reporte
+      lo arrastre en silencio: `variante:variantes!inner` + `.eq("variante.activo",
+      true)` en `apps/web/lib/inventario-v2.ts` — mismo flag que ya oculta de
+      caja/catálogo/conteo. Typecheck, lint y 293 pruebas en verde; verificado en
+      el navegador local (Tienda Lima con piso/almacén y Taller sin separación,
+      ambas sin regresión). No se pudo ver el caso que sí oculta: hoy no existe
+      ningún producto inactivo con stock real, ni en local ni en producción,
+      contra el cual probarlo en vivo.
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
       cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
