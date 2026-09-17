@@ -45,7 +45,13 @@ export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): To
  *  propósito de `conteo` (ADR-0023): ese lo escribe SOLO `cerrar_conteo`, con
  *  `conteo_item_id` enlazado al conteo formal; `conteo_fisico` es el mismo
  *  gesto (contar y corregir) pero sin abrir un conteo de verdad. Un motivo
- *  que no esté acá se muestra tal cual — nunca rompe la pantalla. */
+ *  que no esté acá se muestra tal cual — nunca rompe la pantalla.
+ *
+ *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando un
+ *  líder resuelve una prenda dañada — `resolver_prenda_danada`, una por
+ *  cada uno de los 3 estados de salida. La ENTRADA a cuarentena sigue
+ *  usando el motivo `devolucion` de siempre (mismo gesto que una devolución
+ *  vendible, solo cambia la sububicación destino). */
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
   venta: "Venta",
@@ -65,6 +71,9 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   carga_inicial: "Carga inicial",
   activacion_piso_almacen: "Activación piso/almacén",
   siembra_cargo_especial: "Cargo especial",
+  cuarentena_liquidada: "Dañado — liquidada",
+  cuarentena_se_boto: "Dañado — se botó",
+  cuarentena_donada: "Dañado — donada",
 };
 
 /** Los procesos que ofrece el filtro, en el orden en que se leen. */
@@ -85,6 +94,9 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "otro",
   "carga_inicial",
   "activacion_piso_almacen",
+  "cuarentena_liquidada",
+  "cuarentena_se_boto",
+  "cuarentena_donada",
 ].map((valor) => ({ valor, etiqueta: ETIQUETA_PROCESO[valor] }));
 
 export function etiquetaProceso(motivo: string | null): string {
@@ -229,6 +241,7 @@ export function partesOrigenDestino(m: Movimiento): { origen: string; destino: s
   }
   switch (m.motivo) {
     case "venta":
+    case "cuarentena_liquidada":
       return { origen: aqui, destino: "Clienta" };
     case "anulacion_venta":
     case "devolucion":
@@ -254,6 +267,7 @@ export function textoComprobante(c: NonNullable<Movimiento["venta"]>["comprobant
 export function textoReferencia(m: Movimiento): string | null {
   switch (m.motivo) {
     case "venta":
+    case "cuarentena_liquidada":
       return m.venta ? textoComprobante(m.venta.comprobante) : null;
     case "recepcion": {
       const partes: string[] = [];

@@ -166,7 +166,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
         </div>
         <CampoTexto
           etiqueta="Descripción"
-          ayuda="Opcional"
+          pie="Opcional"
           placeholder="Tela, corte, detalle…"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
@@ -246,7 +246,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoMonto
             etiqueta="Precio base"
-            ayuda="Se aplica a toda la matriz"
+            pie="Se aplica a toda la matriz"
             inputMode="decimal"
             placeholder="0.00"
             value={precioBase}
@@ -254,7 +254,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
           />
           <CampoMonto
             etiqueta="Costo base"
-            ayuda="Opcional"
+            pie="Opcional"
             inputMode="decimal"
             placeholder="0.00"
             value={costoBase}
