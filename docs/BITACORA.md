@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (CI: job piloto que sí levanta Postgres real, `continue-on-error` hasta
+confirmarlo)
+
+Felipe pidió evaluar si revisitar ADR-0066 (que dejó `scripts/pruebas/*.mjs`/
+`caja:verificar` fuera de CI a propósito) ya se justificaba con 4 scripts. Evaluación con
+3 opciones (Ganas/Pagas): no tocar nada, sumarlo como gate real de una, o sumarlo como
+piloto no-bloqueante primero. Eligió la 3. Agregado `pruebas-postgres` a `ci.yml`: mismo
+patrón que el job existente (`if: always() && steps.X.outcome == 'success'` encadenado),
+pero con `npx supabase start` real (copiando antes el stub gitignored de Dynamic,
+CONTRIBUTING.md §1 — paso que casi se me pasa) y `continue-on-error: true` en el job
+entero. Verificado que las 4 pruebas hablan con Postgres directo por `docker exec`, sin
+`.env.local` ni PostgREST de por medio — no hacía falta nada más. YAML validado con
+`js-yaml` (ya en `node_modules`, sin sumar dependencia). **No pusheé** — el piloto no
+corre de verdad hasta que esta rama llegue a GitHub Actions; queda en BACKLOG. Aprendizaje:
+`main` hoy no exige ningún check para mergear (`CONTRIBUTING.md` §2, protección de rama
+sin activar) — así que ni el job viejo ni este nuevo bloquean nada todavía de por sí.
+
 ## 2026-09-17 (corrección: CI sí existe, y ADR-0066 ya decidió por qué los scripts de
 Postgres no entran)
 

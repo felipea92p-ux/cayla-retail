@@ -407,15 +407,19 @@ mano, confirmó ✗ + exit 1, revertida).
       2026-09-09 (typecheck/lint/`pnpm test` en cada push a `main` y cada PR — ver su
       propia cabecera y ADR-0026). Verificado contra el archivo real, no contra este
       documento.
-- [ ] **Lo que SÍ sigue sin CI, a propósito — decisión vigente, no un hueco (ADR-0066,
-      2026-09-16):** `caja:verificar`/`pruebas:registrar-cambio`/
-      `pruebas:aprobar-devolucion-caja`/`pruebas:registrar-venta`/`migraciones:verificar`
-      necesitan Postgres real; ADR-0066 decidió explícitamente que NO corran desde
-      `pnpm test`/CI ("cada PR futuro saldría rojo por Docker, no por el código"), mismo
-      criterio que ya tenía `migraciones:verificar` (ADR-0026). Sigue corriendo manual.
-      ADR-0066 mismo marca cuándo reabrir esto: "se revisita si el volumen de RPCs por
-      probar lo justifica" — con 4 scripts hoy (antes 3), vale que Felipe decida si ya es
-      ese momento; no se decidió acá.
+- [x] **Revisitado con Felipe (2026-09-17): sí es momento — job piloto agregado a
+      `ci.yml`.** `pruebas-postgres` levanta Postgres real (`npx supabase start`, con el
+      stub de Dynamic copiado primero — CONTRIBUTING.md §1) y corre `caja:verificar` +
+      `pruebas:registrar-cambio`/`aprobar-devolucion-caja`/`registrar-venta` contra él, en
+      cada push a `main` y cada PR. Lleva `continue-on-error: true` a propósito: ninguna
+      corrida real todavía lo vio funcionar en un runner de GitHub Actions (solo en el
+      Postgres local de cada quien), así que no bloquea nada mientras se confirma —
+      mismo criterio que ADR-0026 para lo incierto. `migraciones:verificar` se dejó
+      afuera a propósito (informa, nunca falla — ADR-0026, mezclarlo es otra decisión).
+- [ ] **Pendiente: verlo correr de verdad.** Esta sesión no pusheó — hace falta un push a
+      esta rama (o el merge) para que GitHub Actions lo corra por primera vez. Con 2-3
+      corridas verdes reales, sacar el `continue-on-error` de `.github/workflows/ci.yml`
+      convierte el piloto en gate real.
 
 ---
 
