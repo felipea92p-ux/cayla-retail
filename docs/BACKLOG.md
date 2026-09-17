@@ -28,6 +28,28 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🐛 `registrar_venta`: `venta_precio_cambiado` revienta con una prenda sin SKU (2026-09-16)
+
+- [x] **`v_sku` llegaba `NULL` a un `raise ... using detail = ... || v_sku || ...`**
+      (`20260915140000_descuento_motivo_y_escalonado.sql`) para cualquier prenda del
+      censo (`crear_producto_con_variantes`, `sku` nullable desde
+      `20260915221633_crear_producto_con_variantes.sql`). Concatenar con `||` un NULL
+      da NULL, y Postgres corta el `RAISE` con su propio error interno ("RAISE
+      statement option cannot be null") en vez del `venta_precio_cambiado` (o
+      `venta_descuento_*`) que se quería lanzar — la colaboradora veía un error crudo
+      de Postgres justo en la venta de una prenda sin SKU, sin el mensaje traducido de
+      `error-escritura.ts`. Corregido en
+      `20260916223000_venta_precio_cambiado_sku_nulo.sql`: mismo criterio que
+      `apps/web/lib/prenda-reglas.ts` (`codigoPrenda`) — código de etiqueta primero,
+      sku legado de respaldo, texto fijo si no hubiera ninguno. Reproducido y
+      verificado en local (`npx supabase db reset` + una prenda sin sku real): antes
+      revienta con el error de Postgres, después lanza `venta_precio_cambiado` con el
+      código de etiqueta en el `detail`.
+      **Aplicar a producción — pendiente el ok puntual de Felipe** (mismo protocolo
+      que el resto de `registrar_venta`: prefijo `retail.` en el SQL Editor).
+
+---
+
 ## 🎯 Inventario — las 4 vistas de Felipe (2026-09-16, ADR-0071)
 
 Rama `inventario-vistas-de-felipe`. Existencias, Movimientos, Traslados y Conteo
