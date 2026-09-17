@@ -54,7 +54,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
       .from("conteo_items")
       .select(
         `id, variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("conteo_id", conteo.id)
       .order("id"),
@@ -80,7 +80,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
       varianteId: i.variante_id,
       sku: i.variante?.sku ?? "",
       referencia: i.variante?.producto?.referencia ?? "",
-      talla: i.variante?.talla ?? null,
+      talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
       cantidadSistema: i.cantidad_sistema,
       cantidadContada: i.cantidad_contada,
@@ -233,7 +233,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       .from("conteo_items")
       .select(
         `variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla, costo, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( sku, talla:tallas ( valor ), costo, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("conteo_id", id),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
@@ -246,7 +246,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       varianteId: i.variante_id,
       sku: i.variante?.sku ?? "",
       referencia: i.variante?.producto?.referencia ?? "",
-      talla: i.variante?.talla ?? null,
+      talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
       sistema: i.cantidad_sistema,
       contado: i.cantidad_contada,

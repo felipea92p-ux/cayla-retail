@@ -68,7 +68,7 @@ export async function getLineasVentaRecientes(
     .select(
       `id, venta_id, variante_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+       variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
     )
     .eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
@@ -99,7 +99,7 @@ export async function getLineasVentaRecientes(
     sku: f.variante?.sku ?? "",
     codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
-    talla: f.variante?.talla ?? null,
+    talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
     cantidad: f.cantidad,
     precioUnitario: Number(f.precio_unitario),

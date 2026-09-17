@@ -73,7 +73,7 @@ export async function getOrdenesProduccion(tallerId: string, limite = 60): Promi
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
-           variante:variantes ( sku, talla, color:colores ( nombre, hex ) )
+           variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre, hex ) )
          )`
       )
       .eq("ubicacion_id", tallerId)
@@ -105,7 +105,7 @@ export async function getOrdenesProduccion(tallerId: string, limite = 60): Promi
       .map((l) => ({
         varianteId: l.variante_id,
         sku: l.variante?.sku ?? "",
-        talla: l.variante?.talla ?? null,
+        talla: l.variante?.talla?.valor ?? null,
         color: l.variante?.color?.nombre ?? null,
         colorHex: l.variante?.color?.hex ?? null,
         cantidadPlan: l.cantidad_plan,
@@ -141,7 +141,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
       .from("productos")
       .select(
         `id, referencia, categoria:categorias ( nombre ),
-         variantes ( id, sku, talla, precio, activo, color:colores ( nombre, hex ) )`
+         variantes ( id, sku, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
       )
       .order("referencia"),
     "los modelos del catálogo"
@@ -157,7 +157,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
         .map((v) => ({
           varianteId: v.id,
           sku: v.sku ?? "",
-          talla: v.talla,
+          talla: v.talla?.valor ?? null,
           color: v.color?.nombre ?? null,
           colorHex: v.color?.hex ?? null,
           precio: Number(v.precio),

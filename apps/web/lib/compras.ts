@@ -250,12 +250,12 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
   const [productosRes, variantesRes] = await Promise.all([
     productoIds.length ? supabase.from("productos").select("id, referencia").in("id", productoIds) : Promise.resolve({ data: [], error: null }),
     varianteIds.length
-      ? supabase.from("variantes").select("id, sku, talla, color:colores ( nombre )").in("id", varianteIds)
+      ? supabase.from("variantes").select("id, sku, talla:tallas ( valor ), color:colores ( nombre )").in("id", varianteIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   const productos = new Map(exigir(productosRes, "los productos de la factura").map((p) => [p.id, p.referencia]));
   const variantes = new Map(
-    exigir(variantesRes, "las variantes de la factura").map((v) => [v.id, { sku: v.sku, talla: v.talla, color: v.color?.nombre ?? null }])
+    exigir(variantesRes, "las variantes de la factura").map((v) => [v.id, { sku: v.sku, talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null }])
   );
 
   return filas.map((f) => {

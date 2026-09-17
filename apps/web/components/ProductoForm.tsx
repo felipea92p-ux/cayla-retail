@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, Campo, CampoTexto, Interruptor, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
-import type { ProductoDetalle } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ProductoDetalle } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
 /* ====================================================================
@@ -43,7 +43,8 @@ type FilaVariante = {
   /** Presente = variante existente (no se puede quitar, solo desactivar). */
   id: string | null;
   colorCodigo: string;
-  talla: string;
+  /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
+  tallaId: string;
   sku: string;
   skuManual: boolean;
   precio: string;
@@ -100,16 +101,19 @@ function margenPorcentaje(precio: string, costo: string): number | null {
 }
 
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", talla: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true };
 }
 
 export function ProductoForm({
   categorias,
   colores,
+  ejes,
   producto,
 }: {
   categorias: Categoria[];
   colores: Color[];
+  /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
+  ejes: EjesPorCategoria;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
 }) {
@@ -123,6 +127,8 @@ export function ProductoForm({
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
   const [temporada, setTemporada] = useState(producto?.temporada ?? "");
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
+  const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
+  const [patronId, setPatronId] = useState(producto?.patronId ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
     () => producto?.fotos.map((f) => ({ clientKey: f.id ?? `${f.url}-${Math.random()}`, id: f.id, url: f.url, esPrincipal: f.esPrincipal })) ?? []
   );
@@ -133,7 +139,7 @@ export function ProductoForm({
       .map((v) => ({
         id: v.id,
         colorCodigo: v.colorCodigo ?? "",
-        talla: v.talla ?? "",
+        tallaId: v.tallaId ?? "",
         sku: v.sku,
         skuManual: true,
         precio: String(v.precio),
@@ -145,6 +151,19 @@ export function ProductoForm({
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
+  const tallasCategoria = ejes.tallas[categoriaId] ?? [];
+  const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+
+  function elegirCategoria(id: string) {
+    setCategoriaId(id);
+    // Tejido/patrón están filtrados por categoría (20260917100400) — la
+    // elección anterior puede no aplicar más a la nueva.
+    setTejidoId("");
+    setPatronId("");
+  }
 
   function actualizarFila(i: number, cambio: Partial<FilaVariante>) {
     setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
@@ -152,13 +171,13 @@ export function ProductoForm({
 
   // Al tocar color o talla de una fila SIN sku manual, el sugerido se
   // recalcula con el estado ya actualizado — no con el de la fila vieja.
-  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "talla">>) {
+  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "tallaId">>) {
     setVariantes((actual) =>
       actual.map((f, n) => {
         if (n !== i) return f;
         const siguiente = { ...f, ...cambio };
         if (siguiente.skuManual) return siguiente;
-        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, siguiente.talla) };
+        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, tallaTexto(siguiente.tallaId)) };
       })
     );
   }
@@ -167,7 +186,7 @@ export function ProductoForm({
     setReferencia(v);
     // Las filas nuevas (sin sku manual) siguen a la referencia; las que la
     // persona ya editó a mano quedan como están.
-    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, f.talla) })));
+    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, tallaTexto(f.tallaId)) })));
   }
 
   function agregarFila() {
@@ -196,7 +215,7 @@ export function ProductoForm({
     const payloadVariantes = variantes.map((v) => ({
       ...(v.id ? { id: v.id } : {}),
       color_codigo: v.colorCodigo || null,
-      talla: v.talla.trim() || null,
+      talla_id: v.tallaId || null,
       sku: v.sku.trim(),
       precio: Number(v.precio),
       costo: v.costo === "" ? 0 : Number(v.costo),
@@ -222,6 +241,8 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+          ...(patronId ? { p_patron_id: patronId } : {}),
         })
       : await supabase.rpc("catalogo_crear_producto", {
           p_referencia: referencia.trim(),
@@ -232,6 +253,8 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+          ...(patronId ? { p_patron_id: patronId } : {}),
         });
 
     cerrarProceso();
@@ -265,9 +288,27 @@ export function ProductoForm({
               autoFocus
             />
             <Campo etiqueta="Categoría">
-              <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={setCategoriaId} opciones={opcionesCategoria} marcador="Busca una categoría…" />
+              <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
+            <Campo etiqueta="Tejido (opcional)">
+              <ComboBuscable
+                etiquetaAccesible="Tejido"
+                valor={tejidoId}
+                onValor={setTejidoId}
+                opciones={opcionesTejido}
+                marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
+              />
+            </Campo>
+            <Campo etiqueta="Patrón (opcional)">
+              <ComboBuscable
+                etiquetaAccesible="Patrón"
+                valor={patronId}
+                onValor={setPatronId}
+                opciones={opcionesPatron}
+                marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
+              />
+            </Campo>
             {editando && (
               <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
             )}
@@ -325,12 +366,12 @@ export function ProductoForm({
                 opciones={opcionesColor}
                 marcador="Sin color"
               />
-              <input
-                aria-label="Talla"
-                value={v.talla}
-                onChange={(e) => cambiarColorOTalla(i, { talla: e.target.value })}
-                placeholder="M"
-                className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
+              <ComboBuscable
+                etiquetaAccesible="Talla"
+                valor={v.tallaId}
+                onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                opciones={opcionesTalla}
+                marcador={categoriaId ? "Sin talla" : "Elige categoría"}
               />
               <input
                 aria-label="SKU"

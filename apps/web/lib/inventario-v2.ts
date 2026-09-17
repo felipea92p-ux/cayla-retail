@@ -67,7 +67,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         `variante_id, cantidad,
          sububicacion:sububicaciones ( tipo ),
          variante:variantes (
-           sku, talla,
+           sku, talla:tallas ( valor ),
            color:colores ( nombre, hex ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
            codigos_barras ( codigo )
@@ -98,7 +98,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         varianteId: f.variante_id,
         productoId: f.variante?.producto?.id ?? "",
         sku: f.variante?.sku ?? "",
-        talla: f.variante?.talla ?? null,
+        talla: f.variante?.talla?.valor ?? null,
         color: f.variante?.color?.nombre ?? null,
         colorHex: f.variante?.color?.hex ?? null,
         referencia: f.variante?.producto?.referencia ?? "",
@@ -174,7 +174,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
         `variante_id, cantidad,
          transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
          variante:variantes (
-           sku, talla,
+           sku, talla:tallas ( valor ),
            color:colores ( nombre, hex ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
            codigos_barras ( codigo )
@@ -209,7 +209,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       varianteId: item.variante_id,
       productoId: item.variante?.producto?.id ?? "",
       sku: item.variante?.sku ?? "",
-      talla: item.variante?.talla ?? null,
+      talla: item.variante?.talla?.valor ?? null,
       color: item.variante?.color?.nombre ?? null,
       colorHex: item.variante?.color?.hex ?? null,
       referencia: item.variante?.producto?.referencia ?? "",

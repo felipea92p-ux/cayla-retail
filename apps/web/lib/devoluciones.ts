@@ -47,7 +47,7 @@ export async function getLineasVentaParaDevolucion(
     .select(
       `id, venta_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+       variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
     )
     .eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
@@ -86,7 +86,7 @@ export async function getLineasVentaParaDevolucion(
     sku: f.variante?.sku ?? "",
     codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
-    talla: f.variante?.talla ?? null,
+    talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
     cantidad: f.cantidad,
     precioUnitario: Number(f.precio_unitario),
@@ -133,7 +133,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       .from("devolucion_items")
       .select(
         `devolucion_id, cantidad, condicion,
-         venta_item:venta_items ( variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) ) )`
+         venta_item:venta_items ( variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) )`
       )
       .in("devolucion_id", ids),
     supabase.rpc("fn_nombres_personas", {
@@ -156,7 +156,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
         sku: i.venta_item?.variante?.sku ?? "",
         codigo: i.venta_item?.variante?.codigo ?? null,
         referencia: i.venta_item?.variante?.producto?.referencia ?? "",
-        talla: i.venta_item?.variante?.talla ?? null,
+        talla: i.venta_item?.variante?.talla?.valor ?? null,
         color: i.venta_item?.variante?.color?.nombre ?? null,
         cantidad: i.cantidad,
         condicion: i.condicion,
