@@ -9,14 +9,14 @@ import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
 // real, que entra al stock del Taller (`cerrar_produccion` → `movimientos`).
 // Ver supabase/migrations/20260915130000_produccion_del_taller.sql.
 //
-// La pantalla es SIEMPRE del Taller, no de la ubicación activa: un líder
-// mirando "Tienda Lima" igual ve las órdenes de Lima-Taller, porque es quien
-// decide qué se fabrica. Un integrante solo entra si su ubicación es el Taller;
-// la base lo vuelve a comprobar en cada RPC (fn_puede_operar_ubicacion).
+// Se entra solo parado EN el Taller (revertido 2026-09-17, pedido de
+// Felipe): la excepción de líder-desde-cualquier-ubicación duraba dos días
+// y dejaba entrar por URL directa aunque el AppShell ya no mostrara el
+// link — dos partes del sistema decidiendo lo mismo de dos formas. La base
+// lo vuelve a comprobar en cada RPC (fn_puede_operar_ubicacion) de todos modos.
 export default async function ProduccionPage() {
   const persona = await requirePersonaActualV2();
-  const esLider = persona.rol === "lider";
-  if (!esLider && persona.ubicacionTipo !== "taller") redirect("/");
+  if (persona.ubicacionTipo !== "taller") redirect("/");
 
   const taller = await getTaller();
   if (!taller) {

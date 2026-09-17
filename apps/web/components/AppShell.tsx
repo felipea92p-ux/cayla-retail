@@ -572,11 +572,14 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
-  // Producción (restaurada 2026-09-15): la ve el líder desde cualquier
-  // ubicación (decide qué se fabrica) y quien trabaja EN el Taller. Una
-  // colaboradora de tienda no la necesita: a ella el stock le llega por
-  // traslado, no por corrida.
-  const veProduccion = esLider || persona.ubicacionTipo === "taller";
+  // Producción (revertido 2026-09-17, pedido de Felipe): vuelve a verse SOLO
+  // parado en el Taller, líder incluido. La "restauración" del 15-sep dejaba
+  // Producción visible para el líder aunque estuviera parado en una tienda —
+  // justo la inconsistencia que se pidió corregir: el menú debe reflejar
+  // siempre dónde estás parado, igual que Vender/Inventario/Compras. Si el
+  // líder necesita decidir qué se fabrica, se para en el Taller con el
+  // selector de ubicación, como con cualquier otra pantalla operativa.
+  const veProduccion = persona.ubicacionTipo === "taller";
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
   // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
