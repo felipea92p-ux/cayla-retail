@@ -1,11 +1,11 @@
 # ADR-0074 — Revocar EXECUTE público de las funciones "motor" (fn_aplicar_movimiento y afines)
 
 **Fecha:** 2026-09-17
-**Estado:** Aplicado en LOCAL (`docker exec` contra el Postgres compartido). Felipe autorizó
-producción en el chat, pero el intento vía MCP de Supabase (`apply_migration`) lo bloqueó el
-clasificador de auto mode ("cambio de esquema en producción") — no se insistió con otra
-herramienta. **SÍ se hizo, y quedó, una lectura de solo verificación contra producción**
-(`execute_sql`, sin escribir nada) — ver hallazgo abajo, cambia el diagnóstico.
+**Estado:** Aplicado en LOCAL y en PRODUCCIÓN. El primer intento contra producción lo bloqueó
+el clasificador de auto mode de Claude Code; Felipe reconfirmó en el chat y el segundo
+intento (vía MCP de Supabase, `apply_migration` contra `vovjyyiafkxteijimpuy`) sí se aplicó,
+verificado después con `has_function_privilege` — ver hallazgo abajo, que cambió el
+diagnóstico antes de aplicar nada.
 **Afecta:** permisos (`GRANT`/`REVOKE`), ningún cambio de esquema ni de comportamiento para
 ningún llamador legítimo. Migraciones nuevas:
 `supabase/migrations/20260917150000_revocar_execute_fn_aplicar_movimiento.sql` y
@@ -33,11 +33,26 @@ colapsó las dos firmas ambiguas que sí sigue teniendo local. Sin acción de es
 hay archivo local que replique ese parche todavía — sigue siendo cierto lo anotado en la
 sección "Lo que falta" abajo).
 
-**Conclusión:** en producción, aplicar `20260917150000` sería un no-op seguro (ya está en
-ese estado) y aplicar `20260917150001` **sí cambia algo real** — cierra el hueco vigente de
-`fn_reservar_numero_serie`/`fn_siguiente_correlativo` para `authenticated`, sin tocar
-`fn_asignar_codigo_producto`/`variante` (ya están donde deben). Ninguna de las dos se
-aplicó — el intento fue bloqueado, ver Estado arriba.
+**Conclusión, y lo que pasó después:** en producción, `20260917150000` resultó un no-op
+seguro (ya estaba en ese estado) y `20260917150001` **sí cambió algo real** — cerró el hueco
+vigente de `fn_reservar_numero_serie`/`fn_siguiente_correlativo` para `authenticated`, sin
+tocar `fn_asignar_codigo_producto`/`variante` (ya estaban donde debían). Las dos se
+aplicaron (`apply_migration`) y se reverificaron con la misma consulta: las cinco funciones
+quedaron en `anon=false`/`authenticated=false` salvo `fn_asignar_codigo_producto`/`variante`
+(`authenticated=true`, intencional). `get_advisors` (security) no mostró nada nuevo — solo el
+aviso genérico ya esperado de "security definer callable by authenticated" en esas dos
+últimas, que es la excepción intencional.
+
+**De paso, verificando qué más seguía abierto:** `docs/datos/SQL-PENDIENTE-PRODUCCION.sql`
+(2026-09-12, nunca marcado como ejecutado) describía algo mucho más grave — `authenticated`
+con `TRUNCATE` sobre las tablas de `retail`, incluida `movimientos` ("riesgo de no pegarlo:
+perder CAYLA entera"). Verificado contra producción (solo lectura,
+`information_schema.role_table_grants`): **cero filas** — ya no existe, para ningún rol. Se
+cerró en algún momento sin dejar rastro en ningún archivo de este repo, mismo patrón que
+viene apareciendo todo el día (`fn_aplicar_movimiento`, `fn_recalcular_costo_variante`,
+`registrar_movimiento_una_sola_firma`). El archivo que lo describe quedó desactualizado, no
+el riesgo — vale la pena una pasada dedicada para reconciliar o archivar ese documento, pero
+no se tocó en esta tarea.
 
 ## Contexto
 
@@ -182,26 +197,23 @@ un webhook), se rompería con "permission denied" igual que `anon`/`authenticate
 
 ## Lo que falta
 
-1. **Aplicar `20260917150001` en producción — Felipe ya autorizó, falta ejecutarlo.**
-   Cierra un hueco vigente hoy: `fn_reservar_numero_serie`/`fn_siguiente_correlativo` siguen
-   con EXECUTE abierto a `authenticated` en `vovjyyiafkxteijimpuy` (confirmado por lectura,
-   ver tabla arriba). El intento vía MCP de Supabase (`apply_migration`) lo bloqueó el
-   clasificador de auto mode como cambio de esquema en producción — necesita que Felipe lo
-   corra él mismo (SQL Editor de `vovjyyiafkxteijimpuy`, con el prefijo `retail.` en cada
-   nombre de función, ver CLAUDE.md) o que apruebe la acción específica en el momento en que
-   Claude Code la reintente. `20260917150000` (fn_aplicar_movimiento) e la mitad de
-   `20260917150001` (fn_asignar_codigo_producto/variante) son no-ops seguros en producción —
-   ya están en el estado correcto — pero conviene correr el archivo completo igual, así queda
-   una migración rastreable en vez de un estado implícito sin historia.
-2. **`git push`/merge de esta rama a `main` también bloqueado** (clasificador: "Out-of-Place
-   Publication") — mismo caso: Felipe lo pidió en el chat, pero la acción en sí necesita su
-   aprobación directa en el momento (o que la corra él mismo: `git push -u origin
-   claude/hopeful-knuth-b7e000` y abrir el PR).
-3. **El atraso de 10 migraciones de este Postgres local compartido** (16-sep, ver Contexto) —
+1. **El atraso de 10 migraciones de este Postgres local compartido** (16-sep, ver Contexto) —
    decisión de Felipe, no de esta sesión: si se trae de golpe con `npx supabase db reset` (el
    Postgres es compartido por ~27 worktrees, ADR-0066) o migración por migración a mano. Sin
    relación con producción — production ya las tiene todas (ver Contexto).
-4. **`registrar_movimiento` con dos sobrecargas ambiguas en local, ya resuelto en producción**
+2. **`registrar_movimiento` con dos sobrecargas ambiguas en local, ya resuelto en producción**
    sin archivo en el repo (`registrar_movimiento_una_sola_firma`, 20260916214600) — traer ese
    parche a una migración de este repo para que local deje de tener el problema que
    producción ya no tiene.
+3. **`docs/datos/SQL-PENDIENTE-PRODUCCION.sql` está desactualizado** — al menos su BLOQUE 1
+   (`authenticated` con `TRUNCATE` sobre `retail`) ya no aplica, verificado hoy. No se
+   revisaron los demás bloques del archivo (fuera del alcance de esta tarea) — antes de
+   confiar en ese archivo para decidir qué falta, alguien tiene que reconciliarlo contra la
+   base real o archivarlo.
+4. **`pnpm datos:comparar` encontró 18 pantallas rotas en producción, sin relación con esta
+   tarea** — ninguna de las cinco funciones de este ADR aparece en esa lista. Son funciones
+   que sí existen en este código (`iniciar_traslado`, `cerrar_produccion`,
+   `crear_producto_con_variantes`, `fn_prioridad_conteo`, entre otras — mayormente Producción
+   del Taller, Traslados y Conteos) pero nunca llegaron a `vovjyyiafkxteijimpuy`. Detalle
+   completo, ya regenerado, en `docs/datos/generado/DRIFT.md`. Requiere su propia sesión —
+   toca varios módulos a la vez, no algo para resolver de paso en una migración de permisos.

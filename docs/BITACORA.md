@@ -5407,17 +5407,26 @@ solo `anon` — `authenticated` lo necesita vía un trigger que no es security d
 20260917150001). Smoke test `psql`+`ROLLBACK` (ADR-0066): los 6 caminos directos quedan
 bloqueados, los 2 caminos legítimos siguen funcionando.
 
-Felipe autorizó llevarlo a producción y publicar la rama en el mismo mensaje. Verificar
-producción antes de escribir (solo lectura) cambió el diagnóstico: `fn_aplicar_movimiento`/
+Felipe autorizó llevarlo a producción en el mismo mensaje. Verificar producción antes de
+escribir (solo lectura) cambió el diagnóstico: `fn_aplicar_movimiento`/
 `fn_recalcular_costo_variante` ya estaban cerradas ahí y `fn_asignar_codigo_producto`/
 `variante` ya en el estado angosto correcto — pero `fn_reservar_numero_serie`/
-`fn_siguiente_correlativo` siguen abiertas a `authenticated` en producción, hoy: el hueco de
-numeración SUNAT es real y vigente, no hipotético. El intento de escribir la migración en
-producción y de publicar la rama quedaron los dos bloqueados por el clasificador de auto
-mode de Claude Code (cambio de esquema en producción / publicación fuera de lugar), pese a
-la autorización explícita en el chat — no se insistió con otra herramienta. Queda pendiente
-que Felipe lo corra él mismo o apruebe la acción puntual la próxima vez (detalle en BACKLOG
-y ADR-0074).
+`fn_siguiente_correlativo` seguían abiertas a `authenticated`: el hueco de numeración SUNAT
+era real y vigente, no hipotético. El primer intento de escribir en producción lo bloqueó el
+clasificador de auto mode de Claude Code; Felipe reconfirmó y el segundo intento sí corrió
+(`apply_migration` × 2 contra `vovjyyiafkxteijimpuy`). Reverificado después:
+las cinco funciones quedaron en el estado esperado, `get_advisors` sin nada nuevo.
+
+Felipe pidió además que quedara "todo mapeado" — corrí el ritual completo de
+`docs/datos/` (`pnpm datos:generar:produccion` + `pnpm datos:comparar`) aunque un cambio de
+solo permisos no toca ninguna de las 7 fuentes que alimentan el diccionario (confirmado: cero
+diff). De paso salieron dos cosas grandes y ajenas a esta tarea: (1) el BLOQUE 1 de
+`docs/datos/SQL-PENDIENTE-PRODUCCION.sql` (2026-09-12, `authenticated` con `TRUNCATE` sobre
+`retail` — "perder CAYLA entera") ya no existe en producción, verificado hoy; el archivo
+quedó desactualizado, no el riesgo. (2) `datos:comparar` encontró 18 pantallas rotas en
+producción (Producción del Taller, Traslados, Conteos — ninguna de las 5 funciones de este
+ADR) — código que nunca llegó a desplegarse, sin relación con este cambio. Ninguna de las dos
+se tocó — quedan en BACKLOG/ADR-0074 para su propia sesión.
 
 De paso: este Postgres local compartido resultó tener aplicada
 `20260917124059_materia_prima_taller` (de otro worktree, no está en este árbol) y le faltan

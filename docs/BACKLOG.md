@@ -53,18 +53,29 @@ llamadores verificados contra `pg_proc` y smoke test en
       **`fn_reservar_numero_serie`/`fn_siguiente_correlativo` siguen con EXECUTE abierto a
       `authenticated` en producción, hoy** — el hueco de numeración SUNAT es real y
       vigente, no hipotético. Detalle en ADR-0074.
-- [ ] **Felipe autorizó aplicar en producción (2026-09-17) — el intento quedó bloqueado**
-      por el clasificador de auto mode de Claude Code ("cambio de esquema en producción"),
-      pese a la autorización en el chat. Necesita que Felipe lo corra él mismo o apruebe la
-      acción puntual la próxima vez que se reintente. Solo hace falta `20260917150001` para
-      el hueco real; `20260917150000` es no-op seguro pero conviene correrlo igual para que
-      quede rastreado.
-- [ ] **Esta rama también quedó sin publicar a `main`** — el intento lo bloqueó el mismo
-      clasificador ("publicación fuera de lugar"), mismo caso que el ítem anterior.
+- [x] **Aplicado en PRODUCCIÓN (2026-09-17), reverificado después.** Las dos migraciones
+      corrieron contra `vovjyyiafkxteijimpuy` (el primer intento lo frenó el clasificador de
+      auto mode, el segundo — con Felipe reconfirmando — sí pasó). Reverificado con
+      `has_function_privilege`: las cinco funciones quedaron en el estado esperado.
+      `get_advisors` no mostró nada nuevo. `20260917150000` fue no-op (ya estaba cerrada);
+      `20260917150001` cerró el hueco real de `fn_reservar_numero_serie`/
+      `fn_siguiente_correlativo` para `authenticated`.
 - [x] **Confirmado contra producción: `registrar_movimiento_una_sola_firma`
       (20260916214600) en efecto colapsó las dos sobrecargas ambiguas** que localmente
       todavía existen (el smoke test de esta tarea tropezó con la ambigüedad). Falta traer
       ese parche a un archivo de este repo — sigue sin uno.
+- [x] **De paso, verificado el BLOQUE 1 de `docs/datos/SQL-PENDIENTE-PRODUCCION.sql`
+      (2026-09-12): `authenticated` con `TRUNCATE` sobre `retail`, el más grave de la lista
+      ("perder CAYLA entera").** Cero filas en producción hoy — ya no existe, para ningún
+      rol. El archivo sigue diciendo "nada ejecutado"; está desactualizado, no el riesgo. No
+      se revisaron los demás bloques del archivo.
+- [ ] **`pnpm datos:comparar` (corrido de paso, ritual de "Regla de oro") encontró 18
+      pantallas rotas en producción — sin relación con esta tarea.** Ninguna de las cinco
+      funciones de arriba aparece en la lista. Son funciones que existen en este código
+      (`iniciar_traslado`, `cerrar_produccion`, `crear_producto_con_variantes`,
+      `fn_prioridad_conteo`, mayormente Producción/Traslados/Conteos) pero nunca llegaron a
+      `vovjyyiafkxteijimpuy`. Detalle completo en `docs/datos/generado/DRIFT.md` (ya
+      regenerado). Merece su propia sesión — toca varios módulos a la vez.
 
 ---
 
