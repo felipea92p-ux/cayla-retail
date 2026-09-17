@@ -3,6 +3,227 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (`/productos` caído en producción: dos sobrecargas de `fn_productos` peleando)
+
+Felipe reportó `/productos` mostrando la pantalla genérica de error justo después de que
+el PR #81 (Grilla, ADR-0077) llegara a producción vía Vercel. Causa raíz, confirmada
+contra `cayla-dynamic` (no supuesta): `retail.fn_productos` tenía DOS sobrecargas vivas —
+9 parámetros (la original) y 10 (con `p_orden`/`foto_url`) — porque de mis dos
+migraciones pendientes solo se pegó `20260917190000_producto_fotos_por_color.sql`;
+`20260917180000_productos_ordenar_por_precio.sql` (cuyo `DROP` limpiaba la de 9) nunca
+se aplicó sola, y el `DROP ... IF EXISTS` de `20260917190000` apuntaba a una firma de 10
+que todavía no existía — no encontró nada que borrar. Mismo hueco de siempre
+(ADR-0009/0004): agregar un parámetro sin dropear la firma vieja deja dos sobrecargas
+conviviendo, y `supabase.rpc()` con parámetros nombrados no puede elegir entre ellas.
+Verificado antes de tocar nada: la sobrecarga de 10 ya tenía el cuerpo completo y
+correcto (orden por precio + foto_url + punto de reorden) — no hacía falta reconstruir
+nada, solo dropear la sobrante. Aplicado con el MCP de Supabase (`apply_migration`
+contra `vovjyyiafkxteijimpuy`, ok puntual de Felipe: "Si hazlo"),
+`20260917200000_fn_productos_dropea_sobrecarga_vieja.sql` documenta el fix. Verificado
+después: `count(*) = 1` sobrecarga, `fn_productos(p_pagina:=1, p_por_pagina:=24)`
+devuelve 84 filas reales sin error. Aprendizaje: cuando una persona (no una sesión con
+el flujo de verificación de "una sola sobrecarga") pega migraciones a mano en el SQL
+Editor, aplicar solo una de dos migraciones relacionadas puede dejar el candado
+ADR-0009/0004 a medio cerrar — vale la pena, al pedir el ok puntual, listar las
+migraciones pendientes como un paquete y no una por una.
+
+## 2026-09-17 (`/almacen` y `/almacen/recibir` pasan a `redirects()` — y salió un 404 de un día que nadie había visto)
+
+Tarea concreta del ítem de `✨ MEJORAR`: las dos páginas-stub que solo llamaban
+`redirect()` (`app/(app)/almacen/page.tsx` y `.../almacen/recibir/page.tsx`) pagaban
+sesión + persona/ubicación + `AppShell` completo en el servidor para terminar en la
+misma pantalla que un alias de config habría dado gratis. Pasaron a `redirects()` de
+`next.config.ts`, con `permanent: false` (307, no 308 — el 308 que pedía el ítem
+original es lo que da `permanent: true`, justo lo que el ítem quería evitar). Verificado
+con el server corriendo (`.env.local` nuevo en este worktree, apuntando al Supabase
+local ya levantado): el log no muestra ninguna línea de `proxy.ts` para `/almacen` ni
+`/almacen/recibir`, y sí para cualquier otra ruta — confirma que el redirect resuelve
+antes de que la barrera de sesión llegue a correr, no solo en teoría.
+
+Al verificar a dónde debía apuntar el alias salió un hallazgo que no estaba en el
+ítem: `/inventario/almacen` (el destino que el stub viejo usaba) ya no existe desde
+el 2026-09-16 (ADR-0071, commit `52882ff`, unificó piso+almacén dentro de una sola
+vista en `/inventario`) — el redirect llevaba un día completo mandando a un 404 real
+sin que nadie lo notara, exactamente el escenario de "enlace guardado" que el ítem
+describía, solo que ya roto de verdad y no solo ineficiente. Corregido el destino a
+`/inventario` de una vez; `/almacen/recibir` → `/inventario/recibir` sí era correcto
+y no cambió. Verificado en navegador real ambos roles: colaboradora (Micaela, Tienda
+Trujillo) y líder (`felipe@cayla.local`), las dos rutas aterrizan en pantallas reales
+con datos reales.
+
+De rebote quedó otro hallazgo, no tocado por ser más ancho que esta sesión:
+`ARQUITECTURA.md:106-123` describe todo un `/inventario` de la arquitectura V1
+(`AlmacenStockList.tsx`, `ComprasManager.tsx`, `ProveedoresManager.tsx`,
+`EtiquetasGenerator.tsx` — ninguno existe hoy) que el corte V1→V2 nunca terminó de
+limpiar en el doc. Aprendizaje: un ítem de BACKLOG escrito un día puede describir un
+mundo que ya cambió al día siguiente — verificar contra el código vivo, no copiar el
+destino literal que traía el ticket, ni siquiera uno tan simple como un redirect.
+## 2026-09-17 (`/buscar` recupera punto de entrada tras quitarse el buscador global)
+
+`/buscar/page.tsx` funcionaba (búsqueda real con stock por ubicación) pero desde que
+`BuscadorGlobal` se quitó de `AppShell.tsx` (16-sep) nadie podía llegar ahí salvo por
+URL directa — quedó anotado en BACKLOG sin resolver. Se agregó una tarjeta "Buscar" en
+"Acciones" de Inicio, sin tocar `AppShell.tsx`. Al verificar en navegador apareció un
+bug más profundo: la pantalla dependía del buscador ya eliminado para escribir `?q=`,
+así que sin término mostraba "escribe algo en el buscador de arriba" señalando a un
+"arriba" que ya no existe; se le dio campo propio con un `<form method="get">` nativo
+(`CampoTexto`/`Boton`, sin "use client"). Aprendizaje: al borrar un componente
+compartido, `grep` por quién más dependía de su efecto secundario (acá, quién más
+escribía `?q=` sin su propia UI), no solo por sus imports directos.
+## 2026-09-17 (Productos: primera pieza de la grilla visual — ADR-0077)
+
+`/productos` gana una vista de grilla alternable con la tabla (`?vista=grilla|tabla`, grilla
+por defecto): tarjeta con el tinte del color activo como placeholder (cero fotos reales en
+producción, verificado antes de construir), swatches por color con hover de vista previa y
+clic para fijar, y una vista rápida (mismo `<Modal>` del sistema) con el detalle de
+variantes, Editar y Ajustar inventario — cero cambios de esquema ni de RPC, mismo
+`ProductoListado[]` que ya usaba la tabla. Probado en navegador local (10 productos reales):
+hover/clic de color, vista rápida con Ajustar inventario, tabla intacta. Aprendizaje: la
+nomenclatura de prendas ya estaba bien resuelta (ADR-0025/0069) — lo que faltaba era la
+presentación; y un canvas de diseño (Artifacts) permite probar una interacción real
+(clicable, no solo dibujada) con Felipe antes de escribir una sola línea del repo.
+
+## 2026-09-17 (Productos: cada foto sabe de qué color es — ADR-0077, addenda 7)
+
+Felipe preguntó cómo agregar fotos antes de salir a fotografiar el piloto — la
+respuesta destapó que el formulario ya subía fotos (Sesión F1) pero sin saber de qué
+color eran, justo la pieza que el swatch interactivo necesita para mostrar la foto
+real en vez del tinte. `producto_fotos` gana `color_codigo`
+(`20260917190000_producto_fotos_por_color.sql`); `catalogo_crear_producto`/
+`catalogo_actualizar_producto` lo leen de cada foto sin cambiar de firma;
+`fn_productos` sí cambió de forma (foto_url nueva) y se dropeó primero, esta vez
+partiendo de la versión correcta (`20260917180000` — la lección de la addenda 5 sirvió).
+El join usa `IS NOT DISTINCT FROM` para que una variante sin color combine con una
+foto sin color (`NULL = NULL` da NULL en SQL, no verdadero). `FotosProducto.tsx` gana
+un selector de color por foto (reusa `ComboBuscable`, ya usado para el color de cada
+variante en el mismo formulario). `ProductosGrilla.tsx` muestra la foto real
+(`next/image unoptimized`) cuando el color activo tiene una, tinte cuando no.
+
+Verificado sin poder simular la subida de un archivo real (la herramienta de
+navegador no elige archivos del disco): la RPC probada directo por SQL
+(`catalogo_actualizar_producto` con una foto + color, la fila quedó bien escrita), y
+todo lo demás de punta a punta en el navegador — el formulario de edición precarga el
+color de cada foto, la Grilla muestra foto real en Beige y tinte en Negro para la
+misma prenda, cambia correctamente al clickear cada swatch. Error de la propia
+prueba, no del código: la llamada SQL de prueba no mandó `p_categoria_id` y la
+función lo sobreescribe siempre — le borró la categoría a Blusa Emma hasta que se
+notó y se corrigió a mano (el formulario real no tiene este problema, siempre manda
+el valor vigente). Aprendizaje: al simular una RPC de escritura a mano, mandar
+siempre el valor ACTUAL de cada campo que la función sobreescribe sin condición, no
+solo el que se está probando.
+
+## 2026-09-17 (Productos: el orden por precio pasa de desplegable a dos flechas — ADR-0077, addenda 6)
+
+Felipe: nada de la palabra "Relevancia" — quería dos flechas clicables por separado,
+que se sepa que ordenan por precio ascendente/descendente. `BotonesOrdenPrecio`
+reemplaza al desplegable de la addenda 5: dos botones ícono-solo (`ArrowUp`/`ArrowDown`),
+color rojo cuando están activos, tooltip (mismo patrón que `PuntoDeVentaCatalogo.tsx`)
+al pasar el mouse. Clic en la activa la apaga, clic en la otra la reemplaza. Nada
+cambió del lado de la base — solo el control. Verificado en navegador: cada flecha
+ordena por separado, clic repetido apaga, el chip sigue mostrando el texto completo.
+
+## 2026-09-17 (Productos: orden por precio + panel plomo/tipografía de "Filtros" — ADR-0077, addenda 5, con un casi-error de RPC corregido a tiempo)
+
+Felipe pidió que el panel de filtros dejara el fondo blanco por un "plomo que combine
+más", que el texto de las píldoras usara la tipografía de "Filtros" (versalitas), y
+sumar orden por precio ascendente/descendente a la izquierda. Lo visual: `bg-sand/50`
+sin borde en vez de `card-cayla` (papel+borde), y `label-cayla text-[11px]` en vez de
+`text-sm` en cada píldora. Lo nuevo: `p_orden` en `fn_productos`
+(`20260917180000_productos_ordenar_por_precio.sql`), ordena por el precio mínimo del
+producto con un `case when` (nunca SQL armado a mano), nueva píldora "Ordenar" primera
+en la fila.
+
+**El error que casi se cuela:** armé la migración sobre `20260915160000` (la primera
+definición de `fn_productos`), no sobre `20260916100000_punto_reorden.sql` — la que de
+verdad estaba viva, con demanda/lead time/punto de reorden y `p_stock='reponer'`.
+Aplicarla tal cual habría revertido esa pieza en el Postgres local compartido (~30
+worktrees lo usan). Se notó ANTES de abrir el navegador — el propio cliente
+(`catalogo-v2.ts`) ya leía `f.demanda_diaria`/`f.punto_reorden`/etc. de la respuesta, un
+tipo desalineado que hubiera fallado en silencio (`Number(undefined)` = `NaN`, no una
+excepción). Corregido rehaciendo la migración sobre la base real; verificado con
+`pg_proc` (una sola sobrecarga, 10 argumentos) y SQL directo que `p_orden` y el punto
+de reorden conviven sin pisarse. De paso, el `migration up` de este worktree traía
+otro hueco ya documentado (memoria): faltaba el stub `0000_local_stub_dynamic.sql`
+(gitignored, copiado desde el checkout principal) y 4 migraciones de OTRA sesión
+paralela (`cuervo-colibri-modulos-170de6`, módulo Gastos/Compras) que ya estaban
+aplicadas al Postgres compartido pero no como archivo en este worktree — copiadas
+también, sin tocar su contenido. Regenerados los tipos de `packages/database`
+(`pnpm gen-types`, quedó tomando de paso el punto de reorden que tampoco estaba
+reflejado ahí). Verificado en navegador: la grilla ordena Falda Ariana (S/64.90) →
+Blusa Valentina → Falda Renata → ... correctamente ascendente, chip y contador
+"FILTROS · 1" correctos, Tabla intacta. Aprendizaje: antes de escribir
+`create or replace function` sobre una RPC que ya existe, `grep` el nombre en TODAS
+las migraciones — la primera definición que aparece casi nunca es la última, y
+confiar en ella sin mirar más habría sido un bug real en producción, no solo local.
+
+## 2026-09-17 (Productos: sin cajas en los filtros de la Grilla, el hilo vivo hace de marca — ADR-0077, addenda 4)
+
+Felipe: "no me gusta que estén encapsulados en esos rectángulos blancos, quiero que
+sigan la estética del sistema" — pero seguía gustándole el botón "Filtros". La
+diferencia real: todo campo del sistema (`CampoTexto`/`SelectNativo`) usa el hilo vivo
+(línea de 1px, se enciende en rojo al enfocar) — nunca una caja con borde propio; el
+botón "Filtros" es una acción, no un campo, y ahí sí corresponde verse como botón. Las
+píldoras de las addendas 2/3 tenían borde+fondo cada una — un patrón genérico de
+"chip de filtro", no el idioma de CAYLA. Se les sacó la caja: ahora es ícono+texto
+sobre el panel, con el mismo `Hilo` de `campos.tsx` (reusado tal cual, sin reescribir
+nada) prendiéndose al abrir el desplegable. El panel pasó de "caja grande con cajas
+chicas adentro" a una sola tarjeta con separadores de 1px (`divide-x`), como una barra
+de herramientas. El valor activo se nota por peso tipográfico, no por fondo. Verificado
+en navegador: el hilo se dibuja al abrir "Categoría", elegir "Blusas" deja el texto en
+negrita+tinta llena (las demás siguen en gris, sin caja), filtra a 2 productos, chip y
+contador "FILTROS · 1" correctos. Tabla, sin tocar. Aprendizaje: cuando el usuario dice
+"que siga la estética del sistema", conviene ir a mirar qué hace el componente
+hermano más cercano (acá, `CampoTexto`) en vez de inventar un lenguaje nuevo que
+"se vea bien" en aislado.
+
+## 2026-09-17 (Productos: vuelve el panel plegable, los desplegables ganan estilo propio — ADR-0077, addenda 3)
+
+Felipe: le gustaba más el panel "Filtros" plegable de la addenda 1 y el buscador con
+etiqueta — pidió volver a eso, pero con las píldoras con ícono de la addenda 2, "con
+más estilo", y pidió vestir también los desplegables. Un `<select>` nativo no se puede
+vestir por dentro (la lista la dibuja el sistema operativo), así que
+Categoría/Color/Estado/Stock pasaron de `<select>` nativo a Radix Select (mismo
+`radix-ui` ya instalado) — ahí sí se viste la lista abierta, no solo el botón cerrado.
+De regalo: Color ahora muestra el swatch real de cada opción (sumé `hex` a la consulta
+de `colores` en `page.tsx`), y ese swatch queda en el botón una vez elegido. Botón
+"Filtros" y panel plegable, buscador con etiqueta: como en la addenda 1. Verificado en
+navegador: el dropdown de Color abre con tarjeta propia (borde, sombra, swatches por
+punto), elegir "Negro" aplica al instante (`?color=NEG`, sin esperar el debounce — es
+una selección discreta, no texto), la píldora del disparador queda mostrando el
+swatch negro + "Negro", el chip aparece, la grilla filtra a 4 productos. Tabla, sin
+tocar. Aprendizaje: cuando piden "dale estilo al dropdown", primero preguntarse si el
+control de base ADMITE ese estilo — un `<select>` nativo no, y ningún ajuste de CSS
+lo iba a resolver; había que cambiar de primitiva, no de clases.
+
+## 2026-09-17 (Productos: filtros de la Grilla pasan a píldoras con ícono y precio de arrastre — ADR-0077, addenda 2)
+
+Felipe vio el panel plegable de la pasada anterior y no le gustó: "ocupa demasiado
+espacio y se ve mal". Los 6 campos pasaron de tarjeta-de-formulario a píldoras
+(ícono de `lucide-react` + `<select>` sin caja), siempre visibles en una fila que
+envuelve — se sacó el botón "Filtros" entero, ya no hace falta abrir nada. El precio
+pasó de dos casillas de texto a un rango de arrastre (`Slider` de `radix-ui`, ya
+instalado en el repo — sin dependencia nueva). Verificado en navegador: foco por
+teclado + flechas en el thumb "Precio máximo" bajó el valor a 900, `location.search`
+confirmó `?precioMax=900` tras el debounce, y el chip "Quitar filtro Hasta S/900"
+apareció y funciona. Tabla, sin tocar (mismo screenshot que antes). Aprendizaje: la
+primera respuesta a "ocupa mucho espacio" (esconder detrás de un clic) resuelve el
+síntoma pero no la causa — la causa era el tamaño de cada campo, no que estuvieran
+visibles.
+
+## 2026-09-17 (Productos: la Grilla le quita la tarjeta de filtros y de resumen a la ropa — ADR-0077, addenda)
+
+Felipe vio la primera pieza de la grilla y pidió un paso más: el Resumen (5 cifras) y
+`FiltrosProductos` (6 campos) tapaban la ropa antes de que apareciera una sola tarjeta.
+En `vista=grilla`: el Resumen pasó a una línea bajo el título, muda cuando no hay nada
+que atender; los filtros quedaron detrás de un botón "Filtros" con contador, mismo
+estado/URL/debounce de siempre — sin lógica duplicada, `compacto` es solo otra forma de
+mostrar lo mismo. La Tabla no se tocó. Verificado en navegador local: contador de
+filtros activos, chip "Quitar filtro Blusas" filtrando de 10 a 2 productos, Tabla con
+sus dos tarjetas intactas. Aprendizaje de herramienta, no de producto: con el panel del
+navegador oculto, un clic simulado a veces no llega (aria-expanded se queda en `false`)
+aunque el elemento y el handler estén bien — `element.click()` por DOM sí lo dispara
+siempre; ya estaba en memoria, quedó reconfirmado con un caso real.
+
 ## 2026-09-17 (aún más tarde) — "Nuevo producto": la pista pegada a la etiqueta
 
 Felipe mostró una captura de producción: "DESCRIPCIÓNOPCIONAL", "PRECIO BASESE
@@ -5523,22 +5744,22 @@ nunca `db reset`. Las 6 quedaron sin commitear y sin tocar BACKLOG/BITACORA/
 SESIONES-ACTIVAS — eso se centralizó al final, revisando cada diff antes de commitear.
 
 **Lo que quedó, tarea por tarea:** (1) `CerrarCajaModalV2`/`CajaAbiertaPanel.tsx` avisan
-y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0080; el agente
+y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0092; el agente
 encontró un segundo punto de montaje del modal (`CajaAbiertaPanel.tsx`) que no estaba en
 el encargo original y lo arregló ahí también, no solo en Vender. (2) Inventario de
-insumos del Taller — ADR-0078, migración local nueva — **pero con un hallazgo serio al
+insumos del Taller — ADR-0090, migración local nueva — **pero con un hallazgo serio al
 cerrar el día**: ya existe en producción un esquema huérfano y más completo
 (`retail.insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos`, 0 filas, del
 volcado de unificación de julio, con seguimiento por lote) que nadie sabía que existía —
 choca de nombre con la migración nueva, así que ésta NO se puede pegar en producción tal
-cual. Queda como decisión de Felipe (ADR-0078, Addendum), no se resolvió sola. (3)
-`retail.marcar_comprobante_no_emitido` — ADR-0081 — libera un comprobante `pendiente`
+cual. Queda como decisión de Felipe (ADR-0090, Addendum), no se resolvió sola. (3)
+`retail.marcar_comprobante_no_emitido` — ADR-0093 — libera un comprobante `pendiente`
 sin tocar SUNAT; el agente encontró que el Postgres local estaba 10 migraciones atrás
 (`20260916*` nunca aplicadas) y las sincronizó con cuidado antes de aplicar la propia.
 (4) Botón "Exportar CSV" en Existencias, conectando `descargarCsv` que ya existía. (5)
 `scripts/pruebas/fn_aplicar_movimiento.mjs`, 11 escenarios incluida una prueba de
 concurrencia real con dos procesos `docker exec` en paralelo — sin bugs encontrados en
-la función. (6) ADR-0079 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
+la función. (6) ADR-0091 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
 huérfanas más (`sede_meta` real vs. `retail_sede_meta` con guion, trampa de nombre;
 `sede_datos_fiscales`; `configuracion_empresa`) que tampoco están en el repo.
 
@@ -5580,7 +5801,7 @@ daba `true` pero el INSERT igual fallaba) resultó ser un hueco del propio scrip
 prueba — faltaba fijar `request.jwt.claim.role` además de `.sub`; el patrón
 `fn_es_lider()` como policy ya se usa sin problema en otras 16 tablas.
 
-ADR-0078, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
+ADR-0090, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
 final. Sigue pendiente: aplicar `20260917141500_registrar_consumo_insumo.sql` en
 producción (la del espejo ya está allá, no se toca), y conectar el frontend — ninguna
 de las dos estaba en el alcance de hoy.
@@ -5625,8 +5846,8 @@ Verificado tras la fusión: `pnpm --filter web typecheck`/`lint` limpios,
 `pnpm --filter database typecheck` limpio, 295/295 pruebas en verde (subieron de 293:
 las nuevas features trajeron las suyas). Con el ok explícito de Felipe (excepción
 puntual a D-11, "solo Felipe pega SQL en producción"), se aplicaron en producción
-`retail.registrar_consumo_insumo` (ADR-0078) y `retail.marcar_comprobante_no_emitido`
-(ADR-0081) — detalle de esa parte en la entrada que sigue.
+`retail.registrar_consumo_insumo` (ADR-0090) y `retail.marcar_comprobante_no_emitido`
+(ADR-0093) — detalle de esa parte en la entrada que sigue.
 
 ## 2026-09-17 (Despliegue en producción: registrar_consumo_insumo y marcar_comprobante_no_emitido)
 
@@ -5642,7 +5863,7 @@ los ADR/BACKLOG de esta misma tarde): `registrar_consumo_insumo`/
 `marcar_comprobante_no_emitido` no existían todavía (confirmado con
 `information_schema.routines`), y los nombres de `comprobantes_estado_check`/
 `comprobantes_transmitido_tiene_entorno` coincidían exactamente con los del local (la
-duda que había quedado anotada en ADR-0081 "Se rompe si" — no hizo falta ningún ajuste).
+duda que había quedado anotada en ADR-0093 "Se rompe si" — no hizo falta ningún ajuste).
 Ambas migraciones ya traían `set search_path`/prefijo `retail.` explícito desde que se
 escribieron esta tarde, así que se pegaron tal cual, sin adaptar nada.
 
@@ -5653,11 +5874,53 @@ de producción, a diferencia del Postgres local de desarrollo, ya revoca `EXECUT
 aviso genérico esperado para cualquier RPC `security definer` expuesta a `authenticated`
 — el mismo que ya generan ~50 funciones más de este repo, no un hallazgo nuevo.
 
-Quedó actualizado BACKLOG.md (los dos ítems, marcados `[x]`) y los dos ADR (0078, 0081).
+Quedó actualizado BACKLOG.md (los dos ítems, marcados `[x]`) y los dos ADR (0090, 0093).
 Pendiente: regenerar `docs/datos/generado/` (`pnpm datos:generar:produccion`) para que
 el diccionario refleje esto, y la verificación visual en navegador de los 3 cambios de
 UI de hoy (caja offline, liberar comprobante, exportar CSV) — ningún worktree de hoy
 tenía `apps/web/.env.local` configurado.
+
+## 2026-09-17 (Segunda ronda de colisión de ADR: 0078-0081→0090-0093, tras el push del PR #96)
+
+GitHub marcó el PR #96 con conflictos apenas se abrió: en los minutos entre el push y
+esta revisión, 18 commits más habían llegado a `main` (varias sesiones concurrentes,
+incluida una que causó y otra que reparó una caída real de `/productos` en producción —
+`fn_productos` con dos sobrecargas vivas, ajena a este trabajo). Entre esos 18 commits,
+la sesión `hopeful-knuth-b7e000` (revoke de `EXECUTE` público en `fn_aplicar_movimiento`
+y funciones afines) también había reclamado **ADR-0078** — la misma renumeración que
+esta sesión ya había usado para "Inventario de insumos del Taller" en la primera
+reconciliación de hoy. Mismo patrón exacto que la primera colisión, otra vez invisible
+para git (archivos con nombres distintos). Renumerado por segunda vez, ahora con más
+margen: 0078→**0090**, 0079→**0091**, 0080→**0092**, 0081→**0093** — mismo barrido de
+referencias cruzadas que la vez anterior (BACKLOG, este archivo, el doc del módulo, el
+roadmap, y el código), verificando de nuevo no tocar las referencias legítimas de
+`hopeful-knuth` a su propio ADR-0078. `docs/BITACORA.md`/`docs/SESIONES-ACTIVAS.md`
+también volvieron a chocar (más entradas nuevas de otras sesiones, mismo tratamiento:
+conservar todo, nunca elegir un lado). El comentario que queda para quien lea esto
+después: con 4+ sesiones reservando "el próximo número libre" casi al mismo tiempo, sin
+verse entre sí hasta fusionar, esto puede volver a pasar — `SESIONES-ACTIVAS.md` avisa
+sobre archivos/tablas en curso, pero no sobre numeración reservada y aún no commiteada
+en ningún branch visible para las demás.
+
+## 2026-09-17 (Stock fantasma de productos de prueba: ya resuelto sin script; filtro defensivo agregado)
+
+Encargo: construir y probar en local un script idempotente para llevar a 0 el stock
+fantasma de los 6 productos de prueba archivados el 16-sep (~1.600 unidades, 900 en
+Taller, BACKLOG). Antes de escribir nada, la consulta a producción (Supabase MCP, solo
+lectura) mostró `retail.stock` en 0 filas para las 36 variantes: alguien ya lo había
+corregido a mano el 2026-09-16 21:44 UTC (108 movimientos `ajuste`/`otro` por
+exactamente -1604, sin script ni registro en BACKLOG ni acá). No se construyó el script
+porque no había nada que limpiar — y local nunca tuvo este catálogo de prueba sembrado
+(`datos-prueba-catalogo-produccion.sql` excluido a propósito de `db reset`), así que
+tampoco había forma de probarlo ahí. Sí se agregó el filtro defensivo que el mismo ítem
+pedía: `getStockPorUbicacion` (`apps/web/lib/inventario-v2.ts`) ahora excluye variantes
+con `activo=false` (`variante:variantes!inner` + `.eq("variante.activo", true)`, mismo
+flag que ya oculta de caja/catálogo/conteo), para que la próxima vez que se archive un
+producto con stock residual ningún reporte lo arrastre en silencio. Typecheck, lint y
+293 pruebas en verde; verificado en el navegador local en Tienda Lima (piso/almacén) y
+Taller (sin separación), sin regresión — no se pudo probar en vivo el caso que sí oculta
+porque hoy no existe ningún producto inactivo con stock real, ni en local ni en
+producción.
 
 ## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
 
@@ -5740,6 +6003,50 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 `devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (Revocar EXECUTE público de fn_aplicar_movimiento y afines — ADR-0078)
+
+`fn_aplicar_movimiento` (security definer, sin auto-chequeo) tenía EXECUTE abierto a
+`anon`/`authenticated` — RPC directo con un `movimiento_id` de tipo `entrada` ya existente
+duplicaba stock sin sesión. Mismo patrón que ADR-0067 (`fn_recalcular_costo_variante`).
+Confirmé contra `pg_proc` que los 13 llamadores actuales son todos security definer, aplique
+el revoke de dos pasos (PUBLIC + `authenticated`, 20260917150000) y extendí la revisión a
+`fn_reservar_numero_serie`/`fn_siguiente_correlativo` (mismo hueco, más grave: quema
+numeración SUNAT sin emitir nada) y `fn_asignar_codigo_producto`/`variante` (revoke angosto,
+solo `anon` — `authenticated` lo necesita vía un trigger que no es security definer,
+20260917150001). Smoke test `psql`+`ROLLBACK` (ADR-0066): los 6 caminos directos quedan
+bloqueados, los 2 caminos legítimos siguen funcionando.
+
+Felipe autorizó llevarlo a producción en el mismo mensaje. Verificar producción antes de
+escribir (solo lectura) cambió el diagnóstico: `fn_aplicar_movimiento`/
+`fn_recalcular_costo_variante` ya estaban cerradas ahí y `fn_asignar_codigo_producto`/
+`variante` ya en el estado angosto correcto — pero `fn_reservar_numero_serie`/
+`fn_siguiente_correlativo` seguían abiertas a `authenticated`: el hueco de numeración SUNAT
+era real y vigente, no hipotético. El primer intento de escribir en producción lo bloqueó el
+clasificador de auto mode de Claude Code; Felipe reconfirmó y el segundo intento sí corrió
+(`apply_migration` × 2 contra `vovjyyiafkxteijimpuy`). Reverificado después:
+las cinco funciones quedaron en el estado esperado, `get_advisors` sin nada nuevo.
+
+Felipe pidió además que quedara "todo mapeado" — corrí el ritual completo de
+`docs/datos/` (`pnpm datos:generar:produccion` + `pnpm datos:comparar`) aunque un cambio de
+solo permisos no toca ninguna de las 7 fuentes que alimentan el diccionario (confirmado: cero
+diff). De paso salieron dos cosas grandes y ajenas a esta tarea: (1) el BLOQUE 1 de
+`docs/datos/SQL-PENDIENTE-PRODUCCION.sql` (2026-09-12, `authenticated` con `TRUNCATE` sobre
+`retail` — "perder CAYLA entera") ya no existe en producción, verificado hoy; el archivo
+quedó desactualizado, no el riesgo. (2) `datos:comparar` encontró 18 pantallas rotas en
+producción (Producción del Taller, Traslados, Conteos — ninguna de las 5 funciones de este
+ADR) — código que nunca llegó a desplegarse, sin relación con este cambio. Ninguna de las dos
+se tocó — quedan en BACKLOG/ADR-0078 para su propia sesión.
+
+De paso: este Postgres local compartido resultó tener aplicada
+`20260917124059_materia_prima_taller` (de otro worktree, no está en este árbol) y le faltan
+las 10 migraciones de 16-sep que sí están en este worktree — la sección "Auditoría de
+migraciones pendientes en producción" de hoy mismo ya confirmó que production SÍ las tiene
+todas, así que es un atraso de este Postgres de desarrollo, no de producción. No lo corregí
+(traer 10 migraciones de golpe es decisión de Felipe, no algo para improvisar dentro de esta
+tarea). También de paso: `registrar_movimiento` tiene dos sobrecargas ambiguas con 6
+argumentos — probablemente ya resuelto en producción vía el parche sin archivo local
+`registrar_movimiento_una_sola_firma` que BACKLOG ya listaba.
 
 ## 2026-09-17 (noche — prioridad de conteo por valor, desplegado a producción)
 
@@ -5918,3 +6225,16 @@ así que no hay conflicto de fondo, solo de numeración. Me agregué a
 `docs/SESIONES-ACTIVAS.md` (creado hoy mismo por otra sesión, después de exactamente este
 tipo de colisión) para que la próxima sesión vea que esta rama sigue con un PR abierto.
 `pnpm --filter web typecheck`/`lint`/295 tests en verde después de cada ronda.
+
+## 2026-09-17 (revocar EXECUTE: PR #93, colisión de ADR-0077 esta vez con Productos)
+
+GitHub marcó el PR #93 con conflictos en `docs/BACKLOG.md`/`docs/SESIONES-ACTIVAS.md` —
+mientras esperaba el merge de Felipe, se fusionó el PR #92 (grilla de Productos con
+swatches de color, ADR-0077). Mismo patrón de todo el día: se había renumerado esta rama de
+ADR-0074 a ADR-0077 en la ronda anterior, y para cuando llegó a `main` ese número ya lo
+tenía la otra sesión. Renumerado otra vez, ahora a **ADR-0078** (primero libre confirmado
+contra el `main` ya fusionado) — archivo, título, y las cuatro referencias propias en
+BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra sesión a su
+propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
+siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
+en verde después de reconciliar.

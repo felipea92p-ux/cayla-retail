@@ -17,7 +17,7 @@
 -- esquema paralelo incompatible (`insumo_stock`, `recibir_insumos` con 's',
 -- commit `fd3488f`); Felipe decidió adoptar ESTE (el huérfano real) en vez de
 -- ese, y esa sesión ya lo dropeó de su Postgres local. Detalle completo de la
--- reconciliación en ADR-0078.
+-- reconciliación en ADR-0090.
 --
 -- Qué hace:
 --   · `insumos` — el catálogo: tela o avío, con proveedor de referencia, unidad
@@ -45,7 +45,7 @@
 -- El consumo real al cortar (lo único que faltaba de D-47) YA SE CONSTRUYÓ —
 -- `retail.registrar_consumo_insumo`, en
 -- `20260917141500_registrar_consumo_insumo.sql` (migración separada, la única
--- pieza que producción todavía no tiene). Detalle completo en ADR-0078.
+-- pieza que producción todavía no tiene). Detalle completo en ADR-0090.
 --
 -- ESTADO: verificado en producción el 2026-09-17. Este archivo (el espejo) NUNCA
 -- se pega en producción tal cual — esos objetos ya existen allá; pegarlo

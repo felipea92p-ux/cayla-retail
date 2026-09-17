@@ -9,7 +9,7 @@
 > modelo V2 (`ubicaciones`, `sububicaciones`, `ubicacion_id`, RPC `abrir_produccion`/
 > `set_etapa_produccion`/`cerrar_produccion`/`anular_produccion`/`revertir_produccion`,
 > estados `en_proceso`/`terminada`/`anulada`), verificado directo contra el Postgres
-> local al escribir ADR-0078. Este documento no se reescribió entero bajo esa tarea
+> local al escribir ADR-0090. Este documento no se reescribió entero bajo esa tarea
 > (alcance: solo la sección de insumos) — queda pendiente un refresco completo.
 ## Para qué existe
 
@@ -367,7 +367,7 @@ en la tabla V2, que se creó desde cero).
 Primera versión construida hoy desde cero (commit `fd3488f`), descartada el mismo día
 al descubrir que producción ya tenía un esquema para esto — huérfano, 0 filas, sin
 código de `apps/web` que lo use, del volcado de unificación con Dynamic de julio-2026.
-Felipe decidió adoptarlo tal cual en vez de seguir con el diseño propio. `ADR-0078`
+Felipe decidió adoptarlo tal cual en vez de seguir con el diseño propio. `ADR-0090`
 tiene la historia completa y la verificación; acá solo el estado actual. Resuelve el
 hueco 9: hasta acá, `costo_tela`/`costo_avios` eran montos tecleados sin nada real
 detrás.
@@ -375,7 +375,7 @@ detrás.
 **Migraciones:** `supabase/migrations/20260917140000_insumos_taller_reconstruido.sql`
 (SOLO local — recrea lo que producción ya tiene, para poder desarrollar contra algo
 real sin tocar producción; reconstruido de forma independiente por dos sesiones el
-mismo día, ver ADR-0078 "Reconciliación") +
+mismo día, ver ADR-0090 "Reconciliación") +
 `supabase/migrations/20260917141500_registrar_consumo_insumo.sql` (la única pieza
 nueva de verdad; migración normal, SÍ pendiente de aplicar en producción). Usa
 `ubicacion_id`/`fn_puede_operar_ubicacion` (el modelo real, ver nota al inicio de este
@@ -388,7 +388,7 @@ versión de hoy).
 | `insumos` | local (espejo) y producción | Catálogo: `codigo`, `nombre`, `tipo` (`tela`\|`avio`), `unidad_medida` (`metro`\|`unidad`\|`kilo`\|`cono`\|`par`\|`docena`), `proveedor_id`, `merma_pct`, `stock_minimo`, `archivado_at` | Hermana de `productos`, nunca entra a `variantes`. Select autenticado, insert/update líder (policies `insumos_select_autenticado`/`insumos_insert_lider`/`insumos_update_lider`, verificadas contra producción) — sin policy de DELETE, se archiva. |
 | `insumo_lotes` | local (espejo) y producción | Una fila por ENTRADA: `insumo_id`, `ubicacion_id`, `codigo_lote`, `proveedor_id`, `cantidad_ingresada`, `costo_unitario`, `documento`, `fecha_ingreso`, `origen` (`compra`\|`saldo_inicial`) | Seguimiento por lote, no un promedio global — la diferencia principal contra el diseño descartado. Unique parcial `(insumo_id, codigo_lote) where codigo_lote is not null`. Solo `select` vía RLS (`fn_puede_operar_ubicacion`); se escribe solo por RPC. |
 | `movimientos_insumo` | local (espejo) y producción | Historial append-only: `tipo` (`compra`\|`consumo`\|`devolucion`\|`merma`\|`ajuste`), `cantidad`, `costo_unitario`, `insumo_lote_id`, `produccion_id`, `usuario_id`, `motivo` | `produccion_id` liga consumo↔corrida directo — no existe (ni hace falta) una tabla puente tipo `produccion_insumos`: el constraint `movimientos_insumo_produccion_segun_tipo` ya exige ese vínculo para `consumo`/`devolucion` y lo prohíbe para el resto. Solo `select` vía RLS; se escribe solo por RPC. |
-| `v_insumo_saldos` | local (espejo) y producción | Vista: `sum` de `movimientos_insumo` con signo, agrupado por insumo+ubicación → `fisico`, `valor` | Stock derivado, nunca una tabla a mano. **Sin `security_invoker`** (confirmado contra producción) — si algún día una pantalla la consulta directo con la sesión del usuario, no filtra por ubicación (el dueño de la vista tiene `BYPASSRLS`). Hoy inerte (0 filas, solo la consultan funciones `security definer`), pero real — ver ADR-0078. |
+| `v_insumo_saldos` | local (espejo) y producción | Vista: `sum` de `movimientos_insumo` con signo, agrupado por insumo+ubicación → `fisico`, `valor` | Stock derivado, nunca una tabla a mano. **Sin `security_invoker`** (confirmado contra producción) — si algún día una pantalla la consulta directo con la sesión del usuario, no filtra por ubicación (el dueño de la vista tiene `BYPASSRLS`). Hoy inerte (0 filas, solo la consultan funciones `security definer`), pero real — ver ADR-0090. |
 
 **RPC (`security definer`, `fn_puede_operar_ubicacion` como candado, `EXECUTE` revocado
 de `PUBLIC`):**
@@ -397,7 +397,7 @@ de `PUBLIC`):**
 |---|---|---|---|
 | `recibir_insumo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad numeric, p_costo_total numeric, p_codigo_lote text default null, p_proveedor_id uuid default null, p_documento text default null, p_origen text default 'compra', p_nota text default null) returns uuid` | Entrada de materia prima: crea el lote y su movimiento `compra` gemelo. Devuelve el id del lote. |
 | `ajustar_insumo_por_conteo` | local (espejo) y producción | `(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad_contada numeric, p_motivo text) returns uuid` | Ajuste por conteo físico: compara contra `v_insumo_saldos`, inserta un `movimientos_insumo` tipo `ajuste` con la diferencia (con motivo obligatorio). Sin diferencia, no inserta nada (`returns null`). |
-| `registrar_consumo_insumo` | **solo local — pendiente en producción** | `(p_produccion_id uuid, p_insumo_id uuid, p_cantidad numeric, p_nota text default null) returns uuid` | La pieza nueva: consumo real al cortar. Elige el lote MÁS ANTIGUO con saldo > 0 (`for update` sobre esa fila — no hay tabla de stock que bloquear en este esquema), recalcula su saldo después del lock, y NO parte el consumo entre lotes (rechaza con el saldo exacto si no alcanza). **Exige `producciones.estado = 'en_proceso'`** — se registra antes de cerrar, nunca después. Recalcula `producciones.costo_tela`/`costo_avios` (según `insumos.tipo`) sumando el consumo real de esa producción, pero solo el campo cuyo tipo tuvo al menos una fila. También bloquea `producciones` desde el inicio (protege el recálculo de costo de una carrera entre dos consumos concurrentes de la misma corrida). Ver ADR-0078 para los 10 escenarios verificados, incluida concurrencia real con dos procesos. |
+| `registrar_consumo_insumo` | **solo local — pendiente en producción** | `(p_produccion_id uuid, p_insumo_id uuid, p_cantidad numeric, p_nota text default null) returns uuid` | La pieza nueva: consumo real al cortar. Elige el lote MÁS ANTIGUO con saldo > 0 (`for update` sobre esa fila — no hay tabla de stock que bloquear en este esquema), recalcula su saldo después del lock, y NO parte el consumo entre lotes (rechaza con el saldo exacto si no alcanza). **Exige `producciones.estado = 'en_proceso'`** — se registra antes de cerrar, nunca después. Recalcula `producciones.costo_tela`/`costo_avios` (según `insumos.tipo`) sumando el consumo real de esa producción, pero solo el campo cuyo tipo tuvo al menos una fila. También bloquea `producciones` desde el inicio (protege el recálculo de costo de una carrera entre dos consumos concurrentes de la misma corrida). Ver ADR-0090 para los 10 escenarios verificados, incluida concurrencia real con dos procesos. |
 
 **No conectado todavía:** `NuevaOrdenProduccionForm.tsx` sigue mandando `costo_tela`/
 `costo_avios` tecleados a `abrir_produccion`, sin pasar por `recibir_insumo`/
@@ -419,7 +419,7 @@ columna existe, la lectura no se construyó.
   huérfano de producción se adoptó tal cual (catálogo + recepción + ajuste por
   conteo, ya en producción desde julio) y se construyó la pieza que faltaba,
   `registrar_consumo_insumo` — ver sección "Materia prima del Taller" arriba y
-  ADR-0078. Falta pegar esa única función en producción y conectar la pantalla.
+  ADR-0090. Falta pegar esa única función en producción y conectar la pantalla.
 - **D-15** — El Taller es una ubicación con poderes especiales: ahora modelado de
   verdad con `ubicaciones.tipo = 'taller'`, no solo por convención de nombre como en
   V1.
@@ -440,6 +440,6 @@ columna existe, la lectura no se construyó.
   intentó "reconciliar" nombres viejos y nuevos en este módulo).
 - **ADR-0032 / ADR-0033** — Idempotencia por token, el patrón que `abrir_produccion`
   ya adoptó (a diferencia de `registrar_produccion`, que nunca lo tuvo).
-- **ADR-0078** — Inventario de insumos del Taller: por qué se adoptó el esquema
+- **ADR-0090** — Inventario de insumos del Taller: por qué se adoptó el esquema
   huérfano de producción en vez de un diseño nuevo, y la reconciliación entre dos
   sesiones que llegaron a la misma reconstrucción por separado el mismo día.

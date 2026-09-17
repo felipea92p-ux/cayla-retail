@@ -22,7 +22,7 @@ export function CajaAbiertaPanel({
   movimientos: MovimientoCaja[];
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | null>(null);
-  // Cola de ventas offline de ESTA sede (ADR-0080): esta pantalla (/caja) es una
+  // Cola de ventas offline de ESTA sede (ADR-0092): esta pantalla (/caja) es una
   // segunda puerta a "Cerrar caja" además de Vender, y comparte el mismo riesgo —
   // efectivo cobrado sin red que el "esperado" del servidor todavía no ve. NO corre
   // el trío de sincronización (mount/online/latido): por ADR-0043 ese estado vive

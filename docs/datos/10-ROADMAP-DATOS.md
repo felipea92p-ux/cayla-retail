@@ -363,14 +363,14 @@ Dynamic de julio-2026 (`insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_s
 como referencia histórica de por qué se necesitaba esto y qué se consideró, no como el
 esquema real — el esquema real, tabla por tabla, está en
 `docs/datos/modulos/10-produccion-del-taller.md` (sección "Materia prima del Taller") y
-las decisiones completas en **ADR-0078**. **Lo único que falta construir de verdad es
+las decisiones completas en **ADR-0090**. **Lo único que falta construir de verdad es
 el consumo** (`registrar_consumo_insumo`, `supabase/migrations/
 20260917141500_registrar_consumo_insumo.sql`) — local, verificado end-to-end (huella
 cero), pendiente de aplicar en producción (la entrada y el ajuste por conteo ya existen
 ahí desde julio). El espejo local del esquema huérfano
 (`20260917140000_insumos_taller_reconstruido.sql`) lo reconstruyeron dos sesiones
 distintas el mismo día, de forma independiente, y coincidieron exactamente — ver
-ADR-0078, "Reconciliación con la otra sesión". **Corrección de nombres, todavía
+ADR-0090, "Reconciliación con la otra sesión". **Corrección de nombres, todavía
 válida:** la
 prosa de abajo se escribió contra `sede_id → sedes(id)` y `compras_comprobantes`, un
 estado del esquema anterior a que Producción del Taller migrara a `ubicaciones`

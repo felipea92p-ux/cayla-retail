@@ -7,7 +7,7 @@
 -- nadie sabe cuánta tela queda en el Taller, y el "costo real" que D-31/D-45
 -- pegan a la prenda es, en realidad, una estimación con cara de dato.
 -- Diseño completo en docs/datos/10-ROADMAP-DATOS.md:274-423 ("Prioridad 2 ·
--- Materia prima del Taller"). Decisiones de este cambio en ADR-0078.
+-- Materia prima del Taller"). Decisiones de este cambio en ADR-0090.
 --
 -- Qué hace:
 --   · `insumos` — catálogo de materia prima (tela/avío/empaque). Hermana de
@@ -37,7 +37,7 @@
 --     se liga a `compras` (la cabecera), no a `compra_items`, porque
 --     `compra_items` es de prendas (`producto_id`/`variante_id`) y no
 --     modela insumos — ligar más fino exigiría tocar esa tabla, fuera del
---     alcance de este cambio (ver ADR-0078).
+--     alcance de este cambio (ver ADR-0090).
 --   · `registrar_consumo_insumos(p_produccion_id, p_items, p_nota)` — el
 --     consumo real al cortar. Exige que la orden siga `en_proceso`: se
 --     registra ANTES de `cerrar_produccion`, nunca después — así el costo
@@ -239,7 +239,7 @@ $$;
 -- No es opcional: fn_aplicar_movimiento_insumo no valida permiso ni dueño —
 -- confía en que quien la llama (recibir_insumos/registrar_consumo_insumos,
 -- ambas security definer) ya insertó la fila después de validar negocio.
--- Verificado contra el Postgres local (2026-09-17, ver ADR-0078): SIN este
+-- Verificado contra el Postgres local (2026-09-17, ver ADR-0090): SIN este
 -- revoke, hasta `anon` (sin sesión) tiene EXECUTE por el otorgamiento
 -- automático de Postgres a PUBLIC al crear la función — igual que se
 -- encontró y cerró para fn_recalcular_costo_variante en
@@ -369,7 +369,7 @@ begin
 
   -- D-47: costo_tela/costo_avios dejan de ser tecleados y pasan a ser la
   -- suma de lo realmente cortado (empaque se cuenta junto a avíos — no hay
-  -- columna propia para packaging en producciones, ver ADR-0078). Solo se
+  -- columna propia para packaging en producciones, ver ADR-0090). Solo se
   -- pisa el balde que ESTE consumo tocó (existe al menos una fila de ese
   -- tipo): si el Taller todavía no registra avíos por insumo, el monto
   -- tecleado en abrir_produccion se respeta tal cual — evita que cortar

@@ -21,7 +21,7 @@ function money(n: number) {
  * lo calcula en el instante del cierre, así que incluye las ventas que hayan
  * entrado mientras la pantalla estaba abierta.
  *
- * `cola` (ADR-0080): las ventas offline de esta sede que aún no subieron al
+ * `cola` (ADR-0092): las ventas offline de esta sede que aún no subieron al
  * servidor. `cerrar_caja` calcula el "esperado" leyendo solo `venta_pagos` ya
  * persistidas — nunca ve esta cola — así que efectivo ya cobrado en el mostrador
  * pero todavía encolado infla el conteo físico sin que el esperado lo sepa, y se
@@ -144,7 +144,7 @@ export function CerrarCajaModalV2({
           {/* No afirma que esto explica TODA la diferencia (podría haber, además, un
               faltante real) — solo pone el dato al lado para que quien lee no salte
               directo a "falta plata" o "alguien se equivocó" sin saber que había ventas
-              offline en camino (ver Don Norman, tarea original del ADR-0080). */}
+              offline en camino (ver Don Norman, tarea original del ADR-0092). */}
           {resultado.efectivoEncoladoAlCerrar > 0 && (
             <p className="mx-auto max-w-[18rem] text-xs text-ambar-profundo">
               De esta diferencia, {money(resultado.efectivoEncoladoAlCerrar)} son ventas que ya cobraste sin

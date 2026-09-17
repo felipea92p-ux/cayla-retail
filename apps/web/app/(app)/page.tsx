@@ -53,6 +53,7 @@ export default async function InicioPage() {
         <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
           {[
+            { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
             { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a esta ubicación" },
             { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación" },
             { href: "/productos", etiqueta: "Productos", detalle: "Catálogo completo" },

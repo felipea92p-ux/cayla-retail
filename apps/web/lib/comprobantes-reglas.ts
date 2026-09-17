@@ -9,7 +9,7 @@
 // conectar Vender con Facturación).
 
 export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito";
-// "no_emitido" (ADR-0081): un líder liberó un comprobante `pendiente` que nunca se
+// "no_emitido" (ADR-0093): un líder liberó un comprobante `pendiente` que nunca se
 // transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
 // de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
 export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido";
@@ -30,7 +30,7 @@ export type Comprobante = {
   entorno_transmision: EntornoTransmision;
   motivo_rechazo: string | null;
   motivo_anulacion: string | null;
-  /** Por qué se liberó — solo tiene sentido con `estado === "no_emitido"` (ADR-0081). */
+  /** Por qué se liberó — solo tiene sentido con `estado === "no_emitido"` (ADR-0093). */
   motivo_no_emitido: string | null;
   /** Con esto lleno y `estado` todavía "aceptado", la baja se pidió pero SUNAT
    *  no la confirmó: el resumen diario de boletas se procesa diferido. */
