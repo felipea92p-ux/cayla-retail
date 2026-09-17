@@ -859,9 +859,12 @@ export type Database = {
           id: string
           igv: number
           items: Json | null
+          marcado_no_emitido_at: string | null
+          marcado_no_emitido_por: string | null
           moneda: string
           motivo: string | null
           motivo_anulacion: string | null
+          motivo_no_emitido: string | null
           motivo_rechazo: string | null
           numero: number
           respuesta_anulacion: Json | null
@@ -889,9 +892,12 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json | null
+          marcado_no_emitido_at?: string | null
+          marcado_no_emitido_por?: string | null
           moneda?: string
           motivo?: string | null
           motivo_anulacion?: string | null
+          motivo_no_emitido?: string | null
           motivo_rechazo?: string | null
           numero: number
           respuesta_anulacion?: Json | null
@@ -919,9 +925,12 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json | null
+          marcado_no_emitido_at?: string | null
+          marcado_no_emitido_por?: string | null
           moneda?: string
           motivo?: string | null
           motivo_anulacion?: string | null
+          motivo_no_emitido?: string | null
           motivo_rechazo?: string | null
           numero?: number
           respuesta_anulacion?: Json | null
@@ -3865,6 +3874,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      marcar_comprobante_no_emitido: {
+        Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: undefined
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -3975,6 +3988,15 @@ export type Database = {
           p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
+        }
+        Returns: string
+      }
+      registrar_consumo_insumo: {
+        Args: {
+          p_cantidad: number
+          p_insumo_id: string
+          p_nota?: string
+          p_produccion_id: string
         }
         Returns: string
       }
