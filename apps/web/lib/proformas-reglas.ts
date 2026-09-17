@@ -9,7 +9,7 @@ export type EstadoProforma = "vigente" | "convertida" | "vencida" | "anulada";
 
 export type Proforma = {
   id: string;
-  sede_id: string;
+  ubicacion_id: string;
   cliente_nombre: string | null;
   cliente_num_doc: string | null;
   total: number;

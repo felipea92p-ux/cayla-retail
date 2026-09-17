@@ -79,9 +79,12 @@ function texto(obj: Record<string, unknown>, ...claves: string[]): string | null
 }
 
 type Proveedor = {
-  url: (tipo: TipoConsulta, numero: string) => string;
+  url: (tipo: TipoConsulta, numero: string, token: string) => string;
   /** Algunos envuelven la respuesta en `{ data: {...} }`. */
   cuerpo: (json: Record<string, unknown>) => Record<string, unknown> | null;
+  /** Dónde viaja el token. Casi todos usan la cabecera `Authorization`, pero
+   *  la v1 de apis.net.pe lo quiere en la query string y rechaza el Bearer. */
+  auth?: "bearer" | "query";
 };
 
 const PROVEEDORES: Record<string, Proveedor> = {
@@ -93,13 +96,22 @@ const PROVEEDORES: Record<string, Proveedor> = {
         : `https://api.decolecta.com/v1/sunat/ruc?numero=${n}`,
     cuerpo: (json) => json,
   },
-  // https://apis.net.pe
+  // https://apis.net.pe — v2, con el token en la cabecera.
   apisnetpe: {
     url: (tipo, n) =>
       tipo === "dni"
         ? `https://api.apis.net.pe/v2/reniec/dni?numero=${n}`
         : `https://api.apis.net.pe/v2/sunat/ruc?numero=${n}`,
     cuerpo: (json) => json,
+  },
+  // apis.net.pe v1: mismo proveedor, otra generación de tokens. Los tokens que
+  // empiezan con `sk_` son de esta versión — verificado contra la API real
+  // 2026-09-05: en v2 responden "Token invalido" y aquí funcionan. El token va
+  // en la query string, no como Bearer.
+  apisnetpe_v1: {
+    url: (tipo, n, token) => `https://api.apis.net.pe/v1/${tipo}?numero=${n}&token=${token}`,
+    cuerpo: (json) => json,
+    auth: "query",
   },
   // https://docs.factiliza.com — este sí envuelve en { success, data }
   factiliza: {
@@ -165,8 +177,11 @@ export async function consultarPadron(tipo: TipoConsulta, numero: string): Promi
     // 5 segundos y se corta. Quien atiende no puede quedarse mirando un spinner
     // porque la API de un tercero está lenta: se degrada a escribir el nombre
     // a mano y la venta sigue (principio 9).
-    respuesta = await fetch(proveedor.url(tipo, numero), {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    respuesta = await fetch(proveedor.url(tipo, numero, token), {
+      headers:
+        proveedor.auth === "query"
+          ? { Accept: "application/json" }
+          : { Authorization: `Bearer ${token}`, Accept: "application/json" },
       signal: AbortSignal.timeout(5000),
       cache: "no-store",
     });

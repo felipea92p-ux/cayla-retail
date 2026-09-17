@@ -1,72 +1,93 @@
 import Link from "next/link";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoInteligente, type VarianteInteligente } from "@/lib/inteligencia";
-import { getSedes } from "@/lib/sedes";
-import { InventarioNav } from "@/components/InventarioNav";
-import { InventarioAgrupado, type ProductoAgrupado } from "@/components/InventarioAgrupado";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { getExistencias, resumirExistencias } from "@/lib/inventario-v2";
+import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
+import { getTrasladosEnCurso } from "@/lib/traslados";
+import { estaAtrasado } from "@/lib/traslados-reglas";
+import { SelectorUbicacion } from "@/components/SelectorUbicacion";
+import { InventarioPanel } from "@/components/InventarioPanel";
 
-export default async function InventarioPage() {
-  const persona = await requirePersonaActual();
+// Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
+// (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
+// `stock` — la separación es una columna más (`sububicacion_id`), no dos
+// tablas como en V1 — pero ahora una ubicación puede tener más de una fila
+// por variante, así que la pantalla necesita saber agregar antes de
+// mostrar. Esa agregación vive en `getStockPorUbicacion`, no acá.
+//
+// Existencias (2026-09-16, diseño de Felipe): a cada prenda se le suma lo que
+// viene en camino hacia acá y lo que hay en las otras sedes
+// (`getExistencias`), y arriba tres cifras: cuánto hay, cuántas prendas
+// piden algo, cuánto está por llegar. Esta página sigue siendo solo "traer
+// los datos y elegir el layout".
+export default async function InventarioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ubicacion?: string }>;
+}) {
+  const persona = await requirePersonaActualV2();
+  const { ubicacion: ubicacionQuery } = await searchParams;
+  const ubicaciones = await getUbicaciones();
 
-  // getSedes() ya está cacheado por request (el layout lo pidió primero) — resolverlo
-  // acá no cuesta un viaje de red nuevo, y va en paralelo con getCatalogoInteligente
-  // en vez de esperarlo.
-  const [{ variantes }, todasSedes] = await Promise.all([getCatalogoInteligente(persona), getSedes()]);
-  const sedesOperativas = todasSedes.filter((s) => s.tipo !== "almacen");
+  const ubicacionActivaId =
+    persona.rol === "lider" && ubicacionQuery && ubicaciones.some((u) => u.id === ubicacionQuery)
+      ? ubicacionQuery
+      : persona.ubicacionId;
+  const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  // Agrupar variantes por producto — una fila por modelo, matriz de tallas adentro.
-  const porProducto = new Map<string, ProductoAgrupado>();
-  variantes.forEach((v: VarianteInteligente) => {
-    const actual = porProducto.get(v.productoId);
-    if (actual) {
-      actual.variantes.push(v);
-    } else {
-      porProducto.set(v.productoId, {
-        productoId: v.productoId,
-        referencia: v.referencia,
-        familia: v.familia,
-        categoria: v.categoria,
-        marca: v.marca,
-        fotoUrl: v.fotoUrl,
-        variantes: [v],
-      });
-    }
-  });
-  const productos = [...porProducto.values()].sort((a, b) => a.referencia.localeCompare(b.referencia));
+  const [stock, sububicaciones, traslados] = await Promise.all([
+    getExistencias(ubicacionActivaId, ubicaciones),
+    getSububicaciones(ubicacionActivaId),
+    getTrasladosEnCurso(ubicacionActivaId),
+  ]);
+  const resumen = resumirExistencias(stock);
+  const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
+  const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
-  const sedeActual = sedesOperativas.find((s) => s.id === persona.sedeId) ?? {
-    id: persona.sedeId,
-    codigo: persona.sedeCodigo,
+  // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
+  // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
+  const haciaAca = traslados.filter((t) => t.ubicacionDestinoId === ubicacionActivaId);
+  const proximaLlegada = haciaAca.map((t) => t.fechaEstimadaLlegada).filter((f): f is string => !!f).sort()[0] ?? null;
+  const enCamino = {
+    traslados: haciaAca.length,
+    proximaLlegada,
+    atrasados: haciaAca.filter((t) => t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
   };
+
+  // La foto es del momento en que se cargó: la app no sincroniza en segundo
+  // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
+  const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="label-cayla text-[10px] text-tinta/45">Inventario</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Catálogo</h1>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
+          <p className="mt-1 text-sm text-tinta/65">
+            Qué hay en piso y almacén, qué viene en camino y dónde más hay. Vista cargada a las {horaCarga} — recarga para ver lo último.
+          </p>
         </div>
-        <div className="flex gap-2">
-          {persona.rol === "lider" && (
-            <Link
-              href="/inventario/producto/nuevo"
-              className="label-cayla bg-tinta px-4 py-2.5 text-[10px] text-crema transition-colors hover:bg-rojo"
-            >
-              + Nuevo producto
-            </Link>
-          )}
-          <a
-            href="/api/export/inventario"
-            className="label-cayla border border-tinta/25 px-4 py-2.5 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+        <div className="flex flex-wrap items-center gap-3">
+          {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+          <Link
+            href="/inventario/mover"
+            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
-            Exportar Excel
-          </a>
+            + Nuevo traslado
+          </Link>
         </div>
       </div>
 
-      <InventarioNav />
-
-      <InventarioAgrupado productos={productos} sedeActual={sedeActual} todasLasSedes={sedesOperativas} />
+      <InventarioPanel
+        ubicacionId={ubicacionActivaId}
+        stock={stock}
+        resumen={resumen}
+        enCamino={enCamino}
+        sububicaciones={sububicaciones}
+        sububicacionPiso={sububicacionPiso}
+        sububicacionAlmacen={sububicacionAlmacen}
+      />
     </div>
   );
 }

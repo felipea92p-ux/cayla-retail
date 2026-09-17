@@ -4,18 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Proforma } from "@/lib/proformas";
-import type { TipoComprobante } from "@/lib/comprobantes";
+import type { TipoComprobante } from "@/lib/comprobantes-reglas";
+import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { Modal } from "@/components/ui/Modal";
+import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 
-type Sede = { id: string; codigo: string };
+type Ubicacion = { id: string; nombre: string };
 
 const ESTADO_ESTILO: Record<Proforma["estado"], string> = {
-  vigente: "border-ambar/30 bg-ambar/10 text-ambar",
-  convertida: "border-verde/45 bg-verde/10 text-verde",
-  vencida: "border-tinta/20 bg-tinta/5 text-tinta/45",
-  anulada: "border-tinta/20 bg-tinta/5 text-tinta/45",
+  vigente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  convertida: "border-verde/45 bg-verde/10 text-verde-profundo",
+  vencida: "border-tinta/20 bg-tinta/5 text-tinta/65",
+  anulada: "border-tinta/20 bg-tinta/5 text-tinta/65",
 };
 
 const ESTADO_ETIQUETA: Record<Proforma["estado"], string> = {
@@ -46,20 +51,19 @@ function formatearFecha(iso: string) {
 // ver primero.
 export function ProformasPanel({
   proformas,
-  sedes,
-  sedeActualId,
+  ubicaciones,
+  ubicacionActualId,
 }: {
   proformas: Proforma[];
-  sedes: Sede[];
-  sedeActualId: string;
+  ubicaciones: Ubicacion[];
+  ubicacionActualId: string;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Formulario de creación
-  const [sedeId, setSedeId] = useState(sedeActualId);
+  const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
   const [total, setTotal] = useState(0);
   const [clienteNombre, setClienteNombre] = useState("");
   const [venceEnDias, setVenceEnDias] = useState(7);
@@ -68,16 +72,22 @@ export function ProformasPanel({
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [convertirNombre, setConvertirNombre] = useState("");
-  const clienteTipoDoc: "dni" | "ruc" | "sin_documento" =
-    tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
   const vigentes = proformas.filter((p) => p.estado === "vigente");
   const porVencer = vigentes.filter((p) => p.porVencer);
   const montoVigente = vigentes.reduce((acc, p) => acc + Number(p.total), 0);
 
+  // Un solo orden para tabla y tarjetas — nunca dos criterios que puedan
+  // desalinearse. Excepciones primero: vigentes (y entre ellas, por vencer)
+  // arriba de convertidas/vencidas.
+  const proformasOrdenadas = [...proformas].sort((a, b) => {
+    const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
+    return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
+  });
+
   function cerrarModal() {
     setModal(null);
-    setError(null);
     setTotal(0);
     setClienteNombre("");
     setVenceEnDias(7);
@@ -89,17 +99,19 @@ export function ProformasPanel({
   async function onCrear(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const venceAt = new Date(Date.now() + venceEnDias * 24 * 3600 * 1000).toISOString();
     const { error } = await supabase.rpc("crear_proforma", {
-      p_sede_id: sedeId,
+      p_ubicacion_id: ubicacionId,
       // Sin catálogo de ítems en esta pantalla todavía (mismo nivel de detalle
       // que "Emitir comprobante" hoy: un total, no líneas) — se guarda como un
       // solo ítem para no inventar una estructura que nadie lee todavía.
-      p_items: [{ descripcion: "Venta", cantidad: 1, precio: total }],
+      // `precio_unitario`, no `precio`: es la forma que espera emitir_comprobante()
+      // cuando convertir_proforma_a_comprobante() reenvía estos items (0010) — con
+      // el nombre viejo, Lucode recibía un precio undefined en cada línea.
+      p_items: [{ descripcion: "Venta", cantidad: 1, precio_unitario: total }],
       p_subtotal: subtotal,
       p_igv: igv,
       p_total: total,
@@ -107,11 +119,12 @@ export function ProformasPanel({
       p_vence_at: venceAt,
     });
     if (error) {
-      setError(error.message);
+      avisar.error(traducirError(error, "crear la proforma"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito(`Proforma de S/ ${total.toFixed(2)} creada`, { detalle: `Vence en ${venceEnDias} ${venceEnDias === 1 ? "día" : "días"}.` });
     cerrarModal();
     router.refresh();
   }
@@ -119,7 +132,6 @@ export function ProformasPanel({
   async function onConvertir(e: React.FormEvent, proforma: Proforma) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("convertir_proforma_a_comprobante", {
       p_proforma_id: proforma.id,
@@ -129,11 +141,12 @@ export function ProformasPanel({
       p_cliente_nombre: convertirNombre || proforma.cliente_nombre || undefined,
     });
     if (error) {
-      setError(error.message);
+      avisar.error(traducirError(error, "convertir la proforma en comprobante"));
       setLoading(false);
       return;
     }
     setLoading(false);
+    avisar.exito("Proforma convertida en comprobante", { detalle: "Búscalo en Comprobantes para transmitirlo." });
     cerrarModal();
     router.refresh();
   }
@@ -153,7 +166,7 @@ export function ProformasPanel({
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[10px] text-tinta/45">
+          <h2 className="label-cayla text-[11px] text-tinta/65">
             Proformas
             <Ayuda titulo="Proforma / nota de venta">
               No es un comprobante de pago — no la reconoce SUNAT ni consume un número de serie.
@@ -163,40 +176,34 @@ export function ProformasPanel({
           </h2>
           <button
             onClick={() => setModal("crear")}
-            className="label-cayla border border-tinta/20 px-3 py-2 text-[10px] text-tinta/60 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             Nueva proforma
           </button>
         </div>
 
         {proformas.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/40">
+          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
             Sin proformas este mes.
           </p>
         ) : (
-          <div className="overflow-x-auto card-cayla">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/40">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Fecha</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Cliente</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Total</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]">Estado</th>
-                  <th className="label-cayla px-3 py-2 text-[9px]" />
-                </tr>
-              </thead>
-              {/* Excepciones primero: vigentes (y entre ellas, por vencer) arriba de convertidas/vencidas. */}
-              <tbody className="divide-y divide-tinta/5">
-                {[...proformas]
-                  .sort((a, b) => {
-                    const orden = { vigente: 0, convertida: 1, vencida: 2, anulada: 3 };
-                    // Y dentro de las vigentes, las que están por vencer primero
-                    // (el comentario de arriba lo prometía; el orden no lo hacía).
-                    return orden[a.estado] - orden[b.estado] || Number(b.porVencer) - Number(a.porVencer);
-                  })
-                  .map((p) => (
+          <>
+            {/* Tabla — 640px (`sm`) y más ancho; ver la misma nota en ComprobantesPanel. */}
+            <div className="hidden overflow-x-auto card-cayla sm:block">
+              <table className="w-full min-w-[760px] text-left text-xs">
+                <thead className="border-b border-tinta/10 text-tinta/65">
+                  <tr>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
+                    <th className="label-cayla px-3 py-2 text-[11px]" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tinta/5">
+                  {proformasOrdenadas.map((p) => (
                     <tr key={p.id}>
-                      <td className="px-3 py-2.5 text-tinta/60">
+                      <td className="px-3 py-2.5 text-tinta/75">
                         {p.porVencer && (
                           <span
                             title="Vence en menos de 48 horas"
@@ -205,10 +212,10 @@ export function ProformasPanel({
                         )}
                         {formatearFecha(p.created_at)}
                       </td>
-                      <td className="px-3 py-2.5 text-tinta/60">{p.cliente_nombre ?? "Cliente varios"}</td>
+                      <td className="px-3 py-2.5 text-tinta/75">{p.cliente_nombre ?? "Cliente varios"}</td>
                       <td className="px-3 py-2.5 font-medium text-tinta">{money(Number(p.total))}</td>
                       <td className="px-3 py-2.5">
-                        <span className={`label-cayla border px-3 py-1 text-[9px] ${ESTADO_ESTILO[p.estado]}`}>
+                        <span className={`label-cayla border px-3 py-1 text-[11px] ${ESTADO_ESTILO[p.estado]}`}>
                           {ESTADO_ETIQUETA[p.estado]}
                         </span>
                       </td>
@@ -216,7 +223,7 @@ export function ProformasPanel({
                         {p.estado === "vigente" && (
                           <button
                             onClick={() => setModal({ convertir: p })}
-                            className="label-cayla text-[9px] text-tinta/60 underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo"
+                            className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
                           >
                             Convertir
                           </button>
@@ -224,110 +231,120 @@ export function ProformasPanel({
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tarjetas — por debajo de `sm`. */}
+            <div className="space-y-2 sm:hidden">
+              {proformasOrdenadas.map((p) => (
+                <div key={p.id} className="card-cayla p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-tinta">{p.cliente_nombre ?? "Cliente varios"}</p>
+                      <p className="mt-0.5 text-xs text-tinta/65">
+                        {p.porVencer && (
+                          <span
+                            title="Vence en menos de 48 horas"
+                            className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ambar align-middle"
+                          />
+                        )}
+                        {formatearFecha(p.created_at)}
+                      </p>
+                    </div>
+                    <p className="font-display shrink-0 text-base tabular-nums text-tinta">{money(Number(p.total))}</p>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    <span className={`label-cayla border px-3 py-1 text-[11px] ${ESTADO_ESTILO[p.estado]}`}>
+                      {ESTADO_ETIQUETA[p.estado]}
+                    </span>
+                    {p.estado === "vigente" && (
+                      <button
+                        onClick={() => setModal({ convertir: p })}
+                        className="label-cayla rounded border border-tinta/25 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+                      >
+                        Convertir
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* ==================== Modal: crear proforma ==================== */}
       {modal === "crear" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={onCrear}
-            className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5"
-          >
-            <h3 className="font-display text-lg text-tinta">Nueva proforma</h3>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Sede</label>
-              <select value={sedeId} onChange={(e) => setSedeId(e.target.value)} className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm">
-                {sedes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.codigo}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Cliente (opcional)</label>
-              <input
-                value={clienteNombre}
-                onChange={(e) => setClienteNombre(e.target.value)}
-                placeholder="Nombre de la clienta"
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Total (incluye IGV)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={total || ""}
-                onChange={(e) => setTotal(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Vigente por (días)</label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={venceEnDias}
-                onChange={(e) => setVenceEnDias(Number(e.target.value))}
-                className="mt-1 w-full border border-tinta/20 bg-crema px-3 py-2 text-sm"
-              />
-            </div>
-            {error && <p className="text-xs text-rojo">{error}</p>}
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+        <Modal titulo="Nueva proforma" onClose={cerrarModal}>
+          <form onSubmit={onCrear} className="mt-5 space-y-2">
+            <CampoSelect
+              etiqueta="Ubicación"
+              valor={ubicacionId}
+              onValor={setUbicacionId}
+              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+            />
+
+            <CampoTexto
+              etiqueta="Cliente (opcional)"
+              value={clienteNombre}
+              onChange={(e) => setClienteNombre(e.target.value)}
+              placeholder="Nombre de la clienta"
+            />
+
+            <CampoMonto
+              etiqueta="Total (incluye IGV)"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              placeholder="0.00"
+              value={total || ""}
+              onChange={(e) => setTotal(Number(e.target.value))}
+            />
+
+            <CampoTexto
+              etiqueta="Vigente por (días)"
+              type="number"
+              min="1"
+              required
+              value={venceEnDias}
+              onChange={(e) => setVenceEnDias(Number(e.target.value))}
+            />
+
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Guardando…" : "Guardar proforma"}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* ==================== Modal: convertir a comprobante ==================== */}
       {modal && typeof modal === "object" && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={cerrarModal}>
-          <div className="absolute inset-0 bg-tinta/30" />
-          <form
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={(e) => onConvertir(e, modal.convertir)}
-            className="relative w-full max-w-md space-y-4 border border-sand bg-papel p-5"
-          >
-            <h3 className="font-display text-lg text-tinta">Convertir a comprobante</h3>
-            <p className="text-xs text-tinta/60">
+        <Modal titulo="Convertir a comprobante" onClose={cerrarModal}>
+          <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="mt-5 space-y-2">
+            <p className="text-xs text-tinta/75">
               {modal.convertir.cliente_nombre ?? "Cliente varios"} · {money(Number(modal.convertir.total))}
             </p>
 
-            <div>
-              <label className="label-cayla block text-[9px] text-tinta/45">Tipo</label>
-              <div className="mt-1 flex gap-2">
-                {(["boleta", "factura"] as TipoComprobante[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setTipo(t);
-                      setClienteNumDoc("");
-                      setConvertirNombre("");
-                    }}
-                    className={`label-cayla flex-1 border px-3 py-2 text-[10px] transition-colors ${
-                      tipo === t ? "border-rojo bg-rojo/10 text-rojo" : "border-tinta/20 text-tinta/50"
-                    }`}
-                  >
-                    {t === "boleta" ? "Boleta" : "Factura"}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Segmentado
+              etiqueta="Tipo"
+              valor={tipo}
+              onValor={(t) => {
+                setTipo(t);
+                setClienteNumDoc("");
+                setConvertirNombre("");
+              }}
+              opciones={[
+                { valor: "boleta", texto: "Boleta" },
+                { valor: "factura", texto: "Factura" },
+              ] as const}
+            />
 
             <ConsultaDocumento
               tipo={tipo === "factura" ? "ruc" : "dni"}
@@ -338,17 +355,16 @@ export function ProformasPanel({
               onNombre={setConvertirNombre}
             />
 
-            {error && <p className="text-xs text-rojo">{error}</p>}
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrarModal} className="flex-1 border border-tinta/20 py-2.5 text-sm text-tinta/60">
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-tinta py-2.5 text-sm text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
                 {loading ? "Emitiendo…" : "Emitir comprobante"}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );
