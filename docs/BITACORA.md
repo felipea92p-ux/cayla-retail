@@ -3,6 +3,19 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (revisión de Recibir mercadería: el flujo nunca corrió en producción)
+
+Auditoría pedida por Felipe sobre `/compras/recibir` y `/inventario/recibir` para un
+flujo completo de ERP — sin cambios de código, solo lectura de repo + producción. El
+diseño (costeo promedio ponderado, tope contra lo facturado, piso/almacén, adjuntos) es
+sólido; los huecos reales son de alcance: mercadería dañada/corta sin salida, devolución
+a proveedor es una etiqueta sin efecto real, insumos del Taller viven en tablas huérfanas
+de la unificación con Dynamic sin ninguna pantalla en `apps/web`. El hallazgo que más
+cambia la prioridad: **`retail.compras` tiene 0 filas en producción — ni `recibir_compras`
+ni `recibir_lote` se ejecutaron nunca de verdad**, verificado contra la base, no contra
+BACKLOG (que además tenía a D-45 sin cerrar en el documento pese a estar resuelta en
+código desde el 16-sep). Detalle completo con archivo:línea en BACKLOG de esta fecha.
+
 ## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
 
 Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
