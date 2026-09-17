@@ -5370,3 +5370,26 @@ documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el c
 decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
+
+## 2026-09-17 (Recibir mercadería: lista de recepciones + botón, sobre la auditoría del mismo día)
+
+Felipe pidió hacer la pantalla más intuitiva y poder ver recepciones ya hechas — ninguna
+de las dos rutas (`/compras/recibir` con factura, `/inventario/recibir` sin ella) lo
+permitía. `getRecepcionesRecientes()` generaliza `getRecepcionesCompra` sin acotar a una
+factura, sobre `retail.lotes` (ya existía, nadie la leía así); `/inventario/recibir` pasó
+a lista + "+ Nueva recepción" en `Modal` (patrón de Colores/Categorías); `/compras/recibir`
+ganó pestaña "Recibidas recientemente". Sin migraciones. Detalle, lo verificado en
+navegador (Felipe y Micaela) y los 3 pendientes (incluida la pregunta de negocio sobre
+qué pantalla es el default del Inicio) en BACKLOG, sección de hoy.
+
+De paso: `packages/database/src/types.ts` no tenía `personas` como tabla — encontrado al
+typecheckear. Primer diagnóstico (equivocado, corregido la misma sesión): se pensó que
+era drift del Postgres local. Verificado después contra producción
+(`vovjyyiafkxteijimpuy`): NO existe `retail.personas` ahí tampoco — la identidad de
+personas está unificada con Dynamic (`public.personas`, su tabla de RR.HH. completa,
+columnas `nombres`/`apellidos`/`sede_base_id`, no `nombre`/`ubicacion_id`) desde la
+unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids uuid[])`
+(`0009_integracion_dynamic.sql`), que `caja.ts`/`conteos.ts`/`traslados.ts`/
+`devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
+revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
+ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.

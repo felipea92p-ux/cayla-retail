@@ -46,6 +46,66 @@ que Benja las tome cuando corresponda, no para que una sesión de IA las improvi
 
 ---
 
+## 🎯 Recibir mercadería: lista de recepciones + "+ Nueva recepción" (2026-09-17)
+
+Felipe lo pidió tras la auditoría de huecos de más abajo (misma fecha): la pantalla no
+dejaba ver nada de lo ya recibido, solo lo pendiente o un formulario en blanco. Sin
+cambios de esquema — `retail.lotes` ya guardaba cada recepción (con o sin factura,
+ADR-0035); nadie la leía todavía fuera del detalle de una factura puntual
+(`getRecepcionesCompra`). Nuevo: `getRecepcionesRecientes()` (`lib/compras.ts`) generaliza
+esa misma consulta sin acotar a una factura, y `RecepcionesRecientes.tsx` (reusa
+`Tabla`/`Encabezado` de `components/ui/Tabla.tsx`) la dibuja en las dos pantallas:
+
+- **`/inventario/recibir` (sin factura):** pasó de ser siempre el formulario a lista +
+  botón — mismo patrón que Colores/Categorías (2026-09-15): `RecibirLotePanel.tsx`
+  (nuevo) pone el formulario (`RecepcionFormV2`, lógica de escritura intacta, solo le
+  quité el `card-cayla` propio para que no quede una tarjeta dentro de otra) detrás de
+  "+ Nueva recepción" en un `Modal`.
+- **`/compras/recibir` (con factura, ADR-0035):** pestañas "Pendientes"/"Recibidas
+  recientemente" por `?vista=`, server-driven (sin estado de cliente nuevo) para no
+  tocar `RecepcionCompraFormV2` (615 líneas, ya maneja bastante estado propio). Cada
+  fila de "Recibidas" enlaza a `/compras/factura/[compraId]`.
+- Enlace cruzado en los dos sentidos: antes solo `/compras/recibir` mencionaba (y solo
+  en su estado vacío) la ruta sin factura; ahora los dos headers se referencian entre sí
+  siempre, no solo cuando la lista está vacía.
+
+Verificado en navegador real: recepción sin factura completa (Confecciones del Sur
+EIRL, Tienda Lima, 1 unidad, 17/09/2026 — queda como dato real en el Postgres local
+compartido, no se borra, principio 4) aparece al instante en la lista tras
+`router.refresh()`; pestaña "Recibidas" de Compras muestra las 2 facturas ya recibidas
+del seed y enlaza bien al detalle; como Micaela (colaboradora, Tienda Trujillo) la
+lista sin factura sale vacía y scoped a su sede — RLS de `lotes`/`movimientos`
+(`fn_puede_operar_ubicacion`) ya lo resolvía, no hizo falta acotar nada a mano.
+`pnpm --filter web typecheck`/`lint` en verde.
+
+- [ ] **Pregunta de negocio para Felipe, no técnica — cuál pantalla es el default.**
+      La tarjeta "Recibir mercadería" del Inicio (`AppShell.tsx`, sección `acciones`)
+      manda a `/inventario/recibir` (sin factura); el menú global "+ Nuevo" manda a
+      `/compras/recibir` (con factura, el camino principal según ADR-0035). Los dos
+      accesos más visibles de la app hoy no coinciden. No lo cambié — decidir cuál es
+      el más común en la operación real es suyo, no de Postgres/Next.js.
+- [x] **Corrección (mismo día): lo de `personas` NO era drift — es real, en
+      producción también.** Primer diagnóstico (arriba, ya borrado) decía que
+      `retail.personas` vivía en `public` por drift del Postgres local. Falso:
+      verificado contra producción (`vovjyyiafkxteijimpuy`, `information_schema.tables`)
+      que `retail.personas` **no existe ahí tampoco** — la identidad de personas está
+      unificada con Dynamic desde julio-2026, en `public.personas` (su tabla de
+      RR.HH. completa: `nombres`/`apellidos`, no `nombre`; `sede_base_id`, no
+      `ubicacion_id`; 30+ columnas de planilla). PostgREST no embebe entre schemas, y
+      el propio repo YA tiene el patrón correcto para esto —
+      `fn_nombres_personas(p_ids uuid[])` (`0009_integracion_dynamic.sql`), que
+      `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts` ya usan. Se corrigió
+      `getRecepcionesRecientes` para usar esa misma RPC (ya no toca `personas`
+      directo) y se revirtió el hand-fix de `packages/database/src/types.ts` (la
+      tabla `personas` y el FK que le había agregado a mano a `lotes` no existen en
+      ningún lado — era una tabla inventada). Verificado en navegador: "Recibido por"
+      ahora sale con el nombre real en las dos filas de la lista.
+- [ ] **Sin pruebas automatizadas** para `getRecepcionesRecientes` — mismo patrón de
+      deuda que el resto de RPC/consultas de este módulo (ver sección de huecos de
+      más abajo, mismo día).
+
+---
+
 ## 🎯 Auditoría de migraciones pendientes en producción (2026-09-17)
 
 Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción,
