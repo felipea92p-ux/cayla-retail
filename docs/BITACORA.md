@@ -5393,3 +5393,65 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 `devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0074)
+
+Felipe, sobre `/compras/recibir`: la recepción solo se rige respecto a las facturas — si
+una prenda no está en ninguna factura de la guía pero de verdad se envió o se recibió,
+no había dónde anotarla sin salir a `/inventario/recibir` y perder que llegó en el mismo
+paquete. Se leyó primero ADR-0035 completo (la regla dura vive en `recibir_compras`: lo
+recibido nunca supera lo facturado, la variante siempre pertenece al producto de la
+línea) y se confirmó que `movimientos.compra_item_id` ya era nullable desde esa misma
+migración — el hueco era de la RPC, no de esquema.
+
+`20260917100000_recibir_compras_fuera_de_factura.sql`: un ítem de `p_items` con
+`compra_item_id = null` entra al mismo lote que los facturados, sin tope, sin tocar
+`compra_pagos` (no inventa deuda que el papel no respalda), costo opcional (mismo
+criterio que `recibir_lote`, ADR-0067 para el promedio ponderado). Se exige al menos un
+ítem SÍ facturado — 100 % fuera de factura es el caso de `/inventario/recibir`, no de
+esta pantalla; mensaje de rechazo apunta ahí, con el mismo candado repetido en el cliente
+(botón deshabilitado) y en la RPC. Aplicada al Postgres local compartido vía
+`docker exec ... psql` directo (no `supabase migration up`: la base compartida tenía dos
+migraciones de otra sesión concurrente sin archivo en este worktree —
+`20260917124059`/`20260917130050` — corregir eso no era mi tarea, y `create or replace
+function` es aditivo/no rompe nada de otra sesión). Verificada con 4 escenarios en
+transacciones con `rollback` (impersonando al líder del seed): mixto factura+extra en un
+mismo lote, 100% extra rechazado, tope original sigue rechazando lo que excede lo
+facturado, costo omitido no toca `variantes.costo` — el detalle completo, con los IDs
+reales usados, está en ADR-0074.
+
+Pantalla: nueva sección "¿Llegó algo que no está en la factura?" en
+`RecepcionCompraFormV2.tsx`, siempre visible una vez elegida al menos una factura.
+Reutiliza el `ComboBuscable` que ya usa `CompraFormV2.tsx` para buscar cualquier producto
+del catálogo completo (no solo lo de las facturas de la guía) — para eso, `variantes`
+ganó `referencia` en la prop que le pasa `compras/recibir/page.tsx` (el catálogo ya la
+traía, solo faltaba pasarla). Primer intento de layout fue un `grid` de columnas fijas
+igual al de las líneas de factura — **se desbordaba horizontalmente en el navegador a
+1024×768** (encontrado recién al probar, no en el diseño): 5 controles con anchos fijos
+más el gap no entran en el ancho real de la tarjeta de la derecha. Corregido a
+`flex flex-wrap` (mismo patrón que ya usa `RecepcionFormV2.tsx` para sus líneas de
+recibir_lote) — sin overflow, los controles bajan de línea en vez de desbordar.
+
+Segundo hallazgo probando: la barra fija de resumen decía "X unidades **de una
+factura**" incluyendo las unidades fuera de factura en el mismo número — technically
+correcto en el total pero engañoso en la frase (parecía que TODO contaba como facturado).
+Corregida a "X unidades (A de la factura, B fuera de factura)" cuando hay extras.
+
+Verificado en navegador real (`felipe@cayla.local`, líder, Tienda Lima) contra
+F002-001045 (Confecciones del Sur EIRL, seed real): 3 u. reales de "Casaca Ximena S
+Negro" (línea de la factura) + "Blusa Emma S/Negro" 2 u. a S/ 25.50 fuera de factura, en
+un solo envío. Toast y pantalla de éxito: "5 unidades... contra una factura (1 fuera de
+factura)". Confirmado después contra Postgres (no solo que no tirara error): el lote
+nuevo tiene los 2 movimientos esperados (uno con `compra_item_id`, uno sin), la línea de
+factura bajó de 90 a 87 pendientes (no 85 — la extra no contó contra ella), y
+`BLU-EMMA-NEG-S` quedó en costo 31.41 (promedio ponderado con los 25.50 nuevos). **Queda
+como dato real en el Postgres local compartido, no se revirtió** — mismo criterio que la
+recepción sin factura de la sesión anterior el mismo día (principio 4).
+
+De paso: el comentario de `getRecepcionesRecientes` (`lib/compras.ts`) que afirmaba "un
+lote es entero de un tipo u otro, nunca mixto" quedó falso con este cambio — corregido;
+el código en sí ya toleraba lotes mixtos sin cambios (suma todo, marca `conFactura` con
+lo que sí tiene `compra_item_id`).
+
+`pnpm --filter web typecheck`/`lint` en verde. **Sin aplicar en producción todavía** —
+solo función, sin cambio de esquema, sin pre-flight especial pendiente.

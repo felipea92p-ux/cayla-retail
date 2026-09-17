@@ -361,12 +361,13 @@ export async function getRecepcionesCompra(compraId: string): Promise<RecepcionC
  * formulario en blanco.
  *
  * Se trae una ventana más grande que `limite` porque el filtro por
- * `conFactura` ocurre en memoria (un lote es entero de un tipo u otro,
- * nunca mixto: lo crea una sola llamada a `recibir_compras` o a
- * `recibir_lote`) — con el volumen real de CAYLA
+ * `conFactura` ocurre en memoria — con el volumen real de CAYLA
  * (3 tiendas + 1 taller) esto nunca compite con un índice; no vale una
  * vista SQL nueva para algo que dos consultas resuelven igual de bien
- * (principio 3, mismo criterio que `getLineasCompra`).
+ * (principio 3, mismo criterio que `getLineasCompra`). `conFactura` es
+ * "¿al menos uno de los movimientos del lote tiene compra_item_id?", no
+ * "¿son todos así?" — desde ADR-0074 un lote de `recibir_compras` puede
+ * traer ítems fuera de factura mezclados con ítems facturados.
  */
 export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; limite?: number } = {}): Promise<RecepcionReciente[]> {
   const limite = opciones.limite ?? 15;
