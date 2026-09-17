@@ -88,6 +88,49 @@ huecos son de alcance, no de correctitud.
 
 ---
 
+## 🎯 Facturación: auditoría de flujo completo (2026-09-17)
+
+Felipe preguntó qué le falta al módulo para un flujo completo de ERP. Solo auditoría —
+sin cambios de código. Detalle completo, con cita de archivo/línea de cada hallazgo, en
+`docs/datos/modulos/08-facturacion-sunat.md` (huecos 1-16, actualizado hoy). Primer
+hallazgo, antes que nada: el doc de módulo (fechado 12-sep) tenía **dos huecos ya
+resueltos ese mismo día** por `0011_venta_con_comprobante.sql` — venta↔comprobante SÍ
+están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre) y la
+proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
+con cita, para que nadie los reconstruya.
+
+- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
+      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
+      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
+      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
+- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
+      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
+      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
+      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
+      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
+      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
+      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
+      `anular_venta` liberarlo automático?
+- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
+      en producción (antes era teórico).** `devoluciones.ts` solo usa
+      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
+      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
+      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
+      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
+      Fase 0, esperando pantalla desde entonces.
+
+Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
+repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
+emite Vender, el panel manual de Facturación sigue expuesto a doble emisión (hueco 1);
+`registrar_serie_comprobante` no valida ubicación, un líder puede reapuntar la serie de
+otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `clientes`
+(hueco 16); cero pruebas de las RPC del módulo contra Postgres real (a diferencia de
+`registrar_cambio`/`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de
+"Monto facturado" sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
+
+---
+
 ## 🐛 `registrar_venta`: `venta_precio_cambiado` revienta con una prenda sin SKU (2026-09-16)
 
 - [x] **`v_sku` llegaba `NULL` a un `raise ... using detail = ... || v_sku || ...`**
