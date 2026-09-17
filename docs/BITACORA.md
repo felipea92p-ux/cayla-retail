@@ -5238,3 +5238,46 @@ una variante sin sku real, en una transacción con `rollback` (sin dejar huella 
 Postgres local compartido): antes de la fix revienta con el error de Postgres, después
 lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
 producción todavía — pendiente el ok de Felipe.
+
+## 2026-09-17 (Facturación: auditoría de flujo completo, sin código)
+
+Felipe preguntó qué le falta al módulo de Facturación (ventas/SUNAT, no facturas de
+compra de Compras) para un flujo completo de ERP. Solo lectura: se leyó
+`docs/datos/modulos/08-facturacion-sunat.md` completo, las migraciones reales
+(`0010_facturacion.sql`, `0011_venta_con_comprobante.sql`, `0012_control_total_temporal.sql`),
+y el código vivo (`ComprobantesPanel.tsx`, `ProformasPanel.tsx`, `lucode.ts`,
+`PuntoDeVenta.tsx`, `devoluciones.ts`, `anular_venta` de ADR-0065) contra lo que el doc
+de módulo (fechado 12-sep) todavía daba por pendiente.
+
+**Primer hallazgo: el doc de módulo estaba desactualizado en dos huecos, ambos
+resueltos ese mismo 12-sep por `0011_venta_con_comprobante.sql`** — venta↔comprobante sí
+están conectados (`PuntoDeVenta.tsx:647-650`) y la proforma sí guarda `precio_unitario`
+correcto. Quedaron marcados RESUELTO en el doc, con cita, para que nadie los
+reconstruya. De paso se confirmó que el código real renombró `sede_id`→`ubicacion_id`
+en todo el módulo (`0010_facturacion.sql`) — el doc de módulo todavía usa el vocabulario
+viejo en varios ejemplos; se anotó al pie, no se reescribió el doc entero (esa reescritura
+ya está pendiente de agendar con Felipe por otra razón, ver aviso al inicio de BACKLOG).
+
+**Tres hallazgos nuevos, no documentados antes, quedaron como huecos 14-16 del doc de
+módulo y como los 3 ítems del BACKLOG de hoy:** (1) el PDF/XML/CDR que Lucode devuelve
+se guarda en `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra — SUNAT recibe
+el documento pero la clienta nunca lo ve; (2) un comprobante `pendiente` sin transmitir
+queda huérfano para siempre (2 casos reales confirmados en producción,
+B004-000004/000005) y `anular_venta` (16-sep) puede sumar más sin darse cuenta — no
+toca `comprobantes` al anular una venta con comprobante `pendiente`; (3) con
+Devoluciones ya en producción (ADR-0052), se confirmó que ninguna devolución emite
+Nota de Crédito — `devoluciones.ts` solo usa `parsearComprobante` para buscar la venta,
+`emitir_nota` sigue sin llamador real en todo el repo, así que una devolución sobre una
+venta con factura deja el IGV declarado de más ante SUNAT indefinidamente. Los tres
+huecos 1/2 (idempotencia/IGV) se reverificaron: siguen abiertos para el panel manual de
+Facturación, ya no para lo que emite Vender (que heredó protección de
+`registrar_venta` al conectarse el 12-sep).
+
+Núcleo del módulo confirmado sólido: reserva de correlativo con `for update`,
+`unique(tipo,serie,numero)` como segunda red, proforma que nunca se promociona con
+UPDATE, anulación en dos tiempos correcta según SUNAT. Ya emite boletas reales en
+Trujillo. Sin cambios de código ni de esquema en esta sesión — todo quedó en los tres
+documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el chat, sin
+decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
+`pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
+devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
