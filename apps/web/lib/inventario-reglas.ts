@@ -15,28 +15,33 @@ export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock"
 export const UMBRAL_REPOSICION_PISO = 7;
 
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
- *  pasa a «Stock bajo». Decisión de Felipe (2026-09-16, corrigiendo el
- *  primer diseño): 20 o menos — mira solo la reserva, no el piso. La
- *  pregunta que resuelve es «¿a esta tienda todavía le queda de dónde sacar
- *  si el piso se vacía?», no «¿cuánto hay hoy en total?» — por eso NO suma
- *  piso: una prenda con el piso lleno y el almacén en 15 igual necesita
- *  pedido, porque cuando el piso se agote no habrá con qué reponerlo.
+ *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
+ *  reserva, no el piso. Bajó de 20 a 10 el 2026-09-17, probando la
+ *  pantalla: con 20, casi todo el catálogo de arranque (lotes chicos de
+ *  boutique) caía en «Stock bajo» de entrada — el umbral se quedó corto
+ *  para distinguir "de verdad crítico" de "recién llegado, en cantidad
+ *  normal". La pregunta que resuelve sigue siendo «¿a esta tienda todavía
+ *  le queda de dónde sacar si el piso se vacía?», no «¿cuánto hay hoy en
+ *  total?» — por eso NO suma piso.
  *
  *  Es distinto de `productos.stock_minimo` (Catálogo), que mira el total de
  *  la RED por modelo y avisa cuándo pedir al proveedor. Este mira el
  *  almacén de UNA tienda y avisa cuándo pedir un traslado. Dos preguntas
  *  distintas, dos números. */
-export const UMBRAL_STOCK_BAJO_ALMACEN = 20;
+export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
 /** El estado de una prenda en una tienda que separa piso de almacén, del
  *  más grave al más leve — el primero que calza gana (los ifs están en
  *  orden de severidad a propósito, no es un `switch` sin orden):
  *  · sin_stock    — no hay nada, ni en el piso ni atrás.
  *  · stock_bajo   — el ALMACÉN (la reserva) llega al umbral o menos, tenga
- *                   el piso lo que tenga. Gana sobre reponer_piso a
- *                   propósito — si la reserva ya está baja, mover del
- *                   almacén al piso es un parche de días, no la solución;
- *                   lo que hace falta es pedir a otra sede.
+ *                   el piso lo que tenga. Gana sobre reponer_piso como
+ *                   ETIQUETA (es la alarma más seria: hay que pedir a otra
+ *                   sede) — pero NO apaga la acción local: ver
+ *                   `necesitaReponerPiso` más abajo, que sigue ofreciendo
+ *                   "Reponer" mientras quede algo en el almacén, aunque sea
+ *                   poco. Las dos cosas son ciertas a la vez: "pide
+ *                   traslado" y "mientras tanto, baja lo que quede".
  *  · reponer_piso — el piso está en el umbral o por debajo, Y el almacén
  *                   TODAVÍA tiene una reserva sana (por encima del umbral
  *                   de stock bajo) para cubrirlo. Acción local, sin pedir
@@ -47,6 +52,16 @@ export function calcularEstado(piso: number, almacen: number): EstadoStock {
   if (almacen <= UMBRAL_STOCK_BAJO_ALMACEN) return "stock_bajo";
   if (piso <= UMBRAL_REPOSICION_PISO) return "reponer_piso";
   return "normal";
+}
+
+/** Si conviene ofrecer el botón «Reponer» (bajar del almacén al piso) —
+ *  independiente de qué CHIP de estado se esté mostrando. Corregido
+ *  2026-09-17: hasta ahora el botón solo aparecía en el estado
+ *  "reponer_piso" — pero en "Stock bajo" con algo de reserva (por poca que
+ *  sea) la acción sigue teniendo sentido: pides el traslado Y bajas lo que
+ *  queda, no una cosa en vez de la otra. */
+export function necesitaReponerPiso(piso: number, almacen: number): boolean {
+  return piso <= UMBRAL_REPOSICION_PISO && almacen > 0;
 }
 
 export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {

@@ -34,7 +34,16 @@ type VarianteConStock = {
   cantidad: number;
 };
 type Ubicacion = { id: string; nombre: string };
-type Linea = { varianteId: string; cantidad: number };
+// `cantidad` es texto, no número — mismo patrón que ya usa `ConteoPanel.tsx`
+// para su campo de cantidad. Un input controlado con `value={numero}` y
+// `onChange={(e) => setNumero(Number(e.target.value) || 1)}` nunca puede
+// quedar vacío: `Number("") || 1` vuelve a "1" en la MISMA tecla que borra
+// el campo, así que borrar para escribir un número nuevo no se podía hacer
+// (bug real, reportado por Felipe 2026-09-17). Con texto libre se puede
+// vaciar el campo mientras se escribe; el tope de stock se aplica recién al
+// salir del campo (`normalizarCantidad`) y otra vez al enviar — nunca a
+// mitad de tecla.
+type Linea = { varianteId: string; cantidad: string };
 
 export function MoverMercaderiaFormV2({
   origenId,
@@ -51,7 +60,7 @@ export function MoverMercaderiaFormV2({
   const [destinoId, setDestinoId] = useState(destinos[0]?.id ?? "");
   const [nota, setNota] = useState("");
   const [etaLocal, setEtaLocal] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1 }]);
+  const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
 
@@ -60,11 +69,24 @@ export function MoverMercaderiaFormV2({
   }
 
   function agregarLinea() {
-    setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: 1 }]);
+    setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
   }
 
   function quitarLinea(i: number) {
     setLineas((actual) => actual.filter((_, n) => n !== i));
+  }
+
+  // El tope de una línea no es el stock total de la variante: hay que restar
+  // lo que OTRAS líneas del mismo formulario ya le piden a esa misma
+  // variante. Sin esto, la misma prenda con 10 unidades podía pedirse
+  // 10+10 en dos líneas — `iniciar_traslado` rechaza la segunda con "Stock
+  // insuficiente", pero el formulario nunca avisó por qué.
+  function topeDeLinea(actual: Linea[], i: number, varianteId: string): number {
+    const usadoEnOtras = actual.reduce(
+      (acc, otra, m) => (m !== i && otra.varianteId === varianteId ? acc + (Number(otra.cantidad) || 0) : acc),
+      0
+    );
+    return Math.max(0, stockDe(varianteId) - usadoEnOtras);
   }
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
@@ -72,17 +94,28 @@ export function MoverMercaderiaFormV2({
       actual.map((l, n) => {
         if (n !== i) return l;
         const siguiente = { ...l, ...cambio };
-        // El tope de esta línea no es el stock total de la variante: hay que
-        // restar lo que OTRAS líneas del mismo formulario ya le piden a esa
-        // misma variante. Sin esto, la misma prenda con 10 unidades podía
-        // pedirse 10+10 en dos líneas — `transferir()` rechaza la segunda con
-        // "Stock insuficiente", pero el formulario nunca avisó por qué.
-        const usadoEnOtras = actual.reduce(
-          (acc, otra, m) => (m !== i && otra.varianteId === siguiente.varianteId ? acc + otra.cantidad : acc),
-          0
-        );
-        const tope = Math.max(0, stockDe(siguiente.varianteId) - usadoEnOtras);
-        return { ...siguiente, cantidad: Math.max(1, Math.min(siguiente.cantidad, tope || 1)) };
+        // Cambiar la CANTIDAD se deja pasar tal cual, sin tocarla — es
+        // exactamente lo que el usuario está escribiendo, vacío incluido.
+        // Cambiar la PRENDA sí revalida al toque: el tope cambia con ella,
+        // y una cantidad que ya no cabe se recorta antes de mostrarla.
+        if (!("varianteId" in cambio)) return siguiente;
+        const tope = topeDeLinea(actual, i, siguiente.varianteId);
+        const actualN = Math.trunc(Number(siguiente.cantidad)) || 1;
+        return { ...siguiente, cantidad: String(Math.max(1, Math.min(actualN, tope || 1))) };
+      })
+    );
+  }
+
+  // Al salir del campo (no en cada tecla): recorta a un entero entre 1 y el
+  // tope real. Antes vivía a mitad de tecla y por eso nunca se podía borrar
+  // el campo para escribir un número nuevo — ver el comentario en `Linea`.
+  function normalizarCantidad(i: number) {
+    setLineas((actual) =>
+      actual.map((l, n) => {
+        if (n !== i) return l;
+        const tope = topeDeLinea(actual, i, l.varianteId);
+        const num = Math.trunc(Number(l.cantidad)) || 1;
+        return { ...l, cantidad: String(Math.max(1, Math.min(num, tope || 1))) };
       })
     );
   }
@@ -97,7 +130,9 @@ export function MoverMercaderiaFormV2({
       avisar.error("Indica cuándo esperas que llegue el traslado.", { enfocar: "mover-eta" });
       return;
     }
-    const validas = lineas.filter((l) => l.varianteId && l.cantidad > 0);
+    const validas = lineas
+      .map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) }))
+      .filter((l) => l.varianteId && l.cantidadNum > 0);
     if (validas.length === 0) {
       avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "mover-linea-0" });
       return;
@@ -108,7 +143,7 @@ export function MoverMercaderiaFormV2({
     const { error } = await supabase.rpc("iniciar_traslado", {
       p_ubicacion_origen_id: origenId,
       p_ubicacion_destino_id: destinoId,
-      p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })),
+      p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
       p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
       p_nota: nota || undefined,
     });
@@ -118,7 +153,7 @@ export function MoverMercaderiaFormV2({
       avisar.error(traducirError(error, "iniciar el traslado"));
       return;
     }
-    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
     const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
     avisar.exito(`${unidades} ${unidades === 1 ? "unidad enviada" : "unidades enviadas"} a ${destino}`, {
       detalle: "Salió de tu almacén ahora. La otra sede confirma cuando llegue de verdad.",
@@ -142,7 +177,7 @@ export function MoverMercaderiaFormV2({
           type="button"
           onClick={() => {
             setOk(null);
-            setLineas([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1 }]);
+            setLineas([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
             setNota("");
             setEtaLocal("");
           }}
@@ -231,7 +266,8 @@ export function MoverMercaderiaFormV2({
                 max={tope}
                 aria-label="Cantidad"
                 value={l.cantidad}
-                onChange={(e) => actualizarLinea(i, { cantidad: Number(e.target.value) || 1 })}
+                onChange={(e) => actualizarLinea(i, { cantidad: e.target.value })}
+                onBlur={() => normalizarCantidad(i)}
                 className="w-20 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm text-tinta outline-none focus:border-rojo"
               />
               <span className="text-xs text-tinta/55">de {tope}</span>
