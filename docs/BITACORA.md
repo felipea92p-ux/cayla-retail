@@ -5323,8 +5323,13 @@ navegador (Felipe y Micaela) y los 3 pendientes (incluida la pregunta de negocio
 qué pantalla es el default del Inicio) en BACKLOG, sección de hoy.
 
 De paso: `packages/database/src/types.ts` no tenía `personas` como tabla — encontrado al
-typecheckear, causado por el mismo Postgres local compartido teniendo `personas` en
-`public` en vez de `retail` (drift de entorno, no de las migraciones ni de producción).
-Se agregó a mano con las columnas reales de `0002_esquema.sql`/`0006_colaboradores.sql`
-en vez de correr `gen-types` completo (hubiera fijado ESE drift en el archivo generado).
-No se tocó el Postgres compartido — ver BACKLOG para la razón.
+typecheckear. Primer diagnóstico (equivocado, corregido la misma sesión): se pensó que
+era drift del Postgres local. Verificado después contra producción
+(`vovjyyiafkxteijimpuy`): NO existe `retail.personas` ahí tampoco — la identidad de
+personas está unificada con Dynamic (`public.personas`, su tabla de RR.HH. completa,
+columnas `nombres`/`apellidos`/`sede_base_id`, no `nombre`/`ubicacion_id`) desde la
+unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids uuid[])`
+(`0009_integracion_dynamic.sql`), que `caja.ts`/`conteos.ts`/`traslados.ts`/
+`devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
+revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
+ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.

@@ -66,20 +66,22 @@ lista sin factura sale vacía y scoped a su sede — RLS de `lotes`/`movimientos
       `/compras/recibir` (con factura, el camino principal según ADR-0035). Los dos
       accesos más visibles de la app hoy no coinciden. No lo cambié — decidir cuál es
       el más común en la operación real es suyo, no de Postgres/Next.js.
-- [ ] **`retail.personas` vive en `public` en el Postgres local COMPARTIDO, no en
-      `retail`** (verificado con `\d retail.personas` → "no encontrada"; `\dt
-      *.personas` → está en `public`). Ninguna migración lo mueve — es drift de este
-      Postgres local (mismo patrón ya visto con sububicaciones/colores en sesiones
-      previas), no algo real en producción. Efecto colateral: `packages/database/src/
-      types.ts` nunca tuvo `personas` como tabla (probablemente generado alguna vez
-      contra un local con el mismo drift) — se la agregué a mano (mismas columnas que
-      `0002_esquema.sql` + `0006_colaboradores.sql`) junto con el FK que le faltaba a
-      `lotes.recibido_por`, siguiendo el mismo criterio ya usado para Colores/
-      Categorías en este archivo. La consulta nueva de todos modos NO depende de que
-      esto ande: si falla, la fila de recepción sale igual, solo sin "Recibido por"
-      (mismo criterio que `getAdjuntosCompra` con Storage). Mover la tabla de vuelta a
-      `retail` es una escritura a un recurso que comparten ~27 worktrees — no la hice;
-      Felipe decide si vale la pena o se espera a un `db reset` coordinado.
+- [x] **Corrección (mismo día): lo de `personas` NO era drift — es real, en
+      producción también.** Primer diagnóstico (arriba, ya borrado) decía que
+      `retail.personas` vivía en `public` por drift del Postgres local. Falso:
+      verificado contra producción (`vovjyyiafkxteijimpuy`, `information_schema.tables`)
+      que `retail.personas` **no existe ahí tampoco** — la identidad de personas está
+      unificada con Dynamic desde julio-2026, en `public.personas` (su tabla de
+      RR.HH. completa: `nombres`/`apellidos`, no `nombre`; `sede_base_id`, no
+      `ubicacion_id`; 30+ columnas de planilla). PostgREST no embebe entre schemas, y
+      el propio repo YA tiene el patrón correcto para esto —
+      `fn_nombres_personas(p_ids uuid[])` (`0009_integracion_dynamic.sql`), que
+      `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts` ya usan. Se corrigió
+      `getRecepcionesRecientes` para usar esa misma RPC (ya no toca `personas`
+      directo) y se revirtió el hand-fix de `packages/database/src/types.ts` (la
+      tabla `personas` y el FK que le había agregado a mano a `lotes` no existen en
+      ningún lado — era una tabla inventada). Verificado en navegador: "Recibido por"
+      ahora sale con el nombre real en las dos filas de la lista.
 - [ ] **Sin pruebas automatizadas** para `getRecepcionesRecientes` — mismo patrón de
       deuda que el resto de RPC/consultas de este módulo (ver sección de huecos de
       más abajo, mismo día).

@@ -363,7 +363,7 @@ export async function getRecepcionesCompra(compraId: string): Promise<RecepcionC
  * Se trae una ventana más grande que `limite` porque el filtro por
  * `conFactura` ocurre en memoria (un lote es entero de un tipo u otro,
  * nunca mixto: lo crea una sola llamada a `recibir_compras` o a
- * `recibir_lote|recibir_lote más viejo`) — con el volumen real de CAYLA
+ * `recibir_lote`) — con el volumen real de CAYLA
  * (3 tiendas + 1 taller) esto nunca compite con un índice; no vale una
  * vista SQL nueva para algo que dos consultas resuelven igual de bien
  * (principio 3, mismo criterio que `getLineasCompra`).
@@ -382,29 +382,20 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
   if (lotes.length === 0) return [];
   const loteIds = lotes.map((l) => l.id);
 
-  // `recibido_por` no se embebe directo (mismo motivo que `getLineasCompra`
-  // separa productos/variantes en su propia consulta): se resuelve el
-  // nombre en una segunda pasada, por id.
+  // `recibido_por` referencia public.personas (Dynamic) — PostgREST no
+  // embebe entre schemas, así que se resuelve en lote con
+  // `fn_nombres_personas` (0009_integracion_dynamic.sql), mismo patrón que
+  // ya usan `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts`.
   const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
-  const movimientos = exigir(
-    await supabase
+  const [movimientosRes, nombresRes] = await Promise.all([
+    supabase
       .from("movimientos")
       .select("lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) )")
       .in("lote_id", loteIds),
-    "las líneas de las recepciones recientes"
-  );
-  // Quién recibió es un dato de cortesía, no el eje de la fila (ese es
-  // proveedor/fecha/unidades) — mismo criterio que `getAdjuntosCompra` con
-  // Storage: si la consulta falla, la lista sale igual, solo sin ese dato.
-  const personas = new Map<string, string>();
-  if (personaIds.length > 0) {
-    try {
-      const { data } = await supabase.from("personas").select("id, nombre").in("id", personaIds);
-      for (const p of data ?? []) personas.set(p.id, p.nombre);
-    } catch {
-      // Sin nombre no se pierde la recepción; la fila queda sin "Recibido por".
-    }
-  }
+    personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
+  ]);
+  const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");
+  const personas = new Map(exigir(nombresRes, "quién recibió cada lote").map((p) => [p.id, p.nombre]));
   const porLote = new Map<string, { unidades: number; lineas: number; conFactura: boolean; compraId: string | null; documento: string | null }>();
   for (const m of movimientos) {
     if (!m.lote_id) continue;
