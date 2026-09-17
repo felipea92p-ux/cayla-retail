@@ -402,8 +402,20 @@ mano, confirmó ✗ + exit 1, revertida).
       cerrar_caja"). Esos tres términos ya se verificaron a mano en sus propias sesiones;
       quien los quiera automatizados arranca de `scripts/caja/verificar.sql` (mismo patrón
       de identidades simuladas con `request.jwt.claim.sub`).
-- [ ] **No está enganchado a CI** — no existe pipeline de CI en este repo todavía. Corre
-      manual, `pnpm caja:verificar`, contra el Postgres local (`docker exec`).
+- [x] **Corrección (2026-09-17): la frase de abajo ("no existe pipeline de CI en este
+      repo todavía") estaba mal — sí existe.** `.github/workflows/ci.yml` corre desde el
+      2026-09-09 (typecheck/lint/`pnpm test` en cada push a `main` y cada PR — ver su
+      propia cabecera y ADR-0026). Verificado contra el archivo real, no contra este
+      documento.
+- [ ] **Lo que SÍ sigue sin CI, a propósito — decisión vigente, no un hueco (ADR-0066,
+      2026-09-16):** `caja:verificar`/`pruebas:registrar-cambio`/
+      `pruebas:aprobar-devolucion-caja`/`pruebas:registrar-venta`/`migraciones:verificar`
+      necesitan Postgres real; ADR-0066 decidió explícitamente que NO corran desde
+      `pnpm test`/CI ("cada PR futuro saldría rojo por Docker, no por el código"), mismo
+      criterio que ya tenía `migraciones:verificar` (ADR-0026). Sigue corriendo manual.
+      ADR-0066 mismo marca cuándo reabrir esto: "se revisita si el volumen de RPCs por
+      probar lo justifica" — con 4 scripts hoy (antes 3), vale que Felipe decida si ya es
+      ese momento; no se decidió acá.
 
 ---
 

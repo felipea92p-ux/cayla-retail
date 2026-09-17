@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (corrección: CI sí existe, y ADR-0066 ya decidió por qué los scripts de
+Postgres no entran)
+
+Al preguntar Felipe qué faltaba, esta sesión repitió sin verificar una frase de BACKLOG
+("no existe pipeline de CI en este repo todavía", sección Caja, 2026-09-16) — pero
+`.github/workflows/ci.yml` corre desde el 2026-09-09. Corregido en BACKLOG. Al investigar
+si valía la pena sumar Postgres al runner de CI para cerrar el hueco real (que los scripts
+de `scripts/pruebas/` sí necesitan Postgres y no corren ahí), apareció ADR-0066
+(2026-09-16): ya decidió, con razón explícita, que estos scripts NO corran desde
+`pnpm test`/CI — esta sesión estuvo a un paso de re-decidir eso solo por no haber leído
+la ADR primero. Aprendizaje dos veces en el mismo hilo: ni un resumen propio de esta misma
+sesión está libre de repetir un dato de BACKLOG sin cruzarlo contra el archivo real, y
+antes de proponer un cambio de arquitectura hay que buscar si ya hay una ADR que lo
+decidió — `grep`/graphify por el tema, no asumir que está abierto porque BACKLOG no lo
+menciona como cerrado.
+
 ## 2026-09-17 (Ventas: primeras pruebas automatizadas de `registrar_venta`)
 
 `registrar_venta` (la RPC más tocada del repo — cada venta real de las 3 tiendas) tenía
