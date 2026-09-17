@@ -15,7 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ninguna registrada ahora mismo)_ | | | |
+| Felipe (sesión Claude) | `claude/supabase-unificacion-audit-0887f5` | ADR-0063 (venta sin red): cerrar el hueco de verificación del camino feliz (sube sola → aparece en Ventas de hoy). Toca `retail.stock` de mi Postgres local (backfill de `sububicacion_id`), no `main`. | 2026-09-17 |
 
 ## Cerradas hoy
 

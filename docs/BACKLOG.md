@@ -28,10 +28,46 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 👤 Pendientes de Benja
+## 🔖 Pendientes Benja
 
-Ideas que Felipe aprobó en concepto pero decidió no construir ahora — quedan acá para
-que Benja las tome cuando corresponda, no para que una sesión de IA las improvise sola.
+> Felipe: "recuérdame esto para revisarlo luego con Benja, no lo construyas todavía."
+> Sección aparte a propósito — no es un ítem de 🎯/🩹 más, es una cola visible de
+> "esto necesita una conversación de negocio antes de volverse código". Se lee al
+> abrir sesión junto con el resto de este archivo.
+>
+> **Nota de fusión (2026-09-17):** otra sesión creó en paralelo una sección equivalente
+> ("👤 Pendientes de Benja", mismo concepto, mismo día) — se fusionó acá para no tener
+> dos colas del mismo tipo con nombres distintos (mismo criterio que ya aplicó este
+> archivo antes con secciones duplicadas de auditoría de migraciones).
+
+- [x] ~~Cuarentena — historial y estado de salida de una prenda dañada~~ **construido
+      2026-09-17 (noche)** — Felipe aclaró que lo pendiente era solo la editabilidad,
+      no los 3 estados en sí ("ahora mismo necesito los 3 estados [...] luego vamos por
+      medio de un panel de administrador, poder editar estas decisiones"). Ver
+      `docs/adr/0071-inventario-se-lee-como-cuatro-pantallas.md`, sección "Construcción
+      2026-09-17 (noche)", para el detalle completo. Lo único que sigue pendiente de
+      esa conversación con Benja es el punto de abajo.
+
+- [ ] **Panel de administrador para editar los 3 estados de Cuarentena.** Hoy Liquidada/
+      Se botó/Donada están fijos en un `check` de `retail.prendas_danadas` (migración
+      `20260917100000_cuarentena_prendas_danadas.sql`) — cambiar el vocabulario o agregar
+      un cuarto estado es una migración, no una pantalla. Felipe pidió que esto nazca
+      chico y no se sobrecargue de funciones todavía. Preguntas reales que siguen
+      abiertas (no se decidieron solas): ¿quién más allá de un líder podría necesitar
+      editar estos estados?
+
+- [x] ~~¿"Liquidada" debería registrar una venta real?~~ **Sí — confirmado por Felipe,
+      2026-09-17: "se tiene que tomar en cuenta liquidación como una venta, totalmente".**
+      Construido en `20260917150000_liquidar_prenda_danada_como_venta.sql`: nueva función
+      `liquidar_prenda_danada` (precio + forma de pago, exige caja abierta, sin comprobante
+      por ahora — ver ADR-0071 sección "Corrección 2026-09-17 (más tarde)" para el
+      detalle y lo que queda fuera a propósito).
+
+- [x] ~~`devolver_proveedor` — mismo bug de "desaparece sin dejar rastro" que tenía
+      Dañado~~ **decisión de Felipe, 2026-09-17: no es prioridad.** "Me parece que la
+      manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
+      entonces no." Sigue sin tocar — si en algún momento se vuelve relevante, retomar
+      desde `retail.aprobar_devolucion`, rama `devolver_proveedor`.
 
 - [ ] **Reporte de valor en riesgo, cruzando las 3 sedes a la vez (2026-09-17).** Surgió
       al corregir `fn_prioridad_conteo` (ADR-0074, § "Descartado") — esa función sugiere
@@ -279,11 +315,13 @@ rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral
 4 como pestañas. Tipos, lint, 282 pruebas y build en verde; recorrido en navegador como
 líder (Lima) y como colaboradora (Trujillo).
 
-- [x] **`20260916200000_numeracion_traslados_conteos.sql` sí está en producción**
-      (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
-      `transferencias.confirmado_por`, `conteos.alcance` y `fn_conteos_resumen`
-      existen. `list_migrations` la muestra pegada con timestamp `20260916231541`
-      — este ítem seguía sin marcar). Este BACKLOG no reflejaba que ya se aplicó.
+- [x] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`** —
+      hecho el 2026-09-16 vía MCP de Supabase (PR #60 ya fusionado), y confirmado de
+      nuevo el 2026-09-17 por otra auditoría independiente: `numero`,
+      `fn_conteos_resumen`, `conteos.alcance` existen en `vovjyyiafkxteijimpuy`
+      (`list_migrations` la muestra pegada con timestamp `20260916231541`). Este
+      checkbox se quedó sin marcar en las dos sesiones hasta ahora — dos veces la
+      misma verificación, misma respuesta.
 - [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
       (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
       `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
@@ -294,6 +332,18 @@ líder (Lima) y como colaboradora (Trujillo).
       WhatsApp. Una "solicitud de traslado" desde la sede destino (que la sede origen
       convierte en `iniciar_traslado`) cerraría el ciclo. Es modelo de datos nuevo:
       pedir a Felipe con Ganas/Pagas antes de tocarlo.
+- [x] ~~"Dañado" (2026-09-17) — decidido: Opción A, sin construir todavía~~
+      **construido 2026-09-17 (noche).** `cuarentena` como tercer tipo de
+      sububicación; `aprobar_devolucion` mueve ahí las condiciones
+      `danada_reparacion`/`danada_donar` en vez de hacerlas desaparecer; tabla
+      `retail.prendas_danadas` + RPC `resolver_prenda_danada` (solo líder) resuelven
+      cada una como Liquidada/Se botó/Donada; Existencias reemplazó la tarjeta "Piden
+      atención" por "Dañado". El ajuste "Merma" de `AjustarInventarioModal` NO se
+      tocó — ya tenía su propio movimiento auditable, es un mecanismo distinto. Ver
+      ADR-0071, sección "Construcción 2026-09-17 (noche)", para el detalle completo
+      y lo que quedó explícitamente fuera de esta pasada (panel de administrador
+      para editar los 3 estados; si "Liquidada" debería ser una venta real) — ambos
+      en "🔖 Pendientes Benja" más arriba.
 
 ---
 
@@ -306,6 +356,43 @@ después. `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobad
 el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
 `fn_es_lider()`, no el cliente. `typecheck`/`lint`/266 tests en verde.
 
+- [x] **Pegado en producción — 2026-09-17.** Felipe corrió los 3 bloques en el SQL
+      Editor de `cayla-dynamic`. Comprobación (bloque 4): `estados_invalidos=0`,
+      `trigger_creado=1`, `policy_insert=1`, `policy_update=1`, `policy_vieja=0` —
+      los 5 valores exactos esperados. `colores_ya_aprobados=31`, no "32+" como decía
+      el comentario del script (estimación del 16-sep, desactualizada) — confirmado
+      por consulta directa (`select estado, count(*) from retail.colores group by
+      estado`) que producción tiene hoy exactamente 31 colores, los 31 en
+      `aprobado`, cero `pendiente` y cero en estado inválido.
+- [x] **Verificado en navegador real, contra el Postgres LOCAL — 2026-09-17 (no el
+      canal de ROLLBACK/impersonación del 16-sep, que tiene `rolbypassrls=true` y
+      no prueba nada de RLS).** Micaela (`micaela@cayla.local`, Colaboradora real
+      del seed, Tienda Trujillo) inició sesión de verdad
+      (`supabase.auth.signInWithPassword`) y propuso "Verde Prueba RLS 20260917"
+      (`VPR`) en `/productos/colores`: quedó usable al instante con
+      `estado='pendiente'`, sin bloquear el flujo. Su intento de aprobarlo se
+      probó por dos caminos — no solo "el botón no aparece", que `security-review`
+      de este repo ya penaliza como prueba insuficiente: (1) PATCH directo a
+      PostgREST (`/rest/v1/colores`, con su JWT real, sin pasar por la app) —
+      `colores_update_lider` lo dejó pasar como consulta válida pero sin tocar
+      ninguna fila (`200`, `[]`, el comportamiento normal de un `USING` que no
+      matchea); (2) PATCH directo a `/api/productos/colores` — el guard propio de
+      la ruta respondió `403 "Solo un Líder puede editar el vocabulario de
+      colores."`. Lectura directa de Postgres (`docker exec ... psql`, sin pasar
+      por RLS) confirmó que el color siguió `pendiente` después de los dos
+      intentos. Felipe (Líder, Tienda Lima) inició sesión aparte, vio el botón
+      "Aprobar" que Micaela nunca vio, lo usó, y Postgres confirmó
+      `estado='aprobado'`, `propuesto_por=Micaela`, `aprobado_por=Felipe`,
+      `aprobado_en` sellado. Color de prueba borrado al cerrar (cero variantes lo
+      usaban). Las dos políticas RLS (`colores_insert_autenticado`/
+      `colores_update_lider`) quedan probadas de punta a punta, ya no solo por
+      inferencia de patrón. Ver ADR-0070, sección "Cómo se verificó" (actualizada).
+      **Repetido en producción el mismo día por Felipe, en persona, con una cuenta
+      real:** confirmó que las mismas situaciones (proponer, no poder aprobar como
+      Colaboradora, sí poder aprobar como Líder) funcionan igual en `cayla-dynamic`.
+      A diferencia de la prueba local de arriba, esta quedó al nivel "Felipe lo
+      probó y confirmó que funciona" — sin el detalle de qué devolvió cada request
+      capturado en el chat.
 - [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` sí está en producción**
       (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
       `retail.colores.estado`/`propuesto_por` y `fn_colores_estado_trigger`
@@ -355,10 +442,10 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       prueba", nunca merma).
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
-      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
-      pegar en producción y la verificación en navegador que quedó anotada ahí — no
-      cerrado del todo todavía. Sigue pendiente el mismo mecanismo para Tucán
-      (taxonomía), no construido en esta pasada.
+      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. La
+      verificación en navegador y el pegado en producción quedaron cerrados el
+      mismo 2026-09-17. Sigue pendiente el mismo mecanismo para Tucán (taxonomía),
+      no construido en esta pasada.
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.
 - [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos
