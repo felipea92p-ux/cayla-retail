@@ -1,23 +1,23 @@
 # Graph Report - pruebas-registrar-venta-cd2119  (2026-09-17)
 
 ## Corpus Check
-- 512 files · ~773,536 words
+- 515 files · ~778,978 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 13 file(s) not represented in the graph (top: (none) 7, .example 2, .graphify-bak 1)
 
 ## Summary
-- 4949 nodes · 8053 edges · 501 communities (313 shown, 132 thin omitted)
+- 4965 nodes · 8097 edges · 501 communities (312 shown, 133 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 79 edges (avg confidence: 0.82)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8e9e1dfd`
+- Built from commit: `69dc5937`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- por-pagar/page.tsx
-- padron.ts
+- inventario/page.tsx
+- documento.ts
 - DECISIONES-2026-09-12.md
 - generar.mjs
 - createClient
@@ -30,19 +30,19 @@
 - campos.tsx
 - benja-migracion.sql
 - PuntoDeVenta
-- comprobantes-reglas.ts
+- ComprobantesPanel.tsx
 - ADR-0025: Código corto al lado del SKU, y varios códigos de barras por prenda
 - 20260912234815_compras_snapshot_y_paginado.sql
-- requirePersonaActualV2
+- createClient
 - enums.ts
 - AppShell.tsx
 - schemas.ts
 - 0003_funciones.sql
 - registro-contable.ts
-- retail.asiento_lineas
+- 13-PROMESAS-INCUMPLIDAS.md
 - `personas`
 - registrar_asiento
-- 13-PROMESAS-INCUMPLIDAS.md
+- `movimientos`
 - conteo_lineas
 - 20260914230000_inventario_piso_almacen.sql
 - scripts
@@ -52,9 +52,9 @@
 - web/package.json
 - compilerOptions
 - 0010_facturacion.sql
-- lib/caja.ts
+- exigir
 - BITÁCORA — CAYLA Retail
-- ComprobantesPanel.tsx
+- ProformasPanel.tsx
 - `ventas`
 - produccion.ts
 - database/package.json
@@ -92,7 +92,7 @@
 - compilerOptions
 - 07_funciones_operacion.sql
 - Fusión V1→V2: se porta lo rescatable, no se fusiona el árbol
-- RecepcionCompraFormV2.tsx
+- OrdenesProduccionV2.tsx
 - devDependencies
 - fn_aplicar_movimiento (rama ajuste, asegurar-bloquear-verificar-sumar)
 - compilerOptions
@@ -110,7 +110,7 @@
 - 09_funciones_produccion.sql
 - 04_catalogo.sql
 - retail.cambios
-- PuntoDeVenta.tsx
+- RecepcionCompraFormV2.tsx
 - scripts
 - retail.recalcular_stock() (versión consciente de almacén)
 - conteos
@@ -122,7 +122,7 @@
 - apps/web/lib/error-escritura.ts (traducirError)
 - ADR-0035: La factura de compra es el eje: de ella cuelgan recepción y pago
 - compras (tabla, entidad central, reemplaza ordenes_compra)
-- 09-CONTRATOS.md
+- Número 2 · Qué se está quedando
 - sedes (tabla/vista)
 - Cola de ventas offline (localStorage)
 - retail.fn_aplicar_movimiento
@@ -133,7 +133,7 @@
 - ADR-0029: Retail no mira el flag activa de Dynamic
 - ADR-0032: registrar_venta deja de duplicar una venta si la red se corta
 - supabase/0000_local_stub_dynamic.sql.example
-- inventario-v2.ts
+- resultado.ts
 - Riel 1 — supabase/migrations/*.sql
 - Riel 2 — supabase/unificacion/*.sql
 - SQL-PENDIENTE-PRODUCCION.sql
@@ -274,25 +274,25 @@
 - Cómo opera CAYLA de verdad
 - SQL-PENDIENTE-PRODUCCION-2026-09-14.sql
 - 07 · Ventas y caja
-- adjuntos-compra.ts
+- AdjuntosCompra.tsx
 - Decididas y sin construir · la segunda fila
 - 0016_roles_colaborador.sql
 - 01 · Identidad y acceso
-- createClient
+- conteo/page.tsx
 - retail.fn_ventas_del_dia
 - 04 · Importación de catálogo
-- `stock`
+- (.)factura/[compraId]/page.tsx
 - 20260914150000_proveedores_administrables.sql
-- almacen-local.test.ts
+- PuntoDeVenta.tsx
 - registrar_venta.mjs
-- escaner-tecla-suelta.ts
+- vitest
 - RevelarAlScroll.tsx
 - catalogo-grupos.ts
 - 20260914220000_compras_orden_por_creacion.sql
 - ADR-0044 — El ticket de Vender tiene dos momentos: armar y cobrar
 - 20260915130000_produccion_del_taller.sql
 - retail.previsualizar_cierre_conteo
-- devoluciones.ts
+- 00-MAPA.md
 - InventarioPanel.tsx
 - ADR-0042 — El historial de movimientos se vuelve inmutable de verdad
 - ADR-0045 — Vuelven el puente shadcn (ADR-0037) y GSAP (ADR-0038) que el corte V1→V2 borró
@@ -318,7 +318,7 @@
 - retail.compras
 - retail.ventas
 - retail.stock
-- documento.ts
+- Prioridad 2 · Materia prima del Taller
 - Arquitectura de cayla-retail
 - El mapa — CAYLA en una página
 - Gobierno del dato — quién manda sobre qué
@@ -327,10 +327,10 @@
 - 11 · Finanzas operativas
 - 12 · Contabilidad de partida doble
 - 14 · Plataforma y esquema
-- exigir
+- getCatalogo
 - 0004-recibir-lote-drift-unificacion.md
 - 20260915204541_historial_producto_cambios.sql
-- shared/src/index.ts
+- Prioridad 3 · Clientas y fidelización
 - Invariantes — lo que la base hace imposible
 - Cómo se refrescan esos seis archivos
 - 06 · Conteo y censo físico
@@ -340,7 +340,7 @@
 - Quién ve qué y quién puede escribir qué
 - 08 · Facturación electrónica SUNAT
 - Rol — Arquitecto de ERP CAYLA
-- resultado.ts
+- Número 3 · Efectivo y caja
 - panel-serie.test.ts
 - ADR-0025 — Código corto al lado del SKU, y varios códigos de barras por prenda
 - DICCIONARIO-DYNAMIC.md
@@ -353,7 +353,7 @@
 - 0018-local-first-sin-motor-de-sincronizacion.md
 - 2 · Los siete contratos rotos
 - ADR-0001 — RLS: visibilidad de traslados para la sede que los recibe
-- 20260915090000_movimientos_lectura.sql
+- ADR-0074 — CI suma un job piloto que prueba las RPC contra Postgres real
 - retail.fn_colaboradores
 - ventas-offline.ts
 - ADR-0010 — El entorno local existe: el schema se renombra en el seed, no en las migraciones
@@ -432,22 +432,22 @@
 - retail.productos
 - retail.variantes
 - retail.colores
-- badge.tsx
+- Número 1 · Vendido por sede
 - ADR-0073 — La IA compila el mapeo, no procesa las filas
 - retail.abrir_conteo
 - aprobar_devolucion_caja.mjs
 - ADR-0065 — Anular una venta: estado en `ventas`, reversa de stock por condición, bloqueada si SUNAT ya aceptó, solo con la caja abierta, solo el líder
-- design-tokens.ts
+- shared/src/index.ts
 - retail.aprobar_devolucion
 - PuntoDeVentaColaOffline.tsx
-- vitest
-- stock-por-sede.ts
+- opcionesDeCambio
+- 11 · Los números que Felipe mira primero
 - ADR-0066 — Cómo se prueban las RPC de escritura: `psql` + rollback, fuera de vitest
 - ADR-0063 — Vuelve la venta sin red: la cola offline, adaptada a V2
 - ADR-0064 — Cambio y devolución exigen caja abierta si hay efectivo de por medio
 - retail.fn_conteos_resumen
 - SQL
-- CierreOrdenModal
+- Contratos — qué le promete cada módulo a los demás
 - ADR-0067 — El costo de una variante pasa de "último recibido" a promedio ponderado
 - ADR-0070 — Colores: cualquiera propone, un Líder aprueba
 - ADR-0071 — Inventario se lee como cuatro pantallas: Existencias, Movimientos, Traslados, Conteo
@@ -466,10 +466,10 @@
 1. `BITÁCORA — CAYLA Retail` - 172 edges
 2. `createClient()` - 130 edges
 3. `traducirError()` - 124 edges
-4. `createClient()` - 109 edges
-5. `exigir()` - 86 edges
+4. `createClient()` - 110 edges
+5. `exigir()` - 87 edges
 6. `requirePersonaActualV2` - 78 edges
-7. `react` - 74 edges
+7. `react` - 75 edges
 8. `Diccionario — CAYLA Dynamic (schema `public`)` - 68 edges
 9. `PuntoDeVenta()` - 49 edges
 10. `avisar` - 32 edges
@@ -508,19 +508,19 @@
 - **Riel dual de despliegue de esquema (local vs. producción)** — docs_datos_modulos_14_plataforma_y_esquema_riel_local, docs_datos_modulos_14_plataforma_y_esquema_riel_produccion, docs_datos_modulos_14_plataforma_y_esquema_migraciones_aplicadas, supabase_seed [INFERRED 0.85]
 - **Familia de funciones que reconstruyen un snapshot derivado desde su fuente de verdad append-only** — docs_adr_0020_recalcular_stock_neto_recalcular_stock, docs_adr_0020_recalcular_stock_neto_fn_aplicar_movimiento, docs_adr_0031_recalcular_stock_consciente_de_almacen_recalcular_stock, docs_adr_0036_compras_foto_mantenida_por_triggers_y_paginado_por_cursor_recalcular_compras_fn [INFERRED 0.85]
 
-## Communities (501 total, 132 thin omitted)
+## Communities (501 total, 133 thin omitted)
 
-### Community 0 - "por-pagar/page.tsx"
-Cohesion: 0.17
-Nodes (13): armarTramos(), ClaveTramo, contar(), diasHasta(), ESTILO_TRAMO, etiquetaVence(), FilaFactura(), TITULO_TRAMO (+5 more)
+### Community 0 - "inventario/page.tsx"
+Cohesion: 0.24
+Nodes (12): InventarioPage(), fechaHora(), TrasladosPage(), encontrarPorTipo(), getSububicaciones, aResumen(), FilaResumen, getTrasladosCerrados() (+4 more)
 
-### Community 1 - "padron.ts"
-Cohesion: 0.17
-Nodes (16): contador, excedeTope(), GET(), advertenciasDe(), cache, consultarPadron(), DatosPadron, guardarCache() (+8 more)
+### Community 1 - "documento.ts"
+Cohesion: 0.10
+Nodes (31): contador, excedeTope(), GET(), advertenciasDe(), cache, consultarPadron(), DatosPadron, guardarCache() (+23 more)
 
 ### Community 2 - "DECISIONES-2026-09-12.md"
 Cohesion: 0.10
-Nodes (40): 04 Importacion de catalogo (Golondrina), 13 Inteligencia y reportes (Aguila), 14 Plataforma y esquema (Gorrion), fn_puede_operar_sede() (local), ADR-0008 consulta de padron a proveedor externo, Numero 1: Vendido por sede, P-07 El hueco del NULL en fn_puede_operar_sede, abierto en local, D-01 Trabajo principal: onboarding en un dia (+32 more)
+Nodes (48): ADR-0008 consulta de padron a proveedor externo, 3 · El contrato que no es entre módulos: el repo y la base real, 4 · El mapa de las promesas, 5 · En qué orden se arreglan, 2.3 Taller -> Tiendas: la prenda cruza, la plata no, 2.4 Retail -> Dynamic: el sueldo no entra al resultado, 2.6 Comprobantes -> SUNAT: emitir no transmite, nadie vigila, Dónde sigue cada cosa (+40 more)
 
 ### Community 3 - "generar.mjs"
 Cohesion: 0.06
@@ -528,7 +528,7 @@ Nodes (40): public, AQUI, CANDIDATOS, contenedoresVivos(), DOMINIOS_RETAIL, dyna
 
 ### Community 4 - "createClient"
 Cohesion: 0.05
-Nodes (75): LoginForm(), onSubmit(), AbrirCajaFormV2(), onSubmit(), QuitarAdjuntoModal(), confirmar(), AnularVentaForm(), cargar() (+67 more)
+Nodes (79): LoginForm(), onSubmit(), AbrirCajaFormV2(), onSubmit(), QuitarAdjuntoModal(), confirmar(), AnularVentaForm(), cargar() (+71 more)
 
 ### Community 5 - "0007-facturacion-esquema-legal-completo.md"
 Cohesion: 0.23
@@ -539,8 +539,8 @@ Cohesion: 0.10
 Nodes (33): POST(), POST(), FilaComprobante, itemsValidos(), POST(), ADR-0005, ADR-0007, anularBoletaLucode() (+25 more)
 
 ### Community 7 - "react"
-Cohesion: 0.09
-Nodes (39): Condicion, CONDICIONES, ItemVenta, AvanceConteo, VarianteConteo, DevolucionesLista(), ETIQUETA_CONDICION, formatearFecha() (+31 more)
+Cohesion: 0.07
+Nodes (50): Condicion, CONDICIONES, ItemVenta, BuscarPorComprobante(), METODOS, ADR-0044, VarianteCatalogo, CambiosLista() (+42 more)
 
 ### Community 8 - "0002_esquema.sql"
 Cohesion: 0.13
@@ -551,24 +551,24 @@ Cohesion: 0.09
 Nodes (28): Codigo128(), ANCHO_UTIL_MM, Barras, barrasCode128(), Medida, medir(), MODULO_MM, PATRONES (+20 more)
 
 ### Community 10 - "DICCIONARIO-RETAIL.md"
-Cohesion: 0.11
-Nodes (38): 02 Catalogo y vocabulario (Loro), 03 Taxonomia universal (Tucan), 06 Conteo y censo fisico (Lechuza), 09 Compras y proveedores (Pelicano), 10 Produccion del Taller (Gallito), ADR-0027 conteo cerrado exige fecha de cierre, 2.5 Importacion -> Catalogo: producto_atributos sin escritores, 2.7 Catalogo -> Pistola: puertas sin codigo de barras (+30 more)
+Cohesion: 0.12
+Nodes (32): 02 Catalogo y vocabulario (Loro), 03 Taxonomia universal (Tucan), 06 Conteo y censo fisico (Lechuza), 09 Compras y proveedores (Pelicano), ADR-0027 conteo cerrado exige fecha de cierre, 2.5 Importacion -> Catalogo: producto_atributos sin escritores, 2.7 Catalogo -> Pistola: puertas sin codigo de barras, retail.importar_catalogo() (+24 more)
 
 ### Community 11 - "campos.tsx"
 Cohesion: 0.05
-Nodes (57): CajaAbiertaPanel(), money(), Borrador, Categoria, ETIQUETA_FAMILIA, OPCIONES_FAMILIA, ADR-0072, VACIO (+49 more)
+Nodes (55): CajaAbiertaPanel(), money(), Borrador, Categoria, ETIQUETA_FAMILIA, OPCIONES_FAMILIA, ADR-0072, VACIO (+47 more)
 
 ### Community 12 - "benja-migracion.sql"
 Cohesion: 0.08
 Nodes (19): retail.abrir_caja(), retail.cerrar_caja(), retail.cerrar_conteo(), retail.conteo_contar(), retail.crear_devolucion(), retail.fn_es_lider(), retail.fn_persona_actual(), retail.fn_ubicacion_actual_persona() (+11 more)
 
 ### Community 13 - "PuntoDeVenta"
-Cohesion: 0.16
-Nodes (12): PuntoDeVenta(), agregar(), agregarMontoManual(), alTeclado(), capturarFlip(), dejarEnEspera(), limpiarComprobante(), limpiarTicket() (+4 more)
-
-### Community 14 - "comprobantes-reglas.ts"
 Cohesion: 0.13
-Nodes (22): FacturacionPage(), MESES, Comparativo, TarjetaIndicador(), money(), textoItems(), VentasDelDiaPanel(), getComprobantesMes() (+14 more)
+Nodes (16): PuntoDeVenta(), agregar(), agregarMontoManual(), alTeclado(), capturarFlip(), dejarEnEspera(), descartarRechazada(), intentarSubir() (+8 more)
+
+### Community 14 - "ComprobantesPanel.tsx"
+Cohesion: 0.07
+Nodes (49): FacturacionPage(), MESES, accionComprobante(), anulacionEnTramite(), ComprobantesPanel(), onAnularClick(), onConsultarAnulacion(), onTransmitir() (+41 more)
 
 ### Community 15 - "ADR-0025: Código corto al lado del SKU, y varios códigos de barras por prenda"
 Cohesion: 0.12
@@ -578,13 +578,13 @@ Nodes (16): ADR-0024: El color deja de ser texto libre, Código de variante (BLU
 Cohesion: 0.11
 Nodes (24): retail.fn_compra_item_insertado, retail.fn_compra_pago_insertado, retail.fn_movimiento_compra_insertado, compra_items_foto, compra_pagos_foto, compras_condicion_idx, compras_documento_trgm_idx, compras_estado_pago_idx (+16 more)
 
-### Community 17 - "requirePersonaActualV2"
-Cohesion: 0.09
-Nodes (29): PATCH(), POST(), PUT(), ADR-0072, FAMILIAS_COLOR, PATCH(), POST(), TIPOS_COLOR (+21 more)
+### Community 17 - "createClient"
+Cohesion: 0.10
+Nodes (34): EventoCaja, PATCH(), POST(), PUT(), ADR-0072, FAMILIAS_COLOR, PATCH(), POST() (+26 more)
 
 ### Community 18 - "enums.ts"
 Cohesion: 0.08
-Nodes (24): CANALES_VENTA, CanalVenta, EstadoOrdenProduccion, EstadoProducto, ESTADOS_ORDEN_PRODUCCION, ESTADOS_PRODUCTO, ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO (+16 more)
+Nodes (24): CanalVenta, EstadoOrdenProduccion, EstadoProducto, ESTADOS_ORDEN_PRODUCCION, ESTADOS_PRODUCTO, ETIQUETA_GASTO_CATEGORIA, ETIQUETA_METODO_PAGO_GASTO, GastoCategoria (+16 more)
 
 ### Community 19 - "AppShell.tsx"
 Cohesion: 0.10
@@ -592,7 +592,7 @@ Nodes (24): cambiarUbicacionActiva(), AppShell(), esGrupo(), FilaLateral, FilaMe
 
 ### Community 20 - "schemas.ts"
 Cohesion: 0.08
-Nodes (23): GASTO_CATEGORIAS, MOTIVOS_DEVOLUCION, MOTIVOS_SALIDA, ORIGENES_LOTE, SEDES, TIPOS_MOVIMIENTO, AbrirCajaInput, abrirCajaInputSchema (+15 more)
+Nodes (23): CANALES_VENTA, GASTO_CATEGORIAS, MOTIVOS_SALIDA, ORIGENES_LOTE, SEDES, TIPOS_MOVIMIENTO, AbrirCajaInput, abrirCajaInputSchema (+15 more)
 
 ### Community 21 - "0003_funciones.sql"
 Cohesion: 0.09
@@ -602,9 +602,9 @@ Nodes (16): retail.cerrar_conteo(), retail.crear_devolucion(), retail.fn_aplicar
 Cohesion: 0.12
 Nodes (22): Comprobante, COMPROBANTES, construirLineas(), CuentaMin, EventoConfig, EventoId, eventoPorId(), EVENTOS (+14 more)
 
-### Community 23 - "retail.asiento_lineas"
-Cohesion: 0.26
-Nodes (12): 12 Contabilidad (Urraca), 2.2 Sub-libros -> Contabilidad: ninguna funcion postea asiento, retail.registrar_asiento(), P-02 El registro contable a mano tampoco funciona, sin alarma, P-03 Falta candado debe-o-haber por linea en produccion, P-12 Las 14 reglas de posteo contable que nadie ejecuta, P-13 El plan de cuentas: 25 / 26 / 35 / 0, todos distintos, D-35 El libro contable se llena solo, por etapas (+4 more)
+### Community 23 - "13-PROMESAS-INCUMPLIDAS.md"
+Cohesion: 0.12
+Nodes (24): 12 Contabilidad (Urraca), fn_puede_operar_sede() (local), 2.2 Sub-libros -> Contabilidad: ninguna funcion postea asiento, retail.registrar_asiento(), P-02 El registro contable a mano tampoco funciona, sin alarma, P-03 Falta candado debe-o-haber por linea en produccion, P-07 El hueco del NULL en fn_puede_operar_sede, abierto en local, P-08 es_lider() = admin: solo Felipe da de alta catalogo (+16 more)
 
 ### Community 24 - "`personas`"
 Cohesion: 0.18
@@ -614,9 +614,9 @@ Nodes (11): retail.es_lider(), retail.mi_sede(), retail.puede_operar_sede(), fn_
 Cohesion: 0.09
 Nodes (23): activos_fijos, ADR-0033 — Idempotencia de registrar_venta por token, asiento_lineas, asientos, cuentas_contables, D-31 — El Taller se mide por costo absorbido, D-35 — El libro contable se llena solo, por etapas, Libro diario de partida doble (+15 more)
 
-### Community 26 - "13-PROMESAS-INCUMPLIDAS.md"
-Cohesion: 0.09
-Nodes (30): ADR-0022 el historial se vuelve inmutable de verdad, ADR-0023 el ajuste lleva signo, retail.fn_aplicar_movimiento(), retail.recalcular_stock(), ADR-0001 movimientos_select ve el destino de traslado, 1.2 Movimientos promete reconstruir el pasado, Paso 0: que el repo reproduzca produccion, Margen por prenda (+22 more)
+### Community 26 - "`movimientos`"
+Cohesion: 0.07
+Nodes (43): 05 Inventario y movimientos (Halcon), 13 Inteligencia y reportes (Aguila), ADR-0022 el historial se vuelve inmutable de verdad, ADR-0023 el ajuste lleva signo, retail.fn_aplicar_movimiento(), retail.recalcular_stock(), ADR-0001 movimientos_select ve el destino de traslado, 1.1 Inventario promete stock nunca negativo (+35 more)
 
 ### Community 27 - "conteo_lineas"
 Cohesion: 0.18
@@ -654,25 +654,25 @@ Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 Cohesion: 0.16
 Nodes (13): proformas, comprobantes_estado_idx, comprobantes_ubicacion_id_idx, comprobantes_venta_id_idx, retail.actualizar_transmision_comprobante(), retail.anular_comprobante(), retail.comprobantes, retail.fn_valida_nota_referencia_aceptada() (+5 more)
 
-### Community 36 - "lib/caja.ts"
-Cohesion: 0.15
-Nodes (19): EventoCaja, getDetalleCierre(), CajaConDatos(), CajaPage(), BotonVerDetalleCierre(), abrir(), DetalleCierreModal(), FilaEvento() (+11 more)
+### Community 36 - "exigir"
+Cohesion: 0.13
+Nodes (24): getDetalleCierre(), CajaConDatos(), CajaPage(), CambiosPage(), DevolucionesPage(), BotonVerDetalleCierre(), abrir(), CajaAbierta (+16 more)
 
 ### Community 37 - "BITÁCORA — CAYLA Retail"
 Cohesion: 0.01
 Nodes (172): 2026-07-16, 2026-07-17 (madrugada), 2026-07-17 (madrugada 2 — taxonomía de categorías), 2026-07-17 (mañana), 2026-07-17 (noche), 2026-07-17 (noche 2 — Fase 3: almacén), 2026-07-17 (noche — revisión autónoma del proyecto), 2026-07-17 (tarde) (+164 more)
 
-### Community 38 - "ComprobantesPanel.tsx"
-Cohesion: 0.07
-Nodes (44): Ayuda(), accionComprobante(), anulacionEnTramite(), ComprobantesPanel(), cerrarModal(), onAnularClick(), onConsultarAnulacion(), onEmitir() (+36 more)
+### Community 38 - "ProformasPanel.tsx"
+Cohesion: 0.12
+Nodes (20): Consulta, ConsultaDocumento(), buscar(), consultar(), ETIQUETA, MOTIVO_LEGIBLE, Props, ESTADO_ESTILO (+12 more)
 
 ### Community 39 - "`ventas`"
 Cohesion: 0.11
-Nodes (24): 07 Ventas y caja (Colibri), 11 Finanzas operativas (Garza), retail.cerrar_caja(), retail.registrar_venta(), 1.3 Caja promete una sola abierta por sede, 1.4 Ventas promete que un reintento no cobra dos veces, ADR-0032 token_cliente para idempotencia de venta, ADR-0033 registrar_venta idempotente por token (+16 more)
+Nodes (25): 07 Ventas y caja (Colibri), 11 Finanzas operativas (Garza), retail.cerrar_caja(), retail.registrar_venta(), 1.3 Caja promete una sola abierta por sede, 1.4 Ventas promete que un reintento no cobra dos veces, ADR-0032 token_cliente para idempotencia de venta, ADR-0033 registrar_venta idempotente por token (+17 more)
 
 ### Community 40 - "produccion.ts"
-Cohesion: 0.33
-Nodes (9): ProduccionPage(), compararLineas(), getModelosProducibles(), getOrdenesProduccion(), getTaller(), LineaOrden, OrdenProduccion, Taller (+1 more)
+Cohesion: 0.27
+Nodes (11): ProduccionPage(), getConteoDetalle(), compararLineas(), getModelosProducibles(), getOrdenesProduccion(), getTaller(), LineaOrden, OrdenProduccion (+3 more)
 
 ### Community 41 - "database/package.json"
 Cohesion: 0.12
@@ -699,20 +699,20 @@ Cohesion: 0.17
 Nodes (9): comprobantes_estado_idx, comprobantes_sede_id_idx, comprobantes_venta_id_idx, retail.comprobantes, retail.fn_reservar_numero_serie(), retail.series_comprobantes, public.personas, public.sedes (+1 more)
 
 ### Community 47 - "ARQUITECTURA.md"
-Cohesion: 0.11
-Nodes (23): Skill /backlog (AGENTS), Skill /decide (AGENTS), Skill /explica (AGENTS), Skill /backlog (Claude), Skill /decide (Claude), Skill /explica (Claude), CI workflow (ci.yml), ADR-0001: RLS de traslados no visibles en sede destino (+15 more)
+Cohesion: 0.12
+Nodes (22): Skill /backlog (AGENTS), Skill /decide (AGENTS), Skill /explica (AGENTS), Skill /backlog (Claude), Skill /decide (Claude), Skill /explica (Claude), CI workflow (ci.yml), ADR-0002: personas.auth_user_id único (+14 more)
 
 ### Community 48 - "`comprobantes`"
-Cohesion: 0.15
-Nodes (20): ADR-0029 retail ignora el estado inactivo de sede 003, 01 Identidad y acceso (Ganso), 08 Facturacion SUNAT (Cuervo), retail.fn_reservar_numero_serie(), 1.5 Facturacion promete correlativo nunca repetido, retail.emitir_nota(), ADR-0007 facturacion: esquema legal completo, ADR-0016 anulacion de comprobante exige motivo (+12 more)
+Cohesion: 0.12
+Nodes (24): ADR-0029 retail ignora el estado inactivo de sede 003, 01 Identidad y acceso (Ganso), 08 Facturacion SUNAT (Cuervo), retail.fn_reservar_numero_serie(), 1.5 Facturacion promete correlativo nunca repetido, 2.1 Ventas -> Facturacion: la boleta no sabe de que venta es, retail.emitir_nota(), Prioridad 3: Clientas y fidelizacion (+16 more)
 
 ### Community 49 - "Reemplazo total de Alegra (8 fases)"
 Cohesion: 0.21
 Nodes (14): ADR-0005: Lucode como PSE (no Nubefact), ADR-0007: Facturación Fase 0 (esquema legal completo), ADR-0008: verificación RENIEC/SUNAT antes de emitir, ADR-0009: conector Lucode, DROP FUNCTION de firma vieja, ADR-0015: entorno_transmision en comprobantes, ADR-0016: anulación de comprobante dentro del sistema, Reemplazo total de Alegra (8 fases), Lucode (PSE, app.apisunat.pe) (+6 more)
 
 ### Community 50 - "movimientos-v2.ts"
-Cohesion: 0.09
-Nodes (38): ColaboradoresPage(), MovimientosPage(), AppLayout(), InicioPage(), HistorialProductoPage(), HistorialProductoModal(), FiltrosMovimientos(), HistorialProductoPanel() (+30 more)
+Cohesion: 0.10
+Nodes (38): ColaboradoresPage(), MoverMercaderiaPage(), MovimientosPage(), AppLayout(), InicioPage(), HistorialProductoPage(), HistorialProductoModal(), HistorialProductoPanel() (+30 more)
 
 ### Community 51 - "shared/package.json"
 Cohesion: 0.14
@@ -739,8 +739,8 @@ Cohesion: 0.10
 Nodes (16): AjustarInventarioModal(), descargarReporte(), onSubmit(), FilaCargada, MotivoAjuste, MOTIVOS_AJUSTE, ADR-0023, VarianteAjuste (+8 more)
 
 ### Community 57 - "compras.ts"
-Cohesion: 0.08
-Nodes (40): CompraDetalleModal(), NuevaCompraPage(), ADR-0035, ComprasPage(), PorPagarPage(), RecibirComprasPage(), ADR-0035, cargarDetalleCompra() (+32 more)
+Cohesion: 0.07
+Nodes (46): ComprasPage(), PUNTO_TONO, ADR-0035, armarTramos(), ClaveTramo, contar(), diasHasta(), ESTILO_TRAMO (+38 more)
 
 ### Community 58 - "retail.fn_ventas_del_dia"
 Cohesion: 0.17
@@ -787,8 +787,8 @@ Cohesion: 0.17
 Nodes (11): dependsOn, outputs, cache, persistent, $schema, tasks, build, dev (+3 more)
 
 ### Community 69 - "tabla movimientos (append-only)"
-Cohesion: 0.12
-Nodes (23): ADR-0004: recibir_lote divergió en la unificación, ADR-0013: RPC transaccional vs N round-trips, ADR-0023: el ajuste lleva signo, ADR-0025: código corto + codigos_barras, ADR-0027: sesiones de conteo, Censo del catálogo real (cambio de estrategia 2026-09-09), Condición de carrera en fn_aplicar_movimiento (última unidad), Estancado: días sin venta vs días sin salida (+15 more)
+Cohesion: 0.11
+Nodes (24): ADR-0001: RLS de traslados no visibles en sede destino, ADR-0004: recibir_lote divergió en la unificación, ADR-0013: RPC transaccional vs N round-trips, ADR-0023: el ajuste lleva signo, ADR-0025: código corto + codigos_barras, ADR-0027: sesiones de conteo, Censo del catálogo real (cambio de estrategia 2026-09-09), Condición de carrera en fn_aplicar_movimiento (última unidad) (+16 more)
 
 ### Community 70 - "verificar.mjs"
 Cohesion: 0.27
@@ -814,9 +814,9 @@ Nodes (8): retail.cerrar_caja(), retail.fn_aplicar_movimiento(), retail.registra
 Cohesion: 0.33
 Nodes (6): ADR-0003: categorías nuevas antes de capturar catálogo, ADR-0024: vocabulario cerrado de colores, Fusión V1→V2: se porta lo rescatable, no se fusiona el árbol, tabla activos_fijos, tabla categorias, tabla colores
 
-### Community 76 - "RecepcionCompraFormV2.tsx"
+### Community 76 - "OrdenesProduccionV2.tsx"
 Cohesion: 0.08
-Nodes (26): CategoriaAlta, Celda, claveCelda(), ColorVocabulario, NuevoProductoForm(), agregarTallaLibre(), alternarTalla(), onSubmit() (+18 more)
+Nodes (27): NuevaOrdenProduccionForm(), onSubmit(), soles(), Tipo, TIPOS, CategoriaAlta, Celda, claveCelda() (+19 more)
 
 ### Community 77 - "devDependencies"
 Cohesion: 0.20
@@ -843,8 +843,8 @@ Cohesion: 0.13
 Nodes (19): MENSAJES_ERROR, abrir(), Aviso, Avisos, cerrar(), DURACION, emitir(), Enfocable (+11 more)
 
 ### Community 83 - "movimientos-reglas.ts"
-Cohesion: 0.11
-Nodes (39): Opcion, ETIQUETA_CAMPO, ETIQUETA_ESTADO, fechaHoraLima(), SeccionCambios(), SeccionMovimientos(), textoValorCambio(), Vista (+31 more)
+Cohesion: 0.10
+Nodes (40): FiltrosMovimientos(), Opcion, ETIQUETA_CAMPO, ETIQUETA_ESTADO, fechaHoraLima(), SeccionCambios(), SeccionMovimientos(), textoValorCambio() (+32 more)
 
 ### Community 84 - "0003-modal-compartido-radix-sin-kit-visual.md"
 Cohesion: 0.06
@@ -855,8 +855,8 @@ Cohesion: 0.22
 Nodes (8): m.cantidad, m.sede_id, retail.fn_aplicar_movimiento(), contenedores, movimientos, stock, stock_almacen, v_actual
 
 ### Community 86 - "10-ROADMAP-DATOS.md"
-Cohesion: 0.06
-Nodes (35): Abierta · el costeo del inventario, Cómo se ve hecho a medias, Cómo se ve hecho a medias, De qué depende, De qué depende, El costo de esperar, con nombre, El orden, en una imagen, El problema (+27 more)
+Cohesion: 0.11
+Nodes (21): 10 Produccion del Taller (Gallito), Abierta · el costeo del inventario, El orden, en una imagen, La caja que no se congela · D-49 · HECHA, La foto de hoy, verificada contra producción el 2026-09-12, Las cuatro decisiones abiertas del acta, Lo que falta construir, y en qué orden, Más adelante · Felipe no lo eligió (+13 more)
 
 ### Community 87 - "ProductoForm.tsx"
 Cohesion: 0.08
@@ -886,9 +886,9 @@ Nodes (6): retail.set_updated_at, productos_updated, retail.categorias, retail.p
 Cohesion: 0.29
 Nodes (6): cambios_token_cliente_key, retail.cambios, retail.personas, retail.ubicaciones, retail.variantes, retail.venta_items
 
-### Community 94 - "PuntoDeVenta.tsx"
-Cohesion: 0.08
-Nodes (32): BuscarPorComprobante(), CambioFormV2(), onSubmit(), METODOS, money(), ADR-0044, VarianteCatalogo, CambiosLista() (+24 more)
+### Community 94 - "RecepcionCompraFormV2.tsx"
+Cohesion: 0.11
+Nodes (22): precargar(), RecepcionCompraFormV2(), cantidadLinea(), elegir(), irAlPanel(), onSubmit(), sumar(), Reparto (+14 more)
 
 ### Community 95 - "scripts"
 Cohesion: 0.29
@@ -934,9 +934,9 @@ Nodes (6): ADR-0035: La factura de compra es el eje: de ella cuelgan recepción 
 Cohesion: 0.33
 Nodes (4): compra_items, compra_pagos, compras_resumen (vista derivada), compras (tabla, entidad central, reemplaza ordenes_compra)
 
-### Community 106 - "09-CONTRATOS.md"
-Cohesion: 0.06
-Nodes (42): 3 · El contrato que no es entre módulos: el repo y la base real, 4 · El mapa de las promesas, 5 · En qué orden se arreglan, 2.1 Ventas -> Facturacion: la boleta no sabe de que venta es, 2.3 Taller -> Tiendas: la prenda cruza, la plata no, 2.4 Retail -> Dynamic: el sueldo no entra al resultado, 2.6 Comprobantes -> SUNAT: emitir no transmite, nadie vigila, Contratos — qué le promete cada módulo a los demás (+34 more)
+### Community 106 - "Número 2 · Qué se está quedando"
+Cohesion: 0.33
+Nodes (6): De qué depende su exactitud, De qué tablas y columnas sale, Dónde se calcula, Número 2 · Qué se está quedando, Qué lo rompe, Qué responde
 
 ### Community 107 - "sedes (tabla/vista)"
 Cohesion: 0.33
@@ -978,9 +978,9 @@ Nodes (4): ADR-0004: sobrecarga fantasma, ADR-0032: registrar_venta deja de dupl
 Cohesion: 0.40
 Nodes (3): ADR-0010: Postgres local aislado por proyecto, ADR-0033: Un stub local de Dynamic para que db reset no dependa de la laptop de nadie, supabase/0000_local_stub_dynamic.sql.example
 
-### Community 117 - "inventario-v2.ts"
-Cohesion: 0.20
-Nodes (14): MoverMercaderiaPage(), InventarioPage(), SelectorUbicacion(), calcularEstado(), FilaStock, FotoCruda, fotoPrincipal(), getExistencias() (+6 more)
+### Community 117 - "resultado.ts"
+Cohesion: 0.14
+Nodes (18): Caja(), VentasDeHoy(), calcularEstado(), FilaStock, FotoCruda, fotoPrincipal(), getExistencias(), getStockPorUbicacion() (+10 more)
 
 ### Community 118 - "Riel 1 — supabase/migrations/*.sql"
 Cohesion: 0.40
@@ -1019,8 +1019,8 @@ Cohesion: 0.50
 Nodes (4): ADR-0009 — create or replace con argumento nuevo bifurca, ADR-0009 — create or replace bifurca en vez de reemplazar, ADR-0026 — Firma vieja se borra, Sobrecargas — la trampa de ADR-0009
 
 ### Community 129 - "PuntoDeVentaCatalogo.tsx"
-Cohesion: 0.21
-Nodes (13): money(), VarianteBusqueda, chip(), iniciales(), Props, PuntoDeVentaCatalogo(), ADR-0043, ADR-0044 (+5 more)
+Cohesion: 0.10
+Nodes (26): ItemCarrito, VarianteBusqueda, chip(), iniciales(), Props, PuntoDeVentaCatalogo(), ADR-0043, ADR-0044 (+18 more)
 
 ### Community 131 - "InventarioNav.tsx"
 Cohesion: 0.40
@@ -1063,8 +1063,8 @@ Cohesion: 0.13
 Nodes (20): ProductosPage(), Resumen(), FiltrosProductos(), esNumeroPositivo(), esUuid(), FiltrosProductos, filtrosProductosDesdeParams(), FotoProducto (+12 more)
 
 ### Community 190 - "celda"
-Cohesion: 0.21
-Nodes (17): formatearFecha(), HistorialCierresPage(), money(), ConteoDetallePage(), fechaHora(), soles(), ConteosLista(), fecha() (+9 more)
+Cohesion: 0.15
+Nodes (23): formatearFecha(), HistorialCierresPage(), money(), ConteoDetallePage(), fechaHora(), soles(), CompraDetalle(), ConteosLista() (+15 more)
 
 ### Community 191 - "2. Caso 1 — Registrar un gasto. Rota de verdad, y nunca funcionó"
 Cohesion: 0.09
@@ -1083,8 +1083,8 @@ Cohesion: 0.13
 Nodes (16): Color, ColorEditarModal(), ETIQUETA_TIPO, FAMILIAS_COLOR, SelectorMuestra(), onArchivo(), TIPOS_COLOR, ADR-0072 (+8 more)
 
 ### Community 195 - "retail.fn_movimientos"
-Cohesion: 0.10
-Nodes (20): cambios, retail.fn_movimientos(), colores, compra_items, compras, comprobantes, conteo_items, devolucion_items (+12 more)
+Cohesion: 0.07
+Nodes (27): cambios, movimientos_destino_fecha_idx, movimientos_ubicacion_fecha_idx, retail.fn_movimientos(), retail.fn_movimientos_variantes(), colores, compra_items, compras (+19 more)
 
 ### Community 196 - "Cómo ordenan la contabilidad los sistemas serios — y qué le falta a CAYLA"
 Cohesion: 0.10
@@ -1095,8 +1095,8 @@ Cohesion: 0.11
 Nodes (19): 🩹 ARREGLAR (lo que existe y está mal — deuda que crece), BACKLOG VIVO — CAYLA Retail, 🎯 Categorías: subcategoría opcional de un solo nivel (2026-09-15, Sesión F3), ✅ CERRADO (últimos, con fecha), 📚 CONCEPTOS PENDIENTES DE ENSEÑAR, 🔀 Consolidación Vender + Caja — 2026-09-15 (tarde), 🔨 CONSTRUIR (lo que no existe y desbloquea), 📎 De sesiones previas de Claude Code (contexto, no repetir) (+11 more)
 
 ### Community 198 - "Diccionario — CAYLA Retail (schema `retail`)"
-Cohesion: 0.10
-Nodes (21): P-18 Depreciacion documentada y nunca calculada, 01 · Identidad y acceso, 05 · Inventario y movimientos, 06 · Conteo y censo físico, 09 · Compras y proveedores, 12 · Contabilidad, `activos_fijos`, `colaboradores` (+13 more)
+Cohesion: 0.13
+Nodes (15): 01 · Identidad y acceso, 06 · Conteo y censo físico, 09 · Compras y proveedores, `colaboradores`, `compra_adjuntos`, `compra_items`, `compra_items_resumen`, `compra_pagos` (+7 more)
 
 ### Community 238 - "20260916150000_traslados_dos_fases.sql"
 Cohesion: 0.16
@@ -1107,12 +1107,12 @@ Cohesion: 0.11
 Nodes (17): 02 · Catálogo y vocabulario, `categorias` — el vocabulario de clasificación: 6 familias fijas, 37 categorías, `codigos_barras` — todos los códigos que encuentran la misma prenda, `codigos_correlativos` — el contador que da el número de cada modelo, `colores` — las 30 palabras con las que se puede nombrar un color, Cómo se escribe (la única puerta), Decisiones que lo gobiernan, El mapa (+9 more)
 
 ### Community 243 - "vender-reglas.ts"
-Cohesion: 0.12
-Nodes (26): aplicarDescuentoAlTicket(), quitarDescuentoDelTicket(), PuntoDeVentaTicket(), aplicarConMonto(), aplicarDescuento(), aplicarDescuentoMonto(), descuentoUnitarioPorMonto(), descuentoUnitarioPorPorcentaje() (+18 more)
+Cohesion: 0.15
+Nodes (22): aplicarDescuentoAlTicket(), PuntoDeVentaTicket(), aplicarConMonto(), aplicarDescuento(), aplicarDescuentoMonto(), descuentoUnitarioPorMonto(), descuentoUnitarioPorPorcentaje(), DetalleDescuento (+14 more)
 
 ### Community 244 - "TrasladosLista.tsx"
 Cohesion: 0.29
-Nodes (12): fechaHora(), TrasladosPage(), fecha(), fechaHora(), Filtro, TrasladosLista(), VISTAS, estaAtrasado() (+4 more)
+Nodes (11): fecha(), fechaHora(), Filtro, TrasladosLista(), VISTAS, tonoEstadoTraslado(), ETIQUETA_VISTA_TRASLADO, llegaHoy() (+3 more)
 
 ### Community 246 - "components.json"
 Cohesion: 0.11
@@ -1120,7 +1120,7 @@ Nodes (17): aliases, components, hooks, lib, ui, utils, iconLibrary, rsc (+9 mor
 
 ### Community 279 - "CompraDetalle.tsx"
 Cohesion: 0.08
-Nodes (35): CompraDetallePage(), ADR-0035, BARRA, CompraDetalle(), Dato, DetalleCompra, FichaCompra(), tipoCompra() (+27 more)
+Nodes (33): etiquetaVence(), FilaFactura(), BARRA, Dato, DetalleCompra, Totales(), ADR-0035, CompraAcciones() (+25 more)
 
 ### Community 280 - "Cómo opera CAYLA de verdad"
 Cohesion: 0.12
@@ -1134,8 +1134,8 @@ Nodes (19): activos_fijos_set_updated_at, activos_fijos_ubicacion_idx, retail.ac
 Cohesion: 0.11
 Nodes (17): 07 · Ventas y caja, `abrir_caja(p_sede_id uuid, p_monto_apertura numeric) → uuid`, `cajas` — el turno de caja de una sede: se abre con un monto, se opera, se cierra contando, `cerrar_caja(p_caja_id uuid, p_monto_contado numeric) → table(monto_esperado, monto_contado, diferencia)`, `comprobantes` (solo la columna que este módulo debería llenar y no llena), Cómo se escribe (la única puerta), Decisiones que lo gobiernan, El mapa (+9 more)
 
-### Community 283 - "adjuntos-compra.ts"
-Cohesion: 0.21
+### Community 283 - "AdjuntosCompra.tsx"
+Cohesion: 0.20
 Nodes (15): AdjuntosDeFactura(), agregar(), SelectorAdjuntos(), agregar(), Cliente, leerErrorStorage(), objecionArchivo(), ResultadoSubida (+7 more)
 
 ### Community 284 - "Decididas y sin construir · la segunda fila"
@@ -1150,9 +1150,9 @@ Nodes (10): retail.fn_colaboradores(), retail.fn_dynamic_disponibles(), retail.f
 Cohesion: 0.12
 Nodes (17): 01 · Identidad y acceso, Cómo se escribe (la única puerta), Decisiones que lo gobiernan, El cambio de sede activa — lo único que este módulo escribe, El mapa, Helpers de LOCAL, Helpers de PRODUCCIÓN, Huecos conocidos (+9 more)
 
-### Community 287 - "createClient"
-Cohesion: 0.16
-Nodes (21): ConteoPage(), soles(), avanceConteo(), exactitudConteos(), FilaPrevisualizacion, LineaVarianza, resumirVarianza(), Varianza (+13 more)
+### Community 287 - "conteo/page.tsx"
+Cohesion: 0.17
+Nodes (17): ConteoPage(), soles(), avanceConteo(), exactitudConteos(), FilaPrevisualizacion, LineaVarianza, resumirVarianza(), Varianza (+9 more)
 
 ### Community 288 - "retail.fn_ventas_del_dia"
 Cohesion: 0.17
@@ -1162,25 +1162,25 @@ Nodes (10): retail.fn_ventas_del_dia(), clientes, colores, comprobantes, product
 Cohesion: 0.12
 Nodes (16): 04 · Importación de catálogo, Cómo se escribe (la única puerta), Decisiones que lo gobiernan, `deshacer_importacion(p_importacion_id uuid) returns jsonb`, El mapa, Escritura directa a tabla, sin RPC, Huecos conocidos, `importaciones` — el acta de cada archivo que se importó: quién, cuándo, con qué plan y cuánto entró (+8 more)
 
-### Community 290 - "`stock`"
-Cohesion: 0.15
-Nodes (17): 05 Inventario y movimientos (Halcon), 1.1 Inventario promete stock nunca negativo, retail.bajar_a_piso(), retail.devolver_a_almacen(), Antes de cambiar una columna, mira aquí, Eficiencia del Taller (D-31), El segundo anillo, Estado de resultados por sede (D-30) (+9 more)
+### Community 290 - "(.)factura/[compraId]/page.tsx"
+Cohesion: 0.24
+Nodes (9): CompraDetallePage(), CompraDetalleModal(), cargarDetalleCompra(), FichaCompra(), tipoCompra(), ModalRuta(), getAdjuntosCompra(), getPagosCompra() (+1 more)
 
 ### Community 291 - "20260914150000_proveedores_administrables.sql"
 Cohesion: 0.22
 Nodes (5): proveedores_nombre_clave_unica, proveedores_ruc_unico, retail.fn_proveedores(), retail.compras, retail.proveedores
 
-### Community 292 - "almacen-local.test.ts"
-Cohesion: 0.24
-Nodes (12): descartarRechazada(), intentarSubir(), pasada(), borrar(), claveLocal(), guardar(), leer(), storage() (+4 more)
+### Community 292 - "PuntoDeVenta.tsx"
+Cohesion: 0.16
+Nodes (17): ATAJOS, DESCUENTO_VACIO, Props, ADR-0036, ADR-0043, VentaOk, borrar(), claveLocal() (+9 more)
 
 ### Community 293 - "registrar_venta.mjs"
 Cohesion: 0.24
 Nodes (7): CASOS, correr(), error(), main(), ADR-0032, ADR-0048, psql()
 
-### Community 294 - "escaner-tecla-suelta.ts"
-Cohesion: 0.22
-Nodes (8): alTeclaSuelta(), CAMPOS_DE_TEXTO, ElementoActivo, TeclaSuelta, teclaSueltaVaAlEscaner(), boton, digito, letra
+### Community 294 - "vitest"
+Cohesion: 0.14
+Nodes (12): alTeclaSuelta(), CAMPOS_DE_TEXTO, ElementoActivo, TeclaSuelta, teclaSueltaVaAlEscaner(), boton, digito, letra (+4 more)
 
 ### Community 295 - "RevelarAlScroll.tsx"
 Cohesion: 0.24
@@ -1206,13 +1206,13 @@ Nodes (14): movimientos_produccion_idx, produccion_lineas_variante_idx, producci
 Cohesion: 0.22
 Nodes (8): retail.previsualizar_cierre_conteo(), codigos_barras, colores, conteo_items, conteos, productos, stock, variantes
 
-### Community 301 - "devoluciones.ts"
-Cohesion: 0.31
-Nodes (9): CambiosPage(), DevolucionesPage(), parsearComprobante(), DevolucionPendiente, getDevolucionesPendientes(), getLineasVentaParaDevolucion(), ItemDevolucionPendiente, buscarVentaIdsPorComprobante() (+1 more)
+### Community 301 - "00-MAPA.md"
+Cohesion: 0.24
+Nodes (8): 04 Importacion de catalogo (Golondrina), 14 Plataforma y esquema (Gorrion), D-01 Trabajo principal: onboarding en un dia, D-02 Para quien se escribe: quienes codean y agentes de IA, D-40 Vender del almacen se puede, registra solo el paso por piso, D-42 La mercaderia nueva entra siempre al almacen, D-51 Un dibujo Mermaid por modulo, retail.migraciones_aplicadas
 
 ### Community 302 - "InventarioPanel.tsx"
 Cohesion: 0.12
-Nodes (18): ESTADOS, fechaHora(), InventarioPanel(), PUNTO_ESTADO, TONO_ESTADO, Chip(), TONO, TonoChip (+10 more)
+Nodes (17): ESTADOS, fechaHora(), InventarioPanel(), PUNTO_ESTADO, TONO_ESTADO, Chip(), TONO, TonoChip (+9 more)
 
 ### Community 303 - "ADR-0042 — El historial de movimientos se vuelve inmutable de verdad"
 Cohesion: 0.29
@@ -1274,9 +1274,9 @@ Nodes (4): retail.fn_stock_por_sede(), colaboradores, public.personas, stock
 Cohesion: 0.22
 Nodes (5): AnclarVocabulario(), COLOR_CONFIANZA, Propuesta, Termino, Universal
 
-### Community 334 - "documento.ts"
-Cohesion: 0.21
-Nodes (14): digitoVerificadorRuc(), faltan(), LARGO_DNI, LARGO_RUC, mal(), OK, PESOS_RUC, PREFIJOS_RUC (+6 more)
+### Community 334 - "Prioridad 2 · Materia prima del Taller"
+Cohesion: 0.29
+Nodes (7): Cómo se ve hecho a medias, De qué depende, El problema, Prioridad 2 · Materia prima del Taller, Qué se rompe si alguien improvisa un esquema paralelo, Qué tablas y columnas exigiría, ¿Sirve `bom_items` como base? No
 
 ### Community 335 - "Arquitectura de cayla-retail"
 Cohesion: 0.12
@@ -1310,9 +1310,9 @@ Nodes (15): 12 · Contabilidad de partida doble, `activos_fijos` — la ficha de
 Cohesion: 0.12
 Nodes (16): 14 · Plataforma y esquema, Cómo se escribe (la única puerta), Decisiones que lo gobiernan, El entorno local: por qué el schema se renombra en el seed (ADR-0010), El mapa, El procedimiento real, paso a paso (D-11), Huecos conocidos, Las tablas (+8 more)
 
-### Community 343 - "exigir"
-Cohesion: 0.15
-Nodes (15): Resultados(), RecibirLotePage(), TrasladoDetallePage(), Caja(), EsqueletoTabla(), getCatalogo(), exigir(), aResumen() (+7 more)
+### Community 343 - "getCatalogo"
+Cohesion: 0.20
+Nodes (7): Resultados(), NuevaCompraPage(), ADR-0035, TrasladoDetallePage(), EsqueletoTabla(), getCatalogo(), getTrasladoDetalle()
 
 ### Community 344 - "0004-recibir-lote-drift-unificacion.md"
 Cohesion: 0.14
@@ -1322,9 +1322,9 @@ Nodes (13): ADR-0004 — `recibir_lote` en producción divergió de la 0018 dura
 Cohesion: 0.18
 Nodes (13): retail.fn_historial_producto_cambios_inmutable, retail.fn_registrar_cambio_producto, historial_producto_cambios_entidad_idx, historial_producto_cambios_sin_update, productos_registrar_cambio, retail.fn_historial_producto_cambios(), retail.fn_registrar_cambio_producto(), retail.historial_producto_cambios (+5 more)
 
-### Community 346 - "shared/src/index.ts"
-Cohesion: 0.26
-Nodes (10): EstadoProforma, marcarPorVencer(), Proforma, ProformaFila, AHORA, enHoras(), fila(), marcada() (+2 more)
+### Community 346 - "Prioridad 3 · Clientas y fidelización"
+Cohesion: 0.29
+Nodes (7): Cómo se ve hecho a medias, De qué depende, El costo de esperar, con nombre, Prioridad 3 · Clientas y fidelización, Qué hay hoy, y es poco, Qué se rompe si alguien improvisa un esquema paralelo, Qué tablas y columnas exigiría
 
 ### Community 347 - "Invariantes — lo que la base hace imposible"
 Cohesion: 0.14
@@ -1362,9 +1362,9 @@ Nodes (12): 08 · Facturación electrónica SUNAT, `comprobantes` — el documen
 Cohesion: 0.17
 Nodes (11): Convenciones de código (adaptadas a este repo), Cómo aplicar SQL a producción (crítico desde la unificación con Dynamic, jul-2026), Idioma, La base de datos: `/docs/datos/` (desde 2026-09-12), Los 12 principios (no negociables), Protocolo de pregunta y de docencia, Reglas de ejecución (autonomía), Ritual de sesión y estado vivo (específico de este repo) (+3 more)
 
-### Community 356 - "resultado.ts"
-Cohesion: 0.27
-Nodes (6): VentasDeHoy(), nombresCortos(), SIN_INTEGRANTE, ResultadoConsulta, Tolerado, tolerar()
+### Community 356 - "Número 3 · Efectivo y caja"
+Cohesion: 0.33
+Nodes (6): De qué depende su exactitud, De qué tablas y columnas sale, Dónde se calcula, Número 3 · Efectivo y caja, Qué lo rompe, Qué responde
 
 ### Community 357 - "panel-serie.test.ts"
 Cohesion: 0.35
@@ -1375,8 +1375,8 @@ Cohesion: 0.17
 Nodes (11): 1. `codigo` al lado del SKU, no en su lugar, 2. Tabla contadora, no `create sequence`, 3. Cuando el color no está normalizado, no se inventa un código, 4. `codigos_barras`: varios códigos, una prenda, ADR-0025 — Código corto al lado del SKU, y varios códigos de barras por prenda, Consecuencias, Contexto, ⚠ Corrección del 2026-09-10 — la causa escrita acá es falsa (+3 more)
 
 ### Community 359 - "DICCIONARIO-DYNAMIC.md"
-Cohesion: 0.27
-Nodes (10): `areas`, `asignaciones_salario`, `categorias_laborales`, `datos_personales`, `marcajes`, `movimientos_planilla`, `periodos_planilla`, `planilla_pagada_detalle` (+2 more)
+Cohesion: 0.24
+Nodes (11): `areas`, `asignaciones_salario`, `categorias_laborales`, `datos_personales`, `marcajes`, `movimientos_planilla`, `periodos_planilla`, `planilla_pagada_detalle` (+3 more)
 
 ### Community 360 - "Decisión"
 Cohesion: 0.18
@@ -1414,9 +1414,9 @@ Nodes (10): 2.1 · Ventas → Facturación: la boleta no sabe de qué venta es, 
 Cohesion: 0.25
 Nodes (8): ADR-0001 — RLS: visibilidad de traslados para la sede que los recibe, Alternativas descartadas, Consecuencias, Contexto, Decisión, RPC fn_aplicar_movimiento (security definer), Policy movimientos_select_sede_destino, Tabla movimientos (append-only)
 
-### Community 369 - "20260915090000_movimientos_lectura.sql"
-Cohesion: 0.25
-Nodes (7): movimientos_destino_fecha_idx, movimientos_ubicacion_fecha_idx, retail.fn_movimientos_variantes(), retail.codigos_barras, retail.movimientos, retail.productos, retail.variantes
+### Community 369 - "ADR-0074 — CI suma un job piloto que prueba las RPC contra Postgres real"
+Cohesion: 0.40
+Nodes (4): ADR-0074 — CI suma un job piloto que prueba las RPC contra Postgres real, Consecuencias, Contexto, Decisión
 
 ### Community 370 - "retail.fn_colaboradores"
 Cohesion: 0.31
@@ -1443,8 +1443,8 @@ Cohesion: 0.25
 Nodes (7): ADR-0030 — La taxonomía universal va DEBAJO del vocabulario propio, no en su lugar, Contexto, Cómo se revierte, Decisión, Dos cosas que se descubrieron construyendo, y conviene no olvidar, Lo que se investigó, Verificación (no "debería funcionar")
 
 ### Community 376 - "PuntoDeVentaTicket.tsx"
-Cohesion: 0.14
-Nodes (10): DescuentoForm, ItemCarrito, TicketEnEspera, ATAJOS_DESCUENTO, ATAJOS_DESCUENTO_MONTO, BILLETES, ICONO_METODO, Props (+2 more)
+Cohesion: 0.12
+Nodes (12): DescuentoForm, TicketEnEspera, ATAJOS_DESCUENTO, ATAJOS_DESCUENTO_MONTO, BILLETES, ICONO_METODO, Props, ADR-0044 (+4 more)
 
 ### Community 377 - "BITACORA.md"
 Cohesion: 0.12
@@ -1670,9 +1670,9 @@ Nodes (3): retail.catalogo_actualizar_producto(), retail.catalogo_crear_producto
 Cohesion: 0.67
 Nodes (3): retail.catalogo_actualizar_producto(), retail.catalogo_crear_producto(), raise
 
-### Community 467 - "badge.tsx"
-Cohesion: 0.25
-Nodes (8): Badge(), badgeVariants, Toggle(), toggleVariants, ADR-0037, class-variance-authority, cn, radix-ui
+### Community 467 - "Número 1 · Vendido por sede"
+Cohesion: 0.40
+Nodes (5): De qué tablas y columnas sale, Dónde se calcula, Número 1 · Vendido por sede, Qué lo rompe, Qué responde
 
 ### Community 468 - "ADR-0073 — La IA compila el mapeo, no procesa las filas"
 Cohesion: 0.29
@@ -1690,8 +1690,8 @@ Nodes (7): ADR-0064, ADR-0066, correr(), esperar(), main(), ADR-0048, psql()
 Cohesion: 0.25
 Nodes (7): ADR-0065 — Anular una venta: estado en `ventas`, reversa de stock por condición, bloqueada si SUNAT ya aceptó, solo con la caja abierta, solo el líder, Alternativas descartadas, Consecuencias, Contexto, Decisión, Esquema, Sin resolver, heredado — no nuevo de esta migración
 
-### Community 472 - "design-tokens.ts"
-Cohesion: 0.29
+### Community 472 - "shared/src/index.ts"
+Cohesion: 0.25
 Nodes (6): COLOR_TOKENS, MAX_ROJO_POR_PANTALLA, RADIUS_TOKENS, ROJO_NUNCA_TEXTO_SOBRE_TINTA, SHADOW_TOKENS, TYPE_TOKENS
 
 ### Community 473 - "retail.aprobar_devolucion"
@@ -1699,16 +1699,12 @@ Cohesion: 0.25
 Nodes (6): r.id, retail.aprobar_devolucion(), cajas, devolucion_items, devoluciones, v_persona
 
 ### Community 474 - "PuntoDeVentaColaOffline.tsx"
-Cohesion: 0.29
-Nodes (7): Props, PuntoDeVentaColaOffline(), totalDe(), ADR-0036, ADR-0043, VentaEncolada, lucide-react
+Cohesion: 0.32
+Nodes (7): money(), Props, PuntoDeVentaColaOffline(), totalDe(), ADR-0036, ADR-0043, VentaEncolada
 
-### Community 475 - "vitest"
-Cohesion: 0.38
-Nodes (4): ABREV_TIPO, ciudadDe(), etiquetaSede(), vitest
-
-### Community 476 - "stock-por-sede.ts"
-Cohesion: 0.43
-Nodes (5): agruparStockPorSede(), FilaStock, nombreCortoSede(), SedeConStock, StockDeVariante
+### Community 476 - "11 · Los números que Felipe mira primero"
+Cohesion: 0.50
+Nodes (4): 11 · Los números que Felipe mira primero, Cómo está cada número hoy, De qué columna cuelga cada número, El volumen real, hoy
 
 ### Community 477 - "ADR-0066 — Cómo se prueban las RPC de escritura: `psql` + rollback, fuera de vitest"
 Cohesion: 0.29
@@ -1730,9 +1726,9 @@ Nodes (6): retail.fn_conteos_resumen(), categorias, conteo_items, conteos, subub
 Cohesion: 0.67
 Nodes (3): ADR-0052, SQL, RAIZ
 
-### Community 483 - "CierreOrdenModal"
-Cohesion: 0.47
-Nodes (6): CierreOrdenModal(), onSubmit(), fechaCorta(), OrdenEnProceso(), OrdenTerminada(), soles()
+### Community 483 - "Contratos — qué le promete cada módulo a los demás"
+Cohesion: 0.67
+Nodes (3): Contratos — qué le promete cada módulo a los demás, Cómo se lee un contrato, El problema que resuelve esta página
 
 ### Community 484 - "ADR-0067 — El costo de una variante pasa de "último recibido" a promedio ponderado"
 Cohesion: 0.33
@@ -1763,24 +1759,24 @@ Cohesion: 0.67
 Nodes (3): ADR-0003: 5 categorías nuevas antes de capturar el catálogo real, categorias (0009_categorias.sql, familia indumentaria), 0030_categorias_captura_real.sql
 
 ## Knowledge Gaps
-- **1911 isolated node(s):** `ADR-0035`, `ADR-0035`, `ADR-0035`, `ClaveTramo`, `Tramo` (+1906 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2747 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **132 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1917 isolated node(s):** `ADR-0035`, `ADR-0035`, `PUNTO_TONO`, `ADR-0035`, `ClaveTramo` (+1912 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2756 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **133 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `por-pagar/page.tsx`, `PuntoDeVentaCatalogo.tsx`, `createClient`, `hoja-de-prueba.mjs`, `campos.tsx`, `requirePersonaActualV2`, `AppShell.tsx`, `CompraDetalle.tsx`, `createClient`, `web/package.json`, `lib/caja.ts`, `ComprobantesPanel.tsx`, `RevelarAlScroll.tsx`, `InventarioPanel.tsx`, `movimientos-v2.ts`, `AjustarInventarioModal.tsx`, `AnclarVocabulario.tsx`, `celda`, `ColoresLista.tsx`, `RecepcionCompraFormV2.tsx`, `Avisos.tsx`, `movimientos-reglas.ts`, `badge.tsx`, `ProductoForm.tsx`, `exigir`, `PuntoDeVentaColaOffline.tsx`, `PuntoDeVenta.tsx`, `resultado.ts`, `CampoFecha.tsx`, `TrasladosLista.tsx`, `PuntoDeVentaTicket.tsx`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `ubicaciones` connect `ubicaciones` to `retail.fn_ventas_del_dia`, `retail.fn_movimientos`, `retail.fn_mi_perfil`, `retail.fn_colaboradores`, `0013_colaboradores_autorizados.sql`, `retail.fn_stock_por_sede`, `retail.fn_stock_por_sede`, `SQL-PENDIENTE-PRODUCCION-2026-09-14.sql`, `retail.fn_ventas_del_dia`, `stock-por-sede.ts`, `0016_roles_colaborador.sql`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Why does `vitest` connect `vitest` to `padron.ts`, `createClient`, `lucode.ts`, `registro-contable.ts`, `CompraDetalle.tsx`, `createClient`, `web/package.json`, `almacen-local.test.ts`, `escaner-tecla-suelta.ts`, `catalogo-grupos.ts`, `InventarioPanel.tsx`, `AjustarInventarioModal.tsx`, `produccion-reglas.ts`, `documento.ts`, `movimientos-reglas.ts`, `shared/src/index.ts`, `stock-por-sede.ts`, `PuntoDeVenta.tsx`, `resultado.ts`, `panel-serie.test.ts`, `vender-reglas.ts`, `TrasladosLista.tsx`, `ventas-offline.ts`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **What connects `ADR-0035`, `ADR-0035`, `ADR-0035` to the rest of the system?**
-  _1911 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `ubicaciones` connect `ubicaciones` to `retail.fn_ventas_del_dia`, `PuntoDeVentaCatalogo.tsx`, `retail.fn_movimientos`, `retail.fn_mi_perfil`, `retail.fn_colaboradores`, `0013_colaboradores_autorizados.sql`, `retail.fn_stock_por_sede`, `SQL-PENDIENTE-PRODUCCION-2026-09-14.sql`, `retail.fn_ventas_del_dia`, `retail.fn_stock_por_sede`, `0016_roles_colaborador.sql`?**
+  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `inventario/page.tsx`, `PuntoDeVentaCatalogo.tsx`, `hoja-de-prueba.mjs`, `campos.tsx`, `ComprobantesPanel.tsx`, `createClient`, `AppShell.tsx`, `CompraDetalle.tsx`, `AdjuntosCompra.tsx`, `web/package.json`, `(.)factura/[compraId]/page.tsx`, `PuntoDeVenta.tsx`, `ProformasPanel.tsx`, `RevelarAlScroll.tsx`, `InventarioPanel.tsx`, `movimientos-v2.ts`, `AjustarInventarioModal.tsx`, `compras.ts`, `AnclarVocabulario.tsx`, `celda`, `ColoresLista.tsx`, `OrdenesProduccionV2.tsx`, `Avisos.tsx`, `movimientos-reglas.ts`, `ProductoForm.tsx`, `getCatalogo`, `PuntoDeVentaColaOffline.tsx`, `RecepcionCompraFormV2.tsx`, `CampoFecha.tsx`, `TrasladosLista.tsx`, `resultado.ts`, `PuntoDeVentaTicket.tsx`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `vitest` connect `vitest` to `documento.ts`, `PuntoDeVentaCatalogo.tsx`, `createClient`, `lucode.ts`, `react`, `ComprobantesPanel.tsx`, `registro-contable.ts`, `CompraDetalle.tsx`, `conteo/page.tsx`, `web/package.json`, `PuntoDeVenta.tsx`, `catalogo-grupos.ts`, `InventarioPanel.tsx`, `AjustarInventarioModal.tsx`, `produccion-reglas.ts`, `movimientos-reglas.ts`, `opcionesDeCambio`, `panel-serie.test.ts`, `vender-reglas.ts`, `TrasladosLista.tsx`, `resultado.ts`, `ventas-offline.ts`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **What connects `ADR-0035`, `ADR-0035`, `PUNTO_TONO` to the rest of the system?**
+  _1917 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `documento.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.09759759759759759 - nodes in this community are weakly interconnected._
 - **Should `DECISIONES-2026-09-12.md` be split into smaller, more focused modules?**
-  _Cohesion score 0.09853249475890985 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09571655208884189 - nodes in this community are weakly interconnected._
 - **Should `generar.mjs` be split into smaller, more focused modules?**
   _Cohesion score 0.05782312925170068 - nodes in this community are weakly interconnected._
-- **Should `createClient` be split into smaller, more focused modules?**
-  _Cohesion score 0.047497446373850866 - nodes in this community are weakly interconnected._

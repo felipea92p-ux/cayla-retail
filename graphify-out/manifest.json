@@ -66,21 +66,21 @@
     "semantic_hash": "3d4ea97b2297effb44e513e5ee043295"
   },
   "apps/web/app/(app)/compras/page.tsx": {
-    "mtime": 1789664480.7076964,
-    "seen": 1789665315.1136565,
-    "ast_hash": "79db0015c8b0200a1f2be8f3353e7dbb",
+    "mtime": 1789667616.8447955,
+    "seen": 1789667750.1147897,
+    "ast_hash": "923d0662e161283cd5ba8257b18347ab",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/compras/por-pagar/page.tsx": {
-    "mtime": 1789664480.7076964,
-    "seen": 1789665315.1136565,
-    "ast_hash": "34456317160d4d44775256c68b8dc846",
+    "mtime": 1789667616.8461657,
+    "seen": 1789667750.1147897,
+    "ast_hash": "f96ce54f3b7256585f1e32be803cf533",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/compras/recibir/page.tsx": {
-    "mtime": 1789664480.7106528,
-    "seen": 1789665315.1136565,
-    "ast_hash": "342036f78856bee9fd966654171652fc",
+    "mtime": 1789667616.8461657,
+    "seen": 1789667750.1147897,
+    "ast_hash": "55593cbed0365c5f2034e8d3466960c3",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/error.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "apps/web/app/(app)/inventario/recibir/page.tsx": {
-    "mtime": 1789664480.7252111,
-    "seen": 1789665315.1136565,
-    "ast_hash": "e21f9b6727c101d1ff1bf920968369ec",
+    "mtime": 1789667616.8486981,
+    "seen": 1789667750.115459,
+    "ast_hash": "9ef7087d5c4448cda2a1a60dcf07cd54",
     "semantic_hash": ""
   },
   "apps/web/app/(app)/layout.tsx": {
@@ -300,15 +300,15 @@
     "semantic_hash": ""
   },
   "apps/web/components/CompraDetallePanel.tsx": {
-    "mtime": 1789664480.7814298,
-    "seen": 1789665315.1136565,
-    "ast_hash": "f4ce63bac188f5673654a931ad084103",
+    "mtime": 1789667616.8516765,
+    "seen": 1789667750.115459,
+    "ast_hash": "3b93a925a2856090e490fbb4f7ca1148",
     "semantic_hash": ""
   },
   "apps/web/components/CompraFormV2.tsx": {
-    "mtime": 1789664480.7865753,
-    "seen": 1789665315.1136565,
-    "ast_hash": "dd85414c703ab221af52894b8d9ffc31",
+    "mtime": 1789667616.852912,
+    "seen": 1789667750.115459,
+    "ast_hash": "7e7299983d9c79b4399ab7fa3924e5d7",
     "semantic_hash": ""
   },
   "apps/web/components/ComprobantesPanel.tsx": {
@@ -330,9 +330,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/FiltrosCompras.tsx": {
-    "mtime": 1789664480.7925515,
-    "seen": 1789665315.1136565,
-    "ast_hash": "d47a5a85d4d0f338feaf8c7b6374e25b",
+    "mtime": 1789667616.852912,
+    "seen": 1789667750.115459,
+    "ast_hash": "c2cf55ecb170c16cbbb565959bf6ce7d",
     "semantic_hash": ""
   },
   "apps/web/components/FinanzasNav.tsx": {
@@ -390,9 +390,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/RecepcionFormV2.tsx": {
-    "mtime": 1789664480.817904,
-    "seen": 1789665315.1136565,
-    "ast_hash": "d1611842fcbc52d607db99c5a1bd9fac",
+    "mtime": 1789667616.8541517,
+    "seen": 1789667750.115459,
+    "ast_hash": "f754f160aede06f1009c3089abada5fa",
     "semantic_hash": ""
   },
   "apps/web/components/SelectorUbicacion.tsx": {
@@ -480,15 +480,15 @@
     "semantic_hash": ""
   },
   "apps/web/lib/compras-reglas.ts": {
-    "mtime": 1789664480.8472593,
-    "seen": 1789665315.1136565,
-    "ast_hash": "2ca27720faea7adc58b4a4cea33a3d6e",
+    "mtime": 1789667616.85649,
+    "seen": 1789667750.115459,
+    "ast_hash": "d04773d8d923c73595fab3c1b03f64b8",
     "semantic_hash": ""
   },
   "apps/web/lib/compras.ts": {
-    "mtime": 1789664480.8472593,
-    "seen": 1789665315.1136565,
-    "ast_hash": "622380cae02824128bcc24f3938adecb",
+    "mtime": 1789667616.8592787,
+    "seen": 1789667750.115459,
+    "ast_hash": "ffdb77a99668623f0f2529799f47b774",
     "semantic_hash": ""
   },
   "apps/web/lib/comprobantes-reglas.ts": {
@@ -1302,10 +1302,10 @@
     "semantic_hash": "573344dc3a92ae05ab84485578cc0672"
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1789664480.6775992,
-    "seen": 1789665315.114073,
-    "ast_hash": "086551343632cc64aa27eda700a4ba97",
-    "semantic_hash": "086551343632cc64aa27eda700a4ba97"
+    "mtime": 1789667260.6020296,
+    "seen": 1789667750.115459,
+    "ast_hash": "13a0d0e77ce7b134a6a9610087c59679",
+    "semantic_hash": ""
   },
   "AGENTS.md": {
     "mtime": 1789664480.6775992,
@@ -1356,15 +1356,15 @@
     "semantic_hash": ""
   },
   "docs/BACKLOG.md": {
-    "mtime": 1789665275.7887228,
-    "seen": 1789665315.114073,
-    "ast_hash": "79c9e51e2f469fdb5921aa9196cb2704",
+    "mtime": 1789667616.8597984,
+    "seen": 1789667750.115459,
+    "ast_hash": "6b1fea2cc0b5c26e45fe8f26e2ba5da5",
     "semantic_hash": ""
   },
   "docs/BITACORA.md": {
-    "mtime": 1789665282.4768722,
-    "seen": 1789665315.114073,
-    "ast_hash": "524cada73b96e1743f792d8fab6616e4",
+    "mtime": 1789667652.6212916,
+    "seen": 1789667750.115459,
+    "ast_hash": "7a3b1ba4f39e4c898321408b0f9aeea2",
     "semantic_hash": ""
   },
   "docs/CHECKLIST-MANANA.md": {
@@ -1938,15 +1938,15 @@
     "semantic_hash": ""
   },
   "apps/web/components/AdjuntosCompra.tsx": {
-    "mtime": 1789664480.7686124,
-    "seen": 1789665315.1136565,
-    "ast_hash": "752620250b1193c56d05c19aa32e6ce7",
+    "mtime": 1789667616.8492043,
+    "seen": 1789667750.115459,
+    "ast_hash": "77057cafdf85421662e9982cb67b7094",
     "semantic_hash": ""
   },
   "apps/web/components/CompraDetalle.tsx": {
-    "mtime": 1789664480.7814298,
-    "seen": 1789665315.1136565,
-    "ast_hash": "43827c9310333b4e58ac8377326c596d",
+    "mtime": 1789667616.8506699,
+    "seen": 1789667750.115459,
+    "ast_hash": "6dab48dcce49dc547065a9c1cfb5106c",
     "semantic_hash": ""
   },
   "apps/web/components/ConteoPanel.tsx": {
@@ -3084,9 +3084,9 @@
     "semantic_hash": ""
   },
   "docs/SESIONES-ACTIVAS.md": {
-    "mtime": 1789665289.7974102,
-    "seen": 1789665315.114073,
-    "ast_hash": "fed9482603ac1d4e75124ef5d591a1d4",
+    "mtime": 1789667630.2075846,
+    "seen": 1789667750.115459,
+    "ast_hash": "9d7b5627c4d669ef86e37a71158c8536",
     "semantic_hash": ""
   },
   "docs/adr/0067-costo-de-variante-pasa-a-promedio-ponderado.md": {
@@ -3129,6 +3129,24 @@
     "mtime": 1789664480.9908025,
     "seen": 1789665315.114073,
     "ast_hash": "2c0a25128b3abdeb628e651c79f351e0",
+    "semantic_hash": ""
+  },
+  "apps/web/components/RecepcionesRecientes.tsx": {
+    "mtime": 1789667616.855657,
+    "seen": 1789667750.115459,
+    "ast_hash": "a90bca9cfc4f4da60fa3736f92dcabfc",
+    "semantic_hash": ""
+  },
+  "apps/web/components/RecibirLotePanel.tsx": {
+    "mtime": 1789667616.85649,
+    "seen": 1789667750.115459,
+    "ast_hash": "9512332e1e3a51e1400c3c56d6eb4e4a",
+    "semantic_hash": ""
+  },
+  "docs/adr/0074-ci-suma-un-job-piloto-que-prueba-las-rpc-contra-postgres-real.md": {
+    "mtime": 1789667370.0230055,
+    "seen": 1789667750.115459,
+    "ast_hash": "82b96bc73645acee0af1a1a47c9c6252",
     "semantic_hash": ""
   }
 }
