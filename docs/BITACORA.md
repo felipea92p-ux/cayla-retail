@@ -5208,3 +5208,18 @@ cerrado del lado de Devoluciones**: esquema, RPC y pantalla construidos, verific
 por SQL, por navegador (camino de rechazo) y ahora por Felipe en persona (camino
 completo). Sin commitear y sin aplicar en producción — ambos a la espera de que
 Felipe lo pida explícitamente.
+
+## 2026-09-16 (registrar_venta: v_sku nulo reventaba venta_precio_cambiado)
+
+Bug de un `raise ... using detail = ... || v_sku || ...` en `registrar_venta`: con una
+prenda del censo (`sku` nullable desde el 20260915221633), `v_sku` llega `NULL`,
+concatenar con `||` da `NULL` y Postgres corta el `raise` con su propio error ("RAISE
+statement option cannot be null") en vez del `venta_precio_cambiado` esperado — la
+colaboradora veía un error crudo de Postgres sin traducir. Corregido en
+`20260916223000_venta_precio_cambiado_sku_nulo.sql`: mismo criterio que
+`prenda-reglas.ts` (`codigoPrenda`) — código de etiqueta primero, sku de respaldo,
+texto fijo si faltan los dos. Reproducido y verificado con `npx supabase db reset` +
+una variante sin sku real, en una transacción con `rollback` (sin dejar huella en el
+Postgres local compartido): antes de la fix revienta con el error de Postgres, después
+lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
+producción todavía — pendiente el ok de Felipe.
