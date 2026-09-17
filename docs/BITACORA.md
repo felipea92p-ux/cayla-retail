@@ -5588,3 +5588,32 @@ Advertencia de seguridad del linter de Supabase sobre `fn_prioridad_conteo` revi
 genérica de cualquier función `security definer` con `grant ... to authenticated`, el
 mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
 interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.
+
+## 2026-09-17 (noche, más tarde — cancelar conteo y "Seguir contando", desplegado)
+
+Felipe encontró dos bugs probando lo de arriba en producción real: "Seguir contando →"
+no llevaba a ningún lado (`<Link>` de Next.js para un salto de ancla `#contar` en la
+misma página — no siempre dispara el scroll nativo; cambiado a `<a>`), y no existía
+forma de cancelar un conteo abierto por error — "Revisar y cerrar" queda deshabilitado
+hasta contar al menos una prenda, así que ni servía de salida. El esquema original ya
+reservaba el estado `'anulado'` (`0002_esquema.sql`) sin conectar nunca a ninguna RPC.
+Nueva `retail.anular_conteo(p_conteo_id)`: no toca `stock`/`movimientos` (solo
+`cerrar_conteo` los toca), mismo permiso que `abrir_conteo` (no exige líder, a
+diferencia de cerrar). PR #80, mismo protocolo que la tarde: verificado en navegador
+(dos veces — la base local compartida se reseteó por otra sesión en el medio, detectado
+y corregido antes de seguir), PR fusionado, Vercel confirmado desplegado, y recién ahí
+`apply_migration` contra `vovjyyiafkxteijimpuy` con ok puntual de Felipe otra vez.
+
+Verificado después contra producción: firma/cuerpo correctos
+(`pg_get_function_result`/`identity_arguments`). No se forzó una prueba en vivo de punta
+a punta — Tienda TRU tenía un conteo real y abierto en el momento (el propio de Felipe
+probando), así que se evitó tocarlo; la confianza vino de la firma confirmada, las
+columnas de `conteos`/`personas` ya verificadas contra ese mismo proyecto horas antes, y
+la misma lógica ya probada dos veces en local.
+
+De paso, al traer `origin/main` (12 commits de otras sesiones — cuarentena de prendas
+dañadas, insumos del Taller, inventario en 4 pantallas): otra sesión creó
+`20260917140000_insumos_taller_reconstruido.sql`, mismo timestamp que
+`20260917140000_anular_conteo.sql` de esta sesión. No choca — son archivos distintos,
+temas sin relación — pero es la señal exacta que motivó `docs/SESIONES-ACTIVAS.md` esta
+mañana. Sin acción: ya fusionado en `origin/main`, renombrar ahora sería solo ruido.
