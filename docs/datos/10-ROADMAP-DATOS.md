@@ -276,6 +276,20 @@ conciliación línea por línea.
 **DECIDIDA** — D-47, textual: *completo*. Entra, se consume al cortar, y avisa cuando
 falta.
 
+**CONSTRUIDO (solo local, falta producción) — 2026-09-17.** Las 4 tablas y las 3 RPC de
+"Qué tablas y columnas exigiría" (abajo) están en
+`supabase/migrations/20260917124059_materia_prima_taller.sql`, aplicadas y verificadas
+contra el Postgres local. Detalle completo, decisiones de diseño y qué falta (conectar
+`NuevaOrdenProduccionForm.tsx`, aplicar en producción, la pantalla de alerta) en
+**ADR-0074**. **Corrección de nombres:** la sección de abajo se escribió contra
+`sede_id → sedes(id)` y `compras_comprobantes`, un estado del esquema anterior a que
+Producción del Taller migrara a `ubicaciones` (2026-09-15) — ninguna de las dos existe
+en este repo. Lo construido usa `ubicacion_id → ubicaciones(id)` y
+`compra_id → compras(id)` (ver ADR-0074, sección "Decisiones de diseño distintas al
+roadmap"). La prosa de abajo queda sin tocar como diseño original; no se corrigió acá
+para no reescribir un documento ajeno bajo esta tarea — **la Prioridad 1 (compras/
+gastos), más abajo, tiene el mismo drift de `p_sede_id` sin auditar todavía.**
+
 ## El problema
 
 `producciones` guarda `costo_tela`, `costo_avios` y `costo_maquila` como montos que

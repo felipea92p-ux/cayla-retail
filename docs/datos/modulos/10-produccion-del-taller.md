@@ -1,6 +1,16 @@
 # 10 · Producción del Taller
 > **Pájaro:** GALLITO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
 
+> **Nota 2026-09-17, sobre el resto de este documento (no sobre la sección de insumos
+> del final, que sí está al día):** las tablas `producciones`/`produccion_lineas`/
+> `ordenes_produccion` que siguen abajo se documentaron con `sedes`/`unidad_id` y
+> `registrar_produccion`/5 RPC de la `0026`-`0029`. El Postgres local de HOY ya no
+> tiene eso — `20260915130000_produccion_del_taller.sql` restauró el módulo sobre el
+> modelo V2 (`ubicaciones`, `sububicaciones`, `ubicacion_id`, RPC `abrir_produccion`/
+> `set_etapa_produccion`/`cerrar_produccion`/`anular_produccion`/`revertir_produccion`,
+> estados `en_proceso`/`terminada`/`anulada`), verificado directo contra el Postgres
+> local al escribir ADR-0074. Este documento no se reescribió entero bajo esa tarea
+> (alcance: solo la sección de insumos) — queda pendiente un refresco completo.
 ## Para qué existe
 
 El Taller de Lima fabrica prendas en continuo y las manda a TRU, AQP y LIM. Sin este
@@ -392,10 +402,42 @@ llegar comprado, no hay ninguna otra puerta por la que esas prendas puedan entra
     nadie la lee). Siguen vivas porque tocarlas es tocar el núcleo. **Consecuencia:** quien lea el
     esquema sin este documento va a creer que una corrida tiene una variante y una fecha propias.
 
+## Materia prima del Taller (D-47) — construido 2026-09-17, solo local
+
+`docs/datos/10-ROADMAP-DATOS.md:274-423` tenía el diseño; `ADR-0074` tiene las
+decisiones y la verificación completa. Resuelve el hueco 9: hasta acá, `costo_tela`/
+`costo_avios` eran montos tecleados sin nada real detrás.
+
+**Migración:** `supabase/migrations/20260917124059_materia_prima_taller.sql`. Usa
+`ubicacion_id`/`fn_puede_operar_ubicacion` (el modelo real, ver nota al inicio de este
+documento) — a diferencia del resto de `docs/datos/10-ROADMAP-DATOS.md`, que lo diseñó
+contra `sede_id`.
+
+| Tabla | Qué guarda | Notas |
+|---|---|---|
+| `insumos` | Catálogo: `codigo`, `nombre`, `tipo` (`tela`\|`avio`\|`empaque`), `unidad` (`m`\|`und`\|`kg`), `stock_minimo`, `activo` | Hermana de `productos`, nunca entra a `variantes` (ensuciaría el buscador de caja, truncaría decimales). Select autenticado, escritura líder — mismo patrón que `productos`/`colores`. |
+| `insumo_stock` | `(insumo_id, ubicacion_id)` → `cantidad numeric(12,3)` | Snapshot derivado, como `stock`. Con decimales a propósito: `stock.cantidad` es `integer` y truncaría 2,35 m a 2. |
+| `insumo_movimientos` | Historial append-only: `tipo` (`entrada`\|`salida`\|`ajuste`), `cantidad`, `costo_unitario`, `produccion_id`, `compra_id`, `usuario_id` | Calcado de `movimientos`, mismo check de cantidad válida (`ajuste` con signo, el resto positivo). `compra_id → compras(id)` es el puente con Prioridad 1 cuando la tela viene facturada — a nivel de factura, no de línea (`compra_items` es de prendas). |
+| `produccion_insumos` | `produccion_id`, `insumo_id`, `cantidad_consumida`, `costo_unitario`, `costo_total` (generada) | El puente: qué se cortó y a qué costo, por corrida. Append-only sin unique — una orden puede cortarse en varias sesiones antes de cerrar. |
+
+**RPC (security definer, `fn_puede_operar_ubicacion` como candado, igual que el resto del módulo):**
+
+| Función | Firma | Qué hace |
+|---|---|---|
+| `recibir_insumos` | `(p_ubicacion_id uuid, p_items jsonb, p_compra_id uuid default null, p_nota text default null) returns integer` | Entrada de materia prima. `p_items`: `[{insumo_id, cantidad, costo_unitario}, …]`. |
+| `registrar_consumo_insumos` | `(p_produccion_id uuid, p_items jsonb, p_nota text default null) returns void` | Consumo real al cortar. **Exige `producciones.estado = 'en_proceso'`** — se registra ANTES de cerrar, nunca después (ver ADR-0074, por qué). Recalcula `producciones.costo_tela`/`costo_avios` sumando el consumo real, pero solo el balde que tocó (no pisa a 0 un costo tecleado si esa corrida no registró ese tipo de insumo). |
+| `fn_aplicar_movimiento_insumo` | `(p_movimiento_id uuid) returns void` | Motor mecánico compartido por las dos RPC de arriba — mismo patrón que `fn_aplicar_movimiento` (`20260914230000`): `entrada` es upsert aditivo, `salida`/`ajuste` bloquean la fila con `for update` antes de leer, para que dos corridas cortando la misma tela a la vez se serialicen en vez de pisarse. |
+
+**No conectado todavía:** `NuevaOrdenProduccionForm.tsx` sigue mandando `costo_tela`/
+`costo_avios` tecleados a `abrir_produccion`, sin pasar por `recibir_insumos`/
+`registrar_consumo_insumos` — cablear la pantalla es otra sesión. Tampoco hay pantalla
+de alerta de stock mínimo (`insumo_stock.cantidad < insumos.stock_minimo`): la columna
+existe, la lectura no se construyó.
+
 ## Decisiones que lo gobiernan
 
 - **D-31** — El Taller se mide por costo absorbido + referencia de maquila, nunca por precio de transferencia interno. Hoy el esquema hace lo contrario (huecos 5, 6, 7, 8).
-- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y avisa cuando falta. No existe (hueco 9). Es la condición para que D-31 sea medición.
+- **D-47** — Inventario de insumos completo: la tela entra, se descuenta al cortar y avisa cuando falta. **Construido 2026-09-17, solo local** (hueco 9 cerrado en local — ver sección "Materia prima del Taller" arriba y ADR-0074; falta producción y conectar la pantalla). Es la condición para que D-31 sea medición.
 - **D-15** — El Taller es una sede con poderes especiales. Aquí se ve en que `unidad_id` apunta a `sedes` como cualquier tienda.
 - **D-16** — Cada tabla dice en qué base existe, y cada diferencia va en su fila.
 - **D-07** — `ordenes_produccion` y las columnas muertas van marcadas con el motivo por el que siguen vivas.
