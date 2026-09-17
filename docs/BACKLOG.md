@@ -579,6 +579,13 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       prueba", nunca merma).
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
+      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
+      pegar en producción y la verificación en navegador que quedó anotada ahí — no
+      cerrado del todo todavía. Sigue pendiente el mismo mecanismo para Tucán
+      (taxonomía), no construido en esta pasada.
+- [x] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la
+      cabecera", más abajo) — resuelto 2026-09-17: tarjeta "Buscar" en Acciones
+      de Inicio + campo propio en la pantalla.
       cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. La
       verificación en navegador y el pegado en producción quedaron cerrados el
       mismo 2026-09-17. Sigue pendiente el mismo mecanismo para Tucán (taxonomía),
@@ -722,12 +729,21 @@ se borró `BuscadorHero.tsx`, un segundo componente de búsqueda que ya estaba
 muerto de verdad (cero imports en todo el repo — probablemente un diseño
 anterior del Inicio que quedó huérfano).
 
-- [ ] **`/buscar/page.tsx` queda sin ningún punto de entrada en la UI.** La
-      pantalla en sí sigue intacta y funcional (búsqueda real con stock por
-      ubicación), solo alcanzable hoy por URL directa. Pendiente de que
-      Felipe decida: ¿se borra la pantalla también, o se reengancha en un
-      lugar puntual — ej. una tarjeta más en "Acciones" de Inicio — en vez de
-      vivir en la cabecera global?
+- [x] **`/buscar/page.tsx` quedaba sin ningún punto de entrada en la UI —
+      resuelto 2026-09-17.** Se tomó la opción ya sugerida acá: tarjeta
+      "Buscar" en "Acciones" de Inicio (`app/(app)/page.tsx`), sin tocar
+      `AppShell.tsx` (evita reabrir un buscador global en pantallas donde no
+      aplica, que es justo lo que esta sección existe para prevenir).
+      De paso apareció un bug más profundo: la pantalla dependía enteramente
+      del `BuscadorGlobal` ya eliminado para escribir `?q=` en la URL — sin
+      caja propia mostraba "escribe algo en el buscador de arriba", apuntando
+      a un "arriba" que ya no existe. Se agregó un `<form method="get">`
+      nativo (`CampoTexto`/`Boton`, sin "use client") en `buscar/page.tsx`: el
+      navegador arma `?q=...` solo, sin depender de JS.
+      Verificado: `pnpm --filter web typecheck`/`lint` en verde; navegador
+      real (escritorio y celular) — Inicio → tarjeta "Buscar" → `/buscar` con
+      el campo propio enfocado → "casaca" → 8 resultados con stock por
+      ubicación real; cabecera sigue solo con el selector de ubicación.
 
 Verificado: `pnpm --filter web typecheck`/`lint` en verde; probado en
 navegador real (escritorio y celular) en `/` y `/productos` — la cabecera
