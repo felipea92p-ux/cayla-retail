@@ -5252,6 +5252,22 @@ Postgres local compartido): antes de la fix revienta con el error de Postgres, d
 lanza `venta_precio_cambiado` con el código de etiqueta en el `detail`. Sin aplicar en
 producción todavía — pendiente el ok de Felipe.
 
+## 2026-09-17 (Compras: listado, nueva factura y detalle sobre un mockup de referencia)
+
+Felipe pasó capturas de un ERP genérico ("Kipus", ajeno a CAYLA) como referencia de
+layout para Facturas de proveedores. Se tomó la estructura — KPIs con punto de estado,
+RUC y condición de pago visibles por fila, N.° de documento en su propia columna,
+secciones numeradas en "Registrar factura", arrastrar-y-soltar en adjuntos, barra de
+progreso por línea y acceso directo a "Recibir mercadería" en el detalle — y se aplicó
+sobre el brandbook real de CAYLA (crema/tinta/rojo, EB Garamond + DM Sans), nunca sobre
+los colores del mockup. A propósito NO se copiaron: el check de SUNAT dentro del
+formulario (ya vive al dar de alta al proveedor, ADR-0035), un estado "borrador" (no
+existe en el esquema) ni pestañas de navegación duplicadas (Felipe ya las había sacado
+del layout de Compras el 2026-09-16 a favor del grupo del lateral). Sin cambios de
+esquema ni de RPC: `compras/page.tsx`, `CompraFormV2.tsx`, `CompraDetalle.tsx`,
+`CompraDetallePanel.tsx`, `AdjuntosCompra.tsx`. Verificado en navegador (desktop,
+900px y móvil 375px) contra datos reales del seed local; `typecheck`/`lint` en verde.
+
 ## 2026-09-17 (Facturación: auditoría de flujo completo, sin código)
 
 Felipe preguntó qué le falta al módulo de Facturación (ventas/SUNAT, no facturas de
