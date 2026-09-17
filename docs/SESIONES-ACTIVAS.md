@@ -20,6 +20,13 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 4: exportar CSV en `InventarioPanel.tsx` | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 5: prueba `scripts/pruebas/fn_aplicar_movimiento.mjs` | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 6: ADR de la unificación retail↔dynamic (ADR-0091) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Fusión con `main` (48 commits) + renumeración de ADR 0074-0077→0078-0081 (colisión con 3 sesiones concurrentes) + ejecución en producción de `registrar_consumo_insumo` y `marcar_comprobante_no_emitido`, con ok explícito de Felipe (excepción puntual a D-11). Segunda fusión: renumerado otra vez 0078-0081→0090-0093 (nueva colisión con `hopeful-knuth-b7e000`, ADR-0078 revocar-execute). Tercera fusión: solo docs + `package.json` (pruebas de `registrar_venta`, sin choque de ADR esta vez). PR #96 abierto, esperando merge desde GitHub. | 2026-09-17 |
 | Claude | `claude/pruebas-registrar-venta-cd2119` | Pruebas: `registrar_venta` (`scripts/pruebas/registrar_venta.mjs`, 22/22) + job piloto de CI con Postgres real (ADR-0074, `.github/workflows/ci.yml`, sin pushear todavía) | 2026-09-17 |
 | Claude Code | `claude/almacen-redirects-config-8733a3` | `next.config.ts` (redirects de `/almacen`), borró `app/(app)/almacen/**`, `docs/ARQUITECTURA.md` (línea del alias) | 2026-09-17 |
 | Claude (Danytristee) | `claude/stock-fantasma-archivados-239a85` | Stock fantasma de productos de prueba — ya estaba resuelto en producción sin script (2026-09-16 21:44 UTC); agregó filtro defensivo en `inventario-v2.ts` | 2026-09-17 |

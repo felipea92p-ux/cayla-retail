@@ -760,9 +760,12 @@ export type Database = {
           id: string
           igv: number
           items: Json | null
+          marcado_no_emitido_at: string | null
+          marcado_no_emitido_por: string | null
           moneda: string
           motivo: string | null
           motivo_anulacion: string | null
+          motivo_no_emitido: string | null
           motivo_rechazo: string | null
           numero: number
           respuesta_anulacion: Json | null
@@ -790,9 +793,12 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json | null
+          marcado_no_emitido_at?: string | null
+          marcado_no_emitido_por?: string | null
           moneda?: string
           motivo?: string | null
           motivo_anulacion?: string | null
+          motivo_no_emitido?: string | null
           motivo_rechazo?: string | null
           numero: number
           respuesta_anulacion?: Json | null
@@ -820,9 +826,12 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json | null
+          marcado_no_emitido_at?: string | null
+          marcado_no_emitido_por?: string | null
           moneda?: string
           motivo?: string | null
           motivo_anulacion?: string | null
+          motivo_no_emitido?: string | null
           motivo_rechazo?: string | null
           numero?: number
           respuesta_anulacion?: Json | null
@@ -3466,6 +3475,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      marcar_comprobante_no_emitido: {
+        Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: undefined
       }
       mover_interno: {
         Args: {

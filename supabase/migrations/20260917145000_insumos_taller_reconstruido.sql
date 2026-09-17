@@ -10,17 +10,14 @@
 -- cabecera y de sección son nuevos, agregados en la reconstrucción — no venían
 -- con la migración original.
 --
--- OJO — hay una TERCERA versión, distinta e incompatible, en el worktree
--- `cayla-invoices-module-review-451aa5`
--- (`supabase/migrations/20260917124059_materia_prima_taller.sql`): usa
--- `insumos.unidad`/`activo` en vez de `unidad_medida`/`archivado_at`, no tiene
--- lotes (usa un `insumo_stock` agregado en vez de PEPS por lote), y sus
--- funciones se llaman `recibir_insumos`/`registrar_consumo_insumos`/
--- `fn_aplicar_movimiento_insumo`. **Este archivo documenta lo que YA CORRE en
--- producción, no la de ese worktree.** No aplicar los dos: los nombres de tabla
--- (`retail.insumos`, `retail.movimientos_insumo`/`retail.insumo_movimientos`)
--- chocan. Cuál de las dos versiones queda — esta o la del otro worktree — es una
--- decisión de Felipe, no algo que este archivo resuelva.
+-- RESUELTO 2026-09-17: dos sesiones distintas (este worktree y
+-- `cayla-invoices-module-review-451aa5`) reconstruyeron este mismo esquema de
+-- forma independiente el mismo día y coincidieron exactamente — buena
+-- confirmación cruzada. La otra sesión había construido antes, por separado, un
+-- esquema paralelo incompatible (`insumo_stock`, `recibir_insumos` con 's',
+-- commit `fd3488f`); Felipe decidió adoptar ESTE (el huérfano real) en vez de
+-- ese, y esa sesión ya lo dropeó de su Postgres local. Detalle completo de la
+-- reconciliación en ADR-0090.
 --
 -- Qué hace:
 --   · `insumos` — el catálogo: tela o avío, con proveedor de referencia, unidad
@@ -34,8 +31,7 @@
 --   · `movimientos_insumo` — el ledger append-only, calcado de `movimientos`
 --     (D-22: no se edita ni se borra, se corrige con signo contrario y motivo).
 --     El CHECK `movimientos_insumo_produccion_segun_tipo` ya anticipa los tipos
---     `consumo`/`devolucion` ligados a una `producciones.id` — pero HOY NINGUNA
---     función los escribe. Ver "Lo que falta" abajo.
+--     `consumo`/`devolucion` ligados a una `producciones.id`.
 --   · `v_insumo_saldos` — cuánto hay y cuánto vale, por insumo y ubicación,
 --     sumando el ledger. Nunca una columna que alguien pise (mismo principio que
 --     `stock` sobre `movimientos`).
@@ -46,19 +42,15 @@
 --     hoy, no al de un lote puntual (el conteo no distingue de qué rollo salió
 --     la diferencia).
 --
--- Lo que falta, y por lo que D-47 sigue sin cerrarse del todo (ver
--- `docs/datos/modulos/10-produccion-del-taller.md`, Hueco 2): no existe todavía
--- una función que consuma insumos al cortar y los ligue a una `produccion_id`.
--- `cerrar_produccion` (`20260915130000` / redefinida en `20260916090000`) sigue
--- recibiendo `costo_tela`/`costo_avios`/`costo_maquila` como números sueltos —
--- el puente entre este archivo y ese no existe todavía. El catálogo y la
--- recepción están construidos; el consumo real, no.
+-- El consumo real al cortar (lo único que faltaba de D-47) YA SE CONSTRUYÓ —
+-- `retail.registrar_consumo_insumo`, en
+-- `20260917141500_registrar_consumo_insumo.sql` (migración separada, la única
+-- pieza que producción todavía no tiene). Detalle completo en ADR-0090.
 --
--- ESTADO: verificado en producción el 2026-09-17. NO aplicado en el Postgres
--- local de esta rama con este archivo — se reconstruyó para que el repo deje de
--- estar ciego sobre esto, no porque ya se haya corrido acá. Antes de correrlo en
--- cualquier base, confirmar con Felipe que esta es la versión vigente (ver la
--- nota sobre la tercera versión, arriba).
+-- ESTADO: verificado en producción el 2026-09-17. Este archivo (el espejo) NUNCA
+-- se pega en producción tal cual — esos objetos ya existen allá; pegarlo
+-- fallaría de entrada. Aplicado en local para poder desarrollar
+-- `registrar_consumo_insumo` contra algo real.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -177,7 +169,7 @@ create table retail.movimientos_insumo (
 );
 
 comment on table retail.movimientos_insumo is
-  'Ledger append-only del consumo de materia prima, calcado de `movimientos`. Los tipos consumo/devolucion existen en el CHECK pero ninguna función los escribe todavía — ver el encabezado de este archivo.';
+  'Ledger append-only del consumo de materia prima, calcado de `movimientos`. Los tipos consumo/devolucion los escribe `registrar_consumo_insumo` (20260917141500).';
 
 create index movimientos_insumo_insumo_ubicacion_idx on retail.movimientos_insumo (insumo_id, ubicacion_id);
 create index movimientos_insumo_lote_idx on retail.movimientos_insumo (insumo_lote_id, tipo);
@@ -328,6 +320,13 @@ begin
   return v_id;
 end;
 $$;
+
+-- Producción ya tiene estas dos sin EXECUTE de PUBLIC (verificado por consulta
+-- directa a pg_proc.proacl). Este Postgres local otorga EXECUTE a PUBLIC por
+-- default al crear una función — sin este revoke, el espejo local quedaría MÁS
+-- permisivo que producción.
+revoke execute on function retail.recibir_insumo(uuid, uuid, numeric, numeric, text, uuid, text, text, text) from public;
+revoke execute on function retail.ajustar_insumo_por_conteo(uuid, uuid, numeric, text) from public;
 
 grant execute on function retail.recibir_insumo(uuid, uuid, numeric, numeric, text, uuid, text, text, text) to authenticated;
 grant execute on function retail.ajustar_insumo_por_conteo(uuid, uuid, numeric, text) to authenticated;

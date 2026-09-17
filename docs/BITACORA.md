@@ -5830,6 +5830,183 @@ decidir por él: PDF a la clienta primero (barato), después decidir qué hacer 
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
 
+## 2026-09-17 (Doce Tareas Más, Lote B: las 6 tareas del segundo compañero, en paralelo)
+
+Felipe pidió aplicar las 6 tareas de "Lote B" (validadas contra el código real en la
+sesión anterior el mismo día) usando agentes en paralelo. Antes de lanzar nada: registro
+en SESIONES-ACTIVAS.md, ADR 0074-0077 reservados a mano (el incidente de colisión de
+numeración de ayer, 2026-09-16, está documentado en la cabecera de ese mismo archivo —
+no se repitió). Solo una pausa real: la Tarea 3 toca SUNAT/dinero real, así que la
+decisión de producto ("liberar sin espera" vs. con plazo de 48h vs. no liberar) se le
+preguntó a Felipe antes de tocar código — eligió "sin espera".
+
+**Tandas, no todo junto:** 4 tareas en paralelo primero (1, 2, 4, 6 — ninguna toca
+Postgres salvo la 2, que iba sola en esa tanda), después la 3 sola, después la 5 sola —
+por `docs/adr/0066-*.md`: el Postgres local lo comparten ~27 worktrees, y dos agentes
+escribiendo ahí al mismo tiempo es exactamente el tipo de colisión que ya pasó antes.
+Cada agente verificó lo suyo con transacciones `psql`+`ROLLBACK` (patrón de ADR-0066),
+nunca `db reset`. Las 6 quedaron sin commitear y sin tocar BACKLOG/BITACORA/
+SESIONES-ACTIVAS — eso se centralizó al final, revisando cada diff antes de commitear.
+
+**Lo que quedó, tarea por tarea:** (1) `CerrarCajaModalV2`/`CajaAbiertaPanel.tsx` avisan
+y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0092; el agente
+encontró un segundo punto de montaje del modal (`CajaAbiertaPanel.tsx`) que no estaba en
+el encargo original y lo arregló ahí también, no solo en Vender. (2) Inventario de
+insumos del Taller — ADR-0090, migración local nueva — **pero con un hallazgo serio al
+cerrar el día**: ya existe en producción un esquema huérfano y más completo
+(`retail.insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos`, 0 filas, del
+volcado de unificación de julio, con seguimiento por lote) que nadie sabía que existía —
+choca de nombre con la migración nueva, así que ésta NO se puede pegar en producción tal
+cual. Queda como decisión de Felipe (ADR-0090, Addendum), no se resolvió sola. (3)
+`retail.marcar_comprobante_no_emitido` — ADR-0093 — libera un comprobante `pendiente`
+sin tocar SUNAT; el agente encontró que el Postgres local estaba 10 migraciones atrás
+(`20260916*` nunca aplicadas) y las sincronizó con cuidado antes de aplicar la propia.
+(4) Botón "Exportar CSV" en Existencias, conectando `descargarCsv` que ya existía. (5)
+`scripts/pruebas/fn_aplicar_movimiento.mjs`, 11 escenarios incluida una prueba de
+concurrencia real con dos procesos `docker exec` en paralelo — sin bugs encontrados en
+la función. (6) ADR-0091 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
+huérfanas más (`sede_meta` real vs. `retail_sede_meta` con guion, trampa de nombre;
+`sede_datos_fiscales`; `configuracion_empresa`) que tampoco están en el repo.
+
+**Migraciones en este cierre:** `20260917124059_materia_prima_taller.sql` y
+`20260917130050_comprobante_no_emitido.sql` — **ninguna de las dos está en producción**,
+y la primera además está bloqueada por la decisión pendiente del punto (2). Verificación
+en navegador: no se hizo en esta sesión (ningún agente tenía `apps/web/.env.local`
+configurado en este worktree) — pendiente antes de dar por buena la parte visual.
+
+## 2026-09-17 (Insumos del Taller: Felipe decide adoptar el esquema huérfano — y aparece una segunda sesión con el mismo hallazgo)
+
+Felipe respondió a la decisión pendiente del punto (2) de arriba: "adoptemos el esquema
+huérfano." Se rehizo la migración de insumos sobre `retail.insumos`/`insumo_lotes`/
+`movimientos_insumo`/`v_insumo_saldos` (ya en producción, 0 filas) en vez del esquema
+paralelo construido más temprano hoy (commit `fd3488f`, dropeado del Postgres local).
+Se descubrió que `recibir_insumo`/`ajustar_insumo_por_conteo` **ya existen en
+producción, completas** — la única pieza genuinamente nueva era el consumo al cortar:
+`retail.registrar_consumo_insumo` (elige el lote más antiguo con saldo, sin partir
+entre lotes; candado `for update` sobre la fila del lote, no sobre una fila de stock
+que este esquema no tiene).
+
+**Mientras se hacía esto, apareció `git log --all` con una segunda sesión** (worktree
+distinto, branch `claude/strange-golick-420bb9`, ya fusionada a `main` como commit
+`b8a8a05`) que había reconstruido el MISMO esquema huérfano, de forma independiente, el
+mismo día — su propio commit nombraba este worktree explícitamente y pedía la misma
+decisión que Felipe ya había dado acá. Comparadas línea por línea, las dos
+reconstrucciones coincidieron exactamente (columnas, CHECK, RLS, grants, cuerpos de
+función) — se adoptó la de `main` como canónica (ya fusionada, mejor comentada), con un
+agregado propio (`revoke execute` de `PUBLIC`, verificado que producción también lo
+tiene así). Se descartó el archivo propio sin timestamp y se renombró
+`registrar_consumo_insumo` para no compartir el timestamp `20260917140000` con el
+archivo de `main`.
+
+Verificado end-to-end en `psql` tras la reconciliación (huella cero): `recibir_insumo`
+10m → `registrar_consumo_insumo` 3.5m → `costo_tela` = 29.75 (exacto) → saldo derivado
+vía `v_insumo_saldos` = 6.5m/S/55.25 (exacto) → pedir 100 sobre un lote de 6.5 rechaza
+limpio, sin partir. De paso: un hallazgo de RLS que parecía un bug real (`fn_es_lider()`
+daba `true` pero el INSERT igual fallaba) resultó ser un hueco del propio script de
+prueba — faltaba fijar `request.jwt.claim.role` además de `.sub`; el patrón
+`fn_es_lider()` como policy ya se usa sin problema en otras 16 tablas.
+
+ADR-0090, `docs/BACKLOG.md` (línea ~56) y el doc del módulo, actualizados a este estado
+final. Sigue pendiente: aplicar `20260917141500_registrar_consumo_insumo.sql` en
+producción (la del espejo ya está allá, no se toca), y conectar el frontend — ninguna
+de las dos estaba en el alcance de hoy.
+
+## 2026-09-17 (Fusión con main: colisión de ADR 0074-0077 con 3 sesiones concurrentes, y despliegue a producción)
+
+Felipe pidió llevar todo a `main` y ejecutar las migraciones pendientes en producción.
+`origin/main` había avanzado 48 commits desde que arrancó esta rama — al menos 4
+sesiones activas en paralelo el mismo día (compras-rls-location-lock, mejorar-por-pagar,
+productos-fuera-factura, y otra auditando esta misma unificación). Antes de fusionar a
+ciegas, se le mostró a Felipe el choque real que había en `InventarioPanel.tsx` (mi
+botón de CSV contra la feature "Dañado/cuarentena" de otra sesión) y el hecho de que el
+archivo de insumos en `main` ya lo había reescrito otra sesión — confirmó seguir.
+
+**Hallazgo serio durante el merge, no visible en los marcadores de conflicto de git:**
+mis 4 ADR de hoy (0074-0077) chocaban de NÚMERO con 4 ADR completamente distintos que
+otras 3 sesiones ya habían fusionado a `main` (0074 = prioridad de conteo por valor,
+0075 = compras lectura acotada por sede, 0076 = recibir_compras fuera de factura, 0077 =
+grilla de productos — este último ya no existe en la punta de `main`, historia propia de
+esa rama). Como son archivos con nombres distintos, git no lo marca como conflicto — solo
+se detectó revisando `docs/adr/` a mano. Renumerados: 0074→**0078**, 0075→**0079**,
+0076→**0080**, 0077→**0081** — 4 archivos + cada referencia cruzada en BACKLOG, este
+mismo archivo, el doc del módulo, el roadmap, y el código (`ComprobantesPanel.tsx`,
+`CerrarCajaModalV2.tsx`, `CajaAbiertaPanel.tsx`, `comprobantes-reglas.ts`, las 3
+migraciones de insumos/comprobante), con cuidado de NO tocar las referencias legítimas
+de las otras 3 sesiones a sus propios ADR-0074/75/76. Es exactamente el incidente que
+`SESIONES-ACTIVAS.md` se creó para evitar (2026-09-16), repetido — el tablero avisa
+sobre archivos/tablas en curso, pero cuatro sesiones reservando "el próximo número libre"
+casi al mismo tiempo, sin verse entre sí hasta el momento de fusionar, es un hueco que
+el tablero por sí solo no cierra.
+
+**Segundo hallazgo, mismo patrón:** dos pares de migraciones con el mismo timestamp de
+14 dígitos (`20260917100000` y `20260917140000`, cada uno con 2 archivos distintos) —
+`supabase migration list --local` lo mostraba pero no fallaba hasta intentar aplicarlas
+de verdad (`duplicate key value violates unique constraint schema_migrations_pkey`,
+mismo error que ya había dado mi propio choque con `registrar_consumo_insumo` horas
+antes). Renombrados a `...100001`/`...140001` los dos archivos que todavía no estaban
+aplicados en ningún lado. Las 6 migraciones nuevas de otras sesiones auditadas una por
+una (sin `drop table`/`truncate`/`delete`) y aplicadas con `--include-all`.
+
+Verificado tras la fusión: `pnpm --filter web typecheck`/`lint` limpios,
+`pnpm --filter database typecheck` limpio, 295/295 pruebas en verde (subieron de 293:
+las nuevas features trajeron las suyas). Con el ok explícito de Felipe (excepción
+puntual a D-11, "solo Felipe pega SQL en producción"), se aplicaron en producción
+`retail.registrar_consumo_insumo` (ADR-0090) y `retail.marcar_comprobante_no_emitido`
+(ADR-0093) — detalle de esa parte en la entrada que sigue.
+
+## 2026-09-17 (Despliegue en producción: registrar_consumo_insumo y marcar_comprobante_no_emitido)
+
+Con el PR #96 abierto (`claude/validar-tareas-sistema-89d271` → `main`) y el ok explícito
+de Felipe para esta excepción puntual a D-11, se pegaron en producción
+(`vovjyyiafkxteijimpuy`) las 2 únicas migraciones nuevas de hoy que de verdad hacían
+falta allá — ninguna otra: el espejo del esquema huérfano de insumos
+(`20260917140000_insumos_taller_reconstruido.sql`) nunca se toca, esos objetos ya
+existían.
+
+Antes de pegar cada una, se reverificó contra la base real (nunca contra lo que decían
+los ADR/BACKLOG de esta misma tarde): `registrar_consumo_insumo`/
+`marcar_comprobante_no_emitido` no existían todavía (confirmado con
+`information_schema.routines`), y los nombres de `comprobantes_estado_check`/
+`comprobantes_transmitido_tiene_entorno` coincidían exactamente con los del local (la
+duda que había quedado anotada en ADR-0093 "Se rompe si" — no hizo falta ningún ajuste).
+Ambas migraciones ya traían `set search_path`/prefijo `retail.` explícito desde que se
+escribieron esta tarde, así que se pegaron tal cual, sin adaptar nada.
+
+Verificado después de cada una: `security_type = DEFINER` y `proacl` sin entrada para
+`public` en las dos (`marcar_comprobante_no_emitido` nunca tuvo ese problema — la base
+de producción, a diferencia del Postgres local de desarrollo, ya revoca `EXECUTE` de
+`PUBLIC` por default en funciones nuevas). `get_advisors` (seguridad) solo devolvió el
+aviso genérico esperado para cualquier RPC `security definer` expuesta a `authenticated`
+— el mismo que ya generan ~50 funciones más de este repo, no un hallazgo nuevo.
+
+Quedó actualizado BACKLOG.md (los dos ítems, marcados `[x]`) y los dos ADR (0090, 0093).
+Pendiente: regenerar `docs/datos/generado/` (`pnpm datos:generar:produccion`) para que
+el diccionario refleje esto, y la verificación visual en navegador de los 3 cambios de
+UI de hoy (caja offline, liberar comprobante, exportar CSV) — ningún worktree de hoy
+tenía `apps/web/.env.local` configurado.
+
+## 2026-09-17 (Segunda ronda de colisión de ADR: 0078-0081→0090-0093, tras el push del PR #96)
+
+GitHub marcó el PR #96 con conflictos apenas se abrió: en los minutos entre el push y
+esta revisión, 18 commits más habían llegado a `main` (varias sesiones concurrentes,
+incluida una que causó y otra que reparó una caída real de `/productos` en producción —
+`fn_productos` con dos sobrecargas vivas, ajena a este trabajo). Entre esos 18 commits,
+la sesión `hopeful-knuth-b7e000` (revoke de `EXECUTE` público en `fn_aplicar_movimiento`
+y funciones afines) también había reclamado **ADR-0078** — la misma renumeración que
+esta sesión ya había usado para "Inventario de insumos del Taller" en la primera
+reconciliación de hoy. Mismo patrón exacto que la primera colisión, otra vez invisible
+para git (archivos con nombres distintos). Renumerado por segunda vez, ahora con más
+margen: 0078→**0090**, 0079→**0091**, 0080→**0092**, 0081→**0093** — mismo barrido de
+referencias cruzadas que la vez anterior (BACKLOG, este archivo, el doc del módulo, el
+roadmap, y el código), verificando de nuevo no tocar las referencias legítimas de
+`hopeful-knuth` a su propio ADR-0078. `docs/BITACORA.md`/`docs/SESIONES-ACTIVAS.md`
+también volvieron a chocar (más entradas nuevas de otras sesiones, mismo tratamiento:
+conservar todo, nunca elegir un lado). El comentario que queda para quien lea esto
+después: con 4+ sesiones reservando "el próximo número libre" casi al mismo tiempo, sin
+verse entre sí hasta fusionar, esto puede volver a pasar — `SESIONES-ACTIVAS.md` avisa
+sobre archivos/tablas en curso, pero no sobre numeración reservada y aún no commiteada
+en ningún branch visible para las demás.
+
 ## 2026-09-17 (Stock fantasma de productos de prueba: ya resuelto sin script; filtro defensivo agregado)
 
 Encargo: construir y probar en local un script idempotente para llevar a 0 el stock
@@ -5849,6 +6026,7 @@ producto con stock residual ningún reporte lo arrastre en silencio. Typecheck, 
 Taller (sin separación), sin regresión — no se pudo probar en vivo el caso que sí oculta
 porque hoy no existe ningún producto inactivo con stock real, ni en local ni en
 producción.
+
 ## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
 
 Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la

@@ -350,6 +350,36 @@ ahí.
 **DECIDIDA** — D-47, textual: *completo*. Entra, se consume al cortar, y avisa cuando
 falta.
 
+**DECISIÓN CAMBIADA 2026-09-17, mismo día.** Una primera versión construyó las 4 tablas
++ 3 RPC de "Qué tablas y columnas exigiría" (abajo) tal cual las describe esta sección
+(`supabase/migrations/20260917124059_materia_prima_taller.sql`, commit `fd3488f`) —
+verificada y funcionando en local, pero **descartada** el mismo día al encontrar que
+producción ya tenía un esquema para esto, huérfano, del volcado de unificación con
+Dynamic de julio-2026 (`insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos`
++ `recibir_insumo`/`ajustar_insumo_por_conteo`, 0 filas, sin uso). Felipe decidió
+**adoptar el huérfano** en vez de seguir con el diseño de esta sección — más maduro
+(seguimiento por lote, no un promedio global) y ya en producción. La prosa de abajo
+("Qué tablas y columnas exigiría" en adelante) describe el diseño **descartado**: queda
+como referencia histórica de por qué se necesitaba esto y qué se consideró, no como el
+esquema real — el esquema real, tabla por tabla, está en
+`docs/datos/modulos/10-produccion-del-taller.md` (sección "Materia prima del Taller") y
+las decisiones completas en **ADR-0090**. **Lo único que falta construir de verdad es
+el consumo** (`registrar_consumo_insumo`, `supabase/migrations/
+20260917141500_registrar_consumo_insumo.sql`) — local, verificado end-to-end (huella
+cero), pendiente de aplicar en producción (la entrada y el ajuste por conteo ya existen
+ahí desde julio). El espejo local del esquema huérfano
+(`20260917140000_insumos_taller_reconstruido.sql`) lo reconstruyeron dos sesiones
+distintas el mismo día, de forma independiente, y coincidieron exactamente — ver
+ADR-0090, "Reconciliación con la otra sesión". **Corrección de nombres, todavía
+válida:** la
+prosa de abajo se escribió contra `sede_id → sedes(id)` y `compras_comprobantes`, un
+estado del esquema anterior a que Producción del Taller migrara a `ubicaciones`
+(2026-09-15) — ninguna de las dos existe en este repo, ni en el diseño descartado ni en
+el adoptado (que usa `ubicacion_id → ubicaciones(id)`, confirmado contra producción). No
+se corrigió la prosa de abajo para no reescribir un documento ajeno bajo esta tarea —
+**la Prioridad 1 (compras/gastos), más abajo, tiene el mismo drift de `p_sede_id` sin
+auditar todavía.**
+
 ## El problema
 
 `producciones` guarda `costo_tela`, `costo_avios` y `costo_maquila` como montos que

@@ -938,7 +938,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (
-        <CerrarCajaModalV2 cajaId={cajaId} onClose={() => setModalCaja(null)} />
+        <CerrarCajaModalV2 cajaId={cajaId} cola={cola} onClose={() => setModalCaja(null)} />
       )}
 
       {ok && (
