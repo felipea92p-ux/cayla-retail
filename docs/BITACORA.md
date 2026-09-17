@@ -5341,3 +5341,16 @@ que una Colaboradora real lo explotara en producción; el canal de prueba anteri
 que Felipe pegue `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` — local
 y producción corren el mismo código, pero como dice el principio 7, se prueba, no se
 asume.
+
+**Cierre del mismo día: Felipe pegó el SQL en producción y probó en persona.** Los 3
+bloques de `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` corrieron
+limpios en `cayla-dynamic`; la comprobación (bloque 4) dio los 5 valores de
+estructura esperados. El único número que no calzó con el comentario del script fue
+`colores_ya_aprobados=31` en vez de "32+" — se verificó por consulta directa
+(`select estado, count(*) from retail.colores group by estado`) que 31 es el conteo
+real de hoy (los 31 en `aprobado`, cero inválidos): el "32+" era una estimación del
+16-sep, no una regla que 31 estuviera incumpliendo. Felipe confirmó en persona, con
+una cuenta de Colaboradora real, que las mismas situaciones de la prueba local
+(proponer, no poder aprobar, un Líder sí puede) funcionan igual en producción — sin
+más detalle que ese registrado en el chat. ADR-0070 y BACKLOG.md actualizados;
+queda cerrado del todo.

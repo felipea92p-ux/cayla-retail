@@ -1,10 +1,9 @@
 # ADR-0070 — Colores: cualquiera propone, un Líder aprueba
 
 **Fecha:** 2026-09-16
-**Estado:** Construido y probado de punta a punta — trigger y las dos políticas RLS,
-ver "Cómo se verificó" (actualizado 2026-09-17). Producción: pendiente de que Felipe
-pegue `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql`, y de repetir esta
-misma verificación ahí una vez pegado.
+**Estado:** Construido y probado de punta a punta, en local Y en producción
+(`cayla-dynamic`) — trigger y las dos políticas RLS, ver "Cómo se verificó"
+(actualizado 2026-09-17). Cerrado.
 **Afecta:** `retail.colores` (columnas y RLS nuevas), `apps/web/app/api/productos/colores/route.ts`,
 `apps/web/components/ColoresLista.tsx`. Módulo 02 · Loro.
 
@@ -92,6 +91,17 @@ evidencia en BACKLOG.md, sección "Colores: proponer/aprobar". Pendiente: repeti
 misma verificación en producción una vez pegado el SQL de arriba (la política es
 idéntica; correr en local primero fue justamente para no tener que "confiar en el
 patrón" también ahí).
+
+**Producción, mismo día:** Felipe pegó los 3 bloques de
+`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en `cayla-dynamic` y
+corrió la comprobación (bloque 4) — los 5 checks de estructura en verde
+(`estados_invalidos=0`, trigger y las dos políticas nuevas creadas, la vieja
+`colores_write_lider` ya no existe). Luego probó en persona, con una cuenta real de
+Colaboradora, las mismas situaciones que arriba (proponer, no poder aprobar, un
+Líder sí puede) y confirmó que funcionan igual que en local. Sin el detalle
+request-por-request que sí quedó capturado para la prueba local — ver BACKLOG.md,
+sección "Colores: proponer/aprobar", para el registro exacto de qué se confirmó en
+cada lado.
 
 `tsc --noEmit`, `eslint` y los 266 tests existentes, en verde (ninguno cubre este
 flujo nuevo por automatización — no hay prueba automatizada de esto todavía, mismo

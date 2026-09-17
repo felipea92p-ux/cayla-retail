@@ -187,8 +187,14 @@ después. `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobad
 el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
 `fn_es_lider()`, no el cliente. `typecheck`/`lint`/266 tests en verde.
 
-- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en
-      producción.** Tres bloques, todos repetibles.
+- [x] **Pegado en producción — 2026-09-17.** Felipe corrió los 3 bloques en el SQL
+      Editor de `cayla-dynamic`. Comprobación (bloque 4): `estados_invalidos=0`,
+      `trigger_creado=1`, `policy_insert=1`, `policy_update=1`, `policy_vieja=0` —
+      los 5 valores exactos esperados. `colores_ya_aprobados=31`, no "32+" como decía
+      el comentario del script (estimación del 16-sep, desactualizada) — confirmado
+      por consulta directa (`select estado, count(*) from retail.colores group by
+      estado`) que producción tiene hoy exactamente 31 colores, los 31 en
+      `aprobado`, cero `pendiente` y cero en estado inválido.
 - [x] **Verificado en navegador real, contra el Postgres LOCAL — 2026-09-17 (no el
       canal de ROLLBACK/impersonación del 16-sep, que tiene `rolbypassrls=true` y
       no prueba nada de RLS).** Micaela (`micaela@cayla.local`, Colaboradora real
@@ -212,7 +218,12 @@ el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
       usaban). Las dos políticas RLS (`colores_insert_autenticado`/
       `colores_update_lider`) quedan probadas de punta a punta, ya no solo por
       inferencia de patrón. Ver ADR-0070, sección "Cómo se verificó" (actualizada).
-      Pendiente: repetir en producción una vez pegado el SQL del ítem anterior.
+      **Repetido en producción el mismo día por Felipe, en persona, con una cuenta
+      real:** confirmó que las mismas situaciones (proponer, no poder aprobar como
+      Colaboradora, sí poder aprobar como Líder) funcionan igual en `cayla-dynamic`.
+      A diferencia de la prueba local de arriba, esta quedó al nivel "Felipe lo
+      probó y confirmó que funciona" — sin el detalle de qué devolvió cada request
+      capturado en el chat.
 - [ ] **No hay forma de "rechazar" una propuesta mala, solo desactivarla** una por
       una desde el camino que ya existía. Con 16 cuentas nuevas es un riesgo bajo,
       no cero. No construido a propósito en esta pasada (alcance acotado).
@@ -247,9 +258,9 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
       cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. La
-      verificación en navegador que quedó anotada ahí ya se cerró (2026-09-17);
-      falta solo pegar en producción. Sigue pendiente el mismo mecanismo para Tucán
-      (taxonomía), no construido en esta pasada.
+      verificación en navegador y el pegado en producción quedaron cerrados el
+      mismo 2026-09-17. Sigue pendiente el mismo mecanismo para Tucán (taxonomía),
+      no construido en esta pasada.
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.
 - [ ] **Reescribir el documento del módulo 02 sobre V2.** Tiene aviso arriba; los huecos
