@@ -3,6 +3,19 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (La tarjeta de la Grilla se abre con un clic en la foto, sin el ícono de ampliar)
+
+Felipe: quitar el ícono de "ampliar" (esquina superior izquierda, solo visible al pasar
+el mouse) y que toda la foto sea el botón que abre la Vista rápida. El contenedor de la
+foto pasó de `<div>` a `<button>` (con `aria-label` de siempre, foco visible con el
+mismo anillo rojo que ya usa `FiltrosProductos.tsx` para sus controles); `IconoAmpliar`
+y el botón que lo envolvía se borraron completos (sin otro uso en el repo, verificado
+por grep). De paso, `group` en la tarjeta quedó sin ningún `group-hover`/`group-focus`
+que lo necesitara — se sacó en vez de dejarlo de adorno. Verificado en navegador: clic
+en cualquier punto de la foto (no solo donde estaba el ícono) abre la Vista rápida;
+`document.querySelectorAll('[aria-label^="Vista rápida"]').length` da 10, uno por
+tarjeta — no quedó ningún botón duplicado de la versión vieja.
+
 ## 2026-09-17 (Swatches de color: el anillo "saltaba" al primer color al pasar el mouse)
 
 Felipe: al mover el mouse entre los círculos de color de una tarjeta, el anillo que marca

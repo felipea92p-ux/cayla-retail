@@ -76,14 +76,6 @@ function IconoPercha({ color, size = 36 }: { color?: string; size?: number }) {
   );
 }
 
-function IconoAmpliar() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
-      <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" />
-    </svg>
-  );
-}
-
 /** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
  *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
  *  (hover, o si no hay hover, el fijado, o si no hay ninguno, el primero). */
@@ -188,8 +180,14 @@ function TarjetaProducto({
   const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
 
   return (
-    <div className="card-cayla group flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-      <div className="relative aspect-[4/5] transition-colors duration-300" style={activo?.fotoUrl ? undefined : { background: tinte }}>
+    <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+      <button
+        type="button"
+        onClick={() => setVistaRapida(true)}
+        aria-label={`Vista rápida de ${producto.referencia}`}
+        className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
+        style={activo?.fotoUrl ? undefined : { background: tinte }}
+      >
         {activo?.fotoUrl ? (
           <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" unoptimized />
         ) : (
@@ -202,15 +200,7 @@ function TarjetaProducto({
             </span>
           </>
         )}
-        <button
-          type="button"
-          onClick={() => setVistaRapida(true)}
-          aria-label={`Vista rápida de ${producto.referencia}`}
-          className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-papel/85 text-tinta opacity-0 transition-opacity duration-200 hover:bg-papel focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <IconoAmpliar />
-        </button>
-      </div>
+      </button>
 
       <div className="flex flex-1 flex-col gap-2.5 px-4 py-4">
         <div>
