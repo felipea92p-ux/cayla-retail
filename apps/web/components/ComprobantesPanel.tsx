@@ -42,9 +42,9 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
-// Botón de la columna "SUNAT" + su motivo, si hay uno — extraído porque tabla
-// (escritorio) y tarjeta (celular, ADR pendiente de numerar) pintan la misma
-// decisión en dos layouts distintos y no pueden desincronizarse. Los
+// Botón(es) de la columna "SUNAT" + su motivo, si hay uno — extraído porque
+// tabla (escritorio) y tarjeta (celular, ADR pendiente de numerar) pintan la
+// misma decisión en dos layouts distintos y no pueden desincronizarse. Los
 // handlers vienen por parámetro porque esta función vive fuera del
 // componente: no tiene closure sobre `onTransmitir` ni sobre los `useState`.
 function accionComprobante(
@@ -55,39 +55,71 @@ function accionComprobante(
     onTransmitir: (id: string) => void;
     onAnularClick: (c: Comprobante) => void;
     onConsultarAnulacion: (id: string) => void;
+    onLiberarClick: (c: Comprobante) => void;
   }
 ) {
   const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
   const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
-  const boton = puedeTransmitir ? (
-    <Boton
-      type="button"
-      peso="discreto"
-      onClick={() => handlers.onTransmitir(c.id)}
-      cargando={handlers.transmitiendoId === c.id}
-      className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
-    >
-      {handlers.transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
-    </Boton>
-  ) : puedeAnular ? (
-    <Boton type="button" peso="discreto" onClick={() => handlers.onAnularClick(c)} className="px-2.5 py-1.5 text-[11px]">
-      Anular
-    </Boton>
-  ) : anulacionEnTramite(c) ? (
-    <Boton
-      type="button"
-      peso="discreto"
-      onClick={() => handlers.onConsultarAnulacion(c.id)}
-      cargando={handlers.consultandoId === c.id}
-      className="px-2.5 py-1.5 text-[11px]"
-    >
-      {handlers.consultandoId === c.id ? "Consultando…" : "Consultar"}
-    </Boton>
-  ) : (
-    <span className="text-tinta/65">—</span>
-  );
+  // ADR-0077: solo "pendiente" — nunca se transmitió a SUNAT, así que liberar el
+  // correlativo no le avisa nada a nadie. Un "rechazado" SÍ llegó a SUNAT y tiene
+  // una respuesta real: su único camino sigue siendo reintentar "Transmitir" con
+  // el mismo número, no una segunda salida acá.
+  const puedeLiberar = c.estado === "pendiente";
 
-  const motivo = c.estado === "rechazado" && c.motivo_rechazo ? c.motivo_rechazo : c.motivo_anulacion;
+  // Un "pendiente" puede Transmitir O Liberar — las dos conviven en la misma fila
+  // (decisión de Felipe: "Liberar sin espera" se agrega JUNTO A Transmitir, no en
+  // su lugar), así que esto arma una lista en vez de elegir un solo botón.
+  const botones: React.ReactNode[] = [];
+  if (puedeTransmitir) {
+    botones.push(
+      <Boton
+        key="transmitir"
+        type="button"
+        peso="discreto"
+        onClick={() => handlers.onTransmitir(c.id)}
+        cargando={handlers.transmitiendoId === c.id}
+        className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
+      >
+        {handlers.transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
+      </Boton>
+    );
+  }
+  if (puedeLiberar) {
+    botones.push(
+      <Boton key="liberar" type="button" peso="discreto" onClick={() => handlers.onLiberarClick(c)} className="px-2.5 py-1.5 text-[11px]">
+        Liberar sin espera
+      </Boton>
+    );
+  }
+  if (puedeAnular) {
+    botones.push(
+      <Boton key="anular" type="button" peso="discreto" onClick={() => handlers.onAnularClick(c)} className="px-2.5 py-1.5 text-[11px]">
+        Anular
+      </Boton>
+    );
+  }
+  if (anulacionEnTramite(c)) {
+    botones.push(
+      <Boton
+        key="consultar"
+        type="button"
+        peso="discreto"
+        onClick={() => handlers.onConsultarAnulacion(c.id)}
+        cargando={handlers.consultandoId === c.id}
+        className="px-2.5 py-1.5 text-[11px]"
+      >
+        {handlers.consultandoId === c.id ? "Consultando…" : "Consultar"}
+      </Boton>
+    );
+  }
+  const boton = botones.length > 0 ? <div className="flex flex-wrap gap-1.5">{botones}</div> : <span className="text-tinta/65">—</span>;
+
+  const motivo =
+    c.estado === "rechazado" && c.motivo_rechazo
+      ? c.motivo_rechazo
+      : c.estado === "no_emitido"
+        ? c.motivo_no_emitido
+        : c.motivo_anulacion;
   const motivoEsRechazo = c.estado === "rechazado" && !!c.motivo_rechazo;
 
   return { boton, motivo, motivoEsRechazo };
@@ -117,7 +149,7 @@ export function ComprobantesPanel({
   ubicacionActualId: string;
 }) {
   const router = useRouter();
-  const [modal, setModal] = useState<"emitir" | "serie" | "anular" | null>(null);
+  const [modal, setModal] = useState<"emitir" | "serie" | "anular" | "liberar" | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
@@ -186,6 +218,46 @@ export function ComprobantesPanel({
     setAnulando(c);
     setMotivoAnulacion("");
     setModal("anular");
+  }
+
+  // Liberar un "pendiente" que nunca se transmitió (ADR-0077). A diferencia de
+  // anular, esto NUNCA habla con Lucode/SUNAT — el número no se reutiliza, solo
+  // deja de contar como pendiente — así que es una RPC directa desde el cliente
+  // (mismo patrón que `onEmitir`/`onRegistrarSerie` en este mismo componente, no
+  // el de `onAnular`, que sí necesita el servidor para orquestar la baja real).
+  const [liberando, setLiberando] = useState<Comprobante | null>(null);
+  const [motivoLiberacion, setMotivoLiberacion] = useState("");
+  const [enviandoLiberacion, setEnviandoLiberacion] = useState(false);
+
+  async function onLiberar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!liberando) return;
+    if (!motivoLiberacion.trim()) return void avisar.error("Escribe el motivo para liberar el comprobante.", { enfocar: "liberacion-motivo" });
+    setEnviandoLiberacion(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("marcar_comprobante_no_emitido", {
+      p_comprobante_id: liberando.id,
+      p_motivo: motivoLiberacion,
+    });
+    if (error) {
+      avisar.error(traducirError(error, "liberar el comprobante"));
+      setEnviandoLiberacion(false);
+      return;
+    }
+    avisar.exito("Comprobante liberado", {
+      detalle: "Nunca se transmitió a SUNAT, así que no hacía falta avisarle nada. Su número queda sin usar.",
+    });
+    setModal(null);
+    setLiberando(null);
+    setMotivoLiberacion("");
+    setEnviandoLiberacion(false);
+    router.refresh();
+  }
+
+  function onLiberarClick(c: Comprobante) {
+    setLiberando(c);
+    setMotivoLiberacion("");
+    setModal("liberar");
   }
 
   // Consultar una baja en trámite. Va por fila, igual que transmitir.
@@ -435,6 +507,7 @@ export function ComprobantesPanel({
                       onTransmitir,
                       onAnularClick,
                       onConsultarAnulacion,
+                      onLiberarClick,
                     });
                     return (
                       <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
@@ -480,6 +553,7 @@ export function ComprobantesPanel({
                   onTransmitir,
                   onAnularClick,
                   onConsultarAnulacion,
+                  onLiberarClick,
                 });
                 return (
                   <div key={c.id} className="card-cayla p-4">
@@ -718,6 +792,57 @@ export function ComprobantesPanel({
               </Boton>
               <Boton type="submit" peso="primario" className="flex-1" cargando={enviandoAnulacion}>
                 {enviandoAnulacion ? "Anulando…" : "Anular"}
+              </Boton>
+            </div>
+          </form>
+          )}
+        </Modal>
+      )}
+
+      {/* ==================== Modal: liberar (ADR-0077) ==================== */}
+      {modal === "liberar" && liberando && (
+        <Modal titulo="Liberar comprobante" onClose={cerrarModal}>
+          {(cerrar) => (
+          <form onSubmit={onLiberar} className="mt-5 space-y-2">
+            <div className="border-l-2 border-tinta/30 pl-3">
+              <p className="font-display text-base text-tinta">
+                {ETIQUETA_TIPO[liberando.tipo]} {liberando.serie}-{String(liberando.numero).padStart(6, "0")}
+              </p>
+              <p className="text-xs leading-relaxed text-tinta/75">
+                {liberando.cliente_nombre ?? "Cliente varios"} · {money(Number(liberando.total))}
+              </p>
+            </div>
+
+            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+              Este comprobante reservó su número pero nunca se transmitió a SUNAT — no hay nada
+              que avisarle. Su número queda sin usar para siempre (un hueco en la numeración es
+              normal y legal); lo único que cambia es que deja de aparecer como pendiente. Esta
+              acción no se puede deshacer.
+            </p>
+
+            <CampoTexto
+              id="liberacion-motivo"
+              etiqueta="Motivo"
+              ayuda={
+                <Ayuda titulo="Por qué se pide el motivo">
+                  Queda guardado en el comprobante, con tu nombre y la fecha — igual que al
+                  anular. Sé concreto: “la clienta se arrepintió antes de pagar” dice más que “no
+                  se usó”.
+                </Ayuda>
+              }
+              required
+              minLength={3}
+              value={motivoLiberacion}
+              onChange={(e) => setMotivoLiberacion(e.target.value)}
+              placeholder="La clienta se arrepintió antes de pagar"
+            />
+
+            <div className="flex gap-2 pt-3">
+              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+                Cancelar
+              </Boton>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={enviandoLiberacion}>
+                {enviandoLiberacion ? "Liberando…" : "Liberar sin espera"}
               </Boton>
             </div>
           </form>

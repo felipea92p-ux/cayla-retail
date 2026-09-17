@@ -9,7 +9,10 @@
 // conectar Vender con Facturación).
 
 export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito";
-export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado";
+// "no_emitido" (ADR-0077): un líder liberó un comprobante `pendiente` que nunca se
+// transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
+// de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
+export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido";
 /** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
  *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
 export type EntornoTransmision = "sandbox" | "produccion" | null;
@@ -27,6 +30,8 @@ export type Comprobante = {
   entorno_transmision: EntornoTransmision;
   motivo_rechazo: string | null;
   motivo_anulacion: string | null;
+  /** Por qué se liberó — solo tiene sentido con `estado === "no_emitido"` (ADR-0077). */
+  motivo_no_emitido: string | null;
   /** Con esto lleno y `estado` todavía "aceptado", la baja se pidió pero SUNAT
    *  no la confirmó: el resumen diario de boletas se procesa diferido. */
   anulacion_solicitada_at: string | null;
@@ -77,6 +82,10 @@ export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
   aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
   rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
   anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
+  // Mismo tono apagado que "anulado" — ambos son estados cerrados que ya no piden
+  // acción — pero es un color, no una palabra: la etiqueta de abajo es la que dice
+  // la diferencia real (nunca se transmitió, nada que ver con SUNAT).
+  no_emitido: "border-tinta/20 bg-tinta/5 text-tinta/65",
 };
 
 export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
@@ -85,6 +94,7 @@ export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   aceptado: "Aceptado",
   rechazado: "Rechazado",
   anulado: "Anulado",
+  no_emitido: "No emitido",
 };
 
 /** El tipo de documento (DNI/RUC/sin documento) no es una decisión aparte
