@@ -8,7 +8,7 @@ import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
 /**
  * Las 6 familias fijas, cada una con sus categorías (BLU, POL, JEA…).
- * Portado de V1 (ADR-0035) — a diferencia de V1, en V2 `categorias.nombre`
+ * Portado de V1 (ADR-0072) — a diferencia de V1, en V2 `categorias.nombre`
  * es único GLOBAL (no por familia): dos familias no pueden tener una
  * categoría con el mismo nombre, a propósito, para no repetir el error que
  * V1 sí permitía.

@@ -394,7 +394,7 @@ descontinuar prenda por prenda desde el editor SQL.
 - **D-24** — las promesas incumplidas van con cita exacta: huecos 3, 4, 6 y 9.
 - **D-25** — no hay pruebas sobre este módulo (hueco 13); no toca el núcleo de stock, pero sí crea el catálogo que el censo va a contar.
 - **D-51** — tres diagramas Mermaid, en texto, para que se actualicen con el documento.
-- **ADR-0035** (`la-ia-compila-el-mapeo-no-procesa-las-filas`) — la decisión que funda el módulo: el modelo produce un plan mirando cabeceras y 40 filas; el código determinista lo aplica a las 3.000. El modelo nunca ve la fila 2.847.
+- **ADR-0073** (`la-ia-compila-el-mapeo-no-procesa-las-filas`) — la decisión que funda el módulo: el modelo produce un plan mirando cabeceras y 40 filas; el código determinista lo aplica a las 3.000. El modelo nunca ve la fila 2.847.
 - **ADR-0030** (`taxonomia-universal-como-capa-de-traduccion`) — "Fucsia neón" se conserva como color de esa marca, colgando de "Rosa" universal. Es lo que hacen los dos bucles de siembra del RPC.
 - **ADR-0027** (`el-censo-es-el-primer-conteo`) — el catálogo entra con stock cero; las cantidades las levanta el censo.
 - **ADR-0032 / ADR-0033** (idempotencia de la venta y el token del cliente) — el mecanismo que 0057 copió para el token de importación. Son estos, no ADR-0034 (hueco 9).

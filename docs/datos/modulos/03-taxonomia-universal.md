@@ -330,4 +330,4 @@ hoy tiene 5 productos.
 - **D-50 · Cada marca, su propia base** — este módulo es la otra mitad de esa decisión: sin `tenant_id`, lo que permite que una segunda marca entre es que el estándar universal sea el mismo en todas las bases.
 - **ADR-0030 · La taxonomía universal va DEBAJO del vocabulario propio, no en su lugar** — la decisión completa: por qué Shopify y no Google/GS1, por qué capa de traducción y no columna vertebral, por qué `claude-haiku-4-5` fijo y por qué se descartó el tier gratuito de Gemini.
 - **ADR-0010 · El entorno local usa el schema `retail`** — el seed renombra `public` → `retail` después de las migraciones, y por eso local y producción tienen la misma forma sin que las migraciones lleven prefijo.
-- **ADR-0035 · La IA compila el mapeo, no procesa las filas** — el principio que hereda este módulo: lo que resuelve el código (`anclarPorNombre`, determinista y testeado) no se le pregunta a la IA.
+- **ADR-0073 · La IA compila el mapeo, no procesa las filas** — el principio que hereda este módulo: lo que resuelve el código (`anclarPorNombre`, determinista y testeado) no se le pregunta a la IA.

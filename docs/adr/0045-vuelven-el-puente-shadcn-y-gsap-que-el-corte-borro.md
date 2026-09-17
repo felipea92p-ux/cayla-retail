@@ -10,7 +10,7 @@ ADR-0038, restaurados con su texto original.
 ## Contexto
 
 Al pedir «los componentes animados de shadcn, tal vez ya existentes» para el ticket de
-Vender, se midió qué había: **nada**. El corte V1→V2 (`0af2f1b`, 2026-09-12, ADR-0035)
+Vender, se midió qué había: **nada**. El corte V1→V2 (`0af2f1b`, 2026-09-12)
 reemplazó el núcleo entero y se llevó, sin decirlo en ningún documento vivo:
 
 - el puente shadcn/ui de ADR-0037 (`components.json`, `cn()` en `lib/utils.ts`, los tokens
@@ -33,7 +33,7 @@ Felipe eligió (2026-09-14, opción B) **traer de vuelta lo que había**, no reh
   `@gsap/react`). Los ADR-0037 y ADR-0038 se restauran con su texto original y una nota
   al inicio que apunta acá. Único recorte: el registro `@bklit` de `components.json`,
   que era de los charts.
-- **No vuelve** lo que era de Finanzas V1, módulo que V2 borró a propósito (ADR-0035):
+- **No vuelve** lo que era de Finanzas V1, módulo que V2 borró a propósito:
   Bklit UI y los charts (ADR-0039, `motion`, `@number-flow/react`, `visx`, `d3`,
   `shimmering-text`). Si algún día hace falta un número animado en el ticket, es una
   decisión nueva, no una restauración.
