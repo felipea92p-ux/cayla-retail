@@ -8,10 +8,13 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
+import { opcionesDeCambio } from "@/lib/cambios-reglas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 type VarianteCatalogo = {
   varianteId: string;
   sku: string;
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -37,16 +40,13 @@ export function CambioFormV2({
 }) {
   const router = useRouter();
   const disponible = linea.cantidad - linea.yaCambiado;
-  // Ni la variante que se vendió (cambiarla "por sí misma" no tiene sentido) ni una sin
-  // stock aquí — no se ofrece lo que registrar_cambio() va a rechazar por falta de stock,
-  // mismo criterio que el POS y "Mover mercadería" (2026-09-14).
-  const opciones = catalogo.filter(
-    (v) => v.varianteId !== catalogo.find((c) => c.sku === linea.sku)?.varianteId && v.stockAqui > 0
-  );
+  // Ni la vendida ni una sin stock aquí — identificada por varianteId, nunca por sku
+  // (ver `cambios-reglas.ts`).
+  const opciones = opcionesDeCambio(catalogo, linea.varianteId);
   const opcionesCombo: OpcionCombo<string>[] = opciones.map((v) => ({
     valor: v.varianteId,
     texto: `${v.referencia} ${[v.talla, v.color].filter(Boolean).join("/")}`,
-    detalle: `${v.sku} · S/${v.precio.toFixed(2)} · ${v.stockAqui} en sede`,
+    detalle: `${codigoPrenda(v)} · S/${v.precio.toFixed(2)} · ${v.stockAqui} en sede`,
   }));
   // Sin preselección (mismo criterio que el método de pago del POS, ADR-0044): el primer
   // resultado del catálogo no es una elección de nadie, y antes eso era exactamente lo que
@@ -99,7 +99,8 @@ export function CambioFormV2({
         {(cerrar) => (
         <div className="space-y-4 text-center">
           <p className="text-sm text-tinta/75">
-            {linea.referencia} {linea.sku} × {cantidad} cambiada por {varianteNueva?.referencia} {varianteNueva?.sku}.
+            {linea.referencia} {codigoPrenda(linea)} × {cantidad} cambiada por {varianteNueva?.referencia}{" "}
+            {varianteNueva && codigoPrenda(varianteNueva)}.
           </p>
           {diferencia !== 0 && (
             <p className="text-sm text-tinta">
@@ -116,7 +117,7 @@ export function CambioFormV2({
   }
 
   return (
-    <Modal titulo="Cambiar talla/color" subtitulo={`${linea.referencia} ${linea.sku} — comprada × ${linea.cantidad}`} onClose={onClose}>
+    <Modal titulo="Cambiar talla/color" subtitulo={`${linea.referencia} ${codigoPrenda(linea)} — comprada × ${linea.cantidad}`} onClose={onClose}>
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         {disponible <= 0 ? (

@@ -14,6 +14,9 @@ export type LineaVentaParaDevolucion = {
   ventaId: string;
   creadoEn: string;
   sku: string;
+  /** Código de etiqueta (`variantes.codigo`); se muestra con `codigoPrenda` — las prendas
+   *  del censo nacen sin sku y `sku` llega "". */
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -44,7 +47,7 @@ export async function getLineasVentaParaDevolucion(
     .select(
       `id, venta_id, cantidad, precio_unitario,
        venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+       variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
     )
     .eq("venta.ubicacion_id", ubicacionId);
   if (ventaIdsBuscados) query = query.in("venta_id", ventaIdsBuscados);
@@ -81,6 +84,7 @@ export async function getLineasVentaParaDevolucion(
     ventaId: f.venta_id,
     creadoEn: f.venta?.created_at ?? "",
     sku: f.variante?.sku ?? "",
+    codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
     talla: f.variante?.talla ?? null,
     color: f.variante?.color?.nombre ?? null,
@@ -92,6 +96,8 @@ export async function getLineasVentaParaDevolucion(
 
 export type ItemDevolucionPendiente = {
   sku: string;
+  /** Mismo criterio que en `LineaVentaParaDevolucion`. */
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -127,7 +133,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       .from("devolucion_items")
       .select(
         `devolucion_id, cantidad, condicion,
-         venta_item:venta_items ( variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) ) )`
+         venta_item:venta_items ( variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) ) )`
       )
       .in("devolucion_id", ids),
     supabase.rpc("fn_nombres_personas", {
@@ -148,6 +154,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       .filter((i) => i.devolucion_id === d.id)
       .map((i) => ({
         sku: i.venta_item?.variante?.sku ?? "",
+        codigo: i.venta_item?.variante?.codigo ?? null,
         referencia: i.venta_item?.variante?.producto?.referencia ?? "",
         talla: i.venta_item?.variante?.talla ?? null,
         color: i.venta_item?.variante?.color?.nombre ?? null,

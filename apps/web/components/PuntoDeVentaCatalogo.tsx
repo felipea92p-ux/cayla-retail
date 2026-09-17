@@ -4,6 +4,7 @@ import type { ReactNode, RefObject } from "react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Badge } from "@/components/ui/badge";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -180,7 +181,7 @@ export function PuntoDeVentaCatalogo({
                         <span>
                           <span className="block font-semibold text-tinta">{v.referencia}</span>
                           <span className="text-xs text-tinta/60">
-                            {[v.talla, v.color].filter(Boolean).join("/")} · {v.sku}
+                            {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
                           </span>
                         </span>
                         <span className="shrink-0 text-right">

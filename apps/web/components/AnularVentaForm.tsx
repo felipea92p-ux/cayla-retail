@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import type { LineaVentaParaDevolucion } from "@/lib/devoluciones";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -18,6 +19,8 @@ type Condicion = (typeof CONDICIONES)[number]["valor"];
 type ItemVenta = {
   ventaItemId: string;
   sku: string;
+  /** Código de etiqueta (`variantes.codigo`); se muestra con `codigoPrenda`. */
+  codigo: string | null;
   referencia: string;
   talla: string | null;
   color: string | null;
@@ -44,7 +47,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
       const { data, error } = await supabase
         .from("venta_items")
         .select(
-          `id, cantidad, variante:variantes ( sku, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
+          `id, cantidad, variante:variantes ( sku, codigo, talla, color:colores ( nombre ), producto:productos ( referencia ) )`
         )
         .eq("venta_id", linea.ventaId);
       if (cancelado) return;
@@ -55,6 +58,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
       const cargados: ItemVenta[] = (data ?? []).map((f) => ({
         ventaItemId: f.id,
         sku: f.variante?.sku ?? "",
+        codigo: f.variante?.codigo ?? null,
         referencia: f.variante?.producto?.referencia ?? "",
         talla: f.variante?.talla ?? null,
         color: f.variante?.color?.nombre ?? null,
@@ -99,7 +103,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
         {(cerrar) => (
           <div className="space-y-4 text-center">
             <p className="text-sm text-tinta/75">
-              La venta de {linea.referencia} {linea.sku} quedó anulada — el stock ya se actualizó.
+              La venta de {linea.referencia} {codigoPrenda(linea)} quedó anulada — el stock ya se actualizó.
             </p>
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Listo
@@ -113,7 +117,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
   return (
     <Modal
       titulo="Anular venta"
-      subtitulo={`${linea.referencia} ${linea.sku} — esto anula la venta completa, no solo esta línea`}
+      subtitulo={`${linea.referencia} ${codigoPrenda(linea)} — esto anula la venta completa, no solo esta línea`}
       onClose={onClose}
       ancho="max-w-md"
     >
@@ -129,7 +133,7 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
                     {i.referencia} <span className="text-tinta/65">{[i.talla, i.color].filter(Boolean).join("/")}</span>
                   </p>
                   <p className="font-mono text-[11px] text-tinta/65">
-                    {i.sku} × {i.cantidad}
+                    {codigoPrenda(i)} × {i.cantidad}
                   </p>
                   <select
                     value={condiciones[i.ventaItemId] ?? "vendible"}
