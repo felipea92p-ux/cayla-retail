@@ -1,7 +1,9 @@
 # ADR-0074 — La sugerencia de conteo ordena por valor en riesgo, no por ventas del mes
 
 **Fecha:** 2026-09-17
-**Estado:** Corregido en local, pendiente de que Felipe lo revise en navegador antes de commitear.
+**Estado:** Aplicado en producción (código: PR #77, `main`@`33045b0`, Vercel; base:
+`vovjyyiafkxteijimpuy`, migración `prioridad_conteo_por_valor`, ambos con ok puntual de
+Felipe, 2026-09-17).
 **Afecta:** `retail.fn_prioridad_conteo` (misma firma, `DROP` + `CREATE`), `lib/conteos.ts`,
 `ConteoPanel.tsx`. Sin pantalla nueva — decisión explícita, ver "Descartado" abajo.
 

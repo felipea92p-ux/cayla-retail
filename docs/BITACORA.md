@@ -5393,3 +5393,32 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 `devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (noche — prioridad de conteo por valor, desplegado a producción)
+
+Cierre del ciclo completo de ADR-0074 (ver entrada de la tarde, misma fecha): con ok
+puntual de Felipe para cada paso — PR #77 (`feat/conteo-plata-en-riesgo-v2` → `main`,
+commit `33045b0`) fusionado después de resolver un conflicto real pero trivial en
+`docs/BACKLOG.md` (mi sección "Pendientes de Benja" y la de otra sesión, "Recibir
+mercadería", se insertaban en el mismo punto del archivo — se conservaron ambas, la mía
+primero, sin perder nada). Vercel confirmó el despliegue (`gh api .../status`, esperado
+con un monitor en background, no a mano) antes de tocar la base — orden explícito para
+que código y esquema nunca queden descalzados: una base ya corregida sirviendo a un
+frontend viejo que todavía lee `ventas_30d` repite el mismo bug "−S/NaN" que ya apareció
+una vez en local.
+
+Migración aplicada contra `vovjyyiafkxteijimpuy` vía Supabase MCP (`apply_migration`,
+nunca a mano en el SQL Editor), con `set search_path to retail, public` al inicio del
+script por protocolo del repo — aunque en este caso puntual no hacía falta (toda
+referencia de nivel superior ya iba calificada con `retail.`), se mantiene igual porque
+cuesta cero y es la regla, no una excepción a criterio propio. Verificado después contra
+la base real, no solo que no tirara error: mismo cuerpo/firma que en local
+(`pg_get_function_result`/`pg_get_function_identity_arguments`), y una llamada real
+simulando sesión de un líder de Tienda Trujillo (`set local request.jwt.claim.sub`, JWT
+real, no `rolbypassrls`) devolvió "Jean Paula" (S/1,548.00, nunca contada) primero —
+datos reales de producción, no del seed local.
+
+Advertencia de seguridad del linter de Supabase sobre `fn_prioridad_conteo` revisada:
+genérica de cualquier función `security definer` con `grant ... to authenticated`, el
+mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
+interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.
