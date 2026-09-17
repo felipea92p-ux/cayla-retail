@@ -5589,7 +5589,7 @@ genérica de cualquier función `security definer` con `grant ... to authenticat
 mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
 interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.
 
-## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0075)
+## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0076)
 
 Felipe, sobre `/compras/recibir`: la recepción solo se rige respecto a las facturas — si
 una prenda no está en ninguna factura de la guía pero de verdad se envió o se recibió,
@@ -5613,7 +5613,7 @@ function` es aditivo/no rompe nada de otra sesión). Verificada con 4 escenarios
 transacciones con `rollback` (impersonando al líder del seed): mixto factura+extra en un
 mismo lote, 100% extra rechazado, tope original sigue rechazando lo que excede lo
 facturado, costo omitido no toca `variantes.costo` — el detalle completo, con los IDs
-reales usados, está en ADR-0075.
+reales usados, está en ADR-0076.
 
 Pantalla: nueva sección "¿Llegó algo que no está en la factura?" en
 `RecepcionCompraFormV2.tsx`, siempre visible una vez elegida al menos una factura.
@@ -5720,3 +5720,20 @@ dañadas, insumos del Taller, inventario en 4 pantallas): otra sesión creó
 `20260917140000_anular_conteo.sql` de esta sesión. No choca — son archivos distintos,
 temas sin relación — pero es la señal exacta que motivó `docs/SESIONES-ACTIVAS.md` esta
 mañana. Sin acción: ya fusionado en `origin/main`, renombrar ahora sería solo ruido.
+
+## 2026-09-17 (fuera de factura: tercer y cuarto round de conflictos con main)
+
+Felipe pidió resolver los conflictos que quedaron después de que otras dos sesiones más
+fusionaran a `main` mientras se armaba lo de arriba — `main` se movió 4 veces en total
+mientras duró esta sesión, todas por trabajo real de otras personas, ninguna relacionada
+con Compras/recepción. Ronda 3: conflicto real en `BITACORA.md` (dos sesiones anotando su
+cierre en el mismo punto del archivo, se conservó todo). Ronda 4: **colisión de ADR-0075
+otra vez** — esta vez con `0075-compras-lectura-acotada-por-sede.md` (sesión
+`compras-rls-location-lock-7a8b0c`, candado de sede en las RLS de `compras`/
+`compra_items`/`compra_pagos`/`compra_adjuntos`, decidido con Felipe vía `/decide`).
+Renumerado a **ADR-0076** — verificado que esa migración (`compras_candado_de_sede.sql`)
+no toca `recibir_compras` en absoluto (solo políticas de SELECT + `resumen_compras()`),
+así que no hay conflicto de fondo, solo de numeración. Me agregué a
+`docs/SESIONES-ACTIVAS.md` (creado hoy mismo por otra sesión, después de exactamente este
+tipo de colisión) para que la próxima sesión vea que esta rama sigue con un PR abierto.
+`pnpm --filter web typecheck`/`lint`/295 tests en verde después de cada ronda.

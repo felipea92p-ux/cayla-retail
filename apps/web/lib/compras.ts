@@ -367,7 +367,7 @@ export async function getRecepcionesCompra(compraId: string): Promise<RecepcionC
  * vista SQL nueva para algo que dos consultas resuelven igual de bien
  * (principio 3, mismo criterio que `getLineasCompra`). `conFactura` es
  * "¿al menos uno de los movimientos del lote tiene compra_item_id?", no
- * "¿son todos así?" — desde ADR-0075 un lote de `recibir_compras` puede
+ * "¿son todos así?" — desde ADR-0076 un lote de `recibir_compras` puede
  * traer ítems fuera de factura mezclados con ítems facturados.
  */
 export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; limite?: number } = {}): Promise<RecepcionReciente[]> {

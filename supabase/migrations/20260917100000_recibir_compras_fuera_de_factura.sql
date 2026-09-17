@@ -1,4 +1,4 @@
--- ADR-0075: recibir_compras acepta productos fuera de factura.
+-- ADR-0076: recibir_compras acepta productos fuera de factura.
 --
 -- Pedido de Felipe: la recepción contra factura (ADR-0035) solo aceptaba
 -- ítems que resolvían a una compra_items real — si el proveedor mandó (o el
@@ -143,4 +143,4 @@ end;
 $$;
 
 comment on function retail.recibir_compras(uuid, jsonb, text, text) is
-  'Recibe mercadería contra una o varias facturas del mismo proveedor (ADR-0035). Un ítem con compra_item_id = null es fuera de factura (ADR-0075): mismo lote, sin tope ni deuda, costo opcional.';
+  'Recibe mercadería contra una o varias facturas del mismo proveedor (ADR-0035). Un ítem con compra_item_id = null es fuera de factura (ADR-0076): mismo lote, sin tope ni deuda, costo opcional.';
