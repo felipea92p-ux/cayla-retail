@@ -11,6 +11,7 @@ import {
   type PagoCompra,
   type RecepcionCompra,
   type RecepcionReciente,
+  type LineaRecepcion,
   type ProveedorResumen,
 } from "@/lib/compras-reglas";
 
@@ -375,7 +376,7 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
   const lotes = exigir(
     await supabase
       .from("lotes")
-      .select("id, fecha_recepcion, numero_guia, recibido_por, ubicacion:ubicaciones ( nombre ), proveedor:proveedores ( nombre )")
+      .select("id, fecha_recepcion, numero_guia, nota, recibido_por, ubicacion:ubicaciones ( nombre ), proveedor:proveedores ( nombre )")
       .order("fecha_recepcion", { ascending: false })
       .limit(Math.max(limite * 2, 30)),
     "las recepciones recientes"
@@ -391,16 +392,26 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
   const [movimientosRes, nombresRes] = await Promise.all([
     supabase
       .from("movimientos")
-      .select("lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) )")
+      .select(
+        "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla, producto:productos ( referencia ), color:colores ( nombre ) )"
+      )
       .in("lote_id", loteIds),
     personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
   ]);
   const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");
   const personas = new Map(exigir(nombresRes, "quién recibió cada lote").map((p) => [p.id, p.nombre]));
-  const porLote = new Map<string, { unidades: number; lineas: number; conFactura: boolean; compraId: string | null; documento: string | null }>();
+  type Agg = {
+    unidades: number;
+    lineas: number;
+    conFactura: boolean;
+    compraId: string | null;
+    documento: string | null;
+    detalle: LineaRecepcion[];
+  };
+  const porLote = new Map<string, Agg>();
   for (const m of movimientos) {
     if (!m.lote_id) continue;
-    const actual = porLote.get(m.lote_id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null };
+    const actual = porLote.get(m.lote_id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null, detalle: [] };
     actual.unidades += m.cantidad;
     actual.lineas += 1;
     if (m.compra_item_id) {
@@ -408,18 +419,26 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
       actual.compraId = m.compra_item?.compra_id ?? actual.compraId;
       actual.documento = m.compra_item?.compra?.documento ?? actual.documento;
     }
+    actual.detalle.push({
+      referencia: m.variante?.producto?.referencia ?? "",
+      sku: m.variante?.sku ?? null,
+      talla: m.variante?.talla ?? null,
+      color: m.variante?.color?.nombre ?? null,
+      cantidad: m.cantidad,
+    });
     porLote.set(m.lote_id, actual);
   }
 
   return lotes
     .map((l) => {
-      const agg = porLote.get(l.id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null };
+      const agg = porLote.get(l.id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null, detalle: [] };
       return {
         loteId: l.id,
         fecha: l.fecha_recepcion,
         ubicacion: l.ubicacion?.nombre ?? "",
         proveedorNombre: l.proveedor?.nombre ?? "",
         numeroGuia: l.numero_guia,
+        nota: l.nota,
         recibidoPor: l.recibido_por ? personas.get(l.recibido_por) ?? null : null,
         ...agg,
       };
