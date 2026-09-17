@@ -131,6 +131,168 @@ regla de negocio real, que reemplaza al punto 2 original:
    Lo que se veía descentrado en la captura de Felipe era la fila completa, más angosta
    antes de sumar la miniatura de la prenda (punto 3) — no esta columna en particular.
 
+## Corrección 2026-09-17 (probando en producción con datos reales)
+
+Felipe probó Existencias ya con productos de arranque reales en producción y pidió tres
+ajustes más:
+
+1. **"Stock bajo" baja de 20 a 10** en el umbral de almacén — con 20, un lote chico de
+   boutique (10-15 unidades, normal para una tienda de 2 sedes) caía en "Stock bajo" de
+   entrada, sin haber vendido nada todavía. 10 separa mejor "recién llegado en cantidad
+   razonable" de "de verdad crítico".
+2. **"Reponer" deja de estar atado al chip de estado.** Hasta ayer el botón solo
+   aparecía en el estado "Reponer piso" — la corrección del propio Felipe, pensando que
+   "Stock bajo" significaba "no hay nada que reponer, hay que pedir traslado sí o sí".
+   Probándolo se dio cuenta de que las dos cosas conviven: si el almacén tiene 9
+   unidades y el chip dice "Stock bajo" (⩽10), pedir el traslado sigue siendo correcto
+   PERO esas 9 unidades igual se pueden bajar al piso ahora mismo. Se revive
+   `necesitaReponerPiso()` (retirada en la corrección del 16) como una condición
+   independiente del chip: `piso ⩽ 7 && almacén > 0`. El chip (qué tan grave es) y el
+   botón (si hay algo que mover) vuelven a ser dos preguntas separadas — que es,
+   estrictamente, lo que eran en el primer diseño; el vaivén de estos tres días fue
+   encontrar juntos, probando con datos reales, dónde estaba el balance correcto.
+   - SE ROMPE SI se vuelve a fusionar "chip" y "botón" en una sola condición — ya pasó
+     dos veces en tres días (primero mostrando de más, después de menos). Quedan
+     como funciones separadas a propósito: `calcularEstado()` decide el chip,
+     `necesitaReponerPiso()` decide el botón, y no se tocan entre sí.
+3. **"Piden atención" tenía un bug real, no solo una confusión de UX.** Felipe no
+   entendía a qué se refería la tarjeta — al revisar el código, la razón era concreta:
+   el NÚMERO de la tarjeta sumaba solo `reponer_piso + stock_bajo`, pero el TEXTO debajo
+   de ese mismo número (su propio desglose) ya incluía "sin stock". La tarjeta se
+   contradecía a sí misma — mostraba un número y, un renglón más abajo, una cuenta que
+   no cuadraba con él. Se corrigió a `reponer_piso + stock_bajo + sin_stock`: ahora
+   "Piden atención" es, de verdad, "todo lo que no está en Normal", y el número
+   coincide siempre con su propio desglose. No se eliminó — el defecto era la
+   definición, no el concepto (una cuenta rápida de "cuánto necesita acción hoy" sigue
+   siendo útil para quien abre la pantalla en la mañana).
+
+## Decisión sin construir 2026-09-17 (tarde): "Dañado" reemplaza a "Piden atención"
+
+La corrección de arriba (punto 3) resultó ser un parche temporal, no el destino final:
+Felipe pidió que "Piden atención" se reemplace por "Dañado" — visibilidad de mercadería
+defectuosa, no un resumen de reposición. Investigado antes de proponer nada (no hay
+supuestos): hoy "dañado" existe SOLO como un valor de `devolucion_items.condicion`
+(`danada_reparacion`/`danada_donar`) en el momento de una devolución — y en ese momento,
+`aprobar_devolucion` (línea ~155 de `20260916180000_...sql`) **no escribe ningún
+movimiento** para esas condiciones. La prenda quedó marcada en un registro histórico de
+ESA devolución, pero desaparece de cualquier lectura de stock — no hay ninguna fila en
+`stock` ni en ningún lado que diga "esto está dañado, está acá, ahora". Se le presentaron
+3 opciones con Ganas/Pagas (sububicación `cuarentena` reusando piso/almacén; un log de
+solo lectura sobre movimientos históricos; una tabla paralela a `stock`) — Felipe **eligió
+la primera**: `cuarentena` como tercer tipo de sububicación, mismo patrón que ya prueban
+`piso_venta`/`almacen_tienda`.
+
+**No se construyó todavía.** Dos razones, ambas de Felipe: (1) toca `aprobar_devolucion` y
+el ajuste "Merma" de `AjustarInventarioModal` — RPCs con mercadería y dinero real de por
+medio, mismo criterio de "detente y confirma primero" que ya rige para producción; (2) al
+decidir, agregó un requisito nuevo — historial + estado de salida de cada prenda dañada
+(Liquidada / Se botó / Donada) — y pidió explícitamente NO construir esa parte todavía,
+solo dejarla anotada para revisar con Benja (`docs/BACKLOG.md`, sección "🔖 Pendientes
+Benja") antes de tocar código. Construir `cuarentena` sin resolver primero cómo SALE una
+prenda de ahí dejaría un contador que solo crece, sin salida — el mismo tipo de estado a
+medias que el principio 4 de CLAUDE.md pide evitar. Se espera esa conversación antes de
+escribir la migración.
+
+## Construcción 2026-09-17 (noche): Cuarentena sí se construyó — con un alcance acotado
+
+Felipe corrigió el punto anterior el mismo día: "no la satures de funciones" (su frase, en
+el mensaje que decidió la Opción A) no era "no construyas nada" — la parte que debía quedar
+pendiente era, literalmente, la **editabilidad** de los 3 estados de salida desde un futuro
+panel de administrador, no los 3 estados en sí. Cita textual del mensaje que lo aclaró: "a
+lo que me refiero que quede con pendiente como pendientes de benja es que los estados de
+los productos [...] se puedan editarse [...] ahora mismo necesito los 3 estados [...] luego
+vamos por medio de un panel de administrador, poder editar estas decisiones."
+
+Con esa corrección, se construyó completo (migración
+`20260917095000_cuarentena_prendas_danadas.sql`):
+
+- **`cuarentena`** como tercer tipo de sububicación (junto a `piso_venta`/`almacen_tienda`),
+  solo en tiendas — mismo motivo que las otras dos: el Taller no vende a clientas, nunca
+  puede recibir una devolución.
+- **`aprobar_devolucion`**: las condiciones `danada_reparacion`/`danada_donar` ahora insertan
+  un movimiento `entrada` real hacia `cuarentena` (antes: nada). `devolver_proveedor` —
+  cuarta condición de `devolucion_items`, un concepto distinto (vuelve al proveedor, no se
+  liquida/bota/dona en la tienda) — sigue sin escribir movimiento; mismo bug, a propósito no
+  tocado acá, flageado aparte.
+- **Tabla `retail.prendas_danadas`**: una fila por línea de devolución dañada, desde que
+  entra a cuarentena hasta que se resuelve. Los 3 estados de salida son EXACTAMENTE los que
+  pidió Felipe — **Liquidada / Se botó / Donada** — fijos en un `check` de la tabla, no en
+  una tabla de configuración editable (esa parte sigue en 🔖 Pendientes Benja).
+- **`resolver_prenda_danada`** (RPC, solo líder — mismo criterio que `cerrar_conteo`): saca
+  la cantidad de `cuarentena` con un movimiento `salida` (`motivo` = `cuarentena_liquidada` /
+  `cuarentena_se_boto` / `cuarentena_donada`) y marca el registro con quién y cuándo.
+- **Existencias**: la tarjeta "Piden atención" se convirtió en la tarjeta **"Dañado"** —
+  clic abre la cola de resolución. El semáforo de piso/almacén (sin_stock/stock_bajo/
+  reponer_piso/normal) queda intacto, sin tocar: "Dañado" es un eje aparte, no un quinto
+  estado — una prenda puede estar "Normal" en piso/almacén y tener unidades dañadas en
+  cuarentena al mismo tiempo.
+
+**Decisión que Felipe no había resuelto explícitamente — se tomó el camino más chico,
+marcado para confirmar:** "Liquidada" hoy es una ETIQUETA + nota libre, no una venta. No
+registra comprobante, no pasa por caja, no mueve SUNAT. Si Liquidada debe ser una venta real
+con descuento (dinero de verdad, integración con Facturación), es una decisión de negocio
+aparte — el CLAUDE.md de este repo pide "detente y confirma primero" ante justo ese tipo de
+cambio, y no se asumió que "aplica ya la lógica" alcanzaba para decidirlo en silencio.
+
+**Fuera de esta construcción, a propósito:** el "Merma" de `AjustarInventarioModal.tsx` no
+se tocó — ya escribe un movimiento real y auditable (`registrar_movimiento`, tipo `ajuste`),
+un mecanismo distinto y ya funcional; mezclarlo con Cuarentena hubiera sido tocar dos RPCs
+por una sola razón real, sin que Felipe lo haya pedido.
+
+**Producción:** la migración y `resolver_prenda_danada` quedan listas en el repo pero NO
+aplicadas — `supabase/migrations/activacion-cuarentena-produccion.sql` (sembrar la
+sububicación «Cuarentena» en cada tienda) tampoco. Aplicar producción es un paso aparte,
+con confirmación explícita antes (regla del repo, no cambia por esta ADR).
+
+## Corrección 2026-09-17 (más tarde): "Liquidada" es una venta real, confirmado por Felipe
+
+La construcción de arriba dejó "Liquidada" como etiqueta + nota, marcada explícitamente
+para confirmar. Felipe respondió sin ambigüedad: *"sí, se tiene que tomar en cuenta
+liquidación como una venta, totalmente"*. Sobre el otro punto que se le nombró
+(`devolver_proveedor`, mismo bug de desaparecer sin dejar rastro): *"me parece que la
+manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
+entonces no"* — queda sin tocar, decisión suya, no mía.
+
+**DECIDÍ:** una función nueva, `retail.liquidar_prenda_danada` (migración
+`20260917150000_liquidar_prenda_danada_como_venta.sql`), en vez de ampliar
+`resolver_prenda_danada` o `registrar_venta`. Inserta directamente en
+`ventas`/`venta_items`/`venta_pagos` con la misma forma exacta que `registrar_venta` ya
+usa (así la liquidación aparece en caja y en reportes de ventas como lo que es), exige
+caja abierta (mismo candado que cualquier venta), y saca la prenda de `cuarentena` con un
+movimiento `salida` que lleva `venta_item_id` — trazable como venta y como resolución de
+cuarentena a la vez. `resolver_prenda_danada` dejó de aceptar `'liquidada'`: ahora es
+literal que esa fila no puede existir sin una venta real detrás, no un camino alterno sin
+pedir precio ni pago.
+**DESCARTÉ:** tocar `registrar_venta` para que acepte vender desde `cuarentena` — es el
+camino más transitado de todo el sistema, cada venta del piso pasa por ahí, y no tiene
+ninguna razón de negocio para saber que `cuarentena` existe (núcleo mínimo). También
+descarté forzar un comprobante (boleta/factura): `registrar_venta` ya trata "sin
+comprobante" como un camino completo y válido, y pedirle al líder los datos de la clienta
+en el momento de liquidar una prenda dañada infla la pantalla más de lo que Felipe pidió
+— si hace falta, es un `perform emitir_comprobante(...)` que se agrega sin tocar el resto.
+**SE ROMPE SI:** el precio de liquidación se valida contra `variantes.costo` como hace un
+descuento normal — a propósito NO se valida: la mercadería está dañada, el costo ya está
+perdido, y a veces recuperar algo por debajo del costo es mejor que nada.
+
+**Precio:** lo escribe el líder al momento de liquidar (sin piso de costo, a diferencia de
+un descuento normal). El campo se precarga con `variantes.precio` como punto de partida,
+no como validación — el líder puede bajarlo a lo que decida.
+**Cantidad:** siempre se liquida el lote completo de esa fila de `prendas_danadas` — no
+hay liquidación parcial (vender 2 de 5 y dejar 3 pendientes) en esta pasada; no hay
+precedente de eso en ningún otro punto de Cuarentena.
+**Forma de pago:** un solo método por liquidación (no pagos divididos) — simplifica la
+pantalla; una venta de liquidación es, en la práctica, una transacción simple.
+
+Verificado en local de punta a punta: liquidé "Pantalón Carla" (precio de catálogo
+S/99.90 precargado, bajado a S/25.00, efectivo) → toast "Venta registrada por S/25.00" →
+la cola de Dañado quedó en 0 → Movimientos muestra "Dañado — liquidada · Cuarentena →
+Clienta · Sin comprobante" (mismo formato que cualquier venta) → Caja reflejó el ingreso
+en "Ventas en efectivo". Se corrigieron también `partesOrigenDestino`/`textoReferencia`
+(`apps/web/lib/movimientos-reglas.ts`) para que una liquidación se lea en Movimientos
+exactamente como una venta — antes de este ajuste la fila era correcta en la base pero se
+veía distinta a una venta normal en pantalla, contradiciendo la propia decisión de
+tratarla como venta real.
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos

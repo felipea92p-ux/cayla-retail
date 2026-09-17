@@ -71,6 +71,12 @@ select id, 'Piso de venta', 'piso_venta' from retail.ubicaciones where tipo = 't
 union all
 select id, 'Almacén de tienda', 'almacen_tienda' from retail.ubicaciones where tipo = 'tienda';
 
+-- Cuarentena (20260917095000_cuarentena_prendas_danadas.sql): mismo criterio
+-- que piso/almacén — solo tiendas, porque solo una tienda puede recibir una
+-- devolución dañada (el Taller no vende a clientas).
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+select id, 'Cuarentena', 'cuarentena' from retail.ubicaciones where tipo = 'tienda';
+
 -- Series de boleta/factura por tienda — sin esto, `registrar_venta` revienta la
 -- venta ENTERA en cuanto se pide un comprobante ("No hay una serie registrada
 -- para boleta en esta ubicación"), porque emite el comprobante en la misma

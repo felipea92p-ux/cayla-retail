@@ -51,6 +51,113 @@ Después de construir el mecanismo (ADR-0075), Felipe frenó al confirmar las 6 
 
 Sesión de diseño formal (protocolo de pregunta completo, bloque por bloque) que terminó descubriendo que este worktree estaba 520 commits atrás de `main` — con `main` ya teniendo colores propone/aprueba (ADR-0070), subcategoría (ADR-0062) y la capa de taxonomía universal (ADR-0030) construidos, y otras 3 sesiones paralelas con tejidos/patrones/etiquetas/rechazar-color a medio construir en ramas sin fusionar. Se puso este worktree al día con `main`, se resolvió la contradicción real que Felipe pidió detectar (ADR-0030 diseña multi-tenant explícito, su propia decisión del 16-sep dice "solo CAYLA" — se separaron las dos capas), y se construyó de cero (no cherry-pick) el vocabulario cerrado de talla/tejido/patrón/etiqueta con rechazar incluido desde el día uno, más el filtro por categoría que Felipe pidió (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`). Tocar `variantes.talla` (núcleo) reveló que **10 funciones SQL más** (Movimientos, Ventas, Conteo, Traslados, Producción) y **10 archivos TypeScript más** leían esa columna directo — se encontraron todas consultando `pg_proc.prosrc` contra la base real, no adivinando por migración, y el compilador de tipos generados marcó los 10 archivos de TS uno por uno. Un bug real de verdad (el trigger de talla pisaba `estado='aprobado'` del backfill porque `fn_es_lider()` no tiene sesión durante una migración) se encontró navegando `/productos/nuevo`, no leyendo SQL. Flujo completo probado en navegador como Líder: crear producto con 2 tallas × 2 colores, editar, guardar — los 293 tests + typecheck + lint quedaron en verde. Aprendizaje: "cambiar una columna del núcleo" nunca es local — el radio real solo aparece grepeando el código real, no imaginándolo.
 
+## 2026-09-17 (más tarde) — "Liquidada" pasó a ser una venta real
+
+Objeción planteada al cerrar la entrada de abajo ("¿Liquidada debería ser una venta o
+solo una etiqueta?"), respondida por Felipe sin ambigüedad: "se tiene que tomar en cuenta
+liquidación como una venta, totalmente". Construida aparte de `resolver_prenda_danada`
+(que ahora solo acepta Se botó/Donada): `liquidar_prenda_danada` inserta
+`ventas`/`venta_items`/`venta_pagos` con la misma forma que `registrar_venta`, exige caja
+abierta, y no valida el precio contra el costo (a diferencia de un descuento normal — es
+mercadería dañada, recuperar algo por debajo del costo es la realidad, no un error). Sin
+comprobante por ahora, a propósito — no se le pidió, y `registrar_venta` ya trata "sin
+comprobante" como un camino completo. Verificado en local: liquidé una prenda a S/25
+(precio de catálogo S/99.90 precargado como referencia, no como piso), la venta quedó en
+Caja y en Movimientos exactamente como cualquier otra venta ("Cuarentena → Clienta · Sin
+comprobante"). Aprendizaje operativo: tras corregir la lógica de negocio, valía la pena
+revisar también CÓMO se ve en pantalla — la fila era correcta en la base antes de tocar
+`movimientos-reglas.ts`, pero se leía distinto a una venta normal, lo que hubiera
+contradicho la propia decisión de tratarla como una.
+
+Sobre `devolver_proveedor` (mismo bug de "desaparece sin rastro" que tenía Dañado, se le
+nombró a Felipe junto con la objeción de arriba): confirmó que no es prioridad ahora,
+"lo manejarán de otra manera" — queda sin tocar, es su decisión, no una tarea pendiente.
+
+## 2026-09-17 (noche) — "Dañado"/Cuarentena: construido completo, con un límite explícito
+
+Felipe corrigió, el mismo día, la decisión de la entrada de abajo: "no la satures de
+funciones" no era "no construyas nada" — lo único pendiente era la EDITABILIDAD de los
+3 estados desde un futuro panel de administrador, no los 3 estados en sí ("ahora mismo
+necesito los 3 estados"). Se construyó completo: `cuarentena` como tercer tipo de
+sububicación (solo tiendas); `aprobar_devolucion` mueve ahí `danada_reparacion`/
+`danada_donar` en vez de hacerlas desaparecer; tabla `retail.prendas_danadas` + RPC
+`resolver_prenda_danada` (solo líder, mismo criterio que `cerrar_conteo`) resuelven cada
+una como Liquidada/Se botó/Donada — fijos en un `check`, no en una tabla editable, esa
+parte sigue en 🔖 Pendientes Benja. Existencias reemplazó la tarjeta "Piden atención" por
+"Dañado" sin tocar el semáforo de piso/almacén (son ejes distintos). Decisión propia,
+marcada para confirmar: "Liquidada" es una etiqueta + nota, NO una venta — no pasa por
+caja ni SUNAT; si Felipe quiere que sí lo sea sería un cambio de dinero real aparte, con
+su propio "detente y confirma". Verificado en vivo en local: devolución dañada → aparece
+en Existencias → se resuelve → sale del stock con movimiento auditable en Movimientos.
+Producción queda sin tocar (migración + script de activación listos, sin aplicar).
+Aprendizaje operativo (no de negocio): otra sesión concurrente reseteó la base local
+compartida a mitad de la verificación — mismo riesgo ya documentado de sesiones
+paralelas, resuelto re-corriendo `db reset` desde este worktree.
+
+## 2026-09-17 ("Dañado" — decisión tomada, construcción a propósito pendiente)
+
+Felipe decidió la Opción A para reemplazar "Piden atención" por "Dañado": una
+sububicación `cuarentena` (tercer tipo, junto a piso_venta/almacen_tienda), reusando la
+misma maquinaria de stock que ya prueban esos dos. Investigado antes de proponer:
+"dañado" hoy es solo un `condicion` en `devolucion_items` en el momento de una
+devolución — `aprobar_devolucion` no escribe ningún movimiento para esos casos, la
+prenda simplemente desaparece de cualquier lectura de stock. Al decidir, Felipe agregó
+un requisito nuevo (historial + estado de salida: Liquidada/Se botó/Donada) y pidió
+explícitamente NO construir nada de esto todavía — ni la sububicación ni el historial —
+solo dejarlo anotado para revisar con Benja antes de tocar `aprobar_devolucion`/Merma
+(mercadería y dinero real). Registrado en `docs/adr/0071-...md` ("Decisión sin construir
+2026-09-17") y en `docs/BACKLOG.md`, sección nueva "🔖 Pendientes Benja" — una cola
+separada a propósito, para decisiones de negocio que esperan conversación antes de
+volverse código. Aprendizaje: "decido la opción A" no siempre significa "constrúyela
+ya" — en el mismo mensaje puede venir el motivo para esperar.
+
+## 2026-09-17 (Mover mercadería: el campo de cantidad no dejaba borrar para escribir de nuevo)
+
+Bug real reportado por Felipe probando Traslados: el input de cantidad (`MoverMercaderiaFormV2.tsx`)
+estaba controlado con `onChange={(e) => ... Number(e.target.value) || 1 ...}` — al borrar el campo,
+`Number("") || 1` volvía a "1" en la MISMA tecla, así que nunca se podía vaciar para escribir un
+número nuevo. Se corrigió con el mismo patrón que ya usaba `ConteoPanel.tsx`: la cantidad es texto
+mientras se escribe (sin coerción en el `onChange`), y el tope de stock se aplica recién en `onBlur`
+y otra vez al enviar — nunca a mitad de tecla. Encontrado el mismo patrón roto en otros 4
+formularios (Recibir, Cambios, Devoluciones, Compras) — no se tocaron (Felipe solo reportó este),
+quedó como tarea aparte sugerida.
+
+## 2026-09-17 (Existencias con datos reales en producción: 16 productos nuevos + 3 correcciones de semáforo)
+
+Dos pasos seguidos, ambos con Felipe mirando producción en vivo.
+
+**Primero (16-sep tarde, sin registrar hasta ahora):** Felipe pidió limpiar el catálogo
+de práctica de producción (6 productos ya `descontinuado`/`inactivo`, con 305
+movimientos y 5 ventas de prueba) para poder validar operaciones reales él mismo. No se
+pudo "eliminar todo" tal cual lo pidió — `movimientos` tiene un trigger que bloquea
+cualquier DELETE/UPDATE, a propósito, para que una venta real nunca pueda desaparecer;
+se verificó primero que las 5 ventas de producción eran 100% de práctica (ninguna real
+en juego) y se le explicó por qué el borrado total no es posible por diseño, no por
+elección. Sí se limpiaron 109 filas de `stock` en cero (snapshot, sin historial) que
+seguían apareciendo en Existencias. Se sembraron 15 productos nuevos (45 variantes, 445
+unidades) repartidos entre Taller/Tienda TRU/Tienda AQP vía `crear_producto_con_variantes`
+y `movimientos` con `motivo='carga_inicial'` — mismo mecanismo que `supabase/seed.sql`,
+porque el MCP de Supabase no lleva `auth.uid()` y la RPC exige `fn_es_lider()`. Todo el
+stock nuevo entró al almacén, nunca al piso, para que "Reponer piso" fuera la primera
+operación manual real de Felipe. Encontrado en el camino: los productos nuevos quedan con
+`sku` null (el trigger de la base solo llena `codigo`, ninguna RPC llena `sku`) —
+corregido a mano para estos 16, y otra sesión ya lo está resolviendo de raíz en el código
+(`11d4cdc`/`54ddf58`/`55dc78d`).
+
+**Después (17-sep, probando la pantalla con esos datos reales):** tres correcciones más,
+documentadas completas en ADR-0071 sección "Corrección 2026-09-17": umbral de "Stock
+bajo" de 20 a 10 (con 20, cualquier lote chico de boutique caía ahí de entrada); el botón
+"Reponer" vuelve a ser independiente del chip de estado (`necesitaReponerPiso()`, retirada
+el 16, revive) — pedir traslado y reponer lo que quede no se excluyen; y un bug real (no
+solo confusión) en la tarjeta "Piden atención": el número sumaba `reponer_piso +
+stock_bajo` pero su propio texto de abajo ya incluía "sin stock" — la tarjeta se
+contradecía a sí misma. Se agregó además "Blusa Valeria" (color Lila, Tienda TRU) con
+cantidades elegidas para mostrar de entrada los dos estados recién corregidos.
+Aprendizaje: probar un umbral con datos reales, no con la intuición de quien lo escribió,
+es la única forma de encontrar estos dos (el umbral y el acoplamiento chip↔botón) — los
+tests unitarios no los iban a atrapar porque probaban exactamente lo que el código ya
+hacía, no lo que Felipe esperaba ver.
+
 ## 2026-09-17 (venta_precio_cambiado_sku_nulo: aplicada en producción con el MCP)
 
 Felipe dio el ok puntual para correr `20260916223000_venta_precio_cambiado_sku_nulo.sql`
