@@ -6351,3 +6351,31 @@ BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra s
 propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
+
+## 2026-09-17 (tarea "auditar costo en historial" ya estaba resuelta — premisa vieja)
+
+Se pidió extender `fn_registrar_cambio_producto()` para auditar `variantes.costo` (hoy solo
+mira `categoria_id`/`estado`/`precio`), asumiendo que ningún cambio de costo queda
+registrado. Falso desde el 2026-09-16: `20260916090000_costo_promedio_ponderado.sql`
+(commit `5642741`, ya en `main`, documentado en ADR-0067) sumó esa rama al mismo trigger
+hace un día, con una implementación más rica de lo pedido (`costo_historial` con lote/
+factura/producción de origen, `fn_recalcular_costo_variante` con lock). Escribir la
+migración pedida habría sido puro duplicado — se frenó ahí, no se creó archivo nuevo ni se
+tocó ADR-0059 (el que documenta esto de verdad es el 0067, no ese). Lo que SÍ seguía roto:
+`HistorialProductoPanel.tsx`/`historial-producto.ts` nunca sumaron `"costo"` a
+`ETIQUETA_CAMPO` ni al tipo `CambioProducto["campo"]` — un cambio de costo real llegaba a
+`/productos/[id]/historial` con la etiqueta en blanco. Corregido (2 líneas + encabezado de
+sección). Verificado con `UPDATE variantes SET costo=...` directo en local (dispara el
+trigger, `fn_historial_producto_cambios` devuelve la fila con `campo='costo'` bien
+formada) — no se pudo probar el click-through en el navegador: login local roto para
+Felipe/Micaela después de `db reset` (`fn_persona_actual_resumen()` devuelve vacío pese a
+que `personas.auth_user_id` está bien enlazado; huele a la integración con Dynamic, no algo
+de esta tarea — queda para que alguien lo mire aparte). `pnpm --filter web typecheck`/`lint`
+en verde (los 4 errores preexistentes de `ConteoPanel.tsx`/`lib/conteos.ts` — tipos de
+Supabase desactualizados tras la migración de prioridad de conteo de hoy — no son de este
+cambio). Nota aparte: el reto original pedía trabajar en el worktree
+`historial-producto-costo-a94139`, pero Felipe indicó `ecstatic-booth-676259` como "repo
+real" — se cambió de worktree con `EnterWorktree` antes de tocar nada; quedaron ahí una
+copia temporal de estos 2 archivos y un `.env.local` usados solo para poder levantar el
+preview (el tooling de preview no sigue el `EnterWorktree` de la sesión) — sin commit, no
+afecta nada, se avisa para que no sorprenda a quien abra esa carpeta después.

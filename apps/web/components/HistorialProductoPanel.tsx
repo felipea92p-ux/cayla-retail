@@ -69,7 +69,7 @@ export function HistorialProductoPanel({
   );
 }
 
-const ETIQUETA_CAMPO: Record<CambioProducto["campo"], string> = { categoria_id: "Categoría", precio: "Precio", estado: "Estado" };
+const ETIQUETA_CAMPO: Record<CambioProducto["campo"], string> = { categoria_id: "Categoría", precio: "Precio", estado: "Estado", costo: "Costo" };
 const ETIQUETA_ESTADO: Record<string, string> = { activo: "Activo", descontinuado: "Descontinuado" };
 
 function textoValorCambio(c: CambioProducto, cual: "anterior" | "nuevo"): string {
@@ -95,7 +95,7 @@ function fechaHoraLima(iso: string): string {
 function SeccionCambios({ cambios }: { cambios: CambioProducto[] }) {
   return (
     <div className="card-cayla p-5">
-      <p className="label-cayla text-[11px] text-tinta/65">Precio y categoría</p>
+      <p className="label-cayla text-[11px] text-tinta/65">Precio, costo, categoría y estado</p>
       {cambios.length === 0 ? (
         <p className="mt-2 text-sm text-tinta/65">Sin cambios registrados desde que existe este historial.</p>
       ) : (

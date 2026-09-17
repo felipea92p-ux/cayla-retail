@@ -15,8 +15,8 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| Claude | `claude/ecstatic-booth-676259` | Producto: auditar costo en historial (trigger `fn_registrar_cambio_producto`) — sesión previa sin cerrar en este worktree, no tocada por esta tarea | 2026-09-17 |
 | Claude | `claude/ecstatic-booth-676259` | Producto: apartar stock (mecanismo de base de datos, sin pantalla todavía) | 2026-09-17 |
+| Claude | `claude/ecstatic-booth-676259` | Producto: estado de publicación (`estado_publicacion` en `retail.productos`, distinto de `estado`) — confirmado sin choque con etiquetado legal (`claude/producto-etiquetado-legal-16434c` sigue en la punta de `main`, sin commits) | 2026-09-17 |
 
 **Nota:** hay una rama local, sin pushear todavía, `claude/cayla-taxonomia-design-7e662b`, con un día completo de trabajo sobre ADR-0072/0073 propios (taxonomía de tallas/tejidos/patrones/etiquetas, familias/categorías reales) — **choca de número** con los ADR-0072/0073 que ya existen en `main` (vocabulario portado / importador). Falta renumerar antes de abrir PR. El resto de la lista de "Cerradas hoy" ya llegó hasta ADR-0093 — cualquiera que agregue un ADR nuevo hoy debe partir de ahí, no de 0074.
 
@@ -24,6 +24,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude | `claude/ecstatic-booth-676259` | Producto: auditar costo en historial — la tarea ya estaba resuelta en el trigger desde ayer (ADR-0067, commit `5642741`); el hueco real era la pantalla (`ETIQUETA_CAMPO`/`CambioProducto["campo"]` sin `"costo"`), corregido | 2026-09-17 |
 | Claude | `claude/ecstatic-booth-676259` | Clasificación ABC por valor en `retail.fn_prioridad_conteo` — commit `1b69160` | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |

@@ -675,6 +675,13 @@ completo en BITÁCORA de esta fecha.
       server-side) se recupera algún día, o se descarta a propósito. Hoy solo
       se reactivó el campo `alcance` (categoría); el resto sigue perdido
       desde el corte a V2, sin que nadie lo haya decidido con esos términos.
+- [x] **El trigger de `historial_producto_cambios` ya audita `costo` desde
+      esta ronda (20260916090000) pero la pantalla se había quedado atrás
+      (2026-09-17).** `HistorialProductoPanel.tsx`/`historial-producto.ts`
+      solo conocían `categoria_id`/`precio`/`estado` — un cambio de costo
+      real llegaba con la etiqueta en blanco. Corregido: `"costo"` sumado al
+      tipo `CambioProducto["campo"]` y a `ETIQUETA_CAMPO`. **Sigue igual de
+      pendiente pegar en producción** que el resto de esta rama.
 
 ---
 
