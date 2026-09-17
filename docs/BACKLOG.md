@@ -41,11 +41,20 @@ verde.
       el prefijo `retail.` (o `set search_path`). Backfill de `categorias.tallas_sugeridas`
       incluido — revisar que el trigger de `tallas` quede DESACTIVADO durante ese bloque
       (ver ADR-0072, el bug real que esta sesión encontró).
-- [ ] **Faltan las 4 pantallas de administración de vocabulario**
-      (`/productos/tallas`, `/productos/tejidos`, `/productos/patrones`,
-      `/productos/etiquetas`, mismo patrón que `ColoresLista.tsx`) — sin ellas, proponer
-      o aprobar un tejido/talla/patrón/etiqueta nuevo exige SQL directo. Backend ya
-      probado y listo para que estas pantallas se conecten.
+- [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
+      `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
+      que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
+      (`AppShell.tsx`). Etiquetas suma un campo propio, `sedes_permitidas` (multi-select
+      de `retail.ubicaciones`, opcional). Probado en navegador como Líder: proponer,
+      aprobar (con comentario obligatorio en Tallas), rechazar, reactivar, desactivar, y
+      el candado "en uso" de Etiquetas (bloquea desactivar si alguna variante la tiene
+      aplicada — ese candado vive en la API, no en el trigger de la base, porque el
+      trigger de `etiquetas` solo cubre la transición pendiente→rechazado, no
+      aprobado→desactivado). `db reset`, typecheck y lint en verde.
+- [ ] **Aplicar/quitar una etiqueta de una VARIANTE puntual no tiene pantalla.** Lo de
+      arriba administra el vocabulario (qué etiquetas existen); falta conectarlo a
+      `ProductoForm.tsx` para que un Líder marque una variante concreta con una etiqueta
+      ya aprobada.
 - [ ] **Mapear categoría↔eje no tiene UI.** Hoy `categoria_tallas`/`categoria_tejidos`/
       `categoria_patrones` solo tienen lo que vino del backfill de `tallas_sugeridas`
       (talla). Tejido y patrón nacieron sin ningún mapeo — toda categoría los rechaza
