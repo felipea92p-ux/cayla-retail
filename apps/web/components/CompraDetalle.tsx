@@ -192,8 +192,15 @@ export function CompraDetalle({
               <span className={celda("der", "text-xs tabular-nums text-tinta/65")}>
                 {l.cantidad} × {soles(l.costoUnitario)}
               </span>
-              <span className={celda("der", `label-cayla text-[11px] ${l.pendiente === 0 ? "text-tinta" : l.recibido > 0 ? "text-ambar" : "text-tinta/65"}`)}>
-                {l.recibido}/{l.cantidad}
+              <span className={celda("der")}>
+                <span className={`label-cayla text-[11px] ${l.pendiente === 0 ? "text-tinta" : l.recibido > 0 ? "text-ambar" : "text-tinta/65"}`}>
+                  {l.recibido}/{l.cantidad}
+                </span>
+                {/* Misma barra que las tarjetas de arriba, en miniatura: acá se
+                    lee qué línea puntual falta, no solo el total de la factura. */}
+                <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={Math.round((l.cantidad > 0 ? l.recibido / l.cantidad : 0) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`Recibido: ${l.recibido} de ${l.cantidad}`}>
+                  <span className={`block h-full rounded-full ${BARRA[l.pendiente === 0 ? "verde" : l.recibido > 0 ? "ambar" : "neutro"]}`} style={{ width: `${Math.round((l.cantidad > 0 ? l.recibido / l.cantidad : 0) * 100)}%` }} />
+                </span>
               </span>
               <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(l.subtotal)}</span>
             </div>

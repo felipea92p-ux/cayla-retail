@@ -58,19 +58,28 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         <p className="mt-1 text-sm text-tinta/65">Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Cifra etiqueta="Deuda total" valor={soles(resumen.deuda)} detalle={contar(resumen.conSaldo, "factura", "facturas")} />
+      {/* `grid-cols-2` también en celular (no solo desde `sm:`): con las tres
+          tarjetas apiladas a ancho completo, la lista de facturas —lo que se
+          vino a ver— quedaba a ~830px de scroll, bajo tres bloques de puro
+          número. "Deuda total" ocupa las dos columnas por ser la cifra ancla;
+          Vencido/Vence esta semana se emparejan debajo. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="col-span-2 sm:col-span-1">
+          <Cifra etiqueta="Deuda total" valor={soles(resumen.deuda)} detalle={contar(resumen.conSaldo, "factura", "facturas")} />
+        </div>
         <Cifra
           etiqueta="Vencido"
           valor={soles(resumen.vencido)}
           detalle={resumen.vencidas ? `${contar(resumen.vencidas, "factura vencida", "facturas vencidas")} · pagar ya` : "Nada vencido"}
           tono={resumen.vencidas > 0 ? "rojo" : "neutro"}
+          href={resumen.vencidas > 0 ? "#tramo-vencidas" : undefined}
         />
         <Cifra
           etiqueta="Vence esta semana"
           valor={soles(resumen.porVencerMonto)}
           detalle={resumen.porVencer ? contar(resumen.porVencer, "factura", "facturas") : "Ninguna en los próximos 7 días"}
           tono={resumen.porVencer > 0 ? "ambar" : "neutro"}
+          href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
         />
       </div>
 
@@ -146,7 +155,10 @@ function armarTramos(compras: CompraResumen[]): Tramo[] {
 
 function TramoFila({ tramo: t, parcial }: { tramo: Tramo; parcial: boolean }) {
   return (
-    <div className={`flex items-baseline justify-between gap-4 px-5 py-2 ${ESTILO_TRAMO[t.clave]}`} role="row">
+    // El id es el destino de las tarjetas "Vencido"/"Vence esta semana" de
+    // arriba (Cifra con `href`); `scroll-mt-24` compensa la cabecera fija,
+    // mismo valor que ya usa RecepcionCompraFormV2.
+    <div id={`tramo-${t.clave}`} className={`scroll-mt-24 flex items-baseline justify-between gap-4 px-5 py-2 ${ESTILO_TRAMO[t.clave]}`} role="row">
       <p className="label-cayla text-[11px]">
         {t.titulo} <span className="opacity-70">· {contar(t.facturas.length, "factura", "facturas")}</span>
       </p>
@@ -240,14 +252,39 @@ function etiquetaVence(iso: string, vencida: boolean): string {
   return `Vence el ${fechaCorta(iso)}`;
 }
 
-function Cifra({ etiqueta, valor, detalle, tono = "neutro" }: { etiqueta: string; valor: string; detalle: string; tono?: "neutro" | "rojo" | "ambar" }) {
+// `href` es opcional (2026-09-17): cuando la cifra tiene facturas detrás
+// ("Vencido"/"Vence esta semana"), la tarjeta entera salta a ese tramo de la
+// tabla — el número deja de ser un dato inerte y se vuelve el atajo más
+// corto a las filas que explica. Sin facturas detrás (nada vencido, nada por
+// vencer) sigue siendo una tarjeta simple: no hay adónde saltar.
+function Cifra({
+  etiqueta,
+  valor,
+  detalle,
+  tono = "neutro",
+  href,
+}: {
+  etiqueta: string;
+  valor: string;
+  detalle: string;
+  tono?: "neutro" | "rojo" | "ambar";
+  href?: string;
+}) {
   const color = tono === "rojo" ? "text-rojo" : tono === "ambar" ? "text-ambar-profundo" : "text-tinta";
   const colorDetalle = tono === "neutro" ? "text-tinta/65" : color;
-  return (
-    <div className="card-cayla p-4">
+  const contenido = (
+    <>
       <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
       <p className={`font-display mt-1 text-2xl tabular-nums ${color}`}>{valor}</p>
       <p className={`mt-0.5 text-xs ${colorDetalle}`}>{detalle}</p>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <a href={href} className="card-cayla block p-4 transition-colors hover:bg-tinta/[0.03]">
+        {contenido}
+      </a>
+    );
+  }
+  return <div className="card-cayla p-4">{contenido}</div>;
 }
