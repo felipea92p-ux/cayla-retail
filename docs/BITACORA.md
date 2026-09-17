@@ -5589,6 +5589,109 @@ genérica de cualquier función `security definer` con `grant ... to authenticat
 mismo patrón intencional que ya usa cada RPC del repo (el candado real es el chequeo
 interno a `fn_puede_operar_ubicacion`) — no es una regresión de este cambio.
 
+## 2026-09-17 (Recibir mercadería: productos fuera de factura, ADR-0076)
+
+Felipe, sobre `/compras/recibir`: la recepción solo se rige respecto a las facturas — si
+una prenda no está en ninguna factura de la guía pero de verdad se envió o se recibió,
+no había dónde anotarla sin salir a `/inventario/recibir` y perder que llegó en el mismo
+paquete. Se leyó primero ADR-0035 completo (la regla dura vive en `recibir_compras`: lo
+recibido nunca supera lo facturado, la variante siempre pertenece al producto de la
+línea) y se confirmó que `movimientos.compra_item_id` ya era nullable desde esa misma
+migración — el hueco era de la RPC, no de esquema.
+
+`20260917100000_recibir_compras_fuera_de_factura.sql`: un ítem de `p_items` con
+`compra_item_id = null` entra al mismo lote que los facturados, sin tope, sin tocar
+`compra_pagos` (no inventa deuda que el papel no respalda), costo opcional (mismo
+criterio que `recibir_lote`, ADR-0067 para el promedio ponderado). Se exige al menos un
+ítem SÍ facturado — 100 % fuera de factura es el caso de `/inventario/recibir`, no de
+esta pantalla; mensaje de rechazo apunta ahí, con el mismo candado repetido en el cliente
+(botón deshabilitado) y en la RPC. Aplicada al Postgres local compartido vía
+`docker exec ... psql` directo (no `supabase migration up`: la base compartida tenía dos
+migraciones de otra sesión concurrente sin archivo en este worktree —
+`20260917124059`/`20260917130050` — corregir eso no era mi tarea, y `create or replace
+function` es aditivo/no rompe nada de otra sesión). Verificada con 4 escenarios en
+transacciones con `rollback` (impersonando al líder del seed): mixto factura+extra en un
+mismo lote, 100% extra rechazado, tope original sigue rechazando lo que excede lo
+facturado, costo omitido no toca `variantes.costo` — el detalle completo, con los IDs
+reales usados, está en ADR-0076.
+
+Pantalla: nueva sección "¿Llegó algo que no está en la factura?" en
+`RecepcionCompraFormV2.tsx`, siempre visible una vez elegida al menos una factura.
+Reutiliza el `ComboBuscable` que ya usa `CompraFormV2.tsx` para buscar cualquier producto
+del catálogo completo (no solo lo de las facturas de la guía) — para eso, `variantes`
+ganó `referencia` en la prop que le pasa `compras/recibir/page.tsx` (el catálogo ya la
+traía, solo faltaba pasarla). Primer intento de layout fue un `grid` de columnas fijas
+igual al de las líneas de factura — **se desbordaba horizontalmente en el navegador a
+1024×768** (encontrado recién al probar, no en el diseño): 5 controles con anchos fijos
+más el gap no entran en el ancho real de la tarjeta de la derecha. Corregido a
+`flex flex-wrap` (mismo patrón que ya usa `RecepcionFormV2.tsx` para sus líneas de
+recibir_lote) — sin overflow, los controles bajan de línea en vez de desbordar.
+
+Segundo hallazgo probando: la barra fija de resumen decía "X unidades **de una
+factura**" incluyendo las unidades fuera de factura en el mismo número — technically
+correcto en el total pero engañoso en la frase (parecía que TODO contaba como facturado).
+Corregida a "X unidades (A de la factura, B fuera de factura)" cuando hay extras.
+
+Verificado en navegador real (`felipe@cayla.local`, líder, Tienda Lima) contra
+F002-001045 (Confecciones del Sur EIRL, seed real): 3 u. reales de "Casaca Ximena S
+Negro" (línea de la factura) + "Blusa Emma S/Negro" 2 u. a S/ 25.50 fuera de factura, en
+un solo envío. Toast y pantalla de éxito: "5 unidades... contra una factura (1 fuera de
+factura)". Confirmado después contra Postgres (no solo que no tirara error): el lote
+nuevo tiene los 2 movimientos esperados (uno con `compra_item_id`, uno sin), la línea de
+factura bajó de 90 a 87 pendientes (no 85 — la extra no contó contra ella), y
+`BLU-EMMA-NEG-S` quedó en costo 31.41 (promedio ponderado con los 25.50 nuevos). **Queda
+como dato real en el Postgres local compartido, no se revirtió** — mismo criterio que la
+recepción sin factura de la sesión anterior el mismo día (principio 4).
+
+De paso: el comentario de `getRecepcionesRecientes` (`lib/compras.ts`) que afirmaba "un
+lote es entero de un tipo u otro, nunca mixto" quedó falso con este cambio — corregido;
+el código en sí ya toleraba lotes mixtos sin cambios (suma todo, marca `conFactura` con
+lo que sí tiene `compra_item_id`).
+
+`pnpm --filter web typecheck`/`lint` en verde. **Sin aplicar en producción todavía** —
+solo función, sin cambio de esquema, sin pre-flight especial pendiente.
+
+## 2026-09-17 (fuera de factura: integración con main y con producción, ok de Felipe)
+
+Felipe pidió, en el mismo hilo, llevar esto a `main` y correr la migración en
+producción. Primer paso: renumerar ADR-0074→0075 — mientras se armaba esto, otra sesión
+(`feat/conteo-plata-en-riesgo-v2`, PR #77) ya había usado 0074 en `main` para su propio
+tema (prioridad de conteo), mismo patrón de colisión que ya pasó con 0063/0064.
+
+`git fetch` + reconciliar con la punta de `main` mostró 2 diferencias reales pero
+triviales en `docs/BACKLOG.md` y `docs/BITACORA.md` — las dos sesiones habían escrito al
+cierre en el mismo punto del archivo. Se conservó todo, de ambos lados, sin perder
+contenido. `apps/web/lib/compras.ts` (el otro archivo que las dos sesiones tocaron)
+resolvió solo, sin conflicto: mi cambio era un comentario; el de la otra sesión era
+estructural (agregó `detalle`/`nota` a `getRecepcionesRecientes` para ver el contenido de
+una recepción al hacer clic en la fila) — zonas suficientemente distintas del mismo
+archivo. `pnpm --filter web typecheck`/`lint`/293 tests en verde después de reconciliar.
+
+Rama subida como PR #78, con CI en verde (Vercel + "Tipos, lint y pruebas"). Completar el
+último paso — la integración a `main` en sí desde GitHub — quedó para Felipe: el entorno
+de este agente no deja completar esa acción puntual directo desde el chat.
+
+Migración `20260917100000_recibir_compras_fuera_de_factura.sql` **aplicada en
+producción** vía Supabase MCP (`apply_migration` contra `vovjyyiafkxteijimpuy`, con
+`set search_path to retail, public, extensions;` al inicio del script por protocolo del
+repo, aunque los statements de nivel superior ya iban calificados con `retail.`). Antes
+de aplicar se leyó el cuerpo real vigente en producción (una sola sobrecarga, versión
+`costo_promedio_ponderado`, sin `v_con_factura`) para tener con qué comparar. Después de
+aplicar: sigue una sola sobrecarga (candado ADR-0009/0004), el cuerpo real ya tiene
+`v_con_factura`, y quedó registrada en `list_migrations` como
+`20260917193606_recibir_compras_fuera_de_factura`. `get_advisors` (security): la única
+advertencia sobre esta función es la genérica de cualquier `security definer` +
+`authenticated` — ya la tenía antes de este cambio, no es una regresión. **No se ejecutó
+la RPC contra producción para probarla** (a diferencia de una lectura, escribiría
+`movimientos`/`lotes` reales de mercadería que no existió) — la confianza viene de los 4
+escenarios ya corridos en local con el mismo cuerpo, más la comparación de firma/cuerpo
+antes/después contra la base real.
+
+De paso, `list_migrations` mostró producción con varias migraciones de otras sesiones
+aplicadas hoy en paralelo (`compras_candado_de_sede`, `prioridad_conteo_por_valor`, y una
+`revocar_execute_fn_aplicar_movimiento` aplicada 45 segundos después de la mía) — no se
+investigó ninguna, no era la tarea de hoy.
+
 ## 2026-09-17 (noche, más tarde — cancelar conteo y "Seguir contando", desplegado)
 
 Felipe encontró dos bugs probando lo de arriba en producción real: "Seguir contando →"
@@ -5617,3 +5720,20 @@ dañadas, insumos del Taller, inventario en 4 pantallas): otra sesión creó
 `20260917140000_anular_conteo.sql` de esta sesión. No choca — son archivos distintos,
 temas sin relación — pero es la señal exacta que motivó `docs/SESIONES-ACTIVAS.md` esta
 mañana. Sin acción: ya fusionado en `origin/main`, renombrar ahora sería solo ruido.
+
+## 2026-09-17 (fuera de factura: tercer y cuarto round de conflictos con main)
+
+Felipe pidió resolver los conflictos que quedaron después de que otras dos sesiones más
+fusionaran a `main` mientras se armaba lo de arriba — `main` se movió 4 veces en total
+mientras duró esta sesión, todas por trabajo real de otras personas, ninguna relacionada
+con Compras/recepción. Ronda 3: conflicto real en `BITACORA.md` (dos sesiones anotando su
+cierre en el mismo punto del archivo, se conservó todo). Ronda 4: **colisión de ADR-0075
+otra vez** — esta vez con `0075-compras-lectura-acotada-por-sede.md` (sesión
+`compras-rls-location-lock-7a8b0c`, candado de sede en las RLS de `compras`/
+`compra_items`/`compra_pagos`/`compra_adjuntos`, decidido con Felipe vía `/decide`).
+Renumerado a **ADR-0076** — verificado que esa migración (`compras_candado_de_sede.sql`)
+no toca `recibir_compras` en absoluto (solo políticas de SELECT + `resumen_compras()`),
+así que no hay conflicto de fondo, solo de numeración. Me agregué a
+`docs/SESIONES-ACTIVAS.md` (creado hoy mismo por otra sesión, después de exactamente este
+tipo de colisión) para que la próxima sesión vea que esta rama sigue con un PR abierto.
+`pnpm --filter web typecheck`/`lint`/295 tests en verde después de cada ronda.
