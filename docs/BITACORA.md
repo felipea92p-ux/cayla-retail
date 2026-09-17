@@ -3,6 +3,26 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Swatches de color: el anillo "saltaba" al primer color al pasar el mouse)
+
+Felipe: al mover el mouse entre los círculos de color de una tarjeta, el anillo que marca
+cuál está activo se sentía "trabado" — parecía regresar al primer color antes de asentarse
+en el nuevo. Causa: `SwatchesColor` (`ProductosGrilla.tsx`) ponía `onMouseLeave={() =>
+onHover(null)}` en CADA botón. Al mover el mouse de un swatch al vecino, el navegador
+dispara "sale" del primero antes de "entra" al segundo — en ese instante `colorHover`
+quedaba `null`, y `nombreActivo` (`colorHover ?? colorFijo ?? colores[0]`) caía al primer
+color de la lista si todavía no se había hecho clic en ninguno. Un parpadeo de un frame,
+pero se notaba.
+
+Arreglo: `onMouseLeave`/`onBlur` se movieron del botón individual al `role="radiogroup"`
+que los contiene — `mouseleave` no burbujea entre hermanos, así que moverse entre swatches
+vecinos nunca dispara "salir" mientras el mouse sigue dentro del grupo (el `onBlur` usa
+`relatedTarget` para el mismo criterio por teclado). Verificado sin adivinar: un
+`MutationObserver` sobre `aria-checked` de los dos swatches, barriendo el mouse
+Beige→Negro→Beige varias veces — antes del fix hubiera esperado ver "Beige" volviendo a
+`true` de paso; después, un solo cambio limpio (Beige false, Negro true, mismo instante),
+cero saltos intermedios pase lo que pase con la trayectoria del mouse.
+
 ## 2026-09-17 (Fotos subidas a Blusa Ximena no se mostraban — otra sesión perdió color_codigo al sumar tejido/patrón)
 
 Felipe subió 3 fotos reales a Blusa Ximena (Blanco/Naranja/Negro) desde el formulario de
