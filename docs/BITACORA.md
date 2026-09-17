@@ -3,6 +3,35 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (SKU no se generaba solo al editar — bug real + segunda sobrecarga duplicada de RPC)
+
+Felipe, mirando el formulario de edición de Blusa Ximena: el SKU debería armarse solo,
+no quedar en blanco. Causa raíz en `ProductoForm.tsx` (no en la base): al cargar
+variantes YA EXISTENTES para editar, el código marcaba `skuManual: true` sin mirar si
+`v.sku` de verdad tenía algo — apagaba el auto-sugerido (`sugerirSku`, que ya existía y
+funcionaba bien para filas nuevas) justo para las filas que más lo necesitaban. Corregido:
+`skuManual` ahora depende de si `v.sku` trae contenido; si no, se sugiere igual que una
+fila nueva. Verificado en local con un producto de prueba (sku null) — antes vacío,
+después `PRENDA-M-COLOR`, y el guardado ya no revienta la validación "Cada variante
+necesita un SKU".
+
+De paso: guardar reveló que las variantes YA EXISTENTES no persisten el SKU nuevo
+igual — es a propósito (`catalogo_actualizar_producto`: color/talla/sku/codigo son la
+identidad de una variante ya etiquetada, solo precio/costo/activo cambian en edición).
+Así que el fix del cliente ayuda a partir de ahora, pero no rellenaba lo ya creado —
+se hizo un backfill puntual por SQL (mismo cálculo que `sugerirSku`) para los 60
+variantes de las 5 prendas de hoy (Blusa Ximena, Casaca Emilia, Chompa Josefina,
+Pantalón Milagros, Short Ivanna), con ok de Felipe.
+
+**Segunda sobrecarga duplicada del mismo bug de hoy**, encontrada al revisar la RPC:
+`catalogo_actualizar_producto` también tenía dos firmas vivas en producción (9 y 11
+parámetros — la de 11 con `tejido_id`/`patrón_id`, ya completa). Mismo mecanismo que
+tumbó `/productos` esta tarde (ver entrada "`/productos` caído en producción"), esta vez
+sin haber reventado nada visible todavía — se encontró proactivamente, no por un error
+de Felipe. Dropeada la de 9 con su ok explícito ("Sí, hazlo"). Barrido completo del
+esquema (`group by proname having count(*) > 1`): cero sobrecargas duplicadas
+restantes en todo `retail` — verificado, no asumido.
+
 ## 2026-09-17 (Corrección: las 20 fotos eran 4 colores de 5 prendas, no 20 prendas — y stock real)
 
 Felipe corrigió el paso anterior mirando la Grilla: las 20 fotos no eran 20 prendas
