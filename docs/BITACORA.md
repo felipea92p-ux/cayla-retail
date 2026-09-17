@@ -3,6 +3,50 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (CI: job piloto que sí levanta Postgres real, `continue-on-error` hasta
+confirmarlo)
+
+Felipe pidió evaluar si revisitar ADR-0066 (que dejó `scripts/pruebas/*.mjs`/
+`caja:verificar` fuera de CI a propósito) ya se justificaba con 4 scripts. Evaluación con
+3 opciones (Ganas/Pagas): no tocar nada, sumarlo como gate real de una, o sumarlo como
+piloto no-bloqueante primero. Eligió la 3. Agregado `pruebas-postgres` a `ci.yml`: mismo
+patrón que el job existente (`if: always() && steps.X.outcome == 'success'` encadenado),
+pero con `npx supabase start` real (copiando antes el stub gitignored de Dynamic,
+CONTRIBUTING.md §1 — paso que casi se me pasa) y `continue-on-error: true` en el job
+entero. Verificado que las 4 pruebas hablan con Postgres directo por `docker exec`, sin
+`.env.local` ni PostgREST de por medio — no hacía falta nada más. YAML validado con
+`js-yaml` (ya en `node_modules`, sin sumar dependencia). **No pusheé** — el piloto no
+corre de verdad hasta que esta rama llegue a GitHub Actions; queda en BACKLOG. Aprendizaje:
+`main` hoy no exige ningún check para mergear (`CONTRIBUTING.md` §2, protección de rama
+sin activar) — así que ni el job viejo ni este nuevo bloquean nada todavía de por sí.
+
+## 2026-09-17 (corrección: CI sí existe, y ADR-0066 ya decidió por qué los scripts de
+Postgres no entran)
+
+Al preguntar Felipe qué faltaba, esta sesión repitió sin verificar una frase de BACKLOG
+("no existe pipeline de CI en este repo todavía", sección Caja, 2026-09-16) — pero
+`.github/workflows/ci.yml` corre desde el 2026-09-09. Corregido en BACKLOG. Al investigar
+si valía la pena sumar Postgres al runner de CI para cerrar el hueco real (que los scripts
+de `scripts/pruebas/` sí necesitan Postgres y no corren ahí), apareció ADR-0066
+(2026-09-16): ya decidió, con razón explícita, que estos scripts NO corran desde
+`pnpm test`/CI — esta sesión estuvo a un paso de re-decidir eso solo por no haber leído
+la ADR primero. Aprendizaje dos veces en el mismo hilo: ni un resumen propio de esta misma
+sesión está libre de repetir un dato de BACKLOG sin cruzarlo contra el archivo real, y
+antes de proponer un cambio de arquitectura hay que buscar si ya hay una ADR que lo
+decidió — `grep`/graphify por el tema, no asumir que está abierto porque BACKLOG no lo
+menciona como cerrado.
+
+## 2026-09-17 (Ventas: primeras pruebas automatizadas de `registrar_venta`)
+
+`registrar_venta` (la RPC más tocada del repo — cada venta real de las 3 tiendas) tenía
+cero pruebas; cerrado con `scripts/pruebas/registrar_venta.mjs` (22 escenarios, mismo
+patrón ROLLBACK de `registrar_cambio.mjs`/ADR-0066), incluyendo las 10 ramas del
+escalonado de descuento por rol (R-45) y el candado de sede. La firma real (11
+parámetros) se leyó en vivo con `pg_get_functiondef` contra Postgres local, no de
+`docs/datos/generado/RPCS.md` (describe la V1 de 4 parámetros, desactualizada).
+Aprendizaje: "el candado de sede" de la consigna resultó ser dos cosas distintas — uno de
+PERSONA (existe, `fn_puede_operar_ubicacion`, ya probado) y uno de VARIANTE (no existe en
+el código) — antes de probar un candado hay que confirmar cuál de los dos es.
 ## 2026-09-17 (`/productos` caído en producción: dos sobrecargas de `fn_productos` peleando)
 
 Felipe reportó `/productos` mostrando la pantalla genérica de error justo después de que
