@@ -88,6 +88,43 @@ lista sin factura sale vacía y scoped a su sede — RLS de `lotes`/`movimientos
 
 ---
 
+## 🎯 Auditoría de migraciones pendientes en producción (2026-09-17)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción,
+antes de correrlas. **Nada contra docs — cada fila de abajo se verificó en vivo contra
+`vovjyyiafkxteijimpuy` schema `retail`** (`execute_sql`/`list_migrations`, solo lectura):
+columnas/funciones/índices reales, y para dos casos el cuerpo de la función (no alcanza
+con que la función exista — hay que ver qué hace). El propio BACKLOG venía desactualizado
+en dos direcciones — otra vez el patrón de [[commits-y-migraciones-en-produccion]]:
+`20260916200000_numeracion_traslados_conteos.sql` y el SQL de colores del 16-sep
+**ya estaban aplicados** (corregidos arriba, en sus propias secciones) aunque sus
+checkboxes seguían sin marcar. Las 7 migraciones "de las 5 piezas inspiradas en NetSuite"
+más `cambio_y_devolucion_exigen_caja`/`anular_venta`/`variantes_identidad_unica` — 7
+chequeos directos contra columnas/funciones reales — también están todas aplicadas.
+
+- [x] **`20260916223000_venta_precio_cambiado_sku_nulo.sql` — aplicada en producción
+      2026-09-17, con ok puntual de Felipe.** Corrida con el MCP de Supabase
+      (`apply_migration` contra `vovjyyiafkxteijimpuy`), no a mano en el SQL Editor.
+      Verificado después contra la base, no solo que no tirara error: una sola
+      sobrecarga de `retail.registrar_venta` (sin dejar el candado ADR-0009/0004
+      roto) y su cuerpo real ya arma `v_sku` con
+      `coalesce(v.codigo, v.sku, 'sin código')`, no con el `select` original.
+- [ ] **Producción tiene migraciones sin registro local** (informativo, no bloquea nada):
+      `list_migrations` muestra `historial_candado_completo` (20260916200000),
+      `historial_producto_estado_restaurado` (20260916201742),
+      `anular_venta_sin_huecos` (20260916214500) y
+      `registrar_movimiento_una_sola_firma` (20260916214600) aplicadas en producción sin
+      un archivo `supabase/migrations/*.sql` con ese nombre en este repo — probablemente
+      parches que Felipe escribió directo en el SQL Editor. No se investigó qué cambian
+      exactamente (no era la pregunta de hoy); si alguna corrige algo que un archivo local
+      "deshace" al pegarse encima, vale la pena migrar el fix a un archivo del repo antes
+      de la próxima ronda de producción.
+- [ ] **`benja-migracion.sql` sigue como estaba: NO ejecutar.** El propio archivo se
+      marca "PENDIENTE DE REVISIÓN — NO EJECUTADO EN PRODUCCIÓN. NO CORRER TAL CUAL" — es
+      un `pg_dump --schema-only` de referencia, no una migración incremental. No se tocó.
+
+---
+
 ## 🔍 Revisión: Recibir mercadería — huecos para flujo completo de ERP (2026-09-17)
 
 Auditoría pedida por Felipe sobre `/compras/recibir` (RPC `recibir_compras`, ADR-0035) y
@@ -208,8 +245,12 @@ otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `cli
       verificado en local (`npx supabase db reset` + una prenda sin sku real): antes
       revienta con el error de Postgres, después lanza `venta_precio_cambiado` con el
       código de etiqueta en el `detail`.
-      **Aplicar a producción — pendiente el ok puntual de Felipe** (mismo protocolo
-      que el resto de `registrar_venta`: prefijo `retail.` en el SQL Editor).
+      **En producción desde 2026-09-17** — aplicada con el MCP de Supabase (ok
+      puntual de Felipe), no a mano en el SQL Editor. Verificado contra
+      `vovjyyiafkxteijimpuy`: `retail.registrar_venta` sigue con una sola sobrecarga
+      (mismo candado que se chequeó antes de pegar, ADR-0009/0004) y su cuerpo real
+      ya arma `v_sku` con `coalesce(v.codigo, v.sku, 'sin código')`, no con el
+      `select` original.
 
 ---
 
@@ -220,11 +261,11 @@ rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral
 4 como pestañas. Tipos, lint, 282 pruebas y build en verde; recorrido en navegador como
 líder (Lima) y como colaboradora (Trujillo).
 
-- [ ] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`**
-      (`numero` + sequence en `transferencias` y `conteos`, y `fn_conteos_resumen`).
-      Con `set search_path = retail, public, extensions;` al inicio, como las 4
-      anteriores. Sin esto, Traslados y Conteo en producción fallan al leer `numero`
-      — **no fusionar la rama sin aplicarla antes.** Espera el ok puntual de Felipe.
+- [x] **`20260916200000_numeracion_traslados_conteos.sql` sí está en producción**
+      (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
+      `transferencias.confirmado_por`, `conteos.alcance` y `fn_conteos_resumen`
+      existen. `list_migrations` la muestra pegada con timestamp `20260916231541`
+      — este ítem seguía sin marcar). Este BACKLOG no reflejaba que ya se aplicó.
 - [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
       (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
       `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
@@ -247,8 +288,11 @@ después. `retail.colores` gana `estado`/`propuesto_por`/`aprobado_por`/`aprobad
 el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
 `fn_es_lider()`, no el cliente. `typecheck`/`lint`/266 tests en verde.
 
-- [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en
-      producción.** Tres bloques, todos repetibles.
+- [x] **`SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` sí está en producción**
+      (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
+      `retail.colores.estado`/`propuesto_por` y `fn_colores_estado_trigger`
+      existen). Este BACKLOG no reflejaba que ya se aplicó — la verificación de
+      abajo (colaboradora real en el navegador) sigue abierta, es un punto aparte.
 - [ ] **Verificación pendiente, con dueño claro:** la lógica del trigger se probó de
       verdad contra producción (impersonando a Felipe y a Angie Chávez, una de las 16
       colaboradoras dadas de alta hoy, en una transacción con ROLLBACK). Las dos
