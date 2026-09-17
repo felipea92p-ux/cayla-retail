@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getExistencias, resumirExistencias } from "@/lib/inventario-v2";
+import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
@@ -35,10 +35,11 @@ export default async function InventarioPage({
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  const [stock, sububicaciones, traslados] = await Promise.all([
+  const [stock, sububicaciones, traslados, danadosPendientes] = await Promise.all([
     getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
+    getPrendasDanadasPendientes(ubicacionActivaId),
   ]);
   const resumen = resumirExistencias(stock);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
@@ -87,6 +88,8 @@ export default async function InventarioPage({
         sububicaciones={sububicaciones}
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
+        danadosPendientes={danadosPendientes}
+        esLider={persona.rol === "lider"}
       />
     </div>
   );

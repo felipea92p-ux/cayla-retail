@@ -193,6 +193,57 @@ prenda de ahí dejaría un contador que solo crece, sin salida — el mismo tipo
 medias que el principio 4 de CLAUDE.md pide evitar. Se espera esa conversación antes de
 escribir la migración.
 
+## Construcción 2026-09-17 (noche): Cuarentena sí se construyó — con un alcance acotado
+
+Felipe corrigió el punto anterior el mismo día: "no la satures de funciones" (su frase, en
+el mensaje que decidió la Opción A) no era "no construyas nada" — la parte que debía quedar
+pendiente era, literalmente, la **editabilidad** de los 3 estados de salida desde un futuro
+panel de administrador, no los 3 estados en sí. Cita textual del mensaje que lo aclaró: "a
+lo que me refiero que quede con pendiente como pendientes de benja es que los estados de
+los productos [...] se puedan editarse [...] ahora mismo necesito los 3 estados [...] luego
+vamos por medio de un panel de administrador, poder editar estas decisiones."
+
+Con esa corrección, se construyó completo (migración
+`20260917100000_cuarentena_prendas_danadas.sql`):
+
+- **`cuarentena`** como tercer tipo de sububicación (junto a `piso_venta`/`almacen_tienda`),
+  solo en tiendas — mismo motivo que las otras dos: el Taller no vende a clientas, nunca
+  puede recibir una devolución.
+- **`aprobar_devolucion`**: las condiciones `danada_reparacion`/`danada_donar` ahora insertan
+  un movimiento `entrada` real hacia `cuarentena` (antes: nada). `devolver_proveedor` —
+  cuarta condición de `devolucion_items`, un concepto distinto (vuelve al proveedor, no se
+  liquida/bota/dona en la tienda) — sigue sin escribir movimiento; mismo bug, a propósito no
+  tocado acá, flageado aparte.
+- **Tabla `retail.prendas_danadas`**: una fila por línea de devolución dañada, desde que
+  entra a cuarentena hasta que se resuelve. Los 3 estados de salida son EXACTAMENTE los que
+  pidió Felipe — **Liquidada / Se botó / Donada** — fijos en un `check` de la tabla, no en
+  una tabla de configuración editable (esa parte sigue en 🔖 Pendientes Benja).
+- **`resolver_prenda_danada`** (RPC, solo líder — mismo criterio que `cerrar_conteo`): saca
+  la cantidad de `cuarentena` con un movimiento `salida` (`motivo` = `cuarentena_liquidada` /
+  `cuarentena_se_boto` / `cuarentena_donada`) y marca el registro con quién y cuándo.
+- **Existencias**: la tarjeta "Piden atención" se convirtió en la tarjeta **"Dañado"** —
+  clic abre la cola de resolución. El semáforo de piso/almacén (sin_stock/stock_bajo/
+  reponer_piso/normal) queda intacto, sin tocar: "Dañado" es un eje aparte, no un quinto
+  estado — una prenda puede estar "Normal" en piso/almacén y tener unidades dañadas en
+  cuarentena al mismo tiempo.
+
+**Decisión que Felipe no había resuelto explícitamente — se tomó el camino más chico,
+marcado para confirmar:** "Liquidada" hoy es una ETIQUETA + nota libre, no una venta. No
+registra comprobante, no pasa por caja, no mueve SUNAT. Si Liquidada debe ser una venta real
+con descuento (dinero de verdad, integración con Facturación), es una decisión de negocio
+aparte — el CLAUDE.md de este repo pide "detente y confirma primero" ante justo ese tipo de
+cambio, y no se asumió que "aplica ya la lógica" alcanzaba para decidirlo en silencio.
+
+**Fuera de esta construcción, a propósito:** el "Merma" de `AjustarInventarioModal.tsx` no
+se tocó — ya escribe un movimiento real y auditable (`registrar_movimiento`, tipo `ajuste`),
+un mecanismo distinto y ya funcional; mezclarlo con Cuarentena hubiera sido tocar dos RPCs
+por una sola razón real, sin que Felipe lo haya pedido.
+
+**Producción:** la migración y `resolver_prenda_danada` quedan listas en el repo pero NO
+aplicadas — `supabase/migrations/activacion-cuarentena-produccion.sql` (sembrar la
+sububicación «Cuarentena» en cada tienda) tampoco. Aplicar producción es un paso aparte,
+con confirmación explícita antes (regla del repo, no cambia por esta ADR).
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos

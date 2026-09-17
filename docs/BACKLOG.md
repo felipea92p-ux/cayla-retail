@@ -35,24 +35,30 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 > "esto necesita una conversación de negocio antes de volverse código". Se lee al
 > abrir sesión junto con el resto de este archivo.
 
-- [ ] **Cuarentena — historial y estado de salida de una prenda dañada (2026-09-17).**
-      Al decidir la Opción A de "Dañado" (ver más abajo, sección Inventario), Felipe
-      pidió que además de mover el stock a `cuarentena`, quede un **historial** de las
-      prendas que pasaron por ahí, cada una con un **estado de salida**. Los tres
-      estados que dio, tal cual:
-      - Liquidada
-      - Se botó
-      - Donada
+- [x] ~~Cuarentena — historial y estado de salida de una prenda dañada~~ **construido
+      2026-09-17 (noche)** — Felipe aclaró que lo pendiente era solo la editabilidad,
+      no los 3 estados en sí ("ahora mismo necesito los 3 estados [...] luego vamos por
+      medio de un panel de administrador, poder editar estas decisiones"). Ver
+      `docs/adr/0071-inventario-se-lee-como-cuatro-pantallas.md`, sección "Construcción
+      2026-09-17 (noche)", para el detalle completo. Lo único que sigue pendiente de
+      esa conversación con Benja es el punto de abajo.
 
-      Pidió explícitamente **no construir esto todavía** — ni el historial ni los
-      estados — y que más adelante estos estados sean **editables/actualizables desde
-      un módulo de administrador** (para decisiones de negocio como esta, sin que
-      cada cambio de vocabulario sea un despliegue de código). Con una sola advertencia
-      suya, textual: no sobrecargar ese módulo de funciones todavía — nace chico.
-      Preguntas reales que quedan abiertas para esa conversación (no las decidí yo):
-      ¿"Liquidada" registra una venta con precio especial, o solo una nota de que se
-      vendió afuera del sistema? ¿Quién puede cambiar el estado — cualquier líder, o
-      alguien más arriba? ¿El historial vive por unidad o por lote de cuarentena?
+- [ ] **Panel de administrador para editar los 3 estados de Cuarentena.** Hoy Liquidada/
+      Se botó/Donada están fijos en un `check` de `retail.prendas_danadas` (migración
+      `20260917100000_cuarentena_prendas_danadas.sql`) — cambiar el vocabulario o agregar
+      un cuarto estado es una migración, no una pantalla. Felipe pidió que esto nazca
+      chico y no se sobrecargue de funciones todavía. Preguntas reales que siguen
+      abiertas (no se decidieron solas): ¿quién más allá de un líder podría necesitar
+      editar estos estados? ¿Solo el vocabulario, o también reglas de negocio por estado
+      (ej. si "Liquidada" pasa a registrar una venta real, ver el punto de abajo)?
+
+- [ ] **¿"Liquidada" debería registrar una venta real (con descuento, comprobante,
+      SUNAT), en vez de solo una etiqueta + nota?** Se construyó con el alcance más
+      chico y más seguro: hoy es una etiqueta + nota libre, sin pasar por caja ni por
+      Facturación — decisión documentada en el ADR-0071 (sección "Construcción
+      2026-09-17"), no una pregunta que Felipe haya contestado todavía. Si la respuesta
+      es sí, es un cambio que mueve dinero real y necesita confirmación explícita antes
+      de tocar `aprobar_devolucion`/`resolver_prenda_danada` de nuevo (regla del repo).
 
 ---
 
@@ -246,18 +252,18 @@ líder (Lima) y como colaboradora (Trujillo).
       WhatsApp. Una "solicitud de traslado" desde la sede destino (que la sede origen
       convierte en `iniciar_traslado`) cerraría el ciclo. Es modelo de datos nuevo:
       pedir a Felipe con Ganas/Pagas antes de tocarlo.
-- [ ] **"Dañado" (2026-09-17) — decidido: Opción A, sin construir todavía.** Felipe
-      eligió agregar `cuarentena` como tercer tipo de sububicación (junto a
-      `piso_venta`/`almacen_tienda`), reusando la misma maquinaria de stock —
-      Devoluciones y Merma dejarían de hacer desaparecer una prenda dañada y la
-      moverían ahí en vez de a ningún lado. Existencias ganaría una tarjeta "Dañado"
-      = suma de cuarentena de esa ubicación, reemplazando la lógica vieja de "Piden
-      atención". **No construido**: toca `aprobar_devolucion` y el ajuste "Merma"
-      de `AjustarInventarioModal` — mercadería y dinero real de por medio — y hace
-      falta resolver primero cómo SALE una prenda de cuarentena (ver "🔖 Pendientes
-      Benja" más abajo: Felipe ya adelantó los 3 estados de salida, pero pidió
-      explícitamente no construirlos todavía). Sesión propia, no una coda de otra
-      tarea. Ver ADR-0071, sección "Decisión sin construir 2026-09-17".
+- [x] ~~"Dañado" (2026-09-17) — decidido: Opción A, sin construir todavía~~
+      **construido 2026-09-17 (noche).** `cuarentena` como tercer tipo de
+      sububicación; `aprobar_devolucion` mueve ahí las condiciones
+      `danada_reparacion`/`danada_donar` en vez de hacerlas desaparecer; tabla
+      `retail.prendas_danadas` + RPC `resolver_prenda_danada` (solo líder) resuelven
+      cada una como Liquidada/Se botó/Donada; Existencias reemplazó la tarjeta "Piden
+      atención" por "Dañado". El ajuste "Merma" de `AjustarInventarioModal` NO se
+      tocó — ya tenía su propio movimiento auditable, es un mecanismo distinto. Ver
+      ADR-0071, sección "Construcción 2026-09-17 (noche)", para el detalle completo
+      y lo que quedó explícitamente fuera de esta pasada (panel de administrador
+      para editar los 3 estados; si "Liquidada" debería ser una venta real) — ambos
+      en "🔖 Pendientes Benja" más arriba.
 
 ---
 

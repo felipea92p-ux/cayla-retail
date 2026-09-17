@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (noche) — "Dañado"/Cuarentena: construido completo, con un límite explícito
+
+Felipe corrigió, el mismo día, la decisión de la entrada de abajo: "no la satures de
+funciones" no era "no construyas nada" — lo único pendiente era la EDITABILIDAD de los
+3 estados desde un futuro panel de administrador, no los 3 estados en sí ("ahora mismo
+necesito los 3 estados"). Se construyó completo: `cuarentena` como tercer tipo de
+sububicación (solo tiendas); `aprobar_devolucion` mueve ahí `danada_reparacion`/
+`danada_donar` en vez de hacerlas desaparecer; tabla `retail.prendas_danadas` + RPC
+`resolver_prenda_danada` (solo líder, mismo criterio que `cerrar_conteo`) resuelven cada
+una como Liquidada/Se botó/Donada — fijos en un `check`, no en una tabla editable, esa
+parte sigue en 🔖 Pendientes Benja. Existencias reemplazó la tarjeta "Piden atención" por
+"Dañado" sin tocar el semáforo de piso/almacén (son ejes distintos). Decisión propia,
+marcada para confirmar: "Liquidada" es una etiqueta + nota, NO una venta — no pasa por
+caja ni SUNAT; si Felipe quiere que sí lo sea sería un cambio de dinero real aparte, con
+su propio "detente y confirma". Verificado en vivo en local: devolución dañada → aparece
+en Existencias → se resuelve → sale del stock con movimiento auditable en Movimientos.
+Producción queda sin tocar (migración + script de activación listos, sin aplicar).
+Aprendizaje operativo (no de negocio): otra sesión concurrente reseteó la base local
+compartida a mitad de la verificación — mismo riesgo ya documentado de sesiones
+paralelas, resuelto re-corriendo `db reset` desde este worktree.
+
 ## 2026-09-17 ("Dañado" — decisión tomada, construcción a propósito pendiente)
 
 Felipe decidió la Opción A para reemplazar "Piden atención" por "Dañado": una
