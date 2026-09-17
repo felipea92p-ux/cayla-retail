@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (auditoría de migraciones pendientes: BACKLOG desactualizado en dos direcciones)
+
+Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción.
+Cada una se verificó en vivo contra `vovjyyiafkxteijimpuy` (schema `retail`,
+`execute_sql`/`list_migrations` de solo lectura) — nunca contra BACKLOG/ADR, siguiendo
+[[commits-y-migraciones-en-produccion]]. Resultado: de ~69 archivos en
+`supabase/migrations/`, **una sola sigue pendiente de verdad**:
+`20260916223000_venta_precio_cambiado_sku_nulo.sql` (confirmado leyendo el cuerpo real
+de `retail.registrar_venta` con `pg_get_functiondef` — todavía arma `v_sku` con el
+`select` original, sin el `coalesce` del fix). El resto de lo que el propio BACKLOG
+tenía marcado "pendiente" —el SQL de colores proponer/aprobar (2026-09-16) y
+`numeracion_traslados_conteos`— **ya estaban aplicados**, y las 7 piezas de la ronda
+"NetSuite" (costo promedio ponderado, punto de reorden, conteo por alcance, traslados en
+dos fases, cambio/devolución exigen caja, anular venta, variantes identidad única)
+también, las 7 confirmadas por columna/función/índice real, dos de ellas ($registrar_cambio$/
+$registrar_venta$) por el cuerpo de la función, no solo por si existía. BACKLOG corregido
+en sus 3 secciones correspondientes (Inventario, Colores, y una sección nueva que resume
+la auditoría completa con las 4 migraciones que viven en producción sin archivo local —
+informativo, parches sueltos de Felipe, no bloquean nada). No se aplicó nada en
+producción: la única pendiente queda lista para pegar (prefijo `retail.`) esperando el ok
+puntual de Felipe — es una función `security definer` que corre en cada venta.
+
 ## 2026-09-17 (Por pagar: la lista quedaba enterrada en celular)
 
 Felipe pidió hacer `/compras/por-pagar` más intuitivo. Verificado en navegador real
