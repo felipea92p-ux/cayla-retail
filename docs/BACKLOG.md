@@ -42,18 +42,13 @@ checkboxes seguían sin marcar. Las 7 migraciones "de las 5 piezas inspiradas en
 más `cambio_y_devolucion_exigen_caja`/`anular_venta`/`variantes_identidad_unica` — 7
 chequeos directos contra columnas/funciones reales — también están todas aplicadas.
 
-- [ ] **La única migración local que de verdad falta:
-      `20260916223000_venta_precio_cambiado_sku_nulo.sql`.** Verificado por el cuerpo
-      real de `retail.registrar_venta` (`pg_get_functiondef`), no solo por si la función
-      existe: producción todavía arma `v_sku` con `select v.precio, p.referencia, v.sku`
-      (el original), no con el `coalesce(v.codigo, v.sku, 'sin código')` del fix. Efecto
-      real hoy: cualquier venta de una prenda del censo (sin `sku` legado) que dispare
-      `venta_precio_cambiado` o un rechazo de descuento revienta con el error crudo de
-      Postgres ("RAISE statement option cannot be null") en vez del mensaje traducido —
-      bug real, no cosmético, ya documentado en la sección de bug de más abajo. Listo
-      para pegar (con el prefijo `retail.`, CLAUDE.md §"Cómo aplicar SQL a producción")
-      apenas Felipe dé el ok puntual — **no lo corrí yo**, cambia una función
-      `security definer` que toca cada venta.
+- [x] **`20260916223000_venta_precio_cambiado_sku_nulo.sql` — aplicada en producción
+      2026-09-17, con ok puntual de Felipe.** Corrida con el MCP de Supabase
+      (`apply_migration` contra `vovjyyiafkxteijimpuy`), no a mano en el SQL Editor.
+      Verificado después contra la base, no solo que no tirara error: una sola
+      sobrecarga de `retail.registrar_venta` (sin dejar el candado ADR-0009/0004
+      roto) y su cuerpo real ya arma `v_sku` con
+      `coalesce(v.codigo, v.sku, 'sin código')`, no con el `select` original.
 - [ ] **Producción tiene migraciones sin registro local** (informativo, no bloquea nada):
       `list_migrations` muestra `historial_candado_completo` (20260916200000),
       `historial_producto_estado_restaurado` (20260916201742),
@@ -190,8 +185,12 @@ otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `cli
       verificado en local (`npx supabase db reset` + una prenda sin sku real): antes
       revienta con el error de Postgres, después lanza `venta_precio_cambiado` con el
       código de etiqueta en el `detail`.
-      **Aplicar a producción — pendiente el ok puntual de Felipe** (mismo protocolo
-      que el resto de `registrar_venta`: prefijo `retail.` en el SQL Editor).
+      **En producción desde 2026-09-17** — aplicada con el MCP de Supabase (ok
+      puntual de Felipe), no a mano en el SQL Editor. Verificado contra
+      `vovjyyiafkxteijimpuy`: `retail.registrar_venta` sigue con una sola sobrecarga
+      (mismo candado que se chequeó antes de pegar, ADR-0009/0004) y su cuerpo real
+      ya arma `v_sku` con `coalesce(v.codigo, v.sku, 'sin código')`, no con el
+      `select` original.
 
 ---
 

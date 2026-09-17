@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (venta_precio_cambiado_sku_nulo: aplicada en producción con el MCP)
+
+Felipe dio el ok puntual para correr `20260916223000_venta_precio_cambiado_sku_nulo.sql`
+(la única migración que la auditoría de más abajo encontró genuinamente pendiente) — y
+pidió explícitamente que la corriera yo mismo, no que se la dejara para pegar a mano.
+Antes de aplicar: chequeo de sobrecargas de `retail.registrar_venta` (1 sola, firma
+idéntica a la migración — sin eso, `create or replace` arma un overload nuevo en vez de
+reemplazar, el mismo hueco que ya tuvo `registrar_cambio`/`aprobar_devolucion`,
+ADR-0009/0004). Aplicada con `apply_migration` del MCP de Supabase contra
+`vovjyyiafkxteijimpuy`. Verificado después, no antes: sigue con 1 sola sobrecarga, y
+`pg_get_functiondef` confirma que `v_sku` ya sale de
+`coalesce(v.codigo, v.sku, 'sin código')`, no del `select` original que rompía con
+`RAISE statement option cannot be null`. BACKLOG actualizado en sus dos secciones (la
+del bug original y la de la auditoría de hoy). Sin regenerar
+`docs/datos/generado/` — esta migración no agrega tabla/columna ni cambia la firma de
+`registrar_venta`, el diccionario sigue describiendo lo mismo.
+
 ## 2026-09-17 (auditoría de migraciones pendientes: BACKLOG desactualizado en dos direcciones)
 
 Felipe pidió validar qué migraciones de `supabase/migrations/` faltan en producción.
