@@ -3,6 +3,36 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Corrección: las 20 fotos eran 4 colores de 5 prendas, no 20 prendas — y stock real)
+
+Felipe corrigió el paso anterior mirando la Grilla: las 20 fotos no eran 20 prendas
+distintas — eran 5 prendas (Blusa/Casaca/Chompa/Pantalón/Short), cada una en sus 4
+colores (Blanco/Naranja/Negro/Verde), y el catálogo debía mostrar UNA tarjeta por
+prenda con los 4 colores como swatches debajo (el patrón que ya construye
+`ProductosGrilla.tsx`, ADR-0077), no 4 tarjetas separadas. Mi primera lectura fue mala:
+pregunté "¿son 20 productos o color nuevo de los 5 YA EXISTENTES?" y ninguna opción
+cubría "5 productos NUEVOS con 4 colores cada uno" — la pregunta tenía un hueco.
+
+Corregido sin perder nada: por categoría, un producto "sobrevive" (Blusa→Ximena, el
+nombre que Felipe usó como ejemplo; Casaca→Emilia, Chompa→Josefina, Pantalón→Milagros,
+Short→Ivanna, los que ya tenían Blanco) y se le agregan las variantes+fotos de los otros
+3 colores; los otros 15 productos (recién creados este mismo día, cero stock/ventas —
+no aplica [[nunca-borres-datos]], que protege historial real) se borran completos
+(`codigos_barras`→`producto_fotos`→`variantes`→`productos`, en ese orden, sin cascada
+automática — los FK son `NO ACTION`). Las fotos ya subidas no se volvieron a subir: los
+20 archivos en Storage se quedaron donde estaban, solo se agregaron filas nuevas de
+`producto_fotos` apuntando a esas mismas URLs desde el producto sobreviviente — ningún
+archivo quedó huérfano, los 20 siguen referenciados.
+
+Resultado: 5 productos, 60 variantes (4 colores × 3 tallas c/u), 20 fotos con
+`color_codigo`, verificado con `fn_productos` (la misma RPC del front) devolviendo cada
+color/talla con su propia foto. **Stock inyectado** (pedido explícito, sin cifra dada):
+mismo mecanismo que ya usa el catálogo real — `movimientos` (`entrada`/`carga_inicial`,
+todo en Taller, igual que los 16 productos reales) + `stock` (snapshot, no hay trigger
+que lo derive solo de `movimientos` — se escribe a mano en la misma transacción,
+`ON CONFLICT` sobre `(variante_id, ubicacion_id, sububicacion_id)`). Cantidades: 12/18/15
+por talla S/M/L (o 28/30/32), mismo orden de magnitud que el stock real de Blusa Camila.
+
 ## 2026-09-17 (Primeras 20 fotos reales del catálogo — productos nuevos, no relleno de los existentes)
 
 Felipe trajo 20 fotos reales (`prenda color.webp`: Blusa/Casaca/Chompa/Pantalón/Short ×

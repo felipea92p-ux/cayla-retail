@@ -111,13 +111,17 @@ local (10 productos reales, incluido el orden por precio funcionando de punta a 
       reales.
 
 - [x] **`producto_fotos` gana `color_codigo` y `fn_productos` devuelve `foto_url` por
-      variante — construido, en producción y con las primeras 20 fotos reales
-      (2026-09-17, ADR-0077 addenda 7; ver BITÁCORA "Primeras 20 fotos reales del
-      catálogo").** `FotosProducto.tsx` (`/productos/[id]/editar`) tiene el selector de
-      color por foto. El piloto que faltaba ya se hizo: 20 productos nuevos (Blusa/
-      Casaca/Chompa/Pantalón/Short × Blanco/Naranja/Negro/Verde), cada uno con su foto
-      real en `retail-productos-fotos`, confirmado con `fn_productos` devolviendo
-      `foto_url`. `20260917190000_producto_fotos_por_color.sql` está en producción
+      variante — construido, en producción y con el primer piloto real de 5 prendas ×
+      4 colores (2026-09-17, ADR-0077 addenda 7; ver BITÁCORA "Primeras 20 fotos reales
+      del catálogo" y su corrección el mismo día).** `FotosProducto.tsx`
+      (`/productos/[id]/editar`) tiene el selector de color por foto. Piloto real: 5
+      productos nuevos (Blusa Ximena, Casaca Emilia, Chompa Josefina, Pantalón Milagros,
+      Short Ivanna), cada uno en sus 4 colores (Blanco/Naranja/Negro/Verde) como
+      variantes de UN producto — no 20 productos separados, corregido tras el primer
+      intento — con foto real por color en `retail-productos-fotos` y stock real
+      inyectado (`carga_inicial` en Taller, mismo mecanismo que el resto del catálogo).
+      Confirmado con `fn_productos` devolviendo `foto_url` por variante.
+      `20260917190000_producto_fotos_por_color.sql` está en producción
       (verificado directo contra `pg_proc`, no solo por lo que decía este BACKLOG).
 - [ ] **Verificar en navegador como colaboradora, no solo como líder.** Esta sesión probó
       con la sesión de Felipe en local; falta confirmar que "Ajustar inventario"/"Editar"
