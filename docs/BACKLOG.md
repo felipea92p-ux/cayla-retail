@@ -1690,10 +1690,29 @@ mercadería" corregidos para no ofrecer stock que el RPC va a rechazar.
       (`fn_aplicar_movimiento`), pero no se forzó una carrera real de dos
       `psql` en paralelo. Si alguna vez aparece un deadlock real en reposición
       de piso, empezar por ahí.
-- [ ] **El gap de RLS "débil" encontrado en la auditoría de accesos del
-      2026-09-14** (catálogo/Compras con `auth.role() = 'authenticated'`, sin
-      candado de ubicación) sigue sin tocar — no es nuevo de esta sesión, y
-      Felipe no lo ha pedido todavía.
+- [x] **Compras (lectura): RLS de `compras`/`compra_items`/`compra_pagos`/
+      `compra_adjuntos` sin candado de ubicación — decidido y aplicado en
+      LOCAL el 2026-09-17.** Verificado con Micaela (integrante, Tienda
+      Trujillo) contra una transacción de prueba (rollback, sin escribir
+      nada): veía las 3 facturas de Taller y Tienda Lima antes del fix, 0
+      después (solo la suya, cuando existe). Protocolo `/decide` con Felipe:
+      acotar TODO a `fn_puede_operar_ubicacion`, igual que ventas/movimientos
+      — no dejarlo compañía-completa ni partir lectura/escritura. Ver
+      ADR-0075 y `supabase/migrations/20260917173000_compras_candado_de_sede.sql`.
+      **Aplicado en producción el 2026-09-17** (Felipe, SQL Editor) —
+      verificado después contra `pg_policies`/`pg_proc` de `cayla-dynamic`:
+      idéntico a local. Registrado a mano en
+      `supabase_migrations.schema_migrations` (pegar en el SQL Editor no lo
+      hace solo).
+      De paso, corregido un supuesto de la auditoría original del 09-14: el
+      bypass de `0012_control_total_temporal.sql` ("cualquier persona
+      activa") ya NO está vigente ni en local ni en producción —
+      `0013`/`0016` lo reemplazaron por un chequeo real de rol de líder; el
+      registro de compras (`fn_puede_registrar_compras`) ya era solo-líder,
+      no hacía falta tocarlo — el hueco real era solo de lectura.
+- [ ] **Catálogo:** si la misma auditoría de accesos del 2026-09-14 encontró
+      el mismo patrón débil en tablas de catálogo (no solo Compras), sigue
+      sin verificar ni tocar — esta sesión (2026-09-17) solo cubrió Compras.
 
 ---
 
