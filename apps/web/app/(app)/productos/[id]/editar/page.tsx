@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getProducto } from "@/lib/catalogo-v2";
+import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { ProductoForm } from "@/components/ProductoForm";
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -15,14 +15,17 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
   if (persona.rol !== "lider") redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true).order("familia").order("nombre"),
       "las categorías del catálogo"
     ),
     exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
+    getEjesPorCategoria(),
+    supabase.from("etiquetas").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
   ]);
+  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({ id: e.id, texto: e.nombre }));
 
   if (!producto) notFound();
 
@@ -41,7 +44,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
         </h1>
       </div>
 
-      <ProductoForm categorias={categorias} colores={colores} producto={producto} />
+      <ProductoForm categorias={categorias} colores={colores} ejes={ejes} etiquetas={etiquetas} producto={producto} />
 
       {/* TODO(Sesión A2): acá va "Ajustar inventario" — modal standalone que
           recibe productoId (y, para preseleccionar la fila, varianteId) y

@@ -204,7 +204,7 @@ los productos [...] se puedan editarse [...] ahora mismo necesito los 3 estados 
 vamos por medio de un panel de administrador, poder editar estas decisiones."
 
 Con esa corrección, se construyó completo (migración
-`20260917100000_cuarentena_prendas_danadas.sql`):
+`20260917095000_cuarentena_prendas_danadas.sql`):
 
 - **`cuarentena`** como tercer tipo de sububicación (junto a `piso_venta`/`almacen_tienda`),
   solo en tiendas — mismo motivo que las otras dos: el Taller no vende a clientas, nunca

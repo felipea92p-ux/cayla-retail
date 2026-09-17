@@ -114,6 +114,22 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
   });
 
+  it("variante restringida a otra sede en la venta: nombra la prenda, no el código crudo", () => {
+    const salida = traducirError(
+      { message: "venta_variante_restringida_a_otra_sede", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede vender desde acá.");
+  });
+
+  it("variante restringida a otra sede en un traslado: misma frase, del lado de trasladar", () => {
+    const salida = traducirError(
+      { message: "traslado_variante_restringida_a_otra_sede", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
+      "registrar el traslado"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
+  });
+
   it("descuento sin código: dice a quién pedírselo", () => {
     const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
     expect(salida).not.toContain("venta_descuento_requiere_codigo");

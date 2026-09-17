@@ -1,25 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, Campo, CampoTexto, Interruptor, Segmentado } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
-import type { ProductoDetalle } from "@/lib/catalogo-v2";
+import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 
 /* ====================================================================
-   ProductoForm · alta y edición de producto+variantes (V2, 2026-09-15)
+   ProductoForm · edición de producto+variantes (V2, 2026-09-15)
 
-   Un solo componente para /productos/nuevo y /productos/[id]/editar: la
-   diferencia entre "crear" y "editar" es si llega `producto` — mismos
-   campos, misma grilla de variantes, RPC distinta al guardar. Partirlo en
-   dos componentes hubiera duplicado la grilla de variantes, que es la
-   parte que de verdad tiene lógica (sugerir SKU, no dejar tocar la
-   identidad de una variante que ya existe).
+   Usado solo por /productos/[id]/editar — el alta vive en
+   NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
+   patrones pasaron a vocabulario cerrado (ADR-0095). Antes de esa fecha
+   era un único componente para alta y edición; ese reparto es el que
+   sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
+   detalle — no porque ambas rutas todavía lo compartan.
+
+   ETIQUETAS POR VARIANTE (2026-09-17, ADR-0095). Aplicar/quitar una
+   etiqueta de catálogo ("última unidad") a una variante puntual se
+   guarda en la MISMA acción que el resto del formulario — nunca un
+   botón de guardar aparte. Dos formas de guardar en el mismo formulario
+   ya costó un bug real esta sesión (mapeo categoría↔ejes): el botón
+   grande descartaba en silencio lo que el chico no había guardado
+   todavía. Solo aparece para variantes que ya existen (`v.id`) — una
+   fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
+   principal la cree, y esta sesión no intenta adivinar ese id.
 
    SKU: se sugiere solo (referencia + talla + color, ver `sugerirSku`) y
    queda editable — decidido con Felipe 2026-09-15. Si la persona lo toca,
@@ -43,12 +53,15 @@ type FilaVariante = {
   /** Presente = variante existente (no se puede quitar, solo desactivar). */
   id: string | null;
   colorCodigo: string;
-  talla: string;
+  /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
+  tallaId: string;
   sku: string;
   skuManual: boolean;
   precio: string;
   costo: string;
   activo: boolean;
+  /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
+  etiquetaIds: string[];
 };
 
 const NUMERO =
@@ -99,17 +112,32 @@ function margenPorcentaje(precio: string, costo: string): number | null {
   return ((p - c) / p) * 100;
 }
 
+/** Compara dos listas de ids sin importar el orden — para saber si
+ *  `etiquetaIds` de verdad cambió, no si solo se reordenó. */
+function mismoConjunto(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const ordenA = [...a].sort();
+  const ordenB = [...b].sort();
+  return ordenA.every((id, i) => id === ordenB[i]);
+}
+
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", talla: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [] };
 }
 
 export function ProductoForm({
   categorias,
   colores,
+  ejes,
+  etiquetas,
   producto,
 }: {
   categorias: Categoria[];
   colores: Color[];
+  /** Tallas/tejidos/patrones ofrecidos, por categoría (20260917100400). */
+  ejes: EjesPorCategoria;
+  /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
+  etiquetas: ValorVocabulario[];
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
 }) {
@@ -123,6 +151,8 @@ export function ProductoForm({
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
   const [temporada, setTemporada] = useState(producto?.temporada ?? "");
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
+  const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
+  const [patronId, setPatronId] = useState(producto?.patronId ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
     () =>
       producto?.fotos.map((f) => ({
@@ -149,19 +179,42 @@ export function ProductoForm({
         return {
           id: v.id,
           colorCodigo,
-          talla,
+          tallaId: v.tallaId ?? "",
           sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
           skuManual,
           precio: String(v.precio),
           costo: String(v.costo),
           activo: v.activo,
+          etiquetaIds: v.etiquetaIds,
         };
       });
   });
   const [loading, setLoading] = useState(false);
+  // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
+  // resto de las pantallas de admin (una edición inline visible por vez).
+  const [etiquetasAbiertoEn, setEtiquetasAbiertoEn] = useState<number | null>(null);
+  const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto }));
+  // Foto de lo que YA estaba guardado en el servidor al abrir el formulario
+  // — para mandar el RPC de etiquetas solo cuando de verdad cambió algo, no
+  // en cada guardado del producto (evitaría escribir sobre variantes cuyas
+  // etiquetas nadie tocó, pisando su `created_at` sin motivo).
+  const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
+  const tallasCategoria = ejes.tallas[categoriaId] ?? [];
+  const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+
+  function elegirCategoria(id: string) {
+    setCategoriaId(id);
+    // Tejido/patrón están filtrados por categoría (20260917100400) — la
+    // elección anterior puede no aplicar más a la nueva.
+    setTejidoId("");
+    setPatronId("");
+  }
 
   function actualizarFila(i: number, cambio: Partial<FilaVariante>) {
     setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
@@ -169,13 +222,13 @@ export function ProductoForm({
 
   // Al tocar color o talla de una fila SIN sku manual, el sugerido se
   // recalcula con el estado ya actualizado — no con el de la fila vieja.
-  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "talla">>) {
+  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "tallaId">>) {
     setVariantes((actual) =>
       actual.map((f, n) => {
         if (n !== i) return f;
         const siguiente = { ...f, ...cambio };
         if (siguiente.skuManual) return siguiente;
-        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, siguiente.talla) };
+        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, tallaTexto(siguiente.tallaId)) };
       })
     );
   }
@@ -184,7 +237,7 @@ export function ProductoForm({
     setReferencia(v);
     // Las filas nuevas (sin sku manual) siguen a la referencia; las que la
     // persona ya editó a mano quedan como están.
-    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, f.talla) })));
+    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, tallaTexto(f.tallaId)) })));
   }
 
   function agregarFila() {
@@ -213,7 +266,7 @@ export function ProductoForm({
     const payloadVariantes = variantes.map((v) => ({
       ...(v.id ? { id: v.id } : {}),
       color_codigo: v.colorCodigo || null,
-      talla: v.talla.trim() || null,
+      talla_id: v.tallaId || null,
       sku: v.sku.trim(),
       precio: Number(v.precio),
       costo: v.costo === "" ? 0 : Number(v.costo),
@@ -240,6 +293,8 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+          ...(patronId ? { p_patron_id: patronId } : {}),
         })
       : await supabase.rpc("catalogo_crear_producto", {
           p_referencia: referencia.trim(),
@@ -250,14 +305,42 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+          ...(patronId ? { p_patron_id: patronId } : {}),
         });
 
-    cerrarProceso();
-    setLoading(false);
-
     if (error) {
+      cerrarProceso();
+      setLoading(false);
       avisar.error(traducirError(error, editando ? "guardar el producto" : "crear el producto"));
       return;
+    }
+
+    // Etiquetas por variante se guardan en la MISMA acción, después del
+    // guardado principal — nunca un botón aparte (ver comentario del
+    // encabezado del archivo). Solo variantes que YA existían antes de
+    // este envío tienen id real para asignarles etiquetas, y de esas, solo
+    // las que de verdad cambiaron contra lo que había al abrir el
+    // formulario — mandar las 6 variantes en cada guardado (así nadie haya
+    // tocado "Etiquetas") pisaría `variante_etiquetas.created_at` de
+    // etiquetas que nadie movió, y expondría un guardado de solo precio a
+    // un error que no tiene nada que ver con lo que la persona hizo.
+    const asignacionesEtiquetas = variantes
+      .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
+      .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
+    if (editando && asignacionesEtiquetas.length > 0) {
+      const { error: errorEtiquetas } = await supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas });
+      cerrarProceso();
+      setLoading(false);
+      if (errorEtiquetas) {
+        avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
+        });
+        return;
+      }
+    } else {
+      cerrarProceso();
+      setLoading(false);
     }
 
     avisar.exito(editando ? `${referencia.trim()} guardado` : `${referencia.trim()} creado`, {
@@ -283,9 +366,27 @@ export function ProductoForm({
               autoFocus
             />
             <Campo etiqueta="Categoría">
-              <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={setCategoriaId} opciones={opcionesCategoria} marcador="Busca una categoría…" />
+              <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
+            <Campo etiqueta="Tejido (opcional)">
+              <ComboBuscable
+                etiquetaAccesible="Tejido"
+                valor={tejidoId}
+                onValor={setTejidoId}
+                opciones={opcionesTejido}
+                marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
+              />
+            </Campo>
+            <Campo etiqueta="Patrón (opcional)">
+              <ComboBuscable
+                etiquetaAccesible="Patrón"
+                valor={patronId}
+                onValor={setPatronId}
+                opciones={opcionesPatron}
+                marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
+              />
+            </Campo>
             {editando && (
               <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
             )}
@@ -335,7 +436,8 @@ export function ProductoForm({
             ))}
           </div>
           {variantes.map((v, i) => (
-            <div key={i} className={`grid gap-2 border-b border-tinta/10 pb-3 last:border-0 sm:items-center ${PLANTILLA}`}>
+            <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
+            <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
               <ComboBuscable
                 etiquetaAccesible="Color"
                 valor={v.colorCodigo}
@@ -343,12 +445,12 @@ export function ProductoForm({
                 opciones={opcionesColor}
                 marcador="Sin color"
               />
-              <input
-                aria-label="Talla"
-                value={v.talla}
-                onChange={(e) => cambiarColorOTalla(i, { talla: e.target.value })}
-                placeholder="M"
-                className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
+              <ComboBuscable
+                etiquetaAccesible="Talla"
+                valor={v.tallaId}
+                onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                opciones={opcionesTalla}
+                marcador={categoriaId ? "Sin talla" : "Elige categoría"}
               />
               <input
                 aria-label="SKU"
@@ -394,6 +496,37 @@ export function ProductoForm({
                   </button>
                 )}
               </span>
+            </div>
+            {v.id && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  aria-expanded={etiquetasAbiertoEn === i}
+                  onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
+                  className={`label-cayla text-[11px] disabled:opacity-50 ${
+                    v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
+                  }`}
+                >
+                  Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
+                </button>
+                {etiquetasAbiertoEn === i && (
+                  <div className="mt-2 space-y-1.5">
+                    {opcionesEtiqueta.length > 0 ? (
+                      <SelectorMultiple
+                        opciones={opcionesEtiqueta}
+                        seleccionadas={v.etiquetaIds}
+                        onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
+                        disabled={loading}
+                      />
+                    ) : (
+                      <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+                    )}
+                    <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           ))}
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">

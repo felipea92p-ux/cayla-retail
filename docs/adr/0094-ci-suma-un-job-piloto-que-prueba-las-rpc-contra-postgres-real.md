@@ -1,4 +1,4 @@
-# ADR-0074 — CI suma un job piloto que prueba las RPC contra Postgres real
+# ADR-0094 — CI suma un job piloto que prueba las RPC contra Postgres real
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado en el código (`.github/workflows/ci.yml`, job `pruebas-postgres`).

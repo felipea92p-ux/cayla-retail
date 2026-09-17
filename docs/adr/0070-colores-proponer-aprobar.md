@@ -9,7 +9,7 @@
 
 ## El problema
 
-Agregar un color al vocabulario cerrado (`/productos/colores`, ADR-0072) exigía Líder
+Agregar un color al vocabulario cerrado (`/productos/colores`, ADR-0095) exigía Líder
 — RLS (`colores_write_lider`) y el propio API route lo bloqueaban igual. El censo
 físico corre esta semana (16 al 20 de septiembre) con 16 colaboradores de tienda recién
 dados de alta (BITÁCORA 2026-09-16): quien escanea una prenda de un color que falta no

@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { compararTallas } from "@/lib/tallas";
+import type { EjesPorCategoria } from "@/lib/catalogo-v2";
 
 // Alta de producto con matriz talla×color, en una sola transacción
 // (`crear_producto_con_variantes`) — hasta hoy esto era solo lectura. El
@@ -20,17 +21,31 @@ import { compararTallas } from "@/lib/tallas";
 // el XXL a 99.90") — costo por celda queda fuera a propósito por ahora, la
 // prenda casi nunca cambia de costo por talla/color, así que no paga la
 // complejidad extra todavía.
+//
+// TALLA CERRADA (20260917100000/100500): ya no se puede tipear "Otra talla"
+// libre acá — talla es vocabulario cerrado, filtrado por categoría
+// (categoria_tallas). Si falta un valor, se propone desde /productos/tallas
+// (Líder, que es quien siempre llega a esta pantalla, la aprueba al toque)
+// y recién después aparece acá.
 
-type CategoriaAlta = { id: string; nombre: string; tallasSugeridas: string[] | null };
+type CategoriaAlta = { id: string; nombre: string };
 type ColorVocabulario = { codigo: string; nombre: string; hex: string | null };
 
-type Celda = { talla: string | null; color: string | null; clave: string };
+type Celda = { tallaId: string | null; color: string | null; clave: string };
 
-function claveCelda(talla: string | null, color: string | null) {
-  return `${talla ?? ""}|${color ?? ""}`;
+function claveCelda(tallaId: string | null, color: string | null) {
+  return `${tallaId ?? ""}|${color ?? ""}`;
 }
 
-export function NuevoProductoForm({ categorias, colores }: { categorias: CategoriaAlta[]; colores: ColorVocabulario[] }) {
+export function NuevoProductoForm({
+  categorias,
+  colores,
+  ejes,
+}: {
+  categorias: CategoriaAlta[];
+  colores: ColorVocabulario[];
+  ejes: EjesPorCategoria;
+}) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
 
@@ -38,33 +53,33 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
   const [descripcion, setDescripcion] = useState("");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
-  const [tallaNueva, setTallaNueva] = useState("");
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
+  const [tejidoId, setTejidoId] = useState("");
+  const [patronId, setPatronId] = useState("");
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(false);
 
-  const categoriaActual = categorias.find((c) => c.id === categoriaId) ?? null;
-  const tallasSugeridas = categoriaActual?.tallasSugeridas ?? [];
+  const tallasCategoria = ejes.tallas[categoriaId] ?? [];
+  const tejidosCategoria = ejes.tejidos[categoriaId] ?? [];
+  const patronesCategoria = ejes.patrones[categoriaId] ?? [];
+  const tallaTexto = (id: string) => tallasCategoria.find((t) => t.id === id)?.texto ?? "";
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
     setTallasElegidas([]);
+    setTejidoId("");
+    setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
   }
 
-  function alternarTalla(t: string) {
-    setTallasElegidas((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t].sort(compararTallas)));
-  }
-
-  function agregarTallaLibre() {
-    const t = tallaNueva.trim();
-    if (!t) return;
-    if (!tallasElegidas.includes(t)) setTallasElegidas((prev) => [...prev, t].sort(compararTallas));
-    setTallaNueva("");
+  function alternarTalla(id: string) {
+    setTallasElegidas((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].sort((a, b) => compararTallas(tallaTexto(a), tallaTexto(b)))
+    );
   }
 
   function alternarColor(codigo: string) {
@@ -72,12 +87,12 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
   }
 
   // Sin ejes elegidos = una sola variante (una correa, un gorro — el mismo
-  // caso que ya contempla la RPC con talla/color_codigo en null).
+  // caso que ya contempla la RPC con talla_id/color_codigo en null).
   const celdas: Celda[] = useMemo(() => {
     const tallas: (string | null)[] = tallasElegidas.length > 0 ? tallasElegidas : [null];
     const cods: (string | null)[] = coloresElegidos.length > 0 ? coloresElegidos : [null];
     const out: Celda[] = [];
-    for (const color of cods) for (const talla of tallas) out.push({ talla, color, clave: claveCelda(talla, color) });
+    for (const color of cods) for (const tallaId of tallas) out.push({ tallaId, color, clave: claveCelda(tallaId, color) });
     return out;
   }, [tallasElegidas, coloresElegidos]);
 
@@ -120,7 +135,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
     const variantes = celdasIncluidas.map((c) => {
       const overrideStr = overridePrecio[c.clave];
       const precio = overrideStr !== undefined && overrideStr !== "" ? Number(overrideStr) : base;
-      return { talla: c.talla, color_codigo: c.color, precio, costo };
+      return { talla_id: c.tallaId, color_codigo: c.color, precio, costo };
     });
     if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
       avisar.error("Una de las celdas tiene un precio inválido.");
@@ -134,6 +149,8 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
       p_variantes: variantes,
       p_descripcion: descripcion.trim() || undefined,
       p_token: token.current,
+      p_tejido_id: tejidoId || undefined,
+      p_patron_id: patronId || undefined,
     });
     setCargando(false);
     if (error) {
@@ -175,48 +192,69 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
 
       <div className="card-cayla space-y-3 p-5">
         <span className={campoEtiqueta}>Tallas</span>
-        <div className="flex flex-wrap gap-1.5">
-          {tallasSugeridas.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => alternarTalla(t)}
-              className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
-                tallasElegidas.includes(t) ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/75 hover:border-tinta/35"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-          {tallasElegidas
-            .filter((t) => !tallasSugeridas.includes(t))
-            .map((t) => (
+        {tallasCategoria.length === 0 ? (
+          <p className="text-sm text-tinta/55">
+            {categoriaId
+              ? "Esta categoría todavía no tiene tallas habilitadas — agrégalas desde /productos/tallas."
+              : "Elige una categoría para ver sus tallas."}
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {tallasCategoria.map((t) => (
               <button
-                key={t}
+                key={t.id}
                 type="button"
-                onClick={() => alternarTalla(t)}
-                className="rounded-md border border-rojo/60 bg-rojo/5 px-2.5 py-1.5 text-sm text-rojo"
+                onClick={() => alternarTalla(t.id)}
+                className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
+                  tallasElegidas.includes(t.id) ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/75 hover:border-tinta/35"
+                }`}
               >
-                {t}
+                {t.texto}
               </button>
             ))}
+          </div>
+        )}
+        <p className="text-xs text-tinta/55">
+          ¿Falta una talla? Propónla en <span className="font-medium">/productos/tallas</span> — la apruebas ahí mismo y ya
+          aparece acá.
+        </p>
+      </div>
+
+      <div className="card-cayla space-y-3 p-5">
+        <span className={campoEtiqueta}>Tejido (opcional)</span>
+        <div className="flex flex-wrap gap-1.5">
+          {tejidosCategoria.length === 0 && <p className="text-sm text-tinta/55">Sin tejidos habilitados para esta categoría.</p>}
+          {tejidosCategoria.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}
+              className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
+                tejidoId === t.id ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/75 hover:border-tinta/35"
+              }`}
+            >
+              {t.texto}
+            </button>
+          ))}
         </div>
-        <div className="flex items-end gap-2">
-          <CampoTexto
-            etiqueta="Otra talla"
-            placeholder="Ej. 3XL"
-            value={tallaNueva}
-            onChange={(e) => setTallaNueva(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                agregarTallaLibre();
-              }
-            }}
-          />
-          <button type="button" onClick={agregarTallaLibre} className={`${botonCancelar} flex-none px-4`}>
-            Agregar
-          </button>
+      </div>
+
+      <div className="card-cayla space-y-3 p-5">
+        <span className={campoEtiqueta}>Patrón (opcional)</span>
+        <div className="flex flex-wrap gap-1.5">
+          {patronesCategoria.length === 0 && <p className="text-sm text-tinta/55">Sin patrones habilitados para esta categoría.</p>}
+          {patronesCategoria.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setPatronId((prev) => (prev === t.id ? "" : t.id))}
+              className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
+                patronId === t.id ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/75 hover:border-tinta/35"
+              }`}
+            >
+              {t.texto}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -273,7 +311,7 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
           <div className="mt-2 flex flex-wrap gap-2">
             {celdas.map((c) => {
               const incluida = !excluidas.has(c.clave);
-              const etiqueta = [c.talla, c.color ? colores.find((x) => x.codigo === c.color)?.nombre : null].filter(Boolean).join(" · ") || "Única";
+              const etiqueta = [c.tallaId ? tallaTexto(c.tallaId) : null, c.color ? colores.find((x) => x.codigo === c.color)?.nombre : null].filter(Boolean).join(" · ") || "Única";
               return (
                 <div
                   key={c.clave}

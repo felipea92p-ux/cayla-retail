@@ -6,7 +6,7 @@ import { exigir } from "@/lib/resultado";
 // libre a propósito (retail.sububicaciones no tiene CHECK): 'piso_venta',
 // 'almacen_tienda' y 'cuarentena' son los tres únicos valores que el motor
 // de inventario entiende (20260914230000_inventario_piso_almacen.sql,
-// 20260917100000_cuarentena_prendas_danadas.sql), pero una ubicación como
+// 20260917095000_cuarentena_prendas_danadas.sql), pero una ubicación como
 // Taller puede seguir usando lo que quiera ("rack", sin tipo, etc.) sin que
 // este archivo tenga que saber de esos nombres.
 export type Sububicacion = {
