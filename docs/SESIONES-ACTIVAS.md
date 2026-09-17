@@ -21,3 +21,4 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude Code | `claude/almacen-redirects-config-8733a3` | `next.config.ts` (redirects de `/almacen`), borró `app/(app)/almacen/**`, `docs/ARQUITECTURA.md` (línea del alias) | 2026-09-17 |
