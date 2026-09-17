@@ -295,7 +295,6 @@ function VistaRapidaModal({
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Talla</th>
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Color</th>
                   <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Precio</th>
-                  <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Costo</th>
                   <th className="label-cayla py-2 text-[10.5px] text-tinta/60">Código</th>
                 </tr>
               </thead>
@@ -305,7 +304,6 @@ function VistaRapidaModal({
                     <td className="py-2 pr-3 text-tinta/80">{v.talla ?? "—"}</td>
                     <td className="py-2 pr-3 text-tinta/80">{v.color ?? "—"}</td>
                     <td className="py-2 pr-3 text-right tabular-nums text-tinta">S/{v.precio.toFixed(2)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-tinta/65">S/{v.costo.toFixed(2)}</td>
                     <td className="py-2 font-mono text-xs text-tinta/65">{v.codigo ?? v.sku ?? "—"}</td>
                   </tr>
                 ))}

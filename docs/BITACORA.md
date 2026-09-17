@@ -16,6 +16,12 @@ en cualquier punto de la foto (no solo donde estaba el ícono) abre la Vista rá
 `document.querySelectorAll('[aria-label^="Vista rápida"]').length` da 10, uno por
 tarjeta — no quedó ningún botón duplicado de la versión vieja.
 
+**De paso, mismo mensaje:** Felipe pidió sacar la columna "Costo" de la tabla de
+variantes en esa misma Vista rápida — el costo es dato interno (margen), no algo para
+mostrar junto al precio de venta en una vista rápida de catálogo. Se sacó la columna
+(header + celda), queda Talla/Color/Precio/Código. No se tocó `ProductoForm.tsx`
+(`/productos/[id]/editar`) — ahí Costo/Margen siguen, hacen falta para fijar precio.
+
 ## 2026-09-17 (Swatches de color: el anillo "saltaba" al primer color al pasar el mouse)
 
 Felipe: al mover el mouse entre los círculos de color de una tarjeta, el anillo que marca
