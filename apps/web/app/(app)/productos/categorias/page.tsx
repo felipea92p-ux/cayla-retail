@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
+import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0035: familia+prefijo
@@ -16,12 +17,26 @@ export default async function CategoriasPage() {
   // ProveedoresPanel), pero tienen que llegar a la pantalla para poder
   // reactivarlas. Antes de esta pantalla de edición solo se leían las
   // activas porque no había forma de volver de un desactivado.
-  const res = await supabase
-    .from("categorias")
-    .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
-    .order("familia")
-    .order("nombre");
+  const [res, resTallas, resTejidos, resPatrones, ejesPorCategoria] = await Promise.all([
+    supabase
+      .from("categorias")
+      .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
+      .order("familia")
+      .order("nombre"),
+    supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
+    supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    getEjesPorCategoria(),
+  ]);
   const filas = exigir(res, "las categorías del catálogo");
+  // El universo completo de valores aprobados, para ofrecer en el selector
+  // de "qué tallas/tejidos/patrones ofrece esta categoría" — distinto de
+  // `ejesPorCategoria`, que es lo YA elegido por cada categoría.
+  const universo = {
+    tallas: exigir(resTallas, "las tallas aprobadas").map((t) => ({ id: t.id, texto: t.valor })),
+    tejidos: exigir(resTejidos, "los tejidos aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
+    patrones: exigir(resPatrones, "los patrones aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
+  };
 
   type CategoriaFila = {
     id: string;
@@ -56,12 +71,19 @@ export default async function CategoriasPage() {
             prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
             código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
             tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
-            no las necesita y se sigue viendo igual que siempre.
+            no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
+            se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
+            no hereda la del padre.
           </Ayuda>
         </h1>
       </div>
 
-      <CategoriasLista categoriasIniciales={categorias} puedeEditar={persona.rol === "lider"} />
+      <CategoriasLista
+        categoriasIniciales={categorias}
+        puedeEditar={persona.rol === "lider"}
+        universo={universo}
+        ejesPorCategoria={ejesPorCategoria}
+      />
     </div>
   );
 }

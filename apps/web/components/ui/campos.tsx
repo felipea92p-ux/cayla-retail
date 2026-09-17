@@ -298,7 +298,50 @@ export function Interruptor({ activo, onActivo, etiqueta, pie, disabled = false 
   );
 }
 
-type Opcion<T extends string> = { valor: T; texto: string };
+export type Opcion<T extends string> = { valor: T; texto: string };
+
+/* ------------------------------------------------------------------
+   SelectorMultiple — chips que se prenden y apagan, cero o varios a la
+   vez ("qué sedes puede vender esta etiqueta", "qué tallas ofrece esta
+   categoría"). Distinto de Segmentado (una sola opción, siempre exactamente
+   una elegida) y de CampoSelect (un desplegable, para listas largas donde
+   mostrar todo junto no entra). Este control asume la lista completa cabe
+   en pantalla sin desplegar — bien para vocabularios de un puñado a unas
+   pocas decenas de valores, no para cientos.
+   ------------------------------------------------------------------ */
+export function SelectorMultiple<T extends string>({
+  opciones,
+  seleccionadas,
+  onCambio,
+}: {
+  opciones: readonly Opcion<T>[];
+  seleccionadas: T[];
+  onCambio: (valores: T[]) => void;
+}) {
+  function alternar(valor: T) {
+    onCambio(seleccionadas.includes(valor) ? seleccionadas.filter((v) => v !== valor) : [...seleccionadas, valor]);
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {opciones.map((o) => {
+        const elegida = seleccionadas.includes(o.valor);
+        return (
+          <button
+            key={o.valor}
+            type="button"
+            aria-pressed={elegida}
+            onClick={() => alternar(o.valor)}
+            className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
+              elegida ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/65 hover:border-tinta/35"
+            }`}
+          >
+            {o.texto}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Segmentado<T extends string>({
   etiqueta,

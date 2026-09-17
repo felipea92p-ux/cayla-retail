@@ -2784,6 +2784,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      actualizar_categoria_ejes: {
+        Args: {
+          p_categoria_id: string
+          p_patron_ids: string[]
+          p_talla_ids: string[]
+          p_tejido_ids: string[]
+        }
+        Returns: undefined
+      }
       actualizar_mi_foto_perfil: {
         Args: { p_foto_url: string }
         Returns: undefined

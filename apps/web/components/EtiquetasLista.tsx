@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -35,28 +35,7 @@ function ordenar(lista: Etiqueta[]) {
 }
 
 function SelectorSedes({ sedes, seleccionadas, onCambio }: { sedes: Sede[]; seleccionadas: string[]; onCambio: (ids: string[]) => void }) {
-  function alternar(id: string) {
-    onCambio(seleccionadas.includes(id) ? seleccionadas.filter((x) => x !== id) : [...seleccionadas, id]);
-  }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {sedes.map((s) => {
-        const elegida = seleccionadas.includes(s.id);
-        return (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => alternar(s.id)}
-            className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
-              elegida ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/65 hover:border-tinta/35"
-            }`}
-          >
-            {s.nombre}
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <SelectorMultiple opciones={sedes.map((s) => ({ valor: s.id, texto: s.nombre }))} seleccionadas={seleccionadas} onCambio={onCambio} />;
 }
 
 export function EtiquetasLista({

@@ -37,7 +37,7 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917110000`, con
+- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917130000`, con
       el prefijo `retail.` (o `set search_path`). Backfill de `categorias.tallas_sugeridas`
       incluido — revisar que el trigger de `tallas` quede DESACTIVADO durante ese bloque
       (ver ADR-0072, el bug real que esta sesión encontró).
@@ -55,11 +55,15 @@ verde.
       arriba administra el vocabulario (qué etiquetas existen); falta conectarlo a
       `ProductoForm.tsx` para que un Líder marque una variante concreta con una etiqueta
       ya aprobada.
-- [ ] **Mapear categoría↔eje no tiene UI.** Hoy `categoria_tallas`/`categoria_tejidos`/
-      `categoria_patrones` solo tienen lo que vino del backfill de `tallas_sugeridas`
-      (talla). Tejido y patrón nacieron sin ningún mapeo — toda categoría los rechaza
-      hasta que alguien cargue las filas a mano. Agregar/quitar qué categoría ofrece qué
-      valor necesita pantalla propia (probablemente dentro de Categorías).
+- [x] **Mapear categoría↔eje ya tiene UI.** Dentro del modal "Editar categoría"
+      (`CategoriasLista.tsx`) — 3 grupos de chips (Tallas/Tejidos/Patrones), un botón de
+      guardado propio (RPC `retail.actualizar_categoria_ejes`, atómico entre los 3 ejes).
+      Antes de esto, tejido/patrón estaban vacíos para TODA categoría (nadie había cargado
+      `categoria_tejidos`/`categoria_patrones`) — el selector ya existía en
+      `NuevoProductoForm.tsx` pero no tenía nada para ofrecer. Probado en navegador de
+      punta a punta: mapear Denim a Jeans en Categorías, confirmar que aparece en el
+      selector de tejido al crear un producto de esa categoría. `db reset`, typecheck,
+      lint y 293 tests en verde.
 
 ---
 
