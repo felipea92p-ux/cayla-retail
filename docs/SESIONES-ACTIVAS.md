@@ -15,10 +15,11 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ejemplo, bórralo al agregar el primero real)_ Felipe | `claude/happy-ptolemy-dcb2c5` | Documento "El Método CAYLA" | 2026-09-17 |
+| _(ninguna registrada ahora mismo)_ | | | |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
 | Felipe | `claude/buscar-entry-point-7aa994` | Punto de entrada a `/buscar`: tarjeta en Acciones de Inicio + campo propio (`buscar/page.tsx`, `page.tsx`, BACKLOG, BITACORA) | 2026-09-17 |
+| Claude (worktree `mejorar-modulo-por-pagar-48008c`) | `claude/mejorar-modulo-por-pagar-48008c` | UX de `/compras/por-pagar` en celular (tarjetas de resumen + `FiltrosCompras.tsx` compartido) — ver worktree `payable-module-review-db60ea`, sin commits/cambios | 2026-09-17 |

@@ -66,6 +66,8 @@ function BotonElegir({ onArchivos, disabled = false, texto }: { onArchivos: (f: 
    En "Registrar factura": la cola de archivos por subir.
    ------------------------------------------------------------------ */
 export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; onArchivos: (f: File[]) => void }) {
+  const [arrastrando, setArrastrando] = useState(false);
+
   function agregar(nuevos: File[]) {
     const malos: string[] = [];
     const buenos = nuevos.filter((f) => {
@@ -103,12 +105,28 @@ export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; o
           ))}
         </ul>
       )}
-      <BotonElegir
-        onArchivos={agregar}
-        texto={archivos.length ? "+ Otro archivo" : "Adjuntar factura o documentos"}
-        disabled={archivos.length >= ADJUNTOS_MAX_POR_FACTURA}
-      />
-      <p className="text-xs text-tinta/45">PDF o foto, hasta 10 MB. Se suben al registrar.</p>
+      {/* Zona de arrastre: mismo <input> oculto que ya abría `BotonElegir`,
+          solo se suma `onDrop` encima — nadie pierde el botón de siempre. */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (archivos.length < ADJUNTOS_MAX_POR_FACTURA) setArrastrando(true);
+        }}
+        onDragLeave={() => setArrastrando(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastrando(false);
+          agregar(Array.from(e.dataTransfer.files));
+        }}
+        className={`rounded-md border border-dashed p-3 text-center transition-colors ${arrastrando ? "border-rojo bg-rojo/5" : "border-tinta/20"}`}
+      >
+        <BotonElegir
+          onArchivos={agregar}
+          texto={archivos.length ? "+ Otro archivo" : "Adjuntar factura o documentos"}
+          disabled={archivos.length >= ADJUNTOS_MAX_POR_FACTURA}
+        />
+        <p className="mt-2 text-xs text-tinta/45">Arrastra aquí, o PDF/foto hasta 10 MB. Se suben al registrar.</p>
+      </div>
     </div>
   );
 }
