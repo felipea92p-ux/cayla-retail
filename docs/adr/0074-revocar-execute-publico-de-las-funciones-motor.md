@@ -1,12 +1,43 @@
 # ADR-0074 — Revocar EXECUTE público de las funciones "motor" (fn_aplicar_movimiento y afines)
 
 **Fecha:** 2026-09-17
-**Estado:** Aplicado en LOCAL (`docker exec` contra el Postgres compartido). NO aplicado en
-producción — pendiente de autorización explícita de Felipe (mismo protocolo que ADR-0067).
+**Estado:** Aplicado en LOCAL (`docker exec` contra el Postgres compartido). Felipe autorizó
+producción en el chat, pero el intento vía MCP de Supabase (`apply_migration`) lo bloqueó el
+clasificador de auto mode ("cambio de esquema en producción") — no se insistió con otra
+herramienta. **SÍ se hizo, y quedó, una lectura de solo verificación contra producción**
+(`execute_sql`, sin escribir nada) — ver hallazgo abajo, cambia el diagnóstico.
 **Afecta:** permisos (`GRANT`/`REVOKE`), ningún cambio de esquema ni de comportamiento para
 ningún llamador legítimo. Migraciones nuevas:
 `supabase/migrations/20260917150000_revocar_execute_fn_aplicar_movimiento.sql` y
 `supabase/migrations/20260917150001_revocar_execute_correlativos_y_codigos.sql`.
+
+## Hallazgo al verificar producción (solo lectura, 2026-09-17, vovjyyiafkxteijimpuy)
+
+Antes de asumir que producción tiene el mismo hueco que local, se verificó
+(`has_function_privilege`, mismo método que todo este documento) contra la base real.
+El diagnóstico no es uniforme — production está a medio camino, no en el mismo punto que
+local antes de esta tarea ni en el mismo punto después:
+
+| Función | anon | authenticated | Diagnóstico |
+|---|---|---|---|
+| `fn_aplicar_movimiento` | `false` | `false` | **Ya cerrada.** No tiene el hueco que sí tenía local. |
+| `fn_recalcular_costo_variante` | `false` | `false` | Ya cerrada — confirma ADR-0067. |
+| `fn_asignar_codigo_producto` | `false` | `true` | **Ya en el estado angosto correcto** — igual al que buscaba `20260917150001`. |
+| `fn_asignar_codigo_variante` | `false` | `true` | Igual. |
+| `fn_reservar_numero_serie` | `false` | **`true`** | **Hueco real y vigente hoy.** `anon` ya está cerrado (alguien ya corrió un revoke de PUBLIC en algún momento, sin dejar rastro en ningún archivo de este repo) pero `authenticated` no — cualquier colaborador con sesión real puede llamarla directo y quemar un número de serie SUNAT sin emitir nada. |
+| `fn_siguiente_correlativo` | `false` | **`true`** | Mismo hueco, mismo diagnóstico. |
+
+También se confirmó: producción tiene una sola sobrecarga de `registrar_movimiento` (7
+argumentos) — `registrar_movimiento_una_sola_firma` (20260916214600, BACKLOG) en efecto
+colapsó las dos firmas ambiguas que sí sigue teniendo local. Sin acción de esta tarea (no
+hay archivo local que replique ese parche todavía — sigue siendo cierto lo anotado en la
+sección "Lo que falta" abajo).
+
+**Conclusión:** en producción, aplicar `20260917150000` sería un no-op seguro (ya está en
+ese estado) y aplicar `20260917150001` **sí cambia algo real** — cierra el hueco vigente de
+`fn_reservar_numero_serie`/`fn_siguiente_correlativo` para `authenticated`, sin tocar
+`fn_asignar_codigo_producto`/`variante` (ya están donde deben). Ninguna de las dos se
+aplicó — el intento fue bloqueado, ver Estado arriba.
 
 ## Contexto
 
@@ -132,15 +163,13 @@ para el camino legítimo (Felipe, `lider`, mismo `auth_user_id` que ya usa
 Todo dentro de una transacción con `SAVEPOINT` por caso y `ROLLBACK` final — nada quedó
 escrito en el Postgres compartido.
 
-**Nota lateral de la propia prueba:** para probar `registrar_movimiento` hubo que pasar los 7
-argumentos posicionales explícitos — con 6 argumentos, Postgres no puede elegir entre sus dos
-sobrecargas (`ambiguous function call`). Esto probablemente ya está resuelto en producción:
-BACKLOG (sección "Auditoría de migraciones pendientes", hoy) ya documentaba
-`registrar_movimiento_una_sola_firma` (20260916214600) aplicada en producción sin archivo
-local — el nombre sugiere exactamente esto, colapsar las dos firmas a una. Si es así, falta
-traer ese parche a un archivo de este repo (el propio ítem de BACKLOG ya lo pedía por otra
-razón; esta prueba lo confirma desde un ángulo distinto). No lo investigué más a fondo — no
-era el alcance de esta tarea.
+**Nota lateral de la propia prueba, ya confirmada:** para probar `registrar_movimiento` hubo
+que pasar los 7 argumentos posicionales explícitos — con 6, Postgres no puede elegir entre sus
+dos sobrecargas locales (`ambiguous function call`). Verificado después contra producción
+(lectura, `execute_sql`): ahí `registrar_movimiento` tiene una sola firma (7 argumentos,
+`p_sububicacion_id` incluido) — `registrar_movimiento_una_sola_firma` (20260916214600, sin
+archivo local, ver BACKLOG) en efecto colapsó las dos. Sigue faltando traer ese parche a un
+archivo de este repo (ver "Lo que falta").
 
 ## Se rompe si
 
@@ -153,14 +182,26 @@ un webhook), se rompería con "permission denied" igual que `anon`/`authenticate
 
 ## Lo que falta
 
-1. **Autorización de Felipe para producción.** Mismo patrón que ADR-0067: MCP de Supabase
-   (`apply_migration`, es como se aplicó `20260916223000` hoy mismo según BACKLOG) contra
-   `vovjyyiafkxteijimpuy`, verificar después con `has_function_privilege` que quedó igual que
-   en local. Production probablemente tiene el mismo grant abierto en las cinco funciones
-   (misma migración base `0003_funciones.sql`/`20260914230000_inventario_piso_almacen.sql`
-   para `fn_aplicar_movimiento`) — no se confirmó leyendo producción en esta sesión, a
-   propósito: la tarea pidió explícitamente no tocar producción.
-2. **El atraso de 10 migraciones de este Postgres local compartido** (16-sep, ver Contexto) —
+1. **Aplicar `20260917150001` en producción — Felipe ya autorizó, falta ejecutarlo.**
+   Cierra un hueco vigente hoy: `fn_reservar_numero_serie`/`fn_siguiente_correlativo` siguen
+   con EXECUTE abierto a `authenticated` en `vovjyyiafkxteijimpuy` (confirmado por lectura,
+   ver tabla arriba). El intento vía MCP de Supabase (`apply_migration`) lo bloqueó el
+   clasificador de auto mode como cambio de esquema en producción — necesita que Felipe lo
+   corra él mismo (SQL Editor de `vovjyyiafkxteijimpuy`, con el prefijo `retail.` en cada
+   nombre de función, ver CLAUDE.md) o que apruebe la acción específica en el momento en que
+   Claude Code la reintente. `20260917150000` (fn_aplicar_movimiento) e la mitad de
+   `20260917150001` (fn_asignar_codigo_producto/variante) son no-ops seguros en producción —
+   ya están en el estado correcto — pero conviene correr el archivo completo igual, así queda
+   una migración rastreable en vez de un estado implícito sin historia.
+2. **`git push`/merge de esta rama a `main` también bloqueado** (clasificador: "Out-of-Place
+   Publication") — mismo caso: Felipe lo pidió en el chat, pero la acción en sí necesita su
+   aprobación directa en el momento (o que la corra él mismo: `git push -u origin
+   claude/hopeful-knuth-b7e000` y abrir el PR).
+3. **El atraso de 10 migraciones de este Postgres local compartido** (16-sep, ver Contexto) —
    decisión de Felipe, no de esta sesión: si se trae de golpe con `npx supabase db reset` (el
-   Postgres es compartido por ~27 worktrees, ADR-0066) o migración por migración a mano.
-3. **`registrar_movimiento` con dos sobrecargas ambiguas** — ver nota lateral arriba.
+   Postgres es compartido por ~27 worktrees, ADR-0066) o migración por migración a mano. Sin
+   relación con producción — production ya las tiene todas (ver Contexto).
+4. **`registrar_movimiento` con dos sobrecargas ambiguas en local, ya resuelto en producción**
+   sin archivo en el repo (`registrar_movimiento_una_sola_firma`, 20260916214600) — traer ese
+   parche a una migración de este repo para que local deje de tener el problema que
+   producción ya no tiene.

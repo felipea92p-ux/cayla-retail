@@ -47,16 +47,24 @@ llamadores verificados contra `pg_proc` y smoke test en
       Verificado con smoke test `psql`+`ROLLBACK`: los seis caminos anon/authenticated
       directos quedan bloqueados, los dos caminos legítimos (wrapper security definer,
       trigger de variantes) siguen funcionando.
-- [ ] **Falta autorización de Felipe para producción.** Mismo mecanismo que ADR-0067 (MCP
-      de Supabase, `apply_migration` contra `vovjyyiafkxteijimpuy` — el mismo que aplicó
-      `20260916223000` hoy según la auditoría de abajo). No se leyó producción en esta
-      tarea a propósito (se pidió explícitamente no tocarla); production probablemente
-      tiene el mismo grant abierto, viene de la misma `0003_funciones.sql`.
-- [ ] **Pista para el ítem de abajo ("migraciones sin registro local"):**
-      `registrar_movimiento_una_sola_firma` (20260916214600, aplicada en producción sin
-      archivo local) probablemente resuelve la ambigüedad de sobrecarga que esta tarea
-      encontró de paso en el smoke test (`registrar_movimiento` con 6 argumentos no
-      resuelve entre sus dos firmas) — no se investigó a fondo, pero el nombre calza.
+- [x] **Verificado contra producción (solo lectura) — el diagnóstico cambia.**
+      `fn_aplicar_movimiento` y `fn_recalcular_costo_variante` ya están cerradas ahí;
+      `fn_asignar_codigo_producto`/`variante` ya están en el estado angosto correcto. Pero
+      **`fn_reservar_numero_serie`/`fn_siguiente_correlativo` siguen con EXECUTE abierto a
+      `authenticated` en producción, hoy** — el hueco de numeración SUNAT es real y
+      vigente, no hipotético. Detalle en ADR-0074.
+- [ ] **Felipe autorizó aplicar en producción (2026-09-17) — el intento quedó bloqueado**
+      por el clasificador de auto mode de Claude Code ("cambio de esquema en producción"),
+      pese a la autorización en el chat. Necesita que Felipe lo corra él mismo o apruebe la
+      acción puntual la próxima vez que se reintente. Solo hace falta `20260917150001` para
+      el hueco real; `20260917150000` es no-op seguro pero conviene correrlo igual para que
+      quede rastreado.
+- [ ] **Esta rama también quedó sin publicar a `main`** — el intento lo bloqueó el mismo
+      clasificador ("publicación fuera de lugar"), mismo caso que el ítem anterior.
+- [x] **Confirmado contra producción: `registrar_movimiento_una_sola_firma`
+      (20260916214600) en efecto colapsó las dos sobrecargas ambiguas** que localmente
+      todavía existen (el smoke test de esta tarea tropezó con la ambigüedad). Falta traer
+      ese parche a un archivo de este repo — sigue sin uno.
 
 ---
 

@@ -5405,8 +5405,19 @@ el revoke de dos pasos (PUBLIC + `authenticated`, 20260917150000) y extendí la 
 numeración SUNAT sin emitir nada) y `fn_asignar_codigo_producto`/`variante` (revoke angosto,
 solo `anon` — `authenticated` lo necesita vía un trigger que no es security definer,
 20260917150001). Smoke test `psql`+`ROLLBACK` (ADR-0066): los 6 caminos directos quedan
-bloqueados, los 2 caminos legítimos siguen funcionando. Solo local — falta autorización de
-Felipe para producción (detalle y pendientes en BACKLOG y ADR-0074).
+bloqueados, los 2 caminos legítimos siguen funcionando.
+
+Felipe autorizó llevarlo a producción y publicar la rama en el mismo mensaje. Verificar
+producción antes de escribir (solo lectura) cambió el diagnóstico: `fn_aplicar_movimiento`/
+`fn_recalcular_costo_variante` ya estaban cerradas ahí y `fn_asignar_codigo_producto`/
+`variante` ya en el estado angosto correcto — pero `fn_reservar_numero_serie`/
+`fn_siguiente_correlativo` siguen abiertas a `authenticated` en producción, hoy: el hueco de
+numeración SUNAT es real y vigente, no hipotético. El intento de escribir la migración en
+producción y de publicar la rama quedaron los dos bloqueados por el clasificador de auto
+mode de Claude Code (cambio de esquema en producción / publicación fuera de lugar), pese a
+la autorización explícita en el chat — no se insistió con otra herramienta. Queda pendiente
+que Felipe lo corra él mismo o apruebe la acción puntual la próxima vez (detalle en BACKLOG
+y ADR-0074).
 
 De paso: este Postgres local compartido resultó tener aplicada
 `20260917124059_materia_prima_taller` (de otro worktree, no está en este árbol) y le faltan
