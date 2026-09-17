@@ -123,6 +123,9 @@ export function ProductoForm({
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
   const [temporada, setTemporada] = useState(producto?.temporada ?? "");
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
+  const [paisOrigen, setPaisOrigen] = useState(producto?.paisOrigen ?? "");
+  const [fabricanteDeclarado, setFabricanteDeclarado] = useState(producto?.fabricanteDeclarado ?? "");
+  const [material, setMaterial] = useState(producto?.material ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
     () =>
       producto?.fotos.map((f) => ({
@@ -230,6 +233,9 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(paisOrigen.trim() ? { p_pais_origen: paisOrigen.trim() } : {}),
+          ...(fabricanteDeclarado.trim() ? { p_fabricante_declarado: fabricanteDeclarado.trim() } : {}),
+          ...(material.trim() ? { p_material: material.trim() } : {}),
         })
       : await supabase.rpc("catalogo_crear_producto", {
           p_referencia: referencia.trim(),
@@ -240,6 +246,9 @@ export function ProductoForm({
           ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
           ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
           ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+          ...(paisOrigen.trim() ? { p_pais_origen: paisOrigen.trim() } : {}),
+          ...(fabricanteDeclarado.trim() ? { p_fabricante_declarado: fabricanteDeclarado.trim() } : {}),
+          ...(material.trim() ? { p_material: material.trim() } : {}),
         });
 
     cerrarProceso();
@@ -306,6 +315,31 @@ export function ProductoForm({
                 pie="Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."
               />
             </div>
+          </div>
+        </section>
+
+        {/* ---------- etiquetado legal (Ley 28405 / RTA de Confecciones) ---------- */}
+        <section className="card-cayla space-y-4 p-5">
+          <p className="label-cayla text-[11px] text-tinta/65">Etiquetado legal (opcional)</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <CampoTexto
+              etiqueta="País de origen"
+              value={paisOrigen}
+              onChange={(e) => setPaisOrigen(e.target.value)}
+              placeholder="Perú"
+            />
+            <CampoTexto
+              etiqueta="Fabricante / importador"
+              value={fabricanteDeclarado}
+              onChange={(e) => setFabricanteDeclarado(e.target.value)}
+              placeholder="Razón social"
+            />
+            <CampoTexto
+              etiqueta="Composición del material"
+              value={material}
+              onChange={(e) => setMaterial(e.target.value)}
+              placeholder="100% algodón"
+            />
           </div>
         </section>
 

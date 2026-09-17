@@ -310,6 +310,10 @@ export type ProductoDetalle = {
   temporada: string | null;
   /** Si es true, el producto puede venderse aunque el stock marque 0 (20260915224500). */
   permitirVentaSinStock: boolean;
+  /** Etiquetado legal (Ley 28405 / RTA de Confecciones, 20260917210000) — los 3, null = sin cargar todavía. */
+  paisOrigen: string | null;
+  fabricanteDeclarado: string | null;
+  material: string | null;
   /** Ya en el orden de la galería (`orden` ascendente). */
   fotos: FotoProducto[];
   variantes: VarianteDetalle[];
@@ -321,7 +325,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   const { data, error } = await supabase
     .from("productos")
     .select(
-      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
+      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock, pais_origen, fabricante_declarado, material,
        variantes ( id, color_codigo, talla, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
          codigos_barras ( codigo ) ),
@@ -343,6 +347,9 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     stockMinimo: data.stock_minimo,
     temporada: data.temporada,
     permitirVentaSinStock: data.permitir_venta_sin_stock,
+    paisOrigen: data.pais_origen,
+    fabricanteDeclarado: data.fabricante_declarado,
+    material: data.material,
     fotos: [...(data.producto_fotos ?? [])]
       .sort((a, b) => a.orden - b.orden)
       .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal, colorCodigo: f.color_codigo })),

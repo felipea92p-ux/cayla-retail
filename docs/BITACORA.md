@@ -6343,3 +6343,31 @@ BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra s
 propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
+
+## 2026-09-17 (etiquetado legal de producto: país de origen, fabricante, material — ADR-0095)
+
+Ley 28405 y el Reglamento Técnico Andino de Etiquetado de Confecciones exigen país de
+origen, fabricante/importador y material en toda prenda — se agregaron los 3 como
+columnas nullable en `productos` (`20260917210000`), sin backfill. Al ir a conectar el
+formulario de alta se encontró que `catalogo_crear_producto` (la RPC que el propio
+`ProductoForm.tsx` documentaba para `/productos/nuevo`) ya no tiene ninguna ruta real que
+la llame para crear — desde el 2026-09-15 `/productos/nuevo` usa `NuevoProductoForm.tsx` +
+`crear_producto_con_variantes`; se actualizaron las 3 RPCs (la real de alta, la real de
+edición, y la huérfana por prolijidad) con DROP+CREATE (cambia la firma) y se verificó sin
+sobrecarga ambigua. Detalle completo en
+[docs/adr/0095-producto-etiquetado-legal-pais-fabricante-material.md](adr/0095-producto-etiquetado-legal-pais-fabricante-material.md).
+
+Verificación en navegador de punta a punta, pero peleando todo el rato contra el mismo
+síntoma recurrente que ya señaló ADR-0093: el Postgres local (`supabase_db_cayla-retail`)
+es un solo contenedor Docker compartido por los ~9 worktrees activos hoy, y varios
+`db reset` de otras sesiones lo resetearon a mitad de esta verificación (una vez incluso
+apareció una firma de `crear_producto_con_variantes` con `p_tejido_id`/`p_patron_id` que
+no es de esta rama — otra sesión de taxonomía tocando la misma función en paralelo, ver
+"Se rompe si" del ADR). Coordinado por chat entre sesiones para conseguir una ventana
+estable; la verificación final se hizo aplicando la migración directo con `psql` en vez
+de `db reset` para no competir por el contenedor compartido — creó un producto real con
+los 3 campos, confirmó los valores en Postgres, confirmó que la ficha de edición los
+precarga, y que un producto sin estos datos se ve limpio (placeholder, no `"null"`).
+`pnpm --filter web typecheck`/`lint` en verde. Pendiente: aplicar en producción (ok de
+Felipe) y reconciliar la firma de `crear_producto_con_variantes` con la rama de taxonomía
+al fusionar contra `main`.

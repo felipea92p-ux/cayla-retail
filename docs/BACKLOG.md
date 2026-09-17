@@ -28,6 +28,34 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Producto: etiquetado legal — país de origen, fabricante, material (2026-09-17, ADR-0095)
+
+Ley 28405 (Rotulado de Productos Industriales Manufacturados) y el Reglamento Técnico
+Andino de Etiquetado de Confecciones exigen declarar país de origen, fabricante/
+importador y composición del material en toda prenda — ninguno existía en
+`retail.productos`. Detalle completo, incluido un hallazgo sobre qué RPC de alta es la
+que realmente usa la UI hoy, en
+[docs/adr/0095-producto-etiquetado-legal-pais-fabricante-material.md](adr/0095-producto-etiquetado-legal-pais-fabricante-material.md).
+
+- [x] **Migración `20260917210000_producto_etiquetado_legal.sql`** — 3 columnas
+      nullable en `productos` (`pais_origen`, `fabricante_declarado`, `material`), sin
+      backfill. Aplicada y verificada en local.
+- [x] **3 RPCs actualizadas** (`catalogo_crear_producto`, `catalogo_actualizar_producto`,
+      `crear_producto_con_variantes`) con los 3 parámetros nuevos, opcionales. DROP antes
+      de CREATE en las tres (cambia la firma) — verificado sin sobrecarga ambigua.
+- [x] **Formularios de alta y edición** (`NuevoProductoForm.tsx`, `ProductoForm.tsx`) con
+      los 3 campos, opcionales, sin bloquear el guardado si vienen vacíos.
+- [x] **Verificado en navegador de punta a punta**: alta con los 3 campos → valores
+      persistidos en Postgres → ficha de edición los precarga → un producto existente sin
+      estos datos se ve limpio (placeholder, no `"null"`).
+- [x] `pnpm --filter web typecheck`/`lint` en verde.
+- [ ] **Aplicar en producción** — pendiente de que Felipe decida.
+- [ ] **Reconciliar con la rama de taxonomía de tejidos/patrones** al fusionar contra
+      `main` — ambas agregan parámetros nuevos a `crear_producto_con_variantes` por
+      separado (ver ADR-0095, "Se rompe si").
+
+---
+
 ## 🎯 Revocar EXECUTE público de las funciones "motor" (2026-09-17, ADR-0078)
 
 `retail.fn_aplicar_movimiento(uuid)` (security definer, sin auto-chequeo) tenía EXECUTE

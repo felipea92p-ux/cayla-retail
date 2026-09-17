@@ -1910,7 +1910,10 @@ export type Database = {
           created_at: string
           descripcion: string | null
           estado: string
+          fabricante_declarado: string | null
           id: string
+          material: string | null
+          pais_origen: string | null
           permitir_venta_sin_stock: boolean
           referencia: string
           stock_minimo: number | null
@@ -1923,7 +1926,10 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          fabricante_declarado?: string | null
           id?: string
+          material?: string | null
+          pais_origen?: string | null
           permitir_venta_sin_stock?: boolean
           referencia: string
           stock_minimo?: number | null
@@ -1936,7 +1942,10 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           estado?: string
+          fabricante_declarado?: string | null
           id?: string
+          material?: string | null
+          pais_origen?: string | null
           permitir_venta_sin_stock?: boolean
           referencia?: string
           stock_minimo?: number | null
@@ -2885,7 +2894,10 @@ export type Database = {
           p_categoria_id?: string
           p_descripcion?: string
           p_estado: string
+          p_fabricante_declarado?: string
           p_fotos?: Json
+          p_material?: string
+          p_pais_origen?: string
           p_permitir_venta_sin_stock?: boolean
           p_producto_id: string
           p_referencia: string
@@ -2899,7 +2911,10 @@ export type Database = {
         Args: {
           p_categoria_id?: string
           p_descripcion?: string
+          p_fabricante_declarado?: string
           p_fotos?: Json
+          p_material?: string
+          p_pais_origen?: string
           p_permitir_venta_sin_stock?: boolean
           p_referencia: string
           p_stock_minimo?: number
@@ -2981,6 +2996,9 @@ export type Database = {
         Args: {
           p_categoria_id: string
           p_descripcion?: string
+          p_fabricante_declarado?: string
+          p_material?: string
+          p_pais_origen?: string
           p_referencia: string
           p_token?: string
           p_variantes: Json

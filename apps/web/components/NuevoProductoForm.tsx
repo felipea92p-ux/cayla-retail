@@ -36,6 +36,9 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
 
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [paisOrigen, setPaisOrigen] = useState("");
+  const [fabricanteDeclarado, setFabricanteDeclarado] = useState("");
+  const [material, setMaterial] = useState("");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tallaNueva, setTallaNueva] = useState("");
@@ -134,6 +137,9 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
       p_variantes: variantes,
       p_descripcion: descripcion.trim() || undefined,
       p_token: token.current,
+      p_pais_origen: paisOrigen.trim() || undefined,
+      p_fabricante_declarado: fabricanteDeclarado.trim() || undefined,
+      p_material: material.trim() || undefined,
     });
     setCargando(false);
     if (error) {
@@ -171,6 +177,30 @@ export function NuevoProductoForm({ categorias, colores }: { categorias: Categor
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
         />
+      </div>
+
+      <div className="card-cayla space-y-4 p-5">
+        <span className={campoEtiqueta}>Etiquetado legal (opcional)</span>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CampoTexto
+            etiqueta="País de origen"
+            placeholder="Perú"
+            value={paisOrigen}
+            onChange={(e) => setPaisOrigen(e.target.value)}
+          />
+          <CampoTexto
+            etiqueta="Fabricante / importador"
+            placeholder="Razón social"
+            value={fabricanteDeclarado}
+            onChange={(e) => setFabricanteDeclarado(e.target.value)}
+          />
+          <CampoTexto
+            etiqueta="Composición del material"
+            placeholder="100% algodón"
+            value={material}
+            onChange={(e) => setMaterial(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="card-cayla space-y-3 p-5">

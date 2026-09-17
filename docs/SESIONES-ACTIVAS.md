@@ -20,6 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude | `claude/producto-etiquetado-legal-16434c` | Producto: etiquetado legal (país de origen, fabricante, material — Ley 28405 / RTA, ADR-0095) — 3 columnas nullable en `retail.productos` + 3 RPCs actualizadas (`catalogo_crear_producto`, `catalogo_actualizar_producto`, `crear_producto_con_variantes`) + campos en `NuevoProductoForm.tsx`/`ProductoForm.tsx`. Verificado en navegador de punta a punta. **Aviso para quien toque taxonomía de tejidos/patrones**: ambas ramas agregan parámetros nuevos a `crear_producto_con_variantes` por separado — reconciliar firmas al fusionar (ver ADR-0095, "Se rompe si"). Sin pushear todavía. | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |
