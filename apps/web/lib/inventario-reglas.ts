@@ -88,3 +88,34 @@ export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
   reponer_piso: 2,
   normal: 3,
 };
+
+// ============================================================================
+// Resumen de Inventario (2026-09-17, ADR-0097) — estado de rotación por
+// producto a nivel RED, calculado en `retail.fn_resumen_inventario()`. Los
+// umbrales de acá son el primer número razonable, NO ajustado todavía con
+// ventas reales (a diferencia de los de arriba, que Felipe ya corrigió 3
+// veces probando la pantalla) — se espera que se toquen apenas haya
+// historial real o los datos simulados de 6 meses.
+// ============================================================================
+
+export type EstadoResumen = "riesgo_quiebre" | "sobrestock" | "sin_movimiento" | "normal";
+
+/** Cobertura en días o menos = "se acaba pronto, con demanda real detrás". */
+export const UMBRAL_COBERTURA_RIESGO_DIAS = 7;
+
+/** Cobertura en días o más = candidato a sobrestock / liquidar. */
+export const UMBRAL_COBERTURA_SOBRESTOCK_DIAS = 90;
+
+export const ETIQUETA_ESTADO_RESUMEN: Record<EstadoResumen, string> = {
+  riesgo_quiebre: "Riesgo de quiebre",
+  sobrestock: "Sobrestock",
+  sin_movimiento: "Sin movimiento",
+  normal: "Normal",
+};
+
+export const ORDEN_ESTADO_RESUMEN: Record<EstadoResumen, number> = {
+  riesgo_quiebre: 0,
+  sin_movimiento: 1,
+  sobrestock: 2,
+  normal: 3,
+};

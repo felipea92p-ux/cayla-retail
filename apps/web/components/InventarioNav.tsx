@@ -23,11 +23,16 @@ import { usePathname } from "next/navigation";
 // Cada pestaña sabe qué rutas cuelgan de ella (`prefijos`): el detalle de un
 // traslado o de un conteo tiene que iluminar SU pestaña, y `/inventario` a
 // secas no puede ser prefijo de nada o se iluminaría siempre.
+// Quinta pestaña, 2026-09-17 (ADR-0097): "Resumen" — decisión a nivel red,
+// distinta de las 4 operativas que fijó ADR-0071. Al final de la lista a
+// propósito: no cambia qué muestra `/inventario` a secas (sigue siendo
+// Existencias), solo agrega una pantalla nueva al lado.
 const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
   { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/recibir", "/inventario/mover"] },
   { href: "/inventario/movimientos", etiqueta: "Movimientos", prefijos: ["/inventario/movimientos"] },
   { href: "/inventario/traslados", etiqueta: "Traslados", prefijos: ["/inventario/traslados"] },
   { href: "/inventario/conteo", etiqueta: "Conteo", prefijos: ["/inventario/conteo"] },
+  { href: "/inventario/resumen", etiqueta: "Resumen", prefijos: ["/inventario/resumen"] },
 ];
 
 export function InventarioNav() {

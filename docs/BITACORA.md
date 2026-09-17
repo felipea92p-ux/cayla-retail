@@ -3,6 +3,31 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Resumen de Inventario: quinta pantalla, ADR-0097, 100% local)
+
+Se cerró la investigación de las 8 ideas de Inventario que Felipe pidió (contrastadas
+contra un análisis externo de ChatGPT) construyendo la primera: "Resumen", pantalla nueva
+de decisión (cobertura, sell-through, curvas de talla rotas, sugerencias de traslado),
+separada de Existencias a propósito porque le responden a audiencias distintas (piso vs.
+quien decide). Verificado en navegador con datos de prueba — funcionó, y encontró un bug
+real de presentación (un decimal escondía la demanda) que se corrigió en el momento.
+
+Lo que Felipe aprendió (o confirmó) hoy: casi toda la lista de Inventario ya existió una
+vez en `inteligencia.ts` (V1) — no hay que inventar 8 features desde cero, hay que decidir
+qué recuperar de algo que ya se probó, adaptado al estilo V2 (RPC chicas, no un archivo
+monstruo). También confirmó que quiere el número visible junto al color siempre (no
+escondido tras un click) porque un color solo no dice nada sin seriedad detrás, y que
+prefiere una pantalla de decisión separada antes que recargar la operativa — en ese punto
+puntual, su propio criterio le ganó a la recomendación del análisis externo, y con razón:
+la propia referencia que citaba ese análisis (Odoo separando operación/análisis/métricas)
+apoyaba mejor la idea de Felipe que su conclusión final.
+
+Nada de esto tocó producción ni GitHub — instrucción explícita de Felipe para esta pieza.
+Sigue pendiente (anotado en BACKLOG, no bloqueante): cerrar el candado de `movimientos.motivo`
+sin `check` en la base, y generar 6 meses de datos simulados en local para que las métricas
+tengan algo real que medir — con el catálogo de prueba actual, casi todo sale en cero o con
+coberturas de miles de días, que es el comportamiento correcto de la fórmula, no un bug.
+
 ## 2026-09-17 (Fusión con main: el fix de color_codigo perdido no se podía pegar tal cual — talla_id vs talla)
 
 Al fusionar `main` (que ya traía `20260917210000`, el arreglo de otra sesión para el

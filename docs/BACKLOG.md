@@ -28,6 +28,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Resumen de Inventario: quinta pantalla (2026-09-17, ADR-0097)
+
+Worktree `erp-architecture-summary`. Pantalla nueva `/inventario/resumen` (solo Líder):
+cobertura, sell-through y estado de rotación por producto a nivel red (`retail.fn_resumen_inventario()`,
+RPC nueva), curvas de talla incompletas por sede (`curva-variantes.ts`) y sugerencias de
+traslado (nunca automático — "Crear traslado" enlaza al flujo ya existente). Backend +
+`ResumenInventarioPanel.tsx` probados en navegador. Tipos, lint y 307 pruebas en verde
+(10 nuevas de curva rota). **100% local — Felipe pidió explícitamente no tocar producción
+ni GitHub para esta pieza.**
+
+- [ ] **Aplicar `20260917220000_resumen_inventario.sql` a producción** — depende de que
+      `20260916100000_punto_reorden.sql` (safety stock) se aplique primero, todavía
+      pendiente del ok puntual de Felipe. No hacer sin confirmar antes (regla del repo).
+- [ ] **Cerrar el candado de `movimientos.motivo`** (sin `check` en la base,
+      `unificacion/05_operacion.sql:208`, ya señalado en `docs/datos/11-KPIS.md`) antes de
+      confiar sell-through/cobertura al 100% con plata real — mismo patrón que ya se aplicó
+      a colores/tallas/tejidos (vocabulario cerrado).
+- [ ] **6 meses de datos simulados en LOCAL** (pedido de Felipe, todavía no construido):
+      sin historial real, Riesgo de quiebre/Curvas incompletas salen en 0 y Sobrestock
+      muestra coberturas de miles de días — la fórmula está bien, falta la realidad
+      simulada para probarla útilmente. Diseñar el generador con los casos borde a
+      propósito: producto nuevo con poco historial, curva rota real, mermas mezcladas con
+      ventas en la misma ventana.
+- Preguntas abiertas sin resolver, no bloqueantes para lo ya construido: ¿cobertura por
+  sede además de por red?, ¿ventana configurable 7/14/30/60/90 en vez de fija en 30?, ver
+  ADR-0097 completo para el resto.
+
+---
+
 ## 🎯 Taxonomía de variante: tallas/tejidos/patrones/etiquetas (2026-09-17, ADR-0095)
 
 Worktree `cayla-taxonomia-design`. Vocabulario cerrado (propone/aprueba/rechaza, mismo
