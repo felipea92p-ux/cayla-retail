@@ -32,10 +32,16 @@ export type FilaStock = {
    *  ninguna está marcada, la de menor `orden`). Null si el producto no
    *  tiene fotos todavía — la fila dibuja un marcador, no un roto. */
   fotoUrl: string | null;
+  /** NUNCA incluye lo que está en `cuarentena` (20260917100000): dañado no
+   *  es stock vendible, no puede sumar acá. */
   total: number;
   piso: number | null;
   almacen: number | null;
   estado: EstadoStock | null;
+  /** Unidades de esta variante hoy en `cuarentena`, pendientes de resolver
+   *  (Liquidada/Se botó/Donada). `null` en ubicaciones que no separan piso
+   *  de almacén (Taller) — mismo criterio que `piso`/`almacen`. */
+  danado: number | null;
 };
 
 type FotoCruda = { url: string; orden: number; es_principal: boolean };
@@ -66,7 +72,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       .select(
         `variante_id, cantidad,
          sububicacion:sububicaciones ( tipo ),
-         variante:variantes (
+         variante:variantes!inner (
            sku, talla,
            color:colores ( nombre, hex ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
@@ -78,6 +84,13 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
       // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
       .neq("variante_id", ID_CARGO_ESPECIAL)
+      // Una variante descontinuada (`variantes.activo = false`, el mismo
+      // flag que ya la oculta de caja/catálogo/conteo) no debe reaparecer
+      // acá con stock: 6 productos de prueba archivados el 2026-09-16
+      // dejaron ~1.600 unidades fantasma en este reporte hasta que un
+      // ajuste manual las llevó a 0 (BACKLOG). `!inner` para que el filtro
+      // excluya la fila entera, no solo el embed de `variante`.
+      .eq("variante.activo", true)
       .order("variante_id"),
     "el inventario de esta ubicación"
   );
@@ -88,7 +101,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
   // cuenta como "separa" (para mostrar SIN STOCK, no para desaparecer).
   const separaPisoAlmacen = filas.some((f) => f.sububicacion?.tipo === "piso_venta" || f.sububicacion?.tipo === "almacen_tienda");
 
-  type Acumulado = Omit<FilaStock, "piso" | "almacen" | "estado"> & { _piso: number; _almacen: number };
+  type Acumulado = Omit<FilaStock, "piso" | "almacen" | "estado" | "danado"> & { _piso: number; _almacen: number; _danado: number };
   const porVariante = new Map<string, Acumulado>();
 
   for (const f of filas) {
@@ -108,8 +121,16 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         total: 0,
         _piso: 0,
         _almacen: 0,
+        _danado: 0,
       };
       porVariante.set(f.variante_id, fila);
+    }
+    // Cuarentena (20260917100000) NUNCA suma a `total`: es stock dañado,
+    // no vendible — mezclarlo con piso/almacén inflaría "Prendas
+    // disponibles" con algo que, de hecho, no se puede vender.
+    if (f.sububicacion?.tipo === "cuarentena") {
+      fila._danado += f.cantidad;
+      continue;
     }
     fila.total += f.cantidad;
     if (f.sububicacion?.tipo === "piso_venta") fila._piso += f.cantidad;
@@ -121,8 +142,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     // stock); una tienda muestra también lo que llegó a 0 — es justo el
     // estado SIN STOCK que el pedido quiere ver, no un vacío silencioso.
     .filter((f) => separaPisoAlmacen || f.total > 0)
-    .map(({ _piso, _almacen, ...resto }) => ({
+    .map(({ _piso, _almacen, _danado, ...resto }) => ({
       ...resto,
+      danado: separaPisoAlmacen ? _danado : null,
       piso: separaPisoAlmacen ? _piso : null,
       almacen: separaPisoAlmacen ? _almacen : null,
       estado: separaPisoAlmacen ? calcularEstado(_piso, _almacen) : null,
@@ -219,6 +241,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       total: 0,
       piso: separa ? 0 : null,
       almacen: separa ? 0 : null,
+      danado: separa ? 0 : null,
       estado: separa ? calcularEstado(0, 0) : null,
       enTransito: transito.get(item.variante_id) ?? 0,
       enRed: red.get(item.variante_id)?.otrasSedes ?? [],
@@ -244,4 +267,56 @@ export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias
     porEstado,
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
   };
+}
+
+// ============================================================================
+// "Dañado" (2026-09-17, ADR-0071): la cola de prendas en cuarentena
+// esperando que un líder decida Liquidada / Se botó / Donada
+// (`retail.resolver_prenda_danada`). Consulta aparte de `getStockPorUbicacion`
+// porque acá SÍ hace falta historial (desde cuándo, resuelta por quién) —
+// `retail.stock` (de donde sale `FilaStock.danado`) es solo el snapshot de
+// cuánto hay ahora, sin esos datos.
+// ============================================================================
+
+export type PrendaDanada = {
+  id: string;
+  varianteId: string;
+  sku: string;
+  talla: string | null;
+  color: string | null;
+  referencia: string;
+  cantidad: number;
+  creadoEn: string;
+  /** Precio de catálogo (`variantes.precio`) — solo un punto de partida para
+   *  que el líder no escriba el precio de liquidación desde cero; el precio
+   *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
+   *  piso ni lo valida contra este número. */
+  precioReferencia: number;
+};
+
+export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase
+      .from("prendas_danadas")
+      .select(
+        `id, cantidad, created_at,
+         variante:variantes ( id, sku, talla, precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "en_cuarentena")
+      .order("created_at"),
+    "las prendas dañadas pendientes"
+  );
+  return filas.map((f) => ({
+    id: f.id,
+    varianteId: f.variante?.id ?? "",
+    sku: f.variante?.sku ?? "",
+    talla: f.variante?.talla ?? null,
+    color: f.variante?.color?.nombre ?? null,
+    referencia: f.variante?.producto?.referencia ?? "",
+    cantidad: f.cantidad,
+    creadoEn: f.created_at,
+    precioReferencia: f.variante?.precio ?? 0,
+  }));
 }

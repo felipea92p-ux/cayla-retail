@@ -9,10 +9,18 @@ import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { resumenRed } from "@/lib/stock-por-sede";
-import { ACCION_ESTADO_STOCK, ETIQUETA_ESTADO_STOCK, UMBRAL_REPOSICION_PISO, type EstadoStock } from "@/lib/inventario-reglas";
-import type { FilaExistencias, ResumenExistencias } from "@/lib/inventario-v2";
+import { descargarCsv } from "@/lib/exportar-csv";
+import {
+  ACCION_ESTADO_STOCK,
+  ETIQUETA_ESTADO_STOCK,
+  necesitaReponerPiso,
+  UMBRAL_REPOSICION_PISO,
+  type EstadoStock,
+} from "@/lib/inventario-reglas";
+import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
 // Silueta de perchero — el mismo trazo que ya usa IC.inventario en
@@ -45,8 +53,13 @@ const PUNTO_ESTADO: Record<EstadoStock, string> = {
 };
 
 const TODAS = "__todas__";
-/** Filtro compuesto: las tres que piden acción, sin elegir cuál. */
-const ATENCION = "__atencion__";
+/** Filtro de "Dañado" (2026-09-17): eje aparte del semáforo piso/almacén —
+ *  reemplazó al filtro compuesto "Piden atención" (Felipe: "el estado PIDE
+ *  ATENCIÓN lo vamos a cambiar por DAÑADO"). Las tres cosas que antes sumaba
+ *  ese filtro (reponer_piso/stock_bajo/sin_stock) se siguen viendo, una por
+ *  una, en el propio filtro de Estado y en la leyenda de abajo — no se
+ *  perdió nada, solo dejó de tener un atajo agregado propio. */
+const DANADO = "__danado__";
 const ESTADOS: EstadoStock[] = ["normal", "reponer_piso", "stock_bajo", "sin_stock"];
 
 function fechaHora(iso: string) {
@@ -72,6 +85,8 @@ export function InventarioPanel({
   sububicaciones,
   sububicacionPiso,
   sububicacionAlmacen,
+  danadosPendientes,
+  esLider,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -80,6 +95,13 @@ export function InventarioPanel({
   sububicaciones: Sububicacion[];
   sububicacionPiso: Sububicacion | null;
   sububicacionAlmacen: Sububicacion | null;
+  /** Cola de "Dañado" (ADR-0071): prendas en cuarentena esperando Liquidada
+   *  / Se botó / Donada. Vacía en Taller (no separa piso/almacén, nunca
+   *  recibe devoluciones). */
+  danadosPendientes: PrendaDanada[];
+  /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
+   *  una integrante puede ABRIR la cola y verla, no marcarla. */
+  esLider: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
@@ -88,6 +110,7 @@ export function InventarioPanel({
   const [estado, setEstado] = useState(TODAS);
   const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  const [viendoDanados, setViendoDanados] = useState(false);
 
   const categorias = useMemo(
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -108,7 +131,7 @@ export function InventarioPanel({
       if (categoria !== TODAS && f.categoria !== categoria) return false;
       if (talla !== TODAS && f.talla !== talla) return false;
       if (color !== TODAS && f.color !== color) return false;
-      if (estado === ATENCION) return f.estado !== null && f.estado !== "normal";
+      if (estado === DANADO) return (f.danado ?? 0) > 0;
       if (estado !== TODAS && f.estado !== estado) return false;
       return true;
     });
@@ -116,8 +139,32 @@ export function InventarioPanel({
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
   const separa = resumen.separaPisoAlmacen;
-  const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
+
+  // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
+  // `filtradas` (mismo array que pinta la tabla), así que si ya filtró por
+  // categoría/talla/color/estado antes de exportar, el CSV trae eso y no de
+  // más. Columnas Piso/Almacén/Estado solo si esta ubicación las separa
+  // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
+  // en cada fila sería ruido, no dato (mismo criterio que ya usa la tabla).
+  function exportarCsv() {
+    const encabezados = ["Prenda", "SKU", "Talla", "Color", "Categoría"];
+    if (separa) encabezados.push("Piso", "Almacén");
+    encabezados.push("Disponible");
+    if (separa) encabezados.push("Estado");
+    encabezados.push("En camino", "En la red");
+
+    const filas = filtradas.map((f) => {
+      const fila: (string | number)[] = [f.referencia, f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"];
+      if (separa) fila.push(f.piso ?? "—", f.almacen ?? "—");
+      fila.push(f.total);
+      if (separa) fila.push(f.estado ? ETIQUETA_ESTADO_STOCK[f.estado] : "—");
+      fila.push(f.enTransito, resumenRed(f.enRed)?.detalle ?? "—");
+      return fila;
+    });
+
+    descargarCsv(`existencias_${new Date().toISOString().slice(0, 10)}.csv`, encabezados, filas);
+  }
 
   // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
   // (que habilita min-width automático 0 en la pista), una ventana angosta
@@ -133,8 +180,8 @@ export function InventarioPanel({
   return (
     <div className="space-y-6">
       {/* Tres cifras, de la más tranquila a la que más pide (diseño de
-          Felipe): cuánto hay, cuántas prendas piden algo, cuánto viene. La
-          del medio se puede tocar y filtra la tabla a esas prendas. */}
+          Felipe): cuánto hay, cuántas prendas dañadas esperan resolución,
+          cuánto viene. La del medio abre la cola de resolución. */}
       <div className={`grid gap-3 ${separa ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <Tarjeta etiqueta="Prendas disponibles" valor={resumen.total} unidad="unidades">
           {separa && porcentajePiso !== null
@@ -143,23 +190,17 @@ export function InventarioPanel({
         </Tarjeta>
         {separa && (
           <Tarjeta
-            etiqueta="Piden atención"
-            valor={pidenAtencion}
-            unidad={pidenAtencion === 1 ? "prenda" : "prendas"}
-            tono={pidenAtencion > 0 ? "text-ambar-profundo" : undefined}
-            acento={pidenAtencion > 0}
-            onClick={pidenAtencion > 0 ? () => setEstado(estado === ATENCION ? TODAS : ATENCION) : undefined}
-            activa={estado === ATENCION}
+            etiqueta="Dañado"
+            valor={danadosPendientes.length}
+            unidad={danadosPendientes.length === 1 ? "prenda" : "prendas"}
+            tono={danadosPendientes.length > 0 ? "text-rojo" : undefined}
+            acento={danadosPendientes.length > 0}
+            onClick={() => setViendoDanados(true)}
+            activa={viendoDanados}
           >
-            {pidenAtencion === 0 && resumen.porEstado.sin_stock === 0
-              ? "Nada pendiente: piso cubierto y stock holgado"
-              : [
-                  resumen.porEstado.reponer_piso > 0 && `${resumen.porEstado.reponer_piso} bajar del almacén`,
-                  resumen.porEstado.stock_bajo > 0 && `${resumen.porEstado.stock_bajo} pedir traslado`,
-                  resumen.porEstado.sin_stock > 0 && `${resumen.porEstado.sin_stock} sin stock`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+            {danadosPendientes.length === 0
+              ? "Ninguna prenda dañada pendiente"
+              : "En cuarentena — liquidar, botar o donar"}
           </Tarjeta>
         )}
         <Tarjeta etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
@@ -203,7 +244,7 @@ export function InventarioPanel({
               marcador="Todos"
               opciones={[
                 { valor: TODAS, texto: "Todos" },
-                { valor: ATENCION, texto: "Piden atención" },
+                { valor: DANADO, texto: "Dañado" },
                 ...ESTADOS.map((e) => ({ valor: e, texto: ETIQUETA_ESTADO_STOCK[e] })),
               ]}
             />
@@ -300,11 +341,12 @@ export function InventarioPanel({
                           <span title={ACCION_ESTADO_STOCK[f.estado]}>{ETIQUETA_ESTADO_STOCK[f.estado]}</span>
                         </Chip>
                       )}
-                      {/* Solo en el estado «Reponer piso»: es la única situación en
-                          que bajar del almacén es la acción correcta (diseño de
-                          Felipe, 2026-09-16) — en «Stock bajo» bajaría lo poco que
-                          queda de reserva sin arreglar el problema real. */}
-                      {puedeReponer && f.estado === "reponer_piso" && (
+                      {/* Corregido 2026-09-17: independiente del chip de estado —
+                          Felipe: pedir traslado y reponer no se excluyen. Mientras
+                          quede algo en el almacén (aunque el chip diga «Stock
+                          bajo», reserva crítica) sigue teniendo sentido bajarlo al
+                          piso ahora mismo, sin esperar el traslado. */}
+                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
                         <button
                           type="button"
                           onClick={() => setReponiendo(f)}
@@ -312,6 +354,15 @@ export function InventarioPanel({
                         >
                           Reponer
                         </button>
+                      )}
+                      {/* Independiente del chip de estado: una prenda puede estar
+                          "Normal" en piso/almacén y tener unidades dañadas en
+                          cuarentena al mismo tiempo — no son el mismo eje. Solo
+                          informa; la acción de resolver vive en la tarjeta "Dañado". */}
+                      {!!f.danado && (
+                        <Chip tono="rojo">
+                          <span title="En cuarentena, esperando Liquidada/Se botó/Donada">Dañado · {f.danado}</span>
+                        </Chip>
                       )}
                     </span>
                   </span>
@@ -346,8 +397,17 @@ export function InventarioPanel({
             );
           })}
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-xs text-tinta/55">
-            <span>
-              Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
+            <span className="flex flex-wrap items-center gap-3">
+              <span>
+                Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
+              </span>
+              <button
+                type="button"
+                onClick={exportarCsv}
+                className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+              >
+                Exportar CSV
+              </button>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -381,6 +441,10 @@ export function InventarioPanel({
           sububicaciones={sububicaciones}
           onClose={() => setAjustando(null)}
         />
+      )}
+
+      {viendoDanados && (
+        <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} onClose={() => setViendoDanados(false)} />
       )}
     </div>
   );
