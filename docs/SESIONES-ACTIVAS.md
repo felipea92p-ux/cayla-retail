@@ -15,10 +15,11 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ninguna registrada ahora mismo)_ | | | |
+| Felipe (sesión Claude) | `claude/supabase-unificacion-audit-0887f5` | ADR-0063 (venta sin red): cerrar el hueco de verificación del camino feliz (sube sola → aparece en Ventas de hoy). Toca `retail.stock` de mi Postgres local (backfill de `sububicacion_id`), no `main`. | 2026-09-17 |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
 | Claude (worktree `mejorar-modulo-por-pagar-48008c`) | `claude/mejorar-modulo-por-pagar-48008c` | UX de `/compras/por-pagar` en celular (tarjetas de resumen + `FiltrosCompras.tsx` compartido) — ver worktree `payable-module-review-db60ea`, sin commits/cambios | 2026-09-17 |
+| Claude (worktree `productos-fuera-factura-f85f65`) | `claude/productos-fuera-factura-f85f65` | `recibir_compras` acepta productos fuera de factura (ADR-0075) — ya en producción; PR #78 abierto, esperando que Felipe le dé merge desde GitHub (el entorno bloquea el merge desde el chat). Reconciliado con `main` 3 veces por sesiones concurrentes, sin perder contenido de nadie. | 2026-09-17 |
