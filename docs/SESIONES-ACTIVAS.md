@@ -15,9 +15,9 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ejemplo, bórralo al agregar el primero real)_ Felipe | `claude/happy-ptolemy-dcb2c5` | Documento "El Método CAYLA" | 2026-09-17 |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude (Danytristee) | `claude/stock-fantasma-archivados-239a85` | Stock fantasma de productos de prueba — ya estaba resuelto en producción sin script (2026-09-16 21:44 UTC); agregó filtro defensivo en `inventario-v2.ts` | 2026-09-17 |
