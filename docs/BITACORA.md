@@ -5478,6 +5478,65 @@ decidir por él: PDF a la clienta primero (barato), después decidir qué hacer 
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
 
+## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
+
+Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la
+lógica del trigger se había probado contra producción, pero las dos políticas RLS
+nunca por un canal que de verdad pasara por RLS (el MCP de Supabase conecta como
+`postgres` con `rolbypassrls=true`, que pasa por encima de cualquier política
+siempre). Se armó el mismo escenario contra el Postgres LOCAL compartido (migración
+`20260916220000` confirmada aplicada vía `supabase_migrations.schema_migrations`):
+sesión de navegador real (`supabase.auth.signInWithPassword`, no impersonación) como
+Micaela (Colaboradora, Tienda Trujillo) propuso un color en `/productos/colores` —
+quedó `pendiente`, usable al instante. Su intento de aprobarlo se probó por dos
+caminos que no son "confiar en que el botón no está": PATCH directo a PostgREST
+(`/rest/v1/colores`, sin pasar por la app) con su JWT real — `colores_update_lider`
+lo dejó pasar como consulta válida pero sin tocar ninguna fila (`200`, `[]`) — y PATCH
+directo a `/api/productos/colores`, que devolvió `403` por el guard propio de la
+ruta. Postgres (lectura directa, sin RLS) confirmó que el color siguió `pendiente`
+después de ambos intentos. Felipe (Líder, Tienda Lima) inició sesión aparte, vio el
+botón "Aprobar" (que Micaela nunca vio), lo usó, y Postgres confirmó
+`estado='aprobado'`, `propuesto_por=Micaela`, `aprobado_por=Felipe`. Color de prueba
+borrado al cerrar (cero variantes lo usaban, sin historial que proteger).
+
+**Hallazgo aparte, no relacionado con lo que se buscaba pero que le hubiera costado
+tiempo a la próxima sesión:** `retail.fn_es_lider()` ya no es la función que
+`0003_funciones.sql` define en el repo (esa versión leía `personas.rol = 'lider'` de
+una tabla `retail.personas` que ya no existe — confirmado `to_regclass('retail.personas')
+= null`). La versión viva hoy (confirmado con `pg_get_functiondef` contra el Postgres
+local) hace `join retail.colaboradores c on c.persona_id = p.id ... and c.rol =
+'lider'` contra `public.personas` + `retail.colaboradores`, post-integración con
+Dynamic (`0009_integracion_dynamic.sql`). Quien busque "por qué Felipe es líder" y
+solo grepee `fn_es_lider` en migraciones sin revisar cuál definición quedó vigente en
+la base puede terminar mirando `public.personas.rol` (que para Felipe vale `'admin'`,
+un campo de identidad de Dynamic, no el rol de retail) y concluir algo equivocado.
+
+**Por qué así:** verificar RLS por un canal que de verdad la aplique (navegador +
+PostgREST directo) en vez de confiar en la inferencia por patrón o en un canal con
+`rolbypassrls=true` — exactamente el hueco que `security-review` de este repo ya
+penaliza. **Qué se rompería sin esto:** un bug real en `colores_update_lider` (o un
+RLS mal escrito a futuro que reutilice este patrón) podía pasar desapercibido hasta
+que una Colaboradora real lo explotara en producción; el canal de prueba anterior
+(ROLLBACK + `rolbypassrls`) nunca lo habría detectado.
+
+`docs/BACKLOG.md` actualizado (checkbox cerrado con evidencia) y ADR-0070 actualizado
+("Cómo se verificó"). Pendiente: repetir la misma verificación en producción una vez
+que Felipe pegue `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` — local
+y producción corren el mismo código, pero como dice el principio 7, se prueba, no se
+asume.
+
+**Cierre del mismo día: Felipe pegó el SQL en producción y probó en persona.** Los 3
+bloques de `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` corrieron
+limpios en `cayla-dynamic`; la comprobación (bloque 4) dio los 5 valores de
+estructura esperados. El único número que no calzó con el comentario del script fue
+`colores_ya_aprobados=31` en vez de "32+" — se verificó por consulta directa
+(`select estado, count(*) from retail.colores group by estado`) que 31 es el conteo
+real de hoy (los 31 en `aprobado`, cero inválidos): el "32+" era una estimación del
+16-sep, no una regla que 31 estuviera incumpliendo. Felipe confirmó en persona, con
+una cuenta de Colaboradora real, que las mismas situaciones de la prueba local
+(proponer, no poder aprobar, un Líder sí puede) funcionan igual en producción — sin
+más detalle que ese registrado en el chat. ADR-0070 y BACKLOG.md actualizados;
+queda cerrado del todo.
 ## 2026-09-17 (Recibir mercadería: lista de recepciones + botón, sobre la auditoría del mismo día)
 
 Felipe pidió hacer la pantalla más intuitiva y poder ver recepciones ya hechas — ninguna
