@@ -1,4 +1,10 @@
-# ADR-0074 — Revocar EXECUTE público de las funciones "motor" (fn_aplicar_movimiento y afines)
+# ADR-0078 — Revocar EXECUTE público de las funciones "motor" (fn_aplicar_movimiento y afines)
+
+**Numeración:** nació como ADR-0074 en esta rama; al fusionar con `main` ese número ya lo
+tenía "Prioridad de conteo por valor en riesgo". Se renumeró a 0077, pero para entonces
+`main` ya había fusionado el PR #81 (grilla de Productos con swatches de color) con ese
+mismo número — segunda colisión el mismo día. Se renumera de nuevo a **0078**, el primero
+libre tras confirmar contra el `main` ya fusionado.
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado en LOCAL y en PRODUCCIÓN. El primer intento contra producción lo bloqueó

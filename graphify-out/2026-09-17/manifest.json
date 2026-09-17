@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "apps/web/lib/catalogo-v2.ts": {
-    "mtime": 1789672716.507974,
-    "seen": 1789673183.1465595,
-    "ast_hash": "6a1925107985be58e5b2967ee5a3d687",
+    "mtime": 1789668512.6645532,
+    "seen": 1789668826.6954918,
+    "ast_hash": "63be538e595ad69b77cf3476e57d033a",
     "semantic_hash": ""
   },
   "apps/web/lib/codigo128.ts": {
@@ -792,9 +792,9 @@
     "semantic_hash": "7df98eb1150f46d6be817bf03fdd5420"
   },
   "packages/database/src/types.ts": {
-    "mtime": 1789672867.8820744,
-    "seen": 1789673183.1465595,
-    "ast_hash": "db51cfd6b0af747d5004904fe164d7c8",
+    "mtime": 1789668662.6929846,
+    "seen": 1789668826.6954918,
+    "ast_hash": "7ebcc53107a936b720c9217bb7db82c7",
     "semantic_hash": ""
   },
   "packages/database/tsconfig.json": {
@@ -1356,15 +1356,15 @@
     "semantic_hash": ""
   },
   "docs/BACKLOG.md": {
-    "mtime": 1789673160.4991512,
-    "seen": 1789673183.1465595,
-    "ast_hash": "002ecfd2a691826ac879aac65458d462",
+    "mtime": 1789668803.917483,
+    "seen": 1789668826.6954918,
+    "ast_hash": "8491c42f0f78167f46b329f765ce63be",
     "semantic_hash": ""
   },
   "docs/BITACORA.md": {
-    "mtime": 1789673149.7301435,
-    "seen": 1789673183.1465595,
-    "ast_hash": "d87e19ede6561b04e6eb1d97028d24ac",
+    "mtime": 1789669177.6561835,
+    "seen": 1789669197.4702203,
+    "ast_hash": "82860d818397d094f20eda60d8ef4f14",
     "semantic_hash": ""
   },
   "docs/CHECKLIST-MANANA.md": {
@@ -2478,9 +2478,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/FotosProducto.tsx": {
-    "mtime": 1789672777.6360927,
-    "seen": 1789673183.1465595,
-    "ast_hash": "bf0d89ccf1732678d98b8c876f130020",
+    "mtime": 1789661997.6510074,
+    "seen": 1789665358.5240653,
+    "ast_hash": "525d252bfbad8882aceb55edb8d5f4a1",
     "semantic_hash": ""
   },
   "apps/web/components/HistorialProductoPanel.tsx": {
@@ -2520,9 +2520,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/ProductoForm.tsx": {
-    "mtime": 1789672790.5331063,
-    "seen": 1789673183.1465595,
-    "ast_hash": "e331496e6cb8f27924ac9e58a9c7cbd1",
+    "mtime": 1789661997.6625566,
+    "seen": 1789665358.5240653,
+    "ast_hash": "994fc778a3a0dacb3e52be6165d16502",
     "semantic_hash": ""
   },
   "apps/web/components/ui/MuestraColor.tsx": {
@@ -2952,9 +2952,9 @@
     "semantic_hash": ""
   },
   "apps/web/components/ProductosGrilla.tsx": {
-    "mtime": 1789672827.1611593,
-    "seen": 1789673183.1465595,
-    "ast_hash": "8c974c28115e0d384b4cc8329fcad7b5",
+    "mtime": 1789664956.1527662,
+    "seen": 1789665358.5240653,
+    "ast_hash": "5c5f992796df083b59a55128d53495a3",
     "semantic_hash": ""
   },
   "apps/web/components/TrasladoDetallePanel.tsx": {
@@ -3132,9 +3132,9 @@
     "semantic_hash": ""
   },
   "docs/adr/0074-productos-gana-vista-de-grilla-con-swatches-de-color.md": {
-    "mtime": 1789673138.409087,
-    "seen": 1789673183.1465595,
-    "ast_hash": "54142e5390f882db1c5acc03a78df453",
+    "mtime": 1789669170.4049819,
+    "seen": 1789669197.4702203,
+    "ast_hash": "de8dd7f1a3a505f3a92ae9dc4f8629ea",
     "semantic_hash": ""
   },
   "supabase/migrations/20260916171500_gastos_operativos.sql": {
@@ -3165,12 +3165,6 @@
     "mtime": 1789668425.4199517,
     "seen": 1789668826.6954918,
     "ast_hash": "75f01b7074e19b41653f6eb91ffe45cc",
-    "semantic_hash": ""
-  },
-  "supabase/migrations/20260917190000_producto_fotos_por_color.sql": {
-    "mtime": 1789672648.233604,
-    "seen": 1789673183.1465595,
-    "ast_hash": "c68f169f106a23243c99847934e8fb8e",
     "semantic_hash": ""
   }
 }
