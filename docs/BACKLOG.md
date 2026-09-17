@@ -189,17 +189,30 @@ el estado real lo decide un trigger (`fn_colores_estado_trigger`) mirando
 
 - [ ] **Pegar `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql` en
       producción.** Tres bloques, todos repetibles.
-- [ ] **Verificación pendiente, con dueño claro:** la lógica del trigger se probó de
-      verdad contra producción (impersonando a Felipe y a Angie Chávez, una de las 16
-      colaboradoras dadas de alta hoy, en una transacción con ROLLBACK). Las dos
-      políticas RLS nuevas **no** se pudieron probar de punta a punta por ese mismo
-      canal — la conexión usada tiene `rolbypassrls=true` y pasa por encima de
-      cualquier política siempre. Sintaxis idéntica a `colores_select`/
-      `productos_write_lider`, ya vivas en producción, pero es inferencia por patrón,
-      no prueba. **Falta: alguien con una cuenta de Colaborador real entra a
-      `/productos/colores` en el navegador, propone un color, y confirma que no
-      puede aprobarlo — solo un Líder puede.** Ver ADR-0070, sección "Cómo se
-      verificó".
+- [x] **Verificado en navegador real, contra el Postgres LOCAL — 2026-09-17 (no el
+      canal de ROLLBACK/impersonación del 16-sep, que tiene `rolbypassrls=true` y
+      no prueba nada de RLS).** Micaela (`micaela@cayla.local`, Colaboradora real
+      del seed, Tienda Trujillo) inició sesión de verdad
+      (`supabase.auth.signInWithPassword`) y propuso "Verde Prueba RLS 20260917"
+      (`VPR`) en `/productos/colores`: quedó usable al instante con
+      `estado='pendiente'`, sin bloquear el flujo. Su intento de aprobarlo se
+      probó por dos caminos — no solo "el botón no aparece", que `security-review`
+      de este repo ya penaliza como prueba insuficiente: (1) PATCH directo a
+      PostgREST (`/rest/v1/colores`, con su JWT real, sin pasar por la app) —
+      `colores_update_lider` lo dejó pasar como consulta válida pero sin tocar
+      ninguna fila (`200`, `[]`, el comportamiento normal de un `USING` que no
+      matchea); (2) PATCH directo a `/api/productos/colores` — el guard propio de
+      la ruta respondió `403 "Solo un Líder puede editar el vocabulario de
+      colores."`. Lectura directa de Postgres (`docker exec ... psql`, sin pasar
+      por RLS) confirmó que el color siguió `pendiente` después de los dos
+      intentos. Felipe (Líder, Tienda Lima) inició sesión aparte, vio el botón
+      "Aprobar" que Micaela nunca vio, lo usó, y Postgres confirmó
+      `estado='aprobado'`, `propuesto_por=Micaela`, `aprobado_por=Felipe`,
+      `aprobado_en` sellado. Color de prueba borrado al cerrar (cero variantes lo
+      usaban). Las dos políticas RLS (`colores_insert_autenticado`/
+      `colores_update_lider`) quedan probadas de punta a punta, ya no solo por
+      inferencia de patrón. Ver ADR-0070, sección "Cómo se verificó" (actualizada).
+      Pendiente: repetir en producción una vez pegado el SQL del ítem anterior.
 - [ ] **No hay forma de "rechazar" una propuesta mala, solo desactivarla** una por
       una desde el camino que ya existía. Con 16 cuentas nuevas es un riesgo bajo,
       no cero. No construido a propósito en esta pasada (alcance acotado).
@@ -233,9 +246,9 @@ códigos de barras. Probado en local; tipos y 266 pruebas en verde.
       prueba", nunca merma).
 - [x] **Proponer y aprobar colores (decisión 2026-09-16) — construido, ver la sección
       propia "Colores: proponer/aprobar" más arriba (ADR-0070).** Felipe decidió que
-      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. Falta
-      pegar en producción y la verificación en navegador que quedó anotada ahí — no
-      cerrado del todo todavía. Sigue pendiente el mismo mecanismo para Tucán
+      cualquiera de los 9 Líderes actuales aprueba, sin nivel "admin" nuevo. La
+      verificación en navegador que quedó anotada ahí ya se cerró (2026-09-17);
+      falta solo pegar en producción. Sigue pendiente el mismo mecanismo para Tucán
       (taxonomía), no construido en esta pasada.
 - [ ] **`/buscar` sin punto de entrada** (ver "Buscador global fuera de la cabecera"):
       ya lee códigos de barras, pero solo se llega por URL.

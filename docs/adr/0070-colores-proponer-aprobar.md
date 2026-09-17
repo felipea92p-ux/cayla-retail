@@ -1,9 +1,10 @@
 # ADR-0070 — Colores: cualquiera propone, un Líder aprueba
 
 **Fecha:** 2026-09-16
-**Estado:** Construido y probado parcialmente (ver "Cómo se verificó" — con un límite
-real, explicado ahí). Producción: pendiente de que Felipe pegue
-`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql`.
+**Estado:** Construido y probado de punta a punta — trigger y las dos políticas RLS,
+ver "Cómo se verificó" (actualizado 2026-09-17). Producción: pendiente de que Felipe
+pegue `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-16-colores.sql`, y de repetir esta
+misma verificación ahí una vez pegado.
 **Afecta:** `retail.colores` (columnas y RLS nuevas), `apps/web/app/api/productos/colores/route.ts`,
 `apps/web/components/ColoresLista.tsx`. Módulo 02 · Loro.
 
@@ -70,10 +71,28 @@ pudo probar por este canal: cualquier intento se ve permitido sin que eso diga n
 sobre si RLS lo habría dejado pasar. La sintaxis de las dos políticas nuevas es idéntica,
 palabra por palabra, a la de `colores_select`/`productos_write_lider` — ya viven en
 producción y las usa toda la app hoy — pero es una inferencia por patrón, no una
-prueba end-to-end de esta política puntual. **Falta: alguien con una cuenta de
-Colaborador real (una de las 16) entra a `/productos/colores`, propone un color, y
-confirma en el navegador que no puede editarlo/aprobarlo — solo un Líder puede.**
+prueba end-to-end de esta política puntual.
+
+**Cerrado 2026-09-17, contra el Postgres LOCAL (no producción todavía — ver Estado
+arriba):** el límite de arriba quedó resuelto por un canal distinto, que sí pasa por
+RLS: sesión de navegador real vía `supabase.auth.signInWithPassword`, la misma que usa
+cualquier persona real — no impersonación con `request.jwt.claim.sub`. Micaela
+(Colaboradora del seed local, equivalente a Angie Chávez en producción) inició sesión,
+propuso un color en `/productos/colores` (quedó `pendiente`, usable al instante, tal
+como promete el diseño) e intentó aprobarlo por dos caminos que no son "confiar en que
+el botón no está": (1) PATCH directo a PostgREST (`/rest/v1/colores`) con su JWT real,
+sin pasar por la app — `colores_update_lider` lo dejó pasar como consulta válida pero
+sin tocar ninguna fila (`200`, `[]`, el comportamiento normal de un `USING` que no
+matchea); (2) PATCH directo a `/api/productos/colores` — el guard de la propia ruta
+respondió `403`. Postgres confirmó (lectura directa, sin RLS) que el color siguió
+`pendiente` después de los dos intentos. Felipe (Líder) inició sesión aparte, vio el
+botón "Aprobar" que Micaela nunca vio, lo usó, y Postgres confirmó
+`estado='aprobado'`/`aprobado_por=Felipe`/`aprobado_en` sellado. Detalle completo y
+evidencia en BACKLOG.md, sección "Colores: proponer/aprobar". Pendiente: repetir esta
+misma verificación en producción una vez pegado el SQL de arriba (la política es
+idéntica; correr en local primero fue justamente para no tener que "confiar en el
+patrón" también ahí).
 
 `tsc --noEmit`, `eslint` y los 266 tests existentes, en verde (ninguno cubre este
-flujo nuevo — no hay prueba automatizada de esto todavía, mismo hueco que el resto del
-módulo, D-25).
+flujo nuevo por automatización — no hay prueba automatizada de esto todavía, mismo
+hueco que el resto del módulo, D-25; lo de arriba fue manual, en navegador).
