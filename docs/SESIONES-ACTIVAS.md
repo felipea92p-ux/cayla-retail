@@ -20,6 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude Code | `claude/almacen-redirects-config-8733a3` | `next.config.ts` (redirects de `/almacen`), borró `app/(app)/almacen/**`, `docs/ARQUITECTURA.md` (línea del alias) | 2026-09-17 |
 | Claude (Danytristee) | `claude/stock-fantasma-archivados-239a85` | Stock fantasma de productos de prueba — ya estaba resuelto en producción sin script (2026-09-16 21:44 UTC); agregó filtro defensivo en `inventario-v2.ts` | 2026-09-17 |
 | Felipe | `claude/buscar-entry-point-7aa994` | Punto de entrada a `/buscar`: tarjeta en Acciones de Inicio + campo propio (`buscar/page.tsx`, `page.tsx`, BACKLOG, BITACORA) | 2026-09-17 |
 | Felipe (sesión Claude) | `claude/supabase-unificacion-audit-0887f5` | ADR-0063 (venta sin red): intenté cerrar el hueco de verificación del camino feliz. **Bloqueado, no de esta sesión ni de ADR-0063**: mi Postgres local compartido tiene `retail.variantes.talla_id` (FK a una tabla `retail.tallas` con flujo proponer/aprobar, `created_at` de HOY 19:48 UTC) que **no existe en ningún migration file de `main`** — rompe `getCatalogo()` (`talla` ya no existe como columna) y por lo tanto toda la pantalla `/vender`. No toqué el esquema: parece un cambio de otra sesión en curso sobre el mismo Postgres compartido, aplicado directo sin migración todavía. Ver aviso a Felipe. | 2026-09-17 |

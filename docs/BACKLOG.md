@@ -2513,6 +2513,25 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] **`ARQUITECTURA.md:106-119` describe un `/inventario` que ya no existe —
+      encontrado 2026-09-17 de rebote, verificando a dónde debía apuntar el alias
+      `/almacen`.** El doc dice `/inventario/almacen` → `AlmacenStockList.tsx`,
+      `/inventario/compras` → `ComprasManager.tsx`, `/inventario/proveedores` →
+      `ProveedoresManager.tsx`, `/inventario/etiquetas` → `EtiquetasGenerator.tsx`, y
+      `/inventario` → `InventarioAgrupado.tsx`/`MovimientoModal.tsx`. Ninguno de esos
+      cinco componentes existe hoy en el repo (`grep -r` da 0 resultados) y ninguna de
+      esas cuatro sub-rutas existe como carpeta bajo `app/(app)/inventario/`
+      (`git log` ubica el reemplazo real en `52882ff`, "integra las 4 vistas de
+      Felipe", 2026-09-16, ADR-0071 — que dejó `/inventario` como una sola vista con
+      piso+almacén juntos, `lib/inventario-v2.ts`). Probablemente son restos de la
+      arquitectura V1 que el corte `0af2f1b` (V1→V2) no terminó de limpiar en este
+      doc. Efecto concreto ya confirmado: el stub `redirect("/inventario/almacen")`
+      de `almacen/page.tsx` apuntaba a un 404 desde el 2026-09-16 sin que nadie lo
+      notara — ver ✅ CERRADO de hoy. No se tocó el resto del bloque (106-123):
+      corregirlo bien pide releer todo `/inventario/*` y `/compras/*` contra el
+      código real (`/compras/proveedores` sí existe hoy, así que probablemente ahí
+      se movió esa pieza) — más ancho que esta sesión, que solo tenía permiso sobre
+      `next.config.ts` y los dos archivos de `almacen/`.
 - [ ] **`stock.sububicacion_id` en NULL en las tres sedes, en el Postgres local
       compartido — detectado 2026-09-16 verificando ADR-0063.** `retail.sububicaciones`
       tiene sus 6 filas intactas (2 piso_venta, 2 almacen_tienda, 2 rack), pero
@@ -3023,13 +3042,6 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       tiempo, la cache del router entrega 6-7 ms en pantalla repetida y el armazon llega en
       124 ms. **Solo se revisa si la navegacion deja de depender del rol por una razon de
       producto**, nunca por rendimiento.
-- [ ] **Mover `/almacen` y `/almacen/recibir` a `redirects()` de la config.** Hoy son
-      paginas de React que solo llaman a `redirect()` -- pantallas que no dibujan nada. Un
-      alias de ruta pertenece a la config, no al arbol de paginas. Se descubrio intentando
-      cacheComponents (ahi rompian el prerender) y se revirtio con el resto; el arreglo
-      sigue siendo correcto por su cuenta. Usar `permanent: false`: un 308 se queda cacheado
-      en el navegador de cada quien y recuperar esas rutas despues costaria explicar como
-      limpiar la cache.
 - [ ] `inteligencia`: umbral de estancado (45d) y lead time (14d) siguen siendo
       constantes globales, no por categoría/sede. Sigue sin justificarse afinarlo:
       no hay datos reales de venta todavía (depende de `catalogo real` arriba).
@@ -3072,6 +3084,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       al resultado mensual del Taller; es una decisión contable, no un descuido.
 
 ## ✅ CERRADO (últimos, con fecha)
+
+- [x] 2026-09-17 — **`/almacen` y `/almacen/recibir` pasan a `redirects()` de
+      `next.config.ts` — y de paso se corrigió un 404 que llevaba un día abierto.**
+      Eran páginas de React (`app/(app)/almacen/page.tsx`,
+      `app/(app)/almacen/recibir/page.tsx`) que solo llamaban a `redirect()`: cada
+      visita pagaba `requirePersonaActualV2()` + `getUbicaciones()` + `AppShell`
+      completo en el servidor para terminar igual acá — un alias de ruta pertenece a
+      la config, no al árbol de páginas. Verificado en dev (con `.env.local` apuntando
+      al Supabase local): el log del servidor no muestra ninguna línea de `proxy.ts`
+      para estas dos rutas (sí la muestra para cualquier otra), confirmando que
+      `redirects()` resuelve antes de que la barrera de sesión llegue a correr.
+      **Hallazgo de rebote:** el destino viejo, `/inventario/almacen`, ya no existe
+      desde el 2026-09-16 (ADR-0071, commit `52882ff`, unificó piso+almacén dentro de
+      `/inventario`) — el stub llevaba un día completo redirigiendo a un 404 sin que
+      nadie lo notara. Corregido el destino a `/inventario` (no `/inventario/almacen`)
+      de una vez; el otro alias, `/almacen/recibir` → `/inventario/recibir`, sí
+      apuntaba a una ruta real y no cambió. `permanent: false` → **307**, no 308: el
+      308 que pedía el ítem original es lo que da `permanent: true`, que es
+      justamente lo que no se quería (redirect permanente cacheado en el navegador
+      de cada quien). Verificado en navegador real, ambos roles, con las dos rutas:
+      colaboradora (Micaela, Tienda Trujillo, sesión ya abierta en el pane) y líder
+      (`felipe@cayla.local`) — las dos aterrizan en las pantallas reales de
+      Existencias y Recibir mercadería con datos reales, sin ningún componente entre
+      medio. `pnpm --filter web build` limpio. De paso quedó al descubierto que
+      `ARQUITECTURA.md:106-123` describe un `/inventario` de una arquitectura vieja
+      que ya no existe — ver ítem nuevo en 🩹 ARREGLAR, no se tocó por ser más ancho
+      que esta sesión.
 
 - [x] 2026-09-16 — **Facturación en tarjetas para celular (ítem 5 de la auditoría de
       amigabilidad; Felipe confirmó que sí entra desde el teléfono a veces).**

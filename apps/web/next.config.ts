@@ -27,6 +27,31 @@ const nextConfig: NextConfig = {
     // línea que la vuelve un bug visible. — ADR-0013, Fase 1.
     staleTimes: { dynamic: 30 },
   },
+
+  async redirects() {
+    // Alias de enlaces guardados tras el rediseño UX 2026-07-18: `/almacen` y
+    // `/almacen/recibir` viven en Inventario. Antes eran páginas de React que solo
+    // llamaban a `redirect()` — pagaban sesión + persona/ubicación + AppShell completo
+    // en el servidor para terminar igual acá. Un alias de ruta pertenece a la config,
+    // no al árbol de páginas: así resuelve en el edge, sin tocar Supabase (confirmado
+    // en dev: cero líneas de `proxy.ts` en el log para estas dos rutas).
+    //
+    // `permanent: false` (307 temporal) a propósito, no `true` (308 permanente): un
+    // redirect permanente queda cacheado en el navegador de cada quien, y si algún día
+    // hiciera falta recuperar estas rutas no hay forma de limpiar ese caché del lado
+    // del cliente.
+    //
+    // OJO: `/almacen` NO apunta a `/inventario/almacen` — esa ruta ya no existe desde
+    // que ADR-0071 (2026-09-16, commit 52882ff) unificó piso+almacén en una sola vista
+    // dentro de `/inventario`. El stub viejo (`redirect("/inventario/almacen")`)
+    // quedó apuntando a un 404 desde ese día sin que nadie lo notara — verificado en
+    // este dev server antes de corregirlo. `/inventario` solo (sin sub-ruta) es hoy el
+    // destino correcto.
+    return [
+      { source: "/almacen", destination: "/inventario", permanent: false },
+      { source: "/almacen/recibir", destination: "/inventario/recibir", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

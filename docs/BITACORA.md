@@ -3,6 +3,37 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (`/almacen` y `/almacen/recibir` pasan a `redirects()` — y salió un 404 de un día que nadie había visto)
+
+Tarea concreta del ítem de `✨ MEJORAR`: las dos páginas-stub que solo llamaban
+`redirect()` (`app/(app)/almacen/page.tsx` y `.../almacen/recibir/page.tsx`) pagaban
+sesión + persona/ubicación + `AppShell` completo en el servidor para terminar en la
+misma pantalla que un alias de config habría dado gratis. Pasaron a `redirects()` de
+`next.config.ts`, con `permanent: false` (307, no 308 — el 308 que pedía el ítem
+original es lo que da `permanent: true`, justo lo que el ítem quería evitar). Verificado
+con el server corriendo (`.env.local` nuevo en este worktree, apuntando al Supabase
+local ya levantado): el log no muestra ninguna línea de `proxy.ts` para `/almacen` ni
+`/almacen/recibir`, y sí para cualquier otra ruta — confirma que el redirect resuelve
+antes de que la barrera de sesión llegue a correr, no solo en teoría.
+
+Al verificar a dónde debía apuntar el alias salió un hallazgo que no estaba en el
+ítem: `/inventario/almacen` (el destino que el stub viejo usaba) ya no existe desde
+el 2026-09-16 (ADR-0071, commit `52882ff`, unificó piso+almacén dentro de una sola
+vista en `/inventario`) — el redirect llevaba un día completo mandando a un 404 real
+sin que nadie lo notara, exactamente el escenario de "enlace guardado" que el ítem
+describía, solo que ya roto de verdad y no solo ineficiente. Corregido el destino a
+`/inventario` de una vez; `/almacen/recibir` → `/inventario/recibir` sí era correcto
+y no cambió. Verificado en navegador real ambos roles: colaboradora (Micaela, Tienda
+Trujillo) y líder (`felipe@cayla.local`), las dos rutas aterrizan en pantallas reales
+con datos reales.
+
+De rebote quedó otro hallazgo, no tocado por ser más ancho que esta sesión:
+`ARQUITECTURA.md:106-123` describe todo un `/inventario` de la arquitectura V1
+(`AlmacenStockList.tsx`, `ComprasManager.tsx`, `ProveedoresManager.tsx`,
+`EtiquetasGenerator.tsx` — ninguno existe hoy) que el corte V1→V2 nunca terminó de
+limpiar en el doc. Aprendizaje: un ítem de BACKLOG escrito un día puede describir un
+mundo que ya cambió al día siguiente — verificar contra el código vivo, no copiar el
+destino literal que traía el ticket, ni siquiera uno tan simple como un redirect.
 ## 2026-09-17 (`/buscar` recupera punto de entrada tras quitarse el buscador global)
 
 `/buscar/page.tsx` funcionaba (búsqueda real con stock por ubicación) pero desde que
