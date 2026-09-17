@@ -182,9 +182,13 @@ function Tarjeta({
       <p className={`font-display mt-1 text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</p>
       <p className="mt-1 text-xs text-tinta/65">{children}</p>
       {accion && (
-        <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+        // <a> nativo a propósito, no <Link>: es un salto de ancla dentro de
+        // la misma página (#contar) — el <Link> de Next no siempre dispara
+        // el scroll nativo del navegador para un href de solo-hash en la
+        // misma ruta, y con <a> no hay ambigüedad posible.
+        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
           {accion.texto} →
-        </Link>
+        </a>
       )}
     </div>
   );
