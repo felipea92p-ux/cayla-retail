@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_activacion_piso_almacen_produccion_sql", "label": "activacion-piso-almacen-produccion.sql", "file_type": "code", "source_file": "supabase/migrations/activacion-piso-almacen-produccion.sql", "source_location": null}], "edges": []}

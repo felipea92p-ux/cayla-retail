@@ -1,7 +1,8 @@
 "use client";
 
+import { avisar } from "@/components/ui/Avisos";
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,20 +26,22 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    errorInicial ? MENSAJES_ERROR[errorInicial] ?? null : null
-  );
   const [loading, setLoading] = useState(false);
+  // El motivo por el que te mandaron al login (sesión vencida, sin acceso)
+  // viene por la URL: se avisa una vez al entrar.
+  useEffect(() => {
+    const texto = errorInicial ? MENSAJES_ERROR[errorInicial] : null;
+    if (texto) avisar.aviso(texto);
+  }, [errorInicial]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError("Correo o contraseña incorrectos.");
+      avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
     router.push("/");
@@ -53,13 +56,14 @@ function LoginForm() {
           <h1 className="font-display mt-5 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
             CAYLA
           </h1>
-          <p className="font-display mt-1 text-base italic text-taupe">Donde el estilo transforma.</p>
+          <p className="font-display mt-1 text-base italic text-taupe-profundo">Donde el estilo transforma.</p>
         </div>
 
         <div className="space-y-5">
           <div className="space-y-2">
-            <label className="label-cayla text-[10px] text-tinta/50">Correo</label>
+            <label className="label-cayla text-[11px] text-tinta/70">Correo</label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
@@ -69,7 +73,7 @@ function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="label-cayla text-[10px] text-tinta/50">Contraseña</label>
+            <label className="label-cayla text-[11px] text-tinta/70">Contraseña</label>
             <div className="relative flex items-center">
               <input
                 type={mostrarPassword ? "text" : "password"}
@@ -82,7 +86,7 @@ function LoginForm() {
                 type="button"
                 onClick={() => setMostrarPassword((v) => !v)}
                 aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="absolute right-0 text-tinta/40 transition-colors hover:text-rojo"
+                className="absolute right-0 text-tinta/65 transition-colors hover:text-rojo"
               >
                 {mostrarPassword ? (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
@@ -98,18 +102,17 @@ function LoginForm() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-rojo">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="label-cayla mt-2 w-full bg-tinta px-3 py-3.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
+            className="label-cayla rounded-md mt-2 w-full bg-tinta px-3 py-3.5 text-xs text-crema transition-colors hover:bg-rojo disabled:opacity-40"
           >
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </div>
 
-        <p className="mt-10 text-center label-cayla text-[9px] text-tinta/30">
+        <p className="mt-10 text-center label-cayla text-[11px] text-tinta/65">
           Trujillo · Arequipa · Lima
         </p>
       </form>

@@ -1,7 +1,11 @@
 # ADR-0005 — Facturación electrónica se construye en dos partes separadas
 
 **Fecha:** 2026-09-04
-**Estado:** Parte 1 construida y verificada en local (`0032_comprobantes.sql`); parte 2 sin empezar, pendiente de decisión con Felipe
+**Estado:** SUPERADO POR LA ACTUALIZACIÓN DEL 2026-09-05 (al final de este
+archivo). Parte 1 construida y verificada; **parte 2 también: el proveedor es
+Lucode (PSE) y se transmite en producción desde el 05-09** (ADR-0009). Ya no hay
+decisión "SEE propio vs. OSE" pendiente. Lo que sigue abierto es operativo, no de
+diseño: las variables de Lucode faltan en Vercel. Texto original abajo, sin tocar.
 
 ## Contexto
 

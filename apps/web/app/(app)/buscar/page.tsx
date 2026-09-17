@@ -1,112 +1,169 @@
 import Link from "next/link";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoConStock } from "@/lib/catalogo";
+import { Suspense } from "react";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
-import { mapaSedes } from "@/lib/sedes";
+import { exigir } from "@/lib/resultado";
+import { Ayuda } from "@/components/Ayuda";
+import { EsqueletoTabla } from "@/components/Esqueleto";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 
-// Búsqueda global (el dolor #1 del negocio, nombrado por Felipe en el descubrimiento:
-// "no saber si se tiene stock e ir a almacén a buscarlo a ciegas"). Resultado en
-// segundos: cuánto hay, en qué sede, y en QUÉ contenedor del almacén está guardado.
-// La pistola Zebra funciona aquí sin configurar nada: tipea el código y da Enter.
+// Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
+// `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
+// `BuscadorGlobal` (el campo de la cabecera que escribía `?q=` acá) se quitó de
+// `AppShell.tsx` el 2026-09-16 — esta pantalla ahora trae su propio campo, un
+// `<form method="get">` nativo (sin "use client"): el navegador arma `?q=...`
+// solo, sin depender de JS ni de un buscador ajeno.
 export default async function BuscarPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const persona = await requirePersonaActual();
-  const term = (q ?? "").trim().toLowerCase();
-
-  const supabase = await createClient();
-  const [variantes, { data: stockRows }, sedes] = await Promise.all([
-    getCatalogoConStock(persona),
-    supabase.from("stock").select("variante_id, cantidad, sede_id, contenedores(codigo)"),
-    mapaSedes(),
-  ]);
-
-  // varianteId → detalle por sede (cantidad + contenedor si es almacén)
-  const detallePorVariante = new Map<string, { sede: string; esAlmacen: boolean; cantidad: number; contenedor: string | null }[]>();
-  (stockRows ?? []).forEach((r) => {
-    const sede = sedes.get(r.sede_id);
-    const contenedor = Array.isArray(r.contenedores) ? r.contenedores[0] : r.contenedores;
-    if (!sede) return;
-    const lista = detallePorVariante.get(r.variante_id) ?? [];
-    lista.push({ sede: sede.codigo, esAlmacen: sede.tipo === "almacen", cantidad: r.cantidad, contenedor: contenedor?.codigo ?? null });
-    detallePorVariante.set(r.variante_id, lista);
-  });
-
-  const resultados = term
-    ? variantes
-        .filter((v) =>
-          `${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.familia ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""}`
-            .toLowerCase()
-            .includes(term)
-        )
-        .slice(0, 30)
-    : [];
+  const term = (q ?? "").trim();
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Búsqueda</p>
+        <p className="label-cayla text-[11px] text-tinta/65">
+          Búsqueda
+          <Ayuda titulo="Búsqueda">
+            Para responderle a una clienta sin ir al almacén a ciegas. Te dice cuánto hay de esa
+            prenda y en qué ubicación. Puedes escribir la referencia, el SKU, la talla o el
+            color, o escanear la etiqueta con la pistola: es lo mismo, la pistola solo escribe
+            el código por ti.
+          </Ayuda>
+        </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
-          {term ? <>&ldquo;{q}&rdquo;</> : "Escribe algo en el buscador de arriba"}
+          {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
         </h1>
-        {term && (
-          <p className="mt-1 text-sm text-tinta/45">
-            {resultados.length === 0
-              ? "Sin coincidencias — revisa la escritura o prueba con menos palabras."
-              : `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}`}
-          </p>
-        )}
+        <form method="get" className="mt-4 flex items-end gap-3">
+          <div className="max-w-sm flex-1">
+            <CampoTexto
+              name="q"
+              etiqueta="Buscar"
+              defaultValue={q ?? ""}
+              placeholder="SKU, referencia, talla, color…"
+              autoFocus
+            />
+          </div>
+          <Boton type="submit" peso="primario">
+            Buscar
+          </Boton>
+        </form>
       </div>
+
+      {term === "" ? null : (
+        <Suspense key={term} fallback={<EsqueletoTabla filas={4} />}>
+          <Resultados term={term.toLowerCase()} textoOriginal={q ?? ""} />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
+async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
+  const catalogo = await getCatalogo();
+
+  const k = clave(term);
+  const resultados = catalogo
+    .filter((v) => v.activo)
+    .filter((v) =>
+      clave(`${v.sku} ${v.referencia} ${v.categoria ?? ""} ${v.talla ?? ""} ${v.color ?? ""} ${v.codigosBarras.join(" ")}`).includes(k)
+    )
+    .slice(0, 30);
+
+  if (resultados.length === 0) {
+    return (
+      <p className="text-sm text-tinta/65">
+        Sin coincidencias para &ldquo;{textoOriginal}&rdquo; — revisa la escritura o prueba con menos
+        palabras.
+      </p>
+    );
+  }
+
+  // El stock por ubicación se pide SOLO para lo que ya matcheó, no para el
+  // catálogo entero: RLS acota las filas a lo que la persona puede ver
+  // (líder = todas, integrante = la suya), así que esto ya sale bien
+  // recortado sin filtrar nada a mano acá.
+  const supabase = await createClient();
+  const stockRows = exigir(
+    await supabase
+      .from("stock")
+      .select("variante_id, cantidad, ubicacion:ubicaciones ( nombre )")
+      .in(
+        "variante_id",
+        resultados.map((r) => r.varianteId)
+      )
+      // La centinela del «Monto manual» no es una prenda: sin esto, buscar
+      // «cargo» mostraba 999.999 unidades por tienda (`lib/cargo-especial.ts`).
+      .neq("variante_id", ID_CARGO_ESPECIAL)
+      .gt("cantidad", 0),
+    "el stock de estos resultados"
+  );
+
+  // Una ubicación con piso y almacén trae 2 filas para la misma variante
+  // (20260914210000_inventario_piso_almacen.sql) — acá solo importa el
+  // total por ubicación, así que se suman antes de listar; sin esto, Tienda
+  // Lima aparecería dos veces por la misma prenda.
+  const stockPorVariante = new Map<string, Map<string, number>>();
+  stockRows.forEach((r) => {
+    const porUbicacion = stockPorVariante.get(r.variante_id) ?? new Map<string, number>();
+    const nombre = r.ubicacion?.nombre ?? "—";
+    porUbicacion.set(nombre, (porUbicacion.get(nombre) ?? 0) + r.cantidad);
+    stockPorVariante.set(r.variante_id, porUbicacion);
+  });
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-tinta/65">
+        {resultados.length} resultado{resultados.length === 1 ? "" : "s"}
+      </p>
 
       <div className="space-y-3">
         {resultados.map((v) => {
-          const detalles = (detallePorVariante.get(v.varianteId) ?? []).filter((d) => d.cantidad > 0);
-          const hayStock = v.stockTotal > 0;
+          const detalles = Array.from(stockPorVariante.get(v.varianteId) ?? new Map<string, number>(), ([ubicacion, cantidad]) => ({
+            ubicacion,
+            cantidad,
+          }));
+          const stockTotal = detalles.reduce((acc, d) => acc + d.cantidad, 0);
+          const hayStock = stockTotal > 0;
           return (
-            <Link
-              key={v.varianteId}
-              href={`/producto/${v.varianteId}`}
-              className="block card-cayla p-5 transition-colors hover:border-rojo/40"
-            >
+            <div key={v.varianteId} className="card-cayla p-5">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  {v.fotoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.fotoUrl} alt="" className="h-14 w-14 shrink-0 border border-tinta/10 object-cover" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-tinta">
-                      {v.referencia}{" "}
-                      <span className="text-tinta/45">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-tinta/45">
-                      {[v.familia, v.categoria].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="mt-1 font-mono text-[10px] text-tinta/30">{v.sku}</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-tinta">
+                    {v.referencia}{" "}
+                    <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join(" · ")}</span>
+                  </p>
+                  {v.categoria && <p className="mt-0.5 text-xs text-tinta/65">{v.categoria}</p>}
+                  <p className="mt-1 font-mono text-[11px] text-tinta/65">{v.sku}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{v.stockTotal}</p>
-                  <p className="label-cayla text-[8px] text-tinta/40">{hayStock ? "en stock" : "agotada"}</p>
-                  {v.precio != null && <p className="mt-1 text-xs text-tinta/55">S/{v.precio.toFixed(2)}</p>}
+                  <p className={`font-display text-2xl ${hayStock ? "text-tinta" : "text-rojo"}`}>{stockTotal}</p>
+                  <p className="label-cayla text-[10px] text-tinta/65">{hayStock ? "en stock" : "agotada"}</p>
+                  <p className="mt-1 text-xs text-tinta/70">S/{v.precio.toFixed(2)}</p>
                 </div>
               </div>
 
               {detalles.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-px border border-tinta/10 bg-tinta/10">
-                  {detalles.map((d) => (
-                    <span key={d.sede} className="bg-crema px-3 py-1.5 text-xs text-tinta/70">
-                      {d.sede} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
-                      {d.esAlmacen && (
-                        <span className="text-rojo"> · {d.contenedor ?? "sin ubicación"}</span>
-                      )}
+                <div className="mt-3 flex flex-wrap gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
+                  {detalles.map((d, i) => (
+                    <span key={`${d.ubicacion}-${i}`} className="bg-crema px-3 py-1.5 text-xs text-tinta/80">
+                      {d.ubicacion} <b className="font-display text-sm text-tinta">{d.cantidad}</b>
                     </span>
                   ))}
                 </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </div>
+
+      {/* Link a `/producto/[varianteId]` (detalle) queda para Fase 2: esa
+          pantalla también depende del catálogo V1. La tarjeta ya responde la
+          pregunta que motiva la búsqueda (cuánto hay y dónde) sin necesitar
+          ese detalle. */}
+      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+        Ver catálogo completo →
+      </Link>
     </div>
   );
 }

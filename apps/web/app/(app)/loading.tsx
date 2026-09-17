@@ -7,7 +7,7 @@
 export default function Loading() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center">
-      <p className="label-cayla text-[10px] text-tinta/45">Cargando…</p>
+      <p className="label-cayla text-[11px] text-tinta/65">Cargando…</p>
     </div>
   );
 }

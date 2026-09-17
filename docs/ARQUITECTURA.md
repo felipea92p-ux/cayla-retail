@@ -1,5 +1,12 @@
 # Arquitectura de cayla-retail
 
+> ⚠️ **Para el MODELO DE DATOS, este archivo ya no es la fuente.** Ve a
+> **[`docs/datos/`](datos/README.md)**: ahí el diccionario se regenera desde la base real
+> y no puede envejecer en silencio. Este documento sigue siendo el mapa del grafo
+> rutas↔lib↔RPC del front, pero su foto del esquema quedó vieja — las afirmaciones que el
+> SQL no respalda están listadas con archivo y línea en
+> [`docs/datos/13-PROMESAS-INCUMPLIDAS.md`](datos/13-PROMESAS-INCUMPLIDAS.md).
+
 > Mapa de referencia del sistema completo: negocio, stack, modelo de datos y
 > el grafo de conexiones real entre rutas, componentes, `lib/` y la base de
 > datos. Generado el 2026-09-04 leyendo el código fuente (no la visión de
@@ -114,16 +121,159 @@ flowchart TB
 - `/producto/[varianteId]` → `lib/inteligencia.ts` → `FotoProducto.tsx`,
   `MinimosPorSede.tsx` (RPC `fijar_stock_minimo`), `RecetaCosto.tsx`
   (BOM: `insert`/`delete` directo en `bom_items`).
-- `/almacen` y `/almacen/recibir` → **redirects puros** a
-  `/inventario/almacen` y `/inventario/recibir` (compat de enlaces
-  guardados tras el rediseño UX 2026-07-18; no es código duplicado).
+- `/almacen` y `/almacen/recibir` → **redirects puros**, declarados en
+  `redirects()` de `next.config.ts` (movidos desde página-stub el 2026-09-17,
+  ver ✨ MEJORAR de BACKLOG) a `/inventario` y `/inventario/recibir`
+  (compat de enlaces guardados tras el rediseño UX 2026-07-18; resuelven en
+  el edge, sin sesión ni consulta a Supabase — no es código en `app/`).
+  `/almacen` ya NO apunta a `/inventario/almacen` — esa ruta murió el
+  2026-09-16 (ADR-0071 unificó piso+almacén dentro de `/inventario`) y el
+  stub viejo quedó redirigiendo a un 404 sin que nadie lo notara; corregido
+  de paso al mover esto a la config (ver nota en `next.config.ts`).
+- `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
+  el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
+  los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
+  `listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
+  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres) →
+  `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx` (agrupada
+  por día; columna «Origen → Destino» con `partesOrigenDestino`) +
+  `MovimientoDetalle.tsx` (modal por proceso, sin segunda consulta). Las reglas de
+  pantalla (categoría, signo, referencia por proceso) viven en
+  `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
+
+**Inventario V2 — las cuatro pantallas (2026-09-16, ADR-0071).** El lateral tiene un
+grupo "Inventario" (`AppShell.tsx`, `grupoInventario`) y `inventario/layout.tsx` monta
+`InventarioNav.tsx` con las mismas cuatro pestañas: Existencias · Movimientos ·
+Traslados · Conteo. Todo `/inventario/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
+- `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
+  (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
+  de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  `InventarioPanel.tsx` (tres tarjetas, filtros en memoria, semáforo de 4 estados con
+  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda) → `ReponerPisoModal.tsx` (RPC
+  `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
+- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosEnCurso`, `getTrasladosCerrados`,
+  con `numero`) → `TrasladosLista.tsx` (vista rápida por chips, en memoria) →
+  `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
+  `confirmar_traslado`, `cerrar_traslado_con_diferencia`). Reglas en `lib/traslados-reglas.ts`.
+- `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
+  `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo`) →
+  `ConteoPanel.tsx` (RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`; avance con
+  `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
+  (`getConteoDetalle`, solo lectura). Exactitud con `exactitudConteos`
+  (`lib/conteo-varianza.ts`).
+- `/inventario/recibir` (sin factura) y `/inventario/mover` (`MoverMercaderiaFormV2.tsx`
+  → RPC `iniciar_traslado`) siguen vivas como rutas, sin pestaña propia: se llega por
+  «+ Nuevo traslado» / «+ Nuevo».
+
+**Productos (catálogo V2, integración final 2026-09-15)**
+- `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,
+  filtros en la URL + Postgres, RPC `fn_productos`/`fn_productos_resumen`,
+  `20260915160000_productos_listado_filtros.sql`) → `FiltrosProductos.tsx` +
+  `ProductosAgrupados.tsx` (una fila por producto, expandible a variantes;
+  checkboxes de selección y menú "..." por fila viven acá, es Server
+  Component el padre). El menú abre `AjustarInventarioModal.tsx` (RPC
+  `registrar_movimiento`, tipo='ajuste', piso/almacén vía
+  `lib/sububicaciones.ts`) como modal de `useState` normal, y "Ver
+  historial" navega a `/productos/[id]/historial`.
+- Historial de producto como modal (mismo mecanismo que el detalle de
+  factura de Compras): `/productos/layout.tsx` tiene el slot `@modal/`, con
+  la ruta interceptada `@modal/(.)[id]/historial`. Clic en "Ver historial"
+  desde la lista → la URL pasa a `/productos/<id>/historial` pero la lista
+  queda montada detrás y el panel se dibuja en `ui/ModalRuta.tsx`; recarga o
+  enlace directo → página completa `[id]/historial/page.tsx`. Ambas
+  reusan `HistorialProductoPanel.tsx`, que junta dos fuentes con historias
+  distintas: `lib/movimientos-v2.ts:listarMovimientosProducto` (stock, cursor,
+  por sede) y `lib/historial-producto.ts:getCambiosProducto` (RPC
+  `fn_historial_producto_cambios`: precio/categoría/estado, ledger
+  append-only `historial_producto_cambios`, trigger `fn_registrar_cambio_producto`
+  sobre `productos`/`variantes` — ADR-0059, ampliado en
+  `20260915223000_historial_producto_estado.sql` para no perder los cambios
+  de `estado`).
+- Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
+  de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
+  RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
+  arriba lo audita solo.
+
+**Producción (Taller)**
+- `/produccion` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
+  `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
+  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesProduccionV2.tsx`
+  (en proceso / terminadas / anuladas; RPC `set_etapa_produccion`,
+  `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
+  `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
+  líder desde cualquier ubicación y el integrante cuyo `ubicacionTipo === "taller"`.
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo.ts` + `lib/finanzas.ts:getCajaAbierta` →
-  `CajaPanel.tsx` → `AbrirCajaModal` (RPC `abrir_caja`),
-  `RegistrarVentaModal` (RPC `registrar_venta`), `CerrarCajaModal` (RPC
-  `cerrar_caja`, con conteo ciego: el monto esperado se calcula en el
-  servidor).
+- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+  `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
+  hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
+  de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
+  `PuntoDeVenta.tsx` (padre: TODO el estado, handlers, cabecera con atajos a /caja,
+  /cambios y /devoluciones,
+  cabecera y modales; ADR-0043) que reparte en `PuntoDeVentaCatalogo.tsx` (escaneo
+  primero y dominante, chips, grilla de **una tarjeta por prenda + color** con las tallas
+  adentro —`lib/catalogo-grupos.ts`, memo del padre— filtro «Solo con stock», y «Ventas
+  de hoy», que llega ya renderizado desde `page.tsx` vía RPC `fn_ventas_del_dia`; el
+  escáner recibe el foco al abrir caja, al cerrar cualquier modal —`Modal.alCerrarEnfocar`—
+  y ante una tecla suelta, regla en `lib/escaner-tecla-suelta.ts`; shadcn `Tooltip`/
+  `Toggle`/`Badge`, ADR-0045 — sin reveal al scroll, por decisión) y `PuntoDeVentaTicket.tsx`
+  (tres momentos, ADR-0044: «armar» = líneas + total; «descuento» = % global o por
+  prenda, que viaja como `descuento_unitario` por línea; «cobrar» = método de pago,
+  boleta/factura con el documento adentro, Confirmar cobro → RPC `registrar_venta`,
+  que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
+  distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
+  tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
+  El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
+  → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
+  al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
+  `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
+  `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
+  `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de
+  `{ metodo, monto }`, una fila por medio en `venta_pagos`; el `recibido` del efectivo es
+  solo de pantalla). El reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`,
+  ADR-0045). Modales del padre:
+  `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
+  conteo ciego: el esperado sale de la respuesta del cierre, no antes).
+
+**Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
+- `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
+  `fn_proveedores`: directorio + facturas vigentes + saldo + última compra) →
+  `ProveedoresPanel.tsx` → RPCs `registrar_proveedor`, `actualizar_proveedor`,
+  `desactivar_proveedor`, `reactivar_proveedor`
+  (`20260914150000_proveedores_administrables.sql`). Es la puerta del módulo:
+  `compras.proveedor_id` es FK dura, sin proveedor no hay factura. El alta
+  consulta `GET /api/padron?tipo=ruc` para traer la razón social de SUNAT;
+  si el padrón no responde, se escribe a mano y se guarda igual. Nunca borra:
+  `activo=false`. Candados: `proveedores_ruc_unico` y
+  `proveedores_nombre_clave_unica` (sobre `fn_clave_texto`, el mismo
+  normalizador de `colores`/`categorias`).
+- `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
+  `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
+  `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
+  `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
+  `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
+  `ComprasNav.tsx` (layout de `/compras`).
+- Detalle de factura como modal (2026-09-14): el layout de `/compras` tiene
+  un slot paralelo `@modal/` con la ruta interceptada
+  `@modal/(.)factura/[compraId]`. Al hacer clic en una fila (Facturas, Por
+  pagar) la URL pasa a `/compras/factura/<id>` pero la lista queda montada
+  detrás y el detalle se dibuja en `ui/ModalRuta.tsx` (cierra con
+  `router.back()`); recarga o enlace directo → página completa
+  `factura/[compraId]/page.tsx`. Ambas usan `components/CompraDetalle.tsx`.
+  `@modal/default.tsx` (vacío) y `@modal/[...catchAll]` (limpia el modal al
+  cambiar de pestaña) son parte del mecanismo. El prefijo `factura/` es
+  obligatorio: un `(.)[compraId]` directo bajo `/compras` interceptaba
+  también `/compras/por-pagar`, `/compras/nueva`, etc.
+- Avisos globales (ADR-0047): `components/ui/Avisos.tsx`, montado en
+  `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
+  (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`
+  de error en componentes.
+- Adjuntos de factura (ADR-0046, `20260914180000_compras_adjuntos.sql`):
+  tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
+  `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →
+  `lib/adjuntos-compra.ts` sube del navegador al bucket y registra la fila
+  con `registrar_adjunto_compra`; `archivar_adjunto_compra` quita de la
+  vista (nunca borra). URL firmada de 1 h en `lib/compras.ts`.
 
 **Producción (Taller)**
 - `/produccion` → `OrdenesProduccion.tsx` → RPCs `registrar_produccion`,
@@ -149,8 +299,9 @@ flowchart TB
   `registrar_gasto`.
 - `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
-  `registrar_serie_comprobante`. El envío real a SUNAT no está conectado
-  todavía — ver ADR-0005. El modal de emisión usa `ConsultaDocumento.tsx`, el
+  `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
+  botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
+  ADR-0009). El modal de emisión usa `ConsultaDocumento.tsx`, el
   único componente que llama a una ruta de API propia en vez de a una RPC:
   `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
@@ -162,6 +313,12 @@ Son la excepción al patrón "Server Component lee, RPC escribe": existen solo
 cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 
 - `/api/export/inventario` → CSV del catálogo (`lib/catalogo.ts`).
+- `/api/lucode/emitir` → transmite a SUNAT, vía Lucode (PSE), un comprobante
+  que `emitir_comprobante`/`emitir_nota` ya reservó. Traduce el formato propio
+  a la forma del proveedor en `lib/lucode.ts` — cambiar de PSE es cambiar ese
+  archivo, no el esquema. Si Lucode no responde, el comprobante se queda en su
+  estado real (`pendiente`/`rechazado`) y el botón sigue a la vista: nunca se
+  le inventa un estado ni se reintenta solo. ADR-0009.
 - `/api/padron` → consulta de DNI/RUC contra el padrón externo. El token del
   proveedor nunca sale del servidor. Devuelve siempre 200 con `fuente`
   (`padron` | `historial` | `ninguna`) — "no pude averiguarlo" es una respuesta
@@ -189,10 +346,14 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
   parcial), `ventas` (1 fila por checkout).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
-- **Producción**: `producciones` (`costo_unitario` es **columna generada**,
-  no se puede desincronizar; `etapas` jsonb con 6 estados: patronaje →
-  muestra → escalado → corte → confección → acabado; `inventariado_at`
-  evita doble conteo), `produccion_lineas`.
+- **Producción** (V2 desde 2026-09-15, ADR-0052): `producciones` (por
+  `ubicacion_id` del Taller —`ubicaciones.tipo = 'taller'`—; `cantidad_plan` vs
+  `cantidad_buenas`; `costo_unitario` es **columna generada** sobre las buenas,
+  no se puede desincronizar; `etapas` jsonb: patronaje → muestra → escalado
+  (muestra) · corte → confección → acabado (producción); `inventariado_at`
+  evita doble conteo; `token_cliente` unique = idempotencia), `produccion_lineas`
+  (plan y buenas por variante), `movimientos.produccion_id`. Sin policy de
+  escritura: solo RPC.
 - **Finanzas**: `gastos`, `depositos_bancarios`, `ajustes_efectivo`,
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
@@ -211,9 +372,12 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
-| `emitir_comprobante` / `registrar_serie_comprobante` | Reserva boleta/factura con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT — ver ADR-0005 |
-| `registrar_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `eliminar_produccion`, `revertir_produccion_inventario` | Ciclo de una corrida de producción; nunca se borra un hecho que ya movió stock, se revierte explícitamente |
+| `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
+| `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
+| `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
+| `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
+| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
 
 ### 4.3 RLS sin `tenant_id`
 
@@ -259,6 +423,9 @@ Integrante solo su sede (o su almacén asociado).
 - **ADR-0003** (sep-3) — 5 categorías nuevas agregadas *antes* de capturar
   el catálogo físico, basadas en historial real de compras — reclasificar
   después habría costado hacerlo prenda por prenda.
+- **ADR-0052** (sep-15) — Producción vuelve sobre V2; el Taller es
+  `ubicaciones.tipo = 'taller'`; la migración se reconstruyó desde la base
+  local porque el archivo se había perdido.
 - **ADR-0004** (sep-3, el más relevante hoy) — `retail.recibir_lote` en
   producción divergió de la versión local durante la unificación con
   Dynamic (jul-2026): el script copió una versión vieja de la función.
@@ -300,7 +467,7 @@ Integrante solo su sede (o su almacén asociado).
 ## 7. Dónde vive esto en producción (crítico para tocar SQL)
 
 Producción **no** vive en su propio proyecto Supabase: vive dentro del
-proyecto de **cayla-dynamic**, en un schema llamado `retail` (28 tablas ahí
+proyecto de **cayla-dynamic**, en un schema llamado `retail` (45 tablas y 2 vistas ahí
 hoy). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al proyecto Dynamic,
 no al proyecto original de retail. Toda migración pegada en el SQL Editor
 de producción necesita el prefijo `retail.` en cada tabla (o

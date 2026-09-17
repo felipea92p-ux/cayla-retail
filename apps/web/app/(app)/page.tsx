@@ -1,156 +1,98 @@
 import Link from "next/link";
-import { requirePersonaActual } from "@/lib/persona";
-import { getCatalogoInteligente } from "@/lib/inteligencia";
-import { getCajaAbierta } from "@/lib/finanzas";
-import { getPanelLider } from "@/lib/panel";
-import { BuscadorHero } from "@/components/BuscadorHero";
-import { Ayuda } from "@/components/Ayuda";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
+import { ETIQUETA_CATEGORIA, fechaCorta, listarMovimientos, textoDelta } from "@/lib/movimientos-v2";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
-function money(n: number) {
-  return "S/" + n.toFixed(2);
-}
-
-// Inicio por rol (rediseño UX 2026-07-18): la Encargada abre con el buscador
-// protagonista y acciones directas; el Líder abre con el pulso completo del negocio.
+// Fase UI 1 (2026-09-11): rediseño completo, no una adaptación de
+// `app/(app)/page.tsx` (V1) — ese Inicio se arma sobre `inteligencia.ts`,
+// `finanzas.ts`, `panel.ts` y `taller.ts`, todos calculando sobre tablas que
+// V2 ya no tiene (stock_minimo, cajas, patrimonio). Mostrar esos KPIs con
+// datos de otro esquema sería la "compatibilidad falsa" que la tarea
+// prohíbe explícitamente. Esta versión solo muestra lo que V2 puede probar
+// hoy: conteos reales y el mismo historial de `movimientos` que la pantalla
+// de Movimientos.
 export default async function InicioPage() {
-  const persona = await requirePersonaActual();
-  const esLider = persona.rol === "lider";
+  const persona = await requirePersonaActualV2();
+  const supabase = await createClient();
 
-  const [{ variantes, alertasReposicion }, cajaAbierta, panel] = await Promise.all([
-    getCatalogoInteligente(persona),
-    getCajaAbierta(persona.sedeId),
-    getPanelLider(persona),
+  const [productos, variantes, stock, { filas: movimientosRecientes }] = await Promise.all([
+    supabase.from("productos").select("id", { count: "exact", head: true }),
+    supabase.from("variantes").select("id", { count: "exact", head: true }),
+    supabase
+      .from("stock")
+      .select("cantidad")
+      .eq("ubicacion_id", persona.ubicacionId)
+      // Sin la variante centinela del «Monto manual» (999.999 unidades ficticias).
+      .neq("variante_id", ID_CARGO_ESPECIAL),
+    // Los últimos 8 de todo el historial (sin el recorte de 30 días de la
+    // pantalla de Movimientos): en Inicio importa «lo último», no un período.
+    listarMovimientos(persona.ubicacionId, {}, { limite: 8 }),
   ]);
 
-  const reponerYa = variantes.filter((v) => v.reponerYa).length;
-  const estancados = variantes.filter((v) => v.estancado).length;
+  const totalProductos = exigir({ data: productos.count, error: productos.error }, "el total de productos");
+  const totalVariantes = exigir({ data: variantes.count, error: variantes.error }, "el total de variantes");
+  const filasStock = exigir(stock, "el stock de tu ubicación");
+  const unidadesEnUbicacion = filasStock.reduce((acc, f) => acc + f.cantidad, 0);
 
-  const accionesRapidas = [
-    { href: "/vender", etiqueta: "Vender", detalle: cajaAbierta ? "Caja abierta" : "Caja cerrada — ábrela aquí" },
-    { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un fardo al almacén" },
-    { href: "/inventario/almacen", etiqueta: "Bajar a tienda", detalle: "Del almacén al piso de venta" },
-    { href: "/inventario", etiqueta: "Inventario", detalle: "Catálogo completo con stock" },
-  ];
-
-  // ==================== Inicio de Encargada ====================
-  if (!esLider) {
-    return (
-      <div className="space-y-10">
-        <BuscadorHero />
-
-        <div>
-          <p className="label-cayla mb-3 text-[10px] text-tinta/45">Acciones</p>
-          <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10">
-            {accionesRapidas.map((a) => (
-              <Link key={a.href} href={a.href} className="group bg-crema p-5 transition-colors hover:bg-papel">
-                <p className="text-sm font-medium text-tinta group-hover:text-rojo">{a.etiqueta}</p>
-                <p className="mt-1 text-xs text-tinta/45">{a.detalle}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-tinta/60">
-          <span>
-            Caja de {persona.sedeCodigo}:{" "}
-            <Link href="/vender" className={cajaAbierta ? "text-tinta hover:text-rojo" : "text-rojo hover:underline"}>
-              {cajaAbierta ? `abierta (apertura ${money(cajaAbierta.montoApertura)})` : "cerrada"}
-            </Link>
-          </span>
-          {reponerYa > 0 && (
-            <Link href="/inventario" className="text-tinta hover:text-rojo">
-              {reponerYa} prenda{reponerYa === 1 ? "" : "s"} por reponer
-            </Link>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== Inicio de Líder: panel del día ====================
   return (
     <div className="space-y-10">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Hoy</p>
-        <div className="mt-3 grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-4">
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Ventas de hoy</p>
-            <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.ventasHoyTotal ?? 0)}</p>
-            {panel && panel.ventasHoyPorSede.length > 0 && (
-              <p className="mt-1 text-xs text-tinta/45">
-                {panel.ventasHoyPorSede.map((s) => `${s.codigo} ${money(s.monto)}`).join(" · ")}
-              </p>
-            )}
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Cajas</p>
-            <div className="mt-2 space-y-1">
-              {(panel?.cajasTiendas ?? []).map((c) => (
-                <p key={c.codigo} className="text-sm">
-                  <span className="text-tinta/60">{c.codigo}</span>{" "}
-                  {c.abierta ? <span className="text-tinta">abierta</span> : <span className="text-rojo">cerrada</span>}
-                </p>
-              ))}
-            </div>
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Reponer ya
-              <Ayuda titulo="Reponer ya">
-                Cuántas prendas están por agotarse según qué tan rápido se venden. No esperes a
-                quedarte en cero: estas necesitan pedido pronto. El detalle y cuánto comprar está en
-                Comercial.
-              </Ayuda>
-            </p>
-            <p className="font-display mt-1 text-3xl text-rojo">{reponerYa}</p>
-            <p className="mt-1 text-xs text-tinta/45">{estancados} estancada{estancados === 1 ? "" : "s"}</p>
-          </div>
-          <div className="bg-crema p-5">
-            <p className="label-cayla text-[9px] text-tinta/45">Inventario a costo
-              <Ayuda titulo="Inventario a costo">
-                Cuánta plata tuya está metida en mercadería sin vender, valorada a lo que te costó. No
-                es pérdida, pero es dinero dormido: rinde cuando se vende, no antes.
-              </Ayuda>
-            </p>
-            <p className="font-display mt-1 text-3xl text-tinta">{money(panel?.valorInventarioTotal ?? 0)}</p>
-            <Link href="/comercial" className="mt-1 inline-block text-xs text-tinta/45 hover:text-rojo">
-              Ver análisis →
-            </Link>
-          </div>
-        </div>
+        <p className="label-cayla text-[11px] text-tinta/65">CAYLA V2 · {persona.ubicacionEtiqueta}</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">Hola, {persona.nombre.split(" ")[0]}</h1>
       </div>
 
-      {alertasReposicion.length > 0 && (
-        <div className="card-cayla p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="label-cayla text-[10px] text-rojo">Reponer pronto</h2>
-            <Link href="/comercial" className="label-cayla text-[9px] text-tinta/40 hover:text-rojo">
-              Sugerencias de compra →
-            </Link>
-          </div>
-          <ul className="space-y-2 text-sm">
-            {alertasReposicion.slice(0, 5).map((v) => (
-              <li key={v.varianteId}>
-                <Link href={`/producto/${v.varianteId}`} className="text-tinta transition-colors hover:text-rojo">
-                  {v.referencia} <span className="text-tinta/40">{[v.talla, v.color].filter(Boolean).join("/")}</span>{" "}
-                  <span className="text-tinta/40">({v.stockTotal} vs. reorden {v.reorderPoint})</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <TarjetaSimple etiqueta="Productos activos" valor={String(totalProductos ?? 0)} />
+        <TarjetaSimple etiqueta="Variantes (SKU)" valor={String(totalVariantes ?? 0)} />
+        <TarjetaSimple etiqueta={`Unidades en ${persona.ubicacionEtiqueta}`} valor={String(unidadesEnUbicacion)} />
+      </div>
 
       <div>
-        <p className="label-cayla mb-3 text-[10px] text-tinta/45">Acciones</p>
-        <div className="grid grid-cols-2 gap-px border border-tinta/10 bg-tinta/10 sm:grid-cols-4">
-          {accionesRapidas.map((a) => (
+        <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
+          {[
+            { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
+            { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a esta ubicación" },
+            { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación" },
+            { href: "/productos", etiqueta: "Productos", detalle: "Catálogo completo" },
+            { href: "/inventario/movimientos", etiqueta: "Movimientos", detalle: "Por qué cambió el stock" },
+          ].map((a) => (
             <Link key={a.href} href={a.href} className="group bg-crema p-5 transition-colors hover:bg-papel">
               <p className="text-sm font-medium text-tinta group-hover:text-rojo">{a.etiqueta}</p>
-              <p className="mt-1 text-xs text-tinta/45">{a.detalle}</p>
+              <p className="mt-1 text-xs text-tinta/65">{a.detalle}</p>
             </Link>
           ))}
         </div>
       </div>
+
+      {movimientosRecientes.length > 0 && (
+        <div>
+          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Actividad reciente</p>
+          <div className="card-cayla divide-y divide-tinta/10">
+            {movimientosRecientes.map((m) => (
+              <div key={m.id} className="flex items-baseline gap-3 px-5 py-2.5">
+                <span className="w-16 shrink-0 text-xs tabular-nums text-tinta/65">{fechaCorta(m.fecha).slice(0, 5)}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-tinta">
+                  <span className="label-cayla text-[11px] text-tinta/65">{ETIQUETA_CATEGORIA[m.categoria]}</span> {m.referencia}{" "}
+                  <span className="text-tinta/65">{m.sku}</span>
+                </span>
+                <span className={`shrink-0 text-sm tabular-nums ${m.delta > 0 ? "text-verde-profundo" : "text-tinta/75"}`}>{textoDelta(m)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TarjetaSimple({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <div className="card-cayla p-5">
+      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
+      <p className="font-display mt-2 text-3xl text-tinta">{valor}</p>
     </div>
   );
 }
