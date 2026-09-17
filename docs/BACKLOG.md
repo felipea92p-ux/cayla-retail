@@ -28,10 +28,46 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 👤 Pendientes de Benja
+## 🔖 Pendientes Benja
 
-Ideas que Felipe aprobó en concepto pero decidió no construir ahora — quedan acá para
-que Benja las tome cuando corresponda, no para que una sesión de IA las improvise sola.
+> Felipe: "recuérdame esto para revisarlo luego con Benja, no lo construyas todavía."
+> Sección aparte a propósito — no es un ítem de 🎯/🩹 más, es una cola visible de
+> "esto necesita una conversación de negocio antes de volverse código". Se lee al
+> abrir sesión junto con el resto de este archivo.
+>
+> **Nota de fusión (2026-09-17):** otra sesión creó en paralelo una sección equivalente
+> ("👤 Pendientes de Benja", mismo concepto, mismo día) — se fusionó acá para no tener
+> dos colas del mismo tipo con nombres distintos (mismo criterio que ya aplicó este
+> archivo antes con secciones duplicadas de auditoría de migraciones).
+
+- [x] ~~Cuarentena — historial y estado de salida de una prenda dañada~~ **construido
+      2026-09-17 (noche)** — Felipe aclaró que lo pendiente era solo la editabilidad,
+      no los 3 estados en sí ("ahora mismo necesito los 3 estados [...] luego vamos por
+      medio de un panel de administrador, poder editar estas decisiones"). Ver
+      `docs/adr/0071-inventario-se-lee-como-cuatro-pantallas.md`, sección "Construcción
+      2026-09-17 (noche)", para el detalle completo. Lo único que sigue pendiente de
+      esa conversación con Benja es el punto de abajo.
+
+- [ ] **Panel de administrador para editar los 3 estados de Cuarentena.** Hoy Liquidada/
+      Se botó/Donada están fijos en un `check` de `retail.prendas_danadas` (migración
+      `20260917100000_cuarentena_prendas_danadas.sql`) — cambiar el vocabulario o agregar
+      un cuarto estado es una migración, no una pantalla. Felipe pidió que esto nazca
+      chico y no se sobrecargue de funciones todavía. Preguntas reales que siguen
+      abiertas (no se decidieron solas): ¿quién más allá de un líder podría necesitar
+      editar estos estados?
+
+- [x] ~~¿"Liquidada" debería registrar una venta real?~~ **Sí — confirmado por Felipe,
+      2026-09-17: "se tiene que tomar en cuenta liquidación como una venta, totalmente".**
+      Construido en `20260917150000_liquidar_prenda_danada_como_venta.sql`: nueva función
+      `liquidar_prenda_danada` (precio + forma de pago, exige caja abierta, sin comprobante
+      por ahora — ver ADR-0071 sección "Corrección 2026-09-17 (más tarde)" para el
+      detalle y lo que queda fuera a propósito).
+
+- [x] ~~`devolver_proveedor` — mismo bug de "desaparece sin dejar rastro" que tenía
+      Dañado~~ **decisión de Felipe, 2026-09-17: no es prioridad.** "Me parece que la
+      manejarán de otra manera [...] si no afecta en nuestra actividad actual ahora mismo,
+      entonces no." Sigue sin tocar — si en algún momento se vuelve relevante, retomar
+      desde `retail.aprobar_devolucion`, rama `devolver_proveedor`.
 
 - [ ] **Reporte de valor en riesgo, cruzando las 3 sedes a la vez (2026-09-17).** Surgió
       al corregir `fn_prioridad_conteo` (ADR-0074, § "Descartado") — esa función sugiere
@@ -279,11 +315,13 @@ rediseñadas sobre los datos que ya existían; "Inventario" es grupo del lateral
 4 como pestañas. Tipos, lint, 282 pruebas y build en verde; recorrido en navegador como
 líder (Lima) y como colaboradora (Trujillo).
 
-- [x] **`20260916200000_numeracion_traslados_conteos.sql` sí está en producción**
-      (verificado 2026-09-17 contra `vovjyyiafkxteijimpuy`, no contra docs:
-      `transferencias.confirmado_por`, `conteos.alcance` y `fn_conteos_resumen`
-      existen. `list_migrations` la muestra pegada con timestamp `20260916231541`
-      — este ítem seguía sin marcar). Este BACKLOG no reflejaba que ya se aplicó.
+- [x] **Aplicar en producción `20260916200000_numeracion_traslados_conteos.sql`** —
+      hecho el 2026-09-16 vía MCP de Supabase (PR #60 ya fusionado), y confirmado de
+      nuevo el 2026-09-17 por otra auditoría independiente: `numero`,
+      `fn_conteos_resumen`, `conteos.alcance` existen en `vovjyyiafkxteijimpuy`
+      (`list_migrations` la muestra pegada con timestamp `20260916231541`). Este
+      checkbox se quedó sin marcar en las dos sesiones hasta ahora — dos veces la
+      misma verificación, misma respuesta.
 - [ ] **Lo que los diseños traían y quedó fuera a propósito:** exportar a CSV/Excel
       (Existencias es trivial: los datos ya están en el cliente, mismo patrón que
       `AjustarInventarioModal` con `descargarCsv`; Movimientos exige una consulta
@@ -294,6 +332,18 @@ líder (Lima) y como colaboradora (Trujillo).
       WhatsApp. Una "solicitud de traslado" desde la sede destino (que la sede origen
       convierte en `iniciar_traslado`) cerraría el ciclo. Es modelo de datos nuevo:
       pedir a Felipe con Ganas/Pagas antes de tocarlo.
+- [x] ~~"Dañado" (2026-09-17) — decidido: Opción A, sin construir todavía~~
+      **construido 2026-09-17 (noche).** `cuarentena` como tercer tipo de
+      sububicación; `aprobar_devolucion` mueve ahí las condiciones
+      `danada_reparacion`/`danada_donar` en vez de hacerlas desaparecer; tabla
+      `retail.prendas_danadas` + RPC `resolver_prenda_danada` (solo líder) resuelven
+      cada una como Liquidada/Se botó/Donada; Existencias reemplazó la tarjeta "Piden
+      atención" por "Dañado". El ajuste "Merma" de `AjustarInventarioModal` NO se
+      tocó — ya tenía su propio movimiento auditable, es un mecanismo distinto. Ver
+      ADR-0071, sección "Construcción 2026-09-17 (noche)", para el detalle completo
+      y lo que quedó explícitamente fuera de esta pasada (panel de administrador
+      para editar los 3 estados; si "Liquidada" debería ser una venta real) — ambos
+      en "🔖 Pendientes Benja" más arriba.
 
 ---
 

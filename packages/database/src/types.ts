@@ -1440,6 +1440,87 @@ export type Database = {
           },
         ]
       }
+      prendas_danadas: {
+        Row: {
+          cantidad: number
+          created_at: string
+          devolucion_item_id: string
+          estado: string
+          id: string
+          movimiento_entrada_id: string
+          movimiento_salida_id: string | null
+          nota: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          devolucion_item_id: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          devolucion_item_id?: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id?: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prendas_danadas_devolucion_item_id_fkey"
+            columns: ["devolucion_item_id"]
+            isOneToOne: true
+            referencedRelation: "devolucion_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_entrada_id_fkey"
+            columns: ["movimiento_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_salida_id_fkey"
+            columns: ["movimiento_salida_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produccion_lineas: {
         Row: {
           cantidad_buenas: number | null
@@ -3073,6 +3154,15 @@ export type Database = {
         }
         Returns: string
       }
+      liquidar_prenda_danada: {
+        Args: {
+          p_id: string
+          p_metodo_pago: string
+          p_nota?: string
+          p_precio_unitario: number
+        }
+        Returns: string
+      }
       listar_compras: {
         Args: {
           p_busqueda?: string
@@ -3309,6 +3399,10 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: string
+      }
+      resolver_prenda_danada: {
+        Args: { p_estado: string; p_id: string; p_nota?: string }
+        Returns: undefined
       }
       resumen_compras: {
         Args: never
