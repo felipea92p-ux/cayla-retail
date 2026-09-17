@@ -10,7 +10,7 @@ import { subirMuestraColor } from "@/lib/colores-muestra";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
- * (V1) tras ADR-0035: V2 ya tiene el candado real (`colores_clave_unica`) y
+ * (V1) tras ADR-0072: V2 ya tiene el candado real (`colores_clave_unica`) y
  * los 30 colores de CAYLA en la base, pero hasta ahora ninguna pantalla
  * dejaba agregar uno nuevo a mano.
  *

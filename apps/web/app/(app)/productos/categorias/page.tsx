@@ -5,7 +5,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
-// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0035: familia+prefijo
+// Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0072: familia+prefijo
 // ya viven en `retail.categorias`, esta es la pantalla que le faltaba.
 export default async function CategoriasPage() {
   const persona = await requirePersonaActualV2();

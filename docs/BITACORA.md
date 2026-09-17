@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
+
+Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
+reales ya detectados con ese número) encontró dos problemas más, verificados con
+`git log --all` antes de tocar nada: (1) 4 citas en `docs/datos/` a un ADR de "la IA
+compila el mapeo" que no existía en el árbol — nació 0031, pasó a 0035 el 11-sep, y el
+corte V1→V2 (`0af2f1b`, 12-sep) lo borró completo junto con todo el importador; recuperado
+del historial y restaurado como **ADR-0073**, con nota de restauración; (2) 3 citas
+(BITACORA y ADR-0045) que atribuían el corte V1→V2 mismo a "ADR-0035", como si el corte
+tuviera su propio ADR — no lo tiene, se quitó el número y quedó solo el hash del commit.
+De paso, el vocabulario cerrado (que compartía 0035 con la factura de compra) pasó a
+**ADR-0072**. Aprendizaje: no asumir un número de ADR por contexto ("debe ser el 0030
+porque ahí está lo relacionado") sin `git log --all` — el archivo puede haber existido de
+verdad y haberse borrado en otro commit, que es exactamente lo que pasó acá.
+
 ## 2026-09-16 (Vender, Devoluciones y Anular muestran el código de etiqueta, no un sku vacío)
 
 La línea del ticket, los avisos de stock, el buscador de Vender, Devoluciones y Anular venta pintaban `sku`, vacío en las prendas del censo; ahora usan `codigoPrenda`, que sale de Cambios a `lib/prenda-reglas.ts` (lo comparten 4 flujos), y un ticket en espera guardado sin `codigo` lo recupera del catálogo al retomarlo (`conCodigoDelCatalogo`, con prueba). Probado en navegador contra la base local con una prenda sin sku creada para eso ("Blusa verificación código", queda en local). Aprendizaje: lo que se guarda en el navegador de la caja es un esquema más — cambiar su forma pide decidir qué pasa con lo ya guardado.
@@ -1627,7 +1642,7 @@ la cola offline que V2 perdió respecto de V1 y el "control total temporal" sin 
 Felipe pidió retomar el trabajo local en Vender/Caja (POS) y verificar el entorno antes
 de tocar código (rama `claude/local-pos-setup-2bab48`, sin commits propios todavía). La
 auditoría de apertura de sesión (BACKLOG.md + BITACORA.md) mostró un hallazgo que cambia
-cómo leer ambos documentos: el corte V1→V2 (`0af2f1b`, 2026-09-12, ADR-0035) borró
+cómo leer ambos documentos: el corte V1→V2 (`0af2f1b`, 2026-09-12) borró
 Finanzas, Producción y buena parte de Inventario V1 — así que casi todo lo que
 BACKLOG.md describe en detalle (Facturación con Lucode/SUNAT, EERR, Producción del
 Taller) es sobre un V1 que ya no está en el código; solo la entrada de BITÁCORA del
