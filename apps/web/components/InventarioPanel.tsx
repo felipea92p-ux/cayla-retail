@@ -11,6 +11,7 @@ import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { resumenRed } from "@/lib/stock-por-sede";
+import { descargarCsv } from "@/lib/exportar-csv";
 import { ACCION_ESTADO_STOCK, ETIQUETA_ESTADO_STOCK, UMBRAL_REPOSICION_PISO, type EstadoStock } from "@/lib/inventario-reglas";
 import type { FilaExistencias, ResumenExistencias } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -118,6 +119,31 @@ export function InventarioPanel({
   const separa = resumen.separaPisoAlmacen;
   const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
+
+  // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
+  // `filtradas` (mismo array que pinta la tabla), así que si ya filtró por
+  // categoría/talla/color/estado antes de exportar, el CSV trae eso y no de
+  // más. Columnas Piso/Almacén/Estado solo si esta ubicación las separa
+  // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
+  // en cada fila sería ruido, no dato (mismo criterio que ya usa la tabla).
+  function exportarCsv() {
+    const encabezados = ["Prenda", "SKU", "Talla", "Color", "Categoría"];
+    if (separa) encabezados.push("Piso", "Almacén");
+    encabezados.push("Disponible");
+    if (separa) encabezados.push("Estado");
+    encabezados.push("En camino", "En la red");
+
+    const filas = filtradas.map((f) => {
+      const fila: (string | number)[] = [f.referencia, f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"];
+      if (separa) fila.push(f.piso ?? "—", f.almacen ?? "—");
+      fila.push(f.total);
+      if (separa) fila.push(f.estado ? ETIQUETA_ESTADO_STOCK[f.estado] : "—");
+      fila.push(f.enTransito, resumenRed(f.enRed)?.detalle ?? "—");
+      return fila;
+    });
+
+    descargarCsv(`existencias_${new Date().toISOString().slice(0, 10)}.csv`, encabezados, filas);
+  }
 
   // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
   // (que habilita min-width automático 0 en la pista), una ventana angosta
@@ -346,8 +372,17 @@ export function InventarioPanel({
             );
           })}
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-xs text-tinta/55">
-            <span>
-              Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
+            <span className="flex flex-wrap items-center gap-3">
+              <span>
+                Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
+              </span>
+              <button
+                type="button"
+                onClick={exportarCsv}
+                className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+              >
+                Exportar CSV
+              </button>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
