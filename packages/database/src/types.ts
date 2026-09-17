@@ -2602,6 +2602,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
