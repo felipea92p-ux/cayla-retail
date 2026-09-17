@@ -1,5 +1,5 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getConteoAbierto, getConteosCerradosRecientes } from "@/lib/conteos";
+import { getConteoAbierto, getConteosCerradosRecientes, getPrioridadConteo } from "@/lib/conteos";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { ConteoPanel } from "@/components/ConteoPanel";
@@ -13,11 +13,12 @@ import { ConteoPanel } from "@/components/ConteoPanel";
 // que antes, cuando la ubicación no los usa (Taller).
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
-  const [conteoAbierto, cerrados, catalogo, sububicaciones] = await Promise.all([
+  const [conteoAbierto, cerrados, catalogo, sububicaciones, sugerencias] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosCerradosRecientes(persona.ubicacionId),
     getCatalogo(),
     getSububicaciones(persona.ubicacionId),
+    getPrioridadConteo(persona.ubicacionId),
   ]);
 
   return (
@@ -33,6 +34,7 @@ export default async function ConteoPage() {
         esLider={persona.rol === "lider"}
         conteoAbierto={conteoAbierto}
         sububicaciones={sububicaciones}
+        sugerencias={sugerencias}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({

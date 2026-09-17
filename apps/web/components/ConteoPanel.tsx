@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib/conteo-varianza";
-import type { ConteoAbierto } from "@/lib/conteos";
+import type { ConteoAbierto, SugerenciaConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 
@@ -31,12 +31,14 @@ export function ConteoPanel({
   conteoAbierto,
   catalogo,
   sububicaciones,
+  sugerencias,
 }: {
   ubicacionId: string;
   esLider: boolean;
   conteoAbierto: ConteoAbierto | null;
   catalogo: VarianteConteo[];
   sububicaciones: Sububicacion[];
+  sugerencias: SugerenciaConteo[];
 }) {
   const router = useRouter();
   const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
@@ -97,17 +99,19 @@ export function ConteoPanel({
     );
   }
 
-  return <ConteoEnCurso conteo={conteoAbierto} catalogo={catalogo} esLider={esLider} />;
+  return <ConteoEnCurso conteo={conteoAbierto} catalogo={catalogo} esLider={esLider} sugerencias={sugerencias} />;
 }
 
 function ConteoEnCurso({
   conteo,
   catalogo,
   esLider,
+  sugerencias,
 }: {
   conteo: ConteoAbierto;
   catalogo: VarianteConteo[];
   esLider: boolean;
+  sugerencias: SugerenciaConteo[];
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -129,6 +133,18 @@ function ConteoEnCurso({
   // elegir de una lista — es el camino rápido que pide un conteo real con
   // pistola. Buscar por texto parcial de SKU sigue mostrando opciones.
   const yaContadas = new Set(conteo.items.map((i) => i.varianteId));
+
+  // Top 5 por plata en riesgo (stock actual × precio), no por lo que más se
+  // vende — una prenda cara de baja rotación puede pasar meses sin que
+  // nadie la cuente, y ese descuadre pesa en plata, no en unidades.
+  const sugerenciasParaMostrar = sugerencias
+    .filter((s) => !yaContadas.has(s.varianteId))
+    .map((s) => {
+      const variante = catalogo.find((v) => v.varianteId === s.varianteId);
+      return variante ? { variante, sugerencia: s } : null;
+    })
+    .filter((x): x is { variante: VarianteConteo; sugerencia: SugerenciaConteo } => x !== null)
+    .slice(0, 5);
 
   async function registrarConteo(e: React.FormEvent) {
     e.preventDefault();
@@ -168,6 +184,28 @@ function ConteoEnCurso({
 
         {!seleccionada ? (
           <div className="mt-3">
+            {sugerenciasParaMostrar.length > 0 && (
+              <div className="mb-3 space-y-1">
+                <p className="label-cayla text-[11px] text-tinta/65">Sugerido para contar (mayor plata en riesgo)</p>
+                {sugerenciasParaMostrar.map(({ variante, sugerencia }) => (
+                  <button
+                    key={variante.varianteId}
+                    type="button"
+                    onClick={() => setSeleccionada(variante)}
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm hover:bg-sand/50"
+                  >
+                    <span>
+                      {variante.referencia}{" "}
+                      <span className="text-tinta/65">{[variante.talla, variante.color].filter(Boolean).join("/")}</span>
+                    </span>
+                    <span className="text-[11px] text-tinta/65">
+                      {sugerencia.diasSinContar === null ? "nunca contada" : `${sugerencia.diasSinContar}d sin contar`} ·{" "}
+                      {money(sugerencia.valorEnRiesgo)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               autoFocus
               type="text"

@@ -124,3 +124,30 @@ export async function getPrevisualizacionCierre(conteoId: string): Promise<FilaP
     "la vista previa del cierre"
   );
 }
+
+export type SugerenciaConteo = {
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  diasSinContar: number | null;
+  valorEnRiesgo: number;
+};
+
+export async function getPrioridadConteo(ubicacionId: string): Promise<SugerenciaConteo[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase.rpc("fn_prioridad_conteo", { p_ubicacion_id: ubicacionId }),
+    "la prioridad de conteo"
+  );
+  return filas.map((f) => ({
+    varianteId: f.variante_id,
+    sku: f.sku,
+    referencia: f.referencia,
+    talla: f.talla,
+    color: f.color,
+    diasSinContar: f.dias_sin_contar,
+    valorEnRiesgo: Number(f.valor_en_riesgo),
+  }));
+}

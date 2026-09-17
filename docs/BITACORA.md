@@ -4191,3 +4191,29 @@ una hija, ajustando estado en el render (no en un efecto: mismo patrón que ya e
 linter del repo). Verificado en navegador como Felipe (líder, ve Facturación) y como
 Micaela (colaboradora, no la ve); `tsc`/`eslint`/239 tests en verde. Solo `AppShell.tsx`
 — sin esquema, sin rutas nuevas, mobile y "+Nuevo" sin tocar.
+
+## 2026-09-17 (prioridad de conteo por valor en riesgo — ADR-0058)
+
+Felipe compartió un documento externo ("Tareas en Paralelo") con 5 tareas para lanzar en
+sesiones paralelas más una afirmación de que el conteo físico ya priorizaba por plata en
+riesgo, commit `1b69160`. Verificado contra el repo real, no contra el documento: ese
+commit no existe en ningún lado del historial (`git log --all`, 695 commits, todas las
+ramas); la única `fn_prioridad_conteo` real (rama `traslados-costeo-reorden-conteo`, no
+fusionada) sigue ordenando por `ventas_30d desc` — unidades, el mismo bug que el
+documento decía resuelto. De paso salió el hallazgo mayor: ~85 commits reales en esa
+rama y ~78 en `claude/venta-consolidado-20260916` (traslados en dos fases, `anular_venta`
+con ADR-0063, conteo con cadencia), ninguna fusionada a `main` — reportado a Felipe,
+pendiente su decisión sobre cuándo fusionar.
+
+Escrita `retail.fn_prioridad_conteo` de cero en `main` (no existía ahí ninguna versión,
+ni buena ni mala): ordena por `stock.cantidad × variantes.precio` ("valor en riesgo"),
+cobertura primero (nunca contado, `nulls first`). Sin `p_alcance_categoria_id` — no es
+parte de lo que se pidió y no hay un segundo uso real todavía. Integrado en
+`ConteoPanel.tsx`: sección "Sugerido para contar" arriba del buscador, top 5, excluye lo
+ya contado en el conteo abierto, tocar una sugerencia selecciona la variante igual que un
+resultado de búsqueda. Verificado en navegador como Micaela (colaboradora, Tienda
+Trujillo): la sugerencia mostró Casaca Luciana (S/799.50, nunca contada) antes que
+cualquier básico, contar 3 unidades la sacó de la lista y subió la siguiente por valor.
+`tsc`/`eslint`/239 tests en verde; `supabase db reset` aplica la migración limpia. Solo
+`fn_prioridad_conteo` (función nueva, sin tocar esquema), `lib/conteos.ts`,
+`ConteoPanel.tsx`, `inventario/conteo/page.tsx`.

@@ -2463,6 +2463,19 @@ export type Database = {
           ubicacion_tipo: string
         }[]
       }
+      fn_prioridad_conteo: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cantidad_stock: number
+          color: string
+          dias_sin_contar: number
+          referencia: string
+          sku: string
+          talla: string
+          valor_en_riesgo: number
+          variante_id: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
