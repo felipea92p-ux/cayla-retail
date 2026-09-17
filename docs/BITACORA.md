@@ -3,6 +3,24 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (falsa alarma corregida: funciones-produccion.txt estaba 2 días vieja, no producción)
+
+Al cerrar el candado de Compras refresqué `retail_policies.json` pero no
+`funciones-produccion.txt` (última vez: 2026-09-15) y corrí `pnpm
+datos:comparar` igual — dio "18 pantallas rotas" (traslados en dos fases,
+producción del Taller, conteos, `anular_venta`, `actualizar_categoria`).
+Alarma real: 3 traslados quedaron `en_transito` hoy 16:36-16:39, sin forma
+aparente de cerrarse. Antes de avisarle a Felipe verifiqué las 18 contra
+`pg_proc` en vivo (no contra el diccionario) — **las 18 ya existen en
+producción**, con la firma que la pantalla espera; el archivo solo no se
+había refrescado desde el 15. Los 3 traslados en tránsito son estado normal
+del flujo (`confirmar_traslado`/`cerrar_traslado_con_diferencia` funcionan),
+no mercadería atascada. `funciones-produccion.txt` reescrito completo desde
+`pg_proc` en vivo (110 funciones); `datos:comparar` ahora sale limpio.
+Aprendizaje: los mismos 6+1 archivos de `docs/datos/generado/` se refrescan
+juntos — tocar uno y dejar el resto viejo es la forma exacta en que este
+sistema ya se rompió antes (ver `docs/datos/generado/COMO-REFRESCAR.md`).
+
 ## 2026-09-17 (Compras: candado de sede aplicado en producción)
 
 Felipe pegó `20260917173000_compras_candado_de_sede.sql` en el SQL Editor de
