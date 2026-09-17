@@ -376,10 +376,11 @@ huecos son de alcance, no de correctitud.
       intencional (se mueve después por separado vía `/inventario/mover`), vale
       confirmarlo con Felipe si alguna vez pesa en la operación real.
 - [ ] **Sin pruebas automatizadas** para `recibir_compras`/`recibir_lote` (`scripts/pruebas/`
-      solo tiene `registrar_cambio.mjs` y `aprobar_devolucion_caja.mjs`) — mismo patrón de
-      deuda que ya tienen `registrar_venta`/`iniciar_traslado`/`cerrar_caja` (ver sección
-      "Cambios: primeras pruebas automatizadas" más abajo), todavía no le tocó el turno a
-      este RPC.
+      tiene `registrar_cambio.mjs`, `aprobar_devolucion_caja.mjs` y, desde 2026-09-17,
+      `registrar_venta.mjs`) — mismo patrón de deuda que todavía tienen
+      `iniciar_traslado`/`cerrar_caja` (ver sección "Ventas: primeras pruebas
+      automatizadas de `registrar_venta`" más abajo), todavía no le tocó el turno a este
+      RPC.
 - [ ] **D-45 (`docs/datos/DECISIONES-2026-09-12.md:275`, costeo del inventario) sigue
       listada como abierta pese a que ya se resolvió en código** (promedio ponderado,
       `20260916090000_costo_promedio_ponderado.sql`, confirmado en producción hoy) — el
@@ -686,6 +687,46 @@ reembolso en efectivo queda con `caja_id = null` — invisible para siempre en c
 
 ---
 
+## 🎯 Ventas: primeras pruebas automatizadas de `registrar_venta` (2026-09-17)
+
+`registrar_venta` (0003_funciones.sql, hoy 11 parámetros tras 8 migraciones encima —
+0008_caja_y_pagos, 0011_venta_con_comprobante, candado_precio_venta, codigos_descuento,
+nota_en_ventas, inventario_piso_almacen y 20260915140000_descuento_motivo_y_escalonado)
+es la función más tocada del repo — cada venta real de las 3 tiendas pasa por ahí — y
+tenía cero pruebas automatizadas, mismo hueco que ya cerró `registrar_cambio` (sección de
+abajo, ADR-0066). Firma y cuerpo leídos en vivo con `pg_get_functiondef` contra el
+Postgres local, no desde `docs/datos/generado/RPCS.md` (describe la V1 de 4 parámetros —
+desactualizado).
+
+- [x] **`scripts/pruebas/registrar_venta.mjs`** — 22 escenarios contra el Postgres local
+      real, mismo patrón que `registrar_cambio.mjs` (transacción con `ROLLBACK`,
+      `set local request.jwt.claim.sub`, sin JWT/PostgREST). Cubre: venta simple (stock
+      correcto en la sede correcta), el candado de sede (`fn_puede_operar_ubicacion`,
+      Micaela no puede vender en Lima), caja/carrito/pagos/comprobante inválido, precio
+      cambiado vs. catálogo (ADR-0048), variante inexistente, stock insuficiente (nunca
+      negativo), idempotencia por `p_token`, y las 10 ramas de descuento de R-45
+      (20260915140000): motivo obligatorio, "otro" sin detalle, nunca bajo costo, el
+      escalonado 20 %/35 % del Líder con y sin argumento, y el tope por código de una
+      Colaboradora (código ausente/inválido/insuficiente/dentro de tope). Corre con
+      `pnpm pruebas:registrar-venta` — necesita el stack local, no corre desde
+      `pnpm test`/CI (ADR-0066). Verificado: 22/22 en verde, dos corridas seguidas sin
+      dejar rastro (conteo de `ventas`/`venta_items`/`movimientos`/stock de la variante
+      de prueba idéntico antes/después), y el camino de falla probado a propósito (una
+      aserción invertida a mano, confirmó ✗ + exit 1, revertida).
+- [ ] **La consigna original pedía probar "una variante restringida a otra sede" — ese
+      candado no existe en el código hoy** (verificado por grep en
+      `supabase/migrations/*.sql`: cero columnas/tablas de restricción de variante por
+      sede). El único candado de sede real es de PERSONA (`fn_puede_operar_ubicacion`,
+      ya cubierto arriba). Si Felipe quiere restringir una variante puntual a una sede
+      (ej. una prenda exclusiva de Lima), es modelo de datos nuevo — no construido, no
+      pedido explícitamente todavía.
+
+Igual que `registrar_cambio`: sigue sin engancharse a CI (no hay pipeline en este repo
+todavía) y el mismo patrón sigue pendiente para `crear_devolucion`/`cerrar_caja`/
+`iniciar_traslado`/`mover_interno`.
+
+---
+
 ## 🎯 Cambios: primeras pruebas automatizadas de `registrar_cambio` (2026-09-16)
 
 `registrar_cambio` (0007_cambios.sql + ADR-0053) tenía cero pruebas automatizadas — cada
@@ -718,10 +759,12 @@ ADR-0066 (nuevo).
       clasificador de auto mode ("Modify Shared Resources", correcto: es una escritura
       persistente sobre un recurso de ~27 worktrees). Felipe decide si lo corre.
 - [ ] **El mismo patrón (ADR-0066) falta para el resto de RPC de escritura** —
-      `registrar_venta`, `crear_devolucion`, `cerrar_caja`, `iniciar_traslado`,
-      `mover_interno`… ninguna tiene pruebas automatizadas todavía. No es urgente, es el
-      precedente a copiar cuando alguien las toque. (Nota al fusionar: `transferir` ya no
-      existe — lo reemplazó `iniciar_traslado`/`confirmar_traslado`, ADR-0068.)
+      `crear_devolucion`, `cerrar_caja`, `iniciar_traslado`, `mover_interno`… ninguna
+      tiene pruebas automatizadas todavía (`registrar_venta` ya se cerró, 2026-09-17 —
+      ver sección "Ventas: primeras pruebas automatizadas de `registrar_venta`" más
+      arriba). No es urgente, es el precedente a copiar cuando alguien las toque. (Nota
+      al fusionar: `transferir` ya no existe — lo reemplazó
+      `iniciar_traslado`/`confirmar_traslado`, ADR-0068.)
 
 ---
 
@@ -745,8 +788,24 @@ mano, confirmó ✗ + exit 1, revertida).
       cerrar_caja"). Esos tres términos ya se verificaron a mano en sus propias sesiones;
       quien los quiera automatizados arranca de `scripts/caja/verificar.sql` (mismo patrón
       de identidades simuladas con `request.jwt.claim.sub`).
-- [ ] **No está enganchado a CI** — no existe pipeline de CI en este repo todavía. Corre
-      manual, `pnpm caja:verificar`, contra el Postgres local (`docker exec`).
+- [x] **Corrección (2026-09-17): la frase de abajo ("no existe pipeline de CI en este
+      repo todavía") estaba mal — sí existe.** `.github/workflows/ci.yml` corre desde el
+      2026-09-09 (typecheck/lint/`pnpm test` en cada push a `main` y cada PR — ver su
+      propia cabecera y ADR-0026). Verificado contra el archivo real, no contra este
+      documento.
+- [x] **Revisitado con Felipe (2026-09-17): sí es momento — job piloto agregado a
+      `ci.yml`.** `pruebas-postgres` levanta Postgres real (`npx supabase start`, con el
+      stub de Dynamic copiado primero — CONTRIBUTING.md §1) y corre `caja:verificar` +
+      `pruebas:registrar-cambio`/`aprobar-devolucion-caja`/`registrar-venta` contra él, en
+      cada push a `main` y cada PR. Lleva `continue-on-error: true` a propósito: ninguna
+      corrida real todavía lo vio funcionar en un runner de GitHub Actions (solo en el
+      Postgres local de cada quien), así que no bloquea nada mientras se confirma —
+      mismo criterio que ADR-0026 para lo incierto. `migraciones:verificar` se dejó
+      afuera a propósito (informa, nunca falla — ADR-0026, mezclarlo es otra decisión).
+- [ ] **Pendiente: verlo correr de verdad.** Esta sesión no pusheó — hace falta un push a
+      esta rama (o el merge) para que GitHub Actions lo corra por primera vez. Con 2-3
+      corridas verdes reales, sacar el `continue-on-error` de `.github/workflows/ci.yml`
+      convierte el piloto en gate real.
 
 ---
 
