@@ -15,9 +15,14 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| _(ejemplo, bórralo al agregar el primero real)_ Felipe | `claude/happy-ptolemy-dcb2c5` | Documento "El Método CAYLA" | 2026-09-17 |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0076) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — migración local + RPCs (ADR-0074, bloqueada para producción, ver addendum) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0077) | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 4: exportar CSV en `InventarioPanel.tsx` | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 5: prueba `scripts/pruebas/fn_aplicar_movimiento.mjs` | 2026-09-17 |
+| Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 6: ADR de la unificación retail↔dynamic (ADR-0075) | 2026-09-17 |

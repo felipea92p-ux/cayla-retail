@@ -5294,3 +5294,47 @@ documentos (BACKLOG, doc de módulo, este). Recomendación dada a Felipe en el c
 decidir por él: PDF a la clienta primero (barato), después decidir qué hacer con los
 `pendiente` huérfanos (pregunta de negocio), después Nota de Crédito real para
 devoluciones (mayor esfuerzo, mayor exposición legal si se sigue postergando).
+
+## 2026-09-17 (Doce Tareas Más, Lote B: las 6 tareas del segundo compañero, en paralelo)
+
+Felipe pidió aplicar las 6 tareas de "Lote B" (validadas contra el código real en la
+sesión anterior el mismo día) usando agentes en paralelo. Antes de lanzar nada: registro
+en SESIONES-ACTIVAS.md, ADR 0074-0077 reservados a mano (el incidente de colisión de
+numeración de ayer, 2026-09-16, está documentado en la cabecera de ese mismo archivo —
+no se repitió). Solo una pausa real: la Tarea 3 toca SUNAT/dinero real, así que la
+decisión de producto ("liberar sin espera" vs. con plazo de 48h vs. no liberar) se le
+preguntó a Felipe antes de tocar código — eligió "sin espera".
+
+**Tandas, no todo junto:** 4 tareas en paralelo primero (1, 2, 4, 6 — ninguna toca
+Postgres salvo la 2, que iba sola en esa tanda), después la 3 sola, después la 5 sola —
+por `docs/adr/0066-*.md`: el Postgres local lo comparten ~27 worktrees, y dos agentes
+escribiendo ahí al mismo tiempo es exactamente el tipo de colisión que ya pasó antes.
+Cada agente verificó lo suyo con transacciones `psql`+`ROLLBACK` (patrón de ADR-0066),
+nunca `db reset`. Las 6 quedaron sin commitear y sin tocar BACKLOG/BITACORA/
+SESIONES-ACTIVAS — eso se centralizó al final, revisando cada diff antes de commitear.
+
+**Lo que quedó, tarea por tarea:** (1) `CerrarCajaModalV2`/`CajaAbiertaPanel.tsx` avisan
+y bloquean el cierre de caja si hay efectivo offline sin subir — ADR-0076; el agente
+encontró un segundo punto de montaje del modal (`CajaAbiertaPanel.tsx`) que no estaba en
+el encargo original y lo arregló ahí también, no solo en Vender. (2) Inventario de
+insumos del Taller — ADR-0074, migración local nueva — **pero con un hallazgo serio al
+cerrar el día**: ya existe en producción un esquema huérfano y más completo
+(`retail.insumos`/`insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos`, 0 filas, del
+volcado de unificación de julio, con seguimiento por lote) que nadie sabía que existía —
+choca de nombre con la migración nueva, así que ésta NO se puede pegar en producción tal
+cual. Queda como decisión de Felipe (ADR-0074, Addendum), no se resolvió sola. (3)
+`retail.marcar_comprobante_no_emitido` — ADR-0077 — libera un comprobante `pendiente`
+sin tocar SUNAT; el agente encontró que el Postgres local estaba 10 migraciones atrás
+(`20260916*` nunca aplicadas) y las sincronizó con cuidado antes de aplicar la propia.
+(4) Botón "Exportar CSV" en Existencias, conectando `descargarCsv` que ya existía. (5)
+`scripts/pruebas/fn_aplicar_movimiento.mjs`, 11 escenarios incluida una prueba de
+concurrencia real con dos procesos `docker exec` en paralelo — sin bugs encontrados en
+la función. (6) ADR-0075 sobre la unificación retail↔dynamic — de paso encontró 3 tablas
+huérfanas más (`sede_meta` real vs. `retail_sede_meta` con guion, trampa de nombre;
+`sede_datos_fiscales`; `configuracion_empresa`) que tampoco están en el repo.
+
+**Migraciones en este cierre:** `20260917124059_materia_prima_taller.sql` y
+`20260917130050_comprobante_no_emitido.sql` — **ninguna de las dos está en producción**,
+y la primera además está bloqueada por la decisión pendiente del punto (2). Verificación
+en navegador: no se hizo en esta sesión (ningún agente tenía `apps/web/.env.local`
+configurado en este worktree) — pendiente antes de dar por buena la parte visual.
