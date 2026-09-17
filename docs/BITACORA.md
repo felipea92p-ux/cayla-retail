@@ -5628,6 +5628,37 @@ puntual a D-11, "solo Felipe pega SQL en producción"), se aplicaron en producci
 `retail.registrar_consumo_insumo` (ADR-0078) y `retail.marcar_comprobante_no_emitido`
 (ADR-0081) — detalle de esa parte en la entrada que sigue.
 
+## 2026-09-17 (Despliegue en producción: registrar_consumo_insumo y marcar_comprobante_no_emitido)
+
+Con el PR #96 abierto (`claude/validar-tareas-sistema-89d271` → `main`) y el ok explícito
+de Felipe para esta excepción puntual a D-11, se pegaron en producción
+(`vovjyyiafkxteijimpuy`) las 2 únicas migraciones nuevas de hoy que de verdad hacían
+falta allá — ninguna otra: el espejo del esquema huérfano de insumos
+(`20260917140000_insumos_taller_reconstruido.sql`) nunca se toca, esos objetos ya
+existían.
+
+Antes de pegar cada una, se reverificó contra la base real (nunca contra lo que decían
+los ADR/BACKLOG de esta misma tarde): `registrar_consumo_insumo`/
+`marcar_comprobante_no_emitido` no existían todavía (confirmado con
+`information_schema.routines`), y los nombres de `comprobantes_estado_check`/
+`comprobantes_transmitido_tiene_entorno` coincidían exactamente con los del local (la
+duda que había quedado anotada en ADR-0081 "Se rompe si" — no hizo falta ningún ajuste).
+Ambas migraciones ya traían `set search_path`/prefijo `retail.` explícito desde que se
+escribieron esta tarde, así que se pegaron tal cual, sin adaptar nada.
+
+Verificado después de cada una: `security_type = DEFINER` y `proacl` sin entrada para
+`public` en las dos (`marcar_comprobante_no_emitido` nunca tuvo ese problema — la base
+de producción, a diferencia del Postgres local de desarrollo, ya revoca `EXECUTE` de
+`PUBLIC` por default en funciones nuevas). `get_advisors` (seguridad) solo devolvió el
+aviso genérico esperado para cualquier RPC `security definer` expuesta a `authenticated`
+— el mismo que ya generan ~50 funciones más de este repo, no un hallazgo nuevo.
+
+Quedó actualizado BACKLOG.md (los dos ítems, marcados `[x]`) y los dos ADR (0078, 0081).
+Pendiente: regenerar `docs/datos/generado/` (`pnpm datos:generar:produccion`) para que
+el diccionario refleje esto, y la verificación visual en navegador de los 3 cambios de
+UI de hoy (caja offline, liberar comprobante, exportar CSV) — ningún worktree de hoy
+tenía `apps/web/.env.local` configurado.
+
 ## 2026-09-17 (Colores: verificación en navegador de RLS proponer/aprobar, ADR-0070)
 
 Cerró el punto que había quedado abierto en ADR-0070/BACKLOG desde el 16-sep: la

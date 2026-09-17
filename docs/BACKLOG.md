@@ -246,8 +246,8 @@ huecos son de alcance, no de correctitud.
       ningún movimiento ni ajuste de deuda con el proveedor — la fila queda marcada y ahí
       termina. Conecta directo con el punto anterior: mercadería dañada no tiene cómo
       salir del sistema hacia el proveedor ni descontarse de lo que se le debe.
-- [ ] **Insumos/materia prima del Taller: dominio fantasma — RESUELTO 2026-09-17
-      (ADR-0078), pendiente aplicar en producción.** `retail.insumos`/`insumo_lotes`/
+- [x] **Insumos/materia prima del Taller: dominio fantasma — RESUELTO 2026-09-17
+      (ADR-0078), aplicado en producción.** `retail.insumos`/`insumo_lotes`/
       `movimientos_insumo`/`v_insumo_saldos` (+ `recibir_insumo`/
       `ajustar_insumo_por_conteo`, YA funcionando) son huérfanas del volcado de
       unificación (jul-2026), 0 filas, sin conectar. Primer intento del día construyó un
@@ -259,10 +259,10 @@ huecos son de alcance, no de correctitud.
       (elige el lote más antiguo con saldo, sin partir entre lotes; recalcula
       `costo_tela`/`costo_avios` real). **Local:** `20260917140000_insumos_taller_reconstruido.sql`
       (espejo, ya en `main`) + `20260917141500_registrar_consumo_insumo.sql` (la pieza
-      nueva) — verificados end-to-end. **Solo falta pegar la segunda en producción**
-      (con el prefijo `retail.`, cuando Felipe decida) — la primera ya existe allá, no
-      se toca. Fuera de alcance a propósito: `compra_items.producto_id` sigue sin poder
-      recibir tela/avíos contra una factura por `/compras/recibir`, y
+      nueva). **`registrar_consumo_insumo` pegada en producción el 2026-09-17** (ok
+      explícito de Felipe, excepción puntual a D-11) — confirmado `security_type=DEFINER`
+      y `proacl` sin `public`. Fuera de alcance a propósito: `compra_items.producto_id`
+      sigue sin poder recibir tela/avíos contra una factura por `/compras/recibir`, y
       `NuevaOrdenProduccionForm.tsx` sigue sin conectar al nuevo stock.
 - [ ] **Etiquetado físico (código de barras) al recibir no existe hoy.**
       `EtiquetasGenerator.tsx` ya no está en el árbol; quedan huérfanos `Codigo128.tsx`/
@@ -2427,8 +2427,8 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       levantar el estado del modal "emitir" a un componente cliente que envuelva a
       los dos paneles hermanos (hoy conviven sueltos en `facturacion/page.tsx`).
 
-- [ ] **Correlativo reservado que nunca se transmitió — mecanismo RESUELTO 2026-09-17
-      (ADR-0081), pendiente aplicar en producción.** `emitir_comprobante` reserva el
+- [x] **Correlativo reservado que nunca se transmitió — mecanismo RESUELTO 2026-09-17
+      (ADR-0081), aplicado en producción.** `emitir_comprobante` reserva el
       número oficial ante SUNAT en el mismo instante en que se guarda el comprobante —
       antes de transmitir. Si nadie aprieta "Transmitir" después, ese número quedaba
       `estado='pendiente'` para siempre sin salida. Felipe decidió "liberar sin espera":
@@ -2437,12 +2437,12 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       se reutiliza) y un botón "Liberar sin espera" en `ComprobantesPanel.tsx`, junto a
       "Transmitir" cuando `estado='pendiente'` (`rechazado` queda afuera a propósito: ya
       se transmitió, su única salida sigue siendo reintentar). **Migración
-      `20260917130050_comprobante_no_emitido.sql`, SOLO LOCAL** — falta que Felipe la
-      pegue en producción (revisar primero el nombre real de
-      `comprobantes_estado_check`/`comprobantes_transmitido_tiene_entorno` allá, puede
-      diferir del local, ver ADR-0081 "Se rompe si"). Los 2 casos reales de producción de
-      abajo siguen sin liberarse hasta entonces — igual, ambos siguen mostrando
-      `puedeTransmitir=true` hoy, así que Felipe también podría simplemente reintentar
+      `20260917130050_comprobante_no_emitido.sql` pegada en producción el 2026-09-17**
+      (ok explícito de Felipe, excepción puntual a D-11) — `comprobantes_estado_check`/
+      `comprobantes_transmitido_tiene_entorno` tenían el mismo nombre allá que en local,
+      confirmado antes de aplicar. Los 2 casos reales de producción de abajo siguen sin
+      liberarse (nadie apretó el botón nuevo todavía) — igual, ambos siguen mostrando
+      `puedeTransmitir=true`, así que Felipe también podría simplemente reintentar
       "Transmitir" sobre ellos si prefiere esa vía. Confirmado en `retail.comprobantes`:
       **B004-000004** (S/655.50, sin cliente, creado 2026-09-14) y **B004-000005**
       (S/185.30, con cliente, creado

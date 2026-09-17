@@ -12,10 +12,11 @@ lote + movimiento, `registrar_consumo_insumo` consume del lote más antiguo, rec
 `retail.v_insumo_saldos` / `retail.recibir_insumo` / `retail.ajustar_insumo_por_conteo`
 **ya existen ahí desde julio** (huérfanas del volcado de unificación con Dynamic, 0
 filas, verificado de nuevo hoy vía MCP de Supabase de solo lectura contra el proyecto
-`vovjyyiafkxteijimpuy`). Lo único que falta pegar en producción es
-`20260917141500_registrar_consumo_insumo.sql` — una función nueva, nada más — cuando
-Felipe decida (prefijo `retail.` en el SQL Editor, D-11). Entra al diccionario
-(`docs/datos/generado/`) recién cuando eso pase.
+`vovjyyiafkxteijimpuy`). **`20260917141500_registrar_consumo_insumo.sql` pegada en
+producción el 2026-09-17** (ok explícito de Felipe, excepción puntual a D-11) —
+confirmado `security_type=DEFINER` y `proacl` sin `public`; el resto (espejo) no se
+tocó, ya estaba allá. Entra al diccionario (`docs/datos/generado/`) cuando se regenere
+(`pnpm datos:generar:produccion`).
 **Afecta:** local gana el espejo de las 3 tablas + vista + 2 funciones huérfanas
 (idénticas a producción, verificado columna por columna, constraint por constraint, RLS
 y grants incluidos) más `retail.registrar_consumo_insumo` (la única función

@@ -2,10 +2,11 @@
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado en local (`20260917130050_comprobante_no_emitido.sql`), verificado con
-6 escenarios en `psql` + rollback. **Producción: NO aplicada** — la pega Felipe cuando
-decida, con el prefijo `retail.` en el SQL Editor (ver `/CLAUDE.md`, sección "Cómo aplicar
-SQL a producción"). Entra al diccionario (`docs/datos/generado/`) recién cuando se aplique
-allá.
+6 escenarios en `psql` + rollback. **Aplicado en producción el 2026-09-17** (ok explícito
+de Felipe, excepción puntual a D-11: normalmente solo él pega SQL en producción) —
+confirmado `security_type=DEFINER` y `proacl` sin `public`. Falta que
+`docs/datos/generado/` se regenere (`pnpm datos:generar:produccion`) para reflejarlo en
+el diccionario.
 **Afecta:** tabla `retail.comprobantes` (3 columnas nuevas + 2 constraints reemplazadas + 1
 constraint nueva); función nueva `retail.marcar_comprobante_no_emitido`.
 `apps/web/components/ComprobantesPanel.tsx`, `apps/web/lib/comprobantes-reglas.ts`,
