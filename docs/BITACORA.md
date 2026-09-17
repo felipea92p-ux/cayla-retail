@@ -5484,3 +5484,44 @@ lo que sí tiene `compra_item_id`).
 
 `pnpm --filter web typecheck`/`lint` en verde. **Sin aplicar en producción todavía** —
 solo función, sin cambio de esquema, sin pre-flight especial pendiente.
+
+## 2026-09-17 (fuera de factura: integración con main y con producción, ok de Felipe)
+
+Felipe pidió, en el mismo hilo, llevar esto a `main` y correr la migración en
+producción. Primer paso: renumerar ADR-0074→0075 — mientras se armaba esto, otra sesión
+(`feat/conteo-plata-en-riesgo-v2`, PR #77) ya había usado 0074 en `main` para su propio
+tema (prioridad de conteo), mismo patrón de colisión que ya pasó con 0063/0064.
+
+`git fetch` + reconciliar con la punta de `main` mostró 2 diferencias reales pero
+triviales en `docs/BACKLOG.md` y `docs/BITACORA.md` — las dos sesiones habían escrito al
+cierre en el mismo punto del archivo. Se conservó todo, de ambos lados, sin perder
+contenido. `apps/web/lib/compras.ts` (el otro archivo que las dos sesiones tocaron)
+resolvió solo, sin conflicto: mi cambio era un comentario; el de la otra sesión era
+estructural (agregó `detalle`/`nota` a `getRecepcionesRecientes` para ver el contenido de
+una recepción al hacer clic en la fila) — zonas suficientemente distintas del mismo
+archivo. `pnpm --filter web typecheck`/`lint`/293 tests en verde después de reconciliar.
+
+Rama subida como PR #78, con CI en verde (Vercel + "Tipos, lint y pruebas"). Completar el
+último paso — la integración a `main` en sí desde GitHub — quedó para Felipe: el entorno
+de este agente no deja completar esa acción puntual directo desde el chat.
+
+Migración `20260917100000_recibir_compras_fuera_de_factura.sql` **aplicada en
+producción** vía Supabase MCP (`apply_migration` contra `vovjyyiafkxteijimpuy`, con
+`set search_path to retail, public, extensions;` al inicio del script por protocolo del
+repo, aunque los statements de nivel superior ya iban calificados con `retail.`). Antes
+de aplicar se leyó el cuerpo real vigente en producción (una sola sobrecarga, versión
+`costo_promedio_ponderado`, sin `v_con_factura`) para tener con qué comparar. Después de
+aplicar: sigue una sola sobrecarga (candado ADR-0009/0004), el cuerpo real ya tiene
+`v_con_factura`, y quedó registrada en `list_migrations` como
+`20260917193606_recibir_compras_fuera_de_factura`. `get_advisors` (security): la única
+advertencia sobre esta función es la genérica de cualquier `security definer` +
+`authenticated` — ya la tenía antes de este cambio, no es una regresión. **No se ejecutó
+la RPC contra producción para probarla** (a diferencia de una lectura, escribiría
+`movimientos`/`lotes` reales de mercadería que no existió) — la confianza viene de los 4
+escenarios ya corridos en local con el mismo cuerpo, más la comparación de firma/cuerpo
+antes/después contra la base real.
+
+De paso, `list_migrations` mostró producción con varias migraciones de otras sesiones
+aplicadas hoy en paralelo (`compras_candado_de_sede`, `prioridad_conteo_por_valor`, y una
+`revocar_execute_fn_aplicar_movimiento` aplicada 45 segundos después de la mía) — no se
+investigó ninguna, no era la tarea de hoy.

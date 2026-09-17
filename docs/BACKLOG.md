@@ -47,9 +47,15 @@ Distinto del hueco "mercadería corta o dañada no tiene adónde ir" de la
 auditoría más abajo (2026-09-17, misma fecha) — ese es sub-entrega contra lo
 facturado; este es sobre-entrega sin factura. No se tocan entre sí.
 
-- [ ] **Falta en producción.** Solo función (`recibir_compras`), sin cambio
-      de esquema — se puede pegar con el `retail.` de prefijo de siempre
-      (CLAUDE.md), sin pre-flight especial: no hay filas que migrar.
+- [x] **En producción desde 2026-09-17** — aplicada con el MCP de Supabase
+      (`apply_migration` contra `vovjyyiafkxteijimpuy`, ok de Felipe para
+      todo el paso), no a mano en el SQL Editor. Verificado después contra
+      la base, no solo que no tirara error: `retail.recibir_compras` quedó
+      con una sola sobrecarga (candado ADR-0009/0004 intacto) y su cuerpo
+      real ya tiene `v_con_factura`. `get_advisors` (security) no marcó nada
+      nuevo — la única advertencia es la genérica de cualquier
+      `security definer` + `authenticated`, ya presente en el resto de RPC
+      del repo.
 - [ ] **Sin pruebas automatizadas para el camino nuevo** — mismo patrón de
       deuda que el resto de RPC de escritura (ver "Cambios: primeras pruebas
       automatizadas" más abajo). Si alguien escribe

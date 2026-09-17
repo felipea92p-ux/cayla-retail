@@ -1,12 +1,17 @@
 # ADR-0075 — `recibir_compras` acepta productos fuera de factura
 
 **Fecha:** 2026-09-17
-**Estado:** Decidido y construido. Migración `20260917100000_recibir_compras_fuera_de_factura.sql`
-aplicada y verificada en el Postgres local compartido (4 escenarios por SQL en
-transacciones con `rollback`, más un envío real desde el navegador que quedó
-como dato real — ver "Cómo se verificó"). Pantalla: `RecepcionCompraFormV2.tsx`.
-Pendiente: pegar la migración en producción (recordatorio: `retail.` de prefijo
-o `set search_path`, ver CLAUDE.md).
+**Estado:** Decidido, construido y en producción. Migración
+`20260917100000_recibir_compras_fuera_de_factura.sql` verificada en el Postgres
+local compartido (4 escenarios por SQL en transacciones con `rollback`, más un
+envío real desde el navegador que quedó como dato real — ver "Cómo se
+verificó"). Pantalla: `RecepcionCompraFormV2.tsx`. **Aplicada en producción el
+2026-09-17** vía Supabase MCP (`apply_migration` contra `vovjyyiafkxteijimpuy`,
+registrada como `20260917193606_recibir_compras_fuera_de_factura`), con ok de
+Felipe para merge + producción en el mismo paso. Verificado después contra la
+base real: `retail.recibir_compras` con una sola sobrecarga (candado
+ADR-0009/0004 intacto) y el cuerpo real ya tiene `v_con_factura`; `get_advisors`
+no marcó nada nuevo.
 **Afecta:** `supabase/migrations/` (función `recibir_compras`, sin cambios de
 esquema — `movimientos.compra_item_id` ya era nullable desde ADR-0035),
 `apps/web/components/RecepcionCompraFormV2.tsx`,
