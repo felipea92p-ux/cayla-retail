@@ -74,7 +74,6 @@ export function ConteoPanel({
             color: f.color,
             diasSinContar: f.dias_sin_contar,
             ventas30d: f.ventas_30d,
-            valorEnRiesgo: Number(f.valor_en_riesgo),
           }))
         );
       });
@@ -175,7 +174,6 @@ export function ConteoPanel({
                   </span>
                   <span className="shrink-0 text-xs text-tinta/55">
                     {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`}
-                    {s.valorEnRiesgo > 0 && ` · ${money(s.valorEnRiesgo)} en el estante`}
                     {s.ventas30d > 0 && ` · vende ${s.ventas30d}/mes`}
                   </span>
                 </li>

@@ -168,14 +168,10 @@ export type PrioridadConteo = {
   color: string | null;
   diasSinContar: number | null;
   ventas30d: number;
-  /** Stock actual en esa ubicación × costo de la variante — el desempate
-   *  principal (ABC por valor), no solo unidades vendidas (20260917150000). */
-  valorEnRiesgo: number;
 };
 
 /** Las 20 variantes que más conviene contar primero: nunca contadas antes,
- *  después por valor en riesgo (stock × costo), con venta reciente como
- *  segundo desempate. Acotado a una categoría si se pasa `categoriaId`. */
+ *  después por venta reciente. Acotado a una categoría si se pasa `categoriaId`. */
 export async function getPrioridadConteo(ubicacionId: string, categoriaId?: string | null): Promise<PrioridadConteo[]> {
   const supabase = await createClient();
   const filas = exigir(
@@ -193,7 +189,6 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     color: f.color,
     diasSinContar: f.dias_sin_contar,
     ventas30d: f.ventas_30d,
-    valorEnRiesgo: Number(f.valor_en_riesgo),
   }));
 }
 
