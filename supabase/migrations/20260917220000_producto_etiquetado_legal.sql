@@ -66,6 +66,19 @@ comment on column retail.productos.material is
 drop function if exists retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid);
 drop function if exists retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid);
 
+-- HALLAZGO (no de esta tarea): además de la firma de arriba, `main` tenía
+-- una SEGUNDA sobrecarga huérfana de cada función — la de 8/10 parámetros
+-- de ANTES de tejido/patrón (20260915224500/20260917190000_producto_fotos_por_color.sql
+-- vs. 20260917100600_catalogo_rpc_ejes_nuevos.sql). Confirmado en vivo con
+-- `pg_get_function_identity_arguments` tras un `db reset` limpio: las dos
+-- coexistían — la más reciente en el tiempo (`20260917190000`) hizo
+-- `CREATE OR REPLACE` con la firma vieja, que no calzó con la de 10/12
+-- parámetros ya existente, así que Postgres creó una TERCERA función en vez
+-- de reemplazar. Se limpia acá porque esta migración ya toca las dos
+-- funciones de todas formas — dejarla habría sumado una CUARTA sobrecarga.
+drop function if exists retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb);
+drop function if exists retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb);
+
 create or replace function retail.catalogo_crear_producto(
   p_referencia text,
   p_variantes jsonb,

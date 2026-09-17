@@ -1,12 +1,14 @@
 # ADR-0097 — Etiquetado legal del producto: país de origen, fabricante y material
 
 **Fecha:** 2026-09-17
-**Estado:** Aplicado y verificado en local (`20260917210000_producto_etiquetado_legal.sql`).
-No aplicado en producción — pendiente de que Felipe lo decida (ver "Lo que falta").
+**Estado:** Aplicado y verificado en local (`20260917220000_producto_etiquetado_legal.sql`
+— renumerada de `20260917210000`, ver "Se rompe si"). No aplicado en producción —
+pendiente de que Felipe lo decida (ver "Lo que falta").
 **Afecta:** tabla `retail.productos` (3 columnas nuevas); funciones
 `retail.catalogo_crear_producto`, `retail.catalogo_actualizar_producto` y
 `retail.crear_producto_con_variantes` (las 3 ganan 3 parámetros nuevos, todos
-opcionales); `apps/web/components/ProductoForm.tsx`,
+opcionales, sobre la firma ya fusionada con tejido/patrón/talla_id — ver "Reconciliación
+con la taxonomía de variante" más abajo); `apps/web/components/ProductoForm.tsx`,
 `apps/web/components/NuevoProductoForm.tsx`, `apps/web/lib/catalogo-v2.ts`,
 `packages/database/src/types.ts`. **No toca** `variantes`, `producto_fotos`, ni ninguna
 RPC de venta/inventario.
@@ -71,17 +73,37 @@ distintas por color) — hoy es un solo texto libre a nivel de producto, asumien
 todas las variantes de un mismo producto comparten material. Si eso deja de ser cierto,
 esto se mueve a `variantes` en una migración aparte, no se fuerza acá.
 
-**Colisión de firma esperable al fusionar con `main`:** mientras se verificaba esta
-tarea, el Postgres local compartido mostró brevemente
-`crear_producto_con_variantes(p_referencia, p_categoria_id, p_variantes, p_descripcion,
-p_token, p_tejido_id, p_patron_id)` — otra sesión (diseño de taxonomía de
-tejidos/patrones, branch con ADR-0072/0073 propios, ver `docs/SESIONES-ACTIVAS.md`) está
-agregando SUS propios parámetros nuevos a la misma función, con su propio DROP+CREATE.
-Quien fusione ambas ramas contra `main` va a necesitar combinar los dos juegos de
-parámetros nuevos (`p_pais_origen/p_fabricante_declarado/p_material` + `p_tejido_id/
-p_patron_id`) en una sola firma final — el segundo `DROP FUNCTION` en llegar borra los
-parámetros del primero si no se hace a mano. Dejado en `docs/SESIONES-ACTIVAS.md` para
-que ambas sesiones lo vean.
+## Reconciliación con la taxonomía de variante (ADR-0095/0096, ya en `main`)
+
+Mientras se verificaba esta tarea, PR #75 (taxonomía cerrada de talla/tejido/patrón,
+`talla` → `talla_id`, `crear_producto_con_variantes`/`catalogo_crear_producto`/
+`catalogo_actualizar_producto` con `p_tejido_id`/`p_patron_id`) se fusionó a `main` —
+exactamente la colisión de firma que se anticipó al escribir la primera versión de esta
+migración. Resuelto: se fusionó `origin/main` a esta rama y las 3 funciones se
+reescribieron partiendo del CUERPO YA FUSIONADO (`20260917210001` para
+`catalogo_crear/actualizar_producto`, `20260917100600` para
+`crear_producto_con_variantes`), no de la copia local desactualizada — agregarle los 3
+parámetros de etiquetado legal a una versión vieja habría revivido `talla` (columna que
+ya no existe en esta rama) y perdido los candados de tejido/patrón/talla por categoría.
+La migración también se renumeró de `20260917210000` a `20260917220000`: ese timestamp
+ya lo tenía `20260917210000_catalogo_actualizar_producto_recupera_color_codigo_fotos.sql`
+en `main`.
+
+**HALLAZGO no relacionado con esta tarea, encontrado al verificar contra Postgres real en
+vez de confiar en el `CREATE OR REPLACE`: `catalogo_crear_producto` y
+`catalogo_actualizar_producto` ya tenían DOS sobrecargas ambiguas en `main` antes de esta
+migración.** `20260917190000_producto_fotos_por_color.sql` (fix de fotos, sin relación
+con taxonomía) hizo `CREATE OR REPLACE` de las dos funciones con la firma VIEJA de 8/10
+parámetros (sin `tejido_id`/`patron_id`) — pero para ese momento en el historial de
+migraciones, `20260917100600_catalogo_rpc_ejes_nuevos.sql` (taxonomía, timestamp
+cronológicamente anterior) ya las había recreado con 10/12 parámetros. Como las firmas no
+calzan, Postgres no reemplazó nada: creó una TERCERA función. Confirmado en vivo con
+`pg_get_function_identity_arguments` después de un `db reset` limpio (dos filas por
+función, no una) — y confirmado que `20260917210000`/`20260917210001` (los dos intentos
+de arreglar el bug de `color_codigo`) tampoco lo notaron, porque ninguno miró
+`pg_proc` directo. Esta migración dropea también esa firma huérfana (ver el SQL, sección
+"HALLAZGO" inline) porque ya está tocando las dos funciones de todas formas — dejarla
+habría sumado una CUARTA sobrecarga en vez de resolver el problema.
 
 ## Cómo se verificó
 
@@ -96,14 +118,22 @@ que ambas sesiones lo vean.
   concurrentes sin relación (`categorias.ciclo_vida_*`) y le faltaba esquema propio de
   este repo (`comprobantes.motivo_no_emitido`) — correr `gen-types` ahí habría
   introducido una regresión real en vez de solo mis 3 columnas.
-- **Navegador, de punta a punta:** login local (`felipe@cayla.local`) → `/productos/nuevo`
-  → los 3 campos ("Etiquetado legal (opcional)") se completan → "Crear producto" →
-  confirmado en Postgres que `pais_origen`/`fabricante_declarado`/`material` quedaron
-  guardados exactamente como se escribieron → `/productos/[id]/editar` del mismo
-  producto muestra los 3 valores precargados → el mismo formulario, abierto sobre un
-  producto SIN estos datos (creado antes de esta migración), muestra los 3 campos vacíos
-  con placeholder, sin ningún `"null"` ni espacio en blanco raro (confirmado con
-  `read_page`: son `placeholder`, no `value`).
+- **Navegador, de punta a punta (contra el esquema PRE-reconciliación, antes de fusionar
+  la taxonomía):** login local (`felipe@cayla.local`) → `/productos/nuevo` → los 3 campos
+  ("Etiquetado legal (opcional)") se completan → "Crear producto" → confirmado en
+  Postgres que `pais_origen`/`fabricante_declarado`/`material` quedaron guardados
+  exactamente como se escribieron → `/productos/[id]/editar` del mismo producto muestra
+  los 3 valores precargados → el mismo formulario, abierto sobre un producto SIN estos
+  datos (creado antes de esta migración), muestra los 3 campos vacíos con placeholder,
+  sin ningún `"null"` ni espacio en blanco raro (confirmado con `read_page`: son
+  `placeholder`, no `value`).
+- **`crear_producto_con_variantes` reconciliada (post-taxonomía), smoke test por SQL
+  directo:** transacción `psql` con `request.jwt.claim.sub` simulado (mismo patrón que
+  ADR-0093), llamando la función con `p_tejido_id`/`p_patron_id` en null y los 3 legales
+  con valor — el producto se crea, los 3 campos quedan guardados tal cual, `ROLLBACK` al
+  final (nada quedó escrito). No se repitió la corrida completa en navegador contra el
+  esquema reconciliado por la ventana de tiempo/contención del Postgres compartido (ver
+  nota al margen) — mismo trade-off explícito que ya tomó ADR-0093 el mismo día.
 
 ## Nota al margen: Postgres local compartido entre 9 sesiones concurrentes
 
@@ -127,8 +157,21 @@ worktree en `supabase/config.toml`, o un lock documentado en
 ## Lo que falta
 
 1. **Aplicar en producción** — pendiente de que Felipe decida, con el prefijo `retail.`
-   en el SQL Editor (ver `CLAUDE.md`, "Cómo aplicar SQL a producción").
-2. **Reconciliar con la rama de taxonomía de tejidos/patrones** cuando ambas lleguen a
-   `main` — ver "Se rompe si".
+   en el SQL Editor (ver `CLAUDE.md`, "Cómo aplicar SQL a producción"). Ojo: producción
+   todavía no tiene la taxonomía de tejido/patrón/talla_id aplicada (ver BACKLOG, sección
+   de taxonomía) — esta migración asume que esa parte ya corrió antes que la propia,
+   porque `DROP FUNCTION` apunta a la firma CON `tejido_id`/`patron_id`. Si se pega en
+   producción antes que la taxonomía, el `DROP` de esa firma es un no-op inofensivo (no
+   existe todavía) pero el `CREATE` de esta migración SÍ le agregaría `p_tejido_id`/
+   `p_patron_id` a producción antes de tiempo — revisar el orden con Felipe.
+2. **Verificar si producción tiene la misma sobrecarga huérfana** que se encontró y
+   limpió en local (ver "Reconciliación con la taxonomía de variante") — depende de si
+   `20260917190000_producto_fotos_por_color.sql` y `20260917100600` (o sus equivalentes)
+   ya se pegaron ahí en ese orden. `pg_get_function_identity_arguments` lo confirma en
+   30 segundos antes de pegar nada nuevo.
 3. El comentario desactualizado en `ProductoForm.tsx` (dice que sirve para
    `/productos/nuevo`, ya no es cierto) — no se tocó, fuera del alcance de esta tarea.
+4. Repetir la verificación de navegador de punta a punta contra el esquema YA
+   reconciliado (con tejido/patrón/talla_id) — la de esta sesión se hizo contra el
+   esquema pre-reconciliación; el smoke test SQL post-reconciliación confirma que la RPC
+   funciona, pero no reemplaza probar el formulario real en el navegador.
