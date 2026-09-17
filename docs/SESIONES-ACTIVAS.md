@@ -21,4 +21,5 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude (sesión Danytristee) | `claude/compras-rls-location-lock-7a8b0c` (worktree `cuervo-colibri-modulos-170de6`) | RLS de `retail.compras`/`compra_items`/`compra_pagos`/`compra_adjuntos` + `resumen_compras()` acotados a `fn_puede_operar_ubicacion` (ADR-0075, decidido con Felipe vía `/decide`). Aplicado y verificado en local; pendiente producción con ok de Felipe. No tocó `compras_multipago.sql`/`anular_compra`/`movimientos` RLS/`ventas-v2.ts`/`movimientos-reglas.ts`/`fn_prioridad_conteo`. | 2026-09-17 |
 | Claude (worktree `mejorar-modulo-por-pagar-48008c`) | `claude/mejorar-modulo-por-pagar-48008c` | UX de `/compras/por-pagar` en celular (tarjetas de resumen + `FiltrosCompras.tsx` compartido) — ver worktree `payable-module-review-db60ea`, sin commits/cambios | 2026-09-17 |
