@@ -121,9 +121,15 @@ flowchart TB
 - `/producto/[varianteId]` → `lib/inteligencia.ts` → `FotoProducto.tsx`,
   `MinimosPorSede.tsx` (RPC `fijar_stock_minimo`), `RecetaCosto.tsx`
   (BOM: `insert`/`delete` directo en `bom_items`).
-- `/almacen` y `/almacen/recibir` → **redirects puros** a
-  `/inventario/almacen` y `/inventario/recibir` (compat de enlaces
-  guardados tras el rediseño UX 2026-07-18; no es código duplicado).
+- `/almacen` y `/almacen/recibir` → **redirects puros**, declarados en
+  `redirects()` de `next.config.ts` (movidos desde página-stub el 2026-09-17,
+  ver ✨ MEJORAR de BACKLOG) a `/inventario` y `/inventario/recibir`
+  (compat de enlaces guardados tras el rediseño UX 2026-07-18; resuelven en
+  el edge, sin sesión ni consulta a Supabase — no es código en `app/`).
+  `/almacen` ya NO apunta a `/inventario/almacen` — esa ruta murió el
+  2026-09-16 (ADR-0071 unificó piso+almacén dentro de `/inventario`) y el
+  stub viejo quedó redirigiendo a un 404 sin que nadie lo notara; corregido
+  de paso al mover esto a la config (ver nota en `next.config.ts`).
 - `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
   el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
   los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
