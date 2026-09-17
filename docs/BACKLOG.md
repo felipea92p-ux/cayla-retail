@@ -28,6 +28,109 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔍 Revisión: Recibir mercadería — huecos para flujo completo de ERP (2026-09-17)
+
+Auditoría pedida por Felipe sobre `/compras/recibir` (RPC `recibir_compras`, ADR-0035) y
+`/inventario/recibir` (RPC `recibir_lote`, sin factura) — sin cambios de código, solo
+lectura de repo + producción (`vovjyyiafkxteijimpuy`). El diseño en sí está sólido (costo
+promedio ponderado con `costo_historial` auditable, tope contra lo facturado con
+`select ... for update`, piso/almacén, adjuntos de factura, paginado por cursor) — los
+huecos son de alcance, no de correctitud.
+
+- [ ] **El flujo nunca corrió en producción de verdad.** `retail.compras` = 0 filas
+      (verificado contra la base, no contra docs). De 160 movimientos `tipo='entrada'`,
+      156 son `carga_inicial`, 3 `siembra_cargo_especial`, 1 `devolucion` — ninguno
+      `motivo='recepcion'`. Ni `recibir_compras` ni `recibir_lote` se ejecutaron nunca en
+      producción. Antes de agregar nada más, correr una recepción real es lo que más
+      destapa fricción de verdad (principio 7).
+- [ ] **Mercadería corta o dañada no tiene adónde ir** — ya admitido en el propio
+      ADR-0035 (docs/adr/0035-la-factura-de-compra-es-el-eje-de-recepcion-y-pago.md:92-93,
+      "falta decidir si se agrega 'cerrar línea con faltante'"). Sin eso, una factura con
+      3 prendas rotas queda `parcial` para siempre.
+- [ ] **Devolución a proveedor es una etiqueta hueca.** `devolucion_items.condicion =
+      'devolver_proveedor'` existe (`0002_esquema.sql:269`) pero en `aprobar_devolucion`
+      (`20260914230000_inventario_piso_almacen.sql:596-604`) esa condición no genera
+      ningún movimiento ni ajuste de deuda con el proveedor — la fila queda marcada y ahí
+      termina. Conecta directo con el punto anterior: mercadería dañada no tiene cómo
+      salir del sistema hacia el proveedor ni descontarse de lo que se le debe.
+- [ ] **Insumos/materia prima del Taller: dominio fantasma.** Existen `retail.insumos`/
+      `insumo_lotes`/`movimientos_insumo`/`v_insumo_saldos` en producción, pero NINGUNA
+      migración de este repo los crea — viven en `supabase/unificacion/06_contabilidad_produccion.sql`
+      y `11_produccion_material_etapas.sql` (el volcado de la unificación con Dynamic,
+      jul-2026) — y cero rutas/componentes de `apps/web` los tocan.
+      `compra_items.producto_id` es `not null references productos` (catálogo vendible) —
+      estructuralmente no se puede recibir tela/avíos contra una factura por
+      `/compras/recibir`. `abrir_produccion` tipea `costo_tela`/`costo_avios`/
+      `costo_maquila` a mano, sin descontar ningún inventario de materia prima. Decisión
+      de Felipe: ¿entra al alcance de este ERP, o queda deliberadamente afuera?
+- [ ] **Etiquetado físico (código de barras) al recibir no existe hoy.**
+      `EtiquetasGenerator.tsx` ya no está en el árbol; quedan huérfanos `Codigo128.tsx`/
+      `codigo128.ts` sin ningún importador (verificado con grep — cero componentes los
+      usan). Este mismo BACKLOG decía que `/etiquetas` se "movió a Compras hace tiempo"
+      (línea ~546 de este archivo), pero no existe ninguna carpeta `etiquetas` bajo
+      `apps/web/app/(app)/compras` — el traslado nunca se completó.
+- [ ] **Piso vs. almacén al recibir es 100% fijo.** `fn_sububicacion_por_defecto('entrada')`
+      (`20260914230000_inventario_piso_almacen.sql:74-87`) siempre devuelve
+      `almacen_tienda`, calculado una sola vez antes del loop; ni la RPC ni la pantalla
+      dejan mandar parte de una recepción directo al piso de venta. Probablemente
+      intencional (se mueve después por separado vía `/inventario/mover`), vale
+      confirmarlo con Felipe si alguna vez pesa en la operación real.
+- [ ] **Sin pruebas automatizadas** para `recibir_compras`/`recibir_lote` (`scripts/pruebas/`
+      solo tiene `registrar_cambio.mjs` y `aprobar_devolucion_caja.mjs`) — mismo patrón de
+      deuda que ya tienen `registrar_venta`/`iniciar_traslado`/`cerrar_caja` (ver sección
+      "Cambios: primeras pruebas automatizadas" más abajo), todavía no le tocó el turno a
+      este RPC.
+- [ ] **D-45 (`docs/datos/DECISIONES-2026-09-12.md:275`, costeo del inventario) sigue
+      listada como abierta pese a que ya se resolvió en código** (promedio ponderado,
+      `20260916090000_costo_promedio_ponderado.sql`, confirmado en producción hoy) — el
+      documento de decisiones nunca se actualizó para cerrarla. Corregir la tabla de
+      "Decisiones que quedaron abiertas" en ese archivo.
+
+---
+
+## 🎯 Facturación: auditoría de flujo completo (2026-09-17)
+
+Felipe preguntó qué le falta al módulo para un flujo completo de ERP. Solo auditoría —
+sin cambios de código. Detalle completo, con cita de archivo/línea de cada hallazgo, en
+`docs/datos/modulos/08-facturacion-sunat.md` (huecos 1-16, actualizado hoy). Primer
+hallazgo, antes que nada: el doc de módulo (fechado 12-sep) tenía **dos huecos ya
+resueltos ese mismo día** por `0011_venta_con_comprobante.sql` — venta↔comprobante SÍ
+están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre) y la
+proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
+con cita, para que nadie los reconstruya.
+
+- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
+      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
+      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
+      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
+- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
+      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
+      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
+      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
+      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
+      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
+      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
+      `anular_venta` liberarlo automático?
+- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
+      en producción (antes era teórico).** `devoluciones.ts` solo usa
+      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
+      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
+      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
+      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
+      Fase 0, esperando pantalla desde entonces.
+
+Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
+repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
+emite Vender, el panel manual de Facturación sigue expuesto a doble emisión (hueco 1);
+`registrar_serie_comprobante` no valida ubicación, un líder puede reapuntar la serie de
+otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `clientes`
+(hueco 16); cero pruebas de las RPC del módulo contra Postgres real (a diferencia de
+`registrar_cambio`/`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de
+"Monto facturado" sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
+
+---
+
 ## 🐛 `registrar_venta`: `venta_precio_cambiado` revienta con una prenda sin SKU (2026-09-16)
 
 - [x] **`v_sku` llegaba `NULL` a un `raise ... using detail = ... || v_sku || ...`**
