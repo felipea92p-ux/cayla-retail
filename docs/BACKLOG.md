@@ -37,30 +37,29 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción — actualizado tras verificar el estado real (2026-09-17
-      tarde).** Producción NO está vacía de taxonomía: `retail.tejidos`/`patrones`/
-      `etiquetas`/`variante_etiquetas` y `productos.tejido_id`/`patron_id` ya existen,
-      creados por otra rama nunca fusionada a `main` — con una versión vieja del
-      trigger (tejidos/patrones/etiquetas no pueden rechazar; ninguno de los 5 tiene
-      el fix de "reactivar retira el rechazo"). `retail.tallas` NO existe.
-      `variantes.talla` sigue siendo texto libre (NO `talla_id`) y
-      `categorias.tallas_sugeridas` sigue viva — confirmado leyendo `origin/main`
-      directo: el frontend desplegado todavía las usa tal cual.
-      - [x] **Parte segura ya armada**: `supabase/migrations/pegar-en-produccion-taxonomia-parte-segura.sql`
-            — crea `tallas`, arregla los 5 triggers, crea `categoria_tallas/tejidos/
-            patrones` con su backfill (solo LEE `tallas_sugeridas`, no la toca), y los
-            2 RPC nuevos de hoy. Cero riesgo: nada de esto lo toca `main` todavía. Falta
-            que alguien con acceso lo pegue en el SQL Editor — Claude Code no puede
-            aplicar SQL a producción directo (el modo del entorno lo bloquea).
-      - [ ] **Parte que espera el merge a `main`** (rompería la app en vivo si se
-            aplica sola): `variantes.talla_id` + borrar `talla`, borrar
-            `tallas_sugeridas`, el candado de sede en `registrar_venta`/`transferir`
-            (tocan cada venta/traslado real — reescribir con el cuerpo actual de
-            producción en la mano, no a ciegas), las firmas de
-            `catalogo_actualizar_producto`/`crear_producto_con_variantes` con
-            `talla_id`, y los 9 renombres/fusiones de categorías de ADR-0096 (no
-            rompen código, pero cambian el desplegable que ve una encargada de sede
-            ahora mismo — coordinar el momento con Felipe, no una decisión técnica).
+- [x] **Pegada en producción (2026-09-17, tarde-noche) — la mitad que faltaba, después
+      de que #75 se fusionara a `main` sin su migración.** El "Production Deploy" del
+      entorno de esa sesión se la bloqueó, y Vercel desplegó igual el frontend que ya
+      esperaba `talla_id` — `/productos` cayó en producción ("NO SE PUDO CARGAR") hasta
+      que se aplicó esto. Cadena completa aplicada y reverificada contra
+      `vovjyyiafkxteijimpuy`: `retail.tallas` + `categoria_tallas/tejidos/patrones` (la
+      parte segura, ya lista desde antes), `variantes.talla_id` (backfill 144/145 filas,
+      la única excepción es el sentinel "Cargo especial"), la restricción
+      `variantes_producto_talla_color_unico`, `fn_variante_permitida_en_sede` en
+      `registrar_venta` (en `transferir` queda escrito pero inerte — producción ya usa
+      `iniciar_traslado`/`confirmar_traslado`, ADR-0068), `catalogo_crear_producto`/
+      `catalogo_actualizar_producto` con `talla_id` + `color_codigo` en fotos, y
+      `categorias.tallas_sugeridas` borrada. Detalle completo — incluida la
+      reconciliación de 2 funciones que quedaron rotas por el cambio
+      (`fn_prioridad_conteo`, `fn_productos`, que seguían leyendo `variantes.talla` ya
+      borrada) y 4 sobrecargas de RPC duplicadas encontradas y cerradas en el camino —
+      en BITÁCORA 2026-09-17. Verificación final: cero sobrecargas duplicadas y cero
+      referencias a `variantes.talla` en todo `pg_proc` de producción.
+      - [ ] **Lo que NO se pegó, a propósito — decisión de negocio, no técnica:**
+            `20260917110000` (renombres de ADR-0096: Blusas se fusiona con Camisas,
+            etc.) queda vivo solo en este repo/local. Cambia el desplegable que ve una
+            encargada de sede ahora mismo — el momento de activarlo en producción lo
+            decide Felipe, no es un fix pendiente. Ver 🎯 Familias y categorías, abajo.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
@@ -94,6 +93,22 @@ verde.
 
 ---
 
+## 🎯 Vender/Caja ya muestra la foto del producto (2026-09-17)
+
+Felipe: si la Grilla de Productos ya muestra fotos, Caja debería mostrar las mismas —
+es el mismo catálogo. `getCatalogo()` (`catalogo-v2.ts`) no traía `producto_fotos` en
+su query embebida; se agregó, y `fotoUrl` se resuelve por color exacto (mismo criterio
+`color_codigo` que ya usa la Grilla). El dato viaja completo por los 5 archivos entre
+la consulta y la tarjeta (`vender/page.tsx` → `PuntoDeVenta.tsx` → `catalogo-grupos.ts`
+→ `PuntoDeVentaCatalogo.tsx`), reemplazando el placeholder de iniciales quieto por la
+foto real cuando existe (el placeholder se queda como estaba para variantes sin foto
+propia). Probado en navegador: prenda con foto la muestra en la tarjeta de Vender;
+prenda sin foto sigue con el placeholder de iniciales, sin romperse.
+
+- [x] Cerrado y verificado en navegador. Sin pendientes.
+
+---
+
 ## 🎯 Familias y categorías: el contenido real (2026-09-17, ADR-0096)
 
 Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Platanitos
@@ -110,6 +125,12 @@ Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
 - [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
       Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
       prueba de hoy) muestre que sí hay volumen ahí.
+- [ ] **`20260917110000` (los renombres en sí) NO está en producción, a propósito.**
+      Confirmado 2026-09-17 tarde-noche al pegar el resto de la taxonomía: producción
+      sigue mostrando "Blusas" y "Camisas" como categorías separadas, y "Accesorios"
+      sin el "y Complementos". Falta el ok explícito de Felipe sobre el momento
+      (cambia lo que ve una encargada de sede hoy mismo) — no es una migración
+      olvidada.
 
 ---
 

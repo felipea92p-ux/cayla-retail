@@ -19,9 +19,8 @@ export type VarianteCatalogo = {
   color: string | null;
   colorHex: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
-   *  color todavía no tiene foto, o si la consulta no las trae
-   *  (`getCatalogo()`, que no las necesita). El cliente cae a un tinte del
-   *  color cuando falta, nunca a un ícono de "sin foto". */
+   *  color todavía no tiene foto. El cliente cae a un tinte del color (o a
+   *  las iniciales, en Vender) cuando falta, nunca a un ícono de "sin foto". */
   fotoUrl: string | null;
   precio: number;
   costo: number;
@@ -32,7 +31,8 @@ export type VarianteCatalogo = {
   codigosBarras: string[];
 };
 
-/** Todo el catálogo activo, para la pantalla de Productos. */
+/** Todo el catálogo activo, para la pantalla de Productos y para Vender/Cambios/
+ *  Devoluciones/Buscar (todo lo que lista `getCatalogo()`). */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
   const filas = exigir(
@@ -41,7 +41,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
       .select(
         `id, sku, codigo, color_codigo, precio, costo, activo,
          talla:tallas ( valor ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
       )
@@ -56,7 +56,10 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
-    fotoUrl: null,
+    // Misma variante-color-solo-si-calza que `fn_productos` (LEFT JOIN LATERAL +
+    // `IS NOT DISTINCT FROM`) — acá en JS porque `producto_fotos` llega anidada
+    // bajo `producto`, no como relación directa de `variantes`.
+    fotoUrl: v.producto?.producto_fotos.find((f) => f.color_codigo === v.color_codigo)?.url ?? null,
     precio: Number(v.precio),
     costo: Number(v.costo),
     activo: v.activo,

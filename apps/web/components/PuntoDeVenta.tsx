@@ -55,6 +55,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   codigo: string | null;
   categoria: string | null;
   precio: number;
+  /** Foto de esta variante por su color (20260917190000) — null si ese color no
+   *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
+  fotoUrl: string | null;
   stockAqui: number;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja

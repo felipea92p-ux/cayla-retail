@@ -14,6 +14,7 @@ export type VarianteAgrupable = {
   precio: number;
   stockAqui: number;
   categoria: string | null;
+  fotoUrl: string | null;
 };
 
 export type TallaDelGrupo<T> = {
@@ -32,6 +33,9 @@ export type GrupoCatalogo<T> = {
   referencia: string;
   color: string | null;
   categoria: string | null;
+  /** De la primera variante del grupo — todas comparten prenda+color, así que
+   *  comparten foto. */
+  fotoUrl: string | null;
   /** Ordenadas como se leen en tienda (ver `ordenTalla`). */
   tallas: TallaDelGrupo<T>[];
   stockTotal: number;
@@ -54,6 +58,7 @@ export function agruparCatalogo<T extends VarianteAgrupable>(variantes: T[]): Gr
         referencia: v.referencia,
         color: v.color,
         categoria: v.categoria,
+        fotoUrl: v.fotoUrl,
         tallas: [],
         stockTotal: 0,
         precioMin: v.precio,

@@ -3,6 +3,73 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Producción se cayó dos veces hoy — y una tercera vez que nadie reportó, encontrada antes de que doliera)
+
+Primera caída real del día: `retail.fn_productos` con dos sobrecargas vivas (9 y 10
+parámetros) — `supabase.rpc()` no puede elegir entre ambas, `/productos` mostraba "NO
+SE PUDO CARGAR" en producción. Causa: solo UNA de dos migraciones relacionadas se
+había aplicado. `drop function` de la sobrecarga vieja, Felipe confirmó que volvió a
+cargar. El mismo síntoma, mismo remedio, apareció una segunda vez en
+`catalogo_actualizar_producto`.
+
+La tercera fue peor y nadie la había reportado todavía: el PR #75 (Taxonomía,
+ADR-0095) se fusionó a `main` con frontend que ya esperaba `variantes.talla_id` — pero
+su propia migración nunca llegó a producción (el "Production Deploy" del entorno de
+esa sesión se la bloqueó). Vercel desplegó el frontend nuevo igual, sin esperar a
+nadie. Confirmado contra `information_schema` directo, no asumido: la columna no
+existía en producción. Con el ok explícito de Felipe ("Aplica las migraciones
+pendientes a producción") se aplicó la cadena completa — `retail.tallas` +
+`categoria_tallas/tejidos/patrones`, `variantes.talla_id` (backfill 144/145 filas, la
+única excepción el sentinel "Cargo especial"), el candado de sede en
+`registrar_venta`, `catalogo_crear_producto`/`catalogo_actualizar_producto` con
+`talla_id` — reconciliado a mano contra el cuerpo QUE YA CORRÍA en producción, no
+contra el archivo de otra sesión que asumía un `main` más viejo: pegado tal cual,
+ese archivo habría revivido un candado de SKU obligatorio que ya se había sacado a
+propósito antes de hoy. La migración destapó dos roturas más (`fn_prioridad_conteo`,
+`fn_productos` — seguían leyendo `variantes.talla`, recién borrada) y 4 sobrecargas
+duplicadas nuevas (2 producidas por esta misma reconciliación, 2 de una tercera
+sesión concurrente aún sin fusionar) — encontradas con un barrido propio de
+`pg_proc` antes de que Felipe viera ningún síntoma, no después de un reporte.
+Verificación final contra producción: cero sobrecargas duplicadas, cero funciones
+con `variantes.talla` colgando. Lo que NO se pegó, a propósito: `20260917110000`
+(los renombres de categoría de ADR-0096) — cambia lo que ve una encargada de sede
+ahora mismo, es decisión de negocio de Felipe, no un fix técnico (queda en BACKLOG).
+Aprendizaje que ya se había nombrado hoy y se repite: un PR fusionado a `main` no
+significa que su base de datos lo esté — Vercel despliega el frontend en cuanto el
+merge entra, sin esperar a que nadie migre nada.
+
+## 2026-09-17 (Vender/Caja ya muestra la foto del producto, como la Grilla)
+
+Felipe, a mitad de la emergencia de producción de arriba: si Productos ya muestra
+fotos, Caja debería también — son el mismo catálogo. `getCatalogo()` no traía
+`producto_fotos` en su select embebido; se agregó, resuelto por color exacto (mismo
+criterio `color_codigo` que ya usa la Grilla, con `===` en vez de `IS NOT DISTINCT
+FROM` porque acá el comparador es JS, no SQL — `null === null` también da `true`). El
+dato cruza 5 archivos sin tocar el resto de cada uno (`vender/page.tsx` →
+`PuntoDeVenta.tsx`, tipo nuevo → `catalogo-grupos.ts`, campo nuevo en el agrupador →
+`PuntoDeVentaCatalogo.tsx`, reemplaza el placeholder quieto por `<Image>` cuando hay
+foto). Probado en navegador: prenda con foto la muestra en Vender; prenda sin foto
+sigue con el placeholder de iniciales de siempre.
+
+## 2026-09-17 (La tarjeta de la Grilla se abre con un clic en la foto, sin el ícono de ampliar)
+
+Felipe: quitar el ícono de "ampliar" (esquina superior izquierda, solo visible al pasar
+el mouse) y que toda la foto sea el botón que abre la Vista rápida. El contenedor de la
+foto pasó de `<div>` a `<button>` (con `aria-label` de siempre, foco visible con el
+mismo anillo rojo que ya usa `FiltrosProductos.tsx` para sus controles); `IconoAmpliar`
+y el botón que lo envolvía se borraron completos (sin otro uso en el repo, verificado
+por grep). De paso, `group` en la tarjeta quedó sin ningún `group-hover`/`group-focus`
+que lo necesitara — se sacó en vez de dejarlo de adorno. Verificado en navegador: clic
+en cualquier punto de la foto (no solo donde estaba el ícono) abre la Vista rápida;
+`document.querySelectorAll('[aria-label^="Vista rápida"]').length` da 10, uno por
+tarjeta — no quedó ningún botón duplicado de la versión vieja.
+
+**De paso, mismo mensaje:** Felipe pidió sacar la columna "Costo" de la tabla de
+variantes en esa misma Vista rápida — el costo es dato interno (margen), no algo para
+mostrar junto al precio de venta en una vista rápida de catálogo. Se sacó la columna
+(header + celda), queda Talla/Color/Precio/Código. No se tocó `ProductoForm.tsx`
+(`/productos/[id]/editar`) — ahí Costo/Margen siguen, hacen falta para fijar precio.
+
 ## 2026-09-17 (Fusión con main: el fix de color_codigo perdido no se podía pegar tal cual — talla_id vs talla)
 
 Al fusionar `main` (que ya traía `20260917210000`, el arreglo de otra sesión para el

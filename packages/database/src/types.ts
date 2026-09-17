@@ -242,6 +242,105 @@ export type Database = {
           },
         ]
       }
+      categoria_patrones: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          patron_id: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          patron_id: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          patron_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categoria_patrones_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categoria_patrones_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categoria_tallas: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          talla_id: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          talla_id: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          talla_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categoria_tallas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categoria_tallas_talla_id_fkey"
+            columns: ["talla_id"]
+            isOneToOne: false
+            referencedRelation: "tallas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categoria_tejidos: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          tejido_id: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          tejido_id: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          tejido_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categoria_tejidos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categoria_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           activo: boolean
@@ -668,6 +767,7 @@ export type Database = {
           serie: string
           subtotal: number
           tipo: string
+          token_cliente: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
@@ -694,6 +794,7 @@ export type Database = {
           serie: string
           subtotal: number
           tipo?: string
+          token_cliente?: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
@@ -720,6 +821,7 @@ export type Database = {
           serie?: string
           subtotal?: number
           tipo?: string
+          token_cliente?: string | null
           total?: number
           ubicacion_destino_id?: string
           usuario_id?: string | null
@@ -1190,6 +1292,114 @@ export type Database = {
           },
         ]
       }
+      etiquetas: {
+        Row: {
+          activo: boolean
+          aprobado_en: string | null
+          aprobado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          nombre: string
+          notas: string | null
+          propuesto_por: string | null
+          sedes_permitidas: string[] | null
+        }
+        Insert: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          propuesto_por?: string | null
+          sedes_permitidas?: string[] | null
+        }
+        Update: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          propuesto_por?: string | null
+          sedes_permitidas?: string[] | null
+        }
+        Relationships: []
+      }
+      gastos: {
+        Row: {
+          categoria: string
+          created_at: string
+          documento_numero: string | null
+          documento_serie: string | null
+          documento_tipo: string
+          especificacion: string | null
+          id: string
+          igv: number
+          metodo_pago: string
+          proveedor_id: string | null
+          subtotal: number
+          token_cliente: string | null
+          total: number
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          documento_numero?: string | null
+          documento_serie?: string | null
+          documento_tipo?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          metodo_pago: string
+          proveedor_id?: string | null
+          subtotal?: number
+          token_cliente?: string | null
+          total: number
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          documento_numero?: string | null
+          documento_serie?: string | null
+          documento_tipo?: string
+          especificacion?: string | null
+          id?: string
+          igv?: number
+          metodo_pago?: string
+          proveedor_id?: string | null
+          subtotal?: number
+          token_cliente?: string | null
+          total?: number
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historial_producto_cambios: {
         Row: {
           campo: string
@@ -1654,6 +1864,42 @@ export type Database = {
           },
         ]
       }
+      patrones: {
+        Row: {
+          activo: boolean
+          aprobado_en: string | null
+          aprobado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          nombre: string
+          notas: string | null
+          propuesto_por: string | null
+        }
+        Insert: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          propuesto_por?: string | null
+        }
+        Update: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          propuesto_por?: string | null
+        }
+        Relationships: []
+      }
       prendas_danadas: {
         Row: {
           cantidad: number
@@ -1955,17 +2201,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "productos_tejido_id_fkey"
-            columns: ["tejido_id"]
-            isOneToOne: false
-            referencedRelation: "tejidos"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "productos_patron_id_fkey"
             columns: ["patron_id"]
             isOneToOne: false
             referencedRelation: "patrones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
             referencedColumns: ["id"]
           },
         ]
@@ -2169,6 +2415,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tallas: {
+        Row: {
+          activo: boolean
+          aprobado_en: string | null
+          aprobado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          notas: string | null
+          propuesto_por: string | null
+          valor: string
+        }
+        Insert: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          notas?: string | null
+          propuesto_por?: string | null
+          valor: string
+        }
+        Update: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          notas?: string | null
+          propuesto_por?: string | null
+          valor?: string
+        }
+        Relationships: []
+      }
+      tejidos: {
+        Row: {
+          activo: boolean
+          aprobado_en: string | null
+          aprobado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          nombre: string
+          notas: string | null
+          propuesto_por: string | null
+        }
+        Insert: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          propuesto_por?: string | null
+        }
+        Update: {
+          activo?: boolean
+          aprobado_en?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          propuesto_por?: string | null
+        }
+        Relationships: []
       }
       transferencia_items: {
         Row: {
@@ -2402,6 +2720,39 @@ export type Database = {
         }
         Relationships: []
       }
+      variante_etiquetas: {
+        Row: {
+          created_at: string
+          etiqueta_id: string
+          variante_id: string
+        }
+        Insert: {
+          created_at?: string
+          etiqueta_id: string
+          variante_id: string
+        }
+        Update: {
+          created_at?: string
+          etiqueta_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variante_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variante_etiquetas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       variantes: {
         Row: {
           activo: boolean
@@ -2459,285 +2810,6 @@ export type Database = {
             columns: ["talla_id"]
             isOneToOne: false
             referencedRelation: "tallas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      variante_etiquetas: {
-        Row: {
-          created_at: string
-          etiqueta_id: string
-          variante_id: string
-        }
-        Insert: {
-          created_at?: string
-          etiqueta_id: string
-          variante_id: string
-        }
-        Update: {
-          created_at?: string
-          etiqueta_id?: string
-          variante_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "variante_etiquetas_etiqueta_id_fkey"
-            columns: ["etiqueta_id"]
-            isOneToOne: false
-            referencedRelation: "etiquetas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "variante_etiquetas_variante_id_fkey"
-            columns: ["variante_id"]
-            isOneToOne: false
-            referencedRelation: "variantes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tallas: {
-        Row: {
-          activo: boolean
-          aprobado_en: string | null
-          aprobado_por: string | null
-          created_at: string
-          estado: string
-          id: string
-          notas: string | null
-          propuesto_por: string | null
-          valor: string
-        }
-        Insert: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          notas?: string | null
-          propuesto_por?: string | null
-          valor: string
-        }
-        Update: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          notas?: string | null
-          propuesto_por?: string | null
-          valor?: string
-        }
-        Relationships: []
-      }
-      tejidos: {
-        Row: {
-          activo: boolean
-          aprobado_en: string | null
-          aprobado_por: string | null
-          created_at: string
-          estado: string
-          id: string
-          nombre: string
-          notas: string | null
-          propuesto_por: string | null
-        }
-        Insert: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre: string
-          notas?: string | null
-          propuesto_por?: string | null
-        }
-        Update: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre?: string
-          notas?: string | null
-          propuesto_por?: string | null
-        }
-        Relationships: []
-      }
-      patrones: {
-        Row: {
-          activo: boolean
-          aprobado_en: string | null
-          aprobado_por: string | null
-          created_at: string
-          estado: string
-          id: string
-          nombre: string
-          notas: string | null
-          propuesto_por: string | null
-        }
-        Insert: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre: string
-          notas?: string | null
-          propuesto_por?: string | null
-        }
-        Update: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre?: string
-          notas?: string | null
-          propuesto_por?: string | null
-        }
-        Relationships: []
-      }
-      etiquetas: {
-        Row: {
-          activo: boolean
-          aprobado_en: string | null
-          aprobado_por: string | null
-          created_at: string
-          estado: string
-          id: string
-          nombre: string
-          notas: string | null
-          propuesto_por: string | null
-          sedes_permitidas: string[] | null
-        }
-        Insert: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre: string
-          notas?: string | null
-          propuesto_por?: string | null
-          sedes_permitidas?: string[] | null
-        }
-        Update: {
-          activo?: boolean
-          aprobado_en?: string | null
-          aprobado_por?: string | null
-          created_at?: string
-          estado?: string
-          id?: string
-          nombre?: string
-          notas?: string | null
-          propuesto_por?: string | null
-          sedes_permitidas?: string[] | null
-        }
-        Relationships: []
-      }
-      categoria_tallas: {
-        Row: {
-          categoria_id: string
-          created_at: string
-          talla_id: string
-        }
-        Insert: {
-          categoria_id: string
-          created_at?: string
-          talla_id: string
-        }
-        Update: {
-          categoria_id?: string
-          created_at?: string
-          talla_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categoria_tallas_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "categoria_tallas_talla_id_fkey"
-            columns: ["talla_id"]
-            isOneToOne: false
-            referencedRelation: "tallas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      categoria_tejidos: {
-        Row: {
-          categoria_id: string
-          created_at: string
-          tejido_id: string
-        }
-        Insert: {
-          categoria_id: string
-          created_at?: string
-          tejido_id: string
-        }
-        Update: {
-          categoria_id?: string
-          created_at?: string
-          tejido_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categoria_tejidos_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "categoria_tejidos_tejido_id_fkey"
-            columns: ["tejido_id"]
-            isOneToOne: false
-            referencedRelation: "tejidos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      categoria_patrones: {
-        Row: {
-          categoria_id: string
-          created_at: string
-          patron_id: string
-        }
-        Insert: {
-          categoria_id: string
-          created_at?: string
-          patron_id: string
-        }
-        Update: {
-          categoria_id?: string
-          created_at?: string
-          patron_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categoria_patrones_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "categoria_patrones_patron_id_fkey"
-            columns: ["patron_id"]
-            isOneToOne: false
-            referencedRelation: "patrones"
             referencedColumns: ["id"]
           },
         ]
@@ -3709,6 +3781,10 @@ export type Database = {
         }[]
       }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_variante_permitida_en_sede: {
+        Args: { p_ubicacion_id: string; p_variante_id: string }
+        Returns: boolean
+      }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
         Returns: {
@@ -3909,8 +3985,34 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
+          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
+        }
+        Returns: string
+      }
+      registrar_consumo_insumo: {
+        Args: {
+          p_cantidad: number
+          p_insumo_id: string
+          p_nota?: string
+          p_produccion_id: string
+        }
+        Returns: string
+      }
+      registrar_gasto: {
+        Args: {
+          p_categoria: string
+          p_documento_numero?: string
+          p_documento_serie?: string
+          p_documento_tipo?: string
+          p_especificacion?: string
+          p_igv?: number
+          p_metodo_pago: string
+          p_proveedor_id?: string
+          p_token?: string
+          p_total: number
+          p_ubicacion_id: string
         }
         Returns: string
       }
@@ -4026,6 +4128,15 @@ export type Database = {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
         Returns: undefined
       }
+      transferir: {
+        Args: {
+          p_items: Json
+          p_nota?: string
+          p_ubicacion_destino_id: string
+          p_ubicacion_origen_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -4044,12 +4155,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4073,11 +4184,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4098,11 +4209,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4123,11 +4234,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4140,11 +4251,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
+import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
@@ -267,11 +268,18 @@ export function PuntoDeVentaCatalogo({
                     sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
                   }`}
                 >
-                  {/* Hueco de la foto: `productos` no tiene foto todavía; cuando la tenga,
-                      cae acá sin rediseñar la tarjeta. */}
-                  <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
-                    <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
-                  </div>
+                  {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
+                      color no tenga foto, las iniciales siguen de plan B — nunca un ícono
+                      de "foto rota". */}
+                  {g.fotoUrl ? (
+                    <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40">
+                      <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover" unoptimized />
+                    </div>
+                  ) : (
+                    <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
+                      <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
+                    </div>
+                  )}
                   <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
                   <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
 
