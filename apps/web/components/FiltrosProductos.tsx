@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, Banknote, ChevronDown, CircleCheck, PackageSearch, Palette, Shirt, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, Banknote, ChevronDown, CircleCheck, Eye, PackageSearch, Palette, Shirt, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { Select, Slider } from "radix-ui";
 import { ALTO_CONTROL, CampoSelectNativo, CampoTexto, Hilo } from "@/components/ui/campos";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,10 +36,16 @@ export function FiltrosProductos({
   categorias,
   colores,
   compacto = false,
+  esLider = false,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
   compacto?: boolean;
+  /** Solo un Líder puede filtrar por Publicación (borrador/archivado,
+   *  20260917201500) — un colaborador de sede ni ve este control: el
+   *  candado real está en `filtrosProductosDesdeParams`, esto es solo la
+   *  primera capa (no mostrar lo que de todas formas el server ignoraría). */
+  esLider?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -83,6 +89,7 @@ export function FiltrosProductos({
   const cat = params.get("cat");
   const color = params.get("color");
   const estado = params.get("estado");
+  const pub = esLider ? params.get("pub") : null;
   const stock = params.get("stock");
   const orden = params.get("orden");
 
@@ -93,6 +100,7 @@ export function FiltrosProductos({
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
   if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
   if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
+  if (pub) chips.push({ texto: pub === "borrador" ? "Borrador" : pub === "archivado" ? "Archivado" : "Publicado", quitar: { pub: "" } });
   if (stock) {
     chips.push({
       texto: stock === "sin_stock" ? "Sin stock" : stock === "bajo" ? "Stock bajo" : "Pedir a proveedor",
@@ -148,7 +156,7 @@ export function FiltrosProductos({
   );
 
   if (compacto) {
-    const activos = [cat, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
+    const activos = [cat, color, estado, pub, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
     return (
       <div className="space-y-2">
         <div className="flex items-start gap-2">
@@ -216,6 +224,15 @@ export function FiltrosProductos({
               <ItemDesplegable value="descontinuado">Descontinuado</ItemDesplegable>
             </DesplegablePildora>
 
+            {esLider && (
+              <DesplegablePildora icono={Eye} etiqueta="Publicación" valor={pub ?? TODOS} onValor={(v) => aplicar({ pub: v === TODOS ? "" : v })}>
+                <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
+                <ItemDesplegable value="activo">Publicado</ItemDesplegable>
+                <ItemDesplegable value="borrador">Borrador</ItemDesplegable>
+                <ItemDesplegable value="archivado">Archivado</ItemDesplegable>
+              </DesplegablePildora>
+            )}
+
             <DesplegablePildora icono={PackageSearch} etiqueta="Stock" valor={stock ?? TODOS} onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}>
               <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
               <ItemDesplegable value="sin_stock">Sin stock</ItemDesplegable>
@@ -271,6 +288,14 @@ export function FiltrosProductos({
           <option value="activo">Activo</option>
           <option value="descontinuado">Descontinuado</option>
         </CampoSelectNativo>
+        {esLider && (
+          <CampoSelectNativo etiqueta="Publicación" value={pub ?? ""} onChange={(e) => aplicar({ pub: e.target.value })}>
+            <option value="">Todas</option>
+            <option value="activo">Publicado</option>
+            <option value="borrador">Borrador</option>
+            <option value="archivado">Archivado</option>
+          </CampoSelectNativo>
+        )}
         <CampoTexto
           etiqueta="Precio desde"
           value={precioMin}

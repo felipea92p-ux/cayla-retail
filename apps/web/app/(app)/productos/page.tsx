@@ -45,8 +45,11 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 // una sola vez, no tiene sentido para una que ya existe.
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await requirePersonaActualV2();
+  const esLider = persona.rol === "lider";
   const params = await searchParams;
-  const filtros = filtrosProductosDesdeParams(params);
+  // `esLider` fija el candado real de "quién puede ver borrador/archivado" —
+  // ver el comentario de `filtrosProductosDesdeParams` en catalogo-v2.ts.
+  const filtros = filtrosProductosDesdeParams(params, esLider);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   const supabase = await createClient();
@@ -102,7 +105,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               Tabla
             </Link>
           </div>
-          {persona.rol === "lider" && (
+          {esLider && (
             <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
               + Nuevo producto
             </Link>
@@ -112,21 +115,21 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
-      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} />
+      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} esLider={esLider} />
 
       {vista === "grilla" ? (
         <ProductosGrilla
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          esLider={esLider}
         />
       ) : (
         <ProductosAgrupados
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          esLider={esLider}
         />
       )}
 

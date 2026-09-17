@@ -55,7 +55,13 @@ async function Caja() {
   const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.piso ?? f.total]));
 
   const variantesParaVenta = variantes
-    .filter((v) => v.activo)
+    // `v.activo` (¿esta variante sigue vendiéndose?) y `estadoPublicacion`
+    // (20260917201500, ¿el producto ya está listo para mostrarse?) son ejes
+    // distintos — un producto recién cargado puede tener variantes activas
+    // y seguir sin aparecer en Vender hasta que un Líder lo publique. Nadie
+    // vende un borrador por accidente, sea colaborador o Líder: publicarlo
+    // se hace en /productos/[id]/editar, no desde la caja.
+    .filter((v) => v.activo && v.estadoPublicacion === "activo")
     .map((v) => ({
       varianteId: v.varianteId,
       sku: v.sku,

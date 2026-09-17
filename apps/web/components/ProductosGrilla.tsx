@@ -278,9 +278,20 @@ function VistaRapidaModal({
             <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} tamano="h-5 w-5" />
             <span className="text-xs text-tinta/60">{activo?.nombre ?? ""}</span>
           </div>
-          <Chip tono={producto.estado === "activo" ? "verde" : "apagado"} className="mt-3">
-            {producto.estado === "activo" ? "Activo" : "Descontinuado"}
-          </Chip>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Chip tono={producto.estado === "activo" ? "verde" : "apagado"}>
+              {producto.estado === "activo" ? "Activo" : "Descontinuado"}
+            </Chip>
+            {/* Sin chequeo de rol a propósito: un colaborador de sede nunca
+                recibe un producto con estadoPublicacion distinto de
+                "activo" (candado real en filtrosProductosDesdeParams, no
+                acá) — esta condición sola ya basta. */}
+            {producto.estadoPublicacion !== "activo" && (
+              <Chip tono={producto.estadoPublicacion === "borrador" ? "neutro" : "apagado"}>
+                {producto.estadoPublicacion === "borrador" ? "Borrador" : "Archivado"}
+              </Chip>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
