@@ -1,7 +1,18 @@
 # ADR-0090 — Inventario de insumos del Taller: entra, se descuenta al cortar, avisa cuando falta
 
 **Fecha:** 2026-09-17. Reescrita dos veces el mismo día — ver "Qué pasó antes de esta
-versión" y "Reconciliación con la otra sesión" más abajo.
+versión" y "Reconciliación con la otra sesión" más abajo. **Corrección tardía, misma
+noche:** el job piloto de CI (`.github/workflows/ci.yml`, agregado por otra sesión
+horas después) corrió `supabase start` desde cero por primera vez contra esta rama —
+algo que ninguna verificación de hoy había probado, todas corrieron contra el Postgres
+local ya modificado a mano. Reveló que `20260917124059_materia_prima_taller.sql` (el
+primer intento descartado — ver "Qué pasó antes de esta versión") seguía en el repo y
+también hacía `create table retail.insumos`: en una base limpia, esa migración corre
+ANTES que `20260917145000_insumos_taller_reconstruido.sql` y choca contra ella
+(`relation "insumos" already exists`). El archivo se había dejado a propósito como
+"registro histórico" — pero un registro histórico no debería ser una migración viva que
+el riel normal reaplica. El commit `fd3488f` ya lo conserva para siempre; borrar el
+archivo del árbol de trabajo.
 **Estado:** Aplicado en local por el riel normal de migraciones, timestamped en orden:
 `20260917140000_insumos_taller_reconstruido.sql` (el espejo de las 3 tablas + vista + 2
 funciones huérfanas) y `20260917141500_registrar_consumo_insumo.sql` (la única pieza
