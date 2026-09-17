@@ -28,6 +28,38 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Revocar EXECUTE público de las funciones "motor" (2026-09-17, ADR-0074)
+
+`retail.fn_aplicar_movimiento(uuid)` (security definer, sin auto-chequeo) tenía EXECUTE
+otorgado a `anon` y `authenticated` — cualquiera podía reaplicar un movimiento de tipo
+`entrada` ya existente por RPC directo y duplicar stock sin sesión. Mismo patrón que ya se
+cerró para `fn_recalcular_costo_variante` (ADR-0067). Detalle completo, tabla de
+llamadores verificados contra `pg_proc` y smoke test en
+[docs/adr/0074-revocar-execute-publico-de-las-funciones-motor.md](adr/0074-revocar-execute-publico-de-las-funciones-motor.md).
+
+- [x] **Aplicado en LOCAL** (`docker exec`, no `db reset`):
+      `20260917150000_revocar_execute_fn_aplicar_movimiento.sql` y
+      `20260917150001_revocar_execute_correlativos_y_codigos.sql` — esta segunda también
+      cierra `fn_reservar_numero_serie`/`fn_siguiente_correlativo` (mismo patrón, y más
+      grave: llamarlas directo quema un número de serie SUNAT sin emitir nada) y
+      `fn_asignar_codigo_producto`/`fn_asignar_codigo_variante` (revoke angosto, solo de
+      `anon` — `authenticated` lo necesita vía un trigger que no es security definer).
+      Verificado con smoke test `psql`+`ROLLBACK`: los seis caminos anon/authenticated
+      directos quedan bloqueados, los dos caminos legítimos (wrapper security definer,
+      trigger de variantes) siguen funcionando.
+- [ ] **Falta autorización de Felipe para producción.** Mismo mecanismo que ADR-0067 (MCP
+      de Supabase, `apply_migration` contra `vovjyyiafkxteijimpuy` — el mismo que aplicó
+      `20260916223000` hoy según la auditoría de abajo). No se leyó producción en esta
+      tarea a propósito (se pidió explícitamente no tocarla); production probablemente
+      tiene el mismo grant abierto, viene de la misma `0003_funciones.sql`.
+- [ ] **Pista para el ítem de abajo ("migraciones sin registro local"):**
+      `registrar_movimiento_una_sola_firma` (20260916214600, aplicada en producción sin
+      archivo local) probablemente resuelve la ambigüedad de sobrecarga que esta tarea
+      encontró de paso en el smoke test (`registrar_movimiento` con 6 argumentos no
+      resuelve entre sus dos firmas) — no se investigó a fondo, pero el nombre calza.
+
+---
+
 ## 🎯 Recibir mercadería: lista de recepciones + "+ Nueva recepción" (2026-09-17)
 
 Felipe lo pidió tras la auditoría de huecos de más abajo (misma fecha): la pantalla no

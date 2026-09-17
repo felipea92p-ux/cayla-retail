@@ -5393,3 +5393,27 @@ unificación de julio. El repo ya resuelve esto — `fn_nombres_personas(p_ids u
 `devoluciones.ts` ya usan. Se corrigió `getRecepcionesRecientes` para usar esa RPC y se
 revirtió el hand-fix a `types.ts` (la tabla que le había agregado a mano no existe en
 ningún lado). "Recibido por" ahora sale con nombre real, verificado en navegador.
+
+## 2026-09-17 (Revocar EXECUTE público de fn_aplicar_movimiento y afines — ADR-0074)
+
+`fn_aplicar_movimiento` (security definer, sin auto-chequeo) tenía EXECUTE abierto a
+`anon`/`authenticated` — RPC directo con un `movimiento_id` de tipo `entrada` ya existente
+duplicaba stock sin sesión. Mismo patrón que ADR-0067 (`fn_recalcular_costo_variante`).
+Confirmé contra `pg_proc` que los 13 llamadores actuales son todos security definer, aplique
+el revoke de dos pasos (PUBLIC + `authenticated`, 20260917150000) y extendí la revisión a
+`fn_reservar_numero_serie`/`fn_siguiente_correlativo` (mismo hueco, más grave: quema
+numeración SUNAT sin emitir nada) y `fn_asignar_codigo_producto`/`variante` (revoke angosto,
+solo `anon` — `authenticated` lo necesita vía un trigger que no es security definer,
+20260917150001). Smoke test `psql`+`ROLLBACK` (ADR-0066): los 6 caminos directos quedan
+bloqueados, los 2 caminos legítimos siguen funcionando. Solo local — falta autorización de
+Felipe para producción (detalle y pendientes en BACKLOG y ADR-0074).
+
+De paso: este Postgres local compartido resultó tener aplicada
+`20260917124059_materia_prima_taller` (de otro worktree, no está en este árbol) y le faltan
+las 10 migraciones de 16-sep que sí están en este worktree — la sección "Auditoría de
+migraciones pendientes en producción" de hoy mismo ya confirmó que production SÍ las tiene
+todas, así que es un atraso de este Postgres de desarrollo, no de producción. No lo corregí
+(traer 10 migraciones de golpe es decisión de Felipe, no algo para improvisar dentro de esta
+tarea). También de paso: `registrar_movimiento` tiene dos sobrecargas ambiguas con 6
+argumentos — probablemente ya resuelto en producción vía el parche sin archivo local
+`registrar_movimiento_una_sola_firma` que BACKLOG ya listaba.
