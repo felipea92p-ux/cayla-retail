@@ -1447,16 +1447,12 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
-- [ ] **`20260915130000_produccion_del_taller` — estado en producción contradictorio entre
-      `DiegoN` y `main`, sin verificar todavía al fusionar (2026-09-16).** `DiegoN` la daba
-      por aplicada y verificada («producciones, produccion_lineas, las 5 RPC, el check de
-      `ubicaciones.tipo` con `taller` y la fila «Taller · taller» presentes»); `main` la
-      daba por **no** aplicada («Hasta entonces `/produccion` en producción carga vacía y
-      «Abrir orden» falla con «function abrir_produccion does not exist»»). Los dos no
-      pueden ser ciertos a la vez — antes de tocar nada más, preguntarle a la base real
-      (`information_schema`/`pg_proc` en `cayla-dynamic`, schema `retail`) cuál de las dos
-      describe el estado actual, y borrar la otra. Ya lleva el prefijo `retail.`; pegar tal
-      cual si hace falta.
+- [x] **`20260915130000_produccion_del_taller` — resuelta la contradicción (2026-09-17
+      tarde).** Consultado directo contra `information_schema`/`pg_proc` en `cayla-dynamic`
+      (schema `retail`): `abrir_produccion`, `cerrar_produccion`, `set_etapa_produccion` y
+      `revertir_produccion` **sí existen** en producción. `DiegoN` tenía razón, `main` no —
+      Producción del Taller ya está aplicada y operable en producción, no hace falta pegar
+      nada de esa migración de nuevo.
 - [ ] **Producción, decisiones abiertas tras la matriz (2026-09-15, ADR-0050 §5):**
       (a) ¿atajo «Nuevo modelo» dentro de la orden que abra el flujo de Productos? Hoy
       Productos V2 no crea variantes desde pantalla (nacen por importación), así que el
