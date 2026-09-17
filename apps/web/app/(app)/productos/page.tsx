@@ -12,6 +12,7 @@ import {
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
 import { ProductosAgrupados } from "@/components/ProductosAgrupados";
+import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 
@@ -47,18 +48,30 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const filtros = filtrosProductosDesdeParams(params);
   const pagina = paginaProductosDesdeParams(params);
+  const vista = params.vista === "tabla" ? "tabla" : "grilla";
   const supabase = await createClient();
+
+  // Grilla ⇄ tabla (ADR-0075) — mismo patrón que `hrefConStock` de `Resumen`
+  // más abajo: reconstruye la URL con todos los filtros vigentes, solo
+  // cambia `vista`. Grilla es el default, así que no ensucia la URL.
+  function hrefConVista(v: "grilla" | "tabla") {
+    const p = new URLSearchParams();
+    for (const [k, val] of Object.entries(params)) if (val && k !== "vista") p.set(k, val);
+    if (v !== "grilla") p.set("vista", v);
+    const qs = p.toString();
+    return qs ? `/productos?${qs}` : "/productos";
+  }
 
   const [resultado, resumen, categorias, colores, sububicaciones] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre").eq("activo", true).order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre }));
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
 
   return (
     <div className="space-y-6">
@@ -66,24 +79,56 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
+          {vista === "grilla" && <Resumen resumen={resumen} params={params} compacto />}
         </div>
-        {persona.rol === "lider" && (
-          <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            + Nuevo producto
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-0.5 rounded-lg bg-sand p-0.5">
+            <Link
+              href={hrefConVista("grilla")}
+              aria-current={vista === "grilla" ? "page" : undefined}
+              className={`label-cayla rounded-md px-3 py-2 text-[10.5px] transition-colors ${
+                vista === "grilla" ? "bg-papel text-tinta" : "text-tinta/60 hover:text-tinta"
+              }`}
+            >
+              Grilla
+            </Link>
+            <Link
+              href={hrefConVista("tabla")}
+              aria-current={vista === "tabla" ? "page" : undefined}
+              className={`label-cayla rounded-md px-3 py-2 text-[10.5px] transition-colors ${
+                vista === "tabla" ? "bg-papel text-tinta" : "text-tinta/60 hover:text-tinta"
+              }`}
+            >
+              Tabla
+            </Link>
+          </div>
+          {persona.rol === "lider" && (
+            <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+              + Nuevo producto
+            </Link>
+          )}
+        </div>
       </div>
 
-      <Resumen resumen={resumen} params={params} />
+      {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
-      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} />
+      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} />
 
-      <ProductosAgrupados
-        productos={resultado.productos}
-        ubicacionId={persona.ubicacionId}
-        sububicaciones={sububicaciones}
-        esLider={persona.rol === "lider"}
-      />
+      {vista === "grilla" ? (
+        <ProductosGrilla
+          productos={resultado.productos}
+          ubicacionId={persona.ubicacionId}
+          sububicaciones={sububicaciones}
+          esLider={persona.rol === "lider"}
+        />
+      ) : (
+        <ProductosAgrupados
+          productos={resultado.productos}
+          ubicacionId={persona.ubicacionId}
+          sububicaciones={sububicaciones}
+          esLider={persona.rol === "lider"}
+        />
+      )}
 
       <PaginacionPaginas
         pagina={resultado.pagina}
@@ -101,12 +146,50 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 // catálogo cargado en el cliente — con paginado, la página nunca es "todo el
 // catálogo". "Stock bajo" y "sin stock" son también atajos: tocarlas aplica
 // ese filtro, mismo criterio que "Vence esta semana" en Compras.
-function Resumen({ resumen, params }: { resumen: ResumenProductos; params: ParamsProductosListado }) {
+//
+// `compacto` (2026-09-17, pedido de Felipe): en la Grilla esto deja de ser
+// una tarjeta propia y pasa a una línea bajo "Productos" — y solo dice lo
+// que hace falta accionar (pedir/stock bajo/sin stock quedan mudos en 0, no
+// en gris): la ropa no debería competir con cinco cifras para hacerse ver.
+// La Tabla sigue con la tarjeta completa, sin tocar.
+function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProductos; params: ParamsProductosListado; compacto?: boolean }) {
   function hrefConStock(stock: "sin_stock" | "bajo" | "reponer") {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v && k !== "pagina" && k !== "stock") p.set(k, v);
     p.set("stock", stock);
     return `/productos?${p.toString()}`;
+  }
+
+  if (compacto) {
+    return (
+      <p className="mt-1 text-xs text-tinta/55">
+        {resumen.totalProductos.toLocaleString("es-PE")} productos · {resumen.totalVariantes.toLocaleString("es-PE")} variantes
+        {resumen.reponerDeProveedor > 0 && (
+          <>
+            {" · "}
+            <Link href={hrefConStock("reponer")} className="text-ambar-profundo hover:underline">
+              {resumen.reponerDeProveedor.toLocaleString("es-PE")} para pedir
+            </Link>
+          </>
+        )}
+        {resumen.stockBajo > 0 && (
+          <>
+            {" · "}
+            <Link href={hrefConStock("bajo")} className="text-ambar-profundo hover:underline">
+              {resumen.stockBajo.toLocaleString("es-PE")} con stock bajo
+            </Link>
+          </>
+        )}
+        {resumen.sinStock > 0 && (
+          <>
+            {" · "}
+            <Link href={hrefConStock("sin_stock")} className="text-rojo hover:underline">
+              {resumen.sinStock.toLocaleString("es-PE")} sin stock
+            </Link>
+          </>
+        )}
+      </p>
+    );
   }
 
   return (
