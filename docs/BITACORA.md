@@ -74,6 +74,26 @@ Después de construir el mecanismo (ADR-0095), Felipe frenó al confirmar las 6 
 
 Sesión de diseño formal (protocolo de pregunta completo, bloque por bloque) que terminó descubriendo que este worktree estaba 520 commits atrás de `main` — con `main` ya teniendo colores propone/aprueba (ADR-0070), subcategoría (ADR-0062) y la capa de taxonomía universal (ADR-0030) construidos, y otras 3 sesiones paralelas con tejidos/patrones/etiquetas/rechazar-color a medio construir en ramas sin fusionar. Se puso este worktree al día con `main`, se resolvió la contradicción real que Felipe pidió detectar (ADR-0030 diseña multi-tenant explícito, su propia decisión del 16-sep dice "solo CAYLA" — se separaron las dos capas), y se construyó de cero (no cherry-pick) el vocabulario cerrado de talla/tejido/patrón/etiqueta con rechazar incluido desde el día uno, más el filtro por categoría que Felipe pidió (`categoria_tallas`/`categoria_tejidos`/`categoria_patrones`). Tocar `variantes.talla` (núcleo) reveló que **10 funciones SQL más** (Movimientos, Ventas, Conteo, Traslados, Producción) y **10 archivos TypeScript más** leían esa columna directo — se encontraron todas consultando `pg_proc.prosrc` contra la base real, no adivinando por migración, y el compilador de tipos generados marcó los 10 archivos de TS uno por uno. Un bug real de verdad (el trigger de talla pisaba `estado='aprobado'` del backfill porque `fn_es_lider()` no tiene sesión durante una migración) se encontró navegando `/productos/nuevo`, no leyendo SQL. Flujo completo probado en navegador como Líder: crear producto con 2 tallas × 2 colores, editar, guardar — los 293 tests + typecheck + lint quedaron en verde. Aprendizaje: "cambiar una columna del núcleo" nunca es local — el radio real solo aparece grepeando el código real, no imaginándolo.
 
+## 2026-09-17 (Swatches de color: el anillo "saltaba" al primer color al pasar el mouse)
+
+Felipe: al mover el mouse entre los círculos de color de una tarjeta, el anillo que marca
+cuál está activo se sentía "trabado" — parecía regresar al primer color antes de asentarse
+en el nuevo. Causa: `SwatchesColor` (`ProductosGrilla.tsx`) ponía `onMouseLeave={() =>
+onHover(null)}` en CADA botón. Al mover el mouse de un swatch al vecino, el navegador
+dispara "sale" del primero antes de "entra" al segundo — en ese instante `colorHover`
+quedaba `null`, y `nombreActivo` (`colorHover ?? colorFijo ?? colores[0]`) caía al primer
+color de la lista si todavía no se había hecho clic en ninguno. Un parpadeo de un frame,
+pero se notaba.
+
+Arreglo: `onMouseLeave`/`onBlur` se movieron del botón individual al `role="radiogroup"`
+que los contiene — `mouseleave` no burbujea entre hermanos, así que moverse entre swatches
+vecinos nunca dispara "salir" mientras el mouse sigue dentro del grupo (el `onBlur` usa
+`relatedTarget` para el mismo criterio por teclado). Verificado sin adivinar: un
+`MutationObserver` sobre `aria-checked` de los dos swatches, barriendo el mouse
+Beige→Negro→Beige varias veces — antes del fix hubiera esperado ver "Beige" volviendo a
+`true` de paso; después, un solo cambio limpio (Beige false, Negro true, mismo instante),
+cero saltos intermedios pase lo que pase con la trayectoria del mouse.
+
 ## 2026-09-17 (Fotos subidas a Blusa Ximena no se mostraban — otra sesión perdió color_codigo al sumar tejido/patrón)
 
 Felipe subió 3 fotos reales a Blusa Ximena (Blanco/Naranja/Negro) desde el formulario de
