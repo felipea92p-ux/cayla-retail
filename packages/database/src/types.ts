@@ -1289,6 +1289,133 @@ export type Database = {
         }
         Relationships: []
       }
+      insumo_lotes: {
+        Row: {
+          cantidad_ingresada: number
+          codigo_lote: string | null
+          costo_unitario: number
+          created_at: string
+          documento: string | null
+          fecha_ingreso: string
+          id: string
+          insumo_id: string
+          nota: string | null
+          origen: string
+          proveedor_id: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          cantidad_ingresada: number
+          codigo_lote?: string | null
+          costo_unitario: number
+          created_at?: string
+          documento?: string | null
+          fecha_ingreso?: string
+          id?: string
+          insumo_id: string
+          nota?: string | null
+          origen?: string
+          proveedor_id?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          cantidad_ingresada?: number
+          codigo_lote?: string | null
+          costo_unitario?: number
+          created_at?: string
+          documento?: string | null
+          fecha_ingreso?: string
+          id?: string
+          insumo_id?: string
+          nota?: string | null
+          origen?: string
+          proveedor_id?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumo_lotes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_insumo_saldos"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insumo_lotes_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insumos: {
+        Row: {
+          archivado_at: string | null
+          codigo: string
+          created_at: string
+          id: string
+          merma_pct: number
+          nombre: string
+          nota: string | null
+          proveedor_id: string | null
+          stock_minimo: number | null
+          tipo: string
+          unidad_medida: string
+          updated_at: string
+        }
+        Insert: {
+          archivado_at?: string | null
+          codigo: string
+          created_at?: string
+          id?: string
+          merma_pct?: number
+          nombre: string
+          nota?: string | null
+          proveedor_id?: string | null
+          stock_minimo?: number | null
+          tipo: string
+          unidad_medida: string
+          updated_at?: string
+        }
+        Update: {
+          archivado_at?: string | null
+          codigo?: string
+          created_at?: string
+          id?: string
+          merma_pct?: number
+          nombre?: string
+          nota?: string | null
+          proveedor_id?: string | null
+          stock_minimo?: number | null
+          tipo?: string
+          unidad_medida?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lotes: {
         Row: {
           fecha_recepcion: string
@@ -1508,6 +1635,168 @@ export type Database = {
             columns: ["venta_item_id"]
             isOneToOne: false
             referencedRelation: "venta_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimientos_insumo: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          created_at: string
+          id: string
+          insumo_id: string
+          insumo_lote_id: string | null
+          motivo: string | null
+          nota: string | null
+          produccion_id: string | null
+          tipo: string
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          insumo_id: string
+          insumo_lote_id?: string | null
+          motivo?: string | null
+          nota?: string | null
+          produccion_id?: string | null
+          tipo: string
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          insumo_lote_id?: string | null
+          motivo?: string | null
+          nota?: string | null
+          produccion_id?: string | null
+          tipo?: string
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_insumo_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_insumo_saldos"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_insumo_lote_id_fkey"
+            columns: ["insumo_lote_id"]
+            isOneToOne: false
+            referencedRelation: "insumo_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_produccion_id_fkey"
+            columns: ["produccion_id"]
+            isOneToOne: false
+            referencedRelation: "producciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_insumo_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prendas_danadas: {
+        Row: {
+          cantidad: number
+          created_at: string
+          devolucion_item_id: string
+          estado: string
+          id: string
+          movimiento_entrada_id: string
+          movimiento_salida_id: string | null
+          nota: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          devolucion_item_id: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id: string
+          variante_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          devolucion_item_id?: string
+          estado?: string
+          id?: string
+          movimiento_entrada_id?: string
+          movimiento_salida_id?: string | null
+          nota?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          ubicacion_id?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prendas_danadas_devolucion_item_id_fkey"
+            columns: ["devolucion_item_id"]
+            isOneToOne: true
+            referencedRelation: "devolucion_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_entrada_id_fkey"
+            columns: ["movimiento_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_movimiento_salida_id_fkey"
+            columns: ["movimiento_salida_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
             referencedColumns: ["id"]
           },
         ]
@@ -2523,6 +2812,27 @@ export type Database = {
           },
         ]
       }
+      v_insumo_saldos: {
+        Row: {
+          codigo: string | null
+          fisico: number | null
+          insumo_id: string | null
+          nombre: string | null
+          tipo: string | null
+          ubicacion_id: string | null
+          unidad_medida: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_insumo_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       abrir_caja: {
@@ -2590,6 +2900,15 @@ export type Database = {
         Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
+      ajustar_insumo_por_conteo: {
+        Args: {
+          p_cantidad_contada: number
+          p_insumo_id: string
+          p_motivo: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -2603,6 +2922,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -3157,6 +3477,15 @@ export type Database = {
         }
         Returns: string
       }
+      liquidar_prenda_danada: {
+        Args: {
+          p_id: string
+          p_metodo_pago: string
+          p_nota?: string
+          p_precio_unitario: number
+        }
+        Returns: string
+      }
       listar_compras: {
         Args: {
           p_busqueda?: string
@@ -3255,6 +3584,20 @@ export type Database = {
           p_items: Json
           p_nota?: string
           p_numero_guia?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
+      recibir_insumo: {
+        Args: {
+          p_cantidad: number
+          p_codigo_lote?: string
+          p_costo_total: number
+          p_documento?: string
+          p_insumo_id: string
+          p_nota?: string
+          p_origen?: string
+          p_proveedor_id?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -3410,6 +3753,10 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: string
+      }
+      resolver_prenda_danada: {
+        Args: { p_estado: string; p_id: string; p_nota?: string }
+        Returns: undefined
       }
       resumen_compras: {
         Args: never

@@ -1,4 +1,4 @@
-# ADR-0075 — Productos gana una vista de grilla con swatches de color y vista rápida
+# ADR-0077 — Productos gana una vista de grilla con swatches de color y vista rápida
 
 **Fecha:** 2026-09-17
 **Estado:** Primera pieza (grilla + swatches + vista rápida, sin fotos reales, sin cambios de esquema) en

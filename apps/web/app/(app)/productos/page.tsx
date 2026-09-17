@@ -51,7 +51,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   const supabase = await createClient();
 
-  // Grilla ⇄ tabla (ADR-0075) — mismo patrón que `hrefConStock` de `Resumen`
+  // Grilla ⇄ tabla (ADR-0077) — mismo patrón que `hrefConStock` de `Resumen`
   // más abajo: reconstruye la URL con todos los filtros vigentes, solo
   // cambia `vista`. Grilla es el default, así que no ensucia la URL.
   function hrefConVista(v: "grilla" | "tabla") {

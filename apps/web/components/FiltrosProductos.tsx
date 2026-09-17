@@ -31,7 +31,7 @@ const TODOS = "__todos__";
  *  a Radix Select — mismo paquete `radix-ui` que ya usa el Modal de Ajustar
  *  inventario, sin dependencia nueva. La Tabla sigue con la tarjeta completa
  *  de siempre: ahí sí se filtra seguido para el trabajo operativo
- *  (ADR-0075). Mismo estado, misma URL — nada más que otra piel. */
+ *  (ADR-0077). Mismo estado, misma URL — nada más que otra piel. */
 export function FiltrosProductos({
   categorias,
   colores,

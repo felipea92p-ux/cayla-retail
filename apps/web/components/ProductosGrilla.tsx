@@ -10,7 +10,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
 
 /**
- * Catálogo en grilla (ADR-0075) — alternativa visual a `ProductosAgrupados`,
+ * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
  * misma fuente de datos (`ProductoListado[]`, ya filtrada/paginada por
  * `fn_productos`), sin pedir nada nuevo al servidor.
  *

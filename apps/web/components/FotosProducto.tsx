@@ -30,7 +30,7 @@ export type FotoLocal = {
   url: string;
   esPrincipal: boolean;
   /** A qué color pertenece esta foto (20260917190000) — null = sin color
-   *  todavía. Sin esto, el swatch interactivo de la Grilla (ADR-0075) no
+   *  todavía. Sin esto, el swatch interactivo de la Grilla (ADR-0077) no
    *  tiene con qué reemplazar el tinte por la foto real de ese color. */
   colorCodigo: string | null;
 };

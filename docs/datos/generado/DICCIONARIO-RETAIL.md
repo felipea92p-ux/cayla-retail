@@ -1036,7 +1036,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `(( SELECT auth.role() AS role) = 'authenticated'::text)` |
+| `compras_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_destino_id)` |
 
 
 ### `compra_items`
@@ -1065,7 +1065,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(( SELECT auth.role() AS role) = 'authenticated'::text)` |
+| `compra_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
 
 
 ### `compra_pagos`
@@ -1094,7 +1094,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(( SELECT auth.role() AS role) = 'authenticated'::text)` |
+| `compra_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
 
 
 ### `compra_adjuntos`
@@ -1128,7 +1128,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `compra_adjuntos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
 
 
 ### `compras_resumen`

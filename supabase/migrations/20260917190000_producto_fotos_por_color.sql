@@ -2,7 +2,7 @@
 -- 20260917190000_producto_fotos_por_color.sql — CAYLA V2
 --
 -- Pedido de Felipe (2026-09-17): antes de fotografiar el piloto de la
--- Grilla (ADR-0075), que cada foto sepa a qué color pertenece — hasta acá
+-- Grilla (ADR-0077), que cada foto sepa a qué color pertenece — hasta acá
 -- `producto_fotos` era una galería a nivel de PRODUCTO, sin color, así que
 -- el swatch interactivo (hover = vista previa del color) solo podía mostrar
 -- un tinte, nunca la foto real.
@@ -33,7 +33,7 @@
 --     de recrearla (Postgres no deja CREATE OR REPLACE cuando cambian las
 --     columnas de salida). Se parte de la versión de 20260917180000
 --     (con punto de reorden y p_orden), no de una anterior — ver la
---     addenda 5 de ADR-0075 sobre el casi-error de basarse en la
+--     addenda 5 de ADR-0077 sobre el casi-error de basarse en la
 --     definición equivocada.
 --
 -- ESTADO: sin aplicar en producción — pendiente el ok puntual de Felipe.
@@ -50,7 +50,7 @@ alter table retail.producto_fotos
 create index if not exists producto_fotos_color_idx on retail.producto_fotos (producto_id, color_codigo);
 
 comment on column retail.producto_fotos.color_codigo is
-  'A qué color de la prenda corresponde esta foto — null = sin color (accesorio sin variante de color, o foto general sin etiquetar). fn_productos la usa para mostrar la foto real al pasar el mouse por ese color en la Grilla (ADR-0075); si un color no tiene foto, el cliente cae a un tinte, nunca a un ícono de "sin foto".';
+  'A qué color de la prenda corresponde esta foto — null = sin color (accesorio sin variante de color, o foto general sin etiquetar). fn_productos la usa para mostrar la foto real al pasar el mouse por ese color en la Grilla (ADR-0077); si un color no tiene foto, el cliente cae a un tinte, nunca a un ícono de "sin foto".';
 
 -- ---------------------------------------------------------------------------
 -- 2. `catalogo_crear_producto` — cada foto de p_fotos puede traer color_codigo

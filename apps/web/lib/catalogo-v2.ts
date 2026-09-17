@@ -105,7 +105,7 @@ export type ParamsProductosListado = {
   precioMax?: string;
   stock?: string;
   pagina?: string;
-  /** Grilla ⇄ tabla (ADR-0075) — no es un filtro, no pasa por `fn_productos`. */
+  /** Grilla ⇄ tabla (ADR-0077) — no es un filtro, no pasa por `fn_productos`. */
   vista?: string;
   orden?: string;
 };
