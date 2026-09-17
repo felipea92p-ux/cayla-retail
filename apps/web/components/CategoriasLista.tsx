@@ -43,7 +43,10 @@ type Categoria = {
 const ETIQUETA_FAMILIA: Record<Familia, string> = {
   indumentaria: "Indumentaria",
   calzado: "Calzado",
-  accesorios: "Accesorios",
+  // Contenido validado con Felipe el 2026-09-17 contra Ralph Lauren/Zara
+  // (ambas usan "Accesorios y Complementos" fusionado) — el valor guardado
+  // sigue siendo 'accesorios', solo cambia lo que ve la persona.
+  accesorios: "Accesorios y Complementos",
   bisuteria: "Bisutería",
   belleza: "Belleza",
   papeleria: "Papelería",

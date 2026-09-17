@@ -192,14 +192,14 @@ on conflict do nothing;
 
 -- ---------- productos + variantes (10 productos, ~48 variantes) ----------
 insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo' from retail.categorias where nombre = 'Blusas';
+select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo' from retail.categorias where nombre = 'Camisas y Blusas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'BLU-EMMA-' || c.codigo || '-' || t.valor, 79.90, 32.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Blusa Emma' and c.codigo in ('NEG', 'BEI') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Valentina', 'Blusa cropped manga corta' from retail.categorias where nombre = 'Blusas';
+select id, 'Blusa Valentina', 'Blusa cropped manga corta' from retail.categorias where nombre = 'Camisas y Blusas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'BLU-VALE-' || c.codigo || '-' || t.valor, 69.90, 28.00
 from retail.productos p, retail.colores c, retail.tallas t

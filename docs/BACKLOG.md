@@ -37,7 +37,7 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917100900`, con
+- [ ] **Pegar en producción** las migraciones `20260917100000` a `20260917110000`, con
       el prefijo `retail.` (o `set search_path`). Backfill de `categorias.tallas_sugeridas`
       incluido — revisar que el trigger de `tallas` quede DESACTIVADO durante ese bloque
       (ver ADR-0072, el bug real que esta sesión encontró).
@@ -51,6 +51,25 @@ verde.
       (talla). Tejido y patrón nacieron sin ningún mapeo — toda categoría los rechaza
       hasta que alguien cargue las filas a mano. Agregar/quitar qué categoría ofrece qué
       valor necesita pantalla propia (probablemente dentro de Categorías).
+
+---
+
+## 🎯 Familias y categorías: el contenido real (2026-09-17, ADR-0073)
+
+Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Platanitos
+(terminología peruana). 6 familias (Accesorios pasa a mostrarse "Accesorios y
+Complementos"), 39 categorías activas + 2 archivadas (Blusas fusionada con Camisas,
+Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
+
+- [ ] **`familia` sigue siendo un `CHECK constraint` fijo de 6 valores, no una tabla.**
+      Felipe pidió una pantalla de configuración para agregar familias/categorías nuevas
+      a futuro — eso exige convertir `familia` al mismo mecanismo que tallas/tejidos/
+      patrones (tabla propia, propone/aprueba), no solo agregar una pantalla sobre el
+      constraint actual. Decisión estructural real, pendiente de diseñar con Felipe antes
+      de construirla (no es continuación directa de lo ya hecho).
+- [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
+      Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
+      prueba de hoy) muestre que sí hay volumen ahí.
 
 ---
 
