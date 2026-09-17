@@ -131,6 +131,41 @@ regla de negocio real, que reemplaza al punto 2 original:
    Lo que se veía descentrado en la captura de Felipe era la fila completa, más angosta
    antes de sumar la miniatura de la prenda (punto 3) — no esta columna en particular.
 
+## Corrección 2026-09-17 (probando en producción con datos reales)
+
+Felipe probó Existencias ya con productos de arranque reales en producción y pidió tres
+ajustes más:
+
+1. **"Stock bajo" baja de 20 a 10** en el umbral de almacén — con 20, un lote chico de
+   boutique (10-15 unidades, normal para una tienda de 2 sedes) caía en "Stock bajo" de
+   entrada, sin haber vendido nada todavía. 10 separa mejor "recién llegado en cantidad
+   razonable" de "de verdad crítico".
+2. **"Reponer" deja de estar atado al chip de estado.** Hasta ayer el botón solo
+   aparecía en el estado "Reponer piso" — la corrección del propio Felipe, pensando que
+   "Stock bajo" significaba "no hay nada que reponer, hay que pedir traslado sí o sí".
+   Probándolo se dio cuenta de que las dos cosas conviven: si el almacén tiene 9
+   unidades y el chip dice "Stock bajo" (⩽10), pedir el traslado sigue siendo correcto
+   PERO esas 9 unidades igual se pueden bajar al piso ahora mismo. Se revive
+   `necesitaReponerPiso()` (retirada en la corrección del 16) como una condición
+   independiente del chip: `piso ⩽ 7 && almacén > 0`. El chip (qué tan grave es) y el
+   botón (si hay algo que mover) vuelven a ser dos preguntas separadas — que es,
+   estrictamente, lo que eran en el primer diseño; el vaivén de estos tres días fue
+   encontrar juntos, probando con datos reales, dónde estaba el balance correcto.
+   - SE ROMPE SI se vuelve a fusionar "chip" y "botón" en una sola condición — ya pasó
+     dos veces en tres días (primero mostrando de más, después de menos). Quedan
+     como funciones separadas a propósito: `calcularEstado()` decide el chip,
+     `necesitaReponerPiso()` decide el botón, y no se tocan entre sí.
+3. **"Piden atención" tenía un bug real, no solo una confusión de UX.** Felipe no
+   entendía a qué se refería la tarjeta — al revisar el código, la razón era concreta:
+   el NÚMERO de la tarjeta sumaba solo `reponer_piso + stock_bajo`, pero el TEXTO debajo
+   de ese mismo número (su propio desglose) ya incluía "sin stock". La tarjeta se
+   contradecía a sí misma — mostraba un número y, un renglón más abajo, una cuenta que
+   no cuadraba con él. Se corrigió a `reponer_piso + stock_bajo + sin_stock`: ahora
+   "Piden atención" es, de verdad, "todo lo que no está en Normal", y el número
+   coincide siempre con su propio desglose. No se eliminó — el defecto era la
+   definición, no el concepto (una cuenta rápida de "cuánto necesita acción hoy" sigue
+   siendo útil para quien abre la pantalla en la mañana).
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos

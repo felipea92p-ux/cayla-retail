@@ -11,7 +11,13 @@ import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { resumenRed } from "@/lib/stock-por-sede";
-import { ACCION_ESTADO_STOCK, ETIQUETA_ESTADO_STOCK, UMBRAL_REPOSICION_PISO, type EstadoStock } from "@/lib/inventario-reglas";
+import {
+  ACCION_ESTADO_STOCK,
+  ETIQUETA_ESTADO_STOCK,
+  necesitaReponerPiso,
+  UMBRAL_REPOSICION_PISO,
+  type EstadoStock,
+} from "@/lib/inventario-reglas";
 import type { FilaExistencias, ResumenExistencias } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -116,7 +122,11 @@ export function InventarioPanel({
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
   const separa = resumen.separaPisoAlmacen;
-  const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo;
+  // Corregido 2026-09-17: antes sumaba solo reponer_piso + stock_bajo, pero
+  // el desglose de abajo SÍ contaba "sin stock" — la tarjeta prometía un
+  // número y el detalle mostraba otro más grande. "Piden atención" es
+  // ahora, de verdad, "todo lo que no está en Normal": las tres cosas.
+  const pidenAtencion = resumen.porEstado.reponer_piso + resumen.porEstado.stock_bajo + resumen.porEstado.sin_stock;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
 
   // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
@@ -151,7 +161,7 @@ export function InventarioPanel({
             onClick={pidenAtencion > 0 ? () => setEstado(estado === ATENCION ? TODAS : ATENCION) : undefined}
             activa={estado === ATENCION}
           >
-            {pidenAtencion === 0 && resumen.porEstado.sin_stock === 0
+            {pidenAtencion === 0
               ? "Nada pendiente: piso cubierto y stock holgado"
               : [
                   resumen.porEstado.reponer_piso > 0 && `${resumen.porEstado.reponer_piso} bajar del almacén`,
@@ -300,11 +310,12 @@ export function InventarioPanel({
                           <span title={ACCION_ESTADO_STOCK[f.estado]}>{ETIQUETA_ESTADO_STOCK[f.estado]}</span>
                         </Chip>
                       )}
-                      {/* Solo en el estado «Reponer piso»: es la única situación en
-                          que bajar del almacén es la acción correcta (diseño de
-                          Felipe, 2026-09-16) — en «Stock bajo» bajaría lo poco que
-                          queda de reserva sin arreglar el problema real. */}
-                      {puedeReponer && f.estado === "reponer_piso" && (
+                      {/* Corregido 2026-09-17: independiente del chip de estado —
+                          Felipe: pedir traslado y reponer no se excluyen. Mientras
+                          quede algo en el almacén (aunque el chip diga «Stock
+                          bajo», reserva crítica) sigue teniendo sentido bajarlo al
+                          piso ahora mismo, sin esperar el traslado. */}
+                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
                         <button
                           type="button"
                           onClick={() => setReponiendo(f)}

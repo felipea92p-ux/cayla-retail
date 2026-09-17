@@ -3,6 +3,42 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-17 (Existencias con datos reales en producción: 16 productos nuevos + 3 correcciones de semáforo)
+
+Dos pasos seguidos, ambos con Felipe mirando producción en vivo.
+
+**Primero (16-sep tarde, sin registrar hasta ahora):** Felipe pidió limpiar el catálogo
+de práctica de producción (6 productos ya `descontinuado`/`inactivo`, con 305
+movimientos y 5 ventas de prueba) para poder validar operaciones reales él mismo. No se
+pudo "eliminar todo" tal cual lo pidió — `movimientos` tiene un trigger que bloquea
+cualquier DELETE/UPDATE, a propósito, para que una venta real nunca pueda desaparecer;
+se verificó primero que las 5 ventas de producción eran 100% de práctica (ninguna real
+en juego) y se le explicó por qué el borrado total no es posible por diseño, no por
+elección. Sí se limpiaron 109 filas de `stock` en cero (snapshot, sin historial) que
+seguían apareciendo en Existencias. Se sembraron 15 productos nuevos (45 variantes, 445
+unidades) repartidos entre Taller/Tienda TRU/Tienda AQP vía `crear_producto_con_variantes`
+y `movimientos` con `motivo='carga_inicial'` — mismo mecanismo que `supabase/seed.sql`,
+porque el MCP de Supabase no lleva `auth.uid()` y la RPC exige `fn_es_lider()`. Todo el
+stock nuevo entró al almacén, nunca al piso, para que "Reponer piso" fuera la primera
+operación manual real de Felipe. Encontrado en el camino: los productos nuevos quedan con
+`sku` null (el trigger de la base solo llena `codigo`, ninguna RPC llena `sku`) —
+corregido a mano para estos 16, y otra sesión ya lo está resolviendo de raíz en el código
+(`11d4cdc`/`54ddf58`/`55dc78d`).
+
+**Después (17-sep, probando la pantalla con esos datos reales):** tres correcciones más,
+documentadas completas en ADR-0071 sección "Corrección 2026-09-17": umbral de "Stock
+bajo" de 20 a 10 (con 20, cualquier lote chico de boutique caía ahí de entrada); el botón
+"Reponer" vuelve a ser independiente del chip de estado (`necesitaReponerPiso()`, retirada
+el 16, revive) — pedir traslado y reponer lo que quede no se excluyen; y un bug real (no
+solo confusión) en la tarjeta "Piden atención": el número sumaba `reponer_piso +
+stock_bajo` pero su propio texto de abajo ya incluía "sin stock" — la tarjeta se
+contradecía a sí misma. Se agregó además "Blusa Valeria" (color Lila, Tienda TRU) con
+cantidades elegidas para mostrar de entrada los dos estados recién corregidos.
+Aprendizaje: probar un umbral con datos reales, no con la intuición de quien lo escribió,
+es la única forma de encontrar estos dos (el umbral y el acoplamiento chip↔botón) — los
+tests unitarios no los iban a atrapar porque probaban exactamente lo que el código ya
+hacía, no lo que Felipe esperaba ver.
+
 ## 2026-09-16 (colisión ADR-0035 resuelta: vocabulario pasa a 0072, fantasma de importación restaurado como 0073)
 
 Auditoría pedida por Felipe sobre menciones sueltas a "ADR-0035" (fuera de los dos ADR
