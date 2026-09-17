@@ -28,6 +28,24 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 👤 Pendientes de Benja
+
+Ideas que Felipe aprobó en concepto pero decidió no construir ahora — quedan acá para
+que Benja las tome cuando corresponda, no para que una sesión de IA las improvise sola.
+
+- [ ] **Reporte de valor en riesgo, cruzando las 3 sedes a la vez (2026-09-17).** Surgió
+      al corregir `fn_prioridad_conteo` (ADR-0074, § "Descartado") — esa función sugiere
+      qué contar primero para UNA sede, pensada para el colaborador que va a contar hoy.
+      Lo que Benja tendría que construir es distinto: una vista para Felipe/líderes que
+      responda "¿cuánta plata sin contar hay expuesta ahora mismo, en las 3 sedes y el
+      Taller, ordenada de mayor a menor?" — sin acción de conteo asociada, es solo
+      visibilidad para decidir dónde presionar. No reusar `fn_prioridad_conteo` tal cual:
+      está `security definer` con `fn_puede_operar_ubicacion` (una sola sede por llamada)
+      — una versión cross-sede necesita su propio RPC y probablemente reservarse a
+      líder/Felipe, no a cualquier colaborador autenticado. Sin fecha, sin dueño todavía.
+
+---
+
 ## 🎯 Recibir mercadería: lista de recepciones + "+ Nueva recepción" (2026-09-17)
 
 Felipe lo pidió tras la auditoría de huecos de más abajo (misma fecha): la pantalla no
