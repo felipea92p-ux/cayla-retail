@@ -1,185 +1,283 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
-import type { FilaResumenProducto, SugerenciaTraslado } from "@/lib/resumen-inventario";
-import type { CurvaIncompleta } from "@/lib/curva-variantes";
+import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { Chip } from "@/components/ui/Chip";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { PrendaCelda } from "@/components/ui/PrendaCelda";
+import { DetalleVarianteModal, ListaSituacionModal, TONO_SITUACION } from "@/components/ResumenDetalleModal";
+import { tonoExactitud } from "@/lib/conteo-varianza";
+import {
+  UMBRAL_COBERTURA_CRITICA_DIAS,
+  UMBRAL_COBERTURA_RIESGO_DIAS,
+  UMBRAL_SOBRESTOCK_SEMANAS,
+} from "@/lib/inventario-reglas";
+import {
+  DIAS_SIN_VENTA_SOBRESTOCK,
+  ETIQUETA_SITUACION,
+  MIN_DIAS_HISTORIAL,
+  textoAccion,
+  textoCobertura,
+  textoEnRed,
+  type AnalisisVariante,
+} from "@/lib/resumen-reglas";
+import type { ResumenParaPantalla } from "@/lib/resumen-inventario";
 
-// Resumen de Inventario (2026-09-17, ADR-0097): pantalla de decisión, no de
-// operación diaria — responde "¿cómo está el inventario en conjunto, y qué
-// tengo que decidir hoy?", distinto de Existencias ("¿qué hay en ESTA
-// fila?"). Cada fila lleva su número principal a la vista SIEMPRE (decisión
-// de Felipe: un color solo puede significar demasiadas cosas) — el click
-// abre el desglose completo, no el número en sí.
+// Resumen de Inventario (2026-09-17, ADR-0097): análisis + excepciones +
+// decisiones de UNA sede. No es otra Existencias (eso responde "qué hay en
+// esta fila") ni un tablero de gráficos: cinco bloques, todos con el número
+// a la vista y el "por qué" a un click. Decisiones > métricas decorativas.
 
-const TONO_ESTADO: Record<string, TonoChip> = {
-  riesgo_quiebre: "rojo",
-  sobrestock: "ambar",
-  sin_movimiento: "neutro",
-};
+const PLANTILLA = "sm:grid-cols-[minmax(13.5rem,1.6fr)_10rem_7rem_9rem_10rem_6rem]";
 
-function formatoDias(dias: number | null): string {
-  if (dias === null) return "sin datos suficientes";
-  if (dias < 1) return "menos de 1 día";
-  return `≈ ${Math.round(dias)} día${Math.round(dias) === 1 ? "" : "s"}`;
-}
+const DECISIONES_VISIBLES = 8;
 
-/** `0.0/día` al lado de "cobertura ≈3540 días" parece contradictorio —
- *  redondear a 1 decimal esconde una demanda real pero chica (0.03/día).
- *  Con menos de 1 unidad/día se muestran 2 decimales; con más, 1 alcanza. */
-function formatoVentaDiaria(unidadesDia: number): string {
-  return `${unidadesDia.toFixed(unidadesDia > 0 && unidadesDia < 1 ? 2 : 1)}/día`;
-}
-
-function FilaProducto({ f, tono }: { f: FilaResumenProducto; tono: TonoChip }) {
-  const [abierto, setAbierto] = useState(false);
-  const etiquetaPrincipal =
-    f.estado === "riesgo_quiebre"
-      ? `quedan ${formatoDias(f.coberturaDias)}`
-      : f.estado === "sobrestock"
-        ? `cobertura ${formatoDias(f.coberturaDias)}`
-        : "sin ventas en 30 días";
-
-  return (
-    <li className="border-b border-tinta/10 py-2.5 last:border-0">
-      <button
-        type="button"
-        onClick={() => setAbierto((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 text-left"
-        aria-expanded={abierto}
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <Chip tono={tono}>{etiquetaPrincipal}</Chip>
-          <span className="truncate text-sm text-tinta">{f.referencia}</span>
-        </span>
-        <span className="label-cayla shrink-0 text-[10px] text-tinta/45">{abierto ? "ocultar" : "detalle"}</span>
-      </button>
-      {abierto && (
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md bg-sand/40 p-3 text-xs sm:grid-cols-3">
-          <div><dt className="text-tinta/55">Disponible</dt><dd className="tabular-nums text-tinta">{f.stockTotal}</dd></div>
-          <div><dt className="text-tinta/55">Venta media</dt><dd className="tabular-nums text-tinta">{formatoVentaDiaria(f.demandaDiaria)}</dd></div>
-          <div><dt className="text-tinta/55">Cobertura actual</dt><dd className="tabular-nums text-tinta">{formatoDias(f.coberturaDias)}</dd></div>
-          <div><dt className="text-tinta/55">En camino</dt><dd className="tabular-nums text-tinta">+{f.enCamino}</dd></div>
-          <div><dt className="text-tinta/55">Con lo que viene</dt><dd className="tabular-nums text-tinta">{formatoDias(f.coberturaProyectadaDias)}</dd></div>
-          <div><dt className="text-tinta/55">Sell-through (30d)</dt><dd className="tabular-nums text-tinta">{f.sellThroughPct === null ? "sin datos" : `${f.sellThroughPct}%`}</dd></div>
-          <div><dt className="text-tinta/55">Punto de reorden</dt><dd className="tabular-nums text-tinta">{f.puntoReorden}</dd></div>
-          <div><dt className="text-tinta/55">Stock mínimo</dt><dd className="tabular-nums text-tinta">{f.stockMinimo ?? "sin definir"}</dd></div>
-          <div><dt className="text-tinta/55">Merma (30d)</dt><dd className="tabular-nums text-tinta">{f.merma30d}</dd></div>
-        </dl>
-      )}
-    </li>
-  );
-}
-
-function SeccionProductos({ titulo, ayuda, filas, tono }: { titulo: string; ayuda: string; filas: FilaResumenProducto[]; tono: TonoChip }) {
-  return (
-    <section className="rounded-lg border border-tinta/10 bg-white p-4">
-      <header className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-tinta">{titulo}</h2>
-        <span className="label-cayla text-[10px] text-tinta/45">{filas.length}</span>
-      </header>
-      <p className="mb-2 text-xs text-tinta/55">{ayuda}</p>
-      {filas.length === 0 ? (
-        <p className="py-3 text-xs text-tinta/45">Nada por acá — buena señal.</p>
-      ) : (
-        <ul>{filas.map((f) => <FilaProducto key={f.productoId} f={f} tono={tono} />)}</ul>
-      )}
-    </section>
-  );
-}
-
-function SeccionCurvas({ curvas }: { curvas: CurvaIncompleta[] }) {
-  return (
-    <section className="rounded-lg border border-tinta/10 bg-white p-4">
-      <header className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-tinta">Curvas incompletas</h2>
-        <span className="label-cayla text-[10px] text-tinta/45">{curvas.length}</span>
-      </header>
-      <p className="mb-2 text-xs text-tinta/55">
-        Le falta una talla del medio de la curva en esa sede — la prenda parece disponible, pero nadie compra &ldquo;una talla cualquiera&rdquo;.
-      </p>
-      {curvas.length === 0 ? (
-        <p className="py-3 text-xs text-tinta/45">Ninguna curva rota detectada.</p>
-      ) : (
-        <ul>
-          {curvas.map((c, i) => (
-            <li key={`${c.productoId}-${c.color}-${c.sedeId}-${c.tallaFaltante}-${i}`} className="flex items-center gap-2 border-b border-tinta/10 py-2 text-sm last:border-0">
-              <Chip tono="ambar">talla {c.tallaFaltante}</Chip>
-              <span className="text-tinta">{c.referencia}{c.color ? ` · ${c.color}` : ""} — {c.sedeNombre}</span>
-              <span className="ml-auto text-xs text-tinta/45">tiene {c.tallasConStock.join(", ")}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function SeccionSugerencias({ sugerencias }: { sugerencias: SugerenciaTraslado[] }) {
-  return (
-    <section className="rounded-lg border border-tinta/10 bg-white p-4">
-      <header className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-tinta">Sugerencias de traslado</h2>
-        <span className="label-cayla text-[10px] text-tinta/45">{sugerencias.length}</span>
-      </header>
-      <p className="mb-2 text-xs text-tinta/55">
-        CAYLA sugiere, nunca mueve stock por su cuenta — vos confirmás y armás el traslado.
-      </p>
-      {sugerencias.length === 0 ? (
-        <p className="py-3 text-xs text-tinta/45">Sin sugerencias por ahora.</p>
-      ) : (
-        <ul>
-          {sugerencias.map((s, i) => (
-            <li key={`${s.productoId}-${s.color}-${s.tallaFaltante}-${i}`} className="flex flex-wrap items-center gap-2 border-b border-tinta/10 py-2.5 text-sm last:border-0">
-              <span className="text-tinta">
-                {s.referencia}{s.color ? ` · ${s.color}` : ""} · talla {s.tallaFaltante}
-              </span>
-              <span className="text-tinta/55">
-                {s.sedeOrigenNombre} ({s.cantidadDisponibleOrigen}) → {s.sedeDestinoNombre}
-              </span>
-              <Link
-                href="/inventario/traslados"
-                className="label-cayla ml-auto shrink-0 rounded-md border border-rojo/30 bg-rojo/10 px-2.5 py-1 text-[10px] text-rojo-profundo hover:bg-rojo/15"
-              >
-                Crear traslado
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+type Lista = "riesgo" | "traslados" | "reposicion" | "curvas" | "sobrestock" | "en_camino";
 
 export function ResumenInventarioPanel({
-  productos,
-  curvasIncompletas,
-  sugerenciasTraslado,
+  resumen,
+  ubicacionId,
+  /** La sede de la persona (cookie/sede base): la única para la que la pestaña
+   *  Conteo muestra lo mismo que esta tarjeta — Conteo no acepta `?ubicacion=`. */
+  ubicacionBaseId,
 }: {
-  productos: FilaResumenProducto[];
-  curvasIncompletas: CurvaIncompleta[];
-  sugerenciasTraslado: SugerenciaTraslado[];
+  resumen: ResumenParaPantalla;
+  ubicacionId: string;
+  ubicacionBaseId: string;
 }) {
-  const riesgoQuiebre = productos.filter((p) => p.estado === "riesgo_quiebre");
-  const sobrestock = productos.filter((p) => p.estado === "sobrestock");
+  const [lista, setLista] = useState<Lista | null>(null);
+  const [detalle, setDetalle] = useState<AnalisisVariante | null>(null);
+  const [verTodas, setVerTodas] = useState(false);
+
+  const { salud, riesgo, traslados, reposicionAhora, curvas, sobrestock, enCamino, decisiones, vigilar, exactitud } = resumen;
+
+  // Todo lo que pide acción ya está en `decisiones` (lo "normal" no viaja).
+  const filasDe = (l: Lista): AnalisisVariante[] => {
+    switch (l) {
+      case "riesgo":
+        return decisiones.filter((a) => a.situacion === "riesgo_quiebre");
+      case "traslados":
+        return decisiones.filter((a) => a.sugerencia !== null);
+      case "reposicion":
+        return decisiones.filter((a) => a.situacion === "riesgo_quiebre" && a.critico);
+      case "curvas":
+        return decisiones.filter((a) => a.situacion === "curva_incompleta");
+      case "sobrestock":
+        return decisiones.filter((a) => a.situacion === "posible_sobrestock");
+      case "en_camino":
+        return decisiones.filter((a) => a.situacion === "mejora_en_camino");
+    }
+  };
+
+  const TITULO_LISTA: Record<Lista, { titulo: string; subtitulo: string }> = {
+    riesgo: { titulo: "Riesgo de quiebre", subtitulo: `Cobertura de ${UMBRAL_COBERTURA_RIESGO_DIAS} días o menos al ritmo de venta observado, o sin stock con ventas recientes.` },
+    traslados: { titulo: "Traslados sugeridos", subtitulo: "Otra sede puede ceder sin quedarse corta. Nada se mueve solo: el traslado lo creas tú." },
+    reposicion: { titulo: "Necesita reposición ahora", subtitulo: `Sin stock con demanda, o cobertura de ${UMBRAL_COBERTURA_CRITICA_DIAS} días o menos.` },
+    curvas: { titulo: "Curvas incompletas", subtitulo: "Una talla en cero entre tallas hermanas con stock, en esta sede." },
+    sobrestock: { titulo: "Posible sobrestock", subtitulo: `Cobertura de ${UMBRAL_SOBRESTOCK_SEMANAS} semanas o más, o ${DIAS_SIN_VENTA_SOBRESTOCK} días observados sin ninguna venta.` },
+    en_camino: { titulo: "En camino con impacto", subtitulo: "Lo que ya viajó saca a la prenda del riesgo: conviene esperar la recepción antes de mover nada." },
+  };
+
+  const decisionesVisibles = verTodas ? decisiones : decisiones.slice(0, DECISIONES_VISIBLES);
 
   return (
-    <div className="flex flex-col gap-4">
-      <SeccionProductos
-        titulo="Riesgo de quiebre"
-        ayuda="Se agotan pronto, con venta real detrás — candidatos a reponer ya."
-        filas={riesgoQuiebre}
-        tono={TONO_ESTADO.riesgo_quiebre}
-      />
-      <SeccionCurvas curvas={curvasIncompletas} />
-      <SeccionSugerencias sugerencias={sugerenciasTraslado} />
-      <SeccionProductos
-        titulo="Sobrestock"
-        ayuda="Cobertura muy alta para su venta real — candidatos a liquidar o dejar de reponer."
-        filas={sobrestock}
-        tono={TONO_ESTADO.sobrestock}
-      />
+    <div className="space-y-6">
+      {/* Bloque 1 — estado general */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <TarjetaCifra etiqueta="Salud del inventario" valor={salud ? `${salud.porcentaje}%` : "—"}>
+          {salud ? `${salud.sinAlerta} de ${salud.relevantes} variantes sin alertas` : "Sin variantes con historial en esta sede"}
+        </TarjetaCifra>
+        <TarjetaCifra
+          etiqueta="Riesgo de quiebre"
+          valor={riesgo.total}
+          unidad={riesgo.total === 1 ? "variante" : "variantes"}
+          tono={riesgo.criticas > 0 ? "text-rojo" : undefined}
+          onClick={() => setLista("riesgo")}
+          activa={lista === "riesgo"}
+        >
+          {riesgo.total === 0
+            ? "Ninguna con cobertura baja"
+            : riesgo.criticas > 0
+              ? `${riesgo.criticas} crítica${riesgo.criticas === 1 ? "" : "s"} en los próximos ${UMBRAL_COBERTURA_CRITICA_DIAS} días`
+              : "Ninguna crítica todavía"}
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="Traslados sugeridos" valor={traslados.total} onClick={() => setLista("traslados")} activa={lista === "traslados"}>
+          {traslados.total === 0 ? "No se detectaron oportunidades" : `${traslados.entreTiendas} entre tiendas · ${traslados.desdeTaller} desde taller`}
+        </TarjetaCifra>
+        <TarjetaCifra
+          etiqueta="Exactitud del inventario"
+          valor={exactitud ? `${exactitud.porcentaje.toLocaleString("es-PE")}%` : "—"}
+          tono={exactitud ? tonoExactitud(exactitud.porcentaje) : undefined}
+          href={ubicacionId === ubicacionBaseId ? "/inventario/conteo" : undefined}
+        >
+          {exactitud
+            ? `${exactitud.correctas} de ${exactitud.lineas} líneas · ${exactitud.conteos} ${exactitud.conteos === 1 ? "conteo cerrado" : "conteos cerrados"}`
+            : "Aún no hay conteos cerrados"}
+        </TarjetaCifra>
+      </div>
+
+      {/* Bloque 2 — situaciones que necesitan atención */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <TarjetaCifra
+          etiqueta="Necesita reposición ahora"
+          valor={reposicionAhora.total}
+          acento={reposicionAhora.total > 0}
+          accion={{ texto: "Ver detalle", onClick: () => setLista("reposicion") }}
+        >
+          {reposicionAhora.total === 0
+            ? "Nada urgente por reponer"
+            : `variantes sin stock o cobertura ≤ ${UMBRAL_COBERTURA_CRITICA_DIAS} días`}
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="Curvas incompletas" valor={curvas.total} accion={{ texto: "Ver detalle", onClick: () => setLista("curvas") }}>
+          {curvas.total === 0 ? "Ninguna curva rota detectada" : `faltan tallas clave en ${curvas.productos} curva${curvas.productos === 1 ? "" : "s"}`}
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="Posible sobrestock" valor={sobrestock.total} accion={{ texto: "Ver detalle", onClick: () => setLista("sobrestock") }}>
+          {sobrestock.total === 0 ? "Sin excesos evidentes" : `con cobertura mayor a ${UMBRAL_SOBRESTOCK_SEMANAS} sem. o sin ventas`}
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta="En camino con impacto" valor={enCamino.total} accion={{ texto: "Ver detalle", onClick: () => setLista("en_camino") }}>
+          {enCamino.total === 0 ? "Ningún traslado cambia una situación crítica" : `variantes que mejoran cobertura crítica (+${enCamino.unidades} uds)`}
+        </TarjetaCifra>
+      </div>
+
+      {/* Bloque 3 — decisiones sugeridas hoy */}
+      <Tabla>
+        <div className="flex items-baseline justify-between px-5 py-3">
+          <p className="label-cayla text-[11px] text-tinta">Decisiones sugeridas hoy</p>
+          <p className="label-cayla text-[10px] text-tinta/45">{decisiones.length}</p>
+        </div>
+        {decisiones.length === 0 ? (
+          <p className="px-5 py-8 text-sm text-tinta/55">
+            Sin decisiones pendientes en esta sede. Con {MIN_DIAS_HISTORIAL} días de historial por prenda el resumen empieza a proponer.
+          </p>
+        ) : (
+          <>
+            <Encabezado
+              plantilla={PLANTILLA}
+              columnas={[
+                { titulo: "Prenda · variante" },
+                { titulo: "Situación" },
+                { titulo: "Cobertura" },
+                { titulo: "En la red" },
+                { titulo: "Acción sugerida" },
+                { titulo: "Detalle", alinear: "centro" },
+              ]}
+            />
+            {decisionesVisibles.map((a) => (
+              <div key={a.fila.varianteId} className={fila(PLANTILLA)}>
+                <PrendaCelda referencia={a.fila.referencia} sku={a.fila.sku} talla={a.fila.talla} color={a.fila.color} fotoUrl={a.fila.fotoUrl} />
+                <span className={celda("izq", "overflow-visible")}>
+                  <Chip tono={TONO_SITUACION[a.situacion]}>{ETIQUETA_SITUACION[a.situacion]}</Chip>
+                </span>
+                <span className={celda("izq", "text-sm text-tinta")}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Cobertura</span>
+                  {textoCobertura(a)}
+                </span>
+                <span className={celda("izq", "text-sm text-tinta")}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En la red</span>
+                  {textoEnRed(a)}
+                </span>
+                <span className={celda("izq", "text-sm text-tinta")}>
+                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Acción</span>
+                  {textoAccion(a)}
+                </span>
+                <span className={celda("centro", "overflow-visible")}>
+                  <button
+                    type="button"
+                    onClick={() => setDetalle(a)}
+                    className="label-cayla rounded-full border border-tinta/20 px-3 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+                  >
+                    Ver detalle
+                  </button>
+                </span>
+              </div>
+            ))}
+            {decisiones.length > DECISIONES_VISIBLES && (
+              <div className="px-5 py-2.5 text-xs text-tinta/55">
+                <button type="button" onClick={() => setVerTodas((v) => !v)} className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline">
+                  {verTodas ? "Ver menos" : `Ver las ${decisiones.length}`}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </Tabla>
+
+      {/* Bloque 4 y 5 */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="card-cayla p-5">
+          <p className="label-cayla text-[11px] text-tinta">Productos a vigilar</p>
+          {vigilar.length === 0 ? (
+            <p className="mt-4 text-sm text-tinta/55">Nada que vigilar por ahora.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-tinta/10">
+              {vigilar.map(({ analisis: a, razon }) => (
+                <li key={a.fila.varianteId}>
+                  <button
+                    type="button"
+                    onClick={() => setDetalle(a)}
+                    className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-tinta/[0.03]"
+                  >
+                    <PrendaCelda referencia={a.fila.referencia} sku={a.fila.sku} talla={a.fila.talla} color={a.fila.color} fotoUrl={a.fila.fotoUrl} compacta />
+                    <span className="shrink-0 text-sm text-tinta/55">{razon}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card-cayla p-5">
+          <p className="label-cayla text-[11px] text-tinta">Cómo leer este resumen</p>
+          <ol className="mt-3 space-y-3">
+            {[
+              {
+                titulo: "Riesgo de quiebre:",
+                texto: "la cobertura actual es crítica.",
+                pie: `Stock para ${UMBRAL_COBERTURA_RIESGO_DIAS} días o menos al ritmo de venta observado; crítico con ${UMBRAL_COBERTURA_CRITICA_DIAS} días o sin stock.`,
+              },
+              {
+                titulo: "Curva incompleta:",
+                texto: "faltan tallas clave de una curva válida.",
+                pie: "Una talla en cero entre tallas hermanas con stock. Solo cuentan las tallas que el producto tiene dadas de alta.",
+              },
+              {
+                titulo: "Reponer tienda / piso:",
+                texto: "la reserva de la tienda bajó del umbral, o el piso está vacío con almacén sano.",
+                pie: "Tienda = pedir a otra sede o al Taller (solo se sugiere cuánto si hay ventas observadas). Piso = bajar del almacén, sin pedir nada.",
+              },
+              {
+                titulo: "Sugerir traslado:",
+                texto: "hay stock útil en otra sede.",
+                pie: `Otra sede cede solo lo que le sobra en el almacén sin bajar de ${UMBRAL_COBERTURA_RIESGO_DIAS} días de cobertura propia; el Taller cede todo. Nada se mueve sin que lo crees tú.`,
+              },
+            ].map((item, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sand/70 text-xs text-tinta">{i + 1}</span>
+                <span>
+                  <span className="text-sm text-tinta">
+                    <span className="font-medium">{item.titulo}</span> {item.texto}
+                  </span>
+                  <span className="block text-xs text-tinta/55">{item.pie}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 border-t border-tinta/10 pt-3 text-xs text-tinta/55">
+            Velocidad = ventas menos devoluciones y cambios de los últimos {resumen.ventanaDias} días, contados desde que la prenda llegó a esta sede. Con menos de {MIN_DIAS_HISTORIAL} días observados no se calcula nada.
+          </p>
+        </section>
+      </div>
+
+      {lista && !detalle && (
+        <ListaSituacionModal
+          titulo={TITULO_LISTA[lista].titulo}
+          subtitulo={TITULO_LISTA[lista].subtitulo}
+          filas={filasDe(lista)}
+          onElegir={(a) => setDetalle(a)}
+          onClose={() => setLista(null)}
+        />
+      )}
+      {detalle && <DetalleVarianteModal analisis={detalle} ubicacionId={ubicacionId} onClose={() => setDetalle(null)} />}
     </div>
   );
 }

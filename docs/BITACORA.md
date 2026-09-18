@@ -3,30 +3,31 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-17 (Resumen de Inventario: quinta pantalla, ADR-0097, 100% local)
+## 2026-09-17 (Resumen de Inventario por variante × sede contra la referencia de Felipe, ADR-0097, 100% local)
 
-Se cerró la investigación de las 8 ideas de Inventario que Felipe pidió (contrastadas
-contra un análisis externo de ChatGPT) construyendo la primera: "Resumen", pantalla nueva
-de decisión (cobertura, sell-through, curvas de talla rotas, sugerencias de traslado),
-separada de Existencias a propósito porque le responden a audiencias distintas (piso vs.
-quien decide). Verificado en navegador con datos de prueba — funcionó, y encontró un bug
-real de presentación (un decimal escondía la demanda) que se corrigió en el momento.
+Se rehizo "Resumen" completo sobre la imagen de referencia: motor por variante y sede
+(`fn_resumen_variantes`, demanda clasificada por FK y estado real de la venta, ventana
+observable desde el primer ingreso a la sede), reglas en un solo archivo que reutiliza los
+umbrales de Existencias, cinco bloques de la referencia sobre los componentes reales de
+CAYLA (`card-cayla`, `Tabla`, `Chip`, `Modal`), detalle con el "por qué", y "Crear traslado"
+que prellena el formulario existente sin mover nada. Antes de construir, siete lectores en
+paralelo verificaron el modelo contra el Postgres local; eso evitó tres errores que la
+versión de la mañana traía (contar ventas anuladas, restar devoluciones dañadas, sugerir
+desde una sede sumando cuarentena) y uno de seguridad (la RPC anterior era ejecutable por
+`anon`).
 
-Lo que Felipe aprendió (o confirmó) hoy: casi toda la lista de Inventario ya existió una
-vez en `inteligencia.ts` (V1) — no hay que inventar 8 features desde cero, hay que decidir
-qué recuperar de algo que ya se probó, adaptado al estilo V2 (RPC chicas, no un archivo
-monstruo). También confirmó que quiere el número visible junto al color siempre (no
-escondido tras un click) porque un color solo no dice nada sin seriedad detrás, y que
-prefiere una pantalla de decisión separada antes que recargar la operativa — en ese punto
-puntual, su propio criterio le ganó a la recomendación del análisis externo, y con razón:
-la propia referencia que citaba ese análisis (Odoo separando operación/análisis/métricas)
-apoyaba mejor la idea de Felipe que su conclusión final.
+Lo que Felipe aprendió (o quedó a la vista): (1) "Existencias dice stock bajo" tiene que
+significar algo en Resumen, y ese algo NO es riesgo — es "reponer tienda" (su política de
+reserva), distinto de "reponer piso" (interno) y de "riesgo de quiebre" (probado por
+ventas); (2) pedir traslado de algo que no vendió en 30 días es fabricar sobrestock: el
+orden de prioridad de las situaciones importa tanto como las fórmulas; (3) con el seed
+actual todo dice "historial corto" y eso es lo correcto — el sistema no inventa velocidad
+hasta tener 7 días observados. De paso apareció que `fn_productos` está rota en `main`
+local por la taxonomía cerrada (anotado, no tocado).
 
-Nada de esto tocó producción ni GitHub — instrucción explícita de Felipe para esta pieza.
-Sigue pendiente (anotado en BACKLOG, no bloqueante): cerrar el candado de `movimientos.motivo`
-sin `check` en la base, y generar 6 meses de datos simulados en local para que las métricas
-tengan algo real que medir — con el catálogo de prueba actual, casi todo sale en cero o con
-coberturas de miles de días, que es el comportamiento correcto de la fórmula, no un bug.
+Nada tocó producción ni GitHub — instrucción explícita. Pendiente para cuando Felipe lo
+indique: aplicar taxonomía + punto de reorden + esta migración en producción (en ese
+orden), y decidir ventana elegible y mínimo por variante+sede.
 
 ## 2026-09-17 (Fusión con main: el fix de color_codigo perdido no se podía pegar tal cual — talla_id vs talla)
 

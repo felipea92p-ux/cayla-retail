@@ -20,7 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
-| Felipe (Claude) | `claude/main-branch-sync-workflow-a1b6ba` (worktree `erp-architecture-summary-1c70d9`) | Pantalla nueva "Resumen" en Inventario (5ta pestaña, ADR-0097): RPC `fn_resumen_inventario`, curva rota, sugerencias de traslado — verificado en navegador. 100% local, nada en producción ni GitHub | 2026-09-17 |
+| Felipe (Claude) | `claude/main-branch-sync-workflow-a1b6ba` (worktree `erp-architecture-summary-1c70d9`) | "Resumen" de Inventario rehecho por variante × sede contra la referencia visual (ADR-0097): RPC `fn_resumen_variantes` (reemplaza `fn_resumen_inventario`), `lib/resumen-reglas.ts`, `ui/TarjetaCifra`+`ui/PrendaCelda`, prellenado de `/inventario/mover`, lateral. Tocó `AppShell.tsx` (ícono+ítem), `MoverMercaderiaFormV2.tsx` (2 props opcionales), `conteo/page.tsx` (usa `tonoExactitud`), `tallas.ts` (Estándar/Único), `inventario-reglas.ts` (umbrales de cobertura). Verificado en navegador; typecheck/lint/349 tests/build OK. 100% local, nada en producción ni GitHub | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |

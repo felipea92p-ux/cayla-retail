@@ -1,170 +1,123 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getCatalogo } from "@/lib/catalogo-v2";
-import { nombreCortoSede } from "@/lib/stock-por-sede";
-import { detectarCurvasIncompletas, type ProductoColorSede, type CurvaIncompleta } from "@/lib/curva-variantes";
-import { type EstadoResumen } from "@/lib/inventario-reglas";
+import { getConteosResumen } from "@/lib/conteos";
+import { exactitudConteos } from "@/lib/conteo-varianza";
+import type { Ubicacion } from "@/lib/ubicaciones";
+import {
+  analizarInventario,
+  VENTANA_VELOCIDAD_DIAS,
+  type FilaVarianteResumen,
+  type ResumenAnalitico,
+  type UbicacionEnRed,
+} from "@/lib/resumen-reglas";
 
-// Resumen de Inventario (2026-09-17, ADR-0097): la pantalla de "qué decidir
-// hoy" — distinta de Existencias, que sigue siendo "qué hay en ESTA fila,
-// ahora" (ver ADR-0097 para el porqué de separarlas). Compone tres fuentes
-// que YA existen, ninguna se duplica:
-//   - `retail.fn_resumen_inventario()` (RPC nueva, 20260917220000): cobertura
-//     y sell-through por producto, a nivel red.
-//   - `getCatalogo()` (ya existía): metadatos de cada variante.
-//   - `retail.fn_stock_por_sede()` (ya existía, la misma que usa Vender):
-//     cuánto hay de cada variante en cada sede.
+// Resumen de Inventario (2026-09-17, ADR-0097): la pantalla de decisión de una
+// sede. Tres fuentes, ninguna inventada acá:
+//   - `retail.fn_resumen_variantes(p_ubicacion_id, p_ventana_dias)`: números
+//     crudos por variante para esa sede y para las otras (jsonb `en_red`).
+//   - `resumen-reglas.ts`: qué significan esos números (única casa de las reglas).
+//   - Conteo: la exactitud es EXACTAMENTE la que muestra la pestaña Conteo
+//     (`getConteosResumen` + `exactitudConteos`), para que las dos pestañas
+//     nunca digan dos porcentajes distintos de la misma sede.
 
-export type FilaResumenProducto = {
-  productoId: string;
-  referencia: string;
-  categoria: string | null;
-  stockTotal: number;
-  stockMinimo: number | null;
-  ventaNeta30d: number;
-  merma30d: number;
-  demandaDiaria: number;
-  /** null = no hay demanda medible en la ventana; no confundir con 0 días. */
-  coberturaDias: number | null;
-  enCamino: number;
-  coberturaProyectadaDias: number | null;
-  /** null = no hay base para calcularlo (sin stock, sin venta, sin merma). */
-  sellThroughPct: number | null;
-  puntoReorden: number;
-  reponerDeProveedor: boolean;
-  estado: EstadoResumen;
+export type ExactitudInventario = ReturnType<typeof exactitudConteos>;
+
+/** Lo que viaja al componente cliente: todo menos `analisis` (una fila por
+ *  variante de la sede). Las listas de las tarjetas y la tabla salen de
+ *  `decisiones` (solo lo que pide acción), así una sede con miles de variantes
+ *  sanas no manda miles de filas al navegador. */
+export type ResumenParaPantalla = Omit<ResumenAnalitico, "analisis"> & {
+  exactitud: ExactitudInventario;
+  ventanaDias: number;
 };
 
-export type SugerenciaTraslado = {
-  productoId: string;
-  referencia: string;
-  color: string | null;
-  colorHex: string | null;
-  tallaFaltante: string;
-  sedeDestinoId: string;
-  sedeDestinoNombre: string;
-  sedeOrigenId: string;
-  sedeOrigenNombre: string;
-  cantidadDisponibleOrigen: number;
+type EnRedCrudo = {
+  ubicacion_id: string;
+  nombre: string;
+  tipo: UbicacionEnRed["tipo"];
+  separa_piso_almacen: boolean;
+  disponible: number;
+  almacen: number;
+  dias_observables: number | null;
+  ventas_ventana: number;
+  devoluciones_ventana: number;
+  en_camino: number;
 };
 
-export type ResumenInventarioCompleto = {
-  productos: FilaResumenProducto[];
-  curvasIncompletas: CurvaIncompleta[];
-  sugerenciasTraslado: SugerenciaTraslado[];
-};
+/** PostgREST corta cualquier respuesta en `max_rows` (1.000 en
+ *  supabase/config.toml) SIN error: una sede con más variantes quedaría
+ *  analizada a medias en silencio. Se pagina con Range sobre el orden estable
+ *  de la RPC (…, variante_id) hasta que una página venga corta. */
+const PAGINA = 1000;
 
-async function getFilasProducto(): Promise<FilaResumenProducto[]> {
+async function getFilasVariantes(ubicacionId: string): Promise<FilaVarianteResumen[]> {
   const supabase = await createClient();
-  const filas = exigir(await supabase.rpc("fn_resumen_inventario"), "el resumen de inventario");
-  return filas.map((f) => ({
-    productoId: f.producto_id,
-    referencia: f.referencia,
-    categoria: f.categoria_nombre,
-    stockTotal: f.stock_total,
-    stockMinimo: f.stock_minimo,
-    ventaNeta30d: f.venta_neta_30d,
-    merma30d: f.merma_30d,
-    demandaDiaria: Number(f.demanda_diaria),
-    coberturaDias: f.cobertura_dias == null ? null : Number(f.cobertura_dias),
-    enCamino: f.en_camino,
-    coberturaProyectadaDias: f.cobertura_proyectada_dias == null ? null : Number(f.cobertura_proyectada_dias),
-    sellThroughPct: f.sell_through_pct == null ? null : Number(f.sell_through_pct),
-    puntoReorden: f.punto_reorden,
-    reponerDeProveedor: f.reponer_de_proveedor,
-    estado: f.estado as EstadoResumen,
-  }));
-}
-
-/** Curvas incompletas + sugerencias de traslado — comparten el mismo
- *  cómputo base (catálogo × stock por sede), por eso van juntas. */
-async function getCurvasYSugerencias(
-  ubicaciones: { id: string; nombre: string }[]
-): Promise<{ curvas: CurvaIncompleta[]; sugerencias: SugerenciaTraslado[] }> {
-  const supabase = await createClient();
-  const [catalogo, stockRes] = await Promise.all([
-    getCatalogo(),
-    supabase.rpc("fn_stock_por_sede"),
-  ]);
-  const stockPorSede = exigir(stockRes, "el stock por sede") as { variante_id: string; ubicacion_id: string; cantidad: number }[];
-
-  // variante_id -> Map<ubicacion_id, cantidad>
-  const stockPorVariante = new Map<string, Map<string, number>>();
-  for (const s of stockPorSede) {
-    let m = stockPorVariante.get(s.variante_id);
-    if (!m) stockPorVariante.set(s.variante_id, (m = new Map()));
-    m.set(s.ubicacion_id, (m.get(s.ubicacion_id) ?? 0) + s.cantidad);
-  }
-
-  // Agrupa por producto+color+sede — una curva es por color, nunca el
-  // producto entero (dos colores del mismo modelo no comparten curva).
-  const grupos = new Map<string, ProductoColorSede>();
-  for (const v of catalogo) {
-    if (!v.activo || v.talla === null) continue;
-    const cantidadPorSede = stockPorVariante.get(v.varianteId);
-    for (const u of ubicaciones) {
-      const clave = `${v.productoId}::${v.color ?? ""}::${u.id}`;
-      let g = grupos.get(clave);
-      if (!g) {
-        g = {
-          productoId: v.productoId,
-          referencia: v.referencia,
-          color: v.color,
-          colorHex: v.colorHex,
-          sedeId: u.id,
-          sedeNombre: nombreCortoSede(u.nombre),
-          variantes: [],
-        };
-        grupos.set(clave, g);
-      }
-      g.variantes.push({ varianteId: v.varianteId, talla: v.talla, stock: cantidadPorSede?.get(u.id) ?? 0 });
-    }
-  }
-
-  const curvas = detectarCurvasIncompletas([...grupos.values()]);
-
-  // Sugerencia de traslado: para cada hueco, ¿alguna OTRA sede tiene esa
-  // variante puntual (mismo producto+color+talla) en stock? Se sugiere la
-  // que más tiene. No se ofrece nada si ninguna sede la tiene — eso ya lo
-  // cubre "riesgo de quiebre" a nivel red, no hay de dónde redistribuir.
-  const sugerencias: SugerenciaTraslado[] = [];
-  for (const hueco of curvas) {
-    const variante = catalogo.find(
-      (v) => v.productoId === hueco.productoId && v.color === hueco.color && v.talla === hueco.tallaFaltante
+  const filas: FilaVarianteResumen[] = [];
+  for (let desde = 0; ; desde += PAGINA) {
+    const pagina = exigir(
+      await supabase
+        .rpc("fn_resumen_variantes", { p_ubicacion_id: ubicacionId, p_ventana_dias: VENTANA_VELOCIDAD_DIAS })
+        .range(desde, desde + PAGINA - 1),
+      "el resumen de inventario",
     );
-    if (!variante) continue;
-    const porSede = stockPorVariante.get(variante.varianteId);
-    if (!porSede) continue;
-    let mejor: { sedeId: string; cantidad: number } | null = null;
-    for (const u of ubicaciones) {
-      if (u.id === hueco.sedeId) continue;
-      const cantidad = porSede.get(u.id) ?? 0;
-      if (cantidad > 0 && (!mejor || cantidad > mejor.cantidad)) mejor = { sedeId: u.id, cantidad };
-    }
-    if (mejor) {
-      const sedeOrigen = ubicaciones.find((u) => u.id === mejor!.sedeId);
-      sugerencias.push({
-        productoId: hueco.productoId,
-        referencia: hueco.referencia,
-        color: hueco.color,
-        colorHex: hueco.colorHex,
-        tallaFaltante: hueco.tallaFaltante,
-        sedeDestinoId: hueco.sedeId,
-        sedeDestinoNombre: hueco.sedeNombre,
-        sedeOrigenId: mejor.sedeId,
-        sedeOrigenNombre: sedeOrigen ? nombreCortoSede(sedeOrigen.nombre) : "",
-        cantidadDisponibleOrigen: mejor.cantidad,
+    for (const f of pagina) {
+      filas.push({
+        varianteId: f.variante_id,
+        productoId: f.producto_id,
+        referencia: f.referencia,
+        categoria: f.categoria_nombre,
+        sku: f.sku ?? "",
+        codigo: f.codigo,
+        talla: f.talla,
+        colorCodigo: f.color_codigo,
+        color: f.color_nombre,
+        colorHex: f.color_hex,
+        fotoUrl: f.foto_url,
+        stockMinimo: f.stock_minimo,
+        separaPisoAlmacen: f.separa_piso_almacen,
+        piso: f.piso,
+        almacen: f.almacen,
+        sinSububicacion: f.sin_sububicacion,
+        cuarentena: f.cuarentena,
+        disponible: f.disponible,
+        primerIngreso: f.primer_ingreso,
+        diasObservables: f.dias_observables,
+        ventasVentana: f.ventas_ventana,
+        devolucionesVentana: f.devoluciones_ventana,
+        ultimaVenta: f.ultima_venta,
+        entradasVentana: f.entradas_ventana,
+        mermasVentana: f.mermas_ventana,
+        trasladosSalidaVentana: f.traslados_salida_ventana,
+        enCamino: f.en_camino,
+        enCaminoATiempo: f.en_camino_a_tiempo,
+        enCaminoAtrasado: f.en_camino_atrasado,
+        proximaLlegada: f.proxima_llegada,
+        enRed: ((f.en_red ?? []) as EnRedCrudo[]).map((o) => ({
+          ubicacionId: o.ubicacion_id,
+          nombre: o.nombre,
+          tipo: o.tipo,
+          separaPisoAlmacen: o.separa_piso_almacen,
+          disponible: o.disponible,
+          almacen: o.almacen,
+          diasObservables: o.dias_observables,
+          ventasVentana: o.ventas_ventana,
+          devolucionesVentana: o.devoluciones_ventana,
+          enCamino: o.en_camino,
+        })),
       });
     }
+    if (pagina.length < PAGINA) break;
   }
-
-  return { curvas, sugerencias };
+  return filas;
 }
 
-export async function getResumenInventario(ubicaciones: { id: string; nombre: string }[]): Promise<ResumenInventarioCompleto> {
-  const [productos, { curvas, sugerencias }] = await Promise.all([
-    getFilasProducto(),
-    getCurvasYSugerencias(ubicaciones),
-  ]);
-  return { productos, curvasIncompletas: curvas, sugerenciasTraslado: sugerencias };
+export async function getResumenInventario(ubicacion: Ubicacion): Promise<ResumenParaPantalla> {
+  const [filas, conteos] = await Promise.all([getFilasVariantes(ubicacion.id), getConteosResumen(ubicacion.id)]);
+  const { analisis: _analisis, ...analitico } = analizarInventario(filas, {
+    id: ubicacion.id,
+    nombre: ubicacion.nombre,
+    tipo: ubicacion.tipo,
+  });
+  void _analisis;
+  return { ...analitico, exactitud: exactitudConteos(conteos), ventanaDias: VENTANA_VELOCIDAD_DIAS };
 }

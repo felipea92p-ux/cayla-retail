@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
-import { avanceConteo, exactitudConteos, resumirVarianza } from "@/lib/conteo-varianza";
+import { avanceConteo, exactitudConteos, resumirVarianza, tonoExactitud } from "@/lib/conteo-varianza";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
@@ -66,7 +66,7 @@ export default async function ConteoPage() {
         <Tarjeta
           etiqueta="Exactitud del inventario"
           valor={exactitud ? `${exactitud.porcentaje.toLocaleString("es-PE")} %` : "—"}
-          tono={exactitud ? (exactitud.porcentaje >= 98 ? "text-verde-profundo" : exactitud.porcentaje >= 95 ? "text-ambar-profundo" : "text-rojo-profundo") : undefined}
+          tono={exactitud ? tonoExactitud(exactitud.porcentaje) : undefined}
         >
           {exactitud
             ? `${exactitud.correctas} de ${exactitud.lineas} líneas coincidieron · ${exactitud.conteos} ${exactitud.conteos === 1 ? "conteo cerrado" : "conteos cerrados"}`

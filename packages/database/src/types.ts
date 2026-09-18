@@ -3709,24 +3709,40 @@ export type Database = {
           serie: string
         }[]
       }
-      fn_resumen_inventario: {
-        Args: never
+      fn_resumen_variantes: {
+        Args: { p_ubicacion_id: string; p_ventana_dias?: number }
         Returns: {
+          almacen: number
           categoria_nombre: string
-          cobertura_dias: number
-          cobertura_proyectada_dias: number
-          demanda_diaria: number
+          codigo: string
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          cuarentena: number
+          devoluciones_ventana: number
+          dias_observables: number
+          disponible: number
           en_camino: number
-          estado: string
-          merma_30d: number
+          en_camino_a_tiempo: number
+          en_camino_atrasado: boolean
+          en_red: Json
+          entradas_ventana: number
+          foto_url: string
+          mermas_ventana: number
+          piso: number
+          primer_ingreso: string
           producto_id: string
-          punto_reorden: number
+          proxima_llegada: string
           referencia: string
-          reponer_de_proveedor: boolean
-          sell_through_pct: number
+          separa_piso_almacen: boolean
+          sin_sububicacion: number
+          sku: string
           stock_minimo: number
-          stock_total: number
-          venta_neta_30d: number
+          talla: string
+          traslados_salida_ventana: number
+          ultima_venta: string
+          variante_id: string
+          ventas_ventana: number
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
@@ -4088,15 +4104,6 @@ export type Database = {
       set_etapa_produccion: {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
         Returns: undefined
-      }
-      transferir: {
-        Args: {
-          p_items: Json
-          p_nota?: string
-          p_ubicacion_destino_id: string
-          p_ubicacion_origen_id: string
-        }
-        Returns: string
       }
     }
     Enums: {

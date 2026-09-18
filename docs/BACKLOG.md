@@ -28,34 +28,53 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Resumen de Inventario: quinta pantalla (2026-09-17, ADR-0097)
+## 🎯 Resumen de Inventario: quinta pantalla, por variante × sede (2026-09-17, ADR-0097)
 
-Worktree `erp-architecture-summary`. Pantalla nueva `/inventario/resumen` (solo Líder):
-cobertura, sell-through y estado de rotación por producto a nivel red (`retail.fn_resumen_inventario()`,
-RPC nueva), curvas de talla incompletas por sede (`curva-variantes.ts`) y sugerencias de
-traslado (nunca automático — "Crear traslado" enlaza al flujo ya existente). Backend +
-`ResumenInventarioPanel.tsx` probados en navegador. Tipos, lint y 307 pruebas en verde
-(10 nuevas de curva rota). **100% local — Felipe pidió explícitamente no tocar producción
-ni GitHub para esta pieza.**
+Worktree `erp-architecture-summary`. `/inventario/resumen` (solo líder, por sede): estado
+general (salud, riesgo de quiebre, traslados sugeridos, exactitud = la de Conteo),
+excepciones (necesita reposición ahora, curvas incompletas, posible sobrestock, en camino
+con impacto), decisiones sugeridas hoy, productos a vigilar y cómo leer. Motor:
+`retail.fn_resumen_variantes` (agregados crudos por variante, demanda por FK y estado real,
+ventana observable) + `lib/resumen-reglas.ts` (todas las reglas, reutiliza los umbrales de
+Existencias). "Crear traslado" prellena `/inventario/mover` — nunca mueve stock. Verificado
+en navegador (desktop/tablet/móvil) con un escenario local de historial; typecheck, lint,
+349 pruebas y build en verde. **100% local — nada en producción ni GitHub, por pedido de Felipe.**
 
-- [ ] **Aplicar `20260917220000_resumen_inventario.sql` a producción** — depende de que
-      `20260916100000_punto_reorden.sql` (safety stock) se aplique primero, todavía
-      pendiente del ok puntual de Felipe. No hacer sin confirmar antes (regla del repo).
-- [ ] **Cerrar el candado de `movimientos.motivo`** (sin `check` en la base,
-      `unificacion/05_operacion.sql:208`, ya señalado en `docs/datos/11-KPIS.md`) antes de
-      confiar sell-through/cobertura al 100% con plata real — mismo patrón que ya se aplicó
-      a colores/tallas/tejidos (vocabulario cerrado).
-- [ ] **6 meses de datos simulados en LOCAL** (pedido de Felipe, todavía no construido):
-      sin historial real, Riesgo de quiebre/Curvas incompletas salen en 0 y Sobrestock
-      muestra coberturas de miles de días — la fórmula está bien, falta la realidad
-      simulada para probarla útilmente. Diseñar el generador con los casos borde a
-      propósito: producto nuevo con poco historial, curva rota real, mermas mezcladas con
-      ventas en la misma ventana.
-- Preguntas abiertas sin resolver, no bloqueantes para lo ya construido: ¿cobertura por
-  sede además de por red?, ¿ventana configurable 7/14/30/60/90 en vez de fija en 30?, ver
-  ADR-0097 completo para el resto.
-
----
+- [ ] **`fn_productos` y `fn_prioridad_conteo` ROTAS en `main` local** ("column v.talla does
+      not exist"): `20260917180000`/`20260917190000` (orden por precio, foto por color) y
+      `20260917130001` redefinen las funciones leyendo `variantes.talla`, columna que
+      `20260917100500` borró. `/productos` no carga en local. Hay que recrearlas con
+      `join tallas ta on ta.id = v.talla_id`. Encontrado por la inspección de este ADR;
+      no tocado acá (fuera de alcance, y es de `main`).
+- [ ] **Aplicar a producción**, en este orden y con ok puntual: taxonomía cerrada (aún
+      "solo local"), `20260916100000_punto_reorden.sql`, `20260917220000_resumen_inventario.sql`
+      (con `retail.` al pegar).
+- [ ] **`movimientos.motivo` sin CHECK**: Resumen lo esquiva clasificando por FK, pero
+      `fn_productos`/`fn_movimientos` siguen dependiendo del texto — vocabulario cerrado
+      como colores/tallas.
+- [ ] **`fn_stock_por_sede()` suma cuarentena y el cargo especial** (la usan Existencias
+      "en la red" y Vender): una prenda dañada en otra sede aparece como disponible.
+- [ ] **`anular_venta` repone al bucket `sububicacion_id NULL`** (ni piso ni almacén): la
+      unidad cuenta como disponible pero el POS no la puede vender.
+- [ ] **`iniciar_traslado` no aplica `fn_variante_permitida_en_sede`** (el candado de
+      etiquetas solo está en `registrar_venta` y en la `transferir` legada): una sugerencia
+      de Resumen podría proponer mover una variante restringida.
+- [x] **`retail.transferir` (modelo atómico viejo) resucitada por `20260917100700`**,
+      ejecutable por `anon` y contada doble como "en camino" — dropeada otra vez en
+      `20260917220000_resumen_inventario.sql` (sin caller en la app).
+- [ ] **`primer_ingreso` recorre todo el ledger en cada carga de Resumen** (mínimo
+      histórico por variante×sede): crece lineal con los años. Candidato a materializar
+      (tabla `variante_sede_primer_ingreso` alimentada por `fn_aplicar_movimiento`) cuando
+      el ledger pase de ~1 millón de filas.
+- [ ] **`retail.tallas` sin columna `orden`**: la curva se ordena con la lista
+      `LETRAS` de `tallas.ts`; una talla nueva fuera de esa lista cae alfabética.
+      Decisión estructural (taxonomía) para Felipe.
+- [ ] **Datos simulados de 6 meses en local** (pedido de Felipe): el escenario de esta
+      sesión vive en el scratchpad y no se commitea; el generador real debe cubrir a
+      propósito producto nuevo con poco historial, curva rota, mermas mezcladas con ventas,
+      temporada con pico y caída.
+- Preguntas abiertas (ADR-0097): ventana elegible 7/14/30/60/90; mínimo por variante+sede;
+  ventana "días con stock" en vez de "días desde el primer ingreso".
 
 ## 🎯 Taxonomía de variante: tallas/tejidos/patrones/etiquetas (2026-09-17, ADR-0095)
 

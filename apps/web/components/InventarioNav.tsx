@@ -35,11 +35,12 @@ const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
   { href: "/inventario/resumen", etiqueta: "Resumen", prefijos: ["/inventario/resumen"] },
 ];
 
-export function InventarioNav() {
+export function InventarioNav({ mostrarResumen = false }: { mostrarResumen?: boolean }) {
   const pathname = usePathname();
+  const secciones = mostrarResumen ? SECCIONES : SECCIONES.filter((s) => s.href !== "/inventario/resumen");
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-tinta/10">
-      {SECCIONES.map((s) => {
+      {secciones.map((s) => {
         const activo = pathname === s.href || s.prefijos.some((p) => pathname === p || pathname.startsWith(p + "/"));
         return (
           <Link

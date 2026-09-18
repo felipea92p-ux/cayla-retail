@@ -90,32 +90,23 @@ export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
 };
 
 // ============================================================================
-// Resumen de Inventario (2026-09-17, ADR-0097) — estado de rotación por
-// producto a nivel RED, calculado en `retail.fn_resumen_inventario()`. Los
-// umbrales de acá son el primer número razonable, NO ajustado todavía con
-// ventas reales (a diferencia de los de arriba, que Felipe ya corrigió 3
-// veces probando la pantalla) — se espera que se toquen apenas haya
-// historial real o los datos simulados de 6 meses.
+// Umbrales de cobertura (2026-09-17, ADR-0097) — los usa `resumen-reglas.ts`
+// sobre la velocidad de venta por variante y sede. Viven acá, junto a los de
+// piso/almacén, para que "cuánto es poco" tenga una sola casa. Son el primer
+// número razonable, NO ajustado todavía con ventas reales (a diferencia de
+// los de arriba, que Felipe corrigió 3 veces probando la pantalla) — se
+// espera que se toquen con los 6 meses de datos simulados.
 // ============================================================================
 
-export type EstadoResumen = "riesgo_quiebre" | "sobrestock" | "sin_movimiento" | "normal";
+/** Cobertura en días o menos = "se acaba en los próximos días": la variante
+ *  entra a «Necesita reposición ahora», no solo a «Riesgo de quiebre». */
+export const UMBRAL_COBERTURA_CRITICA_DIAS = 3;
 
-/** Cobertura en días o menos = "se acaba pronto, con demanda real detrás". */
+/** Cobertura en días o menos, con demanda real detrás = riesgo de quiebre. */
 export const UMBRAL_COBERTURA_RIESGO_DIAS = 7;
 
-/** Cobertura en días o más = candidato a sobrestock / liquidar. */
-export const UMBRAL_COBERTURA_SOBRESTOCK_DIAS = 90;
-
-export const ETIQUETA_ESTADO_RESUMEN: Record<EstadoResumen, string> = {
-  riesgo_quiebre: "Riesgo de quiebre",
-  sobrestock: "Sobrestock",
-  sin_movimiento: "Sin movimiento",
-  normal: "Normal",
-};
-
-export const ORDEN_ESTADO_RESUMEN: Record<EstadoResumen, number> = {
-  riesgo_quiebre: 0,
-  sin_movimiento: 1,
-  sobrestock: 2,
-  normal: 3,
-};
+/** Cobertura en semanas o más = posible sobrestock (12 semanas ≈ 3 meses de
+ *  venta parados en el perchero). Se expresa en semanas porque así lo lee
+ *  quien decide liquidar; el cálculo lo convierte a días. */
+export const UMBRAL_SOBRESTOCK_SEMANAS = 12;
+export const UMBRAL_COBERTURA_SOBRESTOCK_DIAS = UMBRAL_SOBRESTOCK_SEMANAS * 7;
