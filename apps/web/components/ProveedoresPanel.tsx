@@ -33,11 +33,25 @@ type Borrador = {
   nombre: string;
   ruc: string;
   contacto: string;
+  telefono: string;
+  banco: string;
+  cuentaBancaria: string;
   rubro: string;
   plazoCreditoDias: string;
   formaPagoPreferida: string;
 };
-const VACIO: Borrador = { id: null, nombre: "", ruc: "", contacto: "", rubro: "", plazoCreditoDias: "", formaPagoPreferida: "" };
+const VACIO: Borrador = {
+  id: null,
+  nombre: "",
+  ruc: "",
+  contacto: "",
+  telefono: "",
+  banco: "",
+  cuentaBancaria: "",
+  rubro: "",
+  plazoCreditoDias: "",
+  formaPagoPreferida: "",
+};
 
 // Directorio de proveedores: a quién se le compra. Es la puerta de entrada
 // del módulo — sin un proveedor registrado no se puede registrar su factura
@@ -154,6 +168,9 @@ export function ProveedoresPanel({ proveedores, esLider }: { proveedores: Provee
                 nombre: p.nombre,
                 ruc: p.ruc ?? "",
                 contacto: p.contacto ?? "",
+                telefono: p.telefono ?? "",
+                banco: p.banco ?? "",
+                cuentaBancaria: p.cuenta_bancaria ?? "",
                 rubro: p.rubro ?? "",
                 plazoCreditoDias: p.plazo_credito_dias != null ? String(p.plazo_credito_dias) : "",
                 formaPagoPreferida: p.forma_pago_preferida ?? "",
@@ -305,6 +322,9 @@ function ProveedorModal({
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
   const [contacto, setContacto] = useState(inicial.contacto);
+  const [telefono, setTelefono] = useState(inicial.telefono);
+  const [banco, setBanco] = useState(inicial.banco);
+  const [cuentaBancaria, setCuentaBancaria] = useState(inicial.cuentaBancaria);
   const [rubro, setRubro] = useState(inicial.rubro);
   const [plazoCreditoDias, setPlazoCreditoDias] = useState(inicial.plazoCreditoDias);
   const [formaPagoPreferida, setFormaPagoPreferida] = useState(inicial.formaPagoPreferida);
@@ -326,6 +346,9 @@ function ProveedorModal({
       p_rubro: rubro.trim() || undefined,
       p_plazo_credito_dias: plazoCreditoDias ? Number(plazoCreditoDias) : undefined,
       p_forma_pago_preferida: formaPagoPreferida || undefined,
+      p_telefono: telefono.trim() || undefined,
+      p_banco: banco.trim() || undefined,
+      p_cuenta_bancaria: cuentaBancaria.trim() || undefined,
     };
     const { error } = editando
       ? await supabase.rpc("actualizar_proveedor", {
@@ -343,62 +366,101 @@ function ProveedorModal({
   }
 
   return (
-    <Modal titulo={editando ? "Editar proveedor" : "Registrar proveedor"} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={editando ? "Editar proveedor" : "Registrar proveedor"} ancho="max-w-xl" onClose={onClose}>
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <ConsultaDocumento tipo="ruc" obligatorio={false} disparo="boton" numero={ruc} onNumero={setRuc} nombre={nombre} onNombre={setNombre} />
-          <CampoTexto
-            etiqueta={
-              <>
-                Contacto <span className="normal-case tracking-normal">(opcional)</span>
-              </>
-            }
-            autoComplete="off"
-            placeholder="Nombre, teléfono o correo de con quién se coordina"
-            value={contacto}
-            onChange={(e) => setContacto(e.target.value)}
-          />
-          <CampoTexto
-            etiqueta={
-              <>
-                Rubro <span className="normal-case tracking-normal">(opcional)</span>
-              </>
-            }
-            autoComplete="off"
-            placeholder="Tela, avíos, prenda terminada, servicios…"
-            value={rubro}
-            onChange={(e) => setRubro(e.target.value)}
-          />
-          <CampoTexto
-            etiqueta={
-              <>
-                Plazo de crédito <span className="normal-case tracking-normal">(opcional, en días)</span>
-              </>
-            }
-            type="number"
-            min={1}
-            step={1}
-            autoComplete="off"
-            placeholder="30"
-            value={plazoCreditoDias}
-            onChange={(e) => setPlazoCreditoDias(e.target.value)}
-          />
-          <CampoSelectNativo
-            etiqueta={
-              <>
-                Forma de pago preferida <span className="normal-case tracking-normal">(opcional)</span>
-              </>
-            }
-            value={formaPagoPreferida}
-            onChange={(e) => setFormaPagoPreferida(e.target.value)}
-          >
-            <option value="">Sin definir</option>
-            {FORMAS_PAGO.map((m) => (
-              <option key={m} value={m}>
-                {ETIQUETA_METODO[m]}
-              </option>
-            ))}
-          </CampoSelectNativo>
+
+          {/* De acá para abajo, en pares — el modal es ancho para esto (max-w-xl):
+              en escritorio dos campos por fila, en celular se apila igual que antes. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CampoTexto
+              etiqueta={
+                <>
+                  Contacto <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              autoComplete="off"
+              placeholder="Nombre o correo de con quién se coordina"
+              value={contacto}
+              onChange={(e) => setContacto(e.target.value)}
+            />
+            <CampoTexto
+              etiqueta={
+                <>
+                  Teléfono <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              type="tel"
+              autoComplete="off"
+              placeholder="El WhatsApp por el que se pacta el fardo"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+            />
+            <CampoTexto
+              etiqueta={
+                <>
+                  Banco <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              autoComplete="off"
+              placeholder="BCP, Interbank…"
+              value={banco}
+              onChange={(e) => setBanco(e.target.value)}
+            />
+            <CampoTexto
+              etiqueta={
+                <>
+                  Cuenta bancaria <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              autoComplete="off"
+              placeholder="Número de cuenta o CCI"
+              value={cuentaBancaria}
+              onChange={(e) => setCuentaBancaria(e.target.value)}
+            />
+            <CampoTexto
+              etiqueta={
+                <>
+                  Rubro <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              autoComplete="off"
+              placeholder="Tela, avíos, prenda terminada, servicios…"
+              value={rubro}
+              onChange={(e) => setRubro(e.target.value)}
+            />
+            <CampoTexto
+              etiqueta={
+                <>
+                  Plazo de crédito <span className="normal-case tracking-normal">(opcional, en días)</span>
+                </>
+              }
+              type="number"
+              min={1}
+              step={1}
+              autoComplete="off"
+              placeholder="30"
+              value={plazoCreditoDias}
+              onChange={(e) => setPlazoCreditoDias(e.target.value)}
+            />
+            <CampoSelectNativo
+              etiqueta={
+                <>
+                  Forma de pago preferida <span className="normal-case tracking-normal">(opcional)</span>
+                </>
+              }
+              value={formaPagoPreferida}
+              onChange={(e) => setFormaPagoPreferida(e.target.value)}
+            >
+              <option value="">Sin definir</option>
+              {FORMAS_PAGO.map((m) => (
+                <option key={m} value={m}>
+                  {ETIQUETA_METODO[m]}
+                </option>
+              ))}
+            </CampoSelectNativo>
+          </div>
 
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>

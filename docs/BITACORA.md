@@ -7429,6 +7429,9 @@ nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_pr
 manda el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`); `types.ts` parcheado a
 mano (una línea) en vez de regenerado completo, para no arrastrar drift ajeno.
 
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
+
 **Hallazgo operativo, no de esta tarea:** el Postgres local es un contenedor Docker
 compartido por los 40+ worktrees del repo — no uno por worktree. La migración se revirtió
 sola dos veces mientras se verificaba (`supabase migration up --local` reportaba "up to
@@ -7467,3 +7470,23 @@ de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
 **20260918091500** (después de la última migración del día, `20260918090000`). Referencias
 corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
 08-facturacion-sunat.md` con el mismo ajuste.
+
+## 2026-09-18 (Tejidos por fin sembrado — 17 valores, investigados y negociados)
+
+Felipe venía trabajando este vocabulario en otra sesión que "no le hacía caso" — pidió
+cerrarlo de una vez acá. La lista ya estaba negociada en rondas previas (no improvisada
+hoy): investigación real contra el estándar (Google Merchant Center) y contra el
+vocabulario propio de los proveedores de Gamarra, La Victoria (Tejido de Punto vs
+Tejido Plano), más dos fibras peruanas reales (algodón pima — costa norte, ~35% más
+larga que el algodón convencional; alpaca — Perú tiene el 87% de la población mundial).
+Felipe simplificó en el camino: un solo nombre por concepto, nunca combinado con "/"
+("Licra" cubre Full Lycra, "Jersey" cubre Interlock, "Rib" no se separa de "Rib
+licrado"); Piqué sí entra (tejido real de un polo); Tocuyo/French Terry/Punto Inglés/
+Gamuza/Jacquard quedan fuera por ahora, sin evidencia de que el catálogo real los use.
+
+Migración `20260918140000`: 17 tejidos, todos `aprobado` desde el día uno (trigger
+desactivado durante el insert — mismo patrón que Etiquetas/Patrones, si no se hace así
+el propio trigger recalcula `estado` desde `auth.uid()` y en una migración no hay
+sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
+typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
+`/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
