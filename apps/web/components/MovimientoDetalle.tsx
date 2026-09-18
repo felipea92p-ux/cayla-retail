@@ -99,9 +99,9 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
               </>
             )}
             {m.compra && (
-              <Dato etiqueta="Factura de compra">
+              <Dato etiqueta="Comprobante de compra">
                 <Link href={`/compras/factura/${m.compra.id}`} className="text-rojo hover:underline" onClick={cerrar}>
-                  {m.compra.documento ?? "Ver factura"} →
+                  {m.compra.documento ?? "Ver comprobante"} →
                 </Link>
               </Dato>
             )}

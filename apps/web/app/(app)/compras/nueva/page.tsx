@@ -19,7 +19,7 @@ export default async function NuevaCompraPage() {
         <p className="label-cayla text-[11px] text-tinta/65">
           <Link href="/compras" className="hover:text-rojo">Compras</Link> · Nueva
         </p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Registrar factura de proveedor</h1>
+        <h1 className="font-display mt-1 text-2xl text-tinta">Registrar comprobante de proveedores</h1>
         <p className="mt-1 text-sm text-tinta/65">
           Copia el documento tal cual llegó. Lo que el proveedor no desglosó por talla y color se reparte al recibir.
         </p>

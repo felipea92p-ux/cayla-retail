@@ -7299,3 +7299,28 @@ puesto ahora usan los mismos 3 colores categóricos que la dona de Caja (`COLOR_
 efectivo+tarjeta+yape — cada botón se pinta con su color y el checklist de "Cubierto"
 sigue funcionando igual que antes. `tsc`/`lint` en verde, sin tests nuevos (cambio
 puramente visual, sin lógica). PR pendiente de abrir.
+## 2026-09-18 (Compras: label "Facturas" → "Comprobantes", cero migraciones pendientes)
+
+Felipe pidió renombrar el label "Facturas" a "Comprobantes" en Compras (nav, título del
+módulo, botón de alta, ficha de proveedor, detalle de movimiento) — el módulo maneja
+factura/boleta/nota de venta, no solo facturas. El selector "Tipo de documento" del
+formulario conserva "Factura" como valor específico, sin tocar (ahí sí es el tipo real,
+no el nombre del módulo). Verificado en preview local (navegador) antes de commitear.
+
+Al pedir fusionar con `main` y la lista de migraciones pendientes: la rama ya nacía al
+día con `main` (0 commits de diferencia, nada que traer) y **`list_migrations` contra
+producción resultó no confiable para responder "qué falta"** — nombres pegados a mano,
+sin relación 1:1 con los archivos del repo (mismo síntoma que ya advertía la memoria de
+sesión). Verificado en cambio contra la base real, objeto por objeto (`information_schema`
++ `pg_constraint` para tablas/columnas/funciones/constraints de cada migración desde
+`0001` hasta `20260918090000`, más los 8 archivos sueltos `*-produccion.sql`): **cero
+migraciones pendientes** — todo lo que el repo espera ya existe en producción, incluidas
+las de hoy mismo (`proveedores.rubro/plazo_credito_dias/forma_pago_preferida`,
+`resumen_inventario`, `prioridad_conteo_por_sububicacion`). De paso, `activacion-
+cuarentena-produccion.sql` tenía la cabecera desactualizada ("todavía no se aplicó"
+cuando la sububicación «Cuarentena» ya existe en las 3 tiendas) — corregida, sin tocar
+el SQL. `benja-migracion.sql` sigue marcado por su propio autor "NO CORRER TAL CUAL"
+(dump de referencia, no cuenta como pendiente).
+
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
