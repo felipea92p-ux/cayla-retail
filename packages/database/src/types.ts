@@ -2021,24 +2021,33 @@ export type Database = {
           activo: boolean
           contacto: string | null
           created_at: string
+          forma_pago_preferida: string | null
           id: string
           nombre: string
+          plazo_credito_dias: number | null
+          rubro: string | null
           ruc: string | null
         }
         Insert: {
           activo?: boolean
           contacto?: string | null
           created_at?: string
+          forma_pago_preferida?: string | null
           id?: string
           nombre: string
+          plazo_credito_dias?: number | null
+          rubro?: string | null
           ruc?: string | null
         }
         Update: {
           activo?: boolean
           contacto?: string | null
           created_at?: string
+          forma_pago_preferida?: string | null
           id?: string
           nombre?: string
+          plazo_credito_dias?: number | null
+          rubro?: string | null
           ruc?: string | null
         }
         Relationships: []
@@ -2817,8 +2826,11 @@ export type Database = {
       actualizar_proveedor: {
         Args: {
           p_contacto?: string
+          p_forma_pago_preferida?: string
           p_nombre: string
+          p_plazo_credito_dias?: number
           p_proveedor_id: string
+          p_rubro?: string
           p_ruc?: string
         }
         Returns: undefined
@@ -3322,17 +3334,44 @@ export type Database = {
           total_variantes: number
         }[]
       }
+      fn_proveedor_metricas_compras: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          facturas_con_recepcion_pendiente: number
+          facturas_recibidas_completas: number
+          facturas_vencidas: number
+          facturas_vigentes: number
+          saldo: number
+          total_facturado: number
+          ultima_compra: string
+        }[]
+      }
+      fn_proveedor_metricas_insumos: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          lotes: number
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
           activo: boolean
           contacto: string
-          facturas: number
+          facturas: number | null
+          facturas_con_recepcion_pendiente: number | null
+          facturas_recibidas_completas: number | null
+          facturas_vencidas: number | null
+          forma_pago_preferida: string
           id: string
           nombre: string
+          plazo_credito_dias: number
+          rubro: string
           ruc: string
-          saldo: number
-          ultima_compra: string
+          saldo: number | null
+          total_facturado: number | null
+          ultima_compra: string | null
         }[]
       }
       fn_puede_operar_ubicacion: {
@@ -3642,7 +3681,14 @@ export type Database = {
         Returns: string[]
       }
       registrar_proveedor: {
-        Args: { p_contacto?: string; p_nombre: string; p_ruc?: string }
+        Args: {
+          p_contacto?: string
+          p_forma_pago_preferida?: string
+          p_nombre: string
+          p_plazo_credito_dias?: number
+          p_rubro?: string
+          p_ruc?: string
+        }
         Returns: string
       }
       registrar_recepcion_traslado: {

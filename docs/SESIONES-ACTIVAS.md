@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Felipe (Claude) | `claude/supplier-metrics-analysis-87a863` (worktree `cayla-invoices-module-review-451aa5`) | Proveedores: ficha ampliada (`rubro`/`plazo_credito_dias`/`forma_pago_preferida`) + métricas de compras/insumos separadas por sección + cierre de `devolver_proveedor` (ADR-0094, siguiente número libre confirmado contra `docs/adr/` al momento de escribir esto — puede necesitar renumerarse al fusionar, como ya pasó varias veces hoy). Migraciones `20260917210000`-`20260917230000`, todas verificadas en local. Pantalla de detalle en construcción. | 2026-09-17 |
 
 ## Cerradas hoy
 
