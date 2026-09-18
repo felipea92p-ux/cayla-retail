@@ -6561,6 +6561,22 @@ propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igua
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
 
+## 2026-09-17 (parpadeo al agregar una prenda que excede el largo del ticket)
+
+Felipe reportó (con foto) que al agregar una prenda que hace crecer el ticket más allá de
+lo visible, la fila nueva se dibuja superpuesta a las demás por un instante antes de
+asentarse. Causa: `Flip.from(..., { absolute: true })` en `PuntoDeVenta.tsx` (reflujo de
+líneas, ADR-0038/0045) saca a TODAS las filas del flujo normal mientras dura la animación
+—no solo la que sale—, así que el contenedor de la lista pierde su alto real justo cuando
+ya estaba en el límite del scroll. Reproducido a propósito con el navegador (viewport bajo
++ varias líneas de "Monto manual" seguidas): el overlap no era solo cosmético, quedaba
+pegado el tiempo suficiente como para que un clic siguiente le pegara al botón "Quitar" de
+la fila de abajo en vez de a la de arriba. Fix de una línea: `absoluteOnLeave: true` en vez
+de `absolute: true` — solo la fila que se va queda `position: absolute` (para poder
+deslizarse encima), las que se quedan y la que entra siguen en flujo normal y el
+contenedor nunca pierde su alto. Verificado en navegador (6 líneas agregadas seguidas,
+sin superposición) y `pnpm --filter web typecheck` en verde.
+
 ## 2026-09-17 (Proveedores: métricas, ficha ampliada, y devolver_proveedor deja de desaparecer)
 
 Felipe pidió más métricas de proveedor ("cuánto nos factura cada proveedor"). Antes de tocar
