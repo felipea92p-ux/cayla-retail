@@ -6579,3 +6579,31 @@ de producción en este vocabulario. Aprendizaje para la próxima reconciliación
 esquema: comparar triggers/constraints no basta, hay que comparar columnas también
 (`information_schema.columns`), porque una tabla creada por otra rama puede tener el
 mismo nombre y un subconjunto distinto de columnas.
+
+## 2026-09-18 (Tienda Lima activada en producción, ADR-0097)
+
+Felipe pidió activar la tienda de Lima. Antes de tocar nada se auditó el estado real
+contra `vovjyyiafkxteijimpuy` (no contra el worktree: su `main` local estaba parado 100+
+commits atrás de `origin/main`, del corte V1→V2 — se abrió rama nueva
+`claude/activar-tienda-lima-v2` sobre `origin/main` real antes de seguir). Hallazgo: Tienda
+Lima no estaba inactiva, **no existía** — `retail.ubicaciones` en producción solo tenía
+Taller, Tienda AQP y Tienda TRU (creadas 2026-09-12). Las decenas de menciones de "Tienda
+Lima" en esta misma bitácora son todas de pruebas contra el seed local
+(`felipe@cayla.local`) o el Postgres compartido de desarrollo, nunca de la base real.
+
+Al armar la migración reapareció la trampa de nomenclatura ya anotada el 2026-09-10: en
+Dynamic el código `LIM` es el Taller y el código `003` es la tienda de Lima (nombre real
+en Dynamic: "Tienda LIM"). Confirmado con Felipe antes de aplicar. Migración
+`20260918010733_activar_tienda_lima.sql` verificada primero con un dry-run (`begin` +
+`rollback`) contra la base real, y recién con eso en verde aplicada de verdad vía
+`apply_migration` (Supabase MCP, nunca a mano en el SQL Editor): fila nueva en
+`retail.ubicaciones` (`Tienda LIM`, `tipo='tienda'`, `activo=true`, `sede_dynamic_id`
+enlazado a la sede Dynamic `003`) + sus 3 sububicaciones (piso de venta, almacén de
+tienda, cuarentena), mismo patrón que ya usan Tienda AQP y Tienda TRU. Verificado después
+contra producción real (no solo que no tirara error): la fila y las 3 sububicaciones
+existen con los valores esperados. `get_advisors` (security) sin ninguna advertencia
+nueva — es un insert de datos, sin tabla/política/función nueva.
+
+Queda operable pero vacía a propósito: cargar stock inicial (traslado desde Taller o
+almacén) y asignar una Encargada son pasos operativos posteriores, no parte de "activar
+la tienda". Documentado en ADR-0097.

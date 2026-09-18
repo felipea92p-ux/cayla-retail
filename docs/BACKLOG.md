@@ -3296,6 +3296,18 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-18 — **Tienda Lima activada en producción (ADR-0097).** No estaba
+      inactiva, no existía: `retail.ubicaciones` en producción solo tenía Taller,
+      Tienda AQP y Tienda TRU (las decenas de menciones de "Tienda Lima" en esta
+      bitácora son todas del seed local, nunca de la base real). Creada vía
+      `apply_migration` (`20260918010733_activar_tienda_lima.sql`, dry-run+rollback
+      verificado antes de aplicar de verdad): fila `Tienda LIM` enlazada a la sede
+      Dynamic código `003` (el código `LIM` de Dynamic es el Taller, no la tienda —
+      trampa ya documentada abajo, 2026-09-10) + sus 3 sububicaciones (piso de
+      venta, almacén de tienda, cuarentena), mismo patrón que AQP/TRU. Verificado
+      contra producción después de aplicar; `get_advisors` sin advertencias nuevas.
+      **Pendiente (no es parte de "activar"):** cargar stock inicial (traslado desde
+      Taller/almacén) y asignar una Encargada — la tienda queda operable pero vacía.
 - [x] 2026-09-17 — **`/almacen` y `/almacen/recibir` pasan a `redirects()` de
       `next.config.ts` — y de paso se corrigió un 404 que llevaba un día abierto.**
       Eran páginas de React (`app/(app)/almacen/page.tsx`,

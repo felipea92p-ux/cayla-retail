@@ -20,7 +20,9 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
-| Felipe (Claude) | `claude/tags-section-5db96b` | `retail.etiquetas` sin `notas` — Catálogo > Etiquetas caía en vivo. Diagnóstico por lectura read-only, fix aplicado por Felipe en SQL Editor, trigger local reconciliado, diccionario de `docs/datos/` refrescado completo (45→60 tablas, faltaba toda la taxonomía de ADR-0095). PR pendiente de abrir. | 2026-09-17 |
+| Felipe (Claude) | `claude/tags-section-5db96b` | `retail.etiquetas` sin `notas` — Catálogo > Etiquetas caía en vivo. Diagnóstico por lectura read-only, fix aplicado por Felipe en SQL Editor, trigger local reconciliado, diccionario de `docs/datos/` refrescado completo (45→60 tablas, faltaba toda la taxonomía de ADR-0095). PR [#107](https://github.com/felipea92p-ux/cayla-retail/pull/107) abierto. | 2026-09-17 |
+| Felipe (Claude) | `claude/etiquetas-vocabulario-comercial` | Vocabulario real de Etiquetas: 22 filas sembradas, `vigente_desde`/`vigente_hasta`, comentario obligatorio al aprobar en las 5 vocabularios. PR [#113](https://github.com/felipea92p-ux/cayla-retail/pull/113) abierto, aparte del #107 a pedido de Felipe. | 2026-09-17 |
+| Claude (worktree `activar-tienda-lima-eff087`) | `claude/activar-tienda-lima-v2` | Alta de Tienda Lima en producción: `retail.ubicaciones` + `retail.sububicaciones` (ADR-0097, migración `20260918010733_activar_tienda_lima.sql`), verificada con dry-run (rollback) y aplicada con ok de Felipe | 2026-09-18 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |
