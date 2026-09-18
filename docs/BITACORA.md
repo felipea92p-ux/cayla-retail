@@ -7514,8 +7514,7 @@ existen, 39 de las 60 reales sin pájaro— y que el generador llevaba otra list
 Ahora hay una sola lista (`scripts/datos/aviario.mjs`), un índice generado
 (`generado/AVIARIO.md`) y un paso de CI que falla si una tabla nace sin pájaro. 21 tablas
 reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fiscales` →
-Cuervo, `sububicaciones` → Halcón); todo pendiente de que Felipe lo apruebe línea por
-línea antes de fusionar.
+Cuervo, `sububicaciones` → Halcón). Felipe aprobó las 24 tal cual y se abrió el PR.
 
 De paso: `retail.migraciones_aplicadas`, el registro que describe GOBIERNO §4, no existe en
 producción; el que sí se llena es `supabase_migrations.schema_migrations` (114 filas, la

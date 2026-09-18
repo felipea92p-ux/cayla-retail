@@ -40,9 +40,9 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 - [x] **Alarma en CI:** `node scripts/datos/aviario.mjs --verificar` falla si una tabla
       nace sin pájaro, tiene dos, los pájaros no coinciden con GOBIERNO o `AVIARIO.md`
       quedó viejo. Probado sobre una copia: los errores fallan y apuntarse no rompe nada.
-- [ ] **Felipe aprueba línea por línea las asignaciones** (tabla en ADR-0103: 21 nuevas y
-      3 que cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones`
-      → Halcón) y se abre el PR. Rama `claude/aviario-cayla-8d1efc`, sin publicar.
+- [x] **Felipe aprobó las asignaciones tal cual** (tabla en ADR-0103: 21 nuevas y 3 que
+      cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones` →
+      Halcón). PR abierto desde `claude/aviario-cayla-8d1efc`, esperando merge.
 - [ ] **Gorrión: lo que se pega a mano en el SQL Editor de producción no deja rastro.**
       GOBIERNO §4 apuntaba a `retail.migraciones_aplicadas`, que ya no existe. El
       registro vivo es `supabase_migrations.schema_migrations` (114 filas, la última de

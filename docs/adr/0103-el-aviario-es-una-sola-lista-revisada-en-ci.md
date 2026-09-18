@@ -1,9 +1,9 @@
 # ADR-0103 — El aviario es una sola lista, en código, revisada en CI
 
 **Fecha:** 2026-09-18
-**Estado:** Construido y verificado en local (`node scripts/datos/aviario.mjs --verificar`
-en verde, y sus caminos de error probados sobre una copia). **Pendiente:** Felipe aprueba
-línea por línea las asignaciones de abajo antes de fusionar.
+**Estado:** Aprobado por Felipe el 2026-09-18: las 24 asignaciones de abajo, tal cual.
+Construido y verificado en local (`node scripts/datos/aviario.mjs --verificar` en verde, y
+sus caminos de error probados sobre una copia). PR abierto contra `main`.
 **Afecta:** `scripts/datos/aviario.mjs` (nuevo), `scripts/datos/generar.mjs`,
 `docs/datos/generado/AVIARIO.md` (nuevo, generado),
 `docs/datos/generado/DICCIONARIO-RETAIL.md` (regenerado), `docs/datos/07-GOBIERNO.md`
@@ -61,7 +61,7 @@ un script para eso, y la prueba sobre una copia lo confirmó.
 **Alcance:** solo el schema `retail`. Las tablas de `public` son del sistema de personas
 (Dynamic) y no entran en el aviario.
 
-## Las asignaciones, para aprobar línea por línea
+## Las asignaciones (aprobadas por Felipe, 2026-09-18)
 
 Las 21 que no tenían pájaro:
 
