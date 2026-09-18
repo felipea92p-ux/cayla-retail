@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, Banknote, ChevronDown, CircleCheck, PackageSearch, Palette, Shirt, SlidersHorizontal, type LucideIcon } from "lucide-react";
-import { Select, Slider } from "radix-ui";
-import { ALTO_CONTROL, CampoSelectNativo, CampoTexto, Hilo } from "@/components/ui/campos";
+import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt } from "lucide-react";
+import { Slider } from "radix-ui";
+import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
@@ -16,10 +17,6 @@ type OpcionColor = Opcion & { hex: string | null };
 
 const PRECIO_MIN = 0;
 const PRECIO_MAX = 999;
-
-/** Radix Select no permite `value=""` (la reserva para "sin selección"), y acá
- *  "" YA significa "sin filtro" en la URL — este sentinel hace de puente. */
-const TODOS = "__todos__";
 
 /** `compacto` (2026-09-17, tres pasadas el mismo día): en la Grilla, la ropa
  *  tiene que ganarle a los controles. La 1ª pasada plegó todo detrás de un
@@ -168,25 +165,12 @@ export function FiltrosProductos({
             <span aria-hidden className="label-cayla block text-[11px] text-transparent">
               {" "}
             </span>
-            <button
-              type="button"
-              onClick={() => setPanelAbierto((v) => !v)}
-              aria-expanded={panelAbierto}
-              aria-controls="filtros-panel"
-              className={`label-cayla mt-1.5 ${ALTO_CONTROL} inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-3.5 text-[11px] transition-colors ${
-                panelAbierto || activos > 0
-                  ? "border-tinta/30 bg-tinta/[0.04] text-tinta"
-                  : "border-tinta/15 text-tinta/65 hover:border-tinta/25 hover:text-tinta"
-              }`}
-            >
-              <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
-              Filtros{activos > 0 ? ` · ${activos}` : ""}
-            </button>
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
           </div>
         </div>
 
         {panelAbierto && (
-          <div id="filtros-panel" className="anim-revelar flex flex-wrap items-center divide-x divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+          <PanelPildoras>
             <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
 
             <DesplegablePildora icono={Shirt} etiqueta="Categoría" valor={cat ?? TODOS} onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}>
@@ -231,7 +215,7 @@ export function FiltrosProductos({
                 setPrecioMax(max);
               }}
             />
-          </div>
+          </PanelPildoras>
         )}
 
         {bloqueChips}
@@ -344,65 +328,6 @@ function BotonesOrdenPrecio({ orden, onOrden }: { orden: string | null; onOrden:
         </Tooltip>
       </div>
     </TooltipProvider>
-  );
-}
-
-/** Desplegable con estilo propio (Radix Select) para la fila compacta de la
- *  Grilla — a diferencia de `<select>` nativo, acá SÍ se puede vestir la
- *  lista abierta, no solo el control cerrado. `valor`/`onValor` ya vienen
- *  resueltos contra el sentinel `TODOS`, este componente no sabe de URLs.
- *
- *  Sin caja propia (2026-09-17, pedido de Felipe: "no me gusta que estén
- *  encapsulados en esos rectángulos blancos"): nada de borde ni fondo en
- *  reposo — el mismo hilo vivo de `CampoTexto`/`SelectNativo` marca dónde
- *  está parado, la tipografía marca si hay un valor elegido. El panel que
- *  los agrupa (`divide-x`) es la única superficie; cada campo adentro es
- *  texto, no una caja más. */
-function DesplegablePildora({
-  icono: Icono,
-  etiqueta,
-  valor,
-  onValor,
-  children,
-}: {
-  icono: LucideIcon;
-  etiqueta: string;
-  valor: string;
-  onValor: (v: string) => void;
-  children: ReactNode;
-}) {
-  const [abierto, setAbierto] = useState(false);
-  const activa = valor !== TODOS;
-  return (
-    <Select.Root value={valor} onValueChange={onValor} onOpenChange={setAbierto}>
-      <Select.Trigger
-        aria-label={etiqueta}
-        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[11px] outline-none transition-colors ${
-          activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
-        }`}
-      >
-        <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
-        <Select.Value />
-        <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />
-        <Hilo activo={abierto} />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content position="popper" sideOffset={6} align="start" className="anim-revelar z-50 overflow-hidden rounded-lg border border-sand bg-papel shadow-md">
-          <Select.Viewport className="scroll-cayla max-h-72 overflow-y-auto p-1">{children}</Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
-  );
-}
-
-function ItemDesplegable({ value, children }: { value: string; children: ReactNode }) {
-  return (
-    <Select.Item
-      value={value}
-      className="relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm text-tinta outline-none data-[highlighted]:bg-rojo/8 data-[state=checked]:font-semibold data-[highlighted]:text-tinta"
-    >
-      <Select.ItemText>{children}</Select.ItemText>
-    </Select.Item>
   );
 }
 

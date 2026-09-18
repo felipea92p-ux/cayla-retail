@@ -7,13 +7,14 @@
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
+export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta";
 
 export type CompraResumen = {
   id: string;
   proveedorId: string;
   proveedorNombre: string;
   proveedorRuc: string | null;
-  tipo: string;
+  tipo: TipoDocumentoCompra;
   documento: string;
   fechaEmision: string;
   condicion: Condicion;
@@ -124,6 +125,12 @@ export type RecepcionReciente = {
   compraId: string | null;
   documento: string | null;
   detalle: LineaRecepcion[];
+};
+
+export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumentoCompra, string> = {
+  factura: "Factura",
+  boleta: "Boleta",
+  nota_venta: "Nota de venta",
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
