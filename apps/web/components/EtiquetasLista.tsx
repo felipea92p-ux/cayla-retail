@@ -2,30 +2,30 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
  * "Verano 2026") — distinto de la etiqueta física de código de barras que
  * ya existe en Inventario/Movimientos. Mismo mecanismo propone/aprueba/
- * rechaza que colores/tejidos/patrones, más un campo propio:
- * `sedesPermitidas` — si tiene valores, restringe de verdad en qué sede se
- * puede VENDER o TRASLADAR una variante con esta etiqueta (el candado real
- * vive en `registrar_venta`/`transferir`, esto solo decide el dato). Vacío
- * = sin restricción, visible en cualquier sede.
+ * rechaza que colores/tejidos/patrones.
+ *
+ * Sin restricción por sede a propósito (Felipe, 2026-09-18): "empresa
+ * uniforme" — toda etiqueta aplica igual en todas las sedes. La columna
+ * `sedes_permitidas` sigue en el esquema (dormida, sin UI) por si algún
+ * día hace falta de verdad; no se dropeó porque revivirla no pide
+ * migración nueva. Ver 20260918020000_para_liquidar_global_no_por_sede.sql
+ * para el porqué: no es cosmética, bloquea venta/traslado de verdad.
  *
  * Aplicar/quitar una etiqueta de una VARIANTE puntual no vive acá — es
  * edición normal de producto (`variantes_write_lider`), pendiente de
  * conectarse en ProductoForm.tsx (BACKLOG.md).
  */
 
-type Sede = { id: string; nombre: string };
-
 type Etiqueta = {
   id: string;
   nombre: string;
   activo: boolean;
-  sedesPermitidas: string[] | null;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
 };
@@ -34,34 +34,16 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-function SelectorSedes({ sedes, seleccionadas, onCambio }: { sedes: Sede[]; seleccionadas: string[]; onCambio: (ids: string[]) => void }) {
-  return <SelectorMultiple opciones={sedes.map((s) => ({ valor: s.id, texto: s.nombre }))} seleccionadas={seleccionadas} onCambio={onCambio} />;
-}
-
-export function EtiquetasLista({
-  etiquetasIniciales,
-  sedes,
-  puedeEditar,
-}: {
-  etiquetasIniciales: Etiqueta[];
-  sedes: Sede[];
-  puedeEditar: boolean;
-}) {
+export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasIniciales: Etiqueta[]; puedeEditar: boolean }) {
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [sedesNuevas, setSedesNuevas] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoId, setAprobandoId] = useState<string | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
-  const [editandoSedesId, setEditandoSedesId] = useState<string | null>(null);
-  const [sedesEditando, setSedesEditando] = useState<string[]>([]);
-  const [guardandoSedes, setGuardandoSedes] = useState(false);
-
-  const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? id;
 
   const activas = etiquetas.filter((e) => e.activo);
   const desactivadas = etiquetas.filter((e) => !e.activo);
@@ -72,7 +54,7 @@ export function EtiquetasLista({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, sedesPermitidas: sedesNuevas.length > 0 ? sedesNuevas : null }),
+        body: JSON.stringify({ nombre }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -86,7 +68,6 @@ export function EtiquetasLista({
             id: datos.etiqueta.id,
             nombre: datos.etiqueta.nombre,
             activo: true,
-            sedesPermitidas: datos.etiqueta.sedes_permitidas,
             notas: datos.etiqueta.notas,
             estado: datos.etiqueta.estado,
           },
@@ -98,7 +79,6 @@ export function EtiquetasLista({
       );
       setAgregando(false);
       setNombre("");
-      setSedesNuevas([]);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -196,29 +176,6 @@ export function EtiquetasLista({
     }
   }
 
-  async function guardarSedes(e: Etiqueta) {
-    setGuardandoSedes(true);
-    try {
-      const res = await fetch("/api/productos/etiquetas", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: e.id, sedesPermitidas: sedesEditando.length > 0 ? sedesEditando : null }),
-      });
-      const datos = await res.json();
-      if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo guardar la restricción de sede.");
-        return;
-      }
-      setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, sedesPermitidas: datos.etiqueta.sedes_permitidas } : x))));
-      avisar.exito(`Sedes de ${e.nombre} actualizadas`);
-      setEditandoSedesId(null);
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setGuardandoSedes(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       {agregando ? (
@@ -232,13 +189,6 @@ export function EtiquetasLista({
               className="flex-1"
               autoFocus
             />
-          </div>
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Restringir a sedes (opcional)</p>
-            <p className="mt-1 text-xs text-tinta/55">Sin elegir ninguna = visible y vendible en cualquier sede.</p>
-            <div className="mt-1.5">
-              <SelectorSedes sedes={sedes} seleccionadas={sedesNuevas} onCambio={setSedesNuevas} />
-            </div>
           </div>
           <div className="flex gap-2">
             <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
@@ -270,11 +220,6 @@ export function EtiquetasLista({
                 <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
               )}
             </div>
-            <p className="text-[11px] text-tinta/65">
-              {e.sedesPermitidas && e.sedesPermitidas.length > 0
-                ? `Solo ${e.sedesPermitidas.map(nombreSede).join(", ")}`
-                : "Todas las sedes"}
-            </p>
             {puedeEditar && (
               <div className="flex gap-2">
                 {e.estado === "pendiente" && (
@@ -294,21 +239,9 @@ export function EtiquetasLista({
                     Rechazar
                   </Boton>
                 ) : (
-                  <>
-                    <Boton
-                      peso="discreto"
-                      className="flex-1 px-2.5 py-1.5 text-[11px]"
-                      onClick={() => {
-                        setEditandoSedesId(editandoSedesId === e.id ? null : e.id);
-                        setSedesEditando(e.sedesPermitidas ?? []);
-                      }}
-                    >
-                      Sedes
-                    </Boton>
-                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => desactivar(e)}>
-                      Desactivar
-                    </Boton>
-                  </>
+                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => desactivar(e)}>
+                    Desactivar
+                  </Boton>
                 )}
               </div>
             )}
@@ -323,14 +256,6 @@ export function EtiquetasLista({
                 />
                 <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === e.id} onClick={() => rechazar(e)}>
                   Confirmar rechazo
-                </Boton>
-              </div>
-            )}
-            {editandoSedesId === e.id && (
-              <div className="space-y-2 border-t border-tinta/10 pt-2">
-                <SelectorSedes sedes={sedes} seleccionadas={sedesEditando} onCambio={setSedesEditando} />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={guardandoSedes} onClick={() => guardarSedes(e)}>
-                  Guardar sedes
                 </Boton>
               </div>
             )}

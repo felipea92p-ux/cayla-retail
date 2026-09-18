@@ -85,10 +85,19 @@ verde.
       **Pendiente, a propósito, no a medias:** ninguna pantalla lee todavía
       `vigente_desde`/`vigente_hasta` (la columna existe, el filtro "¿está vigente
       hoy?" en `/productos/etiquetas` y en el selector de `ProductoForm.tsx` falta); y
-      el estilo visual (color/ícono por etiqueta) que Felipe pidió sigue sin diseñar —
-      con la estética CAYLA (sin gradientes, sin decoración porque sí) un picker de
-      color libre se pelea con el brandbook, propuesto usar 3-4 variantes fijas de
-      marca en vez de color arbitrario, sin decidir todavía.
+      el estilo visual (color por etiqueta) sigue sin construir — Felipe confirmó
+      2026-09-18: paleta suave dentro del sistema CAYLA (no colores libres estilo
+      Shopify), falta decidir cuántas variantes y construir esquema + UI.
+- [x] **"Para liquidar" corregido: de 4 filas por sede a 1 global (2026-09-18).**
+      El diseño original restringía por sede con `sedes_permitidas` — Felipe preguntó
+      "por qué 4" y la pregunta destapó que el candado no es cosmético:
+      `fn_variante_permitida_en_sede` (`registrar_venta`/`transferir`) lo usa para
+      BLOQUEAR venta/traslado, no solo para avisar. Habría bloqueado sin querer la
+      venta de una prenda en una sede que tenía su propio stock fresco. Corregido a
+      una sola etiqueta global (migración `20260918030000`, 0 variantes afectadas,
+      verificado antes de escribirla) y se quitó el botón "SEDES"/todo el flujo de
+      edición de `sedes_permitidas` de las 20 etiquetas restantes — "empresa
+      uniforme", decisión de Felipe. La columna sigue en el esquema, dormida. PR #115.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"

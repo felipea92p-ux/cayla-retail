@@ -6,18 +6,14 @@ import { EtiquetasLista } from "@/components/EtiquetasLista";
 
 // Vocabulario cerrado de etiquetas de catálogo (ADR-0095) — folksonomy tipo
 // "Oferta"/"Verano 2026" por VARIANTE, distinto de la etiqueta física de
-// código de barras. `sedes_permitidas` es opcional: sin elegir ninguna
-// sede, la etiqueta no restringe nada.
+// código de barras. Aplica igual en todas las sedes a propósito (Felipe,
+// 2026-09-18: "empresa uniforme") — sin restricción por sede en pantalla.
 export default async function EtiquetasPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
 
-  const [resEtiquetas, resUbicaciones] = await Promise.all([
-    supabase.from("etiquetas").select("id, nombre, activo, sedes_permitidas, notas, estado").order("nombre"),
-    supabase.from("ubicaciones").select("id, nombre").eq("activo", true).order("nombre"),
-  ]);
+  const resEtiquetas = await supabase.from("etiquetas").select("id, nombre, activo, notas, estado").order("nombre");
   const filas = exigir(resEtiquetas, "las etiquetas del vocabulario");
-  const sedes = exigir(resUbicaciones, "las sedes");
   const activas = filas.filter((e) => e.activo);
 
   return (
@@ -28,9 +24,8 @@ export default async function EtiquetasPage() {
           Etiquetas
           <Ayuda titulo="Etiquetas">
             El vocabulario cerrado de etiquetas de catálogo: {activas.length} valores. Se aplican a una
-            variante puntual (no al producto), no a la etiqueta física de código de barras. Restringir a
-            sedes es opcional — sin elegir ninguna, la etiqueta no bloquea venta ni traslado en ninguna
-            sede.
+            variante puntual (no al producto), no a la etiqueta física de código de barras. Aplican igual
+            en las 4 sedes — ninguna etiqueta se restringe a una sede en particular.
           </Ayuda>
         </h1>
       </div>
@@ -40,11 +35,9 @@ export default async function EtiquetasPage() {
           id: e.id,
           nombre: e.nombre,
           activo: e.activo,
-          sedesPermitidas: e.sedes_permitidas,
           notas: e.notas,
           estado: e.estado as "pendiente" | "aprobado" | "rechazado",
         }))}
-        sedes={sedes}
         puedeEditar={persona.rol === "lider"}
       />
     </div>

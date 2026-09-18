@@ -484,26 +484,31 @@ begin
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
 
--- ---------- "Para liquidar" por sede (20260917230100) — solo local ----------
--- En producción esto ya lo hace la propia migración (ubicaciones reales ya
--- existen cuando se pega el SQL). En local, retail.ubicaciones recién se
--- llena ACÁ (seed.sql corre después de las migraciones) — sin este bloque,
--- un `db reset` completo se queda con 0 filas de "Para liquidar" porque la
--- migración corrió antes de que hubiera alguna sede que leer.
--- Solo `tipo='tienda'` (Felipe, 2026-09-18): el Taller no vende a clientas —
--- "liquidar" es un concepto de venta al público, no aplica a un sitio de
--- producción. La migración original (ya fusionada y corrida en producción)
--- generó una fila también para Taller; se desactivó a mano desde la pantalla
--- (botón "Desactivar", nunca DELETE) en vez de reescribir esa migración.
-insert into retail.etiquetas (nombre, estado, activo, sedes_permitidas, notas)
-select
-  'Para liquidar — ' || u.nombre,
-  'aprobado',
-  true,
-  array[u.id],
-  'Liquidación local de ' || u.nombre || ' — restringida a esta sede a propósito: sin este candado, liquidar algo en una sede lo mostraría como "para liquidar" en todas las demás, aunque ahí no aplique.'
-from retail.ubicaciones u
-where u.activo and u.tipo = 'tienda'
+-- ---------- "Para liquidar" — UNA sola, global (corregido 2026-09-18) ----------
+-- Versión anterior: una fila por sede con `sedes_permitidas` fija a esa
+-- sede — mal diseño, no solo "visualmente confuso" (Felipe lo notó en la
+-- pantalla: "por qué existen 4, uno solo y elegimos"). `sedes_permitidas`
+-- NO es cosmético: `fn_variante_permitida_en_sede`, usada por
+-- `registrar_venta`/`transferir`, BLOQUEA la venta/traslado de esa
+-- variante en cualquier sede que no esté en la lista. "Para liquidar —
+-- Tienda TRU" habría bloqueado sin querer la venta de esa misma prenda en
+-- Tienda AQP, aunque AQP tuviera su propio stock fresco — mezclaba dos
+-- problemas distintos (exclusividad real de venta vs. aviso informativo
+-- de liquidación). Verificado antes de corregir: 0 variantes tenían
+-- alguna de las 4 aplicada todavía, así que no hay nada que migrar.
+-- Costo aceptado de ir a una sola etiqueta global: es puramente
+-- cosmético — una prenda puede mostrarse "para liquidar" en una sede
+-- donde en realidad no lo está. Se afina con vigencia/estilo visual más
+-- adelante si hace falta, nunca con un candado de venta.
+alter table retail.etiquetas disable trigger etiquetas_estado_biut;
+
+insert into retail.etiquetas (nombre, estado, activo, notas)
+values (
+  'Para liquidar', 'aprobado', true,
+  'Global a propósito — sedes_permitidas es un candado real que bloquea venta/traslado (ver registrar_venta/transferir), no algo cosmético. No restringir por sede acá: mezclaría "avisar que se liquida" con "prohibir vender en otra sede".'
+)
 on conflict (retail.fn_clave_texto(nombre)) do nothing;
+
+alter table retail.etiquetas enable trigger etiquetas_estado_biut;
 
 commit;
