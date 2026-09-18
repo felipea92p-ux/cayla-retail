@@ -3,6 +3,61 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Resumen se fusiona con 22 commits de `main` — un bug ajeno encontrado y corregido de paso)
+
+Al fusionar la rama de Resumen con `main` (PR #106-#119, todo ya en producción) salieron 5
+conflictos reales: `conteo/page.tsx` (nuestra extracción de `tonoExactitud` contra el alta de
+prenda al vuelo del PR #108, integradas las dos sin perder ninguna), `BACKLOG.md`/
+`BITACORA.md`/`SESIONES-ACTIVAS.md` (los tres, dos sesiones anotando en el mismo punto de
+inserción — se conservan ambas), y `packages/database/src/types.ts` (generado, se
+regeneró de nuevo contra Postgres local con las migraciones de los dos lados ya aplicadas).
+Ninguno era dos lógicas de negocio peleando por lo mismo.
+
+Aparte, uno silencioso que git no marca como conflicto: `activar-tienda-lima-eff087` (otra
+sesión, ya en producción) también usó ADR-0097, para "activar Tienda Lima" — nada que ver
+con Resumen. Renumerado el nuestro a **ADR-0101** (`main` ya llegaba hasta el 0100).
+
+Al verificar la fusión en el navegador apareció un bug real, ya en producción desde el
+PR #108, ajeno a esta rama: "Conviene contar primero" repetía la misma prenda dos veces con
+montos de "valor en riesgo" distintos (React tiraba warning de key duplicada). Causa real:
+`fn_prioridad_conteo` lee de `stock`, que tiene una fila por variante×sububicación — una
+prenda con unidades sin contar en piso Y almacén genera dos filas de verdad, pero la función
+nunca decía cuál sububicación era cuál. Decisión: no colapsar a una fila por variante — un
+conteo se abre para una sububicación a la vez, así que "S/3844 sin contar en almacén, S/559
+en piso" por separado es justo el dato que decide qué botón tocar. Corregido en
+`20260918090000_prioridad_conteo_por_sububicacion.sql`, con la etiqueta de sububicación
+visible en cada fila.
+
+typecheck/lint/358 pruebas y build en verde sobre el árbol ya mezclado. Nada pusheado a
+GitHub por cuenta propia hasta ahora — el protocolo del chat es que Felipe se encarga de los
+PR manualmente.
+
+## 2026-09-17 (Resumen de Inventario por variante × sede contra la referencia de Felipe, ADR-0101 — renumerado desde 0097 al fusionar, 100% local hasta el 2026-09-18)
+
+Se rehizo "Resumen" completo sobre la imagen de referencia: motor por variante y sede
+(`fn_resumen_variantes`, demanda clasificada por FK y estado real de la venta, ventana
+observable desde el primer ingreso a la sede), reglas en un solo archivo que reutiliza los
+umbrales de Existencias, cinco bloques de la referencia sobre los componentes reales de
+CAYLA (`card-cayla`, `Tabla`, `Chip`, `Modal`), detalle con el "por qué", y "Crear traslado"
+que prellena el formulario existente sin mover nada. Antes de construir, siete lectores en
+paralelo verificaron el modelo contra el Postgres local; eso evitó tres errores que la
+versión de la mañana traía (contar ventas anuladas, restar devoluciones dañadas, sugerir
+desde una sede sumando cuarentena) y uno de seguridad (la RPC anterior era ejecutable por
+`anon`).
+
+Lo que Felipe aprendió (o quedó a la vista): (1) "Existencias dice stock bajo" tiene que
+significar algo en Resumen, y ese algo NO es riesgo — es "reponer tienda" (su política de
+reserva), distinto de "reponer piso" (interno) y de "riesgo de quiebre" (probado por
+ventas); (2) pedir traslado de algo que no vendió en 30 días es fabricar sobrestock: el
+orden de prioridad de las situaciones importa tanto como las fórmulas; (3) con el seed
+actual todo dice "historial corto" y eso es lo correcto — el sistema no inventa velocidad
+hasta tener 7 días observados. De paso apareció que `fn_productos` está rota en `main`
+local por la taxonomía cerrada (anotado, no tocado).
+
+Nada tocó producción ni GitHub — instrucción explícita. Pendiente para cuando Felipe lo
+indique: aplicar taxonomía + punto de reorden + esta migración en producción (en ese
+orden), y decidir ventana elegible y mínimo por variante+sede.
+
 ## 2026-09-17 (Producción se cayó dos veces hoy — y una tercera vez que nadie reportó, encontrada antes de que doliera)
 
 Primera caída real del día: `retail.fn_productos` con dos sobrecargas vivas (9 y 10
