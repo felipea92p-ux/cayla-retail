@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
@@ -179,6 +179,12 @@ export function ComprobantesPanel({
   const router = useRouter();
   const [modal, setModal] = useState<"emitir" | "serie" | "anular" | "liberar" | null>(null);
   const [loading, setLoading] = useState(false);
+  // Idempotencia (hueco 1, GRAVE): un mismo token sobrevive reintentos del
+  // formulario — si la respuesta se corta después de que el servidor ya
+  // reservó el correlativo, reintentar con el mismo token no quema un
+  // segundo número. Se renueva solo tras un Emitir exitoso (mismo patrón que
+  // PuntoDeVenta.tsx con registrar_venta).
+  const tokenEmision = useRef<string>(crypto.randomUUID());
 
   // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
   // global: transmitir la fila 3 no debe deshabilitar el botón de la fila 1.
@@ -378,6 +384,7 @@ export function ComprobantesPanel({
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
       p_cliente_nombre: clienteNombre || undefined,
+      p_token: tokenEmision.current,
     });
     if (error) {
       avisar.error(traducirError(error, "emitir el comprobante"));
@@ -385,6 +392,7 @@ export function ComprobantesPanel({
       return;
     }
     setLoading(false);
+    tokenEmision.current = crypto.randomUUID();
     avisar.exito(`${ETIQUETA_TIPO[tipo]} emitida`, { detalle: "Aparece en la lista; transmítela a SUNAT desde la fila." });
     cerrarModal();
     router.refresh();
