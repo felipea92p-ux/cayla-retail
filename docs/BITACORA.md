@@ -6881,3 +6881,21 @@ y navegador en verde después de las dos correcciones.
 Sigue abierto: color por etiqueta. Felipe vio un ejemplo de Shopify (badges azul/verde
 vivos) y confirmó que la paleta debe ser suave, dentro del sistema CAYLA, no colores
 libres — pendiente de construir (esquema + UI), anotado en BACKLOG.
+
+## 2026-09-18 (PR #108 fusionado — migraciones del día aplicadas en producción)
+
+Felipe fusionó el PR #108 (censo alta al vuelo + PDF/XML/CDR + Nota de Crédito
+automática) él mismo desde GitHub. Con ok explícito, se aplicaron las 2 migraciones
+en producción vía Supabase MCP: antes de tocar nada se leyó el cuerpo real de
+`aprobar_devolucion` en `vovjyyiafkxteijimpuy` y coincidía byte a byte con la base
+sobre la que se había reconstruido la función (incluido el fix del bug que encontró
+CI) — sin esa comparación, aplicar a ciegas habría repetido el mismo error dos veces.
+Verificado después: columnas `productos.estado_alta`/`propuesto_por`/`aprobado_por`/
+`aprobado_en`, `devoluciones.nota_credito_id`, `aprobar_devolucion` devolviendo la
+tabla nueva, `censo_crear_variante`/`revisar_producto_censo` existen. `get_advisors`
+(security): solo el ruido genérico de cualquier función `security definer` +
+`authenticated`, mismo patrón que el resto del esquema — no es una regresión.
+
+Pendiente real, sigue sin resolverse: Felipe tiene que registrar la serie de
+`nota_credito` en cada ubicación con boleta/factura (botón "Registrar serie" en
+Facturación) antes de que la primera devolución sobre una venta facturada funcione.
