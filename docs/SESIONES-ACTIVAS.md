@@ -20,7 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
-| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Fix producción: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (3 pantallas rotas). Cerró la última brecha real del censo de catálogo: alta de prenda al vuelo durante el conteo (ADR-0097, PR #108, migración pendiente de producción). Después: auditó "reemplazo de Alegra" (Facturación viva, Finanzas/Egresos muerto de verdad — distinto de lo que decía BACKLOG) y mostró PDF/XML/CDR de SUNAT en `ComprobantesPanel.tsx` (sin migración). | 2026-09-18 |
+| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Fix producción: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (3 pantallas rotas). Cerró la última brecha real del censo de catálogo: alta de prenda al vuelo durante el conteo (ADR-0097). Auditó "reemplazo de Alegra" (Facturación viva, Finanzas/Egresos muerto de verdad). Mostró PDF/XML/CDR de SUNAT en `ComprobantesPanel.tsx`. Cerró Nota de Crédito automática en devoluciones (ADR-0098) — falta que Felipe registre la serie `nota_credito` por ubicación antes del primer uso real. Todo en PR #108, migraciones `20260918020000`/`20260918050000` pendientes de producción hasta que se fusione. | 2026-09-18 |
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|

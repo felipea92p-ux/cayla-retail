@@ -6646,3 +6646,50 @@ del seed (revertida después de la captura). `tsc`/lint/297 tests en verde.
 
 BACKLOG.md corregido en el mismo commit: los dos huecos cerrados marcados `[x]`, el de
 Nota de Crédito queda como el único pendiente real de Facturación.
+
+## 2026-09-18 (Nota de Crédito automática en devoluciones — ADR-0098, y el
+Postgres local compartido se resetea solo mientras se prueba)
+
+Último hueco real de Facturación: Felipe confirmó construirlo (toca SUNAT/dinero
+real, se le preguntó primero por regla del CLAUDE.md). `emitir_nota` existía desde
+la Fase 0 sin ningún llamador — `aprobar_devolucion` ahora la dispara sola cuando la
+venta devuelta tiene un comprobante `aceptado`, por el valor exacto de lo devuelto
+(no de toda la venta en devoluciones parciales), con motivo 06/07 del Catálogo 09
+según cubra el 100% de la venta o no. Se reserva en Postgres puro (principio 9);
+transmitirla sigue el mismo botón "Transmitir" de siempre — aparece sola en la
+lista de comprobantes, sin pantalla nueva.
+
+Verificado contra producción antes de escribir una línea: **ninguna ubicación
+tiene serie de `nota_credito` registrada** (`series_comprobantes` solo tiene
+boleta/factura). Sin un chequeo explícito, la primera devolución real sobre una
+venta facturada habría fallado con el mensaje genérico de
+`fn_reservar_numero_serie` Y se habría llevado entre las patas la aprobación
+ENTERA de la devolución (todo-o-nada, la transacción es una sola). Se agregó una
+excepción propia con el paso siguiente explícito antes de intentar `emitir_nota`.
+
+Probado con SQL directo contra el Postgres local (venta real de 3 líneas,
+devolución parcial de 1) — mientras se probaba, **el Postgres local compartido se
+reseteó solo, dos veces, en cuestión de minutos** (otra sesión corriendo `db
+reset` en paralelo): la migración de esta feature y la de censo (`20260918020000`)
+desaparecieron a mitad de prueba sin que esta sesión hiciera nada. Se reaplicaron
+las dos con `psql -f` directo (no `migration up`, que sigue sin ver archivos de
+otros worktrees) y se repitió la prueba hasta que corrió completa sin interrupción:
+NC01-000001, subtotal 63.47 + IGV 11.43 = total 74.90 (mismo orden de cálculo que
+`ComprobantesPanel.tsx`, coincide al céntimo), motivo "07" (parcial, correcto —
+solo se devolvió 1 de 3 líneas), `devoluciones.nota_credito_id` apuntando a la nota
+correcta. La limpieza de los datos de prueba chocó con `fn_historial_es_inmutable`
+(movimientos no se borran, por diseño) — se dejó el movimiento real de la prueba en
+el Postgres local compartido a propósito, en vez de forzar un borrado que el propio
+sistema existe para impedir.
+
+Toast nuevo en `DevolucionesLista.tsx`: al aprobar, si se generó una Nota de
+Crédito, avisa su serie-número y dice "transmítela desde Facturación" — antes de
+esto la RPC devolvía `void`, ahora devuelve el id/serie/número de la nota (o vacío
+si no aplicaba). Tipos regenerados dos veces (una por cada reset del Postgres
+local). `tsc`/lint/297 tests en verde.
+
+Pendiente de Felipe, real y bloqueante para el primer uso: registrar la serie de
+Nota de Crédito de cada ubicación con boleta o factura (botón "Registrar serie",
+ya existe en `/vender/facturacion`) — y, como siempre, pegar
+`20260918050000_devolucion_emite_nota_credito.sql` en producción recién cuando
+este PR se fusione a `main`.

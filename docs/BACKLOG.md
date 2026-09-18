@@ -524,13 +524,24 @@ con cita, para que nadie los reconstruya.
       por la auditoría del 2026-09-18: existe la RPC, el botón "Liberar" en
       `ComprobantesPanel.tsx`, y el estado `no_emitido` en el esquema.** Ya
       no es un hueco abierto.
-- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
-      en producción (antes era teórico).** `devoluciones.ts` solo usa
-      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
-      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
-      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
-      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
-      Fase 0, esperando pantalla desde entonces.
+- [x] **Devoluciones/Cambios no emitían Nota de Crédito — CERRADO 2026-09-18
+      (ADR-0098).** `aprobar_devolucion` ahora emite la Nota de Crédito sola
+      (`emitir_nota`, sin llamador real desde la Fase 0) cuando la venta
+      devuelta tiene un comprobante `aceptado` — por el valor exacto de lo
+      devuelto, con el motivo 06/07 del Catálogo 09 según sea total o
+      parcial. Sin pantalla nueva: aparece en la lista de comprobantes de
+      Facturación, lista para "Transmitir". Probado en local con SQL directo
+      (devolución parcial real: NC01-000001, subtotal 63.47 + IGV 11.43 =
+      total 74.90, coincide centavo a centavo con el cálculo de
+      `ComprobantesPanel.tsx`). `tsc`/lint/297 tests en verde.
+      **Prerrequisito real antes de que sirva de algo en producción:**
+      ninguna ubicación tiene serie de `nota_credito` registrada todavía
+      (verificado contra producción) — Felipe tiene que registrarla
+      (botón "Registrar serie", ya existe) en cada ubicación con boleta o
+      factura, o la primera devolución sobre una venta facturada va a fallar
+      con un mensaje que se lo pide explícitamente (a propósito: mejor
+      bloquear con un mensaje claro que aprobar la devolución y dejar la
+      Nota de Crédito perdida para siempre).
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
 repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que

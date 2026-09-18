@@ -1238,6 +1238,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
           solicitado_por: string | null
@@ -1252,6 +1253,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1266,6 +1268,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1278,6 +1281,13 @@ export type Database = {
             columns: ["caja_id"]
             isOneToOne: false
             referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_nota_credito_id_fkey"
+            columns: ["nota_credito_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
             referencedColumns: ["id"]
           },
           {
@@ -3233,7 +3243,11 @@ export type Database = {
           p_reembolso_metodo?: string
           p_reembolso_monto?: number
         }
-        Returns: undefined
+        Returns: {
+          nota_credito_id: string
+          nota_credito_numero: number
+          nota_credito_serie: string
+        }[]
       }
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
