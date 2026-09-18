@@ -10,6 +10,7 @@ import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib
 import type { ConteoAbierto, PrioridadConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 
 type VarianteConteo = {
   varianteId: string;
@@ -36,6 +37,8 @@ export function ConteoPanel({
   sububicaciones,
   categorias,
   prioridad,
+  colores,
+  tallasPorCategoria,
 }: {
   ubicacionId: string;
   esLider: boolean;
@@ -47,6 +50,10 @@ export function ConteoPanel({
   sububicaciones: Sububicacion[];
   categorias: { id: string; nombre: string }[];
   prioridad: PrioridadConteo[];
+  /** Para el alta-al-vuelo (20260918): vocabulario cerrado de colores... */
+  colores: { codigo: string; nombre: string }[];
+  /** ...y de tallas, filtradas por categoría (mismo shape que `EjesPorCategoria.tallas`). */
+  tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
 }) {
   const router = useRouter();
   const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
@@ -72,6 +79,7 @@ export function ConteoPanel({
             referencia: f.referencia,
             talla: f.talla,
             color: f.color,
+            sububicacionId: f.sububicacion_id,
             diasSinContar: f.dias_sin_contar,
             valorEnRiesgo: Number(f.valor_en_riesgo),
           }))
@@ -165,18 +173,25 @@ export function ConteoPanel({
           <div className="card-cayla p-5">
             <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
             <ul className="divide-y divide-tinta/10">
-              {sugerencias.slice(0, 8).map((s) => (
-                <li key={s.varianteId} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="min-w-0 truncate text-tinta">
-                    {s.referencia}
-                    {s.talla && ` · ${s.talla}`}
-                    {s.color && ` · ${s.color}`}
-                  </span>
-                  <span className="shrink-0 text-xs text-tinta/55">
-                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
-                  </span>
-                </li>
-              ))}
+              {sugerencias.slice(0, 8).map((s) => {
+                // Misma variante, dos filas reales: unidades sin contar en
+                // piso Y en almacén a la vez — nunca una duplicada. Sin esta
+                // etiqueta, las dos se ven idénticas salvo por el monto.
+                const sububicacion = sububicaciones.find((sub) => sub.id === s.sububicacionId);
+                return (
+                  <li key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`} className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <span className="min-w-0 truncate text-tinta">
+                      {s.referencia}
+                      {s.talla && ` · ${s.talla}`}
+                      {s.color && ` · ${s.color}`}
+                      {sububicacion && <span className="text-tinta/55"> · {sububicacion.nombre}</span>}
+                    </span>
+                    <span className="shrink-0 text-xs text-tinta/55">
+                      {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -184,7 +199,17 @@ export function ConteoPanel({
     );
   }
 
-  return <ConteoEnCurso conteo={conteoAbierto} avance={avance} catalogo={catalogo} esLider={esLider} />;
+  return (
+    <ConteoEnCurso
+      conteo={conteoAbierto}
+      avance={avance}
+      catalogo={catalogo}
+      esLider={esLider}
+      categorias={categorias}
+      colores={colores}
+      tallasPorCategoria={tallasPorCategoria}
+    />
+  );
 }
 
 function ConteoEnCurso({
@@ -192,11 +217,17 @@ function ConteoEnCurso({
   avance,
   catalogo,
   esLider,
+  categorias,
+  colores,
+  tallasPorCategoria,
 }: {
   conteo: ConteoAbierto;
   avance: AvanceConteo | null;
   catalogo: VarianteConteo[];
   esLider: boolean;
+  categorias: { id: string; nombre: string }[];
+  colores: { codigo: string; nombre: string }[];
+  tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -207,6 +238,13 @@ function ConteoEnCurso({
   const [revisando, setRevisando] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+  // Prendas creadas al vuelo en ESTA sesión de conteo — se suman a
+  // `catalogo` (que no se actualiza hasta el próximo `router.refresh()`)
+  // para que un segundo escaneo de la misma prenda resuelva directo, sin
+  // esperar al servidor.
+  const [catalogoNuevo, setCatalogoNuevo] = useState<VarianteConteo[]>([]);
+  const [altaAbierta, setAltaAbierta] = useState(false);
+  const catalogoCompleto = useMemo(() => [...catalogo, ...catalogoNuevo], [catalogo, catalogoNuevo]);
 
   async function cancelarConteo() {
     setCancelando(true);
@@ -224,10 +262,17 @@ function ConteoEnCurso({
   const coincidencias = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return [];
-    return catalogo
+    return catalogoCompleto
       .filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
       .slice(0, 8);
-  }, [busqueda, catalogo]);
+  }, [busqueda, catalogoCompleto]);
+
+  // Nada coincide y hay algo escrito: puede ser una prenda de verdad que el
+  // catálogo no tiene. `busqueda.length >= 6` filtra el ruido de las
+  // primeras letras de un SKU que sí existe (un código de barras real nunca
+  // es tan corto) sin bloquear el alta si alguien prefiere escribir la
+  // referencia a mano en vez de escanear.
+  const sinCoincidencias = busqueda.trim().length >= 6 && coincidencias.length === 0;
 
   // Escanear un código de barras exacto selecciona directo, sin tener que
   // elegir de una lista — es el camino rápido que pide un conteo real con
@@ -330,7 +375,7 @@ function ConteoEnCurso({
                 // `codigosBarras.includes(texto.trim())`, sensible a
                 // mayúsculas, y el escaneo "directo" que promete el
                 // placeholder podía fallar en silencio.
-                const exacto = resolverCodigoV2(e.target.value, catalogo);
+                const exacto = resolverCodigoV2(e.target.value, catalogoCompleto);
                 if (exacto) setSeleccionada(exacto);
               }}
               placeholder="Escanea el código de barras o escribe el SKU…"
@@ -354,6 +399,30 @@ function ConteoEnCurso({
                   </button>
                 ))}
               </div>
+            )}
+            {sinCoincidencias && !altaAbierta && (
+              <button
+                type="button"
+                onClick={() => setAltaAbierta(true)}
+                className="mt-2 text-sm text-rojo underline underline-offset-2"
+              >
+                No se encontró «{busqueda.trim()}» — dar de alta esta prenda
+              </button>
+            )}
+            {altaAbierta && (
+              <AltaAlVuelo
+                codigoBarras={busqueda.trim()}
+                categorias={categorias}
+                colores={colores}
+                tallasPorCategoria={tallasPorCategoria}
+                onCancelar={() => setAltaAbierta(false)}
+                onCreada={(variante) => {
+                  setCatalogoNuevo((prev) => [...prev, variante]);
+                  setAltaAbierta(false);
+                  setSeleccionada(variante);
+                  setBusqueda("");
+                }}
+              />
             )}
           </div>
         ) : (
@@ -547,5 +616,130 @@ function RevisarCierre({
         )}
       </div>
     </div>
+  );
+}
+
+// Alta al vuelo durante el conteo (20260918, `censo_crear_variante`): cuando
+// se escanea algo que el catálogo no reconoce, esto crea la prenda en el
+// momento (queda 'pendiente' de que un Líder la revise, pero ya se puede
+// contar) en vez de mandar a la Encargada a pedirle a otra persona que la
+// cree aparte en /productos/nuevo. Solo referencia y categoría son
+// obligatorias — costo/precio en 0 si no se saben, el Líder los completa al
+// revisar.
+function AltaAlVuelo({
+  codigoBarras,
+  categorias,
+  colores,
+  tallasPorCategoria,
+  onCancelar,
+  onCreada,
+}: {
+  codigoBarras: string;
+  categorias: { id: string; nombre: string }[];
+  colores: { codigo: string; nombre: string }[];
+  tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
+  onCancelar: () => void;
+  onCreada: (variante: VarianteConteo) => void;
+}) {
+  const [referencia, setReferencia] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [tallaId, setTallaId] = useState("");
+  const [colorCodigo, setColorCodigo] = useState("");
+  const [costo, setCosto] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
+  const tallas = tallasPorCategoria[categoriaId] ?? [];
+
+  async function crear(e: React.FormEvent) {
+    e.preventDefault();
+    if (!referencia.trim() || !categoriaId) {
+      setError("Referencia y categoría son obligatorias.");
+      return;
+    }
+    setGuardando(true);
+    setError(null);
+    const { data, error } = await createClient().rpc("censo_crear_variante", {
+      p_referencia: referencia.trim(),
+      p_categoria_id: categoriaId,
+      p_codigo_barras: codigoBarras,
+      p_talla_id: tallaId || undefined,
+      p_color_codigo: colorCodigo || undefined,
+      p_costo: costo ? Number(costo) : 0,
+      p_precio: precio ? Number(precio) : 0,
+    });
+    setGuardando(false);
+    const fila = data?.[0];
+    if (error || !fila) {
+      setError(traducirError(error, "dar de alta esta prenda"));
+      return;
+    }
+    avisar.exito(`${fila.referencia} dada de alta`, { detalle: "Pendiente de que un Líder la revise — ya se puede contar." });
+    onCreada({
+      varianteId: fila.variante_id,
+      sku: fila.sku ?? "",
+      referencia: fila.referencia,
+      talla: fila.talla,
+      color: fila.color,
+      costo: Number(fila.costo),
+      codigosBarras: [fila.codigo_barras],
+    });
+  }
+
+  return (
+    <form onSubmit={crear} className="mt-3 space-y-3 rounded-xl border border-tinta/15 p-4">
+      <p className="text-sm text-tinta">
+        Dar de alta <span className="font-mono text-[11px] text-tinta/65">{codigoBarras}</span>
+      </p>
+      <CampoTexto etiqueta="Referencia (nombre de la prenda)" value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus />
+      <div className="grid grid-cols-2 gap-3">
+        <CampoSelectNativo
+          etiqueta="Categoría"
+          value={categoriaId}
+          onChange={(e) => {
+            setCategoriaId(e.target.value);
+            setTallaId("");
+          }}
+        >
+          <option value="">Elige…</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </CampoSelectNativo>
+        <CampoSelectNativo etiqueta="Talla (si aplica)" value={tallaId} onChange={(e) => setTallaId(e.target.value)} disabled={!categoriaId}>
+          <option value="">Sin talla</option>
+          {tallas.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.texto}
+            </option>
+          ))}
+        </CampoSelectNativo>
+      </div>
+      <CampoSelectNativo etiqueta="Color (si aplica)" value={colorCodigo} onChange={(e) => setColorCodigo(e.target.value)}>
+        <option value="">Sin color</option>
+        {colores.map((c) => (
+          <option key={c.codigo} value={c.codigo}>
+            {c.nombre}
+          </option>
+        ))}
+      </CampoSelectNativo>
+      <div className="grid grid-cols-2 gap-3">
+        <CampoMonto etiqueta="Costo (si lo sabes)" value={costo} onChange={(e) => setCosto(e.target.value)} />
+        <CampoMonto etiqueta="Precio de venta (si lo sabes)" value={precio} onChange={(e) => setPrecio(e.target.value)} />
+      </div>
+      <p className="text-xs text-tinta/55">Un Líder va a revisar esto después — si no sabes el costo o el precio, déjalo en 0 y los completa él.</p>
+      {error && <p className="text-sm text-rojo">{error}</p>}
+      <div className="flex gap-2">
+        <button type="submit" disabled={guardando} className={botonPrimario}>
+          {guardando ? "Creando…" : "Crear y contar"}
+        </button>
+        <button type="button" onClick={onCancelar} className={botonCancelar}>
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }

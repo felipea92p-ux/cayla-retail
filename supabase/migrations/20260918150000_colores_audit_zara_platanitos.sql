@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918020000 — 4 colores nuevos: hueco real encontrado auditando Zara/Platanitos
+-- 20260918150000 — 4 colores nuevos: hueco real encontrado auditando Zara/Platanitos
 --
 -- EL PROBLEMA
 --   Los 30 colores de 20260912235500 vienen de V1 — nunca se investigaron
@@ -36,10 +36,12 @@
 --   No son una propuesta de nadie que necesite pasar por el flujo de
 --   proponer/aprobar (20260916220000): es contenido de marca que Felipe ya
 --   decidió ahora mismo. `orden` los agrega al final (93-96) en vez de
---   renumerar los 30 existentes — la grilla de Colores es una sola lista
---   ordenada por `orden` (`ColoresLista.tsx:66`), no agrupada en secciones
---   por familia, así que no hace falta que queden contiguos a su familia
---   para verse bien.
+--   renumerar los 30 existentes. OJO: la grilla de Colores ahora se agrupa
+--   por familia (`gruposPorFamilia()` en `ColoresLista.tsx`), así que `orden`
+--   ya no ordena la grilla entera — solo decide la posición DENTRO de cada
+--   familia. 93-96 los deja al final de la suya (Cobalto tras Celeste, Gris
+--   antracita tras Beige, Caqui y Tostado tras Chocolate): aceptable, pero no
+--   es un orden de claro a oscuro. Afinarlo es una decisión de Felipe.
 -- ============================================================================
 
 insert into retail.colores (codigo, nombre, familia_color, hex, orden) values

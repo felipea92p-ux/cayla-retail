@@ -116,6 +116,19 @@ const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   transferencia: <Landmark className={ICONO} aria-hidden />,
 };
 
+/** Mismos colores categóricos que la dona de "Métodos de pago" de Caja
+ *  (`globals.css`) — para que una colaboradora reconozca el mismo método con
+ *  el mismo color en las dos pantallas. Yape y Plin comparten color: ahí
+ *  también son una sola fila ("Yape / Plin"). Transferencia usa `taupe`
+ *  (neutro): no es parte del trío categórico, es el método menos usado. */
+const COLOR_METODO: Record<MetodoPago, string> = {
+  efectivo: "var(--color-metodo-efectivo)",
+  tarjeta: "var(--color-metodo-tarjeta)",
+  yape: "var(--color-metodo-yape)",
+  plin: "var(--color-metodo-yape)",
+  transferencia: "var(--color-taupe)",
+};
+
 /** Marca de «elegida» en la lista del apartado de descuento. */
 function IconoCheck() {
   return (
@@ -737,8 +750,9 @@ export function PuntoDeVentaTicket({
                         onClick={() => onAgregarPago(m)}
                         disabled={bloqueado || puesto}
                         aria-pressed={puesto}
+                        style={puesto ? { backgroundColor: `color-mix(in srgb, ${COLOR_METODO[m]} 16%, var(--color-papel))`, color: COLOR_METODO[m] } : undefined}
                         className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                          puesto ? OPCION_ACTIVA : OPCION_INACTIVA
+                          puesto ? "shadow-sm" : OPCION_INACTIVA
                         }`}
                       >
                         {ICONO_METODO[m]}
@@ -757,7 +771,7 @@ export function PuntoDeVentaTicket({
                       // ni hay forma de mutarlo) — animar la fila cubre el bloque entero.
                       <div key={p.metodo} className="anim-revelar space-y-2 px-3 py-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-tinta/70">{ICONO_METODO[p.metodo]}</span>
+                          <span style={{ color: COLOR_METODO[p.metodo] }}>{ICONO_METODO[p.metodo]}</span>
                           <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
                           <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
                             <span className="text-xs text-tinta/60">S/</span>

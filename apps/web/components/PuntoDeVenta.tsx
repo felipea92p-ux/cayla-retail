@@ -385,7 +385,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     Flip.from(flipState.current, {
       duration: 0.32,
       ease: "caylaEase",
-      absolute: true,
+      // Solo la fila que SALE se saca del flujo (`position: absolute`) para poder
+      // deslizarse encima de las demás sin arrastrarlas. Con `absolute: true` (como
+      // estaba) TODAS las filas —también las que se quedan y la que entra— salían del
+      // flujo mientras duraba la animación: el contenedor de la lista perdía su alto
+      // real y, si el ticket ya llenaba el scroll, la fila nueva se dibujaba superpuesta
+      // a las demás hasta que Flip terminaba y las devolvía a su lugar (bug reportado
+      // 2026-09-17: "parpadeo" al agregar una prenda que excede el largo del ticket).
+      absoluteOnLeave: true,
       onEnter: (elementos) => gsap.fromTo(elementos, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "caylaEase" }),
       onLeave: (elementos) => gsap.to(elementos, { opacity: 0, duration: 0.18 }),
     });

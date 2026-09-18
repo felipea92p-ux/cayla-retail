@@ -17,12 +17,25 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
   const res = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id"
+      "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat"
     )
     .gte("created_at", desde)
     .lt("created_at", hasta)
     .order("created_at", { ascending: false });
-  return exigir(res, "los comprobantes del mes") as Comprobante[];
+  const filas = exigir(res, "los comprobantes del mes");
+  // `respuesta_sunat` es el `ResultadoLucode` completo tal como lo guardó
+  // `/api/lucode/emitir` (lib/lucode.ts) — jsonb sin tipo propio en el
+  // esquema, así que se lee con cuidado en vez de confiar en el cast de
+  // abajo para estos 3 campos.
+  return filas.map((f) => {
+    const r = f.respuesta_sunat as { pdfUrl?: unknown; xmlUrl?: unknown; cdrUrl?: unknown } | null;
+    return {
+      ...f,
+      pdfUrl: typeof r?.pdfUrl === "string" ? r.pdfUrl : null,
+      xmlUrl: typeof r?.xmlUrl === "string" ? r.xmlUrl : null,
+      cdrUrl: typeof r?.cdrUrl === "string" ? r.cdrUrl : null,
+    };
+  }) as Comprobante[];
 }
 
 export async function getSeriesComprobantes(): Promise<SerieComprobante[]> {

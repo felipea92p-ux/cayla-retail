@@ -156,6 +156,19 @@ un tercero, no de CAYLA.
 ⚠️ Esto **contradice** el comentario de `0003_rls.sql` que dice "el integrante no ve
 costo/margen". Ese comentario se corrige, porque describe algo que nunca fue cierto.
 
+✅ **Corrección 2026-09-17 (angosta, no una reversión completa).** Al construir
+métricas de proveedor (ADR-0094), Felipe pidió que lo financiero (facturas, montos,
+vencidas, recepción) pase a ser solo de líder — se le mostró esta decisión antes de
+tocar nada, no se asumió. Lo que sigue como D-27 lo dejó: el directorio en sí
+(nombre/RUC/contacto/rubro/plazo/forma de pago, banco/cuenta_bancaria si algún día
+existieran esas columnas) sigue visible para cualquiera con cuenta. Lo que cambia es
+solo el bloque que sale de `compras` — eso es "lo financiero" del título de esta
+decisión, y ahora `fn_proveedores()` lo devuelve `NULL` si quien pregunta no es líder
+(`20260918073000_proveedores_lista_indicadores_y_candado_sede.sql`). De paso se
+confirmó que `/compras/proveedores` (la pantalla) ya era solo-líder desde el
+2026-09-16 por `app/(app)/compras/layout.tsx` — este documento nunca se actualizó para
+decirlo, y por eso seguía leyéndose como si todo el módulo fuera abierto.
+
 **D-28 · ¿Datos personales?** → **Sí: se marca qué campo identifica a una persona,
 cuánto tiempo se guarda y quién lo ve.** Capítulo propio (`06-DATOS-PERSONALES.md`),
 con la Ley 29733 peruana como marco.
@@ -238,6 +251,23 @@ ese nivel de detalle ahora". Se documenta el problema con los métodos nombrados
 **D-46 · Prioridades declaradas por Felipe** → 1) **Cuentas por pagar e IGV**
 (CAYLA va al 72% del umbral de 300 UIT), 2) **Materia prima del Taller**,
 3) **Clientas y fidelización**. La tienda online queda para después.
+
+✅ **La parte de "cuentas por pagar" ya está resuelta en código** — actualización
+2026-09-17: ADR-0035 (`docs/adr/0035-la-factura-de-compra-es-el-eje-de-recepcion-y-pago.md`)
+y sus migraciones `20260912231956_compras_desde_factura.sql` /
+`20260912234815_compras_snapshot_y_paginado.sql` crearon `compras`/`compra_items`/
+`compra_pagos` y la vista `compras_resumen`, que calculan `saldo`, `estado_pago`,
+`vencida`, `recibido_cantidad` y `estado_recepcion` por factura — ya se puede
+responder "¿cuánto le debo a este proveedor y desde cuándo?" mirando el sistema, con
+pantallas construidas y probadas (`/compras`, `/compras/por-pagar`). Verificado
+contra producción el 2026-09-17: las tablas y `registrar_compra` ya están vigentes
+allá (`docs/datos/10-ROADMAP-DATOS.md:189-198`), aunque todavía sin ninguna factura
+real cargada — brecha de uso, no de código. **Lo que sigue abierto de D-46 es el
+IGV:** no existe cálculo de crédito fiscal acumulado ni alerta de umbral de 300 UIT
+— `compras.igv` guarda el IGV por factura y nadie lo suma
+(`docs/datos/modulos/11-finanzas-operativas.md:92`; no hay `credito_fiscal` ni
+`igv_acumulado` en `apps/web/`). Materia prima del Taller y Clientas (prioridades 2
+y 3 de D-46) no se revisaron en esta pasada.
 
 **D-47 · Inventario de insumos del Taller** → **completo**: la tela entra, se
 descuenta al cortar, y avisa cuando falta. Es la condición para que D-31 sea medición

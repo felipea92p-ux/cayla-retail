@@ -484,4 +484,37 @@ begin
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
 
+-- ---------- "Para liquidar" — UNA sola, global (corregido 2026-09-18) ----------
+-- Versión anterior: una fila por sede con `sedes_permitidas` fija a esa
+-- sede — mal diseño, no solo "visualmente confuso" (Felipe lo notó en la
+-- pantalla: "por qué existen 4, uno solo y elegimos"). `sedes_permitidas`
+-- NO es cosmético: `fn_variante_permitida_en_sede`, usada por
+-- `registrar_venta`/`transferir`, BLOQUEA la venta/traslado de esa
+-- variante en cualquier sede que no esté en la lista. "Para liquidar —
+-- Tienda TRU" habría bloqueado sin querer la venta de esa misma prenda en
+-- Tienda AQP, aunque AQP tuviera su propio stock fresco — mezclaba dos
+-- problemas distintos (exclusividad real de venta vs. aviso informativo
+-- de liquidación). Verificado antes de corregir: 0 variantes tenían
+-- alguna de las 4 aplicada todavía, así que no hay nada que migrar.
+-- Costo aceptado de ir a una sola etiqueta global: es puramente
+-- cosmético — una prenda puede mostrarse "para liquidar" en una sede
+-- donde en realidad no lo está. Se afina con vigencia/estilo visual más
+-- adelante si hace falta, nunca con un candado de venta.
+alter table retail.etiquetas disable trigger etiquetas_estado_biut;
+
+insert into retail.etiquetas (nombre, estado, activo, notas)
+values (
+  'Para liquidar', 'aprobado', true,
+  'Global a propósito — sedes_permitidas es un candado real que bloquea venta/traslado (ver registrar_venta/transferir), no algo cosmético. No restringir por sede acá: mezclaría "avisar que se liquida" con "prohibir vender en otra sede".'
+)
+on conflict (retail.fn_clave_texto(nombre)) do nothing;
+
+alter table retail.etiquetas enable trigger etiquetas_estado_biut;
+
+-- Estilo visual (20260918060000): esa migración clasifica "Para liquidar"
+-- por nombre, pero corre ANTES que este seed (migraciones primero, seed
+-- después) — acá todavía no existía la fila. Mismo criterio, aplicado
+-- después de crearla.
+update retail.etiquetas set estilo = 'urgencia' where nombre = 'Para liquidar';
+
 commit;

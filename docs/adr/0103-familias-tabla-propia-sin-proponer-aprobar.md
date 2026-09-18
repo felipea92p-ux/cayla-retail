@@ -1,4 +1,4 @@
-# ADR-0102 — Familia deja de ser un CHECK fijo, pasa a tabla sin proponer/aprobar
+# ADR-0103 — Familia deja de ser un CHECK fijo, pasa a tabla sin proponer/aprobar
 
 **Fecha:** 2026-09-18
 **Estado:** Construido y verificado en local. Producción: pendiente de que

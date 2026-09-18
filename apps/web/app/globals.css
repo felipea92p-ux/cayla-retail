@@ -48,6 +48,19 @@
 
   --color-ambar-profundo: #734f15;
 
+  /* Categóricos de método de pago (2026-09-18, rediseño de Caja/Vender) — NO son
+     parte de la identidad de marca (esa sigue siendo solo rojo/crema/tinta): son
+     color de DATO, para que un mismo método se lea con el mismo color en la dona
+     de Caja y en el selector de Vender. Elegidos para no pisar ningún tono ya
+     usado (rojo/rojo-profundo = marca y "negativo"; verde/ámbar = semáforo de
+     estado) y medidos igual que el resto: los tres pasan AA (≥4.5:1) como texto
+     plano sobre crema/papel — efectivo 5.92:1, tarjeta 5.18:1, yape/plin 4.59:1.
+     Yape y Plin comparten color: ambos son "billetera digital" en la misma fila
+     de la dona ("Yape / Plin"), no dos categorías separadas. */
+  --color-metodo-efectivo: #2f5f8a;
+  --color-metodo-tarjeta: #96541a;
+  --color-metodo-yape: #1f7a68;
+
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
      13px y sm de 14 a 15px, y `text-2xl`/`3xl` quedan como estaban. Cambiarlo

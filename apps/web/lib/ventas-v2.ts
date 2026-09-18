@@ -43,16 +43,22 @@ export type LineaVentaReciente = {
   /** La identidad de la prenda vendida — nunca el sku: las prendas del censo nacen sin
    *  él y "" calzaba con cualquier otra sin sku (ver `cambios-reglas.ts`). */
   varianteId: string;
+  productoId: string;
   creadoEn: string;
   sku: string;
   /** Código de etiqueta (`variantes.codigo`); se muestra con `codigoPrenda`. */
   codigo: string | null;
   referencia: string;
+  categoria: string | null;
   talla: string | null;
   color: string | null;
+  colorHex: string | null;
   cantidad: number;
   precioUnitario: number;
   yaCambiado: number;
+  /** Quien registró la venta en caja — no necesariamente quien atendió a la clienta
+   *  (R-17, docs/datos/15-COMO-OPERA-CAYLA.md), pero es el dato real que hay. */
+  vendedorNombre: string | null;
 };
 
 export async function getLineasVentaRecientes(
@@ -81,8 +87,9 @@ export async function getLineasVentaRecientes(
     .from("venta_items")
     .select(
       `id, venta_id, variante_id, cantidad, precio_unitario,
-       venta:ventas!inner ( ubicacion_id, created_at ),
-       variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
+       venta:ventas!inner ( ubicacion_id, created_at, usuario_id ),
+       variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre ) ) )`
     );
   // "Todas las sedes" solo tiene sentido junto a una búsqueda puntual (ver
   // buscarVentaIdsPorComprobante) — el listado de "ventas recientes" sin
@@ -108,18 +115,31 @@ export async function getLineasVentaRecientes(
   const yaCambiadoPorItem = new Map<string, number>();
   cambiosRes.forEach((c) => yaCambiadoPorItem.set(c.venta_item_id, (yaCambiadoPorItem.get(c.venta_item_id) ?? 0) + c.cantidad));
 
+  // Nombres de quién registró cada venta — mismo patrón que `getDetalleCierre()`
+  // (personas vive en public/Dynamic, PostgREST no embebe entre schemas).
+  const idsVendedores = Array.from(new Set(filas.map((f) => f.venta?.usuario_id).filter((v): v is string => !!v)));
+  const nombresVendedores =
+    idsVendedores.length === 0
+      ? []
+      : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: idsVendedores }), "quién registró cada venta");
+  const nombreVendedor = new Map(nombresVendedores.map((n) => [n.id, n.nombre]));
+
   return filas.map((f) => ({
     ventaItemId: f.id,
     ventaId: f.venta_id,
     varianteId: f.variante_id,
+    productoId: f.variante?.producto?.id ?? "",
     creadoEn: f.venta?.created_at ?? "",
     sku: f.variante?.sku ?? "",
     codigo: f.variante?.codigo ?? null,
     referencia: f.variante?.producto?.referencia ?? "",
+    categoria: f.variante?.producto?.categoria?.nombre ?? null,
     talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
+    colorHex: f.variante?.color?.hex ?? null,
     cantidad: f.cantidad,
     precioUnitario: Number(f.precio_unitario),
     yaCambiado: yaCambiadoPorItem.get(f.id) ?? 0,
+    vendedorNombre: f.venta?.usuario_id ? (nombreVendedor.get(f.venta.usuario_id) ?? null) : null,
   }));
 }

@@ -168,6 +168,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   const activos = colores.filter((c) => c.activo);
   const desactivados = colores.filter((c) => !c.activo);
+  const rechazandoColor = colores.find((c) => c.codigo === rechazandoAbierto) ?? null;
 
   function abrir() {
     setAgregando(true);
@@ -323,7 +324,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {coloresDeLaFamilia.map((c) => (
-              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4">
+              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
                 <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{c.nombre}</p>
@@ -352,7 +353,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         peso="discreto"
                         className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
                         onClick={() => {
-                          setRechazandoAbierto(rechazandoAbierto === c.codigo ? null : c.codigo);
+                          setRechazandoAbierto(c.codigo);
                           setMotivoRechazo("");
                         }}
                       >
@@ -362,30 +363,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
                       Editar
                     </Boton>
-                  </div>
-                )}
-                {rechazandoAbierto === c.codigo && (
-                  <div className="space-y-1.5 border-t border-tinta/10 pt-2.5">
-                    <input
-                      autoFocus
-                      value={motivoRechazo}
-                      onChange={(e) => setMotivoRechazo(e.target.value)}
-                      placeholder="Motivo (opcional)"
-                      className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                    />
-                    <div className="flex gap-2">
-                      <Boton
-                        peso="primario"
-                        className="flex-1 px-2.5 py-1.5 text-[11px]"
-                        cargando={rechazandoCodigo === c.codigo}
-                        onClick={() => rechazar(c)}
-                      >
-                        Confirmar rechazo
-                      </Boton>
-                      <Boton peso="fantasma" className="px-2.5 py-1.5 text-[11px]" onClick={() => setRechazandoAbierto(null)}>
-                        Cancelar
-                      </Boton>
-                    </div>
                   </div>
                 )}
               </div>
@@ -493,6 +470,29 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             ))}
           </div>
         </section>
+      )}
+
+      {rechazandoColor && (
+        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={rechazandoCodigo === rechazandoColor.codigo}
+                  onClick={() => rechazar(rechazandoColor)}
+                >
+                  Confirmar rechazo
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
 
       {editando && (

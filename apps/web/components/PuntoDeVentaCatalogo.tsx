@@ -53,9 +53,12 @@ type Props = {
 };
 
 /** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
- *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo. */
+ *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo.
+ *  `rounded-md`: mismo radio que la "pastilla" del selector de ubicación
+ *  (`campos.tsx`, `FORMA_DESPLEGABLE.pastilla`) — un chip de filtro es la misma
+ *  familia de control que ese selector, no una tarjeta. */
 const chip = (prendido: boolean) =>
-  `label-cayla h-8 shrink-0 rounded-lg border px-3 text-[11px] transition-colors ${
+  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-colors ${
     prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
   }`;
 
@@ -234,7 +237,7 @@ export function PuntoDeVentaCatalogo({
             onPressedChange={onSoloConStock}
             disabled={bloqueado}
             size="sm"
-            className="label-cayla h-8 shrink-0 rounded-lg border border-sand bg-papel px-3 text-[11px] font-semibold text-tinta/65 hover:bg-sand/40 hover:text-tinta data-[state=on]:border-tinta data-[state=on]:bg-tinta data-[state=on]:text-crema"
+            className="label-cayla h-8 shrink-0 rounded-md border border-sand bg-papel px-3 text-[11px] font-semibold text-tinta/65 hover:bg-sand/40 hover:text-tinta data-[state=on]:border-tinta data-[state=on]:bg-tinta data-[state=on]:text-crema"
           >
             Solo con stock
           </Toggle>
