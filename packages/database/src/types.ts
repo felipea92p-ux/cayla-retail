@@ -175,10 +175,12 @@ export type Database = {
         Row: {
           caja_id: string | null
           cantidad: number
+          condicion: string
           created_at: string
           diferencia: number
           id: string
           metodo_pago_diferencia: string | null
+          motivo: string | null
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
@@ -188,10 +190,12 @@ export type Database = {
         Insert: {
           caja_id?: string | null
           cantidad: number
+          condicion?: string
           created_at?: string
           diferencia?: number
           id?: string
           metodo_pago_diferencia?: string | null
+          motivo?: string | null
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
@@ -201,10 +205,12 @@ export type Database = {
         Update: {
           caja_id?: string | null
           cantidad?: number
+          condicion?: string
           created_at?: string
           diferencia?: number
           id?: string
           metodo_pago_diferencia?: string | null
+          motivo?: string | null
           token_cliente?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
@@ -754,6 +760,7 @@ export type Database = {
           estado_recepcion: string | null
           facturado_cantidad: number
           fecha_emision: string
+          fecha_estimada_llegada: string | null
           fecha_vencimiento: string | null
           id: string
           igv: number
@@ -780,6 +787,7 @@ export type Database = {
           estado_recepcion?: string | null
           facturado_cantidad?: number
           fecha_emision?: string
+          fecha_estimada_llegada?: string | null
           fecha_vencimiento?: string | null
           id?: string
           igv: number
@@ -806,6 +814,7 @@ export type Database = {
           estado_recepcion?: string | null
           facturado_cantidad?: number
           fecha_emision?: string
+          fecha_estimada_llegada?: string | null
           fecha_vencimiento?: string | null
           id?: string
           igv?: number
@@ -869,6 +878,7 @@ export type Database = {
           serie: string
           subtotal: number
           tipo: string
+          token_cliente: string | null
           total: number
           ubicacion_id: string
           usuario_id: string | null
@@ -902,6 +912,7 @@ export type Database = {
           serie: string
           subtotal?: number
           tipo: string
+          token_cliente?: string | null
           total: number
           ubicacion_id: string
           usuario_id?: string | null
@@ -935,6 +946,7 @@ export type Database = {
           serie?: string
           subtotal?: number
           tipo?: string
+          token_cliente?: string | null
           total?: number
           ubicacion_id?: string
           usuario_id?: string | null
@@ -1849,9 +1861,10 @@ export type Database = {
       }
       prendas_danadas: {
         Row: {
+          cambio_id: string | null
           cantidad: number
           created_at: string
-          devolucion_item_id: string
+          devolucion_item_id: string | null
           estado: string
           id: string
           movimiento_entrada_id: string
@@ -1864,9 +1877,10 @@ export type Database = {
           variante_id: string
         }
         Insert: {
+          cambio_id?: string | null
           cantidad: number
           created_at?: string
-          devolucion_item_id: string
+          devolucion_item_id?: string | null
           estado?: string
           id?: string
           movimiento_entrada_id: string
@@ -1879,9 +1893,10 @@ export type Database = {
           variante_id: string
         }
         Update: {
+          cambio_id?: string | null
           cantidad?: number
           created_at?: string
-          devolucion_item_id?: string
+          devolucion_item_id?: string | null
           estado?: string
           id?: string
           movimiento_entrada_id?: string
@@ -1894,6 +1909,13 @@ export type Database = {
           variante_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prendas_danadas_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: true
+            referencedRelation: "cambios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prendas_danadas_devolucion_item_id_fkey"
             columns: ["devolucion_item_id"]
@@ -2251,36 +2273,45 @@ export type Database = {
       proveedores: {
         Row: {
           activo: boolean
+          banco: string | null
           contacto: string | null
           created_at: string
+          cuenta_bancaria: string | null
           forma_pago_preferida: string | null
           id: string
           nombre: string
           plazo_credito_dias: number | null
           rubro: string | null
           ruc: string | null
+          telefono: string | null
         }
         Insert: {
           activo?: boolean
+          banco?: string | null
           contacto?: string | null
           created_at?: string
+          cuenta_bancaria?: string | null
           forma_pago_preferida?: string | null
           id?: string
           nombre: string
           plazo_credito_dias?: number | null
           rubro?: string | null
           ruc?: string | null
+          telefono?: string | null
         }
         Update: {
           activo?: boolean
+          banco?: string | null
           contacto?: string | null
           created_at?: string
+          cuenta_bancaria?: string | null
           forma_pago_preferida?: string | null
           id?: string
           nombre?: string
           plazo_credito_dias?: number | null
           rubro?: string | null
           ruc?: string | null
+          telefono?: string | null
         }
         Relationships: []
       }
@@ -3070,15 +3101,20 @@ export type Database = {
           estado_recepcion: string | null
           facturado_cantidad: number | null
           fecha_emision: string | null
+          fecha_estimada_llegada: string | null
           fecha_vencimiento: string | null
           id: string | null
           igv: number | null
           nota: string | null
           numero: string | null
           pagado: number | null
+          proveedor_banco: string | null
+          proveedor_cuenta_bancaria: string | null
           proveedor_id: string | null
           proveedor_nombre: string | null
           proveedor_ruc: string | null
+          proveedor_telefono: string | null
+          recepcion_atrasada: boolean | null
           recibido_cantidad: number | null
           saldo: number | null
           serie: string | null
@@ -3181,13 +3217,16 @@ export type Database = {
       }
       actualizar_proveedor: {
         Args: {
+          p_banco?: string
           p_contacto?: string
+          p_cuenta_bancaria?: string
           p_forma_pago_preferida?: string
           p_nombre: string
           p_plazo_credito_dias?: number
           p_proveedor_id: string
           p_rubro?: string
           p_ruc?: string
+          p_telefono?: string
         }
         Returns: undefined
       }
@@ -3745,6 +3784,7 @@ export type Database = {
       fn_proveedor_metricas_compras: {
         Args: { p_proveedor_id: string }
         Returns: {
+          facturas_atrasadas: number
           facturas_con_recepcion_pendiente: number
           facturas_recibidas_completas: number
           facturas_vencidas: number
@@ -3766,8 +3806,11 @@ export type Database = {
         Args: never
         Returns: {
           activo: boolean
+          banco: string
           contacto: string
+          cuenta_bancaria: string
           facturas: number
+          facturas_atrasadas: number
           facturas_con_recepcion_pendiente: number
           facturas_recibidas_completas: number
           facturas_vencidas: number
@@ -3778,6 +3821,7 @@ export type Database = {
           rubro: string
           ruc: string
           saldo: number
+          telefono: string
           total_facturado: number
           ultima_compra: string
         }[]
@@ -3938,15 +3982,20 @@ export type Database = {
           estado_recepcion: string | null
           facturado_cantidad: number | null
           fecha_emision: string | null
+          fecha_estimada_llegada: string | null
           fecha_vencimiento: string | null
           id: string | null
           igv: number | null
           nota: string | null
           numero: string | null
           pagado: number | null
+          proveedor_banco: string | null
+          proveedor_cuenta_bancaria: string | null
           proveedor_id: string | null
           proveedor_nombre: string | null
           proveedor_ruc: string | null
+          proveedor_telefono: string | null
+          recepcion_atrasada: boolean | null
           recibido_cantidad: number | null
           saldo: number | null
           serie: string | null
@@ -4053,7 +4102,9 @@ export type Database = {
       registrar_cambio: {
         Args: {
           p_cantidad?: number
+          p_condicion?: string
           p_metodo_pago_diferencia?: string
+          p_motivo?: string
           p_token?: string
           p_ubicacion_id: string
           p_variante_nueva_id: string
@@ -4065,6 +4116,7 @@ export type Database = {
         Args: {
           p_condicion: string
           p_fecha_emision?: string
+          p_fecha_estimada_llegada?: string
           p_fecha_vencimiento?: string
           p_igv_porcentaje?: number
           p_items: Json
@@ -4139,12 +4191,15 @@ export type Database = {
       }
       registrar_proveedor: {
         Args: {
+          p_banco?: string
           p_contacto?: string
+          p_cuenta_bancaria?: string
           p_forma_pago_preferida?: string
           p_nombre: string
           p_plazo_credito_dias?: number
           p_rubro?: string
           p_ruc?: string
+          p_telefono?: string
         }
         Returns: string
       }
@@ -4196,6 +4251,7 @@ export type Database = {
           con_saldo: number
           deuda: number
           por_recibir: number
+          por_recibir_atrasadas: number
           por_vencer: number
           por_vencer_monto: number
           registradas: number
