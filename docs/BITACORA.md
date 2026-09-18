@@ -7588,3 +7588,12 @@ columnas y las 3 fotos quedan en la base sin tocar. Al crear o editar un color a
 pegar `#c9b79c` o `rgb(201, 183, 156)`; la base sigue guardando solo el hex.
 Decidido con Felipe pero NO construido: descuento automático por etiqueta de campaña (ver
 BACKLOG, pasos 2 y 3).
+
+### 2026-09-18 — Etiquetas: se configura la campaña (descuento, fechas, categorías)
+Etiquetas no tenía modal de edición: las fechas solo se cambiaban por SQL. Ahora un Líder abre
+«Configurar campaña» y guarda un % de descuento, las fechas y, si quiere, las categorías donde
+rige, todo en un solo RPC. Por decisión de Felipe: un solo descuento por prenda (el mayor);
+sin categorías, solo las prendas etiquetadas a mano (ADR-0107).
+Solo el modelo: Vender NO lo cobra todavía, y la tarjeta lo dice. Falta pegar la migración en
+producción antes de desplegar. Al probar salió un error real: `2026-13-01` hacía lanzar la API
+en vez de decir «fecha no válida».
