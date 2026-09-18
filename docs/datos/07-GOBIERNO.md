@@ -75,68 +75,66 @@ de ahí". Son cuatro cosas, y ninguna es un cargo:
 
 ### De quién es cada tabla
 
-Esto es el índice de ruteo: **tienes un nombre de tabla, quieres el pájaro**. El
-*porqué* de cada tabla está en su módulo; acá solo está a quién le toca.
+Esto es el índice de ruteo: **tienes un nombre de tabla, quieres el pájaro**. Ya no se
+escribe a mano en este archivo: vive en **[`generado/AVIARIO.md`](generado/AVIARIO.md)**,
+que sale de una sola lista —`scripts/datos/aviario.mjs`— cruzada contra las tablas
+reales de producción. El *porqué* de cada tabla sigue en su módulo.
 
-| # | Pájaro | Tablas que cubre (nombre exacto en el schema `retail`) |
-|---|---|---|
-| 01 | Ganso | `personas` *(vista)*, `sedes` *(vista)*, `sede_meta` |
-| 02 | Loro | `productos`, `variantes`, `categorias`, `colores`, `codigos_barras`, `codigos_correlativos`, `producto_atributos` |
-| 03 | Tucán | `taxonomia_versiones`, `taxonomia_categorias`, `taxonomia_atributos`, `taxonomia_valores`, `taxonomia_categoria_atributos` |
-| 04 | Golondrina | `importaciones` |
-| 05 | **Halcón** | `movimientos`, `stock`, `stock_almacen`, `contenedores`, `lotes` |
-| 06 | Lechuza | `conteos`, `conteo_lineas` |
-| 07 | Colibrí | `ventas`, `cajas`, `proformas` |
-| 08 | Cuervo | `comprobantes`, `series_comprobantes`, `sede_datos_fiscales`, `configuracion_empresa` |
-| 09 | Pelícano | `proveedores`, `ordenes_compra`, `ordenes_compra_items` |
-| 10 | Gallito | `producciones`, `produccion_lineas`, 💀 `ordenes_produccion`, 💀 `bom_items` |
-| 11 | Garza | `gastos`, `depositos_bancarios`, `ajustes_efectivo` |
-| 12 | Urraca | `cuentas_contables`, `asientos`, `asiento_lineas`, `activos_fijos`, `patrimonio_items` |
-| 13 | Águila | `ventas_historicas_mensuales` (la única propia; el resto lo **lee**, no lo escribe) |
-| 14 | Gorrión | `migraciones_aplicadas`, y las carpetas `supabase/migrations/` y `supabase/unificacion/` |
+**Por qué dejó de estar escrito acá.** La tabla que vivía en esta sección se escribió
+contra el esquema V1 el 2026-09-12, el mismo día del corte a V2, y nadie la movió. El
+2026-09-18, 26 de las 47 tablas que repartía ya no existían en producción y 39 de las 60
+reales no tenían pájaro. Mientras tanto, el generador del diccionario llevaba su propia
+lista, puesta al día a V2 el 2026-09-15, que tampoco coincidía con esta. Dos listas
+escritas a mano que responden la misma pregunta terminan diciendo cosas distintas; una
+sola, revisada por una máquina, no puede (ADR-0103).
 
-💀 = tabla muerta: sigue existiendo porque nunca se borra estructura con historial,
-pero **ninguna pantalla nueva escribe ahí** (ver `modulos/10-produccion-del-taller.md`).
+**La regla, ahora con alarma: si nace una tabla nueva, nace con dueño o no nace.**
+`pnpm datos:aviario` falla si una tabla de producción no tiene pájaro, si una tabla
+tiene dos, o si los 14 pájaros de esa lista no son los de la tabla de arriba, y corre
+sola en cada push, en CI. Para darle pájaro a una tabla se edita
+`scripts/datos/aviario.mjs`, no este archivo. Para apuntarte a un pájaro sigue bastando
+con editar tu línea de arriba: la alarma no mira la columna «Lo lleva».
 
-**La suma cierra: 47 objetos.** 3+7+5+1+5+2+3+4+3+4+3+5+1+1 = 47, que son las **45
-tablas + 2 vistas** que tiene el schema `retail` en producción (verificado contra la
-base el 2026-09-12). Ninguna quedó sin pájaro y ninguna tiene dos. Si mañana nace una
-tabla nueva, nace con dueño o no nace.
+**Repartos que no son obvios, y por qué son así:**
 
-**Cuatro repartos que no son obvios y por qué son así:**
+- **`configuracion_empresa` y `ubicacion_datos_fiscales` son de Cuervo, no de Ganso**,
+  aunque hablen de la empresa y de la sede. Lo que guardan —RUC, razón social,
+  `resolucion_autorizacion`, dirección fiscal, ubigeo— es exactamente lo que se imprime
+  en la boleta, y las dos nacen en la migración de facturación (`0010_facturacion.sql`).
+  Si se rompen, lo que se rompe es un comprobante.
+- **`proformas` es de Cuervo.** Hasta el 2026-09-18 este archivo la ponía en Ventas,
+  porque una proforma es una cotización y nunca viaja a SUNAT. Se movió porque en V2 la
+  proforma nace, vive y se convierte en comprobante dentro de Facturación: su migración
+  (`0010_facturacion.sql`), su pantalla (`vender/facturacion`) y su forma —subtotal, IGV,
+  documento de la clienta— siguen a la del comprobante. Un pájaro que no responde por la
+  pantalla no puede responder por la tabla.
+- **`sububicaciones` es de Halcón, no de Ganso**, aunque cuelgue de una sede. No es una
+  frontera de permisos —el permiso se da por sede, no por estante (D-26)—: es el lugar
+  físico donde está la prenda (`stock.sububicacion_id`). Si se rompe, lo que se pierde
+  es saber dónde está el stock.
+- **Tallas, tejidos, patrones y etiquetas son de Loro, no de Tucán.** Copian el
+  mecanismo de proponer/aprobar de `colores` (ADR-0070, ADR-0095), que ya era de Loro, y
+  son el idioma propio de CAYLA. Tucán es otra cosa: la traducción al estándar de
+  Shopify (ADR-0030).
+- **`activos_fijos` es de Urraca, no de Garza.** Finanzas operativas es la plata del día
+  (gasto, depósito, cuadre de efectivo); un activo fijo es una posición de balance.
 
-- **`sede_datos_fiscales` y `configuracion_empresa` están en Facturación, no en
-  Identidad**, aunque hablen de la sede. Lo que guardan —RUC, razón social,
-  `resolucion_autorizacion`, dirección, ubigeo— es exactamente lo que se imprime en la
-  boleta. Si se rompen, lo que se rompe es un comprobante.
-- **`proformas` está en Ventas, no en Facturación.** Una proforma es la cotización que
-  se le da a la clienta en el mostrador; nunca viaja a SUNAT. Recién cuando alguien
-  corre `convertir_proforma_a_comprobante` el asunto cruza al módulo 08.
-- **`activos_fijos` y `patrimonio_items` están en Contabilidad, no en Finanzas
-  operativas.** Finanzas operativas es la plata del día (gasto, depósito, cuadre de
-  efectivo); esas dos son posiciones de balance.
-- **El módulo 13 casi no tiene tablas propias, y eso es correcto.** Águila lee
-  `movimientos`, `ventas`, `stock` y `producciones`. El día que empiece a escribir sus
-  propias tablas de resumen, esas tablas nacen bajo Águila.
-
-**Dos avisos sobre esa lista, para que nadie la use mal:**
-
-- `personas` y `sedes` **no son tablas: son vistas** sobre el schema `public` (el
-  sistema de personal). Ganso no es dueño de la fuente del dato, es dueño de la
-  frontera. Cambiarle una columna a esa vista es negociar con el otro sistema, no
-  escribir una migración — ver `14-DYNAMIC.md`.
-- La `sede_meta` de producción la crea `supabase/unificacion/01_sedes.sql:19` con otro
-  nombre (`public.retail_sede_meta`) y `03_candados.sql:18` ya hace join contra
-  `retail.sede_meta`. **El archivo que hace el renombrado no está en el repo.** Es de
-  Gorrión, y es deuda abierta (`modulos/14-plataforma-y-esquema.md`, hueco 2).
+**Cuatro pájaros no tienen hoy ninguna tabla, y eso es información, no un error.**
+Tucán y Golondrina, porque sus tablas (`taxonomia_*`, `importaciones`) no existen en
+producción desde el corte a V2. Águila, porque lee lo de los demás (`movimientos`,
+`ventas`, `stock`, `producciones`); el día que escriba sus propios resúmenes, esas
+tablas nacen bajo Águila. Y Gorrión, que responde por `supabase/migrations/`,
+`supabase/unificacion/` y el camino con que se pega SQL en producción (§4), no por una
+tabla.
 
 ### Ser dueño de un módulo que todavía no existe
 
-Varios de los 14 están en cero: `cuentas_contables`, `asientos` y `asiento_lineas` con
-0 filas; `gastos`, `depositos_bancarios` y `ajustes_efectivo` con 0 filas;
-`importaciones` con 0 filas; `conteo_lineas` con 0 filas. Y hay cosas decididas y sin
-tabla: los insumos del Taller (D-47), las clientas (D-48), el cierre con llave (D-23),
-las cuentas por pagar (D-46).
+Varios de los 14 están en cero. Cuatro no tienen ninguna tabla (los de arriba), y otros
+tienen tablas que nacieron vacías: todo Gallito —`producciones`, `insumos` y sus
+líneas—, `gastos` de Garza y `activos_fijos` de Urraca, con 0 filas en el volcado de
+producción del 2026-09-17. De lo que el 2026-09-12 estaba decidido y sin tabla, los
+insumos del Taller (D-47) y las clientas (D-48, `clientes`) ya tienen la suya, vacía;
+el cierre con llave (D-23) y las cuentas por pagar (D-46) no se re-verificaron contra V2.
 
 **El trabajo del pájaro de un módulo vacío no es esperar. Es que nadie invente un
 esquema paralelo mientras tanto.** Cuatro cosas:
@@ -327,6 +325,13 @@ comparar tabla por tabla.
 `aplicada_at`, `nota`) existe para esto. Cada script pegado deja su fila. Si una fila
 falta, el estado de producción es una suposición, no un hecho.
 
+> **Corrección 2026-09-18 (verificado contra producción, solo lectura):** esa tabla ya
+> no existe. En el schema `retail` no hay ninguna `migraciones_aplicadas`; la única del
+> proyecto es `public.migraciones_aplicadas`, con otra forma (`numero`, `nombre`,
+> `aplicada_at`), y el repo no la menciona en ningún lado. O sea que **hoy retail no
+> tiene registro de qué SQL se pegó en producción**. Es de Gorrión y está en el BACKLOG.
+> Lo que sigue en esta sección describe cómo era antes del corte a V2.
+
 **Y hoy es, en parte, una suposición.** El backfill sembró **17 filas**
 (`unificacion/38_migraciones_aplicadas.sql:75-95`), de las cuales **11 dicen "según
 BACKLOG.md, no re-verificado hoy"** — la fecha viene de lo que escribió otra sesión, no
@@ -441,6 +446,7 @@ nueva, un cambio de modelo, una excepción a una regla de este archivo: ADR.
 | Comprobantes trabados camino a SUNAT (D-37) | Diario, automático | Cuervo | Alarma |
 | Cierre del mes | Mensual | Urraca | `modulos/12-contabilidad.md` |
 | Que el respaldo se pueda restaurar de verdad (D-29) | Trimestral | Gorrión | `08-OPERACION.md §4` |
+| Que ninguna tabla de producción quede sin pájaro | En cada push, automático (`pnpm datos:aviario --verificar` en CI) | Gorrión | `generado/AVIARIO.md` |
 | Que este documento no mienta | En cada cambio de esquema | El pájaro que tocó | El propio diccionario |
 
 **Lo que esas alarmas encuentran ahora mismo — son dos, y están rotas en las tiendas
@@ -482,4 +488,5 @@ y queda anotado), D-12 (cuatro niveles, un solo vocabulario), D-13 (qué puede u
 que un Integrante no), D-14 (dónde manda un Líder), D-19 (alarma automática de
 diferencias), D-22 (el historial no se borra, y su única salida de emergencia),
 D-26 (el Integrante opera el almacén de su sede), D-37 (alarma de comprobantes
-trabados). El texto completo está en `DECISIONES-2026-09-12.md`, que manda sobre esto.*
+trabados). El texto completo está en `DECISIONES-2026-09-12.md`, que manda sobre esto.
+Qué pájaro es cada tabla, y por qué es una sola lista revisada en CI: ADR-0103.*

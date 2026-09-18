@@ -356,21 +356,23 @@ const dynamic = tablas.filter(t => t.esquema === "public");
   L.push(cabecera("Diccionario — CAYLA Retail (schema `retail`)", inv, fuente,
 `> **Tablas y vistas encontradas:** ${retail.length}
 >
-> El orden sigue los 14 módulos de \`docs/datos/00-MAPA.md\`. Para entender **por qué**
+> El orden sigue los 14 pájaros de \`scripts/datos/aviario.mjs\`, la única lista de qué
+> pájaro es cada tabla (el índice está en \`AVIARIO.md\`). Para entender **por qué**
 > existe cada tabla, abre el archivo del módulo en \`docs/datos/modulos/\`; este archivo
 > solo dice **qué hay**.`));
 
-  for (const { n, modulo, tablas: nombres } of AVIARIO) {
+  for (const { n, pajaro, modulo, tablas: nombres } of AVIARIO) {
     const delDominio = nombres.map(nombre => retail.find(t => t.tabla === nombre)).filter(Boolean);
     if (!delDominio.length) continue;
-    L.push(`\n## ${n} · ${modulo}\n`);
+    L.push(`\n## ${n} · ${pajaro} — ${modulo}\n`);
     for (const t of delDominio) { vistas.add(t.tabla); L.push(fichaTabla(t, glosas), ""); }
   }
 
   const huerfanas = retail.filter(t => !vistas.has(t.tabla));
   if (huerfanas.length) {
     L.push(`\n## Sin módulo asignado\n`);
-    L.push(`> Estas tablas existen en la base y **no están en ningún módulo** de \`00-MAPA.md\`.`);
+    L.push(`> Estas tablas existen en la base y **no tienen pájaro** en \`scripts/datos/aviario.mjs\`,`);
+    L.push(`> y \`pnpm datos:aviario\` falla mientras sigan acá.`);
     L.push(`> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una`);
     L.push(`> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.\n`);
     for (const t of huerfanas) L.push(fichaTabla(t, glosas), "");
