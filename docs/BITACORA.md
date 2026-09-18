@@ -6561,7 +6561,7 @@ propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igua
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
 
-## 2026-09-17 (Compras: primera vez renderizado en navegador — ADR-0097)
+## 2026-09-17 (Compras: primera vez renderizado en navegador — ADR-0098)
 
 Felipe quería construir; se le mostró que la rama local llevaba 620 commits de atraso
 respecto a `origin/main` y que otra sesión ya tenía Catálogo/taxonomía — eligió "verificar
@@ -6575,7 +6575,7 @@ de 2 columnas (+ el `sticky` del Resumen, que había quedado huérfano al mover 
 primero) de `lg:` a `xl:` (1280px, donde sí hay espacio). Verificado en 1024px, 1280px y
 375px. Resto del recorrido (`/compras`, `/compras/por-pagar`, `/compras/recibir` hasta la
 curva de tallas) verificado sin problemas. `tsc`/`eslint`/297 tests en verde. Detalle en
-ADR-0097. Queda sin probar "+ Sumar"/"Todo llegó" en Recibir, y el mismo patrón sin
+ADR-0098. Queda sin probar "+ Sumar"/"Todo llegó" en Recibir, y el mismo patrón sin
 `minmax(0,…)` sigue latente en `PLANTILLA_LINEAS` (líneas de factura) — no disparado hoy.
 
 ## 2026-09-17 (noche — diccionario de producción desactualizado, 3 falsas alarmas)

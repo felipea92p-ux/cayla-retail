@@ -2101,7 +2101,7 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       `p_cursor_creado_en`).
 
 - [x] **Rediseño de Compras (2026-09-14): verificado en navegador 2026-09-17 — encontró
-      y arregló un bug real de layout que `tsc`/`eslint` no podían ver (ADR-0097).**
+      y arregló un bug real de layout que `tsc`/`eslint` no podían ver (ADR-0098).**
       `/compras/nueva` tenía Serie/Número/Fecha de emisión literalmente superpuestos
       (texto ilegible) entre 1024 y 1279px — la franja donde el panel "Resumen" se
       vuelve columna fija (`lg:` de Tailwind) pero la tarjeta del formulario todavía no
@@ -2118,7 +2118,7 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       curva de tallas con su propio scroll horizontal, sin desborde) — todo verificado.
       `tsc`, `eslint` y 297 pruebas en verde. Detalle completo, incluido el mismo
       defecto latente sin disparar todavía en `PLANTILLA_LINEAS` (líneas de factura) y
-      en `ProductoForm.tsx` (sesión de Catálogo, no tocado acá), en ADR-0097.
+      en `ProductoForm.tsx` (sesión de Catálogo, no tocado acá), en ADR-0098.
       - [ ] **Sin probar en esta pasada:** "+ Sumar" (sumar otra factura del mismo
             proveedor a la misma guía), "Todo llegó", y el caso "barra fija choca con
             las pestañas móviles" en `/compras/recibir` (el número a ajustar, si pasa,

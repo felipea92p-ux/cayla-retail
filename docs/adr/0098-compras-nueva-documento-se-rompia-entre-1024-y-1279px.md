@@ -1,4 +1,4 @@
-# ADR-0097 — `/compras/nueva`: Serie/Número/Fecha se superponían entre 1024 y 1279px
+# ADR-0098 — `/compras/nueva`: Serie/Número/Fecha se superponían entre 1024 y 1279px
 
 **Fecha:** 2026-09-17
 **Estado:** Aplicado y verificado en navegador (1024px, 1280px, 375px). `tsc`, `lint` y
