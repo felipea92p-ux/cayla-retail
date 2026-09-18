@@ -490,6 +490,11 @@ end $$;
 -- llena ACÁ (seed.sql corre después de las migraciones) — sin este bloque,
 -- un `db reset` completo se queda con 0 filas de "Para liquidar" porque la
 -- migración corrió antes de que hubiera alguna sede que leer.
+-- Solo `tipo='tienda'` (Felipe, 2026-09-18): el Taller no vende a clientas —
+-- "liquidar" es un concepto de venta al público, no aplica a un sitio de
+-- producción. La migración original (ya fusionada y corrida en producción)
+-- generó una fila también para Taller; se desactivó a mano desde la pantalla
+-- (botón "Desactivar", nunca DELETE) en vez de reescribir esa migración.
 insert into retail.etiquetas (nombre, estado, activo, sedes_permitidas, notas)
 select
   'Para liquidar — ' || u.nombre,
@@ -498,7 +503,7 @@ select
   array[u.id],
   'Liquidación local de ' || u.nombre || ' — restringida a esta sede a propósito: sin este candado, liquidar algo en una sede lo mostraría como "para liquidar" en todas las demás, aunque ahí no aplique.'
 from retail.ubicaciones u
-where u.activo
+where u.activo and u.tipo = 'tienda'
 on conflict (retail.fn_clave_texto(nombre)) do nothing;
 
 commit;
