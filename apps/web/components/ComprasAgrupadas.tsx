@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CheckCircle2, Clock, ReceiptText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, ReceiptText } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
@@ -26,6 +26,7 @@ export function ChipEstado({ estado }: { estado: EstadoVisual }) {
     <Chip tono={estado.tono} versalitas={false}>
       {estado.icono === "check" && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
       {estado.icono === "reloj" && <Clock className="h-3.5 w-3.5" aria-hidden />}
+      {estado.icono === "alerta" && <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
       {estado.texto}
     </Chip>
   );

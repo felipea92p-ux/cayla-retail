@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0105)
+
+**Qué se cerró.** Las tres cifras de arriba a la derecha de Cambios y Devoluciones eran texto suelto
+alineado a la izquierda; ahora viven en un recuadro con el nombre de la sede (`ResumenSede`), cada
+cifra centrada sobre su etiqueta y con un ícono. Y el plazo se lee por color: verde dentro del plazo
+(incluido «Vence en N días»), rojo fuera, en la fila, en la validación y en «Por aprobar».
+
+**Qué se aprendió.** Un color que significa algo tiene que salir de una sola regla: el chip, la
+validación y la tarjeta de aprobación leen el mismo `EstadoVisual`, por eso cambiarlo fue tocar dos
+funciones y no doce pantallas. Pendiente: el rojo puede pasar el tope de 2 por pantalla si una
+búsqueda trae varias compras vencidas — decidir si se acepta.
+
 ## 2026-09-18 (Devoluciones con el modelo de Cambios — ADR-0105)
 
 **Qué se cerró.** `/devoluciones` rehecha con el mismo flujo que Cambios, sin migración ni backend.

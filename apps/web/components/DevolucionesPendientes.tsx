@@ -131,10 +131,17 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
         <span>
           Pidió {d.solicitadoPorNombre} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
         </span>
-        {plazo.estado === "fuera_de_plazo" && (
-          <Chip tono="ambar" versalitas={false}>
-            <Info className="h-3.5 w-3.5" aria-hidden />
+        {/* Siempre visible, para que quien aprueba vea de un vistazo si la compra está dentro del
+            plazo (verde) o no (rojo). Fuera del plazo no bloquea: solo pide su decisión. */}
+        {plazo.estado === "fuera_de_plazo" ? (
+          <Chip tono="rojo" versalitas={false}>
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
             Compra hace {DIAS_PLAZO_CAMBIO - plazo.diasRestantes} días · fuera del plazo
+          </Chip>
+        ) : (
+          <Chip tono="verde" versalitas={false}>
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            Dentro del plazo · {plazo.diasRestantes === 0 ? "hoy es el último día" : `quedan ${plazo.diasRestantes} día${plazo.diasRestantes === 1 ? "" : "s"}`}
           </Chip>
         )}
       </header>

@@ -68,6 +68,15 @@ validaciones en vivo llevan el foco al campo que falta.
 - **El cruce cambio↔devolución se cubre en pantalla**, no en la base: `unidadesDisponibles` descuenta
   lo cambiado y lo devuelto (pendiente o aprobado) en las dos pantallas. La base sigue sin candado
   (BACKLOG).
+- **El plazo se lee por color, igual en las dos pantallas (pedido de Felipe, 2026-09-18).** Verde
+  mientras la compra está dentro del plazo —también en los últimos días, que se dicen con el texto
+  «Vence en N días»— y rojo cuando venció. Vale para el chip de la fila, la validación del plazo y el
+  chip de la tarjeta «Por aprobar». Sale de una sola fuente (`estadoPrendaVendida`,
+  `estadoPrendaDevolucion`, `validarCambio`, `validarDevolucion`) con `tono` y `icono` (reloj / triángulo),
+  así que el color nunca va solo. Se quitó el escalón ámbar de «por vencer»: si se quiere de vuelta, es
+  cambiar `tono` en esas dos funciones. Rojo aquí no bloquea en Devoluciones (`devolvible` sigue en
+  `true`): solo dice que un líder decide. Ojo: `globals.css` limita el rojo a 2 por pantalla; una
+  búsqueda con varias compras vencidas puede pasarlo.
 
 ### Piezas compartidas (lo que evita dos copias)
 

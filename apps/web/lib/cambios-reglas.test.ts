@@ -149,7 +149,7 @@ describe("estadoPrendaVendida", () => {
   const base = { cantidad: 1, yaCambiado: 0, yaDevuelto: 0, anulada: false, creadoEn: lima(2026, 9, 18).toISOString() };
 
   it("recién vendida: dentro del plazo y se puede cambiar", () => {
-    expect(estadoPrendaVendida(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", cambiable: true, tono: "neutro" });
+    expect(estadoPrendaVendida(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", cambiable: true, tono: "verde" });
   });
 
   it("con devolución registrada (aunque solo esté pendiente de aprobar): no se cambia — volvería al stock dos veces", () => {
@@ -169,17 +169,22 @@ describe("estadoPrendaVendida", () => {
     expect(estadoPrendaVendida({ ...base, cantidad: 2, yaCambiado: 1 }, ahora).cambiable).toBe(true);
   });
 
-  it("a punto de vencer: ámbar con los días que quedan", () => {
+  it("a punto de vencer: sigue VERDE (está dentro) y dice los días que quedan", () => {
     expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({
       clave: "por_vencer",
       texto: "Vence en 2 días",
-      tono: "ambar",
+      tono: "verde",
     });
     expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 3).toISOString() }, ahora).texto).toBe("Último día para cambiar");
   });
 
-  it("fuera de plazo o de una venta anulada: no se puede iniciar el cambio", () => {
-    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 1).toISOString() }, ahora)).toMatchObject({ clave: "fuera_de_plazo", cambiable: false });
+  it("fuera de plazo o de una venta anulada: no se puede iniciar el cambio; el plazo vencido va en ROJO", () => {
+    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 1).toISOString() }, ahora)).toMatchObject({
+      clave: "fuera_de_plazo",
+      cambiable: false,
+      tono: "rojo",
+      icono: "alerta",
+    });
     expect(estadoPrendaVendida({ ...base, anulada: true }, ahora)).toMatchObject({ clave: "anulada", cambiable: false });
   });
 });

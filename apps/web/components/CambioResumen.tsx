@@ -83,7 +83,9 @@ export function ListaValidaciones({ validaciones }: { validaciones: readonly Val
   return (
     <ul className="space-y-3.5" aria-label="Qué está validando el sistema">
       {validaciones.map((v) => {
-        const { Icono, clase, lector } = ICONO_VALIDACION[v.estado];
+        // El plazo vencido va en rojo sea alerta (Cambios) o aviso (Devoluciones): mismo
+        // triángulo y la misma palabra para el lector, así que no depende solo del color.
+        const { Icono, clase, lector } = v.tono === "rojo" ? { ...ICONO_VALIDACION.alerta, clase: "text-rojo-profundo" } : ICONO_VALIDACION[v.estado];
         return (
           <li key={v.clave} className="flex gap-2.5">
             <Icono className={`mt-0.5 h-4 w-4 shrink-0 ${clase}`} aria-hidden />

@@ -95,9 +95,10 @@ export function clasificarBusqueda(texto: string): Busqueda | null {
 export type EstadoVisual = {
   clave: string;
   texto: string;
-  /** Tono del `Chip` del sistema: neutro casi siempre, verde = hecho, ámbar = urgencia. */
-  tono: "neutro" | "ambar" | "verde" | "apagado";
-  icono: "check" | "reloj" | null;
+  /** Tono del `Chip` del sistema: verde = dentro del plazo o hecho, rojo = fuera del plazo,
+   *  ámbar = a la espera de alguien, neutro = nada que decir, apagado = ya no cuenta. */
+  tono: "neutro" | "ambar" | "verde" | "rojo" | "apagado";
+  icono: "check" | "reloj" | "alerta" | null;
 };
 
 export type EstadoPrenda = EstadoVisual & { cambiable: boolean };
@@ -123,13 +124,15 @@ export function estadoPrendaVendida(
       ? { clave: "devuelta", texto: "Devolución registrada", tono: "neutro", icono: "check", cambiable: false }
       : { clave: "completado", texto: "Cambio completado", tono: "verde", icono: "check", cambiable: false };
   }
+  // El plazo se lee de un vistazo por su color (2026-09-18, pedido de Felipe): VERDE mientras
+  // está dentro —también los últimos días, que se dicen en el texto— y ROJO cuando venció.
   const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "neutro", icono: null, cambiable: false };
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta", cambiable: false };
   if (estado === "por_vencer") {
     const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj", cambiable: true };
+    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj", cambiable: true };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "neutro", icono: "reloj", cambiable: true };
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj", cambiable: true };
 }
 
 // ============================================================================
@@ -153,6 +156,9 @@ export type Validacion = {
    *  `aviso` NO frena: lo que conviene saber antes de seguir (ej. fuera de plazo en una
    *  devolución, que igual decide un líder). */
   estado: "ok" | "alerta" | "pendiente" | "aviso";
+  /** `rojo` pinta el ícono en rojo aunque el estado no frene: el plazo vencido se ve rojo
+   *  en las dos pantallas, sea una alerta (Cambios) o un aviso (Devoluciones). */
+  tono?: "rojo";
   titulo: string;
   detalle?: string;
 };
@@ -187,6 +193,7 @@ export function validarCambio(e: {
       ? {
           clave: "plazo",
           estado: "alerta",
+          tono: "rojo",
           titulo: "Fuera del plazo de cambios",
           detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}.`,
         }

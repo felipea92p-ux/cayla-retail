@@ -114,12 +114,14 @@ export function estadoPrendaDevolucion(
       : { clave: "cambiada", texto: "Ya cambiada", tono: "neutro", icono: "check", devolvible: false };
   }
   const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "neutro", icono: null, devolvible: true };
+  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
+  // Rojo aquí NO bloquea (`devolvible` sigue en true): solo dice que un líder tiene que decidir.
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta", devolvible: true };
   if (estado === "por_vencer") {
     const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj", devolvible: true };
+    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj", devolvible: true };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "neutro", icono: "reloj", devolvible: true };
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj", devolvible: true };
 }
 
 /** Lo que la clienta pagó de verdad por `cantidad` unidades: precio menos el descuento que
@@ -172,6 +174,7 @@ export function validarDevolucion(e: {
       ? {
           clave: "plazo",
           estado: "aviso",
+          tono: "rojo",
           titulo: "Fuera del plazo",
           detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}. Puedes registrarla: un líder decide si la acepta.`,
         }

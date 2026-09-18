@@ -50,18 +50,20 @@ describe("estadoPrendaDevolucion", () => {
   };
 
   it("recién vendida: dentro del plazo y se puede devolver", () => {
-    expect(estadoPrendaDevolucion(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", devolvible: true });
+    expect(estadoPrendaDevolucion(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", devolvible: true, tono: "verde" });
   });
 
-  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar, el líder decide", () => {
+  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar (el líder decide), pero se ve en ROJO", () => {
     expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 8, 1).toISOString() }, ahora)).toMatchObject({
       clave: "fuera_de_plazo",
       devolvible: true,
+      tono: "rojo",
+      icono: "alerta",
     });
   });
 
-  it("a punto de vencer: ámbar con los días que quedan", () => {
-    expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({ texto: "Vence en 2 días", tono: "ambar" });
+  it("a punto de vencer: sigue VERDE (está dentro) y dice los días que quedan", () => {
+    expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({ texto: "Vence en 2 días", tono: "verde" });
     expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 3).toISOString() }, ahora).texto).toBe("Último día del plazo");
   });
 

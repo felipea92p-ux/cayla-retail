@@ -1,3 +1,4 @@
+import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
@@ -10,6 +11,7 @@ import { soles } from "@/lib/compras-reglas";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
+import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
 // modelo vive en supabase/migrations/0007_cambios.sql y
@@ -47,13 +49,17 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
           <h1 className="font-display text-3xl text-tinta">Cambios</h1>
           <p className="mt-1.5 text-[15px] text-tinta/70">Gestiona cambios de prendas de manera rápida y segura.</p>
         </div>
-        {/* Indicadores chicos, no tarjetas de tablero: acompañan al título, no compiten
-            con él. Las tres cifras son de ESTA sede. */}
-        <dl className="flex gap-8">
-          <Indicador valor={String(estadisticas.cambiosHoy)} etiqueta="Cambios hoy" />
-          <Indicador valor={String(estadisticas.cambiosMes)} etiqueta="Este mes" />
-          <Indicador valor={soles(estadisticas.valorMes)} etiqueta="Valor cambiado" />
-        </dl>
+        {/* Tres cifras chicas, no un tablero: acompañan al título sin competir con él. Van
+            juntas en un recuadro con el nombre de la sede —son de ESTA sede—, cada cifra
+            centrada sobre su etiqueta. */}
+        <ResumenSede
+          sede={persona.ubicacionEtiqueta}
+          cifras={[
+            { valor: String(estadisticas.cambiosHoy), etiqueta: "Cambios hoy", icono: RefreshCw },
+            { valor: String(estadisticas.cambiosMes), etiqueta: "Este mes", icono: CalendarDays },
+            { valor: soles(estadisticas.valorMes), etiqueta: "Valor cambiado", icono: Banknote },
+          ]}
+        />
       </header>
 
       <CambiosPanel
@@ -84,15 +90,6 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
             stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
           }))}
       />
-    </div>
-  );
-}
-
-function Indicador({ valor, etiqueta }: { valor: string; etiqueta: string }) {
-  return (
-    <div className="flex flex-col-reverse">
-      <dt className="mt-0.5 text-xs text-tinta/70">{etiqueta}</dt>
-      <dd className="text-xl font-semibold tabular-nums text-tinta">{valor}</dd>
     </div>
   );
 }
