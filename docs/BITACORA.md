@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Familia deja de ser un CHECK fijo; Colores se agrupa por familia; una colisión real resuelta en vivo)
+
+Se cerró: `retail.familias` (tabla propia, sin proponer/aprobar — mismo patrón que
+Categorías, ADR-0102) reemplaza el `CHECK constraint` de 6 valores fijos; pantalla
+`/productos/familias` nueva. `/productos/colores` se agrupa por familia (antes una
+sola grilla ordenada por `orden` global, dejaba un color nuevo "colgando" al final);
+de paso, investigación real contra Zara/Ralph Lauren/LVMH/Platanitos sumó 4 colores
+(Cobalto, Gris antracita, Caqui, Tostado) que Zara usa y CAYLA no tenía.
+
+Lo que Felipe aprendió/decidió: esta sesión y `claude/fix-old-stuff-0192ff`
+construyeron "familia como tabla" en paralelo sin saberlo — el tablero
+`SESIONES-ACTIVAS.md` lo detectó, Felipe comparó las dos versiones en vivo y se
+quedó con la de acá (menor cambio estructural: no migra el tipo de `categorias.familia`
+de texto a uuid). Aviso dejado en `SESIONES-ACTIVAS.md` para que esa sesión descarte
+la suya.
+
+Docker/Supabase local se cayó/cerró varias veces por RAM durante la sesión — se
+avanzó con `git`/`node` (typecheck, lint, 297 tests, dos bugs reales encontrados así:
+`avisar.ok` inexistente y un `<a>` donde iba `<Link>`) sin bloquear el trabajo hasta
+que Docker volvió a estar disponible para la verificación final en navegador.
+
 ## 2026-09-17 (Producción se cayó dos veces hoy — y una tercera vez que nadie reportó, encontrada antes de que doliera)
 
 Primera caída real del día: `retail.fn_productos` con dos sobrecargas vivas (9 y 10

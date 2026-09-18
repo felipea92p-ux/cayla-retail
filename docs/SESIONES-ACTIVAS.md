@@ -15,12 +15,12 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| Felipe (Claude) | `claude/arreglemos-esto-079019` | Definiendo con Felipe cómo convertir `categorias.familia` (CHECK constraint fijo) en algo editable sin deploy (ADR-0096 lo pide). Todavía sin tocar esquema — esperando decisión de modelo de datos. | 2026-09-18 |
 
 ## Cerradas hoy
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Felipe (Claude) | `claude/arreglemos-esto-079019` | **ADR-0102 — colisión resuelta con Felipe en vivo:** esta sesión y `claude/fix-old-stuff-0192ff` construyeron en paralelo "familia como tabla propia" (misma tarea de ADR-0096/BACKLOG), cada una con un diseño distinto. Felipe comparó las dos y eligió la de acá (`familias.codigo` texto, sin proponer/aprobar — mismo patrón que Categorías). **`fix-old-stuff-0192ff`: por favor descarta tu versión de Familias** (`retail.familias` con `id uuid`/proponer-aprobar, `categorias.familia_id`) — ver ADR-0102 para el porqué completo. Migraciones/API/pantalla de Colores agrupada por familia + 4 tonos nuevos (Cobalto/Gris antracita/Caqui/Tostado, investigación real Zara/Ralph Lauren/Platanitos/LVMH) son independientes, no hace falta descartarlas. `pnpm typecheck`/`lint`/297 tests en verde, verificado en navegador como líder. | 2026-09-18 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |
