@@ -377,6 +377,13 @@ export type Database = {
             referencedRelation: "categorias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categorias_familia_fk"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       clientes: {
@@ -767,7 +774,6 @@ export type Database = {
           serie: string
           subtotal: number
           tipo: string
-          token_cliente: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
@@ -794,7 +800,6 @@ export type Database = {
           serie: string
           subtotal: number
           tipo?: string
-          token_cliente?: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
@@ -821,7 +826,6 @@ export type Database = {
           serie?: string
           subtotal?: number
           tipo?: string
-          token_cliente?: string | null
           total?: number
           ubicacion_destino_id?: string
           usuario_id?: string | null
@@ -1331,74 +1335,29 @@ export type Database = {
         }
         Relationships: []
       }
-      gastos: {
+      familias: {
         Row: {
-          categoria: string
+          activo: boolean
+          codigo: string
           created_at: string
-          documento_numero: string | null
-          documento_serie: string | null
-          documento_tipo: string
-          especificacion: string | null
-          id: string
-          igv: number
-          metodo_pago: string
-          proveedor_id: string | null
-          subtotal: number
-          token_cliente: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id: string | null
+          nombre: string
+          orden: number
         }
         Insert: {
-          categoria: string
+          activo?: boolean
+          codigo: string
           created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id?: string | null
+          nombre: string
+          orden?: number
         }
         Update: {
-          categoria?: string
+          activo?: boolean
+          codigo?: string
           created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago?: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total?: number
-          ubicacion_id?: string
-          usuario_id?: string | null
+          nombre?: string
+          orden?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "gastos_proveedor_id_fkey"
-            columns: ["proveedor_id"]
-            isOneToOne: false
-            referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gastos_ubicacion_id_fkey"
-            columns: ["ubicacion_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       historial_producto_cambios: {
         Row: {
@@ -2148,14 +2107,18 @@ export type Database = {
       }
       productos: {
         Row: {
+          aprobado_en: string | null
+          aprobado_por: string | null
           categoria_id: string | null
           codigo: string | null
           created_at: string
           descripcion: string | null
           estado: string
+          estado_alta: string
           id: string
           patron_id: string | null
           permitir_venta_sin_stock: boolean
+          propuesto_por: string | null
           referencia: string
           stock_minimo: number | null
           tejido_id: string | null
@@ -2163,14 +2126,18 @@ export type Database = {
           token_cliente: string | null
         }
         Insert: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -2178,14 +2145,18 @@ export type Database = {
           token_cliente?: string | null
         }
         Update: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia?: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -3268,23 +3239,39 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
-      catalogo_actualizar_producto: {
-        Args: {
-          p_categoria_id?: string
-          p_descripcion?: string
-          p_estado: string
-          p_fotos?: Json
-          p_patron_id?: string
-          p_permitir_venta_sin_stock?: boolean
-          p_producto_id: string
-          p_referencia: string
-          p_stock_minimo?: number
-          p_tejido_id?: string
-          p_temporada?: string
-          p_variantes: Json
-        }
-        Returns: undefined
-      }
+      catalogo_actualizar_producto:
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_patron_id?: string
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_tejido_id?: string
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
       catalogo_crear_producto: {
         Args: {
           p_categoria_id?: string
@@ -3299,6 +3286,26 @@ export type Database = {
           p_variantes: Json
         }
         Returns: string
+      }
+      censo_crear_variante: {
+        Args: {
+          p_categoria_id: string
+          p_codigo_barras: string
+          p_color_codigo?: string
+          p_costo?: number
+          p_precio?: number
+          p_referencia: string
+          p_talla_id?: string
+        }
+        Returns: {
+          codigo_barras: string
+          color: string
+          costo: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
       }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
@@ -3985,7 +3992,6 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
-          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
         }
@@ -3997,22 +4003,6 @@ export type Database = {
           p_insumo_id: string
           p_nota?: string
           p_produccion_id: string
-        }
-        Returns: string
-      }
-      registrar_gasto: {
-        Args: {
-          p_categoria: string
-          p_documento_numero?: string
-          p_documento_serie?: string
-          p_documento_tipo?: string
-          p_especificacion?: string
-          p_igv?: number
-          p_metodo_pago: string
-          p_proveedor_id?: string
-          p_token?: string
-          p_total: number
-          p_ubicacion_id: string
         }
         Returns: string
       }
@@ -4122,6 +4112,10 @@ export type Database = {
       }
       revertir_produccion: {
         Args: { p_produccion_id: string }
+        Returns: undefined
+      }
+      revisar_producto_censo: {
+        Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined
       }
       set_etapa_produccion: {

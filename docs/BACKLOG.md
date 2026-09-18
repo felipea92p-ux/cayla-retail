@@ -2273,17 +2273,22 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       `ColoresLista.tsx`), códigos + `codigos_barras` (tabla desde `0002_esquema.sql`,
       código corto autogenerado por trigger al crear variante), conteos (abrir/
       contar/cerrar/anular, `ConteoPanel.tsx` + `lib/conteos.ts`, escaneo directo) y
-      la matriz talla×color con costo por modelo en `/productos/nuevo`. **Queda 1
-      brecha real, de diseño, no de código:** el `conteo_crear_variante` original
-      (alta de una prenda al vuelo escaneando durante el censo) se perdió en el
-      corte a V2 y no se resucitó — hoy, si una Encargada escanea un código que el
-      catálogo no reconoce, tiene que parar y pedirle a un Líder que lo cree aparte
-      en `/productos/nuevo`. Sin decidir con Felipe si eso es aceptable para un
-      censo de 300-900 prendas o si hay que reconstruirlo sobre el catálogo V2.
-      Aparte, sigue sin construirse una pantalla de impresión de etiquetas propias
-      (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa nadie) — no
-      bloquea el censo (Felipe ya decidió escanear código de fábrica), pero quedó
-      huérfano si algún día hace falta.
+      la matriz talla×color con costo por modelo en `/productos/nuevo`.
+      **La 5ª brecha (alta de prenda al vuelo durante el conteo) se cerró el
+      mismo 2026-09-18 (ADR-0097):** `censo_crear_variante` (sin el candado
+      de Líder de `crear_producto_con_variantes`) + `estado_alta` proponer/
+      aprobar en `productos` (mismo mecanismo que colores/tallas/tejidos/
+      patrones/etiquetas) + banner de revisión en `/productos` y `/productos/
+      [id]/editar`. Probado de punta a punta en navegador local: escanear un
+      código desconocido en pleno conteo, crear la prenda sin salir de la
+      pantalla, contarla, y que el Líder la vea pendiente y la apruebe.
+      `tsc`/lint/297 tests en verde. **Falta que Felipe corra la migración
+      `20260918020000_censo_alta_al_vuelo.sql` en producción** (crea columnas
+      + 2 funciones + 1 trigger, no toca datos existentes).
+      Aparte, sigue sin construirse una pantalla de impresión de etiquetas
+      propias (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa
+      nadie) — no bloquea el censo (Felipe ya decidió escanear código de
+      fábrica), pero quedó huérfano si algún día hace falta.
 - [x] **`almacen interno en el riel numerado` — hecho y verificado en local
       2026-09-09 (`0044_almacen_interno.sql`); falta pegar `unificacion/26` en
       producción.** `stock_almacen`, el contenedor `tipo='almacen'`,

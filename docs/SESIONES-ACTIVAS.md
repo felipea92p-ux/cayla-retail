@@ -15,9 +15,12 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Auditando estado real del censo de catálogo (colores/códigos/conteos/matriz) antes de construir — la entrada de BACKLOG está fechada 09-sep y ya desactualizada. Fix de producción aplicado antes: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (rompía esas 3 pantallas). Sin tocar todavía: catálogo/conteo/producción. | 2026-09-18 (madrugada) |
 
 ## Cerradas hoy
+
+| Quién | Rama / worktree | Qué tocó | Cerrada |
+|---|---|---|---|
+| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Fix producción: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (3 pantallas rotas). Auditó y cerró la última brecha real del censo de catálogo: alta de prenda al vuelo durante el conteo (ADR-0097, `censo_crear_variante` + `estado_alta` proponer/aprobar en `productos`). Migración `20260918020000_censo_alta_al_vuelo.sql` — pendiente de pegar en producción. | 2026-09-18 |
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|

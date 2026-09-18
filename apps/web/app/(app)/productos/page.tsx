@@ -8,6 +8,7 @@ import {
   paginaProductosDesdeParams,
   listarProductos,
   getResumenProductos,
+  getProductosPendientesAlta,
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
@@ -62,12 +63,13 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return qs ? `/productos?${qs}` : "/productos";
   }
 
-  const [resultado, resumen, categorias, colores, sububicaciones] = await Promise.all([
+  const [resultado, resumen, categorias, colores, sububicaciones, pendientesAlta] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
+    persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -109,6 +111,25 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           )}
         </div>
       </div>
+
+      {pendientesAlta.length > 0 && (
+        <div className="card-cayla space-y-2 border-l-2 border-l-rojo p-4">
+          <p className="text-sm font-semibold text-tinta">
+            {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
+            {pendientesAlta.length === 1 ? "" : "s"} de revisar
+          </p>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {pendientesAlta.map((p) => (
+              <li key={p.id}>
+                <Link href={`/productos/${p.id}/editar`} className="text-rojo hover:underline">
+                  {p.referencia}
+                </Link>
+                {p.categoria && <span className="text-tinta/55"> · {p.categoria}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 

@@ -6560,3 +6560,54 @@ BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra s
 propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
+
+## 2026-09-18 (Tejidos/Patrones/Etiquetas rotos en producción, worktree de 620
+commits abandonado, y alta al vuelo del censo — ADR-0097)
+
+Felipe pidió "ir construyendo" a partir de una captura de la app mostrando "NO SE PUDO
+CARGAR" en Catálogo → Tejidos. Causa real: `retail.tejidos`/`patrones`/`etiquetas` en
+producción les faltaba la columna `notas` que el frontend de `main` (ya desplegado)
+pedía en el `select` — mismo patrón exacto del incidente de ayer (frontend
+desplegado antes que su migración). `alter table ... add column notas text` en las 3
+tablas, aplicado vía Supabase MCP con ok de Felipe, verificado. De paso: el worktree
+original de esta sesión (`construyendo-esto-7b3ffd`) estaba 620 commits / 12 días
+detrás de `main` (diverge del 2026-09-05) y sus únicos 2 commits propios (hook de
+pre-commit) ya vivían en `main` byte por byte — se abandonó sin rescatar nada y se
+abrió uno nuevo desde `main` actual.
+
+Auditoría dirigida (agente Explore) del "censo de catálogo real" (BACKLOG, entrada de
+2026-09-09): de los 5 bloqueadores que decía que faltaban, 4 ya estaban completos en
+sesiones paralelas de esta semana (colores, códigos/`codigos_barras`, conteos, matriz
+talla×color). La 5ª — alta de una prenda al vuelo mientras se cuenta — se había
+perdido en el corte a V2 junto con el resto del diseño de censo original. Encontrado
+antes de construir nada: `crear_producto_con_variantes` (la única función viva que
+crea productos) exige `fn_es_lider()`, y el censo lo cuentan las Encargadas, no un
+Líder al lado de cada una — habría bloqueado el censo real de 300-900 prendas en la
+primera prenda no catalogada.
+
+Resuelto con Felipe (AskUserQuestion): mismo patrón proponer/aprobar que ya usan
+colores/tallas/tejidos/patrones/etiquetas, no un mecanismo nuevo ni el diseño V1 sin
+candado (ADR-0097). `productos.estado_alta` nueva columna, independiente de `estado`
+(ciclo de vida comercial) — mismo trigger mecanismo que los otros 5 vocabularios.
+`censo_crear_variante` (RPC nueva, sin el candado de líder) crea producto+variante de
+una sola vez y liga el código de barras escaneado; `revisar_producto_censo` es la
+puerta de aprobar/rechazar del Líder. Banner de revisión en `/productos` (lista de
+pendientes) y `/productos/[id]/editar` (aprobar/rechazar in situ).
+
+Colisión de timestamp real en el Postgres local compartido: otra sesión ya había
+aplicado `20260918010000_familias_tabla_propia` un minuto antes — la migración se
+renombró a `20260918020000` antes de aplicar nada. `supabase migration up --local`
+falló porque el archivo de esa otra sesión no vive en este worktree (cada worktree
+tiene su propio git, el Postgres local no) — se aplicó el SQL directo con `psql` en
+vez de correr `migration repair` (que toca el historial de migraciones compartido con
+las demás sesiones). Probado de punta a punta en navegador real (dev server propio en
+el puerto 4123, apuntando al Supabase local — `preview_start` quedó atado al cwd del
+worktree viejo y no siguió a `EnterWorktree`): escanear un código desconocido durante
+un conteo abierto, crear la prenda sin salir de la pantalla, contarla (quedó reflejada
+en la diferencia en soles del conteo), y como Líder verla en el banner de pendientes y
+aprobarla. Tipos regenerados contra Postgres local (`packages/database`). `tsc`/lint/297
+tests en verde. Datos de prueba borrados del Postgres local al cerrar.
+
+Pendiente de Felipe: pegar `supabase/migrations/20260918020000_censo_alta_al_vuelo.sql`
+en el SQL Editor de producción (con prefijo `retail.`, por convención) — aditivo, no
+toca datos existentes ni funciones vivas de otras sesiones.
