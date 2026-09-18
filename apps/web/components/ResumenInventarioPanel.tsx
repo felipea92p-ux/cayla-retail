@@ -169,15 +169,15 @@ export function ResumenInventarioPanel({
                   <Chip tono={TONO_SITUACION[a.situacion]}>{ETIQUETA_SITUACION[a.situacion]}</Chip>
                 </span>
                 <span className={celda("izq", "text-sm text-tinta")}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Cobertura</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Cobertura</span>
                   {textoCobertura(a)}
                 </span>
                 <span className={celda("izq", "text-sm text-tinta")}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En la red</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En la red</span>
                   {textoEnRed(a)}
                 </span>
                 <span className={celda("izq", "text-sm text-tinta")}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Acción</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Acción</span>
                   {textoAccion(a)}
                 </span>
                 <span className={celda("centro", "overflow-visible")}>

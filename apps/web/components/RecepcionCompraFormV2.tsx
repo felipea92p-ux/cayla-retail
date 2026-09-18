@@ -729,11 +729,11 @@ function CurvaVariantes({
           <tr>
             {!unaFila && <th className="w-12 text-left sm:w-24" />}
             {tallas.map((t) => (
-              <th key={t} className="label-cayla pb-0.5 text-center text-[11px] font-normal text-tinta/55">
+              <th key={t} className="label-cayla pb-0.5 text-center text-[11px] text-tinta/55">
                 {t === SIN ? "Talla única" : t}
               </th>
             ))}
-            {!unaFila && <th className="label-cayla pb-0.5 pl-2 text-right text-[11px] font-normal text-tinta/55">Total</th>}
+            {!unaFila && <th className="label-cayla pb-0.5 pl-2 text-right text-[11px] text-tinta/55">Total</th>}
           </tr>
         </thead>
         <tbody>

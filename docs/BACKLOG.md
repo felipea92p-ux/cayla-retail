@@ -57,6 +57,42 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 
 ---
 
+## 🎯 El acento rojo de las tarjetas por fin se ve: `.card-cayla` sale de la sombra (2026-09-18, ADR-0105)
+
+`.card-cayla` (y `.label-cayla`, `.font-display`, `.alza-cayla`, `.scroll-cayla`, `.anim-*`) estaban
+en `globals.css` fuera de toda `@layer`, y lo que no tiene capa le gana a toda utilidad de Tailwind:
+`card-cayla border-l-2 border-l-rojo` pintaba el borde sand de 1px. El acento de "esta tarjeta pide
+algo" no se veía en Resumen, Existencias, Conteo, Traslados, Productos ni en el banner de altas
+pendientes; tampoco existían el fondo de "filtro seleccionado" ni el foco de teclado de las tarjetas
+de `/compras`. Todo pasó a `@layer components` y hay un test (`lib/globals-capas.test.ts`) que falla
+si alguien vuelve a escribir una clase suelta. Detalle, tabla de utilidades muertas y qué se decidió
+con cada una: ADR-0105.
+
+- [x] **Hecho y verificado en navegador** con 752 `className` reales del código: mover la capa
+      cambia exactamente lo que el análisis predijo, y nada más. `tsc`, `eslint`, 419 tests en verde.
+      **No verificado con datos reales:** el Docker local estaba caído y no se reinició (tumbaría los
+      Supabase de otras sesiones). Falta que alguien con la base local arriba mire, como líder:
+      Inventario → Resumen (borde rojo en "Necesita reposición ahora"; el filtro elegido queda
+      sombreado), Traslados (borde en "Por confirmar en mi sede"), Conteo con un conteo abierto,
+      Productos con una prenda dada de alta en un conteo, y Compras con Tab (borde rojo al enfocar).
+- [ ] **Decisión de Felipe — `MAX_ROJO_POR_PANTALLA` en Resumen y Productos.** No la causó este cambio
+      pero el borde la hizo visible. Resumen muestra 5 rojos en el peor caso (cifra de Riesgo + borde +
+      tres "Ver detalle →"); Productos con 2+ prendas pendientes pasa de 2 (el borde se suma a un
+      enlace rojo por prenda). Traslados y Conteo quedaron en 2: ahí el borde sustituye al enlace de
+      su tarjeta (una tarjeta, un rojo).
+      **A)** "Ver detalle →" de `TarjetaCifra` y los enlaces del banner de Productos a tinta
+      subrayado. *Ganas:* Resumen queda en 2 y el borde por fin destaca entre neutros. *Pagas:*
+      cambia una pantalla que ya aprobaste; los enlaces pierden el "clic aquí" rojo.
+      **B)** Dejarlo como está. *Ganas:* cero cambio de aspecto. *Pagas:* Resumen sigue en 5 y el
+      borde rojo compite con cuatro rojos más — el acento que acabamos de arreglar no se distingue.
+      **C)** Cambiar la regla a "2 por bloque" en `design-tokens.ts`. *Ganas:* la regla calza con lo
+      que ya hay. *Pagas:* es tocar la marca para acomodar la pantalla, no al revés.
+      **Recomiendo A.** Si no respondes, queda B (lo ya hecho): A cambia algo que ya viste aprobado.
+- [ ] **`ComercialPanel.tsx`** (sesión `comercial-command-leaders-bb5771`, sin commitear, no está en
+      `main`): usa `border-l-2! border-l-rojo!` como parche. Con este cambio el `!` sobra y hay que
+      quitarlo. Aviso dejado en `SESIONES-ACTIVAS.md`. Ojo: su tarjeta destacada suma borde rojo +
+      el resto de la pantalla; medir contra `MAX_ROJO_POR_PANTALLA` antes de dar por bueno.
+
 ## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
 
 `/productos/colores` era una sola grilla continua ordenada por `orden`

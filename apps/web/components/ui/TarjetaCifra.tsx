@@ -13,8 +13,10 @@ import type { ReactNode } from "react";
    otras cuatro puedan migrar sin cambiar de aspecto.
 
    `valor` acepta texto: un "—" o "98.4%" es tan válido como un número.
-   `accion` dibuja el enlace rojo al pie ("Ver detalle →") — el único
-   rojo permitido en una tarjeta que pide algo.
+   `accion` dibuja el enlace al pie ("Ver detalle →"), en rojo. Una tarjeta,
+   un rojo: si además lleva `acento`, el borde ya gastó el rojo y el enlace va
+   en tinta (MAX_ROJO_POR_PANTALLA = 2; sin esto, "Por confirmar" en Traslados
+   sumaba borde + enlace y la pantalla pasaba de 2 apenas se veía el borde).
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
@@ -44,6 +46,7 @@ export function TarjetaCifra({
   accion?: Accion;
   children?: ReactNode;
 }) {
+  const colorAccion = acento ? "text-tinta" : "text-rojo";
   const clase = `card-cayla block p-5 text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
     onClick || href ? "hover:bg-sand/30" : ""
   } ${activa ? "bg-sand/40" : ""}`;
@@ -58,14 +61,14 @@ export function TarjetaCifra({
       {children && <p className="mt-1 text-xs text-tinta/65">{children}</p>}
       {accion &&
         ("href" in accion ? (
-          <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+          <Link href={accion.href} className={`label-cayla mt-3 inline-block text-[11px] ${colorAccion} underline-offset-2 hover:underline`}>
             {accion.texto} →
           </Link>
         ) : (
           <button
             type="button"
             onClick={accion.onClick}
-            className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline"
+            className={`label-cayla mt-3 inline-block text-[11px] ${colorAccion} underline-offset-2 hover:underline`}
           >
             {accion.texto} →
           </button>

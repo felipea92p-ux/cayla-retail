@@ -63,7 +63,7 @@ const MS_TRANSICION_MOMENTO = 160;
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
  *  rojo a medias ahí se leía como "casi se puede". */
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** Botones de opción dentro de una pista `bg-sand/50` (métodos, boleta/factura, atajos). */
 const OPCION = "rounded-lg transition-colors";

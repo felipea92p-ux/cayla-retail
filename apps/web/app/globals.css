@@ -186,29 +186,52 @@ body {
   }
 }
 
-/* Tarjeta del sistema: papel, borde sand, esquina redondeada. */
-.card-cayla {
-  background: var(--color-papel);
-  border: 1px solid var(--color-sand);
-  border-radius: var(--radius-xl);
-}
+/* ==================================================================
+   Clases de componente propias — TODAS viven en `@layer components`
+   (2026-09-18).
 
-/* Título/cifra en serif — "el alma del sistema" */
-.font-display {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.005em;
-}
+   Una regla CSS fuera de toda capa le gana a CUALQUIER regla dentro de una
+   capa, sin importar la especificidad ni el orden. Las utilidades de Tailwind v4
+   viven en `@layer utilities`, así que mientras `.card-cayla` estuviera suelta,
+   `card-cayla border-l-2 border-l-rojo` pintaba el borde de 1px sand y el acento
+   rojo de "esta tarjeta pide algo" nunca se veía (TarjetaCifra, InventarioPanel,
+   RevisarAltaBanner…). Lo mismo le pasaba a `hover:bg-*` y `focus:border-rojo`
+   sobre una tarjeta: el hover y el foco de teclado no existían.
 
-/* Etiqueta de sección: versalitas. El tracking bajó de 0.2em a 0.13em el
-   2026-09-08: a 9px el aire entre letras compensaba el tamaño, pero con las
-   etiquetas ya en 11px ese mismo aire las volvía a romper en pedacitos. Peso
-   600 en vez de 500 — a este tamaño la versalita necesita cuerpo para no
-   desaparecer contra el crema. */
-.label-cayla {
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  font-weight: 600;
+   Dentro de `components` el orden es: base < components < utilities. La clase
+   pone el valor por defecto y la utilidad lo cambia, que es lo que cualquiera
+   espera al escribir `card-cayla rounded-none`.
+
+   REGLA: una clase nueva con nombre propio (`algo-cayla`) va acá adentro.
+   Fuera de capa solo quedan, a propósito: `body`, los `@keyframes`, el bloque
+   de impresión y el `!important` de movimiento reducido — lo que no es una
+   clase que se combine con utilidades, o lo que tiene que ganarle a todo.
+   ================================================================== */
+@layer components {
+  /* Tarjeta del sistema: papel, borde sand, esquina redondeada. */
+  .card-cayla {
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+  }
+
+  /* Título/cifra en serif — "el alma del sistema" */
+  .font-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+  }
+
+  /* Etiqueta de sección: versalitas. El tracking bajó de 0.2em a 0.13em el
+     2026-09-08: a 9px el aire entre letras compensaba el tamaño, pero con las
+     etiquetas ya en 11px ese mismo aire las volvía a romper en pedacitos. Peso
+     600 en vez de 500 — a este tamaño la versalita necesita cuerpo para no
+     desaparecer contra el crema. */
+  .label-cayla {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 600;
+  }
 }
 
 /* ==================================================================
@@ -301,13 +324,15 @@ body {
 /* La barra de scroll nativa de Windows es gris cromo y aparece justo en el
    borde del modal, que es el único lugar donde el sistema no puede permitirse
    un cuarto color. */
-.scroll-cayla {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-sand) transparent;
+@layer components {
+  .scroll-cayla {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-sand) transparent;
+  }
+  .scroll-cayla::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scroll-cayla::-webkit-scrollbar-track { background: transparent; }
+  .scroll-cayla::-webkit-scrollbar-thumb { background: var(--color-sand); }
 }
-.scroll-cayla::-webkit-scrollbar { width: 6px; height: 6px; }
-.scroll-cayla::-webkit-scrollbar-track { background: transparent; }
-.scroll-cayla::-webkit-scrollbar-thumb { background: var(--color-sand); }
 
 /* ---- Salidas (2026-09-08) --------------------------------------------
    Antes lo que se cerraba desaparecía de golpe: el modal se desmontaba y
@@ -325,10 +350,12 @@ body {
   from { opacity: 1; }
   to { opacity: 0; }
 }
-.anim-salida { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
-.anim-velo-salida { animation: cayla-velo-salida 220ms var(--ease-salida) both; }
-@media (min-width: 640px) {
-  .anim-salida { animation-name: cayla-salida; }
+@layer components {
+  .anim-salida { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+  .anim-velo-salida { animation: cayla-velo-salida 220ms var(--ease-salida) both; }
+  @media (min-width: 640px) {
+    .anim-salida { animation-name: cayla-salida; }
+  }
 }
 
 /* ---- Globo de ayuda: crece desde su propia esquina, no desde el centro,
@@ -337,22 +364,26 @@ body {
   from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
-.anim-globo {
-  animation: cayla-globo 240ms var(--ease-cayla) both;
-  transform-origin: top left;
+@layer components {
+  .anim-globo {
+    animation: cayla-globo 240ms var(--ease-cayla) both;
+    transform-origin: top left;
+  }
 }
 
 /* ---- Alza: lo que se puede tocar se despega un poco al pasarle encima.
         2px, no 8 — es un acuse de recibo, no un salto. ---- */
-.alza-cayla {
-  transition:
-    transform 260ms var(--ease-cayla),
-    box-shadow 260ms var(--ease-cayla),
-    border-color 260ms var(--ease-cayla);
-}
-.alza-cayla:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+@layer components {
+  .alza-cayla {
+    transition:
+      transform 260ms var(--ease-cayla),
+      box-shadow 260ms var(--ease-cayla),
+      border-color 260ms var(--ease-cayla);
+  }
+  .alza-cayla:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
@@ -362,32 +393,41 @@ body {
   to { transform: translate3d(320%, 0, 0) skewX(-12deg); }
 }
 
-.anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
-.anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
-.anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
-.anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
-.anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
+@layer components {
+  .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
+  .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+  .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
+  .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
-@media (min-width: 640px) {
-  .anim-entrada { animation-name: cayla-entrada; }
+  @media (min-width: 640px) {
+    .anim-entrada { animation-name: cayla-entrada; }
+  }
 }
 
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
-@media (prefers-reduced-motion: reduce) {
-  .anim-velo,
-  .anim-entrada,
-  .anim-revelar,
-  .anim-revelar-salida,
-  .anim-asentar,
-  .anim-globo,
-  .anim-salida,
-  .anim-velo-salida {
-    animation-duration: 1ms;
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .anim-velo,
+    .anim-entrada,
+    .anim-revelar,
+    .anim-revelar-salida,
+    .anim-asentar,
+    .anim-globo,
+    .anim-salida,
+    .anim-velo-salida {
+      animation-duration: 1ms;
+    }
+    .alza-cayla:hover { transform: none; }
+    .hilo-trabajando::after { animation: none; }
   }
-  .alza-cayla:hover { transform: none; }
-  .hilo-trabajando::after { animation: none; }
+}
+/* Fuera de capa a propósito: el `!important` de movimiento reducido tiene que ganarle
+   a toda utilidad (`duration-*`, `transition-*`), y esta regla no es una clase de
+   componente sino una preferencia de la persona. */
+@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 1ms !important;
   }
