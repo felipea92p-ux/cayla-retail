@@ -91,3 +91,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `venta_items` | 07 · Colibrí |
 | `venta_pagos` | 07 · Colibrí |
 | `ventas` | 07 · Colibrí |
+
+## En el aviario, pero no en el volcado de producción
+
+Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
+`COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
+
+- `familias`

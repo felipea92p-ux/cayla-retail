@@ -1,4 +1,9 @@
-# ADR-0103 — El aviario es una sola lista, en código, revisada en CI
+# ADR-0104 — El aviario es una sola lista, en código, revisada en CI
+
+> Renumerado de ADR-0103 el 2026-09-18 al fusionar con `main`: el PR #129 aterrizó antes
+> con su propio 0103 (`0103-familias-tabla-propia-sin-proponer-aprobar.md`). Por la regla 2
+> de `07-GOBIERNO.md` §6, gana lo que ya estaba en `main`. El contenido no cambió, salvo
+> `familias`, que se sumó a la lista al fusionar (ver abajo).
 
 **Fecha:** 2026-09-18
 **Estado:** Aprobado por Felipe el 2026-09-18: las 24 asignaciones de abajo, tal cual.
@@ -54,6 +59,10 @@ También si alguien le cambia el formato a la tabla de pájaros de GOBIERNO §1 
 la encuentra por su encabezado `| # | Pájaro | Módulo |`), pero ahí CI falla con un
 mensaje explícito, no en silencio.
 
+Lo primero pasó el mismo día: `retail.familias` (PR #129) llegó a producción horas
+después del volcado del 17-sep, y la alarma no la vio hasta que se sumó a mano al
+fusionar con `main`.
+
 **Lo que la alarma NO mira, a propósito:** la columna «Lo lleva». Apuntarse a un pájaro
 sigue siendo editar una línea de GOBIERNO y commitearla (D-09). Nadie tiene que correr
 un script para eso, y la prueba sobre una copia lo confirmó.
@@ -85,6 +94,11 @@ Las 3 que cambian lo que ya estaba escrito:
 | `sububicaciones` | Ganso (generador) | 05 Halcón | Es dónde está la prenda (`stock.sububicacion_id`), no una frontera de permisos (D-26) |
 
 El resto (36 tablas) queda donde el generador ya lo tenía.
+
+Sumada al fusionar con `main`, por la misma lógica: **`familias` → 02 Loro**, porque
+agrupa `categorias`, que ya es de Loro (ADR-0103: «mismo patrón que Categorías»). Ya
+existe en producción pero no en el volcado del 17-sep, así que `AVIARIO.md` la muestra
+como «no en el volcado» hasta que se refresque.
 
 ## Cómo se verificó
 

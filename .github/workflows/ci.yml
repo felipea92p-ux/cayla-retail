@@ -86,7 +86,7 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: pnpm test
 
-      # El aviario (ADR-0103): ninguna tabla de producción sin pájaro, ninguna con dos, y
+      # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
       # de producción commiteado, así que su alarma es tan fresca como ese volcado. No
       # necesita node_modules, por eso corre aunque la instalación falle.

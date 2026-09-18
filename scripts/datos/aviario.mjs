@@ -7,7 +7,7 @@
  * V1 el 2026-09-12) y la lista de `generar.mjs` (puesta al día a V2 el 2026-09-15). No
  * coincidían entre sí ni con producción: 39 de las 60 tablas reales no tenían pájaro en
  * GOBIERNO, y 21 salían «sin módulo» en el diccionario. La regla «si nace una tabla nueva,
- * nace con dueño o no nace» existía, pero nada avisaba cuando se rompía (ADR-0103).
+ * nace con dueño o no nace» existía, pero nada avisaba cuando se rompía (ADR-0104).
  *
  * QUÉ PROMETE. Cada tabla o vista de `retail` en producción tiene exactamente un pájaro.
  * `pnpm datos:aviario` lo comprueba contra el volcado de producción
@@ -34,7 +34,7 @@ export const AVIARIO = [
     tablas: ["colaboradores", "ubicaciones"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
-      "productos", "variantes", "categorias", "producto_fotos", "historial_producto_cambios",
+      "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
       "codigos_barras", "codigos_correlativos",
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",
@@ -73,7 +73,8 @@ export const AVIARIO = [
  *   sinPajaro — existe y no tiene pájaro                  → rompe la regla
  *   dobles    — aparece más de una vez en el aviario       → rompe la regla
  *   ausentes  — está en el aviario y no en la base         → solo aviso: puede ser SQL que
- *               todavía no se pegó en producción, o una tabla que ya no existe y sobra acá
+ *               todavía no se pegó en producción, un volcado viejo que todavía no la
+ *               conoce, o una tabla que ya no existe y sobra acá
  */
 export function revisar(nombresReales, aviario = AVIARIO) {
   const reales = new Set(nombresReales);
@@ -152,8 +153,9 @@ export function aviarioMd(nombresReales, aviario = AVIARIO) {
     for (const t of sinPajaro) L.push(`- ${codigo(t)}`);
   }
   if (ausentes.length) {
-    L.push("", "## En el aviario, pero no en producción", "",
-      "Si es SQL que todavía no se pegó allá, es normal. Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.", "");
+    L.push("", "## En el aviario, pero no en el volcado de producción", "",
+      "Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:",
+      "`COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.", "");
     for (const t of ausentes) L.push(`- ${codigo(t)}`);
   }
   return L.join("\n") + "\n";
@@ -188,7 +190,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
 
   console.log(`\n  Aviario — ${reales.length} tablas y vistas de producción, ${AVIARIO.length} pájaros`);
-  if (ausentes.length) console.log(`  · ${ausentes.length} en el aviario pero no en producción (aviso, no error): ${ausentes.join(", ")}`);
+  if (ausentes.length) console.log(`  · ${ausentes.length} en el aviario pero no en el volcado de producción (aviso, no error: SQL sin pegar o volcado viejo): ${ausentes.join(", ")}`);
   if (errores.length) {
     for (const e of errores) console.error(`  ✗ ${e}`);
     console.error("");

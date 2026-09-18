@@ -86,7 +86,7 @@ contra el esquema V1 el 2026-09-12, el mismo día del corte a V2, y nadie la mov
 reales no tenían pájaro. Mientras tanto, el generador del diccionario llevaba su propia
 lista, puesta al día a V2 el 2026-09-15, que tampoco coincidía con esta. Dos listas
 escritas a mano que responden la misma pregunta terminan diciendo cosas distintas; una
-sola, revisada por una máquina, no puede (ADR-0103).
+sola, revisada por una máquina, no puede (ADR-0104).
 
 **La regla, ahora con alarma: si nace una tabla nueva, nace con dueño o no nace.**
 `pnpm datos:aviario` falla si una tabla de producción no tiene pájaro, si una tabla
@@ -493,4 +493,4 @@ que un Integrante no), D-14 (dónde manda un Líder), D-19 (alarma automática d
 diferencias), D-22 (el historial no se borra, y su única salida de emergencia),
 D-26 (el Integrante opera el almacén de su sede), D-37 (alarma de comprobantes
 trabados). El texto completo está en `DECISIONES-2026-09-12.md`, que manda sobre esto.
-Qué pájaro es cada tabla, y por qué es una sola lista revisada en CI: ADR-0103.*
+Qué pájaro es cada tabla, y por qué es una sola lista revisada en CI: ADR-0104.*

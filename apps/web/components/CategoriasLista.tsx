@@ -7,14 +7,21 @@ import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
-import { FAMILIAS, type Familia } from "@cayla-retail/shared";
+import type { Familia } from "@cayla-retail/shared";
 
 /**
- * Las 6 familias fijas, cada una con sus categorías (BLU, POL, JEA…).
- * Portado de V1 (ADR-0095) — a diferencia de V1, en V2 `categorias.nombre`
- * es único GLOBAL (no por familia): dos familias no pueden tener una
- * categoría con el mismo nombre, a propósito, para no repetir el error que
- * V1 sí permitía.
+ * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
+ * categorías (BLU, POL, JEA…). Portado de V1 (ADR-0095) — a diferencia de
+ * V1, en V2 `categorias.nombre` es único GLOBAL (no por familia): dos
+ * familias no pueden tener una categoría con el mismo nombre, a propósito,
+ * para no repetir el error que V1 sí permitía.
+ *
+ * FAMILIA YA NO ES UNA LISTA FIJA (2026-09-18, `retail.familias`). Antes
+ * eran 6 valores hardcodeados en `packages/shared` (CHECK constraint en la
+ * base); ahora es una tabla que un Líder edita desde `/productos/familias`
+ * — el prop `familias` de este componente es esa lista (solo activas). Sin
+ * proponer/aprobar como colores/tallas: agregar una familia es una decisión
+ * de marca, no operativa (ver 20260918010000_familias_tabla_propia.sql).
  *
  * ALTA, EDICIÓN Y DESACTIVAR/REACTIVAR (2026-09-15). El prefijo queda fijo
  * apenas hay un producto con esa categoría (es la letra del código corto de
@@ -56,23 +63,24 @@ type Categoria = {
   notas: string | null;
 };
 
-const ETIQUETA_FAMILIA: Record<Familia, string> = {
-  indumentaria: "Indumentaria",
-  calzado: "Calzado",
-  // Contenido validado con Felipe el 2026-09-17 contra Ralph Lauren/Zara
-  // (ambas usan "Accesorios y Complementos" fusionado) — el valor guardado
-  // sigue siendo 'accesorios', solo cambia lo que ve la persona.
-  accesorios: "Accesorios y Complementos",
-  bisuteria: "Bisutería",
-  belleza: "Belleza",
-  papeleria: "Papelería",
-};
+// El nombre visible de cada familia (ej. "Accesorios y Complementos") ya no
+// se hardcodea acá: viene de `retail.familias` (20260918010000) — un Líder
+// la edita desde /productos/familias sin tocar código. `familias` es el
+// prop con esa lista (solo activas: una familia no se puede desactivar con
+// categorías activas colgando, así que siempre hay una fila para todo `f`).
+type FamiliaOpcion = { codigo: string; nombre: string };
 
-const OPCIONES_FAMILIA = FAMILIAS.map((f) => ({ valor: f, texto: ETIQUETA_FAMILIA[f] }));
 const SIN_PADRE = "__ninguna__";
 
 type Borrador = { id: string | null; nombre: string; prefijo: string; familia: Familia; notas: string; categoriaPadreId: string | null };
-const VACIO: Borrador = { id: null, nombre: "", prefijo: "", familia: "indumentaria", notas: "", categoriaPadreId: null };
+const borradorVacio = (familias: FamiliaOpcion[]): Borrador => ({
+  id: null,
+  nombre: "",
+  prefijo: "",
+  familia: familias[0]?.codigo ?? "",
+  notas: "",
+  categoriaPadreId: null,
+});
 
 /**
  * Un solo trazo por familia, mismo lenguaje que `IconoPercha` en
@@ -155,14 +163,18 @@ export function CategoriasLista({
   puedeEditar,
   universo,
   ejesPorCategoria: ejesPorCategoriaInicial,
+  familias,
   productosPorCategoria,
 }: {
   categoriasIniciales: Categoria[];
   puedeEditar: boolean;
   universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
   ejesPorCategoria: EjesPorCategoria;
+  familias: FamiliaOpcion[];
   productosPorCategoria: Record<string, number>;
 }) {
+  const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
+  const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
   const [categorias, setCategorias] = useState(categoriasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -358,7 +370,7 @@ export function CategoriasLista({
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => abrirBorrador(VACIO)}
+            onClick={() => abrirBorrador(borradorVacio(familias))}
             className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
             + Agregar categoría
@@ -366,14 +378,14 @@ export function CategoriasLista({
         </div>
       )}
 
-      {FAMILIAS.map((f) => {
+      {familias.map(({ codigo: f }) => {
         const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c));
         return (
           <section key={f} className="card-cayla p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-tinta/70">
                 <IconoFamilia familia={f} className="h-[18px] w-[18px]" />
-                <p className="text-sm font-medium text-tinta">{ETIQUETA_FAMILIA[f]}</p>
+                <p className="text-sm font-medium text-tinta">{etiquetaFamilia(f)}</p>
               </div>
               <p className="text-[11px] text-tinta/65">
                 {raicesDeLaFamilia.length} {raicesDeLaFamilia.length === 1 ? "categoría" : "categorías"}
@@ -402,6 +414,7 @@ export function CategoriasLista({
         <VistaRapidaCategoria
           categoria={viendo}
           familia={viendo.familia}
+          nombreFamilia={viendo.familia ? etiquetaFamilia(viendo.familia) : null}
           productos={productosPorCategoria[viendo.id] ?? 0}
           hijas={hijasDe(viendo.id)}
           padre={viendo.categoriaPadreId ? categorias.find((c) => c.id === viendo.categoriaPadreId) ?? null : null}
@@ -461,14 +474,14 @@ export function CategoriasLista({
               {borrador.categoriaPadreId ? (
                 <div>
                   <p className="label-cayla text-[11px] text-tinta/65">Familia</p>
-                  <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{ETIQUETA_FAMILIA[borrador.familia]} (heredada)</p>
+                  <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{etiquetaFamilia(borrador.familia)} (heredada)</p>
                 </div>
               ) : (
                 <CampoSelect
                   etiqueta="Familia"
                   valor={borrador.familia}
                   onValor={(v) => setBorrador({ ...borrador, familia: v })}
-                  opciones={OPCIONES_FAMILIA}
+                  opciones={opcionesFamilia}
                 />
               )}
               <CampoTexto
@@ -723,6 +736,7 @@ function TarjetaCategoria({
 function VistaRapidaCategoria({
   categoria,
   familia,
+  nombreFamilia,
   productos,
   hijas,
   padre,
@@ -736,6 +750,8 @@ function VistaRapidaCategoria({
 }: {
   categoria: Categoria;
   familia: Familia | null;
+  /** Nombre visible de la familia, ya resuelto contra `retail.familias` por quien llama. */
+  nombreFamilia: string | null;
   productos: number;
   hijas: Categoria[];
   padre: Categoria | null;
@@ -748,7 +764,7 @@ function VistaRapidaCategoria({
   onEditar: () => void;
 }) {
   return (
-    <Modal titulo={categoria.nombre} subtitulo={familia ? ETIQUETA_FAMILIA[familia] : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-sand/60 text-tinta/60">

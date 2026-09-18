@@ -196,6 +196,15 @@ const HUELLAS: Huella[] = [
       "No tienes permiso para hacer eso en esta ubicación. Si estás cubriendo otra tienda, pídeselo a un Líder.",
   },
   {
+    // 20260918010000_familias_tabla_propia.sql — antes de esta huella, un FK
+    // roto acá caía en el genérico de abajo ("recarga la pantalla"), que no
+    // dice qué elegir. Tiene que ir ANTES del genérico: el mensaje de
+    // Postgres para un FK siempre incluye también "violates foreign key
+    // constraint", y HUELLAS.find() se queda con la primera que calce.
+    marca: "categorias_familia_fk",
+    frase: "Esa familia ya no existe o fue desactivada. Recarga la lista y elige otra.",
+  },
+  {
     marca: "violates foreign key constraint",
     frase:
       "Falta un dato al que esto se engancha (una prenda, una ubicación o un proveedor que ya no existe). Recarga la pantalla y vuelve a intentar.",
@@ -245,6 +254,13 @@ const HUELLAS: Huella[] = [
     // compartir prefijo, o el código de la prenda dejaría de ser único.
     marca: "categorias_prefijo_unico",
     frase: "Ese prefijo ya lo usa otra categoría. Prueba con otras 3 letras.",
+  },
+  {
+    // 20260918010000_familias_tabla_propia.sql — mismo candado que
+    // colores_clave_unica: "Belleza" y "belleza " son la misma familia para
+    // fn_clave_texto, aunque el texto no calce byte a byte.
+    marca: "familias_nombre_unico",
+    frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
   },
 ];
 

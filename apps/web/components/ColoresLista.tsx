@@ -66,6 +66,30 @@ function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
 }
 
+// Agrupa la grilla por familia de color (Neutro, Azul, Rojo...) en vez de una
+// sola fila continua ordenada por `orden` global — pedido de Felipe
+// (2026-09-18): con 34+ colores, un número global deja un color nuevo
+// "colgando" al final en vez de junto a sus parecidos, y la última fila
+// queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
+// propia fila — la de "Estampado" con 3 colores se ve completa, no como el
+// resto de una grilla de 5 que faltó llenar. `orden` sigue ordenando DENTRO
+// de cada sección (`ordenar()` ya corrió antes de llamar a esto).
+function gruposPorFamilia(lista: Color[]) {
+  const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
+    familia: f.valor,
+    texto: f.texto,
+    colores: lista.filter((c) => c.familiaColor === f.valor),
+  })).filter((g) => g.colores.length > 0);
+
+  // Defensivo: un color sin familia asignada (dato viejo, o el select vacío
+  // en algún camino que no la exige) no debe desaparecer de la pantalla.
+  const sinFamilia = lista.filter((c) => !FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor));
+  if (sinFamilia.length > 0) {
+    grupos.push({ familia: "sin-familia", texto: "Sin familia", colores: sinFamilia });
+  }
+  return grupos;
+}
+
 // El cuadradito de la grilla: la muestra real si existe, si no el hex de
 // siempre. Mismo tamaño en los dos casos para que la grilla no salte.
 // `unoptimized` como en PerfilModal.tsx: viene del bucket de Storage, no de
@@ -293,58 +317,59 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {activos.map((c) => (
-          <div
-            key={c.codigo}
-            className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-tinta">{c.nombre}</p>
-              {c.estado === "pendiente" && (
-                <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-              )}
-            </div>
-            <div className="flex justify-between text-[11px] text-tinta/65">
-              <span className="font-mono">{c.codigo}</span>
-              <span>
-                {c.familiaColor ?? "—"}
-                {c.tipo !== "solido" ? ` · ${ETIQUETA_TIPO[c.tipo]}` : ""}
-              </span>
-            </div>
-            {puedeEditar && (
-              <div className="flex gap-2">
-                {c.estado === "pendiente" && (
-                  <Boton
-                    peso="primario"
-                    className="flex-1 px-2.5 py-1.5 text-[11px]"
-                    cargando={aprobandoCodigo === c.codigo}
-                    onClick={() => aprobar(c)}
-                  >
-                    Aprobar
-                  </Boton>
+      {gruposPorFamilia(activos).map(({ familia, texto, colores: coloresDeLaFamilia }) => (
+        <section key={familia} className="space-y-3">
+          <p className="label-cayla text-[11px] text-tinta/65">
+            {texto} <span className="text-tinta/40">· {coloresDeLaFamilia.length}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {coloresDeLaFamilia.map((c) => (
+              <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+                <Muestra url={c.imagenMuestraUrl} hex={c.hex} />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-tinta">{c.nombre}</p>
+                  {c.estado === "pendiente" && (
+                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+                  )}
+                </div>
+                <div className="flex justify-between text-[11px] text-tinta/65">
+                  <span className="font-mono">{c.codigo}</span>
+                  <span>{c.tipo !== "solido" ? ETIQUETA_TIPO[c.tipo] : ""}</span>
+                </div>
+                {puedeEditar && (
+                  <div className="flex gap-2">
+                    {c.estado === "pendiente" && (
+                      <Boton
+                        peso="primario"
+                        className="flex-1 px-2.5 py-1.5 text-[11px]"
+                        cargando={aprobandoCodigo === c.codigo}
+                        onClick={() => aprobar(c)}
+                      >
+                        Aprobar
+                      </Boton>
+                    )}
+                    {c.estado === "pendiente" && (
+                      <Boton
+                        peso="discreto"
+                        className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
+                        onClick={() => {
+                          setRechazandoAbierto(c.codigo);
+                          setMotivoRechazo("");
+                        }}
+                      >
+                        Rechazar
+                      </Boton>
+                    )}
+                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
+                      Editar
+                    </Boton>
+                  </div>
                 )}
-                {c.estado === "pendiente" && (
-                  <Boton
-                    peso="discreto"
-                    className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                    onClick={() => {
-                      setRechazandoAbierto(c.codigo);
-                      setMotivoRechazo("");
-                    }}
-                  >
-                    Rechazar
-                  </Boton>
-                )}
-                <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" onClick={() => setEditando(c)}>
-                  Editar
-                </Boton>
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
 
       {agregando && (
         <Modal

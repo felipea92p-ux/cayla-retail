@@ -1,7 +1,6 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
-import { FAMILIAS } from "@cayla-retail/shared";
 
 // POST /api/productos/categorias → agrega una categoría dentro de una de
 // las 6 familias fijas. También sirve para agregar una SUBCATEGORÍA
@@ -37,13 +36,16 @@ export async function POST(request: Request) {
   if (!nombre) {
     return Response.json({ error: "Falta el nombre de la categoría." }, { status: 400 });
   }
-  if (!FAMILIAS.includes(familia as (typeof FAMILIAS)[number])) {
-    return Response.json({ error: "Elige una de las 6 familias." }, { status: 400 });
+  if (!familia) {
+    return Response.json({ error: "Elige una familia." }, { status: 400 });
   }
   if (!/^[A-Z]{3}$/.test(prefijo)) {
     return Response.json({ error: "El prefijo tiene que ser exactamente 3 letras (ej. BLU)." }, { status: 400 });
   }
 
+  // No revalida `familia` contra una lista acá: `categorias_familia_fk`
+  // (20260918010000) ya rechaza un código que no exista en retail.familias,
+  // con mensaje traducido por error-escritura.ts — una sola fuente de verdad.
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categorias")
@@ -87,8 +89,8 @@ export async function PUT(request: Request) {
   if (!nombre) {
     return Response.json({ error: "Falta el nombre de la categoría." }, { status: 400 });
   }
-  if (!FAMILIAS.includes(familia as (typeof FAMILIAS)[number])) {
-    return Response.json({ error: "Elige una de las 6 familias." }, { status: 400 });
+  if (!familia) {
+    return Response.json({ error: "Elige una familia." }, { status: 400 });
   }
   if (!/^[A-Z]{3}$/.test(prefijo)) {
     return Response.json({ error: "El prefijo tiene que ser exactamente 3 letras (ej. BLU)." }, { status: 400 });
