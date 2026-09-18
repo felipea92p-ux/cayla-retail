@@ -1,1 +1,857 @@
-[{"schemaname":"retail","tablename":"activos_fijos","policyname":"activos_fijos_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"activos_fijos","policyname":"activos_fijos_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"caja_movimientos","policyname":"caja_movimientos_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))","with_check":null},{"schemaname":"retail","tablename":"cajas","policyname":"cajas_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"cambios","policyname":"cambios_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"categorias","policyname":"categorias_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"categorias","policyname":"categorias_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"clientes","policyname":"clientes_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"clientes","policyname":"clientes_write_autenticado","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"(auth.role() = 'authenticated'::text)"},{"schemaname":"retail","tablename":"codigos_barras","policyname":"codigos_barras_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"codigos_barras","policyname":"codigos_barras_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"codigos_correlativos","policyname":"codigos_correlativos_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"codigos_descuento","policyname":"codigos_descuento_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"codigos_descuento","policyname":"codigos_descuento_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"codigos_descuento","policyname":"codigos_descuento_update","cmd":"UPDATE","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"colaboradores","policyname":"colaboradores_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_es_lider()","with_check":null},{"schemaname":"retail","tablename":"colores","policyname":"colores_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"colores","policyname":"colores_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"compra_adjuntos","policyname":"compra_adjuntos_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))","with_check":null},{"schemaname":"retail","tablename":"compra_items","policyname":"compra_items_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))","with_check":null},{"schemaname":"retail","tablename":"compra_pagos","policyname":"compra_pagos_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))","with_check":null},{"schemaname":"retail","tablename":"compras","policyname":"compras_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_destino_id)","with_check":null},{"schemaname":"retail","tablename":"comprobantes","policyname":"comprobantes_select","cmd":"SELECT","roles":"{public}","qual":"(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))","with_check":null},{"schemaname":"retail","tablename":"configuracion_empresa","policyname":"configuracion_empresa_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"conteo_items","policyname":"conteo_items_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.conteos c\n  WHERE ((c.id = conteo_items.conteo_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))","with_check":null},{"schemaname":"retail","tablename":"conteos","policyname":"conteos_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"conteos","policyname":"conteos_write","cmd":"ALL","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":"retail.fn_puede_operar_ubicacion(ubicacion_id)"},{"schemaname":"retail","tablename":"devolucion_items","policyname":"devolucion_items_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))","with_check":null},{"schemaname":"retail","tablename":"devolucion_items","policyname":"devolucion_items_write","cmd":"ALL","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))","with_check":"(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))"},{"schemaname":"retail","tablename":"devoluciones","policyname":"devoluciones_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"devoluciones","policyname":"devoluciones_write","cmd":"ALL","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":"retail.fn_puede_operar_ubicacion(ubicacion_id)"},{"schemaname":"retail","tablename":"lotes","policyname":"lotes_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"retail.fn_puede_operar_ubicacion(ubicacion_id)"},{"schemaname":"retail","tablename":"lotes","policyname":"lotes_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"movimientos","policyname":"movimientos_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"retail.fn_puede_operar_ubicacion(ubicacion_id)"},{"schemaname":"retail","tablename":"movimientos","policyname":"movimientos_select","cmd":"SELECT","roles":"{public}","qual":"(retail.fn_puede_operar_ubicacion(ubicacion_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))","with_check":null},{"schemaname":"retail","tablename":"productos","policyname":"productos_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"productos","policyname":"productos_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"proformas","policyname":"proformas_select","cmd":"SELECT","roles":"{public}","qual":"(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))","with_check":null},{"schemaname":"retail","tablename":"proveedores","policyname":"proveedores_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"proveedores","policyname":"proveedores_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"series_comprobantes","policyname":"series_comprobantes_select","cmd":"SELECT","roles":"{public}","qual":"(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))","with_check":null},{"schemaname":"retail","tablename":"stock","policyname":"stock_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null},{"schemaname":"retail","tablename":"sububicaciones","policyname":"sububicaciones_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"sububicaciones","policyname":"sububicaciones_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"transferencia_items","policyname":"transferencia_items_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id))))"},{"schemaname":"retail","tablename":"transferencia_items","policyname":"transferencia_items_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))","with_check":null},{"schemaname":"retail","tablename":"transferencias","policyname":"transferencias_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"retail.fn_puede_operar_ubicacion(ubicacion_origen_id)"},{"schemaname":"retail","tablename":"transferencias","policyname":"transferencias_select","cmd":"SELECT","roles":"{public}","qual":"(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))","with_check":null},{"schemaname":"retail","tablename":"ubicacion_datos_fiscales","policyname":"ubicacion_datos_fiscales_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"ubicaciones","policyname":"ubicaciones_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"ubicaciones","policyname":"ubicaciones_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"variantes","policyname":"variantes_select","cmd":"SELECT","roles":"{public}","qual":"(auth.role() = 'authenticated'::text)","with_check":null},{"schemaname":"retail","tablename":"variantes","policyname":"variantes_write_lider","cmd":"ALL","roles":"{public}","qual":"retail.fn_es_lider()","with_check":"retail.fn_es_lider()"},{"schemaname":"retail","tablename":"venta_items","policyname":"venta_items_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))"},{"schemaname":"retail","tablename":"venta_items","policyname":"venta_items_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))","with_check":null},{"schemaname":"retail","tablename":"venta_pagos","policyname":"venta_pagos_select","cmd":"SELECT","roles":"{public}","qual":"(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_pagos.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))","with_check":null},{"schemaname":"retail","tablename":"ventas","policyname":"ventas_insert","cmd":"INSERT","roles":"{public}","qual":null,"with_check":"retail.fn_puede_operar_ubicacion(ubicacion_id)"},{"schemaname":"retail","tablename":"ventas","policyname":"ventas_select","cmd":"SELECT","roles":"{public}","qual":"retail.fn_puede_operar_ubicacion(ubicacion_id)","with_check":null}]
+[
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "activos_fijos",
+  "policyname": "activos_fijos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "activos_fijos",
+  "policyname": "activos_fijos_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "caja_movimientos",
+  "policyname": "caja_movimientos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "cajas",
+  "policyname": "cajas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "cambios",
+  "policyname": "cambios_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "categoria_patrones",
+  "policyname": "categoria_patrones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "categoria_patrones",
+  "policyname": "categoria_patrones_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "categoria_tallas",
+  "policyname": "categoria_tallas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "categoria_tallas",
+  "policyname": "categoria_tallas_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "categoria_tejidos",
+  "policyname": "categoria_tejidos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "categoria_tejidos",
+  "policyname": "categoria_tejidos_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "categorias",
+  "policyname": "categorias_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "categorias",
+  "policyname": "categorias_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "clientes",
+  "policyname": "clientes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "clientes",
+  "policyname": "clientes_write_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "codigos_barras",
+  "policyname": "codigos_barras_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "codigos_barras",
+  "policyname": "codigos_barras_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "codigos_correlativos",
+  "policyname": "codigos_correlativos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "codigos_descuento",
+  "policyname": "codigos_descuento_insert",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "codigos_descuento",
+  "policyname": "codigos_descuento_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "codigos_descuento",
+  "policyname": "codigos_descuento_update",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "colaboradores",
+  "policyname": "colaboradores_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "colores",
+  "policyname": "colores_insert_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "colores",
+  "policyname": "colores_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "colores",
+  "policyname": "colores_update_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "tablename": "compra_adjuntos",
+  "policyname": "compra_adjuntos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "tablename": "compra_items",
+  "policyname": "compra_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "tablename": "compra_pagos",
+  "policyname": "compra_pagos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_destino_id)",
+  "roles": "{public}",
+  "tablename": "compras",
+  "policyname": "compras_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "roles": "{public}",
+  "tablename": "comprobantes",
+  "policyname": "comprobantes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "configuracion_empresa",
+  "policyname": "configuracion_empresa_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.conteos c\n  WHERE ((c.id = conteo_items.conteo_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "conteo_items",
+  "policyname": "conteo_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "conteos",
+  "policyname": "conteos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "conteos",
+  "policyname": "conteos_write",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.movimientos m\n  WHERE ((m.id = costo_historial.movimiento_id) AND retail.fn_puede_operar_ubicacion(m.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "costo_historial",
+  "policyname": "costo_historial_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "devolucion_items",
+  "policyname": "devolucion_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "devolucion_items",
+  "policyname": "devolucion_items_write",
+  "schemaname": "retail",
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "devoluciones",
+  "policyname": "devoluciones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "devoluciones",
+  "policyname": "devoluciones_write",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "etiquetas",
+  "policyname": "etiquetas_insert_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "etiquetas",
+  "policyname": "etiquetas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "etiquetas",
+  "policyname": "etiquetas_update_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "gastos",
+  "policyname": "gastos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "insumo_lotes",
+  "policyname": "insumo_lotes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "insumos",
+  "policyname": "insumos_insert_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "insumos",
+  "policyname": "insumos_select_autenticado",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "insumos",
+  "policyname": "insumos_update_lider",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "lotes",
+  "policyname": "lotes_insert",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "lotes",
+  "policyname": "lotes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "movimientos",
+  "policyname": "movimientos_insert",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "roles": "{public}",
+  "tablename": "movimientos",
+  "policyname": "movimientos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "movimientos_insumo",
+  "policyname": "movimientos_insumo_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "patrones",
+  "policyname": "patrones_insert_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "patrones",
+  "policyname": "patrones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "patrones",
+  "policyname": "patrones_update_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "prendas_danadas",
+  "policyname": "prendas_danadas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.producciones p\n  WHERE ((p.id = produccion_lineas.produccion_id) AND retail.fn_puede_operar_ubicacion(p.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "produccion_lineas",
+  "policyname": "produccion_lineas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "producciones",
+  "policyname": "producciones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "producto_fotos",
+  "policyname": "producto_fotos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "producto_fotos",
+  "policyname": "producto_fotos_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "productos",
+  "policyname": "productos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "productos",
+  "policyname": "productos_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "roles": "{public}",
+  "tablename": "proformas",
+  "policyname": "proformas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "proveedores",
+  "policyname": "proveedores_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "proveedores",
+  "policyname": "proveedores_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "roles": "{public}",
+  "tablename": "series_comprobantes",
+  "policyname": "series_comprobantes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "stock",
+  "policyname": "stock_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "sububicaciones",
+  "policyname": "sububicaciones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "sububicaciones",
+  "policyname": "sububicaciones_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "tallas",
+  "policyname": "tallas_insert_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "tallas",
+  "policyname": "tallas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "tallas",
+  "policyname": "tallas_update_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "tejidos",
+  "policyname": "tejidos_insert_autenticado",
+  "schemaname": "retail",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "tejidos",
+  "policyname": "tejidos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "tejidos",
+  "policyname": "tejidos_update_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "transferencia_items",
+  "policyname": "transferencia_items_insert",
+  "schemaname": "retail",
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id))))"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))",
+  "roles": "{public}",
+  "tablename": "transferencia_items",
+  "policyname": "transferencia_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))",
+  "roles": "{public}",
+  "tablename": "transferencia_recepciones",
+  "policyname": "transferencia_recepciones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "transferencias",
+  "policyname": "transferencias_insert",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_origen_id)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "roles": "{public}",
+  "tablename": "transferencias",
+  "policyname": "transferencias_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "roles": "{public}",
+  "tablename": "transferencias",
+  "policyname": "transferencias_update",
+  "schemaname": "retail",
+  "with_check": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "ubicacion_datos_fiscales",
+  "policyname": "ubicacion_datos_fiscales_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "ubicaciones",
+  "policyname": "ubicaciones_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "ubicaciones",
+  "policyname": "ubicaciones_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "variante_etiquetas",
+  "policyname": "variante_etiquetas_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "variante_etiquetas",
+  "policyname": "variante_etiquetas_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "tablename": "variantes",
+  "policyname": "variantes_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "tablename": "variantes",
+  "policyname": "variantes_write_lider",
+  "schemaname": "retail",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "venta_anulacion_items",
+  "policyname": "venta_anulacion_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "venta_anulacion_items",
+  "policyname": "venta_anulacion_items_write",
+  "schemaname": "retail",
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))"
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "venta_items",
+  "policyname": "venta_items_insert",
+  "schemaname": "retail",
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "venta_items",
+  "policyname": "venta_items_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_pagos.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "roles": "{public}",
+  "tablename": "venta_pagos",
+  "policyname": "venta_pagos_select",
+  "schemaname": "retail",
+  "with_check": null
+ },
+ {
+  "cmd": "INSERT",
+  "qual": null,
+  "roles": "{public}",
+  "tablename": "ventas",
+  "policyname": "ventas_insert",
+  "schemaname": "retail",
+  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+ },
+ {
+  "cmd": "SELECT",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "tablename": "ventas",
+  "policyname": "ventas_select",
+  "schemaname": "retail",
+  "with_check": null
+ }
+]
