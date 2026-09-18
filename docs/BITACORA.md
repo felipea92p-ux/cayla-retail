@@ -7228,4 +7228,17 @@ Un bug propio encontrado verificando en navegador con datos reales (no en tsc/li
 filtro de "ventas por hora" mostraba 14 barras vacías (10h a 23h) en vez de cortar en la
 hora actual — `Math.max(horaActual, 23)` siempre daba 23. Corregido y reverificado con
 `felipe@cayla.local` contra la caja real de Tienda Lima (S/389.60 vendidos, 2 ventas + 2
-movimientos). Punto de Venta queda para el siguiente paso del mismo hilo.
+movimientos).
+
+Segunda parte del mismo hilo: extender la piel visual a Punto de Venta. Sorpresa buena —
+`PuntoDeVentaCatalogo.tsx`/`PuntoDeVentaTicket.tsx` ya cumplían casi todo lo pedido (radio
+y hover de las tarjetas de producto, serif en el total, botón "Cobrar" ya con el mismo
+`bg-tinta`/hover `rojo` que "Cerrar caja") — nada de eso se tocó, por no reinventar lo que
+ya estaba bien. Los dos cambios reales: chips de categoría y el toggle "Solo con stock" de
+`rounded-lg` a `rounded-md` (el radio real de la "pastilla" del selector de ubicación, no
+el que se había copiado a ojo); y el selector de método de pago + el ícono de cada pago ya
+puesto ahora usan los mismos 3 colores categóricos que la dona de Caja (`COLOR_METODO` en
+`PuntoDeVentaTicket.tsx`). Verificado armando una venta real con pago mixto
+efectivo+tarjeta+yape — cada botón se pinta con su color y el checklist de "Cubierto"
+sigue funcionando igual que antes. `tsc`/`lint` en verde, sin tests nuevos (cambio
+puramente visual, sin lógica). PR pendiente de abrir.

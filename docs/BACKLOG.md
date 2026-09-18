@@ -50,10 +50,15 @@ ADR-0101).
       (`20260918080000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
       (se configura por UPDATE directo). Aplicada en local, **pendiente producción con
       ok de Felipe**.
-- [ ] **Punto de Venta: extender la misma piel visual** — tarjetas de producto, pills
-      de categoría, panel de ticket, selector de método de pago con los mismos 3
-      colores categóricos, botón de cobro con el mismo estilo que "Cerrar caja". Sin
-      lógica nueva. Siguiente paso del mismo hilo, todavía no empezado.
+- [x] **Punto de Venta: extendida la misma piel visual** — la mayoría YA calzaba
+      (tarjetas de producto ya usaban `alza-cayla`+radio `xl`, total ya en serif,
+      botón "Cobrar" ya `bg-tinta`/hover `rojo` igual que "Cerrar caja" — no hizo
+      falta tocar nada de eso). Lo que sí cambió: chips de categoría y el toggle
+      "Solo con stock" pasan de `rounded-lg` a `rounded-md` (mismo radio que la
+      "pastilla" real del selector de ubicación, `campos.tsx`); el selector de
+      método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
+      se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
+      navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
 - [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
       maqueta, NO construido: no existe ningún rollup histórico de egresos por día
       (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes
