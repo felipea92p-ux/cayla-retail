@@ -2129,24 +2129,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       producción** (verificado 2026-09-16: `retail.listar_compras` ya acepta
       `p_cursor_creado_en`).
 
-- [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
-      eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
-      "Más filtros", tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
-      panel abierto solo), `/compras/nueva` (tipear "lino" en Producto, Enter en
-      el costo agrega línea, el resumen a la derecha se queda fijo al bajar y
-      en celular cae al final),
-      `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
-      la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
-      líneas con variante; las líneas sin talla/color se reparten en una curva de
-      tallas —filas color, columnas talla, chip de avance por línea y por factura—,
-      esto sí se vio renderizado con Playwright el 2026-09-14 en escritorio y 375 px;
-      barra fija con unidades y botón apagado si una línea
-      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (una sola
-      tabla en tres tramos —Vencidas en rojo, Vencen esta semana en ámbar, Más
-      adelante—, proveedor en la fila, "Pagar" en la fila abre el modal sin navegar;
-      la tarjeta "Vence esta semana" sale de `resumen_compras`). Si la barra fija de Recibir choca con las
-      pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
-      `RecepcionCompraFormV2.tsx`.
+- [x] **Rediseño de Compras (2026-09-14): verificado en navegador 2026-09-17 — encontró
+      y arregló un bug real de layout que `tsc`/`eslint` no podían ver (ADR-0098).**
+      `/compras/nueva` tenía Serie/Número/Fecha de emisión literalmente superpuestos
+      (texto ilegible) entre 1024 y 1279px — la franja donde el panel "Resumen" se
+      vuelve columna fija (`lg:` de Tailwind) pero la tarjeta del formulario todavía no
+      tiene ancho de sobra. Arreglado: Serie+Número+Fecha pasan a una sola fila de 3
+      columnas con `minmax(0,…)` (antes desbordaban su columna en vez de encogerse), y
+      el breakpoint del layout de 2 columnas (+ el `sticky` del Resumen, que quedó
+      huérfano al mover solo el primero) se corrió de `lg:` (1024px) a `xl:` (1280px) —
+      a 1024px la tarjeta del documento no tiene espacio real para tres campos cómodos,
+      sin importar cuánto se recorten. Verificado en 1024px, 1280px y 375px (móvil).
+      `/compras` (chips, tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
+      panel abierto solo), `/compras/nueva` (buscar "falda" en Producto, Enter en el
+      costo agrega línea nueva — confirmado), `/compras/por-pagar` ("Pagar" en la fila
+      abre modal sin navegar) y `/compras/recibir` (tocar una factura arma la guía,
+      curva de tallas con su propio scroll horizontal, sin desborde) — todo verificado.
+      `tsc`, `eslint` y 297 pruebas en verde. Detalle completo, incluido el mismo
+      defecto latente sin disparar todavía en `PLANTILLA_LINEAS` (líneas de factura) y
+      en `ProductoForm.tsx` (sesión de Catálogo, no tocado acá), en ADR-0098.
+      - [ ] **Sin probar en esta pasada:** "+ Sumar" (sumar otra factura del mismo
+            proveedor a la misma guía), "Todo llegó", y el caso "barra fija choca con
+            las pestañas móviles" en `/compras/recibir` (el número a ajustar, si pasa,
+            es `bottom-[calc(4.25rem+…)]` en `RecepcionCompraFormV2.tsx`).
+      - [ ] `PLANTILLA_LINEAS` (línea 36 de `CompraFormV2.tsx`) tiene el mismo patrón sin
+            `minmax(0,…)` que causó el bug de arriba — no se ha disparado porque sus
+            columnas fijas (24rem) son más anchas que el desborde que lo dispara, pero
+            sigue latente. Vale una pasada dedicada.
 
 - [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
       puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
