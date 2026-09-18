@@ -28,6 +28,119 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
+
+Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió
+explícito: "antes de implementar cualquier cosa, preguntas") — 4 decisiones: objetivo
+(negociar mejor + cuidar el flujo de caja + medir confiabilidad), cerrar huecos antes que
+métricas, secciones separadas para Taller/insumos vs. prenda terminada/compras, sí agregar
+plazo/rubro/forma de pago a la ficha. Al aplicar "cerrar huecos primero" salió una
+contradicción real con una decisión de Felipe de esa misma mañana ("devolver_proveedor no es
+prioridad") — se le mostró explícita, la revisó, y sí valía la pena ahora. Detalle completo,
+con verificación contra Postgres real (Felipe vs. Micaela, sede por sede), en ADR-0094.
+
+- [x] **`devolver_proveedor` deja de desaparecer** — entra a `cuarentena` igual que Dañado,
+      reusando `prendas_danadas`/`resolver_prenda_danada` con un cuarto estado
+      (`devuelta_proveedor`) en vez de un flujo gemelo.
+      `20260918070000_devolver_proveedor_entra_a_cuarentena.sql`. Verificado con
+      `psql`+`ROLLBACK`: entrada a cuarentena real, las dos validaciones (proveedor
+      obligatorio para este estado / prohibido para los otros) rechazan como corresponde,
+      resolución deja movimiento de salida + `proveedor_id` + `resuelto_por`/`resuelto_en`.
+- [x] **`proveedores` gana `rubro`/`plazo_credito_dias`/`forma_pago_preferida`** —
+      `20260918071000_proveedores_rubro_plazo_forma_pago.sql`. `rubro` a propósito sin
+      vocabulario cerrado (ver ADR-0094 para el porqué). `fn_proveedores()`,
+      `registrar_proveedor` y `actualizar_proveedor` extendidos y verificados.
+- [x] **Dos RPC de métricas, nunca sumadas: `fn_proveedor_metricas_compras` /
+      `fn_proveedor_metricas_insumos`** — `20260918072000_proveedor_metricas_compras_e_insumos.sql`.
+      **Repiten a mano el candado de sede de ADR-0075** (una función `security definer` se
+      salta cualquier policy de la tabla que lee, sin excepción) — la primera versión escrita
+      en esta sesión no lo tenía, se corrigió antes de la primera prueba, no después de
+      encontrarlo roto. Verificado: Felipe (líder) ve 2 facturas de "Textiles Andina SAC"
+      cruzando Taller/Lima (S/13,829.60 facturado, S/5,133.60 de saldo); Micaela (integrante,
+      Trujillo) ve todo en cero para el mismo proveedor.
+- [x] **D-46 (`docs/datos/DECISIONES-2026-09-12.md`) tenía el mismo problema que ya se había
+      encontrado en D-45**: la mitad "cuentas por pagar" ya estaba resuelta por ADR-0035
+      desde el 2026-09-12 y el documento nunca se actualizó. Corregido con cita cruzada. La
+      mitad IGV (crédito fiscal acumulado, 300 UIT) sigue genuinamente abierta.
+- [x] **Pantalla de detalle de proveedor** (`/compras/proveedores/[id]`, con las dos
+      secciones de métricas) — construida (`apps/web/lib/proveedores.ts`,
+      `ProveedoresPanel.tsx`, página nueva) y verificada de punta a punta en el navegador
+      real como Felipe (líder): números de "Textiles Andina SAC" coinciden con lo verificado
+      por `psql`, estados vacíos correctos para Insumos.
+- [x] **Bug real encontrado y corregido en esta misma pasada: `registrar_proveedor`/
+      `actualizar_proveedor` quedaron con DOS sobrecargas vivas** (la vieja de 3/4
+      parámetros + la nueva de 6/7) porque agregar parámetros al final con
+      `create or replace function` no reemplaza la función — a diferencia de un cambio de
+      `RETURNS` (que Postgres sí rechaza), esto no avisa solo. Mismo patrón que ya nombró
+      ADR-0009/0004 para otras funciones. Se manifestó como `500` al registrar un proveedor
+      real desde el formulario, aunque la prueba de `psql` con parámetros nombrados (que no
+      tiene esta ambigüedad) pasaba — encontrado recién al probar en navegador, no antes.
+      Corregido con `drop function` de las firmas viejas; verificado con `pg_proc` que
+      quedó una sola firma de cada una, y con un registro real end-to-end en el navegador.
+      Detalle en ADR-0094, sección "Segunda vuelta".
+- [x] **Rubro visible en la fila de la lista, sin entrar al detalle** — pedido de Felipe
+      el mismo día al ver la pantalla. `ProveedoresPanel.tsx`: se agrega junto al contacto
+      ("Jorge Ramos · Tela"), sin tocar el grid de columnas.
+- [x] **Los indicadores del detalle también en la lista, y solo para líder — corrección
+      angosta de D-27** (`20260918073000_proveedores_lista_indicadores_y_candado_sede.sql`).
+      `fn_proveedores()` suma `total_facturado`/`facturas_vencidas`/
+      `facturas_recibidas_completas`/`facturas_con_recepcion_pendiente`, todo `NULL` si
+      quien pregunta no es líder — el directorio (nombre/RUC/contacto/rubro/plazo/forma de
+      pago) sigue siendo para cualquiera. **Hallazgo que cambió el diagnóstico:**
+      `/compras/proveedores` ya era solo-líder desde el 2026-09-16
+      (`app/(app)/compras/layout.tsx` redirige a colaboradores) — D-27 nunca se actualizó
+      para decirlo. Lo genuinamente nuevo es el candado del lado de los datos (antes,
+      alguien podía llamar `fn_proveedores()` directo por API y seguir viendo saldo/
+      facturas). Se sacó un chequeo de rol redundante que se había escrito en
+      `[id]/page.tsx` (el layout ya lo hacía). D-27 corregido con la misma disciplina que
+      D-45/D-46. Detalle completo en ADR-0094, sección "Tercera vuelta".
+- [x] **Bug real #2, mismo día: `fn_proveedor_metricas_compras`/`_insumos` — "column
+      reference \"saldo\" is ambiguous"** al convertirlas a `plpgsql` para poder rechazar a
+      quien no es líder: Postgres declara cada columna de `RETURNS TABLE` como variable de
+      salida, y `saldo` (columna de salida) chocó con `compras.saldo` (columna de tabla).
+      `create or replace` no lo avisa al aplicar — se manifestó recién al abrir la
+      pantalla en el navegador. Corregido calificando cada columna con alias (`c.saldo`,
+      `il.fecha_ingreso`). Verificado de nuevo en el navegador, dos veces (líder y
+      colaboradora).
+- [x] **Fusionado con `main` (26 commits, 2026-09-18) — dos hallazgos reales en el
+      camino**, ninguno cosmético: (1) `aprobar_devolucion`/`resolver_prenda_danada`
+      también las había tocado otra sesión (Nota de Crédito automática; "Liquidada"
+      exige venta real) — la migración de `devolver_proveedor` se reconstruyó sobre
+      ese cuerpo real, no el viejo, para no revivir un backdoor de integridad ya
+      cerrado ni perder la Nota de Crédito. (2) `resolver_prenda_danada` quedó con
+      dos sobrecargas vivas (3 params de la otra sesión + 4 de esta) — mismo bug que
+      `registrar_proveedor`, cerrado igual con `drop function`. Migraciones
+      renombradas `20260918070000`-`073000` por choque de timestamp con 3 archivos
+      de `main`. `db reset`/typecheck/lint/297 tests en verde sobre el árbol
+      mezclado. Detalle completo en BITÁCORA 2026-09-18.
+- [ ] **Pegar las 4 migraciones en producción** — con el prefijo `retail.` en el SQL Editor
+      (CLAUDE.md) o vía MCP de Supabase. Ninguna toca datos existentes (solo columnas/
+      funciones nuevas), pero sigue siendo cambio de esquema en producción — confirmar con
+      Felipe antes, no autónomo. **Ojo: no son independientes** — `20260918070000`
+      redefine `aprobar_devolucion`/`resolver_prenda_danada` sobre el cuerpo que
+      trajeron `20260918050000` (Nota de Crédito) y `20260917195508`/`095000`
+      (Liquidada), que también tienen que estar aplicadas antes en producción, o
+      `create or replace` fallaría al no encontrar la firma que espera reemplazar.
+- [ ] **Sin pruebas automatizadas** para `devolver_proveedor`/las métricas nuevas — mismo
+      patrón de deuda que el resto de RPC de escritura del repo.
+- [ ] **Filtrar/agrupar proveedores por `rubro` en la lista** — el campo ya se guarda, se
+      lee y ya se ve por fila; falta el filtro/agrupación propiamente dicho. No construido a
+      propósito (fuera del alcance que pidió Felipe esta vez).
+- [ ] **Los 2 proveedores del seed tienen un RUC que no pasa el checksum de
+      `validarDocumento`** — el botón Guardar del modal de edición queda deshabilitado para
+      cualquier cambio a "Confecciones del Sur EIRL" o "Textiles Andina SAC" mientras el
+      campo RUC no se corrija a mano primero. Encontrado al verificar esta pasada en
+      navegador; es un problema de los datos de prueba del seed, no del código de esta
+      sesión — no se tocó.
+- [ ] **`docs/datos/modulos/09-compras-y-proveedores.md` describe una tabla `proveedores`
+      que no existe** (banco/cuenta_bancaria/categoría/marca/score/teléfono,
+      `productos.proveedor_id`) — verificado contra producción real que ninguna de esas
+      columnas existe, ni ahí ni en este repo. Mismo síntoma que ya tuvo el módulo 02
+      (doc describiendo V1/otra línea de migraciones). No reescrito en esta pasada — es su
+      propia tarea, no improvisada acá.
+
+---
+
 ## 🎯 Taxonomía de variante: tallas/tejidos/patrones/etiquetas (2026-09-17, ADR-0095)
 
 Worktree `cayla-taxonomia-design`. Vocabulario cerrado (propone/aprueba/rechaza, mismo

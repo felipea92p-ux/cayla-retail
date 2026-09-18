@@ -18,6 +18,8 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 ## Cerradas hoy
 
+| Felipe (Claude) | `claude/supplier-metrics-analysis-87a863` (worktree `cayla-invoices-module-review-451aa5`) | Proveedores: ficha ampliada (`rubro`/`plazo_credito_dias`/`forma_pago_preferida`), métricas de compras/insumos por sección solo-líder (corrección angosta de D-27), cierre de `devolver_proveedor` (ADR-0094, sin choque). Fusionado con `main` (26 commits) — dos sobrecargas duplicadas reales encontradas y cerradas en el camino (`resolver_prenda_danada`, y el propio `aprobar_devolucion`/`resolver_prenda_danada` reconstruidos sobre la versión real de Nota de Crédito automática y de "Liquidada exige venta"). Migraciones renombradas a `20260918070000`-`20260918073000` por choque de timestamp con 3 archivos de otras sesiones. `db reset`, typecheck, lint y 297 tests en verde sobre el árbol ya mezclado. PR [#117](https://github.com/felipea92p-ux/cayla-retail/pull/117) abierto, esperando merge desde GitHub. | 2026-09-18 |
+
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
 | Felipe (Claude) | `claude/etiquetas-ajustes-taller-galentine` | "Para liquidar" de 4 filas a 1 global (PR [#115](https://github.com/felipea92p-ux/cayla-retail/pull/115), fusionado) + vigencia conectada a `ProductoForm.tsx` + estilo visual (3 colores fijos, sin rojo por `MAX_ROJO_POR_PANTALLA`, migración `20260918060000`) + pantalla agrupada por color en vez de grilla plana. `db reset` completo + navegador verificados. | 2026-09-18 |

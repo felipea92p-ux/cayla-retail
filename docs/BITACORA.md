@@ -6561,6 +6561,94 @@ propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igua
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
 
+## 2026-09-17 (Proveedores: métricas, ficha ampliada, y devolver_proveedor deja de desaparecer)
+
+Felipe pidió más métricas de proveedor ("cuánto nos factura cada proveedor"). Antes de tocar
+nada se hizo protocolo de pregunta completo — Felipe lo pidió explícito ("antes de
+implementar cualquier cosa, preguntas") — con una vuelta extra de investigación en el medio:
+`docs/datos/modulos/09-compras-y-proveedores.md` y BITÁCORA 2026-09-05 describen una tabla
+`proveedores` con banco/cuenta_bancaria/categoría/marca/score/teléfono y
+`productos.proveedor_id` — verificado contra producción real (`vovjyyiafkxteijimpuy`) que
+NINGUNA de esas columnas existe, ni ahí ni en este repo. Esos documentos describen otra línea
+de migraciones (probablemente la de unificación/SINATRA), no esta. La realidad real: 1 sola
+fila en `proveedores` en producción, `compras`/`compra_items`/`compra_pagos` en 0 filas.
+
+Felipe respondió con 4 decisiones (objetivo = negociar mejor + cuidar caja + medir
+confiabilidad; cerrar huecos antes que métricas; secciones separadas para Taller/insumos vs.
+prenda terminada/compras; sí agregar plazo/rubro/forma de pago). Al aplicar "cerrar huecos
+primero" salió una contradicción real: horas antes, en otra sesión, Felipe había decidido que
+arreglar `devolver_proveedor` (una devolución con esa condición no deja rastro, mismo bug que
+tenía Dañado) NO era prioridad. Se le mostró la contradicción explícita, con la cita textual
+de BACKLOG — no se asumió una respuesta — y la revisó: con el contexto nuevo, sí valía la
+pena.
+
+Construido y verificado en LOCAL (`npx supabase db reset` limpio, `psql`+`ROLLBACK`, nunca
+contra producción): `devolver_proveedor` entra a `cuarentena` reusando `prendas_danadas` con
+un cuarto estado (`devuelta_proveedor`) en vez de un flujo gemelo — a quién se le devuelve lo
+elige a mano quien resuelve, porque no existe hoy ningún camino de datos que lo infiera solo
+(`devoluciones` cuelga de venta, nunca de compra). `proveedores` gana `rubro`/
+`plazo_credito_dias`/`forma_pago_preferida`. Dos RPC nuevas de métricas, nunca sumadas:
+`fn_proveedor_metricas_compras`/`fn_proveedor_metricas_insumos`. El hallazgo técnico más
+importante: la primera versión de las métricas de compras NO tenía el candado de sede que
+ADR-0075 (esa misma tarde) exige repetir a mano en cualquier función `security definer` nueva
+que lea `compras` — se corrigió antes de la primera prueba, no después de encontrarlo roto.
+Verificado con el proveedor real de seed "Textiles Andina SAC" (una factura en Taller, otra
+en Tienda Lima): Felipe (líder) ve las 2 combinadas; Micaela (integrante, Trujillo) ve todo en
+cero para el mismo proveedor. De paso, D-46 (`docs/datos/DECISIONES-2026-09-12.md`) tenía el
+mismo problema que ya se había encontrado en D-45 — la mitad "cuentas por pagar" ya estaba
+resuelta por ADR-0035 desde el 12-sep y el documento nunca se actualizó; corregido con cita
+cruzada, dejando explícito que la mitad IGV sigue genuinamente abierta.
+
+Detalle completo, con las citas de archivo:línea de cada pieza, en ADR-0094. Pantalla de
+detalle de proveedor (con las dos secciones de métricas) delegada a un agente en paralelo
+mientras se escribía esto — ver su resultado antes de dar el paso por cerrado del todo.
+Registrada en `docs/SESIONES-ACTIVAS.md` (tablero nuevo de hoy mismo, después de que 6
+colisiones de ADR en un solo día lo justificaran) — ADR-0094 es el primer número libre
+confirmado al momento de escribir esto, pero con la actividad de hoy podría necesitar
+renumerarse al fusionar, como ya les pasó a varias sesiones más.
+
+**Corrección (mismo día, más tarde): la pantalla se probó en navegador real, no solo por
+`psql`, y salió un bug de verdad.** El agente delegado construyó `/compras/proveedores/[id]`
+(dos secciones de `TarjetaIndicador`, reusando el único componente de KPI de verdad
+compartido del repo) y extendió el modal de alta/edición con los 3 campos nuevos —
+`typecheck`/`lint` en verde. Al probarlo de punta a punta como Felipe en el navegador, la
+pantalla de detalle mostró los números correctos, pero **registrar un proveedor nuevo
+respondía `500`**: `registrar_proveedor`/`actualizar_proveedor` habían quedado con dos
+sobrecargas vivas (agregar parámetros al final con `create or replace function` no
+reemplaza la función, a diferencia de un cambio de `RETURNS` que Postgres sí rechaza) —
+mismo patrón que ADR-0009/0004 ya había nombrado para otras funciones, cometido sin querer
+acá mismo. La prueba de `psql` con parámetros nombrados no lo detectaba porque resolvía sin
+ambigüedad contra la firma nueva. Corregido con `drop function` de las firmas viejas;
+reverificado con `pg_proc` (una sola firma cada una) y con un registro real desde el
+formulario. De paso, Felipe pidió ver el rubro en la fila de la lista sin tener que entrar
+al detalle — agregado junto al contacto. Y se encontró (sin tocar, es de los datos de
+prueba): los 2 proveedores del seed tienen un RUC que no pasa el checksum de
+`validarDocumento`, así que hoy no se puede editar ninguno de los dos desde el modal sin
+corregir el RUC primero. Detalle completo, con la cita exacta del error HTTP y de `pg_proc`
+antes/después, en ADR-0094 ("Segunda vuelta").
+
+**Corrección (mismo día, tercera vuelta): Felipe vio la pantalla y pidió dos cosas
+más — los indicadores también en la fila de la lista, y que solo un líder los vea y
+entre al detalle.** Lo segundo contradecía D-27 tal como estaba escrito
+("transparencia... visible para cualquiera con cuenta") — se le mostró la cita exacta
+antes de tocar nada. Felipe decidió una versión angosta: el directorio sigue abierto,
+solo lo financiero pasa a ser de líder. Al construirlo salieron dos cosas más: primero,
+que `/compras/proveedores` **ya era solo-líder desde el 2026-09-16**
+(`app/(app)/compras/layout.tsx` redirige a cualquier colaborador) — confirmado en el
+navegador con Micaela logueada de verdad (`window.location.href` volvía a "/"); D-27
+nunca se había actualizado para decirlo. Lo genuinamente nuevo era el candado del lado
+de los datos: `fn_proveedores()` ahora manda `NULL` en lo financiero si quien pregunta
+no es líder, y las dos RPC del detalle rechazan la llamada directo. Se sacó un chequeo
+de rol redundante que se había escrito en la pantalla de detalle (el layout ya lo
+hacía, y su propio comentario explica por qué conviene un solo lugar, no repetirlo).
+Segundo hallazgo, un bug de verdad: al convertir esas dos RPC a `plpgsql` para poder
+rechazar la llamada, `saldo` (columna de salida de `RETURNS TABLE`) chocó con
+`compras.saldo` — "column reference is ambiguous", visible recién al abrir la pantalla
+en el navegador, no al aplicar la migración. Corregido calificando con alias.
+Reverificado de punta a punta las dos veces (Felipe ve todo, Micaela no llega a la
+pantalla). D-27 corregido en su propio documento, misma disciplina que D-45/D-46.
+Detalle completo en ADR-0094, sección "Tercera vuelta".
+
 ## 2026-09-18 (Tejidos/Patrones/Etiquetas rotos en producción, worktree de 620
 commits abandonado, y alta al vuelo del censo — ADR-0099)
 
@@ -6942,3 +7030,61 @@ tabla nueva, `censo_crear_variante`/`revisar_producto_censo` existen. `get_advis
 Pendiente real, sigue sin resolverse: Felipe tiene que registrar la serie de
 `nota_credito` en cada ubicación con boleta/factura (botón "Registrar serie" en
 Facturación) antes de que la primera devolución sobre una venta facturada funcione.
+
+## 2026-09-18 (Fusión con main: 26 commits, dos sobrecargas duplicadas reales)
+
+Felipe pidió fusionar la rama de Proveedores con `main` y, aparte, la lista de
+migraciones para pegar en producción (recordó que todo lo de `main` se despliega
+solo). Primer commit real de toda la sesión de Proveedores (nunca se había commiteado
+nada hasta acá). `main` se había movido 26 commits desde que empezó esta rama — nada
+raro dado que cambió el día.
+
+`git merge origin/main` dejó 2 conflictos reales (`BACKLOG.md`/`BITACORA.md`, mismo
+punto de inserción en los dos lados) — resueltos igual que siempre, todo de los dos
+lados. `SESIONES-ACTIVAS.md`/`types.ts` fusionaron solos, verificados igual (`grep`
+confirmó que ninguna función quedó duplicada ni perdida en `types.ts`).
+
+**Lo que git no marca como conflicto pero sí lo es: 3 de las 4 migraciones nuevas de
+Proveedores compartían timestamp exacto con 3 archivos de otras sesiones ya en
+`main`** (`20260917210000`/`220000`/`230000`, cada uno con contenido total). Renombradas
+a `20260918070000`-`20260918073000` (después de la última de `main`, orden relativo
+intacto) — mismo síntoma que ya nombró BITÁCORA el 2026-09-17 ("2 migraciones con
+timestamp duplicado"), pero esta vez con 3 a la vez.
+
+**El hallazgo real, el que un `db reset` sí atrapó:** `aprobar_devolucion` y
+`resolver_prenda_danada` — las dos funciones que `devolver_proveedor` extiende —
+también las había tocado OTRA sesión mientras esta rama seguía sin pushear:
+`resolver_prenda_danada` le sacó 'liquidada' (movida a `liquidar_prenda_danada`,
+que sí pide precio/venta real) y `aprobar_devolucion` ganó emisión automática de
+Nota de Crédito (`RETURNS` cambió de `void` a una fila con el id/serie/número).
+Reescribir la migración de `devolver_proveedor` sobre el cuerpo VIEJO habría
+revivido el backdoor de "liquidada sin venta" que la otra sesión acababa de cerrar,
+y habría perdido la Nota de Crédito automática entera. Reconstruida sobre el cuerpo
+real más reciente de las dos, sumando solo lo de `devolver_proveedor` — verificado
+con `db reset` limpio de punta a punta.
+
+**Segunda vuelta del mismo bug de sobrecargas (ya visto hoy con
+`registrar_proveedor`/`actualizar_proveedor`): `resolver_prenda_danada` quedó con dos
+firmas vivas** (la de 3 parámetros de la otra sesión + la de 4 de esta, con
+`p_proveedor_id` nuevo) porque sumar un parámetro cambia la lista de tipos y
+`create or replace` no reemplaza, crea una segunda. Las pruebas por `psql` con los 4
+parámetros explícitos no lo detectaban (resolvían sin ambigüedad); la pantalla real
+(`ResolverDanadosModal.tsx`) llama con 3 parámetros nombrados para "Se botó"/"Donada"
+— ahí sí habría sido ambiguo. Corregido con `drop function` de la firma vieja;
+reverificado simulando la llamada real (3 params nombrados) y la nueva (4).
+
+**De paso, un archivo suelto que no era mío:** `docs/adr/0094-ci-suma-un-job-piloto...md`
+— sin commitear, sin trackear, con el mismo contenido que `0074-ci-suma-un-job-piloto...md`
+(que sí sigue en el historial) salvo el número del título. Parece trabajo sin terminar
+de otra sesión que usó este worktree antes (`claude/pruebas-registrar-venta-cd2119`
+había mencionado ese mismo ADR-0074 de CI, "sin pushear todavía", en
+`SESIONES-ACTIVAS.md`). `git add -A` casi lo mete al commit como si YO hubiera
+renombrado 0074→0094 — habría chocado con mi propio ADR-0094 de Proveedores y borrado
+el 0074 real. Sacado del staging, el archivo suelto se dejó tal cual en disco (no es
+mío para decidir si se borra), `0074` restaurado sin tocar.
+
+Verificación final sobre el árbol ya mezclado, no solo "no rompió": `npx supabase db
+reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filter web
+typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
+producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
+producción).
