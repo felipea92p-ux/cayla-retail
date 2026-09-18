@@ -28,6 +28,30 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0103)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). Al cruzarlo con
+producción, su índice tabla→pájaro describía V1 (26 de 47 tablas ya no existen, 39 de 60
+reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
+
+- [x] **Una sola lista** en `scripts/datos/aviario.mjs`: las 60 tablas y vistas de
+      `retail` con un pájaro cada una. El índice se genera en
+      `docs/datos/generado/AVIARIO.md` y GOBIERNO §1 apunta ahí.
+- [x] **Alarma en CI:** `node scripts/datos/aviario.mjs --verificar` falla si una tabla
+      nace sin pájaro, tiene dos, los pájaros no coinciden con GOBIERNO o `AVIARIO.md`
+      quedó viejo. Probado sobre una copia: los errores fallan y apuntarse no rompe nada.
+- [ ] **Felipe aprueba línea por línea las asignaciones** (tabla en ADR-0103: 21 nuevas y
+      3 que cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones`
+      → Halcón) y se abre el PR. Rama `claude/aviario-cayla-8d1efc`, sin publicar.
+- [ ] **Gorrión: retail no tiene registro de qué SQL se pegó en producción.**
+      `retail.migraciones_aplicadas` no existe allá (la `public.migraciones_aplicadas`
+      que sí existe tiene otra forma y el repo no la usa). GOBIERNO §4 ya lo dice.
+- [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
+      `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
+      los documentos del porqué, todavía no.
+
+---
+
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y

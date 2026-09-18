@@ -7502,3 +7502,22 @@ el propio trigger recalcula `estado` desde `auth.uid()` y en una migración no h
 sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
 typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
 `/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
+
+## 2026-09-18 (El aviario vuelve a cerrar: 60 de 60 tablas con pájaro — ADR-0103)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). La sesión había
+nacido de un `main` local del 5-sep, 668 commits atrás y sin `docs/datos/`; Felipe puso su
+`main` al día con `git reset --keep origin/main`. Al cruzar el aviario con producción (en
+vivo, solo lectura) salió que su índice tabla→pájaro describía V1 —26 de 47 tablas ya no
+existen, 39 de las 60 reales sin pájaro— y que el generador llevaba otra lista distinta.
+
+Ahora hay una sola lista (`scripts/datos/aviario.mjs`), un índice generado
+(`generado/AVIARIO.md`) y un paso de CI que falla si una tabla nace sin pájaro. 21 tablas
+reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fiscales` →
+Cuervo, `sububicaciones` → Halcón); todo pendiente de que Felipe lo apruebe línea por
+línea antes de fusionar.
+
+De paso: `retail.migraciones_aplicadas` no existe en producción (retail no tiene registro
+de qué SQL se pegó); `main` tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
+y `claude/facturacion-modal-shared-state-186f2d` tienen trabajo sin fusionar sobre la base
+V1 (la segunda con un ADR-0011 que choca con el existente).
