@@ -79,6 +79,7 @@ export function ConteoPanel({
             referencia: f.referencia,
             talla: f.talla,
             color: f.color,
+            sububicacionId: f.sububicacion_id,
             diasSinContar: f.dias_sin_contar,
             valorEnRiesgo: Number(f.valor_en_riesgo),
           }))
@@ -172,18 +173,25 @@ export function ConteoPanel({
           <div className="card-cayla p-5">
             <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
             <ul className="divide-y divide-tinta/10">
-              {sugerencias.slice(0, 8).map((s) => (
-                <li key={s.varianteId} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="min-w-0 truncate text-tinta">
-                    {s.referencia}
-                    {s.talla && ` · ${s.talla}`}
-                    {s.color && ` · ${s.color}`}
-                  </span>
-                  <span className="shrink-0 text-xs text-tinta/55">
-                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
-                  </span>
-                </li>
-              ))}
+              {sugerencias.slice(0, 8).map((s) => {
+                // Misma variante, dos filas reales: unidades sin contar en
+                // piso Y en almacén a la vez — nunca una duplicada. Sin esta
+                // etiqueta, las dos se ven idénticas salvo por el monto.
+                const sububicacion = sububicaciones.find((sub) => sub.id === s.sububicacionId);
+                return (
+                  <li key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`} className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <span className="min-w-0 truncate text-tinta">
+                      {s.referencia}
+                      {s.talla && ` · ${s.talla}`}
+                      {s.color && ` · ${s.color}`}
+                      {sububicacion && <span className="text-tinta/55"> · {sububicacion.nombre}</span>}
+                    </span>
+                    <span className="shrink-0 text-xs text-tinta/55">
+                      {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

@@ -1,7 +1,9 @@
 -- ============================================================================
 -- activacion-cuarentena-produccion.sql — NO es parte de la cadena de
--- migraciones. TODAVÍA NO SE APLICÓ en producción — queda listo en el repo
--- para cuando Felipe confirme el paso a producción de "Dañado"/Cuarentena
+-- migraciones. YA SE APLICÓ en producción (verificado 2026-09-18 contra la
+-- base: `retail.sububicaciones` tiene «Cuarentena» en Tienda AQP/LIM/TRU) —
+-- este archivo existe para que el repo cuente lo que producción tiene, no
+-- para volver a correrlo (aunque es idempotente si hiciera falta).
 -- (ver docs/adr/0071-inventario-se-lee-como-cuatro-pantallas.md).
 --
 -- A propósito el nombre no sigue el patrón <timestamp>_nombre.sql: así

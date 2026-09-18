@@ -135,6 +135,15 @@ export function exactitudConteos(conteos: { estado: string; lineas: number; line
   return { porcentaje: Math.round((correctas / lineas) * 1000) / 10, lineas, correctas, conteos: cerrados.length };
 }
 
+/** Con qué color se lee la exactitud (Felipe, pantalla Conteo 2026-09-16):
+ *  ≥ 98 % sano, ≥ 95 % a vigilar, menos = hay que contar más seguido.
+ *  Vive acá para que Conteo y Resumen pinten el mismo número igual. */
+export function tonoExactitud(porcentaje: number): "text-verde-profundo" | "text-ambar-profundo" | "text-rojo-profundo" {
+  if (porcentaje >= 98) return "text-verde-profundo";
+  if (porcentaje >= 95) return "text-ambar-profundo";
+  return "text-rojo-profundo";
+}
+
 /**
  * Avance del conteo abierto: cuántas prendas con stock en esa sububicación
  * ya se tocaron. Sale de `previsualizar_cierre_conteo`, que ya distingue

@@ -72,6 +72,69 @@ cerradas y verificadas en navegador; Punto de Venta queda para el siguiente paso
 
 ---
 
+## 🎯 Resumen de Inventario: quinta pantalla, por variante × sede (2026-09-17, ADR-0101)
+
+Worktree `erp-architecture-summary`. `/inventario/resumen` (solo líder, por sede): estado
+general (salud, riesgo de quiebre, traslados sugeridos, exactitud = la de Conteo),
+excepciones (necesita reposición ahora, curvas incompletas, posible sobrestock, en camino
+con impacto), decisiones sugeridas hoy, productos a vigilar y cómo leer. Motor:
+`retail.fn_resumen_variantes` (agregados crudos por variante, demanda por FK y estado real,
+ventana observable) + `lib/resumen-reglas.ts` (todas las reglas, reutiliza los umbrales de
+Existencias). "Crear traslado" prellena `/inventario/mover` — nunca mueve stock. Verificado
+en navegador (desktop/tablet/móvil) con un escenario local de historial; typecheck, lint,
+358 pruebas y build en verde. Renumerada de ADR-0097 a 0101: `activar-tienda-lima-eff087`
+tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de abajo.
+
+**Fusionada con `main` (22 commits, PR #106-#119, 2026-09-18):**
+- [x] **`fn_productos` y `fn_prioridad_conteo` ROTAS en `main` local** ("column v.talla does
+      not exist") — ya venían arregladas en `main` (`20260917220000_reconcilia_talla_id_...`,
+      del PR #108); aplicada acá al fusionar. Verificado con `psql` directo (18 y 48 filas
+      respectivamente, antes tiraban error).
+- [x] **`conteo/page.tsx` en conflicto con el PR #108** (alta de prenda al vuelo durante
+      el conteo): dos ediciones a pocas líneas de distancia, sin pisarse en intención.
+      Integradas las dos — `tonoExactitud()` de esta rama y `colores`/`tallasPorCategoria`
+      del PR #108, con `ConteoPanel.tsx`/`catalogo-v2.ts` traídos de `main` sin cambios.
+- [x] **Bug real encontrado al verificar la fusión, ajeno a esta rama pero ya en
+      producción (PR #108): "Conviene contar primero" repetía la misma prenda dos veces**
+      con montos de "valor en riesgo" distintos — `fn_prioridad_conteo` lee de `stock`
+      (una fila por variante×sububicación) pero nunca exponía cuál sububicación era cuál.
+      Corregido en `20260918090000_prioridad_conteo_por_sububicacion.sql`: ahora cada fila
+      dice "Piso de venta" o "Almacén de tienda"; de paso, "días sin contar" ahora exige que
+      el conteo cerrado haya cubierto esa misma sububicación, no cualquiera de la sede.
+- [ ] **Aplicar a producción**, en este orden y con ok puntual: taxonomía cerrada (aún
+      "solo local"), `20260916100000_punto_reorden.sql`, `20260917220000_resumen_inventario.sql`
+      (renombrada localmente a `20260918080000_` por choque de timestamp con
+      `reconcilia_talla_id...` de `main` — sin choque de contenido), y
+      `20260918090000_prioridad_conteo_por_sububicacion.sql` (con `retail.` al pegar).
+- [ ] **`movimientos.motivo` sin CHECK**: Resumen lo esquiva clasificando por FK, pero
+      `fn_productos`/`fn_movimientos` siguen dependiendo del texto — vocabulario cerrado
+      como colores/tallas.
+- [ ] **`fn_stock_por_sede()` suma cuarentena y el cargo especial** (la usan Existencias
+      "en la red" y Vender): una prenda dañada en otra sede aparece como disponible.
+- [ ] **`anular_venta` repone al bucket `sububicacion_id NULL`** (ni piso ni almacén): la
+      unidad cuenta como disponible pero el POS no la puede vender.
+- [ ] **`iniciar_traslado` no aplica `fn_variante_permitida_en_sede`** (el candado de
+      etiquetas solo está en `registrar_venta` y en la `transferir` legada): una sugerencia
+      de Resumen podría proponer mover una variante restringida.
+- [x] **`retail.transferir` (modelo atómico viejo) resucitada por `20260917100700`**,
+      ejecutable por `anon` y contada doble como "en camino" — dropeada otra vez en
+      `20260917220000_resumen_inventario.sql` (sin caller en la app).
+- [ ] **`primer_ingreso` recorre todo el ledger en cada carga de Resumen** (mínimo
+      histórico por variante×sede): crece lineal con los años. Candidato a materializar
+      (tabla `variante_sede_primer_ingreso` alimentada por `fn_aplicar_movimiento`) cuando
+      el ledger pase de ~1 millón de filas.
+- [ ] **`retail.tallas` sin columna `orden`**: la curva se ordena con la lista
+      `LETRAS` de `tallas.ts`; una talla nueva fuera de esa lista cae alfabética.
+      Decisión estructural (taxonomía) para Felipe.
+- [ ] **Datos simulados de 6 meses en local** (pedido de Felipe): el escenario de esta
+      sesión vive en el scratchpad y no se commitea; el generador real debe cubrir a
+      propósito producto nuevo con poco historial, curva rota, mermas mezcladas con ventas,
+      temporada con pico y caída.
+- Preguntas abiertas (ADR-0101): ventana elegible 7/14/30/60/90; mínimo por variante+sede;
+  ventana "días con stock" en vez de "días desde el primer ingreso".
+
+---
+
 ## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
 
 Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió
