@@ -28,6 +28,119 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
+
+Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió
+explícito: "antes de implementar cualquier cosa, preguntas") — 4 decisiones: objetivo
+(negociar mejor + cuidar el flujo de caja + medir confiabilidad), cerrar huecos antes que
+métricas, secciones separadas para Taller/insumos vs. prenda terminada/compras, sí agregar
+plazo/rubro/forma de pago a la ficha. Al aplicar "cerrar huecos primero" salió una
+contradicción real con una decisión de Felipe de esa misma mañana ("devolver_proveedor no es
+prioridad") — se le mostró explícita, la revisó, y sí valía la pena ahora. Detalle completo,
+con verificación contra Postgres real (Felipe vs. Micaela, sede por sede), en ADR-0094.
+
+- [x] **`devolver_proveedor` deja de desaparecer** — entra a `cuarentena` igual que Dañado,
+      reusando `prendas_danadas`/`resolver_prenda_danada` con un cuarto estado
+      (`devuelta_proveedor`) en vez de un flujo gemelo.
+      `20260918070000_devolver_proveedor_entra_a_cuarentena.sql`. Verificado con
+      `psql`+`ROLLBACK`: entrada a cuarentena real, las dos validaciones (proveedor
+      obligatorio para este estado / prohibido para los otros) rechazan como corresponde,
+      resolución deja movimiento de salida + `proveedor_id` + `resuelto_por`/`resuelto_en`.
+- [x] **`proveedores` gana `rubro`/`plazo_credito_dias`/`forma_pago_preferida`** —
+      `20260918071000_proveedores_rubro_plazo_forma_pago.sql`. `rubro` a propósito sin
+      vocabulario cerrado (ver ADR-0094 para el porqué). `fn_proveedores()`,
+      `registrar_proveedor` y `actualizar_proveedor` extendidos y verificados.
+- [x] **Dos RPC de métricas, nunca sumadas: `fn_proveedor_metricas_compras` /
+      `fn_proveedor_metricas_insumos`** — `20260918072000_proveedor_metricas_compras_e_insumos.sql`.
+      **Repiten a mano el candado de sede de ADR-0075** (una función `security definer` se
+      salta cualquier policy de la tabla que lee, sin excepción) — la primera versión escrita
+      en esta sesión no lo tenía, se corrigió antes de la primera prueba, no después de
+      encontrarlo roto. Verificado: Felipe (líder) ve 2 facturas de "Textiles Andina SAC"
+      cruzando Taller/Lima (S/13,829.60 facturado, S/5,133.60 de saldo); Micaela (integrante,
+      Trujillo) ve todo en cero para el mismo proveedor.
+- [x] **D-46 (`docs/datos/DECISIONES-2026-09-12.md`) tenía el mismo problema que ya se había
+      encontrado en D-45**: la mitad "cuentas por pagar" ya estaba resuelta por ADR-0035
+      desde el 2026-09-12 y el documento nunca se actualizó. Corregido con cita cruzada. La
+      mitad IGV (crédito fiscal acumulado, 300 UIT) sigue genuinamente abierta.
+- [x] **Pantalla de detalle de proveedor** (`/compras/proveedores/[id]`, con las dos
+      secciones de métricas) — construida (`apps/web/lib/proveedores.ts`,
+      `ProveedoresPanel.tsx`, página nueva) y verificada de punta a punta en el navegador
+      real como Felipe (líder): números de "Textiles Andina SAC" coinciden con lo verificado
+      por `psql`, estados vacíos correctos para Insumos.
+- [x] **Bug real encontrado y corregido en esta misma pasada: `registrar_proveedor`/
+      `actualizar_proveedor` quedaron con DOS sobrecargas vivas** (la vieja de 3/4
+      parámetros + la nueva de 6/7) porque agregar parámetros al final con
+      `create or replace function` no reemplaza la función — a diferencia de un cambio de
+      `RETURNS` (que Postgres sí rechaza), esto no avisa solo. Mismo patrón que ya nombró
+      ADR-0009/0004 para otras funciones. Se manifestó como `500` al registrar un proveedor
+      real desde el formulario, aunque la prueba de `psql` con parámetros nombrados (que no
+      tiene esta ambigüedad) pasaba — encontrado recién al probar en navegador, no antes.
+      Corregido con `drop function` de las firmas viejas; verificado con `pg_proc` que
+      quedó una sola firma de cada una, y con un registro real end-to-end en el navegador.
+      Detalle en ADR-0094, sección "Segunda vuelta".
+- [x] **Rubro visible en la fila de la lista, sin entrar al detalle** — pedido de Felipe
+      el mismo día al ver la pantalla. `ProveedoresPanel.tsx`: se agrega junto al contacto
+      ("Jorge Ramos · Tela"), sin tocar el grid de columnas.
+- [x] **Los indicadores del detalle también en la lista, y solo para líder — corrección
+      angosta de D-27** (`20260918073000_proveedores_lista_indicadores_y_candado_sede.sql`).
+      `fn_proveedores()` suma `total_facturado`/`facturas_vencidas`/
+      `facturas_recibidas_completas`/`facturas_con_recepcion_pendiente`, todo `NULL` si
+      quien pregunta no es líder — el directorio (nombre/RUC/contacto/rubro/plazo/forma de
+      pago) sigue siendo para cualquiera. **Hallazgo que cambió el diagnóstico:**
+      `/compras/proveedores` ya era solo-líder desde el 2026-09-16
+      (`app/(app)/compras/layout.tsx` redirige a colaboradores) — D-27 nunca se actualizó
+      para decirlo. Lo genuinamente nuevo es el candado del lado de los datos (antes,
+      alguien podía llamar `fn_proveedores()` directo por API y seguir viendo saldo/
+      facturas). Se sacó un chequeo de rol redundante que se había escrito en
+      `[id]/page.tsx` (el layout ya lo hacía). D-27 corregido con la misma disciplina que
+      D-45/D-46. Detalle completo en ADR-0094, sección "Tercera vuelta".
+- [x] **Bug real #2, mismo día: `fn_proveedor_metricas_compras`/`_insumos` — "column
+      reference \"saldo\" is ambiguous"** al convertirlas a `plpgsql` para poder rechazar a
+      quien no es líder: Postgres declara cada columna de `RETURNS TABLE` como variable de
+      salida, y `saldo` (columna de salida) chocó con `compras.saldo` (columna de tabla).
+      `create or replace` no lo avisa al aplicar — se manifestó recién al abrir la
+      pantalla en el navegador. Corregido calificando cada columna con alias (`c.saldo`,
+      `il.fecha_ingreso`). Verificado de nuevo en el navegador, dos veces (líder y
+      colaboradora).
+- [x] **Fusionado con `main` (26 commits, 2026-09-18) — dos hallazgos reales en el
+      camino**, ninguno cosmético: (1) `aprobar_devolucion`/`resolver_prenda_danada`
+      también las había tocado otra sesión (Nota de Crédito automática; "Liquidada"
+      exige venta real) — la migración de `devolver_proveedor` se reconstruyó sobre
+      ese cuerpo real, no el viejo, para no revivir un backdoor de integridad ya
+      cerrado ni perder la Nota de Crédito. (2) `resolver_prenda_danada` quedó con
+      dos sobrecargas vivas (3 params de la otra sesión + 4 de esta) — mismo bug que
+      `registrar_proveedor`, cerrado igual con `drop function`. Migraciones
+      renombradas `20260918070000`-`073000` por choque de timestamp con 3 archivos
+      de `main`. `db reset`/typecheck/lint/297 tests en verde sobre el árbol
+      mezclado. Detalle completo en BITÁCORA 2026-09-18.
+- [ ] **Pegar las 4 migraciones en producción** — con el prefijo `retail.` en el SQL Editor
+      (CLAUDE.md) o vía MCP de Supabase. Ninguna toca datos existentes (solo columnas/
+      funciones nuevas), pero sigue siendo cambio de esquema en producción — confirmar con
+      Felipe antes, no autónomo. **Ojo: no son independientes** — `20260918070000`
+      redefine `aprobar_devolucion`/`resolver_prenda_danada` sobre el cuerpo que
+      trajeron `20260918050000` (Nota de Crédito) y `20260917195508`/`095000`
+      (Liquidada), que también tienen que estar aplicadas antes en producción, o
+      `create or replace` fallaría al no encontrar la firma que espera reemplazar.
+- [ ] **Sin pruebas automatizadas** para `devolver_proveedor`/las métricas nuevas — mismo
+      patrón de deuda que el resto de RPC de escritura del repo.
+- [ ] **Filtrar/agrupar proveedores por `rubro` en la lista** — el campo ya se guarda, se
+      lee y ya se ve por fila; falta el filtro/agrupación propiamente dicho. No construido a
+      propósito (fuera del alcance que pidió Felipe esta vez).
+- [ ] **Los 2 proveedores del seed tienen un RUC que no pasa el checksum de
+      `validarDocumento`** — el botón Guardar del modal de edición queda deshabilitado para
+      cualquier cambio a "Confecciones del Sur EIRL" o "Textiles Andina SAC" mientras el
+      campo RUC no se corrija a mano primero. Encontrado al verificar esta pasada en
+      navegador; es un problema de los datos de prueba del seed, no del código de esta
+      sesión — no se tocó.
+- [ ] **`docs/datos/modulos/09-compras-y-proveedores.md` describe una tabla `proveedores`
+      que no existe** (banco/cuenta_bancaria/categoría/marca/score/teléfono,
+      `productos.proveedor_id`) — verificado contra producción real que ninguna de esas
+      columnas existe, ni ahí ni en este repo. Mismo síntoma que ya tuvo el módulo 02
+      (doc describiendo V1/otra línea de migraciones). No reescrito en esta pasada — es su
+      propia tarea, no improvisada acá.
+
+---
+
 ## 🎯 Taxonomía de variante: tallas/tejidos/patrones/etiquetas (2026-09-17, ADR-0095)
 
 Worktree `cayla-taxonomia-design`. Vocabulario cerrado (propone/aprueba/rechaza, mismo
@@ -37,30 +150,71 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
-- [ ] **Pegar en producción — actualizado tras verificar el estado real (2026-09-17
-      tarde).** Producción NO está vacía de taxonomía: `retail.tejidos`/`patrones`/
-      `etiquetas`/`variante_etiquetas` y `productos.tejido_id`/`patron_id` ya existen,
-      creados por otra rama nunca fusionada a `main` — con una versión vieja del
-      trigger (tejidos/patrones/etiquetas no pueden rechazar; ninguno de los 5 tiene
-      el fix de "reactivar retira el rechazo"). `retail.tallas` NO existe.
-      `variantes.talla` sigue siendo texto libre (NO `talla_id`) y
-      `categorias.tallas_sugeridas` sigue viva — confirmado leyendo `origin/main`
-      directo: el frontend desplegado todavía las usa tal cual.
-      - [x] **Parte segura ya armada**: `supabase/migrations/pegar-en-produccion-taxonomia-parte-segura.sql`
-            — crea `tallas`, arregla los 5 triggers, crea `categoria_tallas/tejidos/
-            patrones` con su backfill (solo LEE `tallas_sugeridas`, no la toca), y los
-            2 RPC nuevos de hoy. Cero riesgo: nada de esto lo toca `main` todavía. Falta
-            que alguien con acceso lo pegue en el SQL Editor — Claude Code no puede
-            aplicar SQL a producción directo (el modo del entorno lo bloquea).
-      - [ ] **Parte que espera el merge a `main`** (rompería la app en vivo si se
-            aplica sola): `variantes.talla_id` + borrar `talla`, borrar
-            `tallas_sugeridas`, el candado de sede en `registrar_venta`/`transferir`
-            (tocan cada venta/traslado real — reescribir con el cuerpo actual de
-            producción en la mano, no a ciegas), las firmas de
-            `catalogo_actualizar_producto`/`crear_producto_con_variantes` con
-            `talla_id`, y los 9 renombres/fusiones de categorías de ADR-0096 (no
-            rompen código, pero cambian el desplegable que ve una encargada de sede
-            ahora mismo — coordinar el momento con Felipe, no una decisión técnica).
+- [x] **Pegada en producción (2026-09-17, tarde-noche) — la mitad que faltaba, después
+      de que #75 se fusionara a `main` sin su migración.** El "Production Deploy" del
+      entorno de esa sesión se la bloqueó, y Vercel desplegó igual el frontend que ya
+      esperaba `talla_id` — `/productos` cayó en producción ("NO SE PUDO CARGAR") hasta
+      que se aplicó esto. Cadena completa aplicada y reverificada contra
+      `vovjyyiafkxteijimpuy`: `retail.tallas` + `categoria_tallas/tejidos/patrones` (la
+      parte segura, ya lista desde antes), `variantes.talla_id` (backfill 144/145 filas,
+      la única excepción es el sentinel "Cargo especial"), la restricción
+      `variantes_producto_talla_color_unico`, `fn_variante_permitida_en_sede` en
+      `registrar_venta` (en `transferir` queda escrito pero inerte — producción ya usa
+      `iniciar_traslado`/`confirmar_traslado`, ADR-0068), `catalogo_crear_producto`/
+      `catalogo_actualizar_producto` con `talla_id` + `color_codigo` en fotos, y
+      `categorias.tallas_sugeridas` borrada. Detalle completo — incluida la
+      reconciliación de 2 funciones que quedaron rotas por el cambio
+      (`fn_prioridad_conteo`, `fn_productos`, que seguían leyendo `variantes.talla` ya
+      borrada) y 4 sobrecargas de RPC duplicadas encontradas y cerradas en el camino —
+      en BITÁCORA 2026-09-17. Verificación final: cero sobrecargas duplicadas y cero
+      referencias a `variantes.talla` en todo `pg_proc` de producción.
+      - [ ] **Lo que NO se pegó, a propósito — decisión de negocio, no técnica:**
+            `20260917110000` (renombres de ADR-0096: Blusas se fusiona con Camisas,
+            etc.) queda vivo solo en este repo/local. Cambia el desplegable que ve una
+            encargada de sede ahora mismo — el momento de activarlo en producción lo
+            decide Felipe, no es un fix pendiente. Ver 🎯 Familias y categorías, abajo.
+- [x] **La reverificación de arriba no cazó todo: a `retail.etiquetas` en producción le
+      faltaba la columna `notas` — Catálogo > Etiquetas caía en vivo con "Esta pantalla
+      no está mostrando datos".** La tabla la había creado una rama vieja nunca
+      fusionada (ver `pegar-en-produccion-taxonomia-parte-segura.sql`); esa
+      reconciliación arregló los triggers pero nunca comparó columna por columna.
+      `alter table retail.etiquetas add column if not exists notas text;` corrida por
+      Felipe en el SQL Editor, reverificada por lectura contra
+      `information_schema.columns` (0 filas, sin riesgo). De paso, el trigger que trae
+      `20260917100200_etiquetas_catalogo.sql` estaba desactualizado frente al que de
+      verdad corre en producción (le faltaba "reactivar retira el rechazo") — corregido
+      en el archivo para que un `db reset` local no diverja.
+- [x] **Vocabulario real de Etiquetas cargado: 22 filas (2026-09-17).** 19 comerciales/
+      festividades (investigadas contra Zara/Bershka/Ralph Lauren/Hermès y calendario
+      peruano real — CyberWow lo organiza IAB Perú, Black Friday 27-nov distinto de
+      CyberWow, Galentine's/Día del Gato/Día del Perro/Día de la Tierra con fecha
+      verificada) + "Para liquidar" generada por sede (`retail.ubicaciones` activa,
+      dinámico — no hardcodeado, porque local y producción no comparten nombres de
+      sede). Migración `20260917230000`: `vigente_desde`/`vigente_hasta` (calculado en
+      lectura, no un cron) + comentario obligatorio al aprobar (mismo candado que
+      Tallas, ahora en las 5). Migración `20260917230100`: la semilla. Verificado con
+      `db reset` completo (no incremental), `typecheck`/`lint`, y navegador contra
+      Postgres local real — las 22 tarjetas con el candado de sede visible.
+      **Cerrado 2026-09-18:** vigencia ya conectada — `ProductoForm.tsx` solo ofrece
+      etiquetas vigentes hoy (filtro en servidor), y `/productos/etiquetas` muestra la
+      ventana + si está vigente o "fuera de temporada". Estilo visual construido
+      (migración `20260918060000`): 3 colores fijos + General — urgencia (ámbar),
+      positivo (verde), campana (taupe-profundo), nunca rojo (violaría
+      `MAX_ROJO_POR_PANTALLA` con 20 tarjetas) ni color libre. Las 20 etiquetas
+      clasificadas por nombre. La pantalla agrupa por color en vez de grilla plana.
+      **Pendiente, menor:** una etiqueta nueva creada desde la pantalla nace `neutral`
+      sin selector para clasificarla ahí mismo — hay que reclasificarla por SQL o en
+      una próxima sesión si hace falta desde el día uno.
+- [x] **"Para liquidar" corregido: de 4 filas por sede a 1 global (2026-09-18).**
+      El diseño original restringía por sede con `sedes_permitidas` — Felipe preguntó
+      "por qué 4" y la pregunta destapó que el candado no es cosmético:
+      `fn_variante_permitida_en_sede` (`registrar_venta`/`transferir`) lo usa para
+      BLOQUEAR venta/traslado, no solo para avisar. Habría bloqueado sin querer la
+      venta de una prenda en una sede que tenía su propio stock fresco. Corregido a
+      una sola etiqueta global (migración `20260918030000`, 0 variantes afectadas,
+      verificado antes de escribirla) y se quitó el botón "SEDES"/todo el flujo de
+      edición de `sedes_permitidas` de las 20 etiquetas restantes — "empresa
+      uniforme", decisión de Felipe. La columna sigue en el esquema, dormida. PR #115.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
@@ -94,6 +248,22 @@ verde.
 
 ---
 
+## 🎯 Vender/Caja ya muestra la foto del producto (2026-09-17)
+
+Felipe: si la Grilla de Productos ya muestra fotos, Caja debería mostrar las mismas —
+es el mismo catálogo. `getCatalogo()` (`catalogo-v2.ts`) no traía `producto_fotos` en
+su query embebida; se agregó, y `fotoUrl` se resuelve por color exacto (mismo criterio
+`color_codigo` que ya usa la Grilla). El dato viaja completo por los 5 archivos entre
+la consulta y la tarjeta (`vender/page.tsx` → `PuntoDeVenta.tsx` → `catalogo-grupos.ts`
+→ `PuntoDeVentaCatalogo.tsx`), reemplazando el placeholder de iniciales quieto por la
+foto real cuando existe (el placeholder se queda como estaba para variantes sin foto
+propia). Probado en navegador: prenda con foto la muestra en la tarjeta de Vender;
+prenda sin foto sigue con el placeholder de iniciales, sin romperse.
+
+- [x] Cerrado y verificado en navegador. Sin pendientes.
+
+---
+
 ## 🎯 Familias y categorías: el contenido real (2026-09-17, ADR-0096)
 
 Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Platanitos
@@ -110,6 +280,12 @@ Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
 - [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
       Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
       prueba de hoy) muestre que sí hay volumen ahí.
+- [ ] **`20260917110000` (los renombres en sí) NO está en producción, a propósito.**
+      Confirmado 2026-09-17 tarde-noche al pegar el resto de la taxonomía: producción
+      sigue mostrando "Blusas" y "Camisas" como categorías separadas, y "Accesorios"
+      sin el "y Complementos". Falta el ok explícito de Felipe sobre el momento
+      (cambia lo que ve una encargada de sede hoy mismo) — no es una migración
+      olvidada.
 
 ---
 
@@ -489,26 +665,45 @@ están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre
 proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
 con cita, para que nadie los reconstruya.
 
-- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
-      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
-      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
-      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
-      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
-- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
-      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
-      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
-      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
-      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
-      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
-      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
-      `anular_venta` liberarlo automático?
-- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
-      en producción (antes era teórico).** `devoluciones.ts` solo usa
-      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
-      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
-      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
-      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
-      Fase 0, esperando pantalla desde entonces.
+- [x] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo mostraba — CERRADO
+      2026-09-18.** `getComprobantesMes` (`lib/comprobantes.ts`) ahora extrae
+      `pdfUrl`/`xmlUrl`/`cdrUrl` de `respuesta_sunat` y `ComprobantesPanel.tsx`
+      los muestra como enlaces ("Ver PDF · XML · CDR") debajo de cada
+      comprobante, en la tabla de escritorio y la tarjeta de celular. Sin
+      cambio de esquema — el dato ya existía, solo faltaba leerlo. Verificado
+      en navegador local inyectando una `respuesta_sunat` de prueba (revertida
+      después). `tsc`/lint/297 tests en verde.
+- [x] **Comprobante `pendiente` huérfano, sin camino de salida — RESUELTO
+      2026-09-17 por ADR-0093 (`marcar_comprobante_no_emitido`), verificado
+      por la auditoría del 2026-09-18: existe la RPC, el botón "Liberar" en
+      `ComprobantesPanel.tsx`, y el estado `no_emitido` en el esquema.** Ya
+      no es un hueco abierto.
+- [x] **Devoluciones/Cambios no emitían Nota de Crédito — CERRADO 2026-09-18
+      (ADR-0100).** `aprobar_devolucion` ahora emite la Nota de Crédito sola
+      (`emitir_nota`, sin llamador real desde la Fase 0) cuando la venta
+      devuelta tiene un comprobante `aceptado` — por el valor exacto de lo
+      devuelto, con el motivo 06/07 del Catálogo 09 según sea total o
+      parcial. Sin pantalla nueva: aparece en la lista de comprobantes de
+      Facturación, lista para "Transmitir". Probado en local con SQL directo
+      (devolución parcial real: NC01-000001, subtotal 63.47 + IGV 11.43 =
+      total 74.90, coincide centavo a centavo con el cálculo de
+      `ComprobantesPanel.tsx`). CI encontró un bug real antes de fusionar
+      (la reconstrucción de `aprobar_devolucion` se llevó por delante el
+      candado de caja abierta y la cuarentena de prendas dañadas de 2
+      migraciones posteriores reales) — corregido, 48/48 pruebas de los 4
+      scripts de `scripts/pruebas/` en verde. `tsc`/lint/297 tests en verde.
+      **`20260918050000_devolucion_emite_nota_credito.sql` aplicada y
+      verificada en producción 2026-09-18** (columna + función confirmadas,
+      cuerpo de `aprobar_devolucion` comparado byte a byte contra el de
+      producción antes de reemplazarlo).
+      **Pendiente real de Felipe, sigue bloqueando el primer uso:** ninguna
+      ubicación tiene serie de `nota_credito` registrada todavía — hay que
+      registrarla (botón "Registrar serie", ya existe) en cada ubicación con
+      boleta o factura, o la primera devolución sobre una venta facturada va
+      a fallar con un mensaje que se lo pide explícitamente (a propósito:
+      mejor bloquear con un mensaje claro que aprobar la devolución y dejar
+      la Nota de Crédito perdida para siempre).
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
 repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
@@ -2079,24 +2274,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       producción** (verificado 2026-09-16: `retail.listar_compras` ya acepta
       `p_cursor_creado_en`).
 
-- [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
-      eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
-      "Más filtros", tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
-      panel abierto solo), `/compras/nueva` (tipear "lino" en Producto, Enter en
-      el costo agrega línea, el resumen a la derecha se queda fijo al bajar y
-      en celular cae al final),
-      `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
-      la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
-      líneas con variante; las líneas sin talla/color se reparten en una curva de
-      tallas —filas color, columnas talla, chip de avance por línea y por factura—,
-      esto sí se vio renderizado con Playwright el 2026-09-14 en escritorio y 375 px;
-      barra fija con unidades y botón apagado si una línea
-      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (una sola
-      tabla en tres tramos —Vencidas en rojo, Vencen esta semana en ámbar, Más
-      adelante—, proveedor en la fila, "Pagar" en la fila abre el modal sin navegar;
-      la tarjeta "Vence esta semana" sale de `resumen_compras`). Si la barra fija de Recibir choca con las
-      pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
-      `RecepcionCompraFormV2.tsx`.
+- [x] **Rediseño de Compras (2026-09-14): verificado en navegador 2026-09-17 — encontró
+      y arregló un bug real de layout que `tsc`/`eslint` no podían ver (ADR-0098).**
+      `/compras/nueva` tenía Serie/Número/Fecha de emisión literalmente superpuestos
+      (texto ilegible) entre 1024 y 1279px — la franja donde el panel "Resumen" se
+      vuelve columna fija (`lg:` de Tailwind) pero la tarjeta del formulario todavía no
+      tiene ancho de sobra. Arreglado: Serie+Número+Fecha pasan a una sola fila de 3
+      columnas con `minmax(0,…)` (antes desbordaban su columna en vez de encogerse), y
+      el breakpoint del layout de 2 columnas (+ el `sticky` del Resumen, que quedó
+      huérfano al mover solo el primero) se corrió de `lg:` (1024px) a `xl:` (1280px) —
+      a 1024px la tarjeta del documento no tiene espacio real para tres campos cómodos,
+      sin importar cuánto se recorten. Verificado en 1024px, 1280px y 375px (móvil).
+      `/compras` (chips, tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
+      panel abierto solo), `/compras/nueva` (buscar "falda" en Producto, Enter en el
+      costo agrega línea nueva — confirmado), `/compras/por-pagar` ("Pagar" en la fila
+      abre modal sin navegar) y `/compras/recibir` (tocar una factura arma la guía,
+      curva de tallas con su propio scroll horizontal, sin desborde) — todo verificado.
+      `tsc`, `eslint` y 297 pruebas en verde. Detalle completo, incluido el mismo
+      defecto latente sin disparar todavía en `PLANTILLA_LINEAS` (líneas de factura) y
+      en `ProductoForm.tsx` (sesión de Catálogo, no tocado acá), en ADR-0098.
+      - [ ] **Sin probar en esta pasada:** "+ Sumar" (sumar otra factura del mismo
+            proveedor a la misma guía), "Todo llegó", y el caso "barra fija choca con
+            las pestañas móviles" en `/compras/recibir` (el número a ajustar, si pasa,
+            es `bottom-[calc(4.25rem+…)]` en `RecepcionCompraFormV2.tsx`).
+      - [ ] `PLANTILLA_LINEAS` (línea 36 de `CompraFormV2.tsx`) tiene el mismo patrón sin
+            `minmax(0,…)` que causó el bug de arriba — no se ha disparado porque sus
+            columnas fijas (24rem) son más anchas que el desborde que lo dispara, pero
+            sigue latente. Vale una pasada dedicada.
 
 - [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
       puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
@@ -2245,6 +2449,29 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       no se cuenta la trastienda, `stock_almacen` queda en 0 y "Bajar a tienda"
       va a fallar por stock insuficiente. Lo que baje de atrás entra como
       "Recibir", no como "Bajar a tienda".
+      **Corrección 2026-09-18 — esta entrada quedó desactualizada por las sesiones
+      paralelas del 16/17-sep; auditado el código real, no lo que decía este
+      archivo.** De los 5 bloqueadores que decía que faltaban, **4 ya están
+      completos en producción**: colores (proponer/aprobar/rechazar/reactivar,
+      `ColoresLista.tsx`), códigos + `codigos_barras` (tabla desde `0002_esquema.sql`,
+      código corto autogenerado por trigger al crear variante), conteos (abrir/
+      contar/cerrar/anular, `ConteoPanel.tsx` + `lib/conteos.ts`, escaneo directo) y
+      la matriz talla×color con costo por modelo en `/productos/nuevo`.
+      **La 5ª brecha (alta de prenda al vuelo durante el conteo) se cerró el
+      mismo 2026-09-18 (ADR-0099):** `censo_crear_variante` (sin el candado
+      de Líder de `crear_producto_con_variantes`) + `estado_alta` proponer/
+      aprobar en `productos` (mismo mecanismo que colores/tallas/tejidos/
+      patrones/etiquetas) + banner de revisión en `/productos` y `/productos/
+      [id]/editar`. Probado de punta a punta en navegador local: escanear un
+      código desconocido en pleno conteo, crear la prenda sin salir de la
+      pantalla, contarla, y que el Líder la vea pendiente y la apruebe.
+      `tsc`/lint/297 tests en verde. **`20260918020000_censo_alta_al_vuelo.sql`
+      aplicada y verificada en producción 2026-09-18** (columnas + 2 funciones
+      + 1 trigger confirmados contra `information_schema`/`pg_proc`).
+      Aparte, sigue sin construirse una pantalla de impresión de etiquetas
+      propias (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa
+      nadie) — no bloquea el censo (Felipe ya decidió escanear código de
+      fábrica), pero quedó huérfano si algún día hace falta.
 - [x] **`almacen interno en el riel numerado` — hecho y verificado en local
       2026-09-09 (`0044_almacen_interno.sql`); falta pegar `unificacion/26` en
       producción.** `stock_almacen`, el contenedor `tipo='almacen'`,
@@ -2674,6 +2901,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [x] **`docs/datos/generado/` estaba desactualizado desde media tarde del 17-sep —
+      `pnpm datos:comparar` marcaba 3 pantallas "rotas en producción" que en
+      realidad funcionan bien. Refrescado y confirmado 2026-09-17 (noche).** El
+      volcado (`funciones-produccion.txt` y los 6 `retail_*.json`) tenía fecha
+      15:26 (commit del PR #93, "revoca EXECUTE público"), de antes de que
+      aterrizaran ADR-0093 (`marcar_comprobante_no_emitido`) y ADR-0095
+      (`actualizar_categoria_ejes`, `actualizar_variantes_etiquetas`) — las 3
+      funciones que el comparador marcaba como inexistentes. Antes de alarmar con
+      "3 pantallas rotas", se verificó **contra producción de verdad** (MCP de
+      Supabase, `vovjyyiafkxteijimpuy`, consulta de solo lectura envuelta en
+      `begin transaction read only`): las 3 funciones existen — era la foto, no el
+      código. Se volvió a pedir el volcado completo (los 7 queries de
+      `COMO-REFRESCAR.md`) y se regeneró el diccionario:
+      `pnpm datos:comparar` ahora sale limpio ("Ninguna pantalla llama a una
+      función con parámetros que producción no acepte"). De paso salió a la luz
+      que producción creció de 45 a **60 tablas** desde la última foto del 12-sep
+      — coherente con la cantidad de PRs fusionados hoy (Taxonomía ADR-0095,
+      Familias/categorías ADR-0096, Revocar EXECUTE ADR-0078, etc.). El propio
+      `docs/CLAUDE.md` ya no necesita corrección: dice explícitamente que el
+      conteo vivo está en este diccionario, no hardcodeado ahí.
+      **Sin tocar (deuda que sigue viva, no la agrandé ni la until):**
+      `glosario.json` solo explica 425 de 586 columnas — las nuevas de hoy (Loro,
+      taxonomía, EXECUTE) quedan con "Para qué sirve" vacío hasta que alguien las
+      documente a mano; 21 de las 60 tablas quedan "sin módulo" en
+      `DICCIONARIO-RETAIL.md` (la lista `DOMINIOS_RETAIL` de `generar.mjs` no se
+      actualizó desde el 15-sep). Ninguna de las dos bloquea nada, son mapas
+      quedando cortos, no código roto.
 - [ ] **`ARQUITECTURA.md:106-119` describe un `/inventario` que ya no existe —
       encontrado 2026-09-17 de rebote, verificando a dónde debía apuntar el alias
       `/almacen`.** El doc dice `/inventario/almacen` → `AlmacenStockList.tsx`,
@@ -3264,6 +3518,18 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-18 — **Tienda Lima activada en producción (ADR-0097).** No estaba
+      inactiva, no existía: `retail.ubicaciones` en producción solo tenía Taller,
+      Tienda AQP y Tienda TRU (las decenas de menciones de "Tienda Lima" en esta
+      bitácora son todas del seed local, nunca de la base real). Creada vía
+      `apply_migration` (`20260918010733_activar_tienda_lima.sql`, dry-run+rollback
+      verificado antes de aplicar de verdad): fila `Tienda LIM` enlazada a la sede
+      Dynamic código `003` (el código `LIM` de Dynamic es el Taller, no la tienda —
+      trampa ya documentada abajo, 2026-09-10) + sus 3 sububicaciones (piso de
+      venta, almacén de tienda, cuarentena), mismo patrón que AQP/TRU. Verificado
+      contra producción después de aplicar; `get_advisors` sin advertencias nuevas.
+      **Pendiente (no es parte de "activar"):** cargar stock inicial (traslado desde
+      Taller/almacén) y asignar una Encargada — la tienda queda operable pero vacía.
 - [x] 2026-09-17 — **`/almacen` y `/almacen/recibir` pasan a `redirects()` de
       `next.config.ts` — y de paso se corrigió un 404 que llevaba un día abierto.**
       Eran páginas de React (`app/(app)/almacen/page.tsx`,

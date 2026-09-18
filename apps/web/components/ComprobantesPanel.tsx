@@ -125,6 +125,34 @@ function accionComprobante(
   return { boton, motivo, motivoEsRechazo };
 }
 
+// PDF/XML/CDR (2026-09-18): Lucode los devuelve al transmitir y hasta hoy
+// nadie los mostraba — SUNAT ya tenía el documento pero la clienta nunca
+// podía verlo ni descargarlo. `pdfUrl` es el que de verdad importa (se le
+// manda a la clienta); XML/CDR quedan como enlaces chicos al lado para
+// cuando hace falta el respaldo técnico (una reclamación, una auditoría).
+function DocumentosSunat({ c }: { c: Comprobante }) {
+  if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-x-2 text-[11px] font-normal normal-case">
+      {c.pdfUrl && (
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="text-rojo hover:underline">
+          Ver PDF
+        </a>
+      )}
+      {c.xmlUrl && (
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/50 hover:text-rojo hover:underline">
+          XML
+        </a>
+      )}
+      {c.cdrUrl && (
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/50 hover:text-rojo hover:underline">
+          CDR
+        </a>
+      )}
+    </div>
+  );
+}
+
 function formatearFecha(iso: string) {
   return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
     new Date(iso)
@@ -514,6 +542,7 @@ export function ComprobantesPanel({
                         <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
                         <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
                           {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
+                          <DocumentosSunat c={c} />
                         </td>
                         <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
                         <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
@@ -563,6 +592,7 @@ export function ComprobantesPanel({
                           {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-tinta/65">{c.cliente_nombre ?? "Cliente varios"}</p>
+                        <DocumentosSunat c={c} />
                       </div>
                       <p className="font-display shrink-0 text-base tabular-nums text-tinta">{money(Number(c.total))}</p>
                     </div>

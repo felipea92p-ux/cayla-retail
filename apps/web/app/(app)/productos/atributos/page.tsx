@@ -17,7 +17,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const TIPOS = ["colores", "tallas", "tejidos", "patrones", "etiquetas"] as const;
   const tipo = TIPOS.find((t) => t === tipoParam) ?? "colores";
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resUbicaciones] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas] = await Promise.all([
     supabase
       .from("colores")
       .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
@@ -26,8 +26,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado").order("nombre"),
     supabase.from("patrones").select("id, nombre, activo, notas, estado").order("nombre"),
-    supabase.from("etiquetas").select("id, nombre, activo, sedes_permitidas, notas, estado").order("nombre"),
-    supabase.from("ubicaciones").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta").order("nombre"),
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -67,11 +66,12 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     id: e.id,
     nombre: e.nombre,
     activo: e.activo,
-    sedesPermitidas: e.sedes_permitidas,
     notas: e.notas,
     estado: e.estado as "pendiente" | "aprobado" | "rechazado",
+    estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
+    vigenteDesde: e.vigente_desde,
+    vigenteHasta: e.vigente_hasta,
   }));
-  const sedes = exigir(resUbicaciones, "las sedes");
 
   return (
     <div className="space-y-6">
@@ -94,7 +94,6 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         tejidos={tejidos}
         patrones={patrones}
         etiquetas={etiquetas}
-        sedes={sedes}
         puedeEditar={persona.rol === "lider"}
       />
     </div>

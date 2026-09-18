@@ -19,12 +19,12 @@ import type { ComponentProps } from "react";
  *
  * Deliberadamente NO se fusionó la lógica de las 5 en un componente
  * genérico: Colores tiene hex/muestra/tipo, Tallas exige comentario al
- * aprobar, Etiquetas restringe por sede — forzar un molde único las
- * hubiera llenado de `if` (principio 3, piezas pequeñas y componibles).
+ * aprobar, Etiquetas agrupa por estilo y vigencia — forzar un molde único
+ * las hubiera llenado de `if` (principio 3, piezas pequeñas y componibles).
  * Lo que sí se unificó fue la presentación: cada acción con formulario
- * (agregar/aprobar/rechazar/sedes) pasó de un panel que se abría dentro de
- * la misma tarjeta a un modal — mismo lenguaje que "Vista rápida" de
- * Categorías y Productos.
+ * (agregar/aprobar-con-comentario/rechazar) pasó de un panel que se abría
+ * dentro de la misma tarjeta a un modal — mismo lenguaje que "Vista rápida"
+ * de Categorías y Productos.
  */
 
 type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas";
@@ -47,7 +47,7 @@ const AYUDA: Record<Tipo, string> = {
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto.",
-  etiquetas: "Vocabulario libre (folksonomy) por variante, distinto de la etiqueta física de código de barras. Restringir a sedes es opcional.",
+  etiquetas: "Vocabulario libre (folksonomy) por variante, distinto de la etiqueta física de código de barras. Aplica igual en las 4 sedes.",
 };
 
 function IconoTab({ d, className = "h-4 w-4" }: { d: string; className?: string }) {
@@ -65,7 +65,6 @@ export function AtributosHub({
   tejidos,
   patrones,
   etiquetas,
-  sedes,
   puedeEditar,
 }: {
   tipo: Tipo;
@@ -74,7 +73,6 @@ export function AtributosHub({
   tejidos: ComponentProps<typeof TejidosLista>["tejidosIniciales"];
   patrones: ComponentProps<typeof PatronesLista>["patronesIniciales"];
   etiquetas: ComponentProps<typeof EtiquetasLista>["etiquetasIniciales"];
-  sedes: ComponentProps<typeof EtiquetasLista>["sedes"];
   puedeEditar: boolean;
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
@@ -109,7 +107,7 @@ export function AtributosHub({
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
       {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} />}
       {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} />}
-      {tipo === "etiquetas" && <EtiquetasLista etiquetasIniciales={etiquetas} sedes={sedes} puedeEditar={puedeEditar} />}
+      {tipo === "etiquetas" && <EtiquetasLista etiquetasIniciales={etiquetas} puedeEditar={puedeEditar} />}
     </div>
   );
 }

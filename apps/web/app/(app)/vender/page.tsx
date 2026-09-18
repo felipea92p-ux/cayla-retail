@@ -65,6 +65,7 @@ async function Caja() {
       color: v.color,
       categoria: v.categoria,
       precio: v.precio,
+      fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],

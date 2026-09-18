@@ -12,7 +12,7 @@ const v = (
   talla: string | null,
   stockAqui: number,
   precio = 79.9,
-) => ({ varianteId, referencia, color, talla, stockAqui, precio, categoria: "Blusas" });
+) => ({ varianteId, referencia, color, talla, stockAqui, precio, categoria: "Blusas", fotoUrl: null });
 
 describe("agruparCatalogo — una tarjeta por prenda + color", () => {
   it("junta las tallas de la misma prenda y color, y separa los colores", () => {
