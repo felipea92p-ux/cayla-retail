@@ -372,6 +372,84 @@ body {
   .anim-entrada { animation-name: cayla-entrada; }
 }
 
+/* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
+        Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
+        El barrido y la aguja llevan la MISMA curva y duración a propósito: la
+        aguja marca hasta dónde llegó el barrido. `--dona-c` (la circunferencia)
+        viene del componente, para que el CSS no repita el número. Filas y barras
+        usan `backwards` y no `both`: una vez dentro, su opacidad tiene que poder
+        cambiar con el hover, y un relleno `forwards` la dejaría fija. ---- */
+@keyframes dona-barrer {
+  from { stroke-dashoffset: var(--dona-c); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes dona-gira { to { transform: rotate(360deg); } }
+@keyframes dona-apaga { to { opacity: 0; } }
+@keyframes dona-barra { from { transform: scaleX(0); } }
+
+.anim-dona-barrido { animation: dona-barrer 1300ms var(--ease-cayla) both; }
+.anim-dona-mano {
+  transform-origin: 100px 100px;
+  animation: dona-gira 1300ms var(--ease-cayla) both, dona-apaga 350ms linear 1000ms both;
+}
+.anim-dona-fila {
+  animation: cayla-revelar 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(260ms + var(--i, 0) * 110ms);
+}
+.anim-dona-barra {
+  animation: dona-barra 900ms var(--ease-cayla) backwards;
+  animation-delay: calc(380ms + var(--i, 0) * 110ms);
+}
+
+/* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
+        tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
+        el dígito rueda cuando cambia, la aguja da la vuelta cada 60 s y las ondas de
+        "sincronizado" respiran. `caja-ping` parte de `opacity: 0` (base) para que sin
+        animación —movimiento reducido— la onda no quede como un disco sólido detrás del
+        ícono. ---- */
+@keyframes caja-rueda { from { opacity: 0; transform: translateY(0.35em); } }
+@keyframes caja-aguja { to { transform: rotate(360deg); } }
+@keyframes caja-ping {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes caja-trazo { from { stroke-dashoffset: 14; } }
+
+.anim-rueda { animation: caja-rueda 320ms var(--ease-cayla) both; }
+.anim-caja-aguja { transform-origin: 10px 10px; animation: caja-aguja 60s linear infinite; }
+.anim-caja-ping { opacity: 0; animation: caja-ping 2.8s var(--ease-cayla) infinite; }
+.anim-caja-check path { stroke-dasharray: 14; animation: caja-trazo 520ms var(--ease-cayla) 120ms backwards; }
+
+/* ---- Ritmo del día (2026-09-18, 3ª tanda): el eje se traza de la apertura a ahora y los puntos
+        entran en orden, de izquierda a derecha. `backwards`, no `both`: una vez dentro, un punto
+        vuelve a ser un punto normal (el globo del hover no queda bajo una opacidad fija). ---- */
+@keyframes ritmo-linea { from { transform: scaleX(0); } }
+@keyframes ritmo-punto { from { opacity: 0; transform: scale(0.4); } }
+.anim-ritmo-linea { animation: ritmo-linea 800ms var(--ease-cayla) backwards; }
+.anim-ritmo-punto {
+  animation: ritmo-punto 480ms var(--ease-cayla) backwards;
+  animation-delay: calc(350ms + var(--i, 0) * 110ms);
+}
+
+/* ---- En vivo (2026-09-18): cuando entra una venta, lo que la muestra lo dice. Cada una es una capa
+        aparte (velo, insignia, onda, resaltado de fila) porque `animation` no se combina entre clases.
+        Todas TERMINAN invisibles (`both` hasta un estado final transparente): con movimiento reducido
+        —1 ms— no queda nada pintado, y quien informa es el aviso de "nueva venta". ---- */
+@keyframes vivo-destello { to { opacity: 0; } }
+@keyframes vivo-delta {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  14%, 78% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes vivo-onda {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0; transform: scale(3.6); }
+}
+.anim-vivo-destello { animation: vivo-destello 1500ms var(--ease-cayla) both; }
+.anim-vivo-delta { animation: vivo-delta 2800ms var(--ease-cayla) both; }
+.anim-vivo-onda { animation: vivo-onda 1500ms var(--ease-cayla) 2 both; }
+.anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
@@ -386,6 +464,26 @@ body {
   .anim-velo-salida {
     animation-duration: 1ms;
   }
+  .anim-dona-barrido,
+  .anim-dona-fila,
+  .anim-dona-barra,
+  .anim-ritmo-linea,
+  .anim-ritmo-punto,
+  .anim-vivo-destello,
+  .anim-vivo-delta,
+  .anim-vivo-onda,
+  .anim-vivo-fila {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .anim-dona-mano { display: none; }
+  .anim-rueda,
+  .anim-caja-check path {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .anim-caja-aguja,
+  .anim-caja-ping { animation: none; }
   .alza-cayla:hover { transform: none; }
   .hilo-trabajando::after { animation: none; }
   *, *::before, *::after {

@@ -7,15 +7,141 @@ import { diaLima, horaDelDiaLima, inicioDeDiaLima } from "./panel-serie";
 const DIAS_TREND_CIERRES = 7;
 const NOMBRES_DIA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"] as const;
 
-/** Iniciales de un nombre completo (ej. "Felipe Alvarez" → "FA") — mismo criterio
- *  que ya usa la tarjeta de producto del POS para su placeholder sin foto. */
-export function iniciales(nombreCompleto: string): string {
-  const palabras = nombreCompleto.trim().split(/\s+/).filter(Boolean);
-  if (palabras.length === 0) return "—";
-  return palabras
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
+/** "48 min" o "1 h 04 min": un solo formato para "lleva abierta" y "desde la última venta". */
+export function formatoDuracion(minutos: number): string {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return h > 0 ? `${h} h ${String(m).padStart(2, "0")} min` : `${m} min`;
+}
+
+/** Cuánto lleva abierta la caja, para el reloj del encabezado. Un reloj adelantado (la
+ *  apertura quedó "en el futuro") da 0 min, no un negativo. */
+export function duracionAbierta(abiertaEn: string, ahoraMs: number): string {
+  const minutos = Math.max(0, Math.floor((ahoraMs - new Date(abiertaEn).getTime()) / 60_000));
+  return Number.isFinite(minutos) ? formatoDuracion(minutos) : "—";
+}
+
+/** "13:09" → minutos desde la medianoche (789). La `hora` de `fn_ventas_del_dia` ya viene en hora de Lima. */
+export function minutosDeHora(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro";
+const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+
+/** Los métodos de una venta: `"efectivo + yape"` → `["efectivo", "yape"]`. Sin repetir, y con Yape y
+ *  Plin juntos, igual que la dona ("Yape / Plin"). Sin dato no inventa uno: lista vacía. */
+export function metodosDe(texto: string | null): MetodoRitmo[] {
+  const claves = (texto ?? "")
+    .toLowerCase()
+    .split("+")
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t): MetodoRitmo =>
+      t.includes("efectivo")
+        ? "efectivo"
+        : t.includes("tarjeta")
+          ? "tarjeta"
+          : t.includes("yape") || t.includes("plin")
+            ? "yape"
+            : t.includes("transferencia")
+              ? "transferencia"
+              : "otro"
+    );
+  return Array.from(new Set(claves));
+}
+
+export type PuntoRitmo = {
+  id: string;
+  /** "13:09", tal cual, para el globo al apuntarlo. */
+  hora: string;
+  total: number;
+  /** 0–1 dentro del eje (apertura → ahora). */
+  pos: number;
+  /** 0–1, tamaño relativo: la raíz del monto sobre el mayor, para que el ÁREA del punto siga al monto. */
+  peso: number;
+  /** Los que caen en la misma zona del eje se apilan (fila 0, 1, 2…) en vez de taparse. */
+  fila: number;
+  metodos: MetodoRitmo[];
+};
+
+export type RitmoDelDia = {
+  /** `false` si la caja quedó abierta de ayer: el eje entonces arranca a medianoche, no en su hora de apertura. */
+  abrioHoy: boolean;
+  cantidad: number;
+  total: number;
+  ticketPromedio: number;
+  /** Minutos desde la última venta hasta ahora; `null` si todavía no hubo ninguna. */
+  minutosDesdeUltima: number | null;
+  puntos: PuntoRitmo[];
+  /** Filas del apilado más alto (0 si no hay puntos). */
+  filas: number;
+  /** Métodos que aparecen, en orden fijo: la leyenda. */
+  metodos: MetodoRitmo[];
+};
+
+/** El eje se parte en zonas iguales; los puntos de una misma zona se apilan. Más zonas, menos apilado. */
+const ZONAS_RITMO = 24;
+
+/**
+ * "Ritmo del día" de Caja: cuántas ventas, ticket promedio, cuánto hace de la última y dónde cae
+ * cada una sobre el eje apertura → ahora. Todo sale de `fn_ventas_del_dia`, sin consultas nuevas.
+ *
+ * Esa función trae las ventas de HOY de la ubicación, incluidas las de cajas anteriores del mismo
+ * día: solo cuentan las de la caja actual (desde que abrió). Y si esta caja quedó abierta de
+ * ayer, el eje arranca a medianoche, porque de ayer no llega nada.
+ */
+export function ritmoDelDia(
+  ventas: readonly { ventaId: string; hora: string; total: number; metodosPago: string | null }[],
+  abiertaEn: string,
+  ahoraMs: number
+): RitmoDelDia {
+  const aperturaMs = new Date(abiertaEn).getTime();
+  const ahoraMin = Math.floor(horaDelDiaLima(ahoraMs) / 60_000);
+  const abrioHoy = diaLima(aperturaMs) === diaLima(ahoraMs);
+  const aperturaMin = abrioHoy ? Math.floor(horaDelDiaLima(aperturaMs) / 60_000) : 0;
+
+  const propias = ventas
+    .map((v) => ({ ...v, min: minutosDeHora(v.hora) }))
+    .filter((v) => v.min >= aperturaMin)
+    .sort((a, b) => a.min - b.min);
+
+  const cantidad = propias.length;
+  const total = propias.reduce((a, v) => a + v.total, 0);
+  const ultima = propias[cantidad - 1]?.min ?? null;
+  // Un reloj atrasado (una venta "del futuro") no debe dejar puntos fuera del eje.
+  const span = Math.max(ahoraMin, ultima ?? 0, aperturaMin + 1) - aperturaMin;
+  const mayor = Math.max(0, ...propias.map((v) => v.total));
+
+  const zonas = new Map<number, number>();
+  const puntos = propias.map((v): PuntoRitmo => {
+    const pos = Math.min(1, Math.max(0, (v.min - aperturaMin) / span));
+    const zona = Math.min(ZONAS_RITMO - 1, Math.floor(pos * ZONAS_RITMO));
+    const fila = zonas.get(zona) ?? 0;
+    zonas.set(zona, fila + 1);
+    return {
+      id: v.ventaId,
+      hora: v.hora,
+      total: v.total,
+      pos,
+      peso: mayor > 0 ? Math.sqrt(v.total / mayor) : 0,
+      fila,
+      metodos: metodosDe(v.metodosPago),
+    };
+  });
+
+  const presentes = new Set(puntos.flatMap((p) => p.metodos));
+  return {
+    abrioHoy,
+    cantidad,
+    total,
+    ticketPromedio: cantidad > 0 ? total / cantidad : 0,
+    minutosDesdeUltima: ultima === null ? null : Math.max(0, ahoraMin - ultima),
+    puntos,
+    filas: Math.max(0, ...Array.from(zonas.values())),
+    metodos: ORDEN_METODOS.filter((m) => presentes.has(m)),
+  };
 }
 
 /**

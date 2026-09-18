@@ -7446,3 +7446,138 @@ de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
 **20260918091500** (después de la última migración del día, `20260918090000`). Referencias
 corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
 08-facturacion-sunat.md` con el mismo ajuste.
+
+## 2026-09-18 (Caja, segunda tanda — acciones arriba, sin "Cambios", dona con profundidad y movimiento)
+
+Pedido: las acciones de la caja arriba y a un lado (no en la barra de abajo), fuera el botón
+"Cambios", y una dona menos plana con animación al entrar a la vista y al pasar el mouse.
+"+ Ingreso / egreso" y "Cerrar caja" pasan al encabezado, a la derecha; el chip de
+sincronización queda junto al título para dejarles el lado. "Cambios" no se pierde: sigue en el
+menú lateral (Ventas → Cambios). Ya no hace falta el `pb-24` que le hacía lugar a la barra fija.
+
+La dona sale de `Graficos.tsx` y pasa a `components/ui/DonaMetodos.tsx`: SVG puro, sin
+librería (no hizo falta pedir ningún componente externo). Lenguaje de cuadrante de reloj —
+bisel de 100 marcas que es una escala de porcentaje real, arcos con degradado y resplandor,
+una aguja que barre y descubre el anillo al entrar— y al apuntar un método (en el arco o en
+la leyenda) se adelanta el arco, se apagan los otros, se encienden sus marcas y el centro
+cambia a su % y su monto. Es una excepción declarada, solo de esta dona, a "sin gradiente" y a
+"nada se anima solo al entrar" (adenda en ADR-0102); se mantienen "sin rebote" y
+`prefers-reduced-motion`. Geometría pura en `lib/dona-geometria.ts`, con 7 pruebas.
+
+Verificado en navegador contra una página temporal con datos de mentira (ya borrada; no se usó
+la sesión real para no cruzar la cookie con otro `next dev`). Tres defectos salieron de mirar y
+no de `tsc`: el extremo claro del degradado quedaba lavado (grisáceo a las 12), el "S/0"
+previo a la entrada se leía como "no hubo ventas" (ahora se oculta hasta contar), y el anillo
+quedaba pegado a la izquierda cuando la leyenda baja en pantallas angostas. El navegador de
+pruebas iba a ~1 fps: el movimiento se verificó buscando instantes exactos con la API de
+animaciones. `tsc`/`eslint` limpios, suite completa 387/387. Pendiente: verla con la caja real
+y con un dedo en pantalla táctil (BACKLOG).
+
+## 2026-09-18 (Caja, tercera tanda — encabezado sin avatar, reloj y estado con vida, dona centrada)
+
+Pedido, tras ver la 2ª tanda: sacar "la foto" del encabezado (eran las iniciales, no una foto:
+no informaban, el nombre ya está al lado), conservar la hora que corre y "sincronizado" —que
+sí le gustaron— dándoles más vida, y centrar bien la dona. Se pidió además pensar el gráfico de
+"Ventas por hora", que no se entiende ni se sabe si sirve, y qué hacer con las tarjetas que
+otra sesión ya está tocando.
+
+Hecho: `RelojDeCaja` (dígitos que ruedan solo cuando cambian, aguja de segundos que arranca en
+el segundo real, "abierta desde… · lleva 2 h 08 min" con la regla pura `duracionAbierta`) y
+`EstadoSync` (onda suave, visto que se traza, re-asentado al cambiar; el ícono distinto
+mantiene el estado legible sin depender del color). Dona centrada en las dos direcciones
+dentro de su tarjeta. Excepción declarada en la adenda de ADR-0102: aquí hay movimiento continuo
+(aguja y onda), no solo de entrada.
+
+Sobre las tarjetas, se miraron los 40+ worktrees antes de tocar nada: la sesión de Cambios
+(`TarjetaEstadistica`) ya está en `main`, con otro diseño que `TarjetaKpi`; la del POS
+(`buscar-entry-point`) trae sin fusionar una paleta nueva de métodos de pago (cobre, plomo,
+morado; `--color-metodo-*`) y el recibo térmico, ambos en `globals.css`. Nadie toca
+`CajaAbiertaPanel.tsx`. Decisión: no unificar tarjetas aquí (cruza módulos y chocaría con
+`globals.css`); queda en BACKLOG. Se comprobó con la paleta nueva pisada en la vista previa
+que la dona funciona sin cambios (los degradados salen de `color-mix` sobre el token).
+
+Verificado en navegador (Playwright, página temporal ya borrada): escritorio, tablet y móvil,
+estado "3 ventas sin sincronizar", rueda de dígitos y aguja corriendo, sin desbordes, consola
+sin avisos. `tsc`/`eslint` limpios, 22 pruebas de las reglas de Caja y la dona en verde.
+"Ventas por hora" queda como decisión abierta (BACKLOG): no se construyó nada.
+
+## 2026-09-18 (Caja — "Ventas por hora" se cambia por "Ritmo del día")
+
+Felipe eligió, de tres caminos comparados con sus mismos números (aclarar las barras / cambiarlas
+por "Ritmo del día" / quitarlas), el segundo. El gráfico por hora no se entendía: sin cifras, con
+la barra mayor siempre llena y una raya roja en la hora sin ventas que parecía dato. Con pocas
+ventas al día un histograma por hora es casi ruido, y la lista de movimientos ya dice la hora de
+cada venta.
+
+`RitmoDelDia` muestra tres cifras (ventas, ticket promedio, desde la última venta) y una línea de
+tiempo de la apertura a ahora con una venta por punto: tamaño = monto (el área sigue al monto),
+color = método (los mismos tokens de la dona), pago mixto = punto partido, y las ventas que caen
+juntas se apilan en vez de taparse. Sin consultas nuevas: sale de `ventasHoy`
+(`fn_ventas_del_dia`), cuya `hora` viene ya en hora de Lima como texto `HH:MM` y que incluye las
+ventas de cajas anteriores del mismo día — solo cuentan las posteriores a la apertura de esta caja.
+La lógica es pura y está probada (`ritmoDelDia`, `metodosDe`, `formatoDuracion` en
+`caja-panel-reglas.ts`).
+
+Lo que salió de mirarlo en navegador y no de `tsc`: a 340 px `S/171.39` se salía de su columna y
+desbordaba la página (las cifras ahora se ajustan al ancho real de la tarjeta con `cqi`), y una
+caja abierta desde ayer decía "Abre 3:45 p. m." con un eje que empieza a medianoche (ahora dice
+"Desde medianoche"). Verificado: 1280/390/340 px, 3 y 18 ventas, pagos mixtos, sin ventas, caja
+recién abierta, globo al apuntar un punto, paleta nueva del POS, consola sin avisos. Fuera:
+`BarrasHorarias`. `useEnVista` pasa a `lib/` (lo usan la dona y esta tarjeta).
+
+## 2026-09-18 (Caja a todo el ancho, como el Punto de Venta)
+
+Pedido de Felipe: la Caja debía ocupar todo el ancho de la pantalla, como el Punto de Venta —
+"hay mucho espacio a los lados por aprovechar y no se aprovecha". La causa era una sola:
+`AppShell` mete el contenido en `mx-auto max-w-5xl` salvo que la ruta esté en
+`SIN_TOPE_DE_ANCHO` (donde ya estaban Vender, Compras, Productos e Inventario). Se agregó
+`/caja`: a 1878 px el contenido pasa de ~1023 a ~1526 px.
+
+Como esa lista actúa por prefijo, entran también las dos pantallas que cuelgan de `/caja` y que
+NO eran tablero: el formulario de abrir caja (un campo, sin tope propio: a 1500 px sería un input
+de 1500) y el historial de cierres (una tabla con una columna flexible, la sede, que separaría la
+sede de sus cifras). Ambas conservan `max-w-5xl` puesto por su cuenta, así que quien no tiene caja
+abierta ve exactamente lo de antes.
+
+Estirar las tarjetas no basta para "aprovechar": a 1878 px la dona de 176 px quedaba perdida en una
+tarjeta de 750 y "Movimientos recientes" (984 px) separaba cada concepto de su monto por ~700.
+Ajustes: la fila de abajo pasa a dos columnas iguales alineadas con la de arriba (`2xl:grid-cols-2`;
+con menos ancho sigue 1.3/0.7) y la dona, su texto y su leyenda crecen con el ancho de SU tarjeta
+(container queries: 176 → 224 px desde 600 px de tarjeta), no con el de la pantalla, porque la misma
+pantalla da tarjetas de 300 o de 760 px según las columnas.
+
+Verificado en navegador (página temporal ya borrada, envuelta como el `<main>` de AppShell con la
+barra lateral de 17 rem): 1878, 1366 y 1024 px, sin desbordes y con el hover de la dona grande. No se
+pudo ejercitar la ruta real (exige sesión): el cambio de `SIN_TOPE_DE_ANCHO` es la misma línea que ya
+usan las demás pantallas. `tsc`/`eslint` limpios.
+
+## 2026-09-18 (Caja — rediseño para aprovechar el ancho y actualización en vivo)
+
+Pedido de Felipe, en dos mensajes: que la Caja "ocupe de manera óptima el espacio" (tras darle todo el
+ancho, el encabezado y "Ritmo del día" quedaban con mucho vacío) y, a mitad de turno, que "se actualice en
+tiempo real": que cuando entra una venta los gráficos y todo lo que muestre ventas lo digan con una
+animación y actualicen sus valores, para que quien mira desde admin vea el ritmo.
+
+Disposición. La ventana no dice cuánto sitio hay: la barra lateral y los márgenes se comen ~350 px, así que
+la misma pantalla da 700 o 1500 px de tablero. Todo decide ahora por el ancho del propio tablero
+(`@container`). A 1878 px: encabezado en tres zonas con la hora del turno como pieza central, y el cuerpo
+en tres columnas con "Movimientos" como riel alto a la derecha (su alto natural, ~550 px, coincide con las
+dos filas de la izquierda) y el historial en dos columnas con hasta 14 días, día y monto. Lo aprendido al
+medir: en una fila de dos columnas, una tarjeta más alta que su vecina la estira y la deja medio vacía
+(el historial quedaba a 555 px con la mitad en blanco), así que el rango medio no es 2×2 sino historial y
+movimientos a ancho completo (estos en dos columnas, para que el monto quede junto a su concepto). Y la
+dona necesita ~440 px de tarjeta para tener anillo y leyenda lado a lado: de ahí el umbral de 900. Un
+detalle que habría roto los modales: `container-type` aplica contención de layout y ata los `fixed` de sus
+descendientes al contenedor, y `Modal` no usa portal; por eso el contenedor envuelve el tablero y los
+modales van fuera (comprobado: el overlay mide 0,0 · 1878×978, la ventana entera).
+
+En vivo. ADR-0018 dice que Realtime no está activo sobre ninguna tabla y que habilitarlo es un DDL en el
+proyecto compartido con Dynamic (parar y confirmar con Felipe), así que no se tocó la base: `useCajaEnVivo`
+sondea cada 5 s con dos conteos (ventas y movimientos de la caja) y solo si el número cambia hace
+`router.refresh()`. Al llegar los datos nuevos cada pieza lo dice: aviso "Nueva venta", la tarjeta que subió
+con velo e insignia "+S/…", la dona señalando sola el método que creció, el punto nuevo del ritmo con una
+onda, la fila nueva resaltada. Comprobado con un simulador: una venta enciende solo la tarjeta que sube;
+una venta mixta enciende las dos; un egreso enciende Egresos sin aviso de venta; a los 4 s la dona vuelve al
+total y a los 10 s lo "nuevo" ya caducó. Las consultas de conteo se probaron contra el Postgres LOCAL, solo
+lectura, como el líder del seed: el conteo coincide con las filas (11 y 2 en la caja abierta), RLS lo permite
+y sin sesión da 401. NO se pudo ejercitar el bucle completo con sesión real (BACKLOG).
