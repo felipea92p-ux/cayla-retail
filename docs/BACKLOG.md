@@ -28,6 +28,40 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
+
+`/productos/colores` era una sola grilla continua ordenada por `orden`
+global (10→92) — con 34+ colores un tono nuevo quedaba "colgando" al final
+en vez de junto a sus parecidos, y la última fila (Estampados, 3 items)
+se veía a medio llenar sin motivo. Se agrupó por familia (Neutro/Azul/
+Rojo/Amarillo/Verde/Morado/Tierra/Metálico/Estampado), mismo patrón visual
+que ya usa Categorías (`gruposPorFamilia()`, `ColoresLista.tsx`).
+
+De paso, auditoría real (mismo método que ADR-0096: navegar en vivo, citar
+URL, declarar cuando un sitio bloquea) contra Zara, Ralph Lauren, LVMH
+(Fendi/Dior) y Platanitos. Zara y Platanitos dieron datos reales; Ralph
+Lauren bloqueó el acceso en el primer intento y funcionó en el segundo
+(navegación más orgánica en vez de URLs directas); LVMH agrupa por familia
+amplia, no por tono fino, así que no aportó huecos nuevos. Resultado: 4
+colores nuevos con hueco real en Zara (Cobalto, Gris antracita, Caqui,
+Tostado — "Caqui" en español, no "Khaki", por la regla de idioma de
+CLAUDE.md), confirmados también en Ralph Lauren ("Dark Cobalt"). Nacen
+`aprobado` directo — decisión de marca ya tomada con Felipe, no una
+propuesta de piso de venta.
+
+- [ ] Verificado tras fusionar con `main` (2026-09-18): `tsc`, 380 tests, lint de
+      lo tocado y `next build` en verde; componente renderizado con los datos
+      reales de producción. **Falta, en este orden:** (1) Felipe pega en
+      producción `20260918010000_familias_tabla_propia.sql` y después
+      `20260918154730_colores_audit_zara_platanitos.sql` (supuestos ya
+      verificados contra producción, solo lectura); (2) recién ahí se fusiona
+      el PR — antes, el despliegue espera `retail.familias`, que no existe.
+      **Decisión abierta de Felipe:** con la grilla agrupada, `orden` solo manda
+      dentro de cada familia y hoy queda incoherente (Tierra: Arena → Camel →
+      Marrón → Chocolate → Caqui → Tostado; los 4 tonos nuevos van al final de
+      su familia). Propuesta: de más oscuro a más claro, medido con el hex real
+      de la muestra; solo cambia `orden` (dato de presentación, reversible).
+
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
@@ -393,12 +427,18 @@ Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Pla
 Complementos"), 39 categorías activas + 2 archivadas (Blusas fusionada con Camisas,
 Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
 
-- [ ] **`familia` sigue siendo un `CHECK constraint` fijo de 6 valores, no una tabla.**
-      Felipe pidió una pantalla de configuración para agregar familias/categorías nuevas
-      a futuro — eso exige convertir `familia` al mismo mecanismo que tallas/tejidos/
-      patrones (tabla propia, propone/aprueba), no solo agregar una pantalla sobre el
-      constraint actual. Decisión estructural real, pendiente de diseñar con Felipe antes
-      de construirla (no es continuación directa de lo ya hecho).
+- [x] **`familia` ya no es un `CHECK constraint` fijo — pasó a tabla propia
+      (2026-09-18, ADR-0103).** `retail.familias` (código estable en texto,
+      autogenerado del nombre), SIN proponer/aprobar — es decisión de marca,
+      no vocabulario operativo, mismo patrón que ya usa `retail.categorias`
+      (no el de tejidos/patrones, que sí tienen ese flujo). Pantalla nueva
+      `/productos/familias`, líder-only. **Colisión resuelta con Felipe en
+      vivo**: `claude/fix-old-stuff-0192ff` construyó en paralelo una
+      versión distinta (`familia_id` uuid, con proponer/aprobar) — Felipe
+      comparó las dos y eligió esta; ver ADR-0103 para el porqué completo y
+      el aviso a esa sesión en `SESIONES-ACTIVAS.md`. Verificado en
+      navegador como líder; `pnpm typecheck`/`lint`/297 tests en verde.
+      Pendiente: aplicar en producción (SQL con prefijo `retail.`).
 - [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
       Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
       prueba de hoy) muestre que sí hay volumen ahí.
