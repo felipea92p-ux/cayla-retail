@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Claude (Danytristee) | `claude/rediseno-visual-caja-y-vender` | Rediseño visual de Caja (hecho, commiteado, ADR-0101) — sigue con la misma piel visual en Punto de Venta (`PuntoDeVenta.tsx`/`PuntoDeVentaTicket.tsx`/`PuntoDeVentaCatalogo.tsx`), sin lógica nueva. No toca `vender-reglas.ts`/`ventas-offline.ts`. | 2026-09-18 |
 ## Cerradas hoy
 
 | Claude (worktree `ganso-module-mockup-4f4def`) | `claude/analisis-local-categorias-be96a0` | Rediseño visual de `/productos/categorias` (tarjetas + "Vista rápida") y consolidación de Colores/Tallas/Tejidos/Patrones/Etiquetas en `/productos/atributos` (pestañas + modales) — `CategoriasLista.tsx`, `AtributosHub.tsx`, `AppShell.tsx`, `next.config.ts` (5 redirects). Fusionado con `main`: reconcilió el cambio paralelo de Etiquetas (estilo visual + vigencia, sin sedes) sin perder ninguna de las dos features. `tsc`/`lint`/297 tests en verde. PR [#119](https://github.com/felipea92p-ux/cayla-retail/pull/119) abierto, esperando revisión de Felipe. | 2026-09-18 |
