@@ -2266,6 +2266,24 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       no se cuenta la trastienda, `stock_almacen` queda en 0 y "Bajar a tienda"
       va a fallar por stock insuficiente. Lo que baje de atrás entra como
       "Recibir", no como "Bajar a tienda".
+      **Corrección 2026-09-18 — esta entrada quedó desactualizada por las sesiones
+      paralelas del 16/17-sep; auditado el código real, no lo que decía este
+      archivo.** De los 5 bloqueadores que decía que faltaban, **4 ya están
+      completos en producción**: colores (proponer/aprobar/rechazar/reactivar,
+      `ColoresLista.tsx`), códigos + `codigos_barras` (tabla desde `0002_esquema.sql`,
+      código corto autogenerado por trigger al crear variante), conteos (abrir/
+      contar/cerrar/anular, `ConteoPanel.tsx` + `lib/conteos.ts`, escaneo directo) y
+      la matriz talla×color con costo por modelo en `/productos/nuevo`. **Queda 1
+      brecha real, de diseño, no de código:** el `conteo_crear_variante` original
+      (alta de una prenda al vuelo escaneando durante el censo) se perdió en el
+      corte a V2 y no se resucitó — hoy, si una Encargada escanea un código que el
+      catálogo no reconoce, tiene que parar y pedirle a un Líder que lo cree aparte
+      en `/productos/nuevo`. Sin decidir con Felipe si eso es aceptable para un
+      censo de 300-900 prendas o si hay que reconstruirlo sobre el catálogo V2.
+      Aparte, sigue sin construirse una pantalla de impresión de etiquetas propias
+      (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa nadie) — no
+      bloquea el censo (Felipe ya decidió escanear código de fábrica), pero quedó
+      huérfano si algún día hace falta.
 - [x] **`almacen interno en el riel numerado` — hecho y verificado en local
       2026-09-09 (`0044_almacen_interno.sql`); falta pegar `unificacion/26` en
       producción.** `stock_almacen`, el contenedor `tipo='almacen'`,
