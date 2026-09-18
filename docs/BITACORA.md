@@ -6635,6 +6635,76 @@ de la base en momentos distintos — no tiene sentido promediar conteos de filas
 instantes. El PR #112 queda sin diferencia real contra `main` en esos archivos; se le
 avisa a Felipe para que lo cierre en vez de fusionarlo.
 
+## 2026-09-17 (Etiquetas caída en vivo — a la reconciliación de talla_id le faltó una columna)
+
+Felipe reportó Catálogo > Etiquetas caída ("Esta pantalla no está mostrando datos") con
+un screenshot real. Diagnóstico leyendo producción en solo-lectura (transacción
+`read only`, sin escribir nada): `retail.etiquetas` le faltaba la columna `notas` que
+`/productos/etiquetas/page.tsx` sí pide — la tabla la había creado una rama vieja nunca
+fusionada, y la reconciliación de esta misma tarde
+(`pegar-en-produccion-taxonomia-parte-segura.sql`) arregló los triggers de ese mismo
+vocabulario pero nunca comparó columna por columna contra lo que el frontend fusionado
+en `main` realmente pide. Felipe corrió `alter table retail.etiquetas add column if not
+exists notas text;` en el SQL Editor; reverificado por lectura que la columna quedó
+creada. Aparte, el trigger que trae `20260917100200_etiquetas_catalogo.sql` en el repo
+estaba un paso atrás del que de verdad corre en producción (le faltaba "reactivar
+retira el rechazo") — corregido para que `supabase db reset` local no vuelva a divergir
+de producción en este vocabulario. Aprendizaje para la próxima reconciliación de
+esquema: comparar triggers/constraints no basta, hay que comparar columnas también
+(`information_schema.columns`), porque una tabla creada por otra rama puede tener el
+mismo nombre y un subconjunto distinto de columnas.
+
+## 2026-09-17 (vocabulario real de Etiquetas: 22 filas, vigencia por fecha, comentario obligatorio)
+
+Con la pantalla ya viva, Felipe pidió construir el vocabulario real inspirado en Zara/
+Bershka (rotación real), Ralph Lauren (cápsulas/"icon programs"), Hermès (herencia
+artesanal, el paralelo directo con el Taller de Lima) y el calendario comercial peruano,
+mas tendencias globales. Se investigó cada afirmación en vez de inventarla (CyberWow lo
+organiza IAB Perú, 3 ediciones/año; Black Friday 2026 es 27-nov, Black Week 23-30-nov,
+distinto de CyberWow; Galentine's Day 13-feb es tendencia real de Gen Z, no ocurrencia;
+Día del Gato 8-ago y Día del Perro 26-ago NO son la misma fecha; "Día de la Tierra" gana
+a "Día del Planeta" porque es el término real que usa Perú). Decisiones de Felipe:
+Pima/Alpaca NO son etiquetas, son tejido real y van a retail.tejidos (evita duplicar un
+concepto que ya tenía dueño); Hecho a mano/Pieza única las puede proponer cualquier
+sede, verificado caso por caso vía el comentario obligatorio nuevo; ese comentario
+obligatorio aplica a TODAS las etiquetas, no solo a las de mayor riesgo.
+
+Migración 20260917230000: vigente_desde/vigente_hasta (date, nullable) en
+retail.etiquetas. Corrección a mi propio razonamiento de la sesión anterior: dije que
+esto tocaría registrar_venta/transferir, y no es cierto — esa función resuelve una
+pregunta distinta (sedes_permitidas), mezclarlas habría sido el error que el principio 2
+existe para evitar. Vigencia queda 100% en la capa de lectura, sin tocar ningún camino
+de dinero. fn_etiquetas_estado_trigger gana la misma regla que ya tenía Tallas: aprobar
+exige notas no vacío.
+
+Migración 20260917230100: semilla de 19 etiquetas fijas + "Para liquidar" generada
+dinámicamente, una fila por cada retail.ubicaciones activa (sin hardcodear nombres de
+sede). Hallazgo real explicado a Felipe: sedes_permitidas vive en la ETIQUETA, no en
+cada aplicación a variante — una sola fila global de "Para liquidar" habría restringido
+TODAS las liquidaciones futuras a la misma sede fija. La solución correcta con el
+esquema actual es una fila por sede.
+
+Bug real encontrado y corregido en el camino: retail.ubicaciones se llena en seed.sql,
+que corre DESPUÉS de las migraciones — un db reset completo desde cero dejaba "Para
+liquidar" con 0 filas porque la migración corría antes de que hubiera alguna sede que
+leer. Corregido agregando el mismo insert dinámico al final de seed.sql, sin tocar la
+migración (que sí es correcta tal cual para producción, donde las sedes ya existen antes
+de pegar el SQL). De paso: un db reset limpio también fallaba en
+0009_integracion_dynamic.sql por faltar supabase/migrations/0000_local_stub_dynamic.sql
+(archivo local-only del README/ADR-0033 que hay que generar una vez por máquina desde su
+.example) — esta sesión no lo tenía porque nunca había corrido un reset desde cero en
+este worktree.
+
+Verificado de punta a punta: db reset completo en verde, las 22 filas confirmadas por
+SQL, el candado de comentario obligatorio probado en vivo (aprobar sin notas lanza la
+excepción correcta), on conflict contra el índice único de fn_clave_texto(nombre)
+probado idempotente, typecheck/lint limpios, y la pantalla real en pnpm dev contra este
+mismo Postgres mostrando las 22 tarjetas con el candado de sede visible ("Para liquidar
+— Taller" dice "Solo Taller"). Pendiente, fuera de esta tanda a propósito: UI que
+consuma vigente_desde/vigente_hasta (hoy son columnas sin pantalla) y el estilo visual
+(color/ícono) de las etiquetas — quedan en BACKLOG para no entregar algo a medio
+construir.
+
 ## 2026-09-17 (Compras: primera vez renderizado en navegador — ADR-0098)
 
 Felipe quería construir; se le mostró que la rama local llevaba 620 commits de atraso
