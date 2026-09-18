@@ -7,7 +7,7 @@ import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
 // formulario y el destino sale siempre de `retail.ubicaciones`.
 //
-// Prellenado desde Resumen (2026-09-17, ADR-0097): `?origen=&destino=&variante=&cantidad=`.
+// Prellenado desde Resumen (2026-09-17, ADR-0101): `?origen=&destino=&variante=&cantidad=`.
 // Resumen solo SUGIERE — el traslado se crea por este mismo formulario, con
 // la misma RPC y la misma decisión humana. El origen por URL solo lo respeta
 // un líder (puede operar cualquier sede); un integrante siempre despacha

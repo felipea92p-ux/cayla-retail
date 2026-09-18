@@ -1,6 +1,6 @@
 import { compararTallas } from "./tallas";
 
-// Curva rota (2026-09-17, ADR-0097): una prenda nace con una curva de
+// Curva rota (2026-09-17, ADR-0101): una prenda nace con una curva de
 // tallas por color (S · M · L · XL). Cuando una sede se queda en 0 en una
 // talla del MEDIO de esa curva mientras conserva stock antes y después, la
 // prenda es, para efectos prácticos, invendible en esa sede — nadie compra

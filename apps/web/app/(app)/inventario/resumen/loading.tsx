@@ -1,4 +1,4 @@
-// Esqueleto de carga del Resumen (ADR-0097). Pisa el "Cargando…" genérico de
+// Esqueleto de carga del Resumen (ADR-0101). Pisa el "Cargando…" genérico de
 // (app)/loading.tsx porque acá corre una RPC analítica sobre el ledger y la
 // silueta —título, dos filas de cuatro tarjetas, tabla, dos bloques— evita el
 // salto de "pantalla vacía → todo de golpe". Misma receta que compras/loading.tsx.

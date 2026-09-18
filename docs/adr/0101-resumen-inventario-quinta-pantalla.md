@@ -1,4 +1,9 @@
-# ADR-0097 — Resumen de Inventario: quinta pantalla, capa analítica por variante × sede
+# ADR-0101 — Resumen de Inventario: quinta pantalla, capa analítica por variante × sede
+
+> Renumerado de ADR-0097 el 2026-09-18 al fusionar con `main`: `activar-tienda-lima-eff087`
+> (otra sesión, ya en producción) también usó 0097, para una decisión sin relación con esta
+> ("activar Tienda Lima" — ver `0097-activar-tienda-lima.md`). `main` ya llegaba hasta el
+> ADR-0100; este pasó a ser el 0101. El contenido no cambió, solo el número.
 
 **Fecha:** 2026-09-17 (primera versión a nivel producto/red el mismo día, más temprano;
 esta es la definitiva por variante y sede, contra la referencia visual que dio Felipe).

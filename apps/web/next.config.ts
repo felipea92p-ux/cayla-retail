@@ -50,6 +50,18 @@ const nextConfig: NextConfig = {
     return [
       { source: "/almacen", destination: "/inventario", permanent: false },
       { source: "/almacen/recibir", destination: "/inventario/recibir", permanent: false },
+      // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
+      // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
+      // separadas para lo que en el fondo es un solo tipo de pantalla
+      // (vocabulario cerrado, propone/aprueba/rechaza) — se unieron en una
+      // sola, "Atributos", con una pestaña por tipo. `permanent: false` por
+      // la misma razón que arriba: un bookmark o un enlace interno viejo a
+      // cualquiera de las 5 sigue llegando al lugar correcto.
+      { source: "/productos/colores", destination: "/productos/atributos?tipo=colores", permanent: false },
+      { source: "/productos/tallas", destination: "/productos/atributos?tipo=tallas", permanent: false },
+      { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
+      { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
+      { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
     ];
   },
 };

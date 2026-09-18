@@ -11,7 +11,7 @@ import {
 import { detectarHuecosCurva } from "./curva-variantes";
 import { compararTallas } from "./tallas";
 
-// Reglas del Resumen de Inventario (2026-09-17, ADR-0097). Puras, sin
+// Reglas del Resumen de Inventario (2026-09-17, ADR-0101). Puras, sin
 // servidor: la RPC `fn_resumen_variantes` trae NÚMEROS crudos por variante y
 // sede, y acá se decide qué significan. Es el único lugar donde viven
 // "riesgo", "sobrestock", "curva incompleta", "mejora en camino" y "sugerir

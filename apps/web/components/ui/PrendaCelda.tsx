@@ -2,7 +2,7 @@ import Image from "next/image";
 
 /* ====================================================================
    PrendaCelda · miniatura + referencia + "SKU · color · talla"
-   (2026-09-17, ADR-0097)
+   (2026-09-17, ADR-0101)
 
    La celda "Prenda · variante" que Existencias arma a mano
    (InventarioPanel.tsx:289-319) y el marcador de perchero que dibuja

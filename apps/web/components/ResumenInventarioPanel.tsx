@@ -23,7 +23,7 @@ import {
 } from "@/lib/resumen-reglas";
 import type { ResumenParaPantalla } from "@/lib/resumen-inventario";
 
-// Resumen de Inventario (2026-09-17, ADR-0097): análisis + excepciones +
+// Resumen de Inventario (2026-09-17, ADR-0101): análisis + excepciones +
 // decisiones de UNA sede. No es otra Existencias (eso responde "qué hay en
 // esta fila") ni un tablero de gráficos: cinco bloques, todos con el número
 // a la vista y el "por qué" a un click. Decisiones > métricas decorativas.

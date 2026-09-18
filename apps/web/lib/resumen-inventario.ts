@@ -11,7 +11,7 @@ import {
   type UbicacionEnRed,
 } from "@/lib/resumen-reglas";
 
-// Resumen de Inventario (2026-09-17, ADR-0097): la pantalla de decisión de una
+// Resumen de Inventario (2026-09-17, ADR-0101): la pantalla de decisión de una
 // sede. Tres fuentes, ninguna inventada acá:
 //   - `retail.fn_resumen_variantes(p_ubicacion_id, p_ventana_dias)`: números
 //     crudos por variante para esa sede y para las otras (jsonb `en_red`).

@@ -90,7 +90,7 @@ export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
 };
 
 // ============================================================================
-// Umbrales de cobertura (2026-09-17, ADR-0097) — los usa `resumen-reglas.ts`
+// Umbrales de cobertura (2026-09-17, ADR-0101) — los usa `resumen-reglas.ts`
 // sobre la velocidad de venta por variante y sede. Viven acá, junto a los de
 // piso/almacén, para que "cuánto es poco" tenga una sola casa. Son el primer
 // número razonable, NO ajustado todavía con ventas reales (a diferencia de

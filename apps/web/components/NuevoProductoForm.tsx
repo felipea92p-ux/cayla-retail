@@ -24,9 +24,10 @@ import type { EjesPorCategoria } from "@/lib/catalogo-v2";
 //
 // TALLA CERRADA (20260917100000/100500): ya no se puede tipear "Otra talla"
 // libre acá — talla es vocabulario cerrado, filtrado por categoría
-// (categoria_tallas). Si falta un valor, se propone desde /productos/tallas
-// (Líder, que es quien siempre llega a esta pantalla, la aprueba al toque)
-// y recién después aparece acá.
+// (categoria_tallas). Si falta un valor, se propone desde Catálogo →
+// Atributos (`/productos/atributos`, pestaña Tallas) — el Líder, que es
+// quien siempre llega a esta pantalla, la aprueba al toque — y recién
+// después aparece acá.
 
 type CategoriaAlta = { id: string; nombre: string };
 type ColorVocabulario = { codigo: string; nombre: string; hex: string | null };
@@ -196,7 +197,7 @@ export function NuevoProductoForm({
         {tallasCategoria.length === 0 ? (
           <p className="text-sm text-tinta/55">
             {categoriaId
-              ? "Esta categoría todavía no tiene tallas habilitadas — agrégalas desde /productos/tallas."
+              ? "Esta categoría todavía no tiene tallas habilitadas — agrégalas desde Catálogo → Atributos."
               : "Elige una categoría para ver sus tallas."}
           </p>
         ) : (
@@ -216,7 +217,7 @@ export function NuevoProductoForm({
           </div>
         )}
         <p className="text-xs text-tinta/55">
-          ¿Falta una talla? Propónla en <span className="font-medium">/productos/tallas</span> — la apruebas ahí mismo y ya
+          ¿Falta una talla? Propónla en <span className="font-medium">Catálogo → Atributos</span> — la apruebas ahí mismo y ya
           aparece acá.
         </p>
       </div>

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 /* ====================================================================
    TarjetaCifra · una etiqueta, un número grande, una línea de contexto
-   (2026-09-17, ADR-0097)
+   (2026-09-17, ADR-0101)
 
    Es la tarjeta de resumen que Existencias, Traslados, Conteo y
    Movimientos dibujan cada uno con su copia local de `Tarjeta`

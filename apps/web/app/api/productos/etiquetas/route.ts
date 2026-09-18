@@ -3,10 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
-// (ADR-0095). Mismo mecanismo que tejidos/patrones, con un campo propio:
-// `sedes_permitidas` — un dato que solo `registrar_venta`/`transferir`
-// hacen cumplir de verdad, este endpoint no valida su contenido más allá
-// de la forma (array de uuid o null).
+// (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
+// sede a propósito (Felipe, 2026-09-18: "empresa uniforme") — la columna
+// `sedes_permitidas` sigue en el esquema, dormida, pero este endpoint ya
+// no la lee ni la escribe.
 export async function POST(request: Request) {
   await requirePersonaActualV2();
 
@@ -15,14 +15,9 @@ export async function POST(request: Request) {
   if (!nombre) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
-  const sedesPermitidas = Array.isArray(cuerpo?.sedesPermitidas) && cuerpo.sedesPermitidas.length > 0 ? cuerpo.sedesPermitidas : null;
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("etiquetas")
-    .insert({ nombre, sedes_permitidas: sedesPermitidas })
-    .select("id, nombre, activo, sedes_permitidas, notas, estado")
-    .single();
+  const { data, error } = await supabase.from("etiquetas").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar la etiqueta") }, { status: 400 });
@@ -44,7 +39,7 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
-  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string; sedes_permitidas?: string[] | null } = {};
+  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};
 
   if ("estado" in cuerpoObj) {
     if (cuerpoObj.estado !== "aprobado" && cuerpoObj.estado !== "rechazado") {
@@ -63,11 +58,6 @@ export async function PATCH(request: Request) {
 
   if ("notas" in cuerpoObj) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
-  }
-
-  if ("sedesPermitidas" in cuerpoObj) {
-    const sedes = cuerpoObj.sedesPermitidas;
-    patch.sedes_permitidas = Array.isArray(sedes) && sedes.length > 0 ? (sedes as string[]) : null;
   }
 
   const supabase = await createClient();
@@ -100,12 +90,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  const { data, error } = await supabase
-    .from("etiquetas")
-    .update(patch)
-    .eq("id", id)
-    .select("id, nombre, activo, sedes_permitidas, notas, estado")
-    .single();
+  const { data, error } = await supabase.from("etiquetas").update(patch).eq("id", id).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
     if (error.code === "PGRST116") {

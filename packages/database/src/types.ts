@@ -1231,6 +1231,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
           solicitado_por: string | null
@@ -1245,6 +1246,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1259,6 +1261,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1271,6 +1274,13 @@ export type Database = {
             columns: ["caja_id"]
             isOneToOne: false
             referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_nota_credito_id_fkey"
+            columns: ["nota_credito_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
             referencedColumns: ["id"]
           },
           {
@@ -1296,11 +1306,14 @@ export type Database = {
           aprobado_por: string | null
           created_at: string
           estado: string
+          estilo: string
           id: string
           nombre: string
           notas: string | null
           propuesto_por: string | null
           sedes_permitidas: string[] | null
+          vigente_desde: string | null
+          vigente_hasta: string | null
         }
         Insert: {
           activo?: boolean
@@ -1308,11 +1321,14 @@ export type Database = {
           aprobado_por?: string | null
           created_at?: string
           estado?: string
+          estilo?: string
           id?: string
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
           sedes_permitidas?: string[] | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
         }
         Update: {
           activo?: boolean
@@ -1320,11 +1336,14 @@ export type Database = {
           aprobado_por?: string | null
           created_at?: string
           estado?: string
+          estilo?: string
           id?: string
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
           sedes_permitidas?: string[] | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
         }
         Relationships: []
       }
@@ -1838,6 +1857,7 @@ export type Database = {
           movimiento_entrada_id: string
           movimiento_salida_id: string | null
           nota: string | null
+          proveedor_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
           ubicacion_id: string
@@ -1852,6 +1872,7 @@ export type Database = {
           movimiento_entrada_id: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
           ubicacion_id: string
@@ -1866,6 +1887,7 @@ export type Database = {
           movimiento_entrada_id?: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
           ubicacion_id?: string
@@ -1891,6 +1913,13 @@ export type Database = {
             columns: ["movimiento_salida_id"]
             isOneToOne: false
             referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prendas_danadas_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
             referencedColumns: ["id"]
           },
           {
@@ -2224,24 +2253,33 @@ export type Database = {
           activo: boolean
           contacto: string | null
           created_at: string
+          forma_pago_preferida: string | null
           id: string
           nombre: string
+          plazo_credito_dias: number | null
+          rubro: string | null
           ruc: string | null
         }
         Insert: {
           activo?: boolean
           contacto?: string | null
           created_at?: string
+          forma_pago_preferida?: string | null
           id?: string
           nombre: string
+          plazo_credito_dias?: number | null
+          rubro?: string | null
           ruc?: string | null
         }
         Update: {
           activo?: boolean
           contacto?: string | null
           created_at?: string
+          forma_pago_preferida?: string | null
           id?: string
           nombre?: string
+          plazo_credito_dias?: number | null
+          rubro?: string | null
           ruc?: string | null
         }
         Relationships: []
@@ -3141,8 +3179,11 @@ export type Database = {
       actualizar_proveedor: {
         Args: {
           p_contacto?: string
+          p_forma_pago_preferida?: string
           p_nombre: string
+          p_plazo_credito_dias?: number
           p_proveedor_id: string
+          p_rubro?: string
           p_ruc?: string
         }
         Returns: undefined
@@ -3202,7 +3243,11 @@ export type Database = {
           p_reembolso_metodo?: string
           p_reembolso_monto?: number
         }
-        Returns: undefined
+        Returns: {
+          nota_credito_id: string
+          nota_credito_numero: number
+          nota_credito_serie: string
+        }[]
       }
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
@@ -3693,16 +3738,43 @@ export type Database = {
           total_variantes: number
         }[]
       }
+      fn_proveedor_metricas_compras: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          facturas_con_recepcion_pendiente: number
+          facturas_recibidas_completas: number
+          facturas_vencidas: number
+          facturas_vigentes: number
+          saldo: number
+          total_facturado: number
+          ultima_compra: string
+        }[]
+      }
+      fn_proveedor_metricas_insumos: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          lotes: number
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
           activo: boolean
           contacto: string
           facturas: number
+          facturas_con_recepcion_pendiente: number
+          facturas_recibidas_completas: number
+          facturas_vencidas: number
+          forma_pago_preferida: string
           id: string
           nombre: string
+          plazo_credito_dias: number
+          rubro: string
           ruc: string
           saldo: number
+          total_facturado: number
           ultima_compra: string
         }[]
       }
@@ -4062,7 +4134,14 @@ export type Database = {
         Returns: string[]
       }
       registrar_proveedor: {
-        Args: { p_contacto?: string; p_nombre: string; p_ruc?: string }
+        Args: {
+          p_contacto?: string
+          p_forma_pago_preferida?: string
+          p_nombre: string
+          p_plazo_credito_dias?: number
+          p_rubro?: string
+          p_ruc?: string
+        }
         Returns: string
       }
       registrar_recepcion_traslado: {
@@ -4099,7 +4178,12 @@ export type Database = {
         Returns: string
       }
       resolver_prenda_danada: {
-        Args: { p_estado: string; p_id: string; p_nota?: string }
+        Args: {
+          p_estado: string
+          p_id: string
+          p_nota?: string
+          p_proveedor_id?: string
+        }
         Returns: undefined
       }
       resumen_compras: {

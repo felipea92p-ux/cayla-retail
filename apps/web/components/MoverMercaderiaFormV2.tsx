@@ -57,7 +57,7 @@ export function MoverMercaderiaFormV2({
   origenEtiqueta: string;
   destinos: Ubicacion[];
   variantes: VarianteConStock[];
-  /** Prellenado desde una sugerencia de Resumen (ADR-0097). La página ya
+  /** Prellenado desde una sugerencia de Resumen (ADR-0101). La página ya
    *  validó que el destino existe y que la variante tiene stock movible en
    *  el origen; acá solo se usa como valor inicial — el usuario sigue
    *  decidiendo todo antes de enviar. */

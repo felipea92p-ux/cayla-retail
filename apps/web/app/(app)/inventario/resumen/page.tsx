@@ -5,7 +5,7 @@ import { getResumenInventario } from "@/lib/resumen-inventario";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { ResumenInventarioPanel } from "@/components/ResumenInventarioPanel";
 
-// Resumen de Inventario (2026-09-17, ADR-0097): la quinta pestaña. Responde
+// Resumen de Inventario (2026-09-17, ADR-0101): la quinta pestaña. Responde
 // "¿cómo está mi inventario en conjunto, qué necesita atención hoy y qué
 // decisiones conviene tomar ahora?" para UNA sede — la seleccionada, con el
 // mismo selector y la misma regla de Existencias (un líder elige, un

@@ -23,7 +23,7 @@ import { usePathname } from "next/navigation";
 // Cada pestaña sabe qué rutas cuelgan de ella (`prefijos`): el detalle de un
 // traslado o de un conteo tiene que iluminar SU pestaña, y `/inventario` a
 // secas no puede ser prefijo de nada o se iluminaría siempre.
-// Quinta pestaña, 2026-09-17 (ADR-0097): "Resumen" — decisión a nivel red,
+// Quinta pestaña, 2026-09-17 (ADR-0101): "Resumen" — decisión a nivel red,
 // distinta de las 4 operativas que fijó ADR-0071. Al final de la lista a
 // propósito: no cambia qué muestra `/inventario` a secas (sigue siendo
 // Existencias), solo agrega una pantalla nueva al lado.

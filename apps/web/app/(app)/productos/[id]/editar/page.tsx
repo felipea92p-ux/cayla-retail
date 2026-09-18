@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { ProductoForm } from "@/components/ProductoForm";
+import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -23,9 +24,16 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
     ),
     exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta").eq("activo", true).eq("estado", "aprobado").order("nombre"),
   ]);
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({ id: e.id, texto: e.nombre }));
+  // Vigencia se filtra acá, no en la consulta: la etiqueta de campaña
+  // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
+  // nunca se retira sola de una variante que ya la tenía — eso sería
+  // perder un dato sin que nadie lo pidiera.
+  const hoy = new Date().toISOString().slice(0, 10);
+  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario")
+    .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
+    .map((e) => ({ id: e.id, texto: e.nombre }));
 
   if (!producto) notFound();
 
@@ -43,6 +51,8 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
         </h1>
       </div>
+
+      {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
 
       <ProductoForm categorias={categorias} colores={colores} ejes={ejes} etiquetas={etiquetas} producto={producto} />
 

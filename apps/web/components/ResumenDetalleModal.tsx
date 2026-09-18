@@ -16,7 +16,7 @@ import {
   type Situacion,
 } from "@/lib/resumen-reglas";
 
-// Los dos modales del Resumen (2026-09-17, ADR-0097). Regla transversal:
+// Los dos modales del Resumen (2026-09-17, ADR-0101). Regla transversal:
 // cuando CAYLA dice "riesgo de quiebre" o "sugerir traslado", acá se ve con
 // qué números lo dijo — sin saturar la pantalla principal.
 
