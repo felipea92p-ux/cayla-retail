@@ -17,7 +17,9 @@
   --color-rojo-profundo: #8b2a1f;
   --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
   --color-taupe: #a47865;
-  --color-papel: #fbf8f2;       /* Crema un punto más clara, para tarjetas sobre crema */
+  --color-papel: #fbf6ec;       /* Blanco cálido para tarjetas sobre crema. 2026-09-18: el #fbf8f2 anterior
+                                   se leía como blanco puro (Felipe); este sube el amarillo, sigue más claro
+                                   que el crema — el contraste de texto medido en ADR-0012 no baja. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
   /* Semánticos (semáforo): separados del acento, jamás decoración */
