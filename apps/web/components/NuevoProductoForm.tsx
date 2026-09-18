@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { MuestraPatron } from "@/components/MuestraPatron";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -250,11 +251,13 @@ export function NuevoProductoForm({
               key={t.id}
               type="button"
               onClick={() => setPatronId((prev) => (prev === t.id ? "" : t.id))}
-              className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${
+              aria-pressed={patronId === t.id}
+              className={`flex w-[112px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-sm transition-colors ${
                 patronId === t.id ? "border-rojo/60 bg-rojo/5 text-rojo" : "border-tinta/15 text-tinta/75 hover:border-tinta/35"
               }`}
             >
-              {t.texto}
+              <MuestraPatron nombre={t.texto} />
+              <span className="px-0.5">{t.texto}</span>
             </button>
           ))}
         </div>
