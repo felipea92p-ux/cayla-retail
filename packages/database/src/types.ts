@@ -3628,6 +3628,7 @@ export type Database = {
           dias_sin_contar: number
           referencia: string
           sku: string
+          sububicacion_id: string
           talla: string
           valor_en_riesgo: number
           variante_id: string
