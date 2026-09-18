@@ -312,6 +312,10 @@ export type ProductoDetalle = {
   descripcion: string | null;
   estado: "activo" | "descontinuado";
   codigo: string | null;
+  /** Dimensión aparte de `estado` (20260918): 'pendiente' = dado de alta al
+   *  vuelo durante un conteo por alguien que no es Líder, todavía sin
+   *  revisar — sigue activo y contable mientras tanto. */
+  estadoAlta: "pendiente" | "aprobado" | "rechazado";
   /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
   stockMinimo: number | null;
   /** Texto libre ("Verano 26"). Null = sin temporada (20260915224500). */
@@ -334,7 +338,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
   const { data, error } = await supabase
     .from("productos")
     .select(
-      `id, categoria_id, referencia, descripcion, estado, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
+      `id, categoria_id, referencia, descripcion, estado, estado_alta, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
        tejido_id, patron_id,
        tejido:tejidos ( nombre ), patron:patrones ( nombre ),
        variantes ( id, color_codigo, talla_id, sku, precio, costo, activo, codigo,
@@ -356,6 +360,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     referencia: data.referencia,
     descripcion: data.descripcion,
     estado: data.estado as ProductoDetalle["estado"],
+    estadoAlta: data.estado_alta as ProductoDetalle["estadoAlta"],
     codigo: data.codigo,
     stockMinimo: data.stock_minimo,
     temporada: data.temporada,
@@ -429,4 +434,31 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
     tejidos: agrupar(tejidos.map((f) => ({ categoria_id: f.categoria_id, id: f.tejido.id, texto: f.tejido.nombre }))),
     patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
+}
+
+// ============================================================================
+// Alta al vuelo durante el censo (20260918): prendas creadas por alguien
+// que no es Líder mientras contaba, todavía sin revisar. `estado_alta` es
+// independiente de `estado` — un pendiente sigue activo y contable, este
+// listado es solo la cola de revisión del Líder.
+// ============================================================================
+
+export type ProductoPendienteAlta = {
+  id: string;
+  referencia: string;
+  categoria: string | null;
+  creadoEn: string;
+};
+
+export async function getProductosPendientesAlta(): Promise<ProductoPendienteAlta[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase
+      .from("productos")
+      .select("id, referencia, created_at, categoria:categorias ( nombre )")
+      .eq("estado_alta", "pendiente")
+      .order("created_at", { ascending: true }),
+    "las prendas pendientes de revisar"
+  );
+  return filas.map((f) => ({ id: f.id, referencia: f.referencia, categoria: f.categoria?.nombre ?? null, creadoEn: f.created_at }));
 }

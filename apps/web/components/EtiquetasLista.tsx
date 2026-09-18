@@ -2,66 +2,78 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
  * "Verano 2026") — distinto de la etiqueta física de código de barras que
  * ya existe en Inventario/Movimientos. Mismo mecanismo propone/aprueba/
- * rechaza que colores/tejidos/patrones, más un campo propio:
- * `sedesPermitidas` — si tiene valores, restringe de verdad en qué sede se
- * puede VENDER o TRASLADAR una variante con esta etiqueta (el candado real
- * vive en `registrar_venta`/`transferir`, esto solo decide el dato). Vacío
- * = sin restricción, visible en cualquier sede.
+ * rechaza que colores/tejidos/patrones.
+ *
+ * Sin restricción por sede a propósito (Felipe, 2026-09-18): "empresa
+ * uniforme" — toda etiqueta aplica igual en todas las sedes. La columna
+ * `sedes_permitidas` sigue en el esquema (dormida, sin UI) por si algún
+ * día hace falta de verdad; no se dropeó porque revivirla no pide
+ * migración nueva. Ver 20260918020000_para_liquidar_global_no_por_sede.sql
+ * para el porqué: no es cosmética, bloquea venta/traslado de verdad.
  *
  * Aplicar/quitar una etiqueta de una VARIANTE puntual no vive acá — es
- * edición normal de producto (`variantes_write_lider`), pendiente de
- * conectarse en ProductoForm.tsx (BACKLOG.md).
+ * edición normal de producto (`variantes_write_lider`, ya conectado en
+ * ProductoForm.tsx — ese selector solo ofrece las que están vigentes hoy).
+ *
+ * `estilo` agrupa visualmente en 3 familias + "General" — paleta cerrada
+ * a propósito (Felipe: "colores suaves dentro de nuestra paleta", nunca
+ * libre), sin usar rojo (acento sagrado, máx. 2 usos por pantalla — un
+ * badge por cada una de 20 tarjetas lo rompería). Ver
+ * 20260918060000_etiquetas_estilo_visual.sql.
  */
 
-type Sede = { id: string; nombre: string };
+type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
+
+const ESTILOS: Record<Estilo, { grupo: string; dot: string; texto: string }> = {
+  urgencia: { grupo: "Rotación", dot: "bg-ambar", texto: "text-ambar" },
+  positivo: { grupo: "Artesanal", dot: "bg-verde", texto: "text-verde" },
+  campana: { grupo: "Campaña y festividad", dot: "bg-taupe-profundo", texto: "text-taupe-profundo" },
+  neutral: { grupo: "General", dot: "bg-tinta/25", texto: "text-tinta/55" },
+};
+
+const ORDEN_GRUPOS: Estilo[] = ["urgencia", "positivo", "campana", "neutral"];
+
+const formatoFecha = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" });
+
+function rangoVigencia(desde: string | null, hasta: string | null) {
+  if (!desde && !hasta) return null;
+  const hoy = new Date().toISOString().slice(0, 10);
+  const vigente = (!desde || desde <= hoy) && (!hasta || hasta >= hoy);
+  const rango = [desde, hasta].filter(Boolean).map((f) => formatoFecha.format(new Date(f + "T00:00:00"))).join(" – ");
+  return { vigente, texto: vigente ? `Vigente: ${rango}` : `Fuera de temporada: ${rango}` };
+}
 
 type Etiqueta = {
   id: string;
   nombre: string;
   activo: boolean;
-  sedesPermitidas: string[] | null;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  estilo: Estilo;
+  vigenteDesde: string | null;
+  vigenteHasta: string | null;
 };
 
 function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-function SelectorSedes({ sedes, seleccionadas, onCambio }: { sedes: Sede[]; seleccionadas: string[]; onCambio: (ids: string[]) => void }) {
-  return <SelectorMultiple opciones={sedes.map((s) => ({ valor: s.id, texto: s.nombre }))} seleccionadas={seleccionadas} onCambio={onCambio} />;
-}
-
-export function EtiquetasLista({
-  etiquetasIniciales,
-  sedes,
-  puedeEditar,
-}: {
-  etiquetasIniciales: Etiqueta[];
-  sedes: Sede[];
-  puedeEditar: boolean;
-}) {
+export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasIniciales: Etiqueta[]; puedeEditar: boolean }) {
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [sedesNuevas, setSedesNuevas] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoId, setAprobandoId] = useState<string | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
-  const [editandoSedesId, setEditandoSedesId] = useState<string | null>(null);
-  const [sedesEditando, setSedesEditando] = useState<string[]>([]);
-  const [guardandoSedes, setGuardandoSedes] = useState(false);
-
-  const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? id;
 
   const activas = etiquetas.filter((e) => e.activo);
   const desactivadas = etiquetas.filter((e) => !e.activo);
@@ -72,7 +84,7 @@ export function EtiquetasLista({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, sedesPermitidas: sedesNuevas.length > 0 ? sedesNuevas : null }),
+        body: JSON.stringify({ nombre }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -86,9 +98,11 @@ export function EtiquetasLista({
             id: datos.etiqueta.id,
             nombre: datos.etiqueta.nombre,
             activo: true,
-            sedesPermitidas: datos.etiqueta.sedes_permitidas,
             notas: datos.etiqueta.notas,
             estado: datos.etiqueta.estado,
+            estilo: "neutral",
+            vigenteDesde: null,
+            vigenteHasta: null,
           },
         ])
       );
@@ -98,7 +112,6 @@ export function EtiquetasLista({
       );
       setAgregando(false);
       setNombre("");
-      setSedesNuevas([]);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -196,29 +209,6 @@ export function EtiquetasLista({
     }
   }
 
-  async function guardarSedes(e: Etiqueta) {
-    setGuardandoSedes(true);
-    try {
-      const res = await fetch("/api/productos/etiquetas", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: e.id, sedesPermitidas: sedesEditando.length > 0 ? sedesEditando : null }),
-      });
-      const datos = await res.json();
-      if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo guardar la restricción de sede.");
-        return;
-      }
-      setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, sedesPermitidas: datos.etiqueta.sedes_permitidas } : x))));
-      avisar.exito(`Sedes de ${e.nombre} actualizadas`);
-      setEditandoSedesId(null);
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setGuardandoSedes(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       {agregando ? (
@@ -232,13 +222,6 @@ export function EtiquetasLista({
               className="flex-1"
               autoFocus
             />
-          </div>
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Restringir a sedes (opcional)</p>
-            <p className="mt-1 text-xs text-tinta/55">Sin elegir ninguna = visible y vendible en cualquier sede.</p>
-            <div className="mt-1.5">
-              <SelectorSedes sedes={sedes} seleccionadas={sedesNuevas} onCambio={setSedesNuevas} />
-            </div>
           </div>
           <div className="flex gap-2">
             <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
@@ -261,81 +244,87 @@ export function EtiquetasLista({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {activas.map((e) => (
-          <div key={e.id} className="card-cayla flex flex-col gap-2 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-tinta">{e.nombre}</p>
-              {e.estado === "pendiente" && (
-                <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-              )}
-            </div>
-            <p className="text-[11px] text-tinta/65">
-              {e.sedesPermitidas && e.sedesPermitidas.length > 0
-                ? `Solo ${e.sedesPermitidas.map(nombreSede).join(", ")}`
-                : "Todas las sedes"}
-            </p>
-            {puedeEditar && (
-              <div className="flex gap-2">
-                {e.estado === "pendiente" && (
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => aprobar(e)}>
-                    Aprobar
-                  </Boton>
-                )}
-                {e.estado === "pendiente" ? (
-                  <Boton
-                    peso="discreto"
-                    className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
-                    onClick={() => {
-                      setRechazandoAbierto(rechazandoAbierto === e.id ? null : e.id);
-                      setMotivoRechazo("");
-                    }}
-                  >
-                    Rechazar
-                  </Boton>
-                ) : (
-                  <>
-                    <Boton
-                      peso="discreto"
-                      className="flex-1 px-2.5 py-1.5 text-[11px]"
-                      onClick={() => {
-                        setEditandoSedesId(editandoSedesId === e.id ? null : e.id);
-                        setSedesEditando(e.sedesPermitidas ?? []);
-                      }}
-                    >
-                      Sedes
-                    </Boton>
-                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => desactivar(e)}>
-                      Desactivar
-                    </Boton>
-                  </>
-                )}
+      <div className="space-y-5">
+        {ORDEN_GRUPOS.map((clave) => {
+          const delGrupo = activas.filter((e) => e.estilo === clave);
+          if (delGrupo.length === 0) return null;
+          const { grupo, dot } = ESTILOS[clave];
+          return (
+            <section key={clave} className="space-y-2">
+              <p className="label-cayla flex items-center gap-1.5 text-[11px] text-tinta/65">
+                <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
+                {grupo}
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {delGrupo.map((e) => {
+                  const vigencia = rangoVigencia(e.vigenteDesde, e.vigenteHasta);
+                  return (
+                    <div key={e.id} className="card-cayla flex flex-col gap-2 p-4" title={e.notas ?? undefined}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-tinta">{e.nombre}</p>
+                        {e.estado === "pendiente" && (
+                          <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+                        )}
+                      </div>
+                      {vigencia && (
+                        <p className={`text-[11px] ${vigencia.vigente ? ESTILOS[clave].texto : "text-tinta/40"}`}>{vigencia.texto}</p>
+                      )}
+                      {puedeEditar && (
+                        <div className="flex gap-2">
+                          {e.estado === "pendiente" && (
+                            <Boton
+                              peso="primario"
+                              className="flex-1 px-2.5 py-1.5 text-[11px]"
+                              cargando={aprobandoId === e.id}
+                              onClick={() => aprobar(e)}
+                            >
+                              Aprobar
+                            </Boton>
+                          )}
+                          {e.estado === "pendiente" ? (
+                            <Boton
+                              peso="discreto"
+                              className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
+                              onClick={() => {
+                                setRechazandoAbierto(rechazandoAbierto === e.id ? null : e.id);
+                                setMotivoRechazo("");
+                              }}
+                            >
+                              Rechazar
+                            </Boton>
+                          ) : (
+                            <Boton
+                              peso="discreto"
+                              className="flex-1 px-2.5 py-1.5 text-[11px]"
+                              cargando={cambiandoId === e.id}
+                              onClick={() => desactivar(e)}
+                            >
+                              Desactivar
+                            </Boton>
+                          )}
+                        </div>
+                      )}
+                      {rechazandoAbierto === e.id && (
+                        <div className="space-y-1.5 border-t border-tinta/10 pt-2">
+                          <input
+                            autoFocus
+                            value={motivoRechazo}
+                            onChange={(ev) => setMotivoRechazo(ev.target.value)}
+                            placeholder="Motivo (opcional)"
+                            className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
+                          />
+                          <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === e.id} onClick={() => rechazar(e)}>
+                            Confirmar rechazo
+                          </Boton>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {rechazandoAbierto === e.id && (
-              <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                <input
-                  autoFocus
-                  value={motivoRechazo}
-                  onChange={(ev) => setMotivoRechazo(ev.target.value)}
-                  placeholder="Motivo (opcional)"
-                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === e.id} onClick={() => rechazar(e)}>
-                  Confirmar rechazo
-                </Boton>
-              </div>
-            )}
-            {editandoSedesId === e.id && (
-              <div className="space-y-2 border-t border-tinta/10 pt-2">
-                <SelectorSedes sedes={sedes} seleccionadas={sedesEditando} onCambio={setSedesEditando} />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={guardandoSedes} onClick={() => guardarSedes(e)}>
-                  Guardar sedes
-                </Boton>
-              </div>
-            )}
-          </div>
-        ))}
+            </section>
+          );
+        })}
       </div>
 
       {desactivadas.length > 0 && (
