@@ -1386,11 +1386,14 @@ export type Database = {
           aprobado_por: string | null
           created_at: string
           estado: string
+          estilo: string
           id: string
           nombre: string
           notas: string | null
           propuesto_por: string | null
           sedes_permitidas: string[] | null
+          vigente_desde: string | null
+          vigente_hasta: string | null
         }
         Insert: {
           activo?: boolean
@@ -1398,11 +1401,14 @@ export type Database = {
           aprobado_por?: string | null
           created_at?: string
           estado?: string
+          estilo?: string
           id?: string
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
           sedes_permitidas?: string[] | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
         }
         Update: {
           activo?: boolean
@@ -1410,11 +1416,14 @@ export type Database = {
           aprobado_por?: string | null
           created_at?: string
           estado?: string
+          estilo?: string
           id?: string
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
           sedes_permitidas?: string[] | null
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
         }
         Relationships: []
       }

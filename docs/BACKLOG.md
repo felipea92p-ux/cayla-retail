@@ -82,12 +82,16 @@ verde.
       Tallas, ahora en las 5). Migración `20260917230100`: la semilla. Verificado con
       `db reset` completo (no incremental), `typecheck`/`lint`, y navegador contra
       Postgres local real — las 22 tarjetas con el candado de sede visible.
-      **Pendiente, a propósito, no a medias:** ninguna pantalla lee todavía
-      `vigente_desde`/`vigente_hasta` (la columna existe, el filtro "¿está vigente
-      hoy?" en `/productos/etiquetas` y en el selector de `ProductoForm.tsx` falta); y
-      el estilo visual (color por etiqueta) sigue sin construir — Felipe confirmó
-      2026-09-18: paleta suave dentro del sistema CAYLA (no colores libres estilo
-      Shopify), falta decidir cuántas variantes y construir esquema + UI.
+      **Cerrado 2026-09-18:** vigencia ya conectada — `ProductoForm.tsx` solo ofrece
+      etiquetas vigentes hoy (filtro en servidor), y `/productos/etiquetas` muestra la
+      ventana + si está vigente o "fuera de temporada". Estilo visual construido
+      (migración `20260918060000`): 3 colores fijos + General — urgencia (ámbar),
+      positivo (verde), campana (taupe-profundo), nunca rojo (violaría
+      `MAX_ROJO_POR_PANTALLA` con 20 tarjetas) ni color libre. Las 20 etiquetas
+      clasificadas por nombre. La pantalla agrupa por color en vez de grilla plana.
+      **Pendiente, menor:** una etiqueta nueva creada desde la pantalla nace `neutral`
+      sin selector para clasificarla ahí mismo — hay que reclasificarla por SQL o en
+      una próxima sesión si hace falta desde el día uno.
 - [x] **"Para liquidar" corregido: de 4 filas por sede a 1 global (2026-09-18).**
       El diseño original restringía por sede con `sedes_permitidas` — Felipe preguntó
       "por qué 4" y la pregunta destapó que el candado no es cosmético:

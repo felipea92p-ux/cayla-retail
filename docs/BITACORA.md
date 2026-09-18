@@ -6882,6 +6882,49 @@ Sigue abierto: color por etiqueta. Felipe vio un ejemplo de Shopify (badges azul
 vivos) y confirmó que la paleta debe ser suave, dentro del sistema CAYLA, no colores
 libres — pendiente de construir (esquema + UI), anotado en BACKLOG.
 
+## 2026-09-18 (estilo visual + vigencia — cierre de las dos piezas que quedaron a medias)
+
+Felipe pidió avanzar los dos pendientes ("y los colores y la configuración de
+fechas??") y, sin más instrucción, "analiza bien y mejora el diseño de interfaz
+uix". Se construyeron las dos completas, no solo el esquema.
+
+Vigencia: `ProductoForm.tsx` (`[id]/editar/page.tsx`) ya filtra en el servidor las
+etiquetas que se ofrecen al etiquetar una variante — solo las vigentes hoy, calculado
+comparando `vigente_desde`/`vigente_hasta` contra la fecha real, nunca un cron. Lo ya
+aplicado a una variante nunca se retira solo, aunque la ventana haya pasado.
+
+Estilo: antes de asignar colores se revisó `design-tokens.ts` — encontró
+`MAX_ROJO_POR_PANTALLA` (rojo es el acento sagrado, máx. 2 usos, nunca decoración).
+20 tarjetas con badge rojo lo habría violado de inmediato, así que se descartó rojo
+de la paleta de etiquetas por completo. Se reusaron los 3 tonos semánticos ya
+verificados por contraste (2026-09-08): ámbar (rotación/urgencia), verde
+(artesanal/calidad), taupe-profundo (campaña/festividad — taupe puro es solo para
+bordes, nunca texto, según el propio comentario de `globals.css`; usarlo directo
+habría sido un error de contraste real). Migración `20260918060000`: columna
+`estilo` con check de 4 valores (nunca color libre) + clasificación de las 20
+etiquetas por nombre — se detectó y corrigió en el camino que "Día de la Madre"
+había quedado sin clasificar en el primer intento.
+
+La "mejora de interfaz" real no fue el color solo: la pantalla pasó de una grilla
+plana de 20 tarjetas idénticas a 3 secciones agrupadas por estilo (Rotación /
+Artesanal / Campaña y festividad), cada una con su encabezado y su punto de color —
+mejora de escaneabilidad, no decoración. Las notas de cada etiqueta (antes invisibles
+en la pantalla, solo en la base) ahora se leen al pasar el mouse por la tarjeta.
+
+Bug propio encontrado y corregido antes de commitear: `gen-types --local` conectó
+contra un Postgres cuyo estado no coincidía con lo que esperaba, y el regenerado
+completo de `packages/database/src/types.ts` borraba `compra_ajustes`/
+`cantidad_cerrada` — tablas/columnas que NINGÚN migration file de este repo crea
+(deuda de drift entre producción y repo ya trackeada en BACKLOG, no algo de hoy). Se
+descartó reemplazar el archivo completo y se agregaron los 3 campos nuevos a mano,
+mismo patrón ya usado antes para `crear_producto_con_variantes` — no arrastrar una
+deuda ajena a un cambio que no la necesitaba.
+
+Verificado con `db reset` completo, typecheck/lint, y navegador contra Postgres
+local: los 3 grupos con su color, vigencia mostrando "fuera de temporada" para las
+13 etiquetas de campaña (ninguna está en ventana hoy, 18-sep). PR construido sobre
+#115 ya fusionado.
+
 ## 2026-09-18 (PR #108 fusionado — migraciones del día aplicadas en producción)
 
 Felipe fusionó el PR #108 (censo alta al vuelo + PDF/XML/CDR + Nota de Crédito

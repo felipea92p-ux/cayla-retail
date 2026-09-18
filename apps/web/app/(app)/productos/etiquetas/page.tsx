@@ -12,7 +12,7 @@ export default async function EtiquetasPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
 
-  const resEtiquetas = await supabase.from("etiquetas").select("id, nombre, activo, notas, estado").order("nombre");
+  const resEtiquetas = await supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta").order("nombre");
   const filas = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const activas = filas.filter((e) => e.activo);
 
@@ -23,9 +23,11 @@ export default async function EtiquetasPage() {
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Etiquetas
           <Ayuda titulo="Etiquetas">
-            El vocabulario cerrado de etiquetas de catálogo: {activas.length} valores. Se aplican a una
-            variante puntual (no al producto), no a la etiqueta física de código de barras. Aplican igual
-            en las 4 sedes — ninguna etiqueta se restringe a una sede en particular.
+            El vocabulario cerrado de etiquetas de catálogo: {activas.length} valores, agrupadas por color
+            (Rotación / Artesanal / Campaña / General). Se aplican a una variante puntual, no al producto,
+            ni a la etiqueta física de código de barras. Aplican igual en las 4 sedes. Las de campaña
+            (Navidad, CyberWow...) se ofrecen solo dentro de su ventana de fecha — fuera de temporada
+            quedan visibles acá pero no se pueden aplicar a una variante nueva.
           </Ayuda>
         </h1>
       </div>
@@ -37,6 +39,9 @@ export default async function EtiquetasPage() {
           activo: e.activo,
           notas: e.notas,
           estado: e.estado as "pendiente" | "aprobado" | "rechazado",
+          estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
+          vigenteDesde: e.vigente_desde,
+          vigenteHasta: e.vigente_hasta,
         }))}
         puedeEditar={persona.rol === "lider"}
       />

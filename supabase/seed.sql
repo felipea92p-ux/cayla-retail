@@ -511,4 +511,10 @@ on conflict (retail.fn_clave_texto(nombre)) do nothing;
 
 alter table retail.etiquetas enable trigger etiquetas_estado_biut;
 
+-- Estilo visual (20260918060000): esa migración clasifica "Para liquidar"
+-- por nombre, pero corre ANTES que este seed (migraciones primero, seed
+-- después) — acá todavía no existía la fila. Mismo criterio, aplicado
+-- después de crearla.
+update retail.etiquetas set estilo = 'urgencia' where nombre = 'Para liquidar';
+
 commit;
