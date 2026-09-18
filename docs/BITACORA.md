@@ -7324,3 +7324,59 @@ el SQL. `benja-migracion.sql` sigue marcado por su propio autor "NO CORRER TAL C
 
 PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
 de merge en menos de un minuto. Felipe confirmó verlo en producción.
+## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0102)
+
+Felipe pidió analizar `vender/facturacion/page.tsx` y decir qué mejorar. La pantalla en sí
+tenía un solo bug propio: el regex de mes (`?m=2026-13`) no validaba el rango 1-12 y
+`mesLimaUTC` lo enrollaba en silencio al año siguiente — corregido en el momento
+(`(0?[1-9]|1[0-2])`). El resto del módulo ya estaba auditado a fondo en
+`docs/datos/modulos/08-facturacion-sunat.md` (16 huecos, 17-sep) — no se re-auditó, se
+priorizaron los dos GRAVE con impacto en plata/SUNAT y Felipe confirmó "empieza por esos 2".
+
+Hueco 1 (sin idempotencia) y hueco 2b (sin candado de IGV) cerrados en
+`20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql` (ADR-0102): mismo patrón
+`token_cliente`/`p_token` que ya usa `registrar_venta`, portado a `emitir_comprobante`
+(revisa el token antes de reservar el correlativo, así un reintento no quema un número
+nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_proforma`.
+`emitir_nota` queda fuera a propósito (cero llamadores reales). `ComprobantesPanel.tsx`
+manda el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`); `types.ts` parcheado a
+mano (una línea) en vez de regenerado completo, para no arrastrar drift ajeno.
+
+**Hallazgo operativo, no de esta tarea:** el Postgres local es un contenedor Docker
+compartido por los 40+ worktrees del repo — no uno por worktree. La migración se revirtió
+sola dos veces mientras se verificaba (`supabase migration up --local` reportaba "up to
+date" con la función vieja todavía en la base), casi seguro por otra sesión concurrente
+(`auditoria-facturacion-cayla-2b8328`, probablemente el mismo módulo) corriendo su propio
+reset sobre el mismo contenedor. Se verificó aplicando el SQL directo con `psql -f` y
+chequeando en la misma cadena de comandos para cerrar la ventana de carrera. Vale la pena
+que cualquier sesión futura lo sepa antes de confiar en una verificación local con
+sesiones paralelas activas.
+
+Verificado: migración aplicada contra Postgres local real (no solo revisada a ojo),
+`pnpm --filter database typecheck` / `pnpm --filter web typecheck` limpios,
+`pnpm migraciones:verificar` no la marca como faltante. **No probado con una llamada RPC
+autenticada real** (exige JWT/persona real) — solo verificación estructural, documentado
+en ADR-0102. **No aplicado en producción** — pendiente de Felipe (D-11); antes de pegar,
+correr el `select count(*)` de proformas con IGV inconsistente que cita el ADR. Sigue
+abierta la parte (a) del hueco 2 (18% hardcodeado en 3 archivos) — no se movió el cálculo
+a la base, cambio de alcance mayor que no se pidió.
+
+**Continuación, mismo día — preparando el push.** Felipe pidió el SQL con prefijo
+`retail.` listo para pegar; como cada sentencia del archivo ya venía calificada con
+`retail.` (no depende de `search_path` para resolver nombres, mismo estilo que
+`0010_facturacion.sql`), no hizo falta tocar nada — solo verificar. Consulta de solo
+lectura contra `cayla-dynamic` (proyecto de producción) antes de entregarlo: la firma de
+`emitir_comprobante`/`crear_proforma` allá es idéntica a la local (`p_ubicacion_id`, no
+`p_sede_id` — el rename de `0010` sí llegó a producción), `token_cliente` no existe
+todavía, 0 filas con `subtotal+igv≠total` en `comprobantes` y en `proformas`.
+
+Al preparar el push, `git fetch` + `git merge origin/main` trajo 9 commits (Resumen de
+Inventario, PR #120/#122) con **dos choques reales, ninguno detectado por el merge de
+git** porque son archivos nuevos, no líneas editadas: `docs/adr/0101-*.md` ya lo había
+tomado Resumen de Inventario (mismo patrón que su propio choque con el 0097, ver línea 18
+de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
+`20260918080000_resumen_inventario.sql` — mismo timestamp exacto, dos sesiones calculando
+"ahora" en el mismo minuto. Renumerado a **ADR-0102** y el timestamp de la migración a
+**20260918091500** (después de la última migración del día, `20260918090000`). Referencias
+corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
+08-facturacion-sunat.md` con el mismo ajuste.

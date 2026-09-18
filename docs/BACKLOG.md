@@ -808,15 +808,34 @@ con cita, para que nadie los reconstruya.
       a fallar con un mensaje que se lo pide explícitamente (a propósito:
       mejor bloquear con un mensaje claro que aprobar la devolución y dejar
       la Nota de Crédito perdida para siempre).
+- [x] **`emitir_comprobante` sin idempotencia (hueco 1) y sin candado de IGV (hueco 2b)
+      — CERRADO 2026-09-18 (ADR-0102), `20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql`.**
+      Portado el mismo patrón `token_cliente`/`p_token` de `registrar_venta`: el guard
+      revisa el token antes de reservar el correlativo, así un reintento (respuesta
+      perdida, no doble clic) no quema un segundo número. `ComprobantesPanel.tsx` manda
+      el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`). Además, `subtotal +
+      igv = total` ahora se valida en la base en `emitir_comprobante` y `crear_proforma`
+      — ya no se puede guardar una cifra que no cuadra llamando la RPC directo. Aplicado
+      y verificado contra Postgres local (`psql -f`, `CREATE FUNCTION` sin error,
+      `pg_get_function_identity_arguments` confirma `p_token`); `pnpm --filter database
+      typecheck`/`pnpm --filter web typecheck` en verde. **No probado con una llamada RPC
+      autenticada real** (exige JWT/persona real, ver ADR-0102) — solo verificación
+      estructural. **No aplicado en producción** — pendiente de Felipe (D-11), aunque ya
+      verificado contra `cayla-dynamic` de solo lectura: `emitir_comprobante`/
+      `crear_proforma` tienen la misma firma que local (`p_ubicacion_id` incluido,
+      no `p_sede_id`), `token_cliente` no existe todavía, 0 filas en
+      `comprobantes`/`proformas` con `subtotal+igv≠total` — la migración está lista para
+      pegar tal cual, prefijo `retail.` ya incluido en el archivo. **Sigue sin resolver:**
+      el 18% hardcodeado en 3 archivos (parte (a) del hueco 2) y el redondeo
+      navegador-vs-Lucode (parte (c)) — ver "Lo que falta" en ADR-0102.
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
-repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
-emite Vender, el panel manual de Facturación sigue expuesto a doble emisión (hueco 1);
-`registrar_serie_comprobante` no valida ubicación, un líder puede reapuntar la serie de
-otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `clientes`
-(hueco 16); cero pruebas de las RPC del módulo contra Postgres real (a diferencia de
-`registrar_cambio`/`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de
-"Monto facturado" sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
+repetido acá por la regla de 3 ítems por cubo): `registrar_serie_comprobante` no valida
+ubicación, un líder puede reapuntar la serie de otra tienda (hueco 12);
+`comprobantes.cliente_*` no está ligado a la tabla `clientes` (hueco 16); cero pruebas de
+las RPC del módulo contra Postgres real (a diferencia de `registrar_cambio`/
+`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de "Monto facturado"
+sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
 
 ---
 
