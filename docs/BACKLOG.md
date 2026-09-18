@@ -269,6 +269,18 @@ verde.
       **Pendiente, menor:** una etiqueta nueva creada desde la pantalla nace `neutral`
       sin selector para clasificarla ahí mismo — hay que reclasificarla por SQL o en
       una próxima sesión si hace falta desde el día uno.
+- [x] **Patrones sembrado + "Estampado"/"Multicolor"/"Animal print" retirados de
+      Colores (2026-09-18).** Felipe los había cargado en Colores (con foto de
+      textura como muestra, `hex` de relleno) antes de que existiera la pantalla de
+      Patrones — destapó que `colores.tipo='estampado'` (15-sep) y `retail.patrones`
+      (17-sep) resolvían la misma pregunta dos veces, sin reconciliar. Investigado
+      contra Google Merchant Center + Zara/H&M/ASOS reales: Color y Patrón son ejes
+      siempre separados, y "multicolor" está prohibido como valor de color en el
+      estándar. Migración `20260918100000`: desactiva los 3 códigos de Colores (0
+      variantes los usaban, nunca DELETE) + siembra 7 patrones (Liso, Rayas, Cuadros,
+      Lunares, Floral, Animal print, Estampado). "Multicolor" se deja fuera de los DOS
+      vocabularios a propósito — no encaja en ninguno sin forzarlo. Verificado con
+      `db reset` completo, typecheck/lint, navegador. PR pendiente de abrir.
 - [x] **"Para liquidar" corregido: de 4 filas por sede a 1 global (2026-09-18).**
       El diseño original restringía por sede con `sedes_permitidas` — Felipe preguntó
       "por qué 4" y la pregunta destapó que el candado no es cosmético:

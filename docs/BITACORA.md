@@ -7259,3 +7259,31 @@ reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filt
 typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
+
+## 2026-09-18 (Patrones — Felipe encontró el mismo problema dos veces sin saberlo)
+
+Felipe preguntó "qué va en Patrones" (pantalla vacía, misma sesión que creó Tejidos
+17-sep, ADR-0095) y de paso mandó un screenshot: había cargado "Estampado"/
+"Multicolor"/"Animal print" en Colores, con foto de textura como muestra y `hex`
+relleno (`#c9b79c` repetido en los 3 — no un color real). Antes de moverlos investigué
+por qué estaban ahí: `retail.colores.tipo` (solido/textura/estampado,
+`20260915230000_colores_tipo_y_muestra.sql`, 15-sep) ya intentaba resolver esta misma
+pregunta — dos días antes de que naciera `retail.patrones` para lo mismo. Nadie
+reconcilió los dos mecanismos: el mismo problema resuelto dos veces (principio 2),
+sin que ninguna sesión previa lo notara hasta que Felipe tropezó con él en pantalla.
+
+Investigado contra el estándar real (Google Merchant Center) y cómo lo hacen Zara/H&M/
+ASOS: Color y Patrón son siempre ejes separados ("lunares"/"cuadros" van en pattern,
+nunca en color), y "multicolor" está explícitamente PROHIBIDO como valor de color en
+la especificación de Google. Migración `20260918100000`: desactiva los 3 códigos de
+Colores (verificado antes: 0 variantes los usaban) y siembra 7 patrones (Liso, Rayas,
+Cuadros, Lunares, Floral, Animal print, Estampado) — "Multicolor" se deja fuera a
+propósito de los dos vocabularios: no es color (prohibido) ni tampoco patrón (una
+prenda a rayas puede ser blanco/negro O multicolor, pregunta independiente del
+estampado) — forzarlo en cualquiera de los dos habría sido el caso especial que el
+principio 6 pide resolver rediseñando, no acomodando.
+
+Verificado con `db reset` completo (Docker no estaba levantado al empezar, se esperó a
+que arrancara), typecheck/lint, y navegador: los 7 patrones activos, y los 3 códigos
+de Colores cayendo a "Desactivados — ya no se pueden elegir en una prenda nueva" con
+botón Reactivar, nunca borrados.
