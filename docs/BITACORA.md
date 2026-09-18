@@ -10,7 +10,7 @@ Cambios; antes de tocar código se auditó `globals.css` y confirmó con él que
 YA vigente (ADR-0012, rojo/crema/tinta, sin modo oscuro) manda — las maquetas se leyeron
 solo por layout/componentes, no por color. `/caja` (`CajaAbiertaPanel.tsx` reescrito,
 `CajaGraficos.tsx` nuevo, `caja-panel-reglas.ts` puro con 14 pruebas) quedó con encabezado
-+ reloj en vivo, meta del día (`ubicaciones.meta_venta_diaria`, migración `20260918080000`,
++ reloj en vivo, meta del día (`ubicaciones.meta_venta_diaria`, migración `20260918091000`,
 nullable — sin pantalla de edición todavía), 5 KPI, dona de métodos de pago con tabla
 accesible, ventas por hora y tendencia de cierres de 7 días — todo de datos reales
 (`getDetalleCierre` reusado para el feed en vivo, antes solo servía cierres ya cerrados).

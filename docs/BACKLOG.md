@@ -55,7 +55,7 @@ cerradas y verificadas en navegador; Punto de Venta queda para el siguiente paso
       visual): stock, `yaCambiado` y las 3 estadísticas se actualizaron correctos tras
       confirmar.
 - [ ] **Pantalla para editar `ubicaciones.meta_venta_diaria` por sede** — hoy se setea
-      por SQL Editor (migración `20260918080000`). Sin pantalla, un líder no puede
+      por SQL Editor (migración `20260918091000`). Sin pantalla, un líder no puede
       cambiar la meta del día sin pedirle a alguien que corra SQL.
 - [ ] **Plazo de cambio configurable por sede** — hoy `DIAS_PLAZO_CAMBIO`/
       `DIAS_UMBRAL_POR_VENCER` son constantes iguales para toda la empresa

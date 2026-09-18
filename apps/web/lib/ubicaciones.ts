@@ -16,7 +16,7 @@ export type Ubicacion = {
   activo: boolean;
   /** Meta de ventas del día en soles, para la barra de meta de Caja. Null = sin
    *  meta configurada todavía (no hay pantalla de edición — se setea por SQL
-   *  Editor, ver migración 20260918080000). */
+   *  Editor, ver migración 20260918091000). */
   metaVentaDiaria: number | null;
 };
 
