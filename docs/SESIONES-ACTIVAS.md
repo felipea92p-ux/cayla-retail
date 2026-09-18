@@ -20,7 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
-| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Fix producción: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (3 pantallas rotas). Auditó y cerró la última brecha real del censo de catálogo: alta de prenda al vuelo durante el conteo (ADR-0097, `censo_crear_variante` + `estado_alta` proponer/aprobar en `productos`). Migración `20260918020000_censo_alta_al_vuelo.sql` — pendiente de pegar en producción. | 2026-09-18 |
+| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Fix producción: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (3 pantallas rotas). Cerró la última brecha real del censo de catálogo: alta de prenda al vuelo durante el conteo (ADR-0097, PR #108, migración pendiente de producción). Después: auditó "reemplazo de Alegra" (Facturación viva, Finanzas/Egresos muerto de verdad — distinto de lo que decía BACKLOG) y mostró PDF/XML/CDR de SUNAT en `ComprobantesPanel.tsx` (sin migración). | 2026-09-18 |
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|

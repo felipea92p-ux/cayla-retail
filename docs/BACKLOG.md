@@ -510,19 +510,20 @@ están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre
 proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
 con cita, para que nadie los reconstruya.
 
-- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
-      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
-      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
-      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
-      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
-- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
-      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
-      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
-      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
-      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
-      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
-      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
-      `anular_venta` liberarlo automático?
+- [x] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo mostraba — CERRADO
+      2026-09-18.** `getComprobantesMes` (`lib/comprobantes.ts`) ahora extrae
+      `pdfUrl`/`xmlUrl`/`cdrUrl` de `respuesta_sunat` y `ComprobantesPanel.tsx`
+      los muestra como enlaces ("Ver PDF · XML · CDR") debajo de cada
+      comprobante, en la tabla de escritorio y la tarjeta de celular. Sin
+      cambio de esquema — el dato ya existía, solo faltaba leerlo. Verificado
+      en navegador local inyectando una `respuesta_sunat` de prueba (revertida
+      después). `tsc`/lint/297 tests en verde.
+- [x] **Comprobante `pendiente` huérfano, sin camino de salida — RESUELTO
+      2026-09-17 por ADR-0093 (`marcar_comprobante_no_emitido`), verificado
+      por la auditoría del 2026-09-18: existe la RPC, el botón "Liberar" en
+      `ComprobantesPanel.tsx`, y el estado `no_emitido` en el esquema.** Ya
+      no es un hueco abierto.
 - [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
       en producción (antes era teórico).** `devoluciones.ts` solo usa
       `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;

@@ -6611,3 +6611,38 @@ tests en verde. Datos de prueba borrados del Postgres local al cerrar.
 Pendiente de Felipe: pegar `supabase/migrations/20260918020000_censo_alta_al_vuelo.sql`
 en el SQL Editor de producción (con prefijo `retail.`, por convención) — aditivo, no
 toca datos existentes ni funciones vivas de otras sesiones.
+
+## 2026-09-18 (Facturación: PDF/XML/CDR a la vista, y por qué "Alegra" no era
+un solo proyecto sino dos con destinos opuestos)
+
+Con el censo de catálogo terminado, Felipe pidió seguir con "reemplazo de Alegra". La
+entrada larga de BACKLOG.md sobre ese proyecto (Fase 0-2, Lucode) no se tocaba desde
+el 2026-09-09 — sospechoso, con el resto del repo moviéndose a cientos de commits por
+día. Auditoría dirigida (agente Explore) antes de tocar código: **Facturación/Lucode
+está vivo y con trabajo real hasta ayer** (`ComprobantesPanel.tsx`, `lib/lucode.ts`,
+ADR-0093 aplicado en producción el 17-sep) — el commit del corte V1→V2 (`0af2f1b`,
+12-sep) lo dice explícito: *"Facturación/SUNAT se rescata íntegra"*. **Finanzas/Egresos
+en cambio sí está muerto de verdad** — el mismo commit lo confirma: *"Comercial,
+Finanzas, Producción... quedan fuera de este corte... su propia data en retail era de
+prueba"*. Dos proyectos con el mismo nombre en BACKLOG, un destino completamente
+distinto cada uno.
+
+De la propia auditoría de Facturación del 17-sep (huecos 14-16 del doc de módulo)
+quedaban 3 cosas reales: (1) el PDF/XML/CDR que Lucode devuelve nunca se le mostraba a
+la clienta — SUNAT ya tenía el documento, la pantalla no; (2) comprobante `pendiente`
+huérfano — **ya resuelto por ADR-0093**, la entrada de BACKLOG solo no se había
+marcado; (3) devoluciones no emiten Nota de Crédito (IGV mal declarado ante SUNAT en
+ventas con factura) — más esfuerzo, mayor exposición legal cuanto más se posterga,
+queda para la siguiente sesión. Felipe eligió (1): barato, dato ya existente.
+
+`getComprobantesMes` (`lib/comprobantes.ts`) ahora trae `respuesta_sunat` y extrae
+`pdfUrl`/`xmlUrl`/`cdrUrl` a mano (jsonb sin tipo propio en el esquema generado);
+`ComprobantesPanel.tsx` los muestra como "Ver PDF · XML · CDR" debajo de cada
+comprobante, en la tabla de escritorio (`DocumentosSunat`, nuevo) y la tarjeta de
+celular — mismo componente, dos lugares. Sin migración: el dato vivía en
+`comprobantes.respuesta_sunat` desde que existe la tabla, solo nadie lo leía. Probado
+en navegador local inyectando una `respuesta_sunat` de prueba en el único comprobante
+del seed (revertida después de la captura). `tsc`/lint/297 tests en verde.
+
+BACKLOG.md corregido en el mismo commit: los dos huecos cerrados marcados `[x]`, el de
+Nota de Crédito queda como el único pendiente real de Facturación.
