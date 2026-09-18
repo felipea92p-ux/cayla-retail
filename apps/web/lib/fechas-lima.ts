@@ -22,3 +22,16 @@ export function diasEntreFechas(desde: string, hasta: string): number {
 export function diasHastaLima(iso: string, ahora: Date = new Date()): number {
   return diasEntreFechas(hoyLima(ahora), iso);
 }
+
+/** `iso` (aaaa-mm-dd) más `dias` días de calendario, sin pasar por zonas horarias. */
+export function sumarDias(iso: string, dias: number): string {
+  const t = Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) + dias * MS_DIA;
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+/** `dd/mm` de una fecha `aaaa-mm-dd` — como se rotulan las fechas en las listas de Compras. */
+export function diaMes(iso: string | null): string {
+  if (!iso) return "—";
+  const [, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}`;
+}

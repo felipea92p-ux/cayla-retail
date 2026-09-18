@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasEntreFechas, diasHastaLima, hoyLima } from "./fechas-lima";
+import { diaMes, diasEntreFechas, diasHastaLima, hoyLima, sumarDias } from "./fechas-lima";
 
 describe("hoyLima", () => {
   it("a las 19:30 de Lima todavía es el mismo día (en UTC ya es mañana)", () => {
@@ -23,5 +23,20 @@ describe("diasEntreFechas / diasHastaLima", () => {
   });
   it("cruza cambio de mes", () => {
     expect(diasEntreFechas("2026-09-28", "2026-10-03")).toBe(5);
+  });
+});
+
+describe("sumarDias", () => {
+  it("suma y resta días de calendario cruzando meses y años", () => {
+    expect(sumarDias("2026-09-18", 30)).toBe("2026-10-18");
+    expect(sumarDias("2026-12-25", 10)).toBe("2027-01-04");
+    expect(sumarDias("2026-03-01", -1)).toBe("2026-02-28");
+  });
+});
+
+describe("diaMes", () => {
+  it("da dd/mm; sin fecha, una raya", () => {
+    expect(diaMes("2026-09-04")).toBe("04/09");
+    expect(diaMes(null)).toBe("—");
   });
 });
