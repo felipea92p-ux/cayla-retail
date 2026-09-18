@@ -2733,6 +2733,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [x] **`docs/datos/generado/` estaba desactualizado desde media tarde del 17-sep —
+      `pnpm datos:comparar` marcaba 3 pantallas "rotas en producción" que en
+      realidad funcionan bien. Refrescado y confirmado 2026-09-17 (noche).** El
+      volcado (`funciones-produccion.txt` y los 6 `retail_*.json`) tenía fecha
+      15:26 (commit del PR #93, "revoca EXECUTE público"), de antes de que
+      aterrizaran ADR-0093 (`marcar_comprobante_no_emitido`) y ADR-0095
+      (`actualizar_categoria_ejes`, `actualizar_variantes_etiquetas`) — las 3
+      funciones que el comparador marcaba como inexistentes. Antes de alarmar con
+      "3 pantallas rotas", se verificó **contra producción de verdad** (MCP de
+      Supabase, `vovjyyiafkxteijimpuy`, consulta de solo lectura envuelta en
+      `begin transaction read only`): las 3 funciones existen — era la foto, no el
+      código. Se volvió a pedir el volcado completo (los 7 queries de
+      `COMO-REFRESCAR.md`) y se regeneró el diccionario:
+      `pnpm datos:comparar` ahora sale limpio ("Ninguna pantalla llama a una
+      función con parámetros que producción no acepte"). De paso salió a la luz
+      que producción creció de 45 a **60 tablas** desde la última foto del 12-sep
+      — coherente con la cantidad de PRs fusionados hoy (Taxonomía ADR-0095,
+      Familias/categorías ADR-0096, Revocar EXECUTE ADR-0078, etc.). El propio
+      `docs/CLAUDE.md` ya no necesita corrección: dice explícitamente que el
+      conteo vivo está en este diccionario, no hardcodeado ahí.
+      **Sin tocar (deuda que sigue viva, no la agrandé ni la until):**
+      `glosario.json` solo explica 425 de 586 columnas — las nuevas de hoy (Loro,
+      taxonomía, EXECUTE) quedan con "Para qué sirve" vacío hasta que alguien las
+      documente a mano; 21 de las 60 tablas quedan "sin módulo" en
+      `DICCIONARIO-RETAIL.md` (la lista `DOMINIOS_RETAIL` de `generar.mjs` no se
+      actualizó desde el 15-sep). Ninguna de las dos bloquea nada, son mapas
+      quedando cortos, no código roto.
 - [ ] **`ARQUITECTURA.md:106-119` describe un `/inventario` que ya no existe —
       encontrado 2026-09-17 de rebote, verificando a dónde debía apuntar el alias
       `/almacen`.** El doc dice `/inventario/almacen` → `AlmacenStockList.tsx`,
