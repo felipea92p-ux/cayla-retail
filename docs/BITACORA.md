@@ -7541,3 +7541,28 @@ tono de su grupo — ámbar/verde/taupe — sobre un tinte suave del mismo tono.
 patrones, una etiqueta desconocida cae en un ícono genérico de etiqueta, no en "Sin muestra":
 es un concepto, no una tela. Sin cambio de esquema. Pendiente: foto propia por etiqueta
 (mismo mecanismo que tejidos/patrones, aún sin publicar) si algún día hace falta.
+
+## 2026-09-18 (El aviario vuelve a cerrar: 60 de 60 tablas con pájaro — ADR-0104)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). La sesión había
+nacido de un `main` local del 5-sep, 668 commits atrás y sin `docs/datos/`; Felipe puso su
+`main` al día con `git reset --keep origin/main`. Al cruzar el aviario con producción (en
+vivo, solo lectura) salió que su índice tabla→pájaro describía V1 —26 de 47 tablas ya no
+existen, 39 de las 60 reales sin pájaro— y que el generador llevaba otra lista distinta.
+
+Ahora hay una sola lista (`scripts/datos/aviario.mjs`), un índice generado
+(`generado/AVIARIO.md`) y un paso de CI que falla si una tabla nace sin pájaro. 21 tablas
+reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fiscales` →
+Cuervo, `sububicaciones` → Halcón). Felipe aprobó las 24 tal cual y se abrió el PR.
+
+De paso: `retail.migraciones_aplicadas`, el registro que describe GOBIERNO §4, no existe en
+producción; el que sí se llena es `supabase_migrations.schema_migrations` (114 filas, la
+última de hoy), pero lo pegado a mano en el SQL Editor no deja fila ahí. Además, `main`
+tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
+y `claude/facturacion-modal-shared-state-186f2d` tienen trabajo sin fusionar sobre la base
+V1 (la segunda con un ADR-0011 que choca con el existente).
+
+Al fusionar con `main`, el PR #129 ya había tomado el ADR-0103 (familias): ganó el
+número y el del aviario pasó a 0104. Y `retail.familias`, ya en producción pero no en el
+volcado del 17-sep, entró al aviario bajo Loro. El límite que el propio ADR anotaba —la
+alarma es tan fresca como el volcado— se cumplió el mismo día.

@@ -28,6 +28,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0104)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). Al cruzarlo con
+producción, su índice tabla→pájaro describía V1 (26 de 47 tablas ya no existen, 39 de 60
+reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
+
+- [x] **Una sola lista** en `scripts/datos/aviario.mjs`: las 60 tablas y vistas de
+      `retail` con un pájaro cada una. El índice se genera en
+      `docs/datos/generado/AVIARIO.md` y GOBIERNO §1 apunta ahí.
+- [x] **Alarma en CI:** `node scripts/datos/aviario.mjs --verificar` falla si una tabla
+      nace sin pájaro, tiene dos, los pájaros no coinciden con GOBIERNO o `AVIARIO.md`
+      quedó viejo. Probado sobre una copia: los errores fallan y apuntarse no rompe nada.
+- [x] **Felipe aprobó las asignaciones tal cual** (tabla en ADR-0104: 21 nuevas y 3 que
+      cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones` →
+      Halcón). PR abierto desde `claude/aviario-cayla-8d1efc`, esperando merge.
+- [ ] **Gorrión: lo que se pega a mano en el SQL Editor de producción no deja rastro.**
+      GOBIERNO §4 apuntaba a `retail.migraciones_aplicadas`, que ya no existe. El
+      registro vivo es `supabase_migrations.schema_migrations` (114 filas, la última de
+      hoy), pero solo lo llena el camino de migraciones (CLI/MCP), con versión propia y
+      no el nombre del archivo del repo. Decidir si todo SQL de producción pasa por ahí.
+- [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
+      `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
+      los documentos del porqué, todavía no.
+- [ ] **Refrescar el volcado de producción** (`generado/COMO-REFRESCAR.md`):
+      `retail.familias` ya existe allá desde el PR #129 y el volcado del 17-sep no la
+      tiene. Hasta refrescarlo, la alarma del aviario no ve las tablas nacidas después.
+
+---
+
 ## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
 
 `/productos/colores` era una sola grilla continua ordenada por `orden`
@@ -61,6 +90,8 @@ propuesta de piso de venta.
       Marrón → Chocolate → Caqui → Tostado; los 4 tonos nuevos van al final de
       su familia). Propuesta: de más oscuro a más claro, medido con el hex real
       de la muestra; solo cambia `orden` (dato de presentación, reversible).
+
+---
 
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
