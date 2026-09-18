@@ -62,7 +62,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             <TarjetaIndicador etiqueta="Saldo pendiente" valor={soles(metricasCompras.saldo)} />
             <TarjetaIndicador etiqueta="Última compra" valor={fechaCorta(metricasCompras.ultima_compra)} />
             <TarjetaIndicador
-              etiqueta="Facturas vencidas"
+              etiqueta="Comprobantes vencidos"
               valor={String(metricasCompras.facturas_vencidas)}
               critico={metricasCompras.facturas_vencidas > 0}
             />
@@ -77,7 +77,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           </div>
         )}
         <Link href={`/compras?prov=${id}`} className="inline-block text-xs text-tinta/65 hover:text-rojo hover:underline">
-          Ver todas sus facturas →
+          Ver todos sus comprobantes →
         </Link>
       </section>
 

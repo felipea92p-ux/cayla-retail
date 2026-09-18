@@ -14,14 +14,26 @@ export type Ubicacion = {
   nombre: string;
   tipo: "tienda" | "almacen" | "taller";
   activo: boolean;
+  /** Meta de venta del día, en soles. Null = sin meta configurada (20260918080000). */
+  metaVentaDiaria: number | null;
 };
 
 /** Todas las ubicaciones activas, una vez por request (mismo patrón que getSedes()). */
 export const getUbicaciones = cache(async (): Promise<Ubicacion[]> => {
   const supabase = await createClient();
   const datos = exigir(
-    await supabase.from("ubicaciones").select("id, nombre, tipo, activo").eq("activo", true).order("nombre"),
+    await supabase
+      .from("ubicaciones")
+      .select("id, nombre, tipo, activo, meta_venta_diaria")
+      .eq("activo", true)
+      .order("nombre"),
     "las ubicaciones"
   );
-  return datos as Ubicacion[];
+  return datos.map((u) => ({
+    id: u.id,
+    nombre: u.nombre,
+    tipo: u.tipo as Ubicacion["tipo"],
+    activo: u.activo,
+    metaVentaDiaria: u.meta_venta_diaria === null ? null : Number(u.meta_venta_diaria),
+  }));
 });

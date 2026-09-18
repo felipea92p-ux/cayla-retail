@@ -24,6 +24,71 @@ las dos migraciones de Resumen"), y varias de las otras ya estaban confirmadas e
 producción por sesiones anteriores. Tampoco se pusheó directo a `main` para el ajuste
 del diccionario (PR #121): el clasificador de auto-modo lo bloqueó como "merge sin
 revisión" — correcto, ese permiso puntual era solo para PR #120.
+## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
+
+Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
+Cambios; antes de tocar código se auditó `globals.css` y confirmó con él que el sistema
+YA vigente (ADR-0012, rojo/crema/tinta, sin modo oscuro) manda — las maquetas se leyeron
+solo por layout/componentes, no por color. `/caja` (`CajaAbiertaPanel.tsx` reescrito,
+`CajaGraficos.tsx` nuevo, `caja-panel-reglas.ts` puro con 14 pruebas) quedó con encabezado
++ reloj en vivo, meta del día (`ubicaciones.meta_venta_diaria`, migración `20260918091000`,
+nullable — sin pantalla de edición todavía), 5 KPI, dona de métodos de pago con tabla
+accesible, ventas por hora y tendencia de cierres de 7 días — todo de datos reales
+(`getDetalleCierre` reusado para el feed en vivo, antes solo servía cierres ya cerrados).
+
+El badge "Caja balanceada/Descuadre" de la maqueta comparaba contra "lo esperado" — que
+ADR-0042 (conteo ciego) prohíbe mostrar mientras la caja sigue abierta. Se le presentó la
+contradicción a Felipe con 3 opciones (Ganas/Pagas); eligió reproponer la señal a algo
+calculable sin rompler el conteo ciego ("sin pendientes" / "N ventas sin subir", de la
+cola offline ya existente) en vez de exponer el número. Mismo protocolo para: colores
+categóricos del gráfico de dona (nuevos tokens `--color-metodo-*`, acotados a ese
+gráfico — el selector de método del POS sigue monocromo, decisión previa de Felipe) y
+el plazo de cambio de Cambios (constantes documentadas citando R-38, no columna nueva).
+`tsc`/lint/311 tests en verde; verificado en navegador con datos reales sembrados a mano
+(meta S/800 en Tienda Lima, egreso de prueba para confirmar el aviso de "egresos
+elevados" — borrado después de verificar). Worktree necesitó `pnpm install` +
+`.env.local`/stub de migración copiados a mano (gitignored, no existían en este worktree
+nuevo) antes de poder correr nada.
+
+## 2026-09-18 (Cambios deja de ser un modal — el patrón de ADR-0044, aplicado dos meses después a la pantalla que lo necesitaba)
+
+Segundo paso del rediseño visual de Ventas (después de Caja, mismo día). `CambiosLista.tsx`
+pasó de lista plana a agrupada por día (`agruparPorDia`, "Hoy"/"Ayer"/fecha) con mini-fila
+de estadísticas reales (`cambios-estadisticas.ts`: cambios hoy/mes agregados en JS desde
+`retail.cambios`, mismo criterio que `getResumenCaja`; "prenda más cambiada" cruza
+`cambios→venta_items→variantes/productos` agrupando en JS, sin RPC nueva). El buscador
+ganó un switch real (checkbox restylado con `peer`/`::after` — no hay primitivo de switch
+en el repo) y chips de categoría derivados de las categorías que de verdad aparecen en los
+resultados, nunca una lista fija.
+
+El cambio más grande: `CambioFormV2` dejó de ser `<Modal>` y ahora se expande DENTRO de la
+tarjeta de la línea. Releer ADR-0044 (el ticket de Vender) mostró que ya había resuelto
+exactamente este problema — "sin modal, sin preselección" — pero Cambios nunca lo había
+adoptado, seguía citando el ADR en un comentario sin aplicar su decisión. `opcionesDeCambio`
+sigue sin restringir a "misma prenda" (nunca lo hizo, y cambiarlo habría sido tocar lógica
+de negocio fuera del alcance de un rediseño visual) — para que la maqueta (chips de talla +
+puntos de color) siguiera siendo honesta con esa flexibilidad real, las opciones se agrupan
+por producto: con un solo producto disponible va directo a talla/color; con varios, aparece
+un selector de prenda primero. Ni talla ni color se preseleccionan cuando hay más de una
+opción real (mismo criterio que ADR-0044); si solo hay una, se completa sola porque ahí no
+hay decisión que tomar.
+
+El plazo de cambio (R-38: 15 días, `docs/datos/15-COMO-OPERA-CAYLA.md`) no existía como
+dato en ningún lado — se le presentó la contradicción a Felipe (protocolo de pregunta) y
+eligió constantes documentadas (`DIAS_PLAZO_CAMBIO`/`DIAS_UMBRAL_POR_VENCER` en
+`cambios-reglas.ts`) en vez de una columna nueva: no hay evidencia de que el plazo varíe por
+sede hoy. "Vendido por X" tampoco viajaba a esta pantalla aunque el dato ya existía
+(`ventas.usuario_id`) — se agregó al mismo query de `getLineasVentaRecientes` sin consulta
+extra, mismo patrón que ya usa `getDetalleCierre` de Caja.
+
+Un bug de entorno, no de código: tras editar `cambios/page.tsx` para pasarle `estadisticas`
+a `CambiosLista`, la pantalla reventó en el navegador con "Cannot read properties of
+undefined (reading 'cambiosHoy')" pese a que el archivo en disco estaba correcto — Turbopack
+sirvió una versión vieja compilada. Se resolvió reiniciando el servidor de preview
+(`preview_stop`+`preview_start`), no tocando código. Verificado de punta a punta en
+navegador: un `registrar_cambio` real (Vestido Sofía → Pantalón Carla, -S/50 devueltos)
+actualizó stock, `yaCambiado`, y las 3 estadísticas de la mini-fila sin recargar la página a
+mano. `tsc`/lint/319 tests en verde (26 archivos, +8 desde Caja).
 
 ## 2026-09-18 (Resumen se fusiona con 22 commits de `main` — un bug ajeno encontrado y corregido de paso)
 
@@ -7281,3 +7346,147 @@ reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filt
 typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
+
+## 2026-09-18 (Rediseño visual de Caja — la maqueta traía dark mode y una paleta que no es la de la app)
+
+Felipe pidió rediseñar Caja con una maqueta HTML de referencia. Antes de tocar código: la
+maqueta traía modo oscuro persistente y una paleta terracota que no es la de CAYLA — choca
+de punta a punta con `globals.css:130` ("sin modo oscuro, una sola paleta") y el brandbook
+v3.0. Se le presentaron 3 opciones (adaptar a la paleta existente / isla visual solo para
+Caja+POS / nuevo estándar para toda la app); eligió adaptar. Detalle completo en ADR-0102
+(renumerado desde 0101: al sincronizar con `main` esa numeración ya la había tomado la
+sesión de "Resumen de Inventario", fusionada mientras esta rama seguía sin pushear).
+
+Construido con datos 100% reales (`getResumenCaja`/`getMovimientosCaja`/`fn_ventas_del_dia`,
+nueva `getSeriesVentasCaja` para la serie horaria): KPIs con sparkline, dona de métodos de
+pago con tabla alternativa, barras por hora, timeline unificado (ventas+movimientos),
+tendencia de 7 cierres, barra de meta diaria (nueva columna nullable
+`ubicaciones.meta_venta_diaria`, aplicada en local, pendiente producción). El badge
+"balanceada/descuadre" que pedía la maqueta es imposible de calcular en vivo sin romper el
+conteo ciego (ADR-0042) — se reemplazó por una señal real: ventas offline sin sincronizar.
+Dos cosas de la maqueta NO se construyeron por falta de dato real (no inventado): el banner
+de "egresos por encima del promedio semanal" y el delta "vs. mismo día de la semana
+anterior" en la meta — ninguno de los dos tiene un rollup histórico del que salir hoy.
+
+Un bug propio encontrado verificando en navegador con datos reales (no en tsc/lint): el
+filtro de "ventas por hora" mostraba 14 barras vacías (10h a 23h) en vez de cortar en la
+hora actual — `Math.max(horaActual, 23)` siempre daba 23. Corregido y reverificado con
+`felipe@cayla.local` contra la caja real de Tienda Lima (S/389.60 vendidos, 2 ventas + 2
+movimientos).
+
+Segunda parte del mismo hilo: extender la piel visual a Punto de Venta. Sorpresa buena —
+`PuntoDeVentaCatalogo.tsx`/`PuntoDeVentaTicket.tsx` ya cumplían casi todo lo pedido (radio
+y hover de las tarjetas de producto, serif en el total, botón "Cobrar" ya con el mismo
+`bg-tinta`/hover `rojo` que "Cerrar caja") — nada de eso se tocó, por no reinventar lo que
+ya estaba bien. Los dos cambios reales: chips de categoría y el toggle "Solo con stock" de
+`rounded-lg` a `rounded-md` (el radio real de la "pastilla" del selector de ubicación, no
+el que se había copiado a ojo); y el selector de método de pago + el ícono de cada pago ya
+puesto ahora usan los mismos 3 colores categóricos que la dona de Caja (`COLOR_METODO` en
+`PuntoDeVentaTicket.tsx`). Verificado armando una venta real con pago mixto
+efectivo+tarjeta+yape — cada botón se pinta con su color y el checklist de "Cubierto"
+sigue funcionando igual que antes. `tsc`/`lint` en verde, sin tests nuevos (cambio
+puramente visual, sin lógica). PR pendiente de abrir.
+## 2026-09-18 (Compras: label "Facturas" → "Comprobantes", cero migraciones pendientes)
+
+Felipe pidió renombrar el label "Facturas" a "Comprobantes" en Compras (nav, título del
+módulo, botón de alta, ficha de proveedor, detalle de movimiento) — el módulo maneja
+factura/boleta/nota de venta, no solo facturas. El selector "Tipo de documento" del
+formulario conserva "Factura" como valor específico, sin tocar (ahí sí es el tipo real,
+no el nombre del módulo). Verificado en preview local (navegador) antes de commitear.
+
+Al pedir fusionar con `main` y la lista de migraciones pendientes: la rama ya nacía al
+día con `main` (0 commits de diferencia, nada que traer) y **`list_migrations` contra
+producción resultó no confiable para responder "qué falta"** — nombres pegados a mano,
+sin relación 1:1 con los archivos del repo (mismo síntoma que ya advertía la memoria de
+sesión). Verificado en cambio contra la base real, objeto por objeto (`information_schema`
++ `pg_constraint` para tablas/columnas/funciones/constraints de cada migración desde
+`0001` hasta `20260918090000`, más los 8 archivos sueltos `*-produccion.sql`): **cero
+migraciones pendientes** — todo lo que el repo espera ya existe en producción, incluidas
+las de hoy mismo (`proveedores.rubro/plazo_credito_dias/forma_pago_preferida`,
+`resumen_inventario`, `prioridad_conteo_por_sububicacion`). De paso, `activacion-
+cuarentena-produccion.sql` tenía la cabecera desactualizada ("todavía no se aplicó"
+cuando la sububicación «Cuarentena» ya existe en las 3 tiendas) — corregida, sin tocar
+el SQL. `benja-migracion.sql` sigue marcado por su propio autor "NO CORRER TAL CUAL"
+(dump de referencia, no cuenta como pendiente).
+
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
+## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0102)
+
+Felipe pidió analizar `vender/facturacion/page.tsx` y decir qué mejorar. La pantalla en sí
+tenía un solo bug propio: el regex de mes (`?m=2026-13`) no validaba el rango 1-12 y
+`mesLimaUTC` lo enrollaba en silencio al año siguiente — corregido en el momento
+(`(0?[1-9]|1[0-2])`). El resto del módulo ya estaba auditado a fondo en
+`docs/datos/modulos/08-facturacion-sunat.md` (16 huecos, 17-sep) — no se re-auditó, se
+priorizaron los dos GRAVE con impacto en plata/SUNAT y Felipe confirmó "empieza por esos 2".
+
+Hueco 1 (sin idempotencia) y hueco 2b (sin candado de IGV) cerrados en
+`20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql` (ADR-0102): mismo patrón
+`token_cliente`/`p_token` que ya usa `registrar_venta`, portado a `emitir_comprobante`
+(revisa el token antes de reservar el correlativo, así un reintento no quema un número
+nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_proforma`.
+`emitir_nota` queda fuera a propósito (cero llamadores reales). `ComprobantesPanel.tsx`
+manda el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`); `types.ts` parcheado a
+mano (una línea) en vez de regenerado completo, para no arrastrar drift ajeno.
+
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
+
+**Hallazgo operativo, no de esta tarea:** el Postgres local es un contenedor Docker
+compartido por los 40+ worktrees del repo — no uno por worktree. La migración se revirtió
+sola dos veces mientras se verificaba (`supabase migration up --local` reportaba "up to
+date" con la función vieja todavía en la base), casi seguro por otra sesión concurrente
+(`auditoria-facturacion-cayla-2b8328`, probablemente el mismo módulo) corriendo su propio
+reset sobre el mismo contenedor. Se verificó aplicando el SQL directo con `psql -f` y
+chequeando en la misma cadena de comandos para cerrar la ventana de carrera. Vale la pena
+que cualquier sesión futura lo sepa antes de confiar en una verificación local con
+sesiones paralelas activas.
+
+Verificado: migración aplicada contra Postgres local real (no solo revisada a ojo),
+`pnpm --filter database typecheck` / `pnpm --filter web typecheck` limpios,
+`pnpm migraciones:verificar` no la marca como faltante. **No probado con una llamada RPC
+autenticada real** (exige JWT/persona real) — solo verificación estructural, documentado
+en ADR-0102. **No aplicado en producción** — pendiente de Felipe (D-11); antes de pegar,
+correr el `select count(*)` de proformas con IGV inconsistente que cita el ADR. Sigue
+abierta la parte (a) del hueco 2 (18% hardcodeado en 3 archivos) — no se movió el cálculo
+a la base, cambio de alcance mayor que no se pidió.
+
+**Continuación, mismo día — preparando el push.** Felipe pidió el SQL con prefijo
+`retail.` listo para pegar; como cada sentencia del archivo ya venía calificada con
+`retail.` (no depende de `search_path` para resolver nombres, mismo estilo que
+`0010_facturacion.sql`), no hizo falta tocar nada — solo verificar. Consulta de solo
+lectura contra `cayla-dynamic` (proyecto de producción) antes de entregarlo: la firma de
+`emitir_comprobante`/`crear_proforma` allá es idéntica a la local (`p_ubicacion_id`, no
+`p_sede_id` — el rename de `0010` sí llegó a producción), `token_cliente` no existe
+todavía, 0 filas con `subtotal+igv≠total` en `comprobantes` y en `proformas`.
+
+Al preparar el push, `git fetch` + `git merge origin/main` trajo 9 commits (Resumen de
+Inventario, PR #120/#122) con **dos choques reales, ninguno detectado por el merge de
+git** porque son archivos nuevos, no líneas editadas: `docs/adr/0101-*.md` ya lo había
+tomado Resumen de Inventario (mismo patrón que su propio choque con el 0097, ver línea 18
+de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
+`20260918080000_resumen_inventario.sql` — mismo timestamp exacto, dos sesiones calculando
+"ahora" en el mismo minuto. Renumerado a **ADR-0102** y el timestamp de la migración a
+**20260918091500** (después de la última migración del día, `20260918090000`). Referencias
+corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
+08-facturacion-sunat.md` con el mismo ajuste.
+
+## 2026-09-18 (Tejidos por fin sembrado — 17 valores, investigados y negociados)
+
+Felipe venía trabajando este vocabulario en otra sesión que "no le hacía caso" — pidió
+cerrarlo de una vez acá. La lista ya estaba negociada en rondas previas (no improvisada
+hoy): investigación real contra el estándar (Google Merchant Center) y contra el
+vocabulario propio de los proveedores de Gamarra, La Victoria (Tejido de Punto vs
+Tejido Plano), más dos fibras peruanas reales (algodón pima — costa norte, ~35% más
+larga que el algodón convencional; alpaca — Perú tiene el 87% de la población mundial).
+Felipe simplificó en el camino: un solo nombre por concepto, nunca combinado con "/"
+("Licra" cubre Full Lycra, "Jersey" cubre Interlock, "Rib" no se separa de "Rib
+licrado"); Piqué sí entra (tejido real de un polo); Tocuyo/French Terry/Punto Inglés/
+Gamuza/Jacquard quedan fuera por ahora, sin evidencia de que el catálogo real los use.
+
+Migración `20260918140000`: 17 tejidos, todos `aprobado` desde el día uno (trigger
+desactivado durante el insert — mismo patrón que Etiquetas/Patrones, si no se hace así
+el propio trigger recalcula `estado` desde `auth.uid()` y en una migración no hay
+sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
+typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
+`/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
