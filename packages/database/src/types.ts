@@ -377,6 +377,13 @@ export type Database = {
             referencedRelation: "categorias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categorias_familia_fk"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       clientes: {
@@ -1344,6 +1351,30 @@ export type Database = {
           sedes_permitidas?: string[] | null
           vigente_desde?: string | null
           vigente_hasta?: string | null
+        }
+        Relationships: []
+      }
+      familias: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          created_at?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          nombre?: string
+          orden?: number
         }
         Relationships: []
       }
