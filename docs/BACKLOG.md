@@ -539,26 +539,38 @@ están conectados (`PuntoDeVenta.tsx:647-650` manda `p_tipo_comprobante` siempre
 proforma SÍ guarda `precio_unitario` correcto — quedaron marcados RESUELTO en el doc,
 con cita, para que nadie los reconstruya.
 
-- [ ] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
-      `comprobantes.respuesta_sunat` y ninguna pantalla lo muestra** (verificado por
-      grep en todo `apps/web`). El sistema transmite a SUNAT correctamente pero no
-      tiene forma de entregarle el documento a la clienta — hueco 14 del doc de
-      módulo. Barato: el dato ya existe, falta solo leerlo y mostrarlo.
-- [ ] **Comprobante `pendiente` huérfano, sin camino de salida — 2 casos reales en
-      producción (B004-000004, B004-000005) y un segundo camino activo generándolos.**
-      `anular_comprobante` exige `estado='aceptado'`; `anular_venta` (ADR-0065,
-      16-sep) solo bloquea si el comprobante ya está enviado/aceptado, así que anular
-      una venta con comprobante `pendiente` lo deja huérfano igual, sin tocarlo. Hueco
-      15 del doc de módulo. **Necesita decisión de Felipe, no es solo técnico:** ¿se
-      puede soltar un `pendiente` sin avisar a SUNAT (nunca salió de acá)? ¿Debería
-      `anular_venta` liberarlo automático?
-- [ ] **Devoluciones/Cambios no emiten Nota de Crédito — confirmado con Devoluciones ya
-      en producción (antes era teórico).** `devoluciones.ts` solo usa
-      `parsearComprobante` para BUSCAR la venta original, nunca para emitir nada;
-      `emitir_nota` sigue sin ningún llamador real en todo el repo. Una devolución
-      sobre una venta con **factura** (RUC, crédito fiscal) deja el IGV declarado de
-      más ante SUNAT para siempre. Hueco 5 del doc de módulo — construido desde la
-      Fase 0, esperando pantalla desde entonces.
+- [x] **El PDF/XML/CDR que Lucode devuelve en cada emisión se guarda en
+      `comprobantes.respuesta_sunat` y ninguna pantalla lo mostraba — CERRADO
+      2026-09-18.** `getComprobantesMes` (`lib/comprobantes.ts`) ahora extrae
+      `pdfUrl`/`xmlUrl`/`cdrUrl` de `respuesta_sunat` y `ComprobantesPanel.tsx`
+      los muestra como enlaces ("Ver PDF · XML · CDR") debajo de cada
+      comprobante, en la tabla de escritorio y la tarjeta de celular. Sin
+      cambio de esquema — el dato ya existía, solo faltaba leerlo. Verificado
+      en navegador local inyectando una `respuesta_sunat` de prueba (revertida
+      después). `tsc`/lint/297 tests en verde.
+- [x] **Comprobante `pendiente` huérfano, sin camino de salida — RESUELTO
+      2026-09-17 por ADR-0093 (`marcar_comprobante_no_emitido`), verificado
+      por la auditoría del 2026-09-18: existe la RPC, el botón "Liberar" en
+      `ComprobantesPanel.tsx`, y el estado `no_emitido` en el esquema.** Ya
+      no es un hueco abierto.
+- [x] **Devoluciones/Cambios no emitían Nota de Crédito — CERRADO 2026-09-18
+      (ADR-0100).** `aprobar_devolucion` ahora emite la Nota de Crédito sola
+      (`emitir_nota`, sin llamador real desde la Fase 0) cuando la venta
+      devuelta tiene un comprobante `aceptado` — por el valor exacto de lo
+      devuelto, con el motivo 06/07 del Catálogo 09 según sea total o
+      parcial. Sin pantalla nueva: aparece en la lista de comprobantes de
+      Facturación, lista para "Transmitir". Probado en local con SQL directo
+      (devolución parcial real: NC01-000001, subtotal 63.47 + IGV 11.43 =
+      total 74.90, coincide centavo a centavo con el cálculo de
+      `ComprobantesPanel.tsx`). `tsc`/lint/297 tests en verde.
+      **Prerrequisito real antes de que sirva de algo en producción:**
+      ninguna ubicación tiene serie de `nota_credito` registrada todavía
+      (verificado contra producción) — Felipe tiene que registrarla
+      (botón "Registrar serie", ya existe) en cada ubicación con boleta o
+      factura, o la primera devolución sobre una venta facturada va a fallar
+      con un mensaje que se lo pide explícitamente (a propósito: mejor
+      bloquear con un mensaje claro que aprobar la devolución y dejar la
+      Nota de Crédito perdida para siempre).
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
 repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
@@ -2304,6 +2316,29 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       no se cuenta la trastienda, `stock_almacen` queda en 0 y "Bajar a tienda"
       va a fallar por stock insuficiente. Lo que baje de atrás entra como
       "Recibir", no como "Bajar a tienda".
+      **Corrección 2026-09-18 — esta entrada quedó desactualizada por las sesiones
+      paralelas del 16/17-sep; auditado el código real, no lo que decía este
+      archivo.** De los 5 bloqueadores que decía que faltaban, **4 ya están
+      completos en producción**: colores (proponer/aprobar/rechazar/reactivar,
+      `ColoresLista.tsx`), códigos + `codigos_barras` (tabla desde `0002_esquema.sql`,
+      código corto autogenerado por trigger al crear variante), conteos (abrir/
+      contar/cerrar/anular, `ConteoPanel.tsx` + `lib/conteos.ts`, escaneo directo) y
+      la matriz talla×color con costo por modelo en `/productos/nuevo`.
+      **La 5ª brecha (alta de prenda al vuelo durante el conteo) se cerró el
+      mismo 2026-09-18 (ADR-0099):** `censo_crear_variante` (sin el candado
+      de Líder de `crear_producto_con_variantes`) + `estado_alta` proponer/
+      aprobar en `productos` (mismo mecanismo que colores/tallas/tejidos/
+      patrones/etiquetas) + banner de revisión en `/productos` y `/productos/
+      [id]/editar`. Probado de punta a punta en navegador local: escanear un
+      código desconocido en pleno conteo, crear la prenda sin salir de la
+      pantalla, contarla, y que el Líder la vea pendiente y la apruebe.
+      `tsc`/lint/297 tests en verde. **Falta que Felipe corra la migración
+      `20260918020000_censo_alta_al_vuelo.sql` en producción** (crea columnas
+      + 2 funciones + 1 trigger, no toca datos existentes).
+      Aparte, sigue sin construirse una pantalla de impresión de etiquetas
+      propias (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa
+      nadie) — no bloquea el censo (Felipe ya decidió escanear código de
+      fábrica), pero quedó huérfano si algún día hace falta.
 - [x] **`almacen interno en el riel numerado` — hecho y verificado en local
       2026-09-09 (`0044_almacen_interno.sql`); falta pegar `unificacion/26` en
       producción.** `stock_almacen`, el contenedor `tipo='almacen'`,

@@ -6561,6 +6561,139 @@ propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igua
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
 
+## 2026-09-18 (Tejidos/Patrones/Etiquetas rotos en producción, worktree de 620
+commits abandonado, y alta al vuelo del censo — ADR-0099)
+
+Felipe pidió "ir construyendo" a partir de una captura de la app mostrando "NO SE PUDO
+CARGAR" en Catálogo → Tejidos. Causa real: `retail.tejidos`/`patrones`/`etiquetas` en
+producción les faltaba la columna `notas` que el frontend de `main` (ya desplegado)
+pedía en el `select` — mismo patrón exacto del incidente de ayer (frontend
+desplegado antes que su migración). `alter table ... add column notas text` en las 3
+tablas, aplicado vía Supabase MCP con ok de Felipe, verificado. De paso: el worktree
+original de esta sesión (`construyendo-esto-7b3ffd`) estaba 620 commits / 12 días
+detrás de `main` (diverge del 2026-09-05) y sus únicos 2 commits propios (hook de
+pre-commit) ya vivían en `main` byte por byte — se abandonó sin rescatar nada y se
+abrió uno nuevo desde `main` actual.
+
+Auditoría dirigida (agente Explore) del "censo de catálogo real" (BACKLOG, entrada de
+2026-09-09): de los 5 bloqueadores que decía que faltaban, 4 ya estaban completos en
+sesiones paralelas de esta semana (colores, códigos/`codigos_barras`, conteos, matriz
+talla×color). La 5ª — alta de una prenda al vuelo mientras se cuenta — se había
+perdido en el corte a V2 junto con el resto del diseño de censo original. Encontrado
+antes de construir nada: `crear_producto_con_variantes` (la única función viva que
+crea productos) exige `fn_es_lider()`, y el censo lo cuentan las Encargadas, no un
+Líder al lado de cada una — habría bloqueado el censo real de 300-900 prendas en la
+primera prenda no catalogada.
+
+Resuelto con Felipe (AskUserQuestion): mismo patrón proponer/aprobar que ya usan
+colores/tallas/tejidos/patrones/etiquetas, no un mecanismo nuevo ni el diseño V1 sin
+candado (ADR-0099). `productos.estado_alta` nueva columna, independiente de `estado`
+(ciclo de vida comercial) — mismo trigger mecanismo que los otros 5 vocabularios.
+`censo_crear_variante` (RPC nueva, sin el candado de líder) crea producto+variante de
+una sola vez y liga el código de barras escaneado; `revisar_producto_censo` es la
+puerta de aprobar/rechazar del Líder. Banner de revisión en `/productos` (lista de
+pendientes) y `/productos/[id]/editar` (aprobar/rechazar in situ).
+
+Colisión de timestamp real en el Postgres local compartido: otra sesión ya había
+aplicado `20260918010000_familias_tabla_propia` un minuto antes — la migración se
+renombró a `20260918020000` antes de aplicar nada. `supabase migration up --local`
+falló porque el archivo de esa otra sesión no vive en este worktree (cada worktree
+tiene su propio git, el Postgres local no) — se aplicó el SQL directo con `psql` en
+vez de correr `migration repair` (que toca el historial de migraciones compartido con
+las demás sesiones). Probado de punta a punta en navegador real (dev server propio en
+el puerto 4123, apuntando al Supabase local — `preview_start` quedó atado al cwd del
+worktree viejo y no siguió a `EnterWorktree`): escanear un código desconocido durante
+un conteo abierto, crear la prenda sin salir de la pantalla, contarla (quedó reflejada
+en la diferencia en soles del conteo), y como Líder verla en el banner de pendientes y
+aprobarla. Tipos regenerados contra Postgres local (`packages/database`). `tsc`/lint/297
+tests en verde. Datos de prueba borrados del Postgres local al cerrar.
+
+Pendiente de Felipe: pegar `supabase/migrations/20260918020000_censo_alta_al_vuelo.sql`
+en el SQL Editor de producción (con prefijo `retail.`, por convención) — aditivo, no
+toca datos existentes ni funciones vivas de otras sesiones.
+
+## 2026-09-18 (Facturación: PDF/XML/CDR a la vista, y por qué "Alegra" no era
+un solo proyecto sino dos con destinos opuestos)
+
+Con el censo de catálogo terminado, Felipe pidió seguir con "reemplazo de Alegra". La
+entrada larga de BACKLOG.md sobre ese proyecto (Fase 0-2, Lucode) no se tocaba desde
+el 2026-09-09 — sospechoso, con el resto del repo moviéndose a cientos de commits por
+día. Auditoría dirigida (agente Explore) antes de tocar código: **Facturación/Lucode
+está vivo y con trabajo real hasta ayer** (`ComprobantesPanel.tsx`, `lib/lucode.ts`,
+ADR-0093 aplicado en producción el 17-sep) — el commit del corte V1→V2 (`0af2f1b`,
+12-sep) lo dice explícito: *"Facturación/SUNAT se rescata íntegra"*. **Finanzas/Egresos
+en cambio sí está muerto de verdad** — el mismo commit lo confirma: *"Comercial,
+Finanzas, Producción... quedan fuera de este corte... su propia data en retail era de
+prueba"*. Dos proyectos con el mismo nombre en BACKLOG, un destino completamente
+distinto cada uno.
+
+De la propia auditoría de Facturación del 17-sep (huecos 14-16 del doc de módulo)
+quedaban 3 cosas reales: (1) el PDF/XML/CDR que Lucode devuelve nunca se le mostraba a
+la clienta — SUNAT ya tenía el documento, la pantalla no; (2) comprobante `pendiente`
+huérfano — **ya resuelto por ADR-0093**, la entrada de BACKLOG solo no se había
+marcado; (3) devoluciones no emiten Nota de Crédito (IGV mal declarado ante SUNAT en
+ventas con factura) — más esfuerzo, mayor exposición legal cuanto más se posterga,
+queda para la siguiente sesión. Felipe eligió (1): barato, dato ya existente.
+
+`getComprobantesMes` (`lib/comprobantes.ts`) ahora trae `respuesta_sunat` y extrae
+`pdfUrl`/`xmlUrl`/`cdrUrl` a mano (jsonb sin tipo propio en el esquema generado);
+`ComprobantesPanel.tsx` los muestra como "Ver PDF · XML · CDR" debajo de cada
+comprobante, en la tabla de escritorio (`DocumentosSunat`, nuevo) y la tarjeta de
+celular — mismo componente, dos lugares. Sin migración: el dato vivía en
+`comprobantes.respuesta_sunat` desde que existe la tabla, solo nadie lo leía. Probado
+en navegador local inyectando una `respuesta_sunat` de prueba en el único comprobante
+del seed (revertida después de la captura). `tsc`/lint/297 tests en verde.
+
+BACKLOG.md corregido en el mismo commit: los dos huecos cerrados marcados `[x]`, el de
+Nota de Crédito queda como el único pendiente real de Facturación.
+
+## 2026-09-18 (Nota de Crédito automática en devoluciones — ADR-0100, y el
+Postgres local compartido se resetea solo mientras se prueba)
+
+Último hueco real de Facturación: Felipe confirmó construirlo (toca SUNAT/dinero
+real, se le preguntó primero por regla del CLAUDE.md). `emitir_nota` existía desde
+la Fase 0 sin ningún llamador — `aprobar_devolucion` ahora la dispara sola cuando la
+venta devuelta tiene un comprobante `aceptado`, por el valor exacto de lo devuelto
+(no de toda la venta en devoluciones parciales), con motivo 06/07 del Catálogo 09
+según cubra el 100% de la venta o no. Se reserva en Postgres puro (principio 9);
+transmitirla sigue el mismo botón "Transmitir" de siempre — aparece sola en la
+lista de comprobantes, sin pantalla nueva.
+
+Verificado contra producción antes de escribir una línea: **ninguna ubicación
+tiene serie de `nota_credito` registrada** (`series_comprobantes` solo tiene
+boleta/factura). Sin un chequeo explícito, la primera devolución real sobre una
+venta facturada habría fallado con el mensaje genérico de
+`fn_reservar_numero_serie` Y se habría llevado entre las patas la aprobación
+ENTERA de la devolución (todo-o-nada, la transacción es una sola). Se agregó una
+excepción propia con el paso siguiente explícito antes de intentar `emitir_nota`.
+
+Probado con SQL directo contra el Postgres local (venta real de 3 líneas,
+devolución parcial de 1) — mientras se probaba, **el Postgres local compartido se
+reseteó solo, dos veces, en cuestión de minutos** (otra sesión corriendo `db
+reset` en paralelo): la migración de esta feature y la de censo (`20260918020000`)
+desaparecieron a mitad de prueba sin que esta sesión hiciera nada. Se reaplicaron
+las dos con `psql -f` directo (no `migration up`, que sigue sin ver archivos de
+otros worktrees) y se repitió la prueba hasta que corrió completa sin interrupción:
+NC01-000001, subtotal 63.47 + IGV 11.43 = total 74.90 (mismo orden de cálculo que
+`ComprobantesPanel.tsx`, coincide al céntimo), motivo "07" (parcial, correcto —
+solo se devolvió 1 de 3 líneas), `devoluciones.nota_credito_id` apuntando a la nota
+correcta. La limpieza de los datos de prueba chocó con `fn_historial_es_inmutable`
+(movimientos no se borran, por diseño) — se dejó el movimiento real de la prueba en
+el Postgres local compartido a propósito, en vez de forzar un borrado que el propio
+sistema existe para impedir.
+
+Toast nuevo en `DevolucionesLista.tsx`: al aprobar, si se generó una Nota de
+Crédito, avisa su serie-número y dice "transmítela desde Facturación" — antes de
+esto la RPC devolvía `void`, ahora devuelve el id/serie/número de la nota (o vacío
+si no aplicaba). Tipos regenerados dos veces (una por cada reset del Postgres
+local). `tsc`/lint/297 tests en verde.
+
+Pendiente de Felipe, real y bloqueante para el primer uso: registrar la serie de
+Nota de Crédito de cada ubicación con boleta o factura (botón "Registrar serie",
+ya existe en `/vender/facturacion`) — y, como siempre, pegar
+`20260918050000_devolucion_emite_nota_credito.sql` en producción recién cuando
+este PR se fusione a `main`.
+
 ## 2026-09-17 (Etiquetas caída en vivo — a la reconciliación de talla_id le faltó una columna)
 
 Felipe reportó Catálogo > Etiquetas caída ("Esta pantalla no está mostrando datos") con
