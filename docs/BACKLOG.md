@@ -28,6 +28,47 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
+
+Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
+extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
+maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
+antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
+ADR-0102).
+
+- [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
+      reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
+      tiene una configurada), 5 KPIs con sparkline, dona de métodos de pago (+ tabla
+      accesible), barras de ventas por hora, timeline de movimientos+ventas, tendencia
+      de 7 cierres, barra de acciones fija. `CajaAbiertaPanel.tsx` reescrito,
+      `Graficos.tsx`/`useCountUp.ts` nuevos, `lib/caja.ts` gana `getSeriesVentasCaja()`
+      y `MovimientoCaja.registradoPorNombre`. Verificado en navegador con la caja real
+      de Tienda Lima (`felipe@cayla.local`).
+      Colores categóricos de método de pago (`--color-metodo-*`) nuevos en
+      `globals.css`/`design-tokens.ts` — compartidos con Vender, no son de marca.
+- [x] **`ubicaciones.meta_venta_diaria`** — columna nullable nueva
+      (`20260918100000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
+      (se configura por UPDATE directo). Aplicada en local, **pendiente producción con
+      ok de Felipe**.
+- [x] **Punto de Venta: extendida la misma piel visual** — la mayoría YA calzaba
+      (tarjetas de producto ya usaban `alza-cayla`+radio `xl`, total ya en serif,
+      botón "Cobrar" ya `bg-tinta`/hover `rojo` igual que "Cerrar caja" — no hizo
+      falta tocar nada de eso). Lo que sí cambió: chips de categoría y el toggle
+      "Solo con stock" pasan de `rounded-lg` a `rounded-md` (mismo radio que la
+      "pastilla" real del selector de ubicación, `campos.tsx`); el selector de
+      método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
+      se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
+      navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
+- [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
+      maqueta, NO construido: no existe ningún rollup histórico de egresos por día
+      (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes
+      de poder mostrar un número real.
+- [ ] **Delta "vs. mismo día de la semana anterior" en la barra de meta** — mismo
+      motivo: no hay una cifra de "total vendido" histórico por día en ningún lado;
+      `montoCierreSistema` mide otra cosa (el esperado en el cajón, no lo vendido).
+
+---
+
 ## 🎯 Resumen de Inventario: quinta pantalla, por variante × sede (2026-09-17, ADR-0101)
 
 Worktree `erp-architecture-summary`. `/inventario/resumen` (solo líder, por sede): estado
@@ -90,7 +131,6 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
   ventana "días con stock" en vez de "días desde el primer ingreso".
 
 ---
-
 
 ## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
 
