@@ -317,8 +317,8 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 
 ## Huecos conocidos
 
-1. **RESUELTO 2026-09-18 — `20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql`
-   (ADR-0101).** Historia del hueco, para quien llegue después: `emitir_comprobante` no
+1. **RESUELTO 2026-09-18 — `20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql`
+   (ADR-0102).** Historia del hueco, para quien llegue después: `emitir_comprobante` no
    tenía token de idempotencia: un doble clic quema dos correlativos irreversibles ante
    SUNAT.
    `apps/web/components/ComprobantesPanel.tsx:230-258` llamaba a la RPC sin ningún token;
@@ -357,7 +357,7 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
    `ComprobantesPanel.tsx` genera el token con `useRef` (mismo patrón que
    `PuntoDeVenta.tsx`) y lo renueva solo tras un Emitir exitoso. `emitir_nota` queda
    fuera a propósito (cero llamadores reales, ver hueco 5). Detalle completo, lo
-   verificado y lo que falta (aplicar en producción) en ADR-0101.
+   verificado y lo que falta (aplicar en producción) en ADR-0102.
 
 2. **El IGV se despeja en el navegador con `total - total/1.18`.** GRAVE.
    `apps/web/components/ComprobantesPanel.tsx:238` y
@@ -381,14 +381,14 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
    menos ya no confía en lo que mande el navegador para esa ruta. El panel manual
    (`ComprobantesPanel.tsx:270`) sigue calculando y mandando el IGV desde el cliente sin
    ninguna verificación del lado de la base — (b) sigue completo ahí.
-   **(b) CERRADA 2026-09-18 (ADR-0101), (a) y (c) siguen abiertas.**
-   `20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql` agrega el candado
+   **(b) CERRADA 2026-09-18 (ADR-0102), (a) y (c) siguen abiertas.**
+   `20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql` agrega el candado
    `subtotal + igv = total` (con NULL rechazado explícitamente) a `emitir_comprobante`
    **y** a `crear_proforma` — ya no se puede guardar una cifra que no cuadra por ninguna
    de las dos puertas, aunque se llame la RPC directo. El 18% sigue escrito a mano en
    `ComprobantesPanel.tsx`, `ProformasPanel.tsx` y `0011_venta_con_comprobante.sql` (a),
    y el redondeo del navegador vs. Lucode (c) no se tocó — mover el cálculo a la base es
-   un cambio de alcance mayor, ver "Lo que falta" en ADR-0101.
+   un cambio de alcance mayor, ver "Lo que falta" en ADR-0102.
 
 3. **RESUELTO 2026-09-12, mismo día de este doc — `supabase/migrations/0011_venta_con_comprobante.sql`.**
    `registrar_venta` gana `p_tipo_comprobante`/`p_cliente_tipo_doc`/`p_cliente_num_doc`/
@@ -569,7 +569,7 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 - **D-11** · Solo Felipe pega SQL en producción y queda anotado — aplica al arreglo de B004-000002 (hueco 13).
 - **D-12** · Cuatro niveles de permiso. **Incumplida hoy**: la base solo conoce dos (hueco 8).
 - **D-16** · Cada tabla marcada con en qué base existe. Las tres del módulo: local y producción.
-- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0101).
+- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0102).
 - **D-46** · Prioridad 1 es cuentas por pagar e IGV (CAYLA al 72% de las 300 UIT). El hueco 2 (IGV calculado en el navegador) pega directo ahí.
 - **ADR-0005** — Facturación electrónica se construye en dos partes separadas: reservar el número (nuestro) y transmitir (del PSE). Superado el 05-09: el proveedor es Lucode.
 - **ADR-0007** — Esquema legal completo: la proforma no es comprobante, la nota solo sobre un original aceptado, `nota_debito` como cuarto tipo.
@@ -578,4 +578,4 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 - **ADR-0016** — Anular: dos caminos según el tipo (resumen diario para boletas, comunicación de baja para el resto), "anulado" solo cuando SUNAT confirma, y solo el líder.
 - **ADR-0026** — Una firma nueva borra la vieja: por eso cada migración que agrega un parámetro hace `drop function` explícito antes del `create or replace`.
 - **ADR-0032 / ADR-0033** — La idempotencia por token que `registrar_venta` ya tenía y que le faltaba a `emitir_comprobante`.
-- **ADR-0101** — Portó ese mismo patrón a `emitir_comprobante` (hueco 1, cerrado) y agregó el candado `subtotal+igv=total` a `emitir_comprobante`/`crear_proforma` (hueco 2(b), cerrado).
+- **ADR-0102** — Portó ese mismo patrón a `emitir_comprobante` (hueco 1, cerrado) y agregó el candado `subtotal+igv=total` a `emitir_comprobante`/`crear_proforma` (hueco 2(b), cerrado).

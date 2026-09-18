@@ -769,7 +769,7 @@ con cita, para que nadie los reconstruya.
       mejor bloquear con un mensaje claro que aprobar la devolución y dejar
       la Nota de Crédito perdida para siempre).
 - [x] **`emitir_comprobante` sin idempotencia (hueco 1) y sin candado de IGV (hueco 2b)
-      — CERRADO 2026-09-18 (ADR-0101), `20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql`.**
+      — CERRADO 2026-09-18 (ADR-0102), `20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql`.**
       Portado el mismo patrón `token_cliente`/`p_token` de `registrar_venta`: el guard
       revisa el token antes de reservar el correlativo, así un reintento (respuesta
       perdida, no doble clic) no quema un segundo número. `ComprobantesPanel.tsx` manda
@@ -779,13 +779,15 @@ con cita, para que nadie los reconstruya.
       y verificado contra Postgres local (`psql -f`, `CREATE FUNCTION` sin error,
       `pg_get_function_identity_arguments` confirma `p_token`); `pnpm --filter database
       typecheck`/`pnpm --filter web typecheck` en verde. **No probado con una llamada RPC
-      autenticada real** (exige JWT/persona real, ver ADR-0101) — solo verificación
-      estructural. **No aplicado en producción** — pendiente de Felipe (D-11); antes de
-      pegar, correr `select count(*) from retail.proformas where
-      round(subtotal+igv,2)<>round(total,2)` allá (si hay filas, el candado nuevo las
-      bloquea al convertir). **Sigue sin resolver:** el 18% hardcodeado en 3 archivos
-      (parte (a) del hueco 2) y el redondeo navegador-vs-Lucode (parte (c)) — ver "Lo que
-      falta" en ADR-0101.
+      autenticada real** (exige JWT/persona real, ver ADR-0102) — solo verificación
+      estructural. **No aplicado en producción** — pendiente de Felipe (D-11), aunque ya
+      verificado contra `cayla-dynamic` de solo lectura: `emitir_comprobante`/
+      `crear_proforma` tienen la misma firma que local (`p_ubicacion_id` incluido,
+      no `p_sede_id`), `token_cliente` no existe todavía, 0 filas en
+      `comprobantes`/`proformas` con `subtotal+igv≠total` — la migración está lista para
+      pegar tal cual, prefijo `retail.` ya incluido en el archivo. **Sigue sin resolver:**
+      el 18% hardcodeado en 3 archivos (parte (a) del hueco 2) y el redondeo
+      navegador-vs-Lucode (parte (c)) — ver "Lo que falta" en ADR-0102.
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
 repetido acá por la regla de 3 ítems por cubo): `registrar_serie_comprobante` no valida

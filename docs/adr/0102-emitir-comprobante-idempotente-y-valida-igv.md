@@ -1,7 +1,13 @@
-# ADR-0101 — `emitir_comprobante` idempotente + candado de IGV en `emitir_comprobante`/`crear_proforma`
+# ADR-0102 — `emitir_comprobante` idempotente + candado de IGV en `emitir_comprobante`/`crear_proforma`
 
 **Fecha:** 2026-09-18
-**Estado:** Aplicado y verificado en local (`20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql`).
+**Estado:** Aplicado y verificado en local (`20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql`,
+renumerada desde `20260918080000` — chocaba con `20260918080000_resumen_inventario.sql` al
+fusionar `origin/main`; este ADR nació como 0101 y se renumeró a 0102 por el mismo motivo,
+0101 ya lo había tomado "Resumen de Inventario"). **Verificado de solo lectura contra
+producción** (`cayla-dynamic`) antes de pegar: `emitir_comprobante`/`crear_proforma` con la
+misma firma (`p_ubicacion_id`, no `p_sede_id`), `token_cliente` no existe todavía, 0 filas
+con `subtotal+igv≠total` en `comprobantes`/`proformas`.
 **No aplicado en producción** — pendiente de Felipe (D-11).
 **Afecta:** tabla `retail.comprobantes` (columna nueva `token_cliente`); funciones
 `retail.emitir_comprobante` (firma nueva: agrega `p_token uuid default null` al final) y

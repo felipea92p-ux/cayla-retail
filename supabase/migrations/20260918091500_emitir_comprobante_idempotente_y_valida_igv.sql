@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql — CAYLA V2
+-- 20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql — CAYLA V2
 --
 -- Cierra los huecos 1 y 2(b) de docs/datos/modulos/08-facturacion-sunat.md
 -- (auditoría 2026-09-17, ambos marcados GRAVE).

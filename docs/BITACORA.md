@@ -7260,7 +7260,7 @@ typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraci
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
 
-## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0101)
+## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0102)
 
 Felipe pidió analizar `vender/facturacion/page.tsx` y decir qué mejorar. La pantalla en sí
 tenía un solo bug propio: el regex de mes (`?m=2026-13`) no validaba el rango 1-12 y
@@ -7270,7 +7270,7 @@ tenía un solo bug propio: el regex de mes (`?m=2026-13`) no validaba el rango 1
 priorizaron los dos GRAVE con impacto en plata/SUNAT y Felipe confirmó "empieza por esos 2".
 
 Hueco 1 (sin idempotencia) y hueco 2b (sin candado de IGV) cerrados en
-`20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql` (ADR-0101): mismo patrón
+`20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql` (ADR-0102): mismo patrón
 `token_cliente`/`p_token` que ya usa `registrar_venta`, portado a `emitir_comprobante`
 (revisa el token antes de reservar el correlativo, así un reintento no quema un número
 nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_proforma`.
@@ -7292,7 +7292,27 @@ Verificado: migración aplicada contra Postgres local real (no solo revisada a o
 `pnpm --filter database typecheck` / `pnpm --filter web typecheck` limpios,
 `pnpm migraciones:verificar` no la marca como faltante. **No probado con una llamada RPC
 autenticada real** (exige JWT/persona real) — solo verificación estructural, documentado
-en ADR-0101. **No aplicado en producción** — pendiente de Felipe (D-11); antes de pegar,
+en ADR-0102. **No aplicado en producción** — pendiente de Felipe (D-11); antes de pegar,
 correr el `select count(*)` de proformas con IGV inconsistente que cita el ADR. Sigue
 abierta la parte (a) del hueco 2 (18% hardcodeado en 3 archivos) — no se movió el cálculo
 a la base, cambio de alcance mayor que no se pidió.
+
+**Continuación, mismo día — preparando el push.** Felipe pidió el SQL con prefijo
+`retail.` listo para pegar; como cada sentencia del archivo ya venía calificada con
+`retail.` (no depende de `search_path` para resolver nombres, mismo estilo que
+`0010_facturacion.sql`), no hizo falta tocar nada — solo verificar. Consulta de solo
+lectura contra `cayla-dynamic` (proyecto de producción) antes de entregarlo: la firma de
+`emitir_comprobante`/`crear_proforma` allá es idéntica a la local (`p_ubicacion_id`, no
+`p_sede_id` — el rename de `0010` sí llegó a producción), `token_cliente` no existe
+todavía, 0 filas con `subtotal+igv≠total` en `comprobantes` y en `proformas`.
+
+Al preparar el push, `git fetch` + `git merge origin/main` trajo 9 commits (Resumen de
+Inventario, PR #120/#122) con **dos choques reales, ninguno detectado por el merge de
+git** porque son archivos nuevos, no líneas editadas: `docs/adr/0101-*.md` ya lo había
+tomado Resumen de Inventario (mismo patrón que su propio choque con el 0097, ver línea 18
+de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
+`20260918080000_resumen_inventario.sql` — mismo timestamp exacto, dos sesiones calculando
+"ahora" en el mismo minuto. Renumerado a **ADR-0102** y el timestamp de la migración a
+**20260918091500** (después de la última migración del día, `20260918090000`). Referencias
+corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
+08-facturacion-sunat.md` con el mismo ajuste.
