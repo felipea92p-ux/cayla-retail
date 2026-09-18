@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Tejidos con su imagen: la textura de cada tela en Atributos, como ya tenían Patrones y Etiquetas)
+
+Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo mecanismo que `patron-visual.ts` + `MuestraPatron`: `lib/tejido-visual.ts` traduce el nombre a una de 17 texturas y `components/MuestraTejido.tsx` la dibuja en SVG (sarga del denim, canalé de la pana, panal del piqué, fibra de la alpaca…). Sin cambios de esquema y sin migración: el nombre es lo único estable del vocabulario, así que un tejido nuevo como "Full Lycra" o "Interlock" (que las notas del seed dicen cubrir) cae solo en la textura de Licra/Jersey. Un nombre que no reconoce dice «Sin muestra» en vez de dibujar una tela equivocada.
+
+Lo que Felipe se lleva: aquí el color de la muestra ES la información (el denim tiene que ser azul), así que no usa la paleta de marca como Etiquetas — pero sí respeta lo sagrado: nada de rojo, sin degradados. Y el orden de las reglas importa: «Rib licrado» debe ser canalé, no licra, y «Algodón pima» su propia fibra, no algodón — está fijado en `tejido-visual.test.ts`.
+
 ## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, en PR)
 
 Felipe pidió rediseñar Inventario → Traslados sobre una referencia visual. **Qué se cerró:** franja «Atención
