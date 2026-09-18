@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -56,6 +56,11 @@ export function CambioFormV2({
   const [metodoDiferencia, setMetodoDiferencia] = useState<(typeof METODOS)[number]>("efectivo");
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
+  // Reintento (doble clic, o red que se corta después del commit y antes de la
+  // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
+  // `retail.cambios.token_cliente` lo reconozca como el mismo envío. Se regenera
+  // solo tras éxito, igual que `token` en PuntoDeVenta.tsx.
+  const token = useRef<string>(crypto.randomUUID());
 
   const varianteNueva = catalogo.find((v) => v.varianteId === varianteNuevaId);
   const diferencia = useMemo(
@@ -81,7 +86,7 @@ export function CambioFormV2({
       p_variante_nueva_id: varianteNuevaId,
       p_cantidad: cantidad,
       p_metodo_pago_diferencia: diferencia !== 0 ? metodoDiferencia : undefined,
-      p_token: crypto.randomUUID(),
+      p_token: token.current,
     });
     setLoading(false);
     if (error) {
@@ -90,6 +95,7 @@ export function CambioFormV2({
     }
     avisar.exito("Cambio registrado", { detalle: "El stock ya refleja la prenda que salió y la que entró." });
     setOk(true);
+    token.current = crypto.randomUUID();
     router.refresh();
   }
 

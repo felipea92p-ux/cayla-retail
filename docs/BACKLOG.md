@@ -60,6 +60,35 @@ verde.
             etc.) queda vivo solo en este repo/local. Cambia el desplegable que ve una
             encargada de sede ahora mismo — el momento de activarlo en producción lo
             decide Felipe, no es un fix pendiente. Ver 🎯 Familias y categorías, abajo.
+- [x] **La reverificación de arriba no cazó todo: a `retail.etiquetas` en producción le
+      faltaba la columna `notas` — Catálogo > Etiquetas caía en vivo con "Esta pantalla
+      no está mostrando datos".** La tabla la había creado una rama vieja nunca
+      fusionada (ver `pegar-en-produccion-taxonomia-parte-segura.sql`); esa
+      reconciliación arregló los triggers pero nunca comparó columna por columna.
+      `alter table retail.etiquetas add column if not exists notas text;` corrida por
+      Felipe en el SQL Editor, reverificada por lectura contra
+      `information_schema.columns` (0 filas, sin riesgo). De paso, el trigger que trae
+      `20260917100200_etiquetas_catalogo.sql` estaba desactualizado frente al que de
+      verdad corre en producción (le faltaba "reactivar retira el rechazo") — corregido
+      en el archivo para que un `db reset` local no diverja.
+- [x] **Vocabulario real de Etiquetas cargado: 22 filas (2026-09-17).** 19 comerciales/
+      festividades (investigadas contra Zara/Bershka/Ralph Lauren/Hermès y calendario
+      peruano real — CyberWow lo organiza IAB Perú, Black Friday 27-nov distinto de
+      CyberWow, Galentine's/Día del Gato/Día del Perro/Día de la Tierra con fecha
+      verificada) + "Para liquidar" generada por sede (`retail.ubicaciones` activa,
+      dinámico — no hardcodeado, porque local y producción no comparten nombres de
+      sede). Migración `20260917230000`: `vigente_desde`/`vigente_hasta` (calculado en
+      lectura, no un cron) + comentario obligatorio al aprobar (mismo candado que
+      Tallas, ahora en las 5). Migración `20260917230100`: la semilla. Verificado con
+      `db reset` completo (no incremental), `typecheck`/`lint`, y navegador contra
+      Postgres local real — las 22 tarjetas con el candado de sede visible.
+      **Pendiente, a propósito, no a medias:** ninguna pantalla lee todavía
+      `vigente_desde`/`vigente_hasta` (la columna existe, el filtro "¿está vigente
+      hoy?" en `/productos/etiquetas` y en el selector de `ProductoForm.tsx` falta); y
+      el estilo visual (color/ícono por etiqueta) que Felipe pidió sigue sin diseñar —
+      con la estética CAYLA (sin gradientes, sin decoración porque sí) un picker de
+      color libre se pelea con el brandbook, propuesto usar 3-4 variantes fijas de
+      marca en vez de color arbitrario, sin decidir todavía.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
@@ -525,7 +554,7 @@ con cita, para que nadie los reconstruya.
       `ComprobantesPanel.tsx`, y el estado `no_emitido` en el esquema.** Ya
       no es un hueco abierto.
 - [x] **Devoluciones/Cambios no emitían Nota de Crédito — CERRADO 2026-09-18
-      (ADR-0098).** `aprobar_devolucion` ahora emite la Nota de Crédito sola
+      (ADR-0100).** `aprobar_devolucion` ahora emite la Nota de Crédito sola
       (`emitir_nota`, sin llamador real desde la Fase 0) cuando la venta
       devuelta tiene un comprobante `aceptado` — por el valor exacto de lo
       devuelto, con el motivo 06/07 del Catálogo 09 según sea total o
@@ -2112,24 +2141,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       producción** (verificado 2026-09-16: `retail.listar_compras` ya acepta
       `p_cursor_creado_en`).
 
-- [ ] **Rediseño de Compras (2026-09-14) sin verificar en navegador.** Pasa tsc y
-      eslint, pero nadie lo vio renderizado. Recorrido mínimo: `/compras` (chips,
-      "Más filtros", tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
-      panel abierto solo), `/compras/nueva` (tipear "lino" en Producto, Enter en
-      el costo agrega línea, el resumen a la derecha se queda fijo al bajar y
-      en celular cae al final),
-      `/compras/recibir` (lista a la izquierda, tocar una factura arma la guía a
-      la derecha; "+ Sumar" en otra del mismo proveedor; "Todo llegó" llena las
-      líneas con variante; las líneas sin talla/color se reparten en una curva de
-      tallas —filas color, columnas talla, chip de avance por línea y por factura—,
-      esto sí se vio renderizado con Playwright el 2026-09-14 en escritorio y 375 px;
-      barra fija con unidades y botón apagado si una línea
-      excede; en celular al tocar baja solo al panel), `/compras/por-pagar` (una sola
-      tabla en tres tramos —Vencidas en rojo, Vencen esta semana en ámbar, Más
-      adelante—, proveedor en la fila, "Pagar" en la fila abre el modal sin navegar;
-      la tarjeta "Vence esta semana" sale de `resumen_compras`). Si la barra fija de Recibir choca con las
-      pestañas móviles, el número a ajustar es `bottom-[calc(4.25rem+…)]` en
-      `RecepcionCompraFormV2.tsx`.
+- [x] **Rediseño de Compras (2026-09-14): verificado en navegador 2026-09-17 — encontró
+      y arregló un bug real de layout que `tsc`/`eslint` no podían ver (ADR-0098).**
+      `/compras/nueva` tenía Serie/Número/Fecha de emisión literalmente superpuestos
+      (texto ilegible) entre 1024 y 1279px — la franja donde el panel "Resumen" se
+      vuelve columna fija (`lg:` de Tailwind) pero la tarjeta del formulario todavía no
+      tiene ancho de sobra. Arreglado: Serie+Número+Fecha pasan a una sola fila de 3
+      columnas con `minmax(0,…)` (antes desbordaban su columna en vez de encogerse), y
+      el breakpoint del layout de 2 columnas (+ el `sticky` del Resumen, que quedó
+      huérfano al mover solo el primero) se corrió de `lg:` (1024px) a `xl:` (1280px) —
+      a 1024px la tarjeta del documento no tiene espacio real para tres campos cómodos,
+      sin importar cuánto se recorten. Verificado en 1024px, 1280px y 375px (móvil).
+      `/compras` (chips, tarjeta "Por pagar" → `/compras/por-pagar?vencidas=1` con el
+      panel abierto solo), `/compras/nueva` (buscar "falda" en Producto, Enter en el
+      costo agrega línea nueva — confirmado), `/compras/por-pagar` ("Pagar" en la fila
+      abre modal sin navegar) y `/compras/recibir` (tocar una factura arma la guía,
+      curva de tallas con su propio scroll horizontal, sin desborde) — todo verificado.
+      `tsc`, `eslint` y 297 pruebas en verde. Detalle completo, incluido el mismo
+      defecto latente sin disparar todavía en `PLANTILLA_LINEAS` (líneas de factura) y
+      en `ProductoForm.tsx` (sesión de Catálogo, no tocado acá), en ADR-0098.
+      - [ ] **Sin probar en esta pasada:** "+ Sumar" (sumar otra factura del mismo
+            proveedor a la misma guía), "Todo llegó", y el caso "barra fija choca con
+            las pestañas móviles" en `/compras/recibir` (el número a ajustar, si pasa,
+            es `bottom-[calc(4.25rem+…)]` en `RecepcionCompraFormV2.tsx`).
+      - [ ] `PLANTILLA_LINEAS` (línea 36 de `CompraFormV2.tsx`) tiene el mismo patrón sin
+            `minmax(0,…)` que causó el bug de arriba — no se ha disparado porque sus
+            columnas fijas (24rem) son más anchas que el desborde que lo dispara, pero
+            sigue latente. Vale una pasada dedicada.
 
 - [ ] **Importador de catálogos de clientes con IA — el estándar universal ya está
       puesto, falta el importador encima.** Construido y verificado hoy (ADR-0030):
@@ -2287,7 +2325,7 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       contar/cerrar/anular, `ConteoPanel.tsx` + `lib/conteos.ts`, escaneo directo) y
       la matriz talla×color con costo por modelo en `/productos/nuevo`.
       **La 5ª brecha (alta de prenda al vuelo durante el conteo) se cerró el
-      mismo 2026-09-18 (ADR-0097):** `censo_crear_variante` (sin el candado
+      mismo 2026-09-18 (ADR-0099):** `censo_crear_variante` (sin el candado
       de Líder de `crear_producto_con_variantes`) + `estado_alta` proponer/
       aprobar en `productos` (mismo mecanismo que colores/tallas/tejidos/
       patrones/etiquetas) + banner de revisión en `/productos` y `/productos/
@@ -2730,6 +2768,33 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [x] **`docs/datos/generado/` estaba desactualizado desde media tarde del 17-sep —
+      `pnpm datos:comparar` marcaba 3 pantallas "rotas en producción" que en
+      realidad funcionan bien. Refrescado y confirmado 2026-09-17 (noche).** El
+      volcado (`funciones-produccion.txt` y los 6 `retail_*.json`) tenía fecha
+      15:26 (commit del PR #93, "revoca EXECUTE público"), de antes de que
+      aterrizaran ADR-0093 (`marcar_comprobante_no_emitido`) y ADR-0095
+      (`actualizar_categoria_ejes`, `actualizar_variantes_etiquetas`) — las 3
+      funciones que el comparador marcaba como inexistentes. Antes de alarmar con
+      "3 pantallas rotas", se verificó **contra producción de verdad** (MCP de
+      Supabase, `vovjyyiafkxteijimpuy`, consulta de solo lectura envuelta en
+      `begin transaction read only`): las 3 funciones existen — era la foto, no el
+      código. Se volvió a pedir el volcado completo (los 7 queries de
+      `COMO-REFRESCAR.md`) y se regeneró el diccionario:
+      `pnpm datos:comparar` ahora sale limpio ("Ninguna pantalla llama a una
+      función con parámetros que producción no acepte"). De paso salió a la luz
+      que producción creció de 45 a **60 tablas** desde la última foto del 12-sep
+      — coherente con la cantidad de PRs fusionados hoy (Taxonomía ADR-0095,
+      Familias/categorías ADR-0096, Revocar EXECUTE ADR-0078, etc.). El propio
+      `docs/CLAUDE.md` ya no necesita corrección: dice explícitamente que el
+      conteo vivo está en este diccionario, no hardcodeado ahí.
+      **Sin tocar (deuda que sigue viva, no la agrandé ni la until):**
+      `glosario.json` solo explica 425 de 586 columnas — las nuevas de hoy (Loro,
+      taxonomía, EXECUTE) quedan con "Para qué sirve" vacío hasta que alguien las
+      documente a mano; 21 de las 60 tablas quedan "sin módulo" en
+      `DICCIONARIO-RETAIL.md` (la lista `DOMINIOS_RETAIL` de `generar.mjs` no se
+      actualizó desde el 15-sep). Ninguna de las dos bloquea nada, son mapas
+      quedando cortos, no código roto.
 - [ ] **`ARQUITECTURA.md:106-119` describe un `/inventario` que ya no existe —
       encontrado 2026-09-17 de rebote, verificando a dónde debía apuntar el alias
       `/almacen`.** El doc dice `/inventario/almacen` → `AlmacenStockList.tsx`,
@@ -3320,6 +3385,18 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## ✅ CERRADO (últimos, con fecha)
 
+- [x] 2026-09-18 — **Tienda Lima activada en producción (ADR-0097).** No estaba
+      inactiva, no existía: `retail.ubicaciones` en producción solo tenía Taller,
+      Tienda AQP y Tienda TRU (las decenas de menciones de "Tienda Lima" en esta
+      bitácora son todas del seed local, nunca de la base real). Creada vía
+      `apply_migration` (`20260918010733_activar_tienda_lima.sql`, dry-run+rollback
+      verificado antes de aplicar de verdad): fila `Tienda LIM` enlazada a la sede
+      Dynamic código `003` (el código `LIM` de Dynamic es el Taller, no la tienda —
+      trampa ya documentada abajo, 2026-09-10) + sus 3 sububicaciones (piso de
+      venta, almacén de tienda, cuarentena), mismo patrón que AQP/TRU. Verificado
+      contra producción después de aplicar; `get_advisors` sin advertencias nuevas.
+      **Pendiente (no es parte de "activar"):** cargar stock inicial (traslado desde
+      Taller/almacén) y asignar una Encargada — la tienda queda operable pero vacía.
 - [x] 2026-09-17 — **`/almacen` y `/almacen/recibir` pasan a `redirects()` de
       `next.config.ts` — y de paso se corrigió un 404 que llevaba un día abierto.**
       Eran páginas de React (`app/(app)/almacen/page.tsx`,

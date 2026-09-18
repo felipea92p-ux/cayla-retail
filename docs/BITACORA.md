@@ -6562,7 +6562,7 @@ siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lin
 en verde después de reconciliar.
 
 ## 2026-09-18 (Tejidos/Patrones/Etiquetas rotos en producción, worktree de 620
-commits abandonado, y alta al vuelo del censo — ADR-0097)
+commits abandonado, y alta al vuelo del censo — ADR-0099)
 
 Felipe pidió "ir construyendo" a partir de una captura de la app mostrando "NO SE PUDO
 CARGAR" en Catálogo → Tejidos. Causa real: `retail.tejidos`/`patrones`/`etiquetas` en
@@ -6587,7 +6587,7 @@ primera prenda no catalogada.
 
 Resuelto con Felipe (AskUserQuestion): mismo patrón proponer/aprobar que ya usan
 colores/tallas/tejidos/patrones/etiquetas, no un mecanismo nuevo ni el diseño V1 sin
-candado (ADR-0097). `productos.estado_alta` nueva columna, independiente de `estado`
+candado (ADR-0099). `productos.estado_alta` nueva columna, independiente de `estado`
 (ciclo de vida comercial) — mismo trigger mecanismo que los otros 5 vocabularios.
 `censo_crear_variante` (RPC nueva, sin el candado de líder) crea producto+variante de
 una sola vez y liga el código de barras escaneado; `revisar_producto_censo` es la
@@ -6647,7 +6647,7 @@ del seed (revertida después de la captura). `tsc`/lint/297 tests en verde.
 BACKLOG.md corregido en el mismo commit: los dos huecos cerrados marcados `[x]`, el de
 Nota de Crédito queda como el único pendiente real de Facturación.
 
-## 2026-09-18 (Nota de Crédito automática en devoluciones — ADR-0098, y el
+## 2026-09-18 (Nota de Crédito automática en devoluciones — ADR-0100, y el
 Postgres local compartido se resetea solo mientras se prueba)
 
 Último hueco real de Facturación: Felipe confirmó construirlo (toca SUNAT/dinero
@@ -6693,3 +6693,164 @@ Nota de Crédito de cada ubicación con boleta o factura (botón "Registrar seri
 ya existe en `/vender/facturacion`) — y, como siempre, pegar
 `20260918050000_devolucion_emite_nota_credito.sql` en producción recién cuando
 este PR se fusione a `main`.
+
+## 2026-09-17 (Etiquetas caída en vivo — a la reconciliación de talla_id le faltó una columna)
+
+Felipe reportó Catálogo > Etiquetas caída ("Esta pantalla no está mostrando datos") con
+un screenshot real. Diagnóstico leyendo producción en solo-lectura (transacción
+`read only`, sin escribir nada): `retail.etiquetas` le faltaba la columna `notas` que
+`/productos/etiquetas/page.tsx` sí pide — la tabla la había creado una rama vieja nunca
+fusionada, y la reconciliación de esta misma tarde
+(`pegar-en-produccion-taxonomia-parte-segura.sql`) arregló los triggers de ese mismo
+vocabulario pero nunca comparó columna por columna contra lo que el frontend fusionado
+en `main` realmente pide. Felipe corrió `alter table retail.etiquetas add column if not
+exists notas text;` en el SQL Editor; reverificado por lectura que la columna quedó
+creada. Aparte, el trigger que trae `20260917100200_etiquetas_catalogo.sql` en el repo
+estaba un paso atrás del que de verdad corre en producción (le faltaba "reactivar
+retira el rechazo") — corregido para que `supabase db reset` local no vuelva a divergir
+de producción en este vocabulario. Aprendizaje para la próxima reconciliación de
+esquema: comparar triggers/constraints no basta, hay que comparar columnas también
+(`information_schema.columns`), porque una tabla creada por otra rama puede tener el
+mismo nombre y un subconjunto distinto de columnas.
+
+## 2026-09-18 (Tienda Lima activada en producción, ADR-0097)
+
+Felipe pidió activar la tienda de Lima. Antes de tocar nada se auditó el estado real
+contra `vovjyyiafkxteijimpuy` (no contra el worktree: su `main` local estaba parado 100+
+commits atrás de `origin/main`, del corte V1→V2 — se abrió rama nueva
+`claude/activar-tienda-lima-v2` sobre `origin/main` real antes de seguir). Hallazgo: Tienda
+Lima no estaba inactiva, **no existía** — `retail.ubicaciones` en producción solo tenía
+Taller, Tienda AQP y Tienda TRU (creadas 2026-09-12). Las decenas de menciones de "Tienda
+Lima" en esta misma bitácora son todas de pruebas contra el seed local
+(`felipe@cayla.local`) o el Postgres compartido de desarrollo, nunca de la base real.
+
+Al armar la migración reapareció la trampa de nomenclatura ya anotada el 2026-09-10: en
+Dynamic el código `LIM` es el Taller y el código `003` es la tienda de Lima (nombre real
+en Dynamic: "Tienda LIM"). Confirmado con Felipe antes de aplicar. Migración
+`20260918010733_activar_tienda_lima.sql` verificada primero con un dry-run (`begin` +
+`rollback`) contra la base real, y recién con eso en verde aplicada de verdad vía
+`apply_migration` (Supabase MCP, nunca a mano en el SQL Editor): fila nueva en
+`retail.ubicaciones` (`Tienda LIM`, `tipo='tienda'`, `activo=true`, `sede_dynamic_id`
+enlazado a la sede Dynamic `003`) + sus 3 sububicaciones (piso de venta, almacén de
+tienda, cuarentena), mismo patrón que ya usan Tienda AQP y Tienda TRU. Verificado después
+contra producción real (no solo que no tirara error): la fila y las 3 sububicaciones
+existen con los valores esperados. `get_advisors` (security) sin ninguna advertencia
+nueva — es un insert de datos, sin tabla/política/función nueva.
+
+Queda operable pero vacía a propósito: cargar stock inicial (traslado desde Taller o
+almacén) y asignar una Encargada son pasos operativos posteriores, no parte de "activar
+la tienda". Documentado en ADR-0097.
+
+## 2026-09-17/18 (diccionario de producción desactualizado, 3 falsas alarmas)
+
+Con el PR de Compras abierto (#110, rama separada — ver ahí ADR-0098, renumerado de 0097
+por esta misma colisión con Tienda Lima), se corrió `pnpm datos:comparar` para buscar otra
+pieza que construir — encontró 3 "pantallas rotas en producción" (`actualizar_categoria_ejes`,
+`marcar_comprobante_no_emitido`, `actualizar_variantes_etiquetas`). Antes de alarmar a
+Felipe, se verificó contra producción de verdad con el MCP de Supabase (consulta de solo
+lectura, `begin transaction read only`, proyecto `vovjyyiafkxteijimpuy`): las 3 funciones
+existen — el volcado local (`docs/datos/generado/`) tenía hora 15:26, de antes de que
+aterrizaran ADR-0093 y ADR-0095 esa misma tarde-noche. Se repitieron los 7 queries de
+`COMO-REFRESCAR.md` contra producción (solo lectura) y se regeneró el diccionario
+completo: `pnpm datos:comparar` ahora sale limpio. Hallazgo de paso: producción pasó de
+45 a 60 tablas desde la foto del 12-sep. Quedan sin actualizar (deuda ya existente, no
+agrandada): `glosario.json` (425/586 columnas explicadas) y 21 tablas "sin módulo" en
+`DICCIONARIO-RETAIL.md`. Solo `docs/datos/generado/*` — rama propia
+(`claude/refresca-diccionario-produccion`).
+
+**Actualización al reconciliar con `main` (mismo PR #112):** otra sesión (PR #107,
+"retail.etiquetas caía en producción") encontró el mismo diccionario desactualizado por
+su cuenta — mismo método (lectura directa read-only a `vovjyyiafkxteijimpuy`), mismo
+hallazgo ("45→60 tablas") — y su refresco, tomado un poco más tarde, ya está en `main`.
+Al fusionar `main` en esta rama se tomó **su** volcado para los 10 archivos de
+`docs/datos/generado/` (más reciente, mismo rigor) en vez de intentar mezclar dos fotos
+de la base en momentos distintos — no tiene sentido promediar conteos de filas de dos
+instantes. El PR #112 queda sin diferencia real contra `main` en esos archivos; se le
+avisa a Felipe para que lo cierre en vez de fusionarlo.
+
+## 2026-09-17 (Etiquetas caída en vivo — a la reconciliación de talla_id le faltó una columna)
+
+Felipe reportó Catálogo > Etiquetas caída ("Esta pantalla no está mostrando datos") con
+un screenshot real. Diagnóstico leyendo producción en solo-lectura (transacción
+`read only`, sin escribir nada): `retail.etiquetas` le faltaba la columna `notas` que
+`/productos/etiquetas/page.tsx` sí pide — la tabla la había creado una rama vieja nunca
+fusionada, y la reconciliación de esta misma tarde
+(`pegar-en-produccion-taxonomia-parte-segura.sql`) arregló los triggers de ese mismo
+vocabulario pero nunca comparó columna por columna contra lo que el frontend fusionado
+en `main` realmente pide. Felipe corrió `alter table retail.etiquetas add column if not
+exists notas text;` en el SQL Editor; reverificado por lectura que la columna quedó
+creada. Aparte, el trigger que trae `20260917100200_etiquetas_catalogo.sql` en el repo
+estaba un paso atrás del que de verdad corre en producción (le faltaba "reactivar
+retira el rechazo") — corregido para que `supabase db reset` local no vuelva a divergir
+de producción en este vocabulario. Aprendizaje para la próxima reconciliación de
+esquema: comparar triggers/constraints no basta, hay que comparar columnas también
+(`information_schema.columns`), porque una tabla creada por otra rama puede tener el
+mismo nombre y un subconjunto distinto de columnas.
+
+## 2026-09-17 (vocabulario real de Etiquetas: 22 filas, vigencia por fecha, comentario obligatorio)
+
+Con la pantalla ya viva, Felipe pidió construir el vocabulario real inspirado en Zara/
+Bershka (rotación real), Ralph Lauren (cápsulas/"icon programs"), Hermès (herencia
+artesanal, el paralelo directo con el Taller de Lima) y el calendario comercial peruano,
+mas tendencias globales. Se investigó cada afirmación en vez de inventarla (CyberWow lo
+organiza IAB Perú, 3 ediciones/año; Black Friday 2026 es 27-nov, Black Week 23-30-nov,
+distinto de CyberWow; Galentine's Day 13-feb es tendencia real de Gen Z, no ocurrencia;
+Día del Gato 8-ago y Día del Perro 26-ago NO son la misma fecha; "Día de la Tierra" gana
+a "Día del Planeta" porque es el término real que usa Perú). Decisiones de Felipe:
+Pima/Alpaca NO son etiquetas, son tejido real y van a retail.tejidos (evita duplicar un
+concepto que ya tenía dueño); Hecho a mano/Pieza única las puede proponer cualquier
+sede, verificado caso por caso vía el comentario obligatorio nuevo; ese comentario
+obligatorio aplica a TODAS las etiquetas, no solo a las de mayor riesgo.
+
+Migración 20260917230000: vigente_desde/vigente_hasta (date, nullable) en
+retail.etiquetas. Corrección a mi propio razonamiento de la sesión anterior: dije que
+esto tocaría registrar_venta/transferir, y no es cierto — esa función resuelve una
+pregunta distinta (sedes_permitidas), mezclarlas habría sido el error que el principio 2
+existe para evitar. Vigencia queda 100% en la capa de lectura, sin tocar ningún camino
+de dinero. fn_etiquetas_estado_trigger gana la misma regla que ya tenía Tallas: aprobar
+exige notas no vacío.
+
+Migración 20260917230100: semilla de 19 etiquetas fijas + "Para liquidar" generada
+dinámicamente, una fila por cada retail.ubicaciones activa (sin hardcodear nombres de
+sede). Hallazgo real explicado a Felipe: sedes_permitidas vive en la ETIQUETA, no en
+cada aplicación a variante — una sola fila global de "Para liquidar" habría restringido
+TODAS las liquidaciones futuras a la misma sede fija. La solución correcta con el
+esquema actual es una fila por sede.
+
+Bug real encontrado y corregido en el camino: retail.ubicaciones se llena en seed.sql,
+que corre DESPUÉS de las migraciones — un db reset completo desde cero dejaba "Para
+liquidar" con 0 filas porque la migración corría antes de que hubiera alguna sede que
+leer. Corregido agregando el mismo insert dinámico al final de seed.sql, sin tocar la
+migración (que sí es correcta tal cual para producción, donde las sedes ya existen antes
+de pegar el SQL). De paso: un db reset limpio también fallaba en
+0009_integracion_dynamic.sql por faltar supabase/migrations/0000_local_stub_dynamic.sql
+(archivo local-only del README/ADR-0033 que hay que generar una vez por máquina desde su
+.example) — esta sesión no lo tenía porque nunca había corrido un reset desde cero en
+este worktree.
+
+Verificado de punta a punta: db reset completo en verde, las 22 filas confirmadas por
+SQL, el candado de comentario obligatorio probado en vivo (aprobar sin notas lanza la
+excepción correcta), on conflict contra el índice único de fn_clave_texto(nombre)
+probado idempotente, typecheck/lint limpios, y la pantalla real en pnpm dev contra este
+mismo Postgres mostrando las 22 tarjetas con el candado de sede visible ("Para liquidar
+— Taller" dice "Solo Taller"). Pendiente, fuera de esta tanda a propósito: UI que
+consuma vigente_desde/vigente_hasta (hoy son columnas sin pantalla) y el estilo visual
+(color/ícono) de las etiquetas — quedan en BACKLOG para no entregar algo a medio
+construir.
+
+## 2026-09-17 (Compras: primera vez renderizado en navegador — ADR-0098)
+
+Felipe quería construir; se le mostró que la rama local llevaba 620 commits de atraso
+respecto a `origin/main` y que otra sesión ya tenía Catálogo/taxonomía — eligió "verificar
+y cerrar el rediseño de Compras (14-sep)", que pasaba `tsc`/`eslint` pero nunca se había
+visto renderizado. Apareció exactamente el tipo de bug que ningún type-checker atrapa:
+Serie/Número/Fecha de emisión en `/compras/nueva` quedaban superpuestos e ilegibles entre
+1024 y 1279px, porque a partir de `lg:` (1024px) el panel "Resumen" se vuelve columna fija
+y la tarjeta del documento se queda con ~287-329px, sin espacio real para tres campos.
+Arreglado con `minmax(0,…)` en las columnas flexibles y moviendo el breakpoint del layout
+de 2 columnas (+ el `sticky` del Resumen, que había quedado huérfano al mover solo el
+primero) de `lg:` a `xl:` (1280px, donde sí hay espacio). Verificado en 1024px, 1280px y
+375px. Resto del recorrido (`/compras`, `/compras/por-pagar`, `/compras/recibir` hasta la
+curva de tallas) verificado sin problemas. `tsc`/`eslint`/297 tests en verde. Detalle en
+ADR-0098. Queda sin probar "+ Sumar"/"Todo llegó" en Recibir, y el mismo patrón sin
+`minmax(0,…)` sigue latente en `PLANTILLA_LINEAS` (líneas de factura) — no disparado hoy.

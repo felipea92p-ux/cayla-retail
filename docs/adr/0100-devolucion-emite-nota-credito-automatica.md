@@ -1,4 +1,4 @@
-# ADR-0098 — Aprobar una devolución emite la Nota de Crédito sola
+# ADR-0100 — Aprobar una devolución emite la Nota de Crédito sola
 
 **Fecha:** 2026-09-18
 **Decidido con:** Felipe, vía AskUserQuestion (toca SUNAT/dinero real — regla del CLAUDE.md del repo)

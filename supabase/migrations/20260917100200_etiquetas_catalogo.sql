@@ -82,9 +82,10 @@ begin
   end if;
 
   if new.estado = 'aprobado' and old.estado is distinct from 'aprobado' then
-    if old.estado <> 'pendiente' then
-      raise exception 'Solo se puede aprobar una etiqueta que todavía está pendiente.';
+    if old.estado not in ('pendiente', 'rechazado') then
+      raise exception 'Solo se puede aprobar una etiqueta que está pendiente, o reactivar una rechazada.';
     end if;
+    new.activo := true;
     new.aprobado_por := v_persona;
     new.aprobado_en := now();
   elsif new.estado = 'rechazado' and old.estado is distinct from 'rechazado' then
