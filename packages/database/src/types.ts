@@ -3432,6 +3432,7 @@ export type Database = {
           p_items?: Json
           p_subtotal: number
           p_tipo: string
+          p_token?: string
           p_total: number
           p_ubicacion_id: string
           p_venta_id?: string
