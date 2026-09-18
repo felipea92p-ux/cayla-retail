@@ -4,6 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -243,6 +244,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                       className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
                       title={e.notas ?? undefined}
                     >
+                      <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-tinta">{e.nombre}</p>
                         {e.estado === "pendiente" && (
@@ -302,6 +304,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {desactivadas.map((e) => (
               <div key={e.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
+                <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{e.nombre}</p>
                   {e.estado === "rechazado" && (
