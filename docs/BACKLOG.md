@@ -575,15 +575,22 @@ con cita, para que nadie los reconstruya.
       Facturación, lista para "Transmitir". Probado en local con SQL directo
       (devolución parcial real: NC01-000001, subtotal 63.47 + IGV 11.43 =
       total 74.90, coincide centavo a centavo con el cálculo de
-      `ComprobantesPanel.tsx`). `tsc`/lint/297 tests en verde.
-      **Prerrequisito real antes de que sirva de algo en producción:**
-      ninguna ubicación tiene serie de `nota_credito` registrada todavía
-      (verificado contra producción) — Felipe tiene que registrarla
-      (botón "Registrar serie", ya existe) en cada ubicación con boleta o
-      factura, o la primera devolución sobre una venta facturada va a fallar
-      con un mensaje que se lo pide explícitamente (a propósito: mejor
-      bloquear con un mensaje claro que aprobar la devolución y dejar la
-      Nota de Crédito perdida para siempre).
+      `ComprobantesPanel.tsx`). CI encontró un bug real antes de fusionar
+      (la reconstrucción de `aprobar_devolucion` se llevó por delante el
+      candado de caja abierta y la cuarentena de prendas dañadas de 2
+      migraciones posteriores reales) — corregido, 48/48 pruebas de los 4
+      scripts de `scripts/pruebas/` en verde. `tsc`/lint/297 tests en verde.
+      **`20260918050000_devolucion_emite_nota_credito.sql` aplicada y
+      verificada en producción 2026-09-18** (columna + función confirmadas,
+      cuerpo de `aprobar_devolucion` comparado byte a byte contra el de
+      producción antes de reemplazarlo).
+      **Pendiente real de Felipe, sigue bloqueando el primer uso:** ninguna
+      ubicación tiene serie de `nota_credito` registrada todavía — hay que
+      registrarla (botón "Registrar serie", ya existe) en cada ubicación con
+      boleta o factura, o la primera devolución sobre una venta facturada va
+      a fallar con un mensaje que se lo pide explícitamente (a propósito:
+      mejor bloquear con un mensaje claro que aprobar la devolución y dejar
+      la Nota de Crédito perdida para siempre).
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
 repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
@@ -2345,9 +2352,9 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
       [id]/editar`. Probado de punta a punta en navegador local: escanear un
       código desconocido en pleno conteo, crear la prenda sin salir de la
       pantalla, contarla, y que el Líder la vea pendiente y la apruebe.
-      `tsc`/lint/297 tests en verde. **Falta que Felipe corra la migración
-      `20260918020000_censo_alta_al_vuelo.sql` en producción** (crea columnas
-      + 2 funciones + 1 trigger, no toca datos existentes).
+      `tsc`/lint/297 tests en verde. **`20260918020000_censo_alta_al_vuelo.sql`
+      aplicada y verificada en producción 2026-09-18** (columnas + 2 funciones
+      + 1 trigger confirmados contra `information_schema`/`pg_proc`).
       Aparte, sigue sin construirse una pantalla de impresión de etiquetas
       propias (`Codigo128.tsx`/`codigo128.ts` existen pero no los importa
       nadie) — no bloquea el censo (Felipe ya decidió escanear código de
