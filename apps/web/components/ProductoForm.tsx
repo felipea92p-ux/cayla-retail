@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { MuestraPatron } from "@/components/MuestraPatron";
 import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
@@ -205,7 +206,11 @@ export function ProductoForm({
   const tallasCategoria = ejes.tallas[categoriaId] ?? [];
   const opcionesTalla = tallasCategoria.map((t) => ({ valor: t.id, texto: t.texto }));
   const opcionesTejido = (ejes.tejidos[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
-  const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({ valor: t.id, texto: t.texto }));
+  const opcionesPatron = (ejes.patrones[categoriaId] ?? []).map((t) => ({
+    valor: t.id,
+    texto: t.texto,
+    icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
+  }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
 
   function elegirCategoria(id: string) {
@@ -386,6 +391,7 @@ export function ProductoForm({
                 opciones={opcionesPatron}
                 marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
               />
+              {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
             </Campo>
             {editando && (
               <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />

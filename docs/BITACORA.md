@@ -7450,6 +7450,18 @@ de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
 corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
 08-facturacion-sunat.md` con el mismo ajuste.
 
+## 2026-09-18 (Atributos → Patrones: cada patrón con su muestra visual)
+Felipe notó que en Atributos, Colores muestra un cuadrito de color y Patrones solo el
+nombre ("Rayas" no se ve a rayas). Se agregó `components/MuestraPatron.tsx`: un dibujo de
+respaldo por familia (rayas, cuadros, lunares, floral, animal print, estampado, liso) en la
+paleta del brandbook, elegido por `lib/patron-visual.ts` a partir del nombre — así "Rayado"
+o "Tartán" creados mañana por un Líder caen en la familia correcta sin tocar código. Un
+nombre desconocido muestra "Sin muestra", nunca un dibujo equivocado. Sin cambio de esquema.
+Pendiente propuesto (no hecho, es migración): `patrones.imagen_muestra_url` con foto real,
+mismo mecanismo que `colores.imagen_muestra_url`; el dibujo pasaría a ser el respaldo.
+Nota: el worktree estaba 668 commits atrás de main; se hizo merge (único conflicto:
+`package.json`, se tomó la versión de main que ya incluye el script `typecheck`).
+
 ## 2026-09-18 (Tejidos por fin sembrado — 17 valores, investigados y negociados)
 
 Felipe venía trabajando este vocabulario en otra sesión que "no le hacía caso" — pidió
