@@ -17,7 +17,7 @@ export default async function CategoriasPage() {
   // ProveedoresPanel), pero tienen que llegar a la pantalla para poder
   // reactivarlas. Antes de esta pantalla de edición solo se leían las
   // activas porque no había forma de volver de un desactivado.
-  const [res, resTallas, resTejidos, resPatrones, ejesPorCategoria] = await Promise.all([
+  const [res, resTallas, resTejidos, resPatrones, ejesPorCategoria, resProductos] = await Promise.all([
     supabase
       .from("categorias")
       .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
@@ -27,8 +27,16 @@ export default async function CategoriasPage() {
     supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getEjesPorCategoria(),
+    // Solo para el conteo de la tarjeta ("N productos") y el candado visual
+    // de qué categoría se puede desactivar sin fricción — el candado real
+    // sigue viviendo en `retail.desactivar_categoria`, esto es de lectura.
+    supabase.from("productos").select("categoria_id, estado"),
   ]);
   const filas = exigir(res, "las categorías del catálogo");
+  const productosPorCategoria: Record<string, number> = {};
+  for (const p of exigir(resProductos, "los productos del catálogo")) {
+    if (p.categoria_id && p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
+  }
   // El universo completo de valores aprobados, para ofrecer en el selector
   // de "qué tallas/tejidos/patrones ofrece esta categoría" — distinto de
   // `ejesPorCategoria`, que es lo YA elegido por cada categoría.
@@ -76,6 +84,10 @@ export default async function CategoriasPage() {
             no hereda la del padre.
           </Ayuda>
         </h1>
+        <p className="mt-1 text-xs text-tinta/55">
+          {categorias.filter((c) => c.activo).length.toLocaleString("es-PE")} categorías activas ·{" "}
+          {Object.values(productosPorCategoria).reduce((a, b) => a + b, 0).toLocaleString("es-PE")} productos clasificados
+        </p>
       </div>
 
       <CategoriasLista
@@ -83,6 +95,7 @@ export default async function CategoriasPage() {
         puedeEditar={persona.rol === "lider"}
         universo={universo}
         ejesPorCategoria={ejesPorCategoria}
+        productosPorCategoria={productosPorCategoria}
       />
     </div>
   );
