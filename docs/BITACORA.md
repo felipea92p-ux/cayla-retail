@@ -7204,3 +7204,40 @@ reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filt
 typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
+
+## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0101)
+
+Felipe pidió analizar `vender/facturacion/page.tsx` y decir qué mejorar. La pantalla en sí
+tenía un solo bug propio: el regex de mes (`?m=2026-13`) no validaba el rango 1-12 y
+`mesLimaUTC` lo enrollaba en silencio al año siguiente — corregido en el momento
+(`(0?[1-9]|1[0-2])`). El resto del módulo ya estaba auditado a fondo en
+`docs/datos/modulos/08-facturacion-sunat.md` (16 huecos, 17-sep) — no se re-auditó, se
+priorizaron los dos GRAVE con impacto en plata/SUNAT y Felipe confirmó "empieza por esos 2".
+
+Hueco 1 (sin idempotencia) y hueco 2b (sin candado de IGV) cerrados en
+`20260918080000_emitir_comprobante_idempotente_y_valida_igv.sql` (ADR-0101): mismo patrón
+`token_cliente`/`p_token` que ya usa `registrar_venta`, portado a `emitir_comprobante`
+(revisa el token antes de reservar el correlativo, así un reintento no quema un número
+nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_proforma`.
+`emitir_nota` queda fuera a propósito (cero llamadores reales). `ComprobantesPanel.tsx`
+manda el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`); `types.ts` parcheado a
+mano (una línea) en vez de regenerado completo, para no arrastrar drift ajeno.
+
+**Hallazgo operativo, no de esta tarea:** el Postgres local es un contenedor Docker
+compartido por los 40+ worktrees del repo — no uno por worktree. La migración se revirtió
+sola dos veces mientras se verificaba (`supabase migration up --local` reportaba "up to
+date" con la función vieja todavía en la base), casi seguro por otra sesión concurrente
+(`auditoria-facturacion-cayla-2b8328`, probablemente el mismo módulo) corriendo su propio
+reset sobre el mismo contenedor. Se verificó aplicando el SQL directo con `psql -f` y
+chequeando en la misma cadena de comandos para cerrar la ventana de carrera. Vale la pena
+que cualquier sesión futura lo sepa antes de confiar en una verificación local con
+sesiones paralelas activas.
+
+Verificado: migración aplicada contra Postgres local real (no solo revisada a ojo),
+`pnpm --filter database typecheck` / `pnpm --filter web typecheck` limpios,
+`pnpm migraciones:verificar` no la marca como faltante. **No probado con una llamada RPC
+autenticada real** (exige JWT/persona real) — solo verificación estructural, documentado
+en ADR-0101. **No aplicado en producción** — pendiente de Felipe (D-11); antes de pegar,
+correr el `select count(*)` de proformas con IGV inconsistente que cita el ADR. Sigue
+abierta la parte (a) del hueco 2 (18% hardcodeado en 3 archivos) — no se movió el cálculo
+a la base, cambio de alcance mayor que no se pidió.
