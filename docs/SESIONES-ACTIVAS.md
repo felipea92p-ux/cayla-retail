@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Felipe (Claude) | `worktree-taxonomia-cerrada-continuacion` | Auditando estado real del censo de catálogo (colores/códigos/conteos/matriz) antes de construir — la entrada de BACKLOG está fechada 09-sep y ya desactualizada. Fix de producción aplicado antes: `notas` faltaba en `retail.tejidos`/`patrones`/`etiquetas` (rompía esas 3 pantallas). Sin tocar todavía: catálogo/conteo/producción. | 2026-09-18 (madrugada) |
 
 ## Cerradas hoy
 
