@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Por pagar: la deuda por antigüedad, las salidas de caja y los subtotales
--- reales de la lista (ADR-0104, sección «Lectura»)
+-- reales de la lista (ADR-0106, sección «Lectura»)
 --
 -- EL PROBLEMA. La pantalla de Por pagar agrupa la lista por «Vencidas / Vencen
 -- esta semana / Más adelante» y suma cada grupo desde las filas de la PÁGINA en
@@ -71,7 +71,7 @@ as $$
 $$;
 
 comment on function retail.deuda_por_vencimiento() is
-  'Deuda (comprobantes vigentes con saldo > 0) en 4 tramos por vencimiento: vencida, 0_7, 8_30, mas_30. Siempre 4 filas. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0104.';
+  'Deuda (comprobantes vigentes con saldo > 0) en 4 tramos por vencimiento: vencida, 0_7, 8_30, mas_30. Siempre 4 filas. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0106.';
 
 revoke all on function retail.deuda_por_vencimiento() from public, anon;
 grant execute on function retail.deuda_por_vencimiento() to authenticated;
@@ -128,7 +128,7 @@ as $$
 $$;
 
 comment on function retail.salidas_caja_30d() is
-  'Salidas de caja: 6 cubetas (Vencido, 4 semanas de 7 días desde hoy, Después) con comprobantes y monto de saldo. La suma de las 6 = deuda total. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0104.';
+  'Salidas de caja: 6 cubetas (Vencido, 4 semanas de 7 días desde hoy, Después) con comprobantes y monto de saldo. La suma de las 6 = deuda total. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0106.';
 
 revoke all on function retail.salidas_caja_30d() from public, anon;
 grant execute on function retail.salidas_caja_30d() to authenticated;
@@ -188,7 +188,7 @@ end;
 $$;
 
 comment on function retail.por_pagar_tramos(uuid, text, boolean, text) is
-  'Subtotal real (toda la deuda filtrada, no la página) de los 3 grupos de Por pagar: vencidas, semana, despues. Mismos filtros que listar_compras. Siempre 3 filas. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0104.';
+  'Subtotal real (toda la deuda filtrada, no la página) de los 3 grupos de Por pagar: vencidas, semana, despues. Mismos filtros que listar_compras. Siempre 3 filas. "Hoy" = fn_hoy_lima(). Acotada por sede. ADR-0106.';
 
 revoke all on function retail.por_pagar_tramos(uuid, text, boolean, text) from public, anon;
 grant execute on function retail.por_pagar_tramos(uuid, text, boolean, text) to authenticated;

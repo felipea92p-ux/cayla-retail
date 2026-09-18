@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0104, D2): el saldo y la recepción cuentan cierres y notas de crédito
+-- Compras (ADR-0106, D2): el saldo y la recepción cuentan cierres y notas de crédito
 --
 -- LO QUE CAMBIA, en una frase: `saldo` deja de ser `total - pagado` y pasa a ser
 -- `total - pagado - notas_credito`; y un comprobante cuyas líneas están 100 %

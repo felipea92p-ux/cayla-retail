@@ -54,7 +54,7 @@ export default async function InicioPage() {
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
           {[
             { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
-            // ADR-0104: una sola puerta para recibir. El líder recibe contra el comprobante del proveedor
+            // ADR-0106: una sola puerta para recibir. El líder recibe contra el comprobante del proveedor
             // (Compras); el colaborador no puede entrar a Compras y conserva su camino: el ingreso sin comprobante.
             persona.rol === "lider"
               ? { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Contra el comprobante del proveedor" }

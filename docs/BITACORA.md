@@ -7502,3 +7502,9 @@ el propio trigger recalcula `estado` desde `auth.uid()` y en una migración no h
 sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
 typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
 `/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
+
+## 2026-09-18 (Compras: 11 pantallas con indicadores, faltantes con nota de crédito y pago por lote — ADR-0106)
+
+Se implementaron las 11 maquetas aprobadas de `docs/maquetas/compras-2026-09/` (Por pagar, Recibir mercadería, Comprobantes, Registrar, Proveedores + ficha, Ingreso sin comprobante) más las decisiones D1 (cantidades arrancan en 0), D2 (cerrar línea con faltante + nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor a la vez). Recibir contra comprobante es la única puerta para el líder; «Ingreso sin comprobante» queda en Inventario como excepción y como camino del colaborador, que no entra a Compras. 11 migraciones locales `20260918160000`–`174000`, tests SQL 68/68 y vitest verdes. **No están en producción y la rama no se mergeó** (Felipe: «no realicemos merge aún»).
+Verificado contra la base de producción el 2026-09-18: las 11 migraciones faltan, todo lo anterior del repo hasta `20260918150000` sí está, y `compras` tiene 0 filas. El orden de pegado quedó en BACKLOG. El ADR pasó de 0104 a 0106 (main ya tiene otro 0104 y `inventory-view-ux` tomó el 0105).
+Pendiente: verificación visual contra las maquetas (el navegador integrado pide login) y la prueba SQL de los indicadores.

@@ -1,4 +1,4 @@
-# ADR-0104 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
+# ADR-0106 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
 
 - **Fecha:** 2026-09-18
 - **Estado:** Aceptado. **Solo local**: nada de esto está en producción; las migraciones se pegan

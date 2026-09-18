@@ -12,7 +12,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // pantalla lo esconde y `fn_proveedores()` lo vuelve a exigir (manda esos
 // campos en NULL si no sos líder): dos capas, como siempre.
 //
-// ADR-0104: las cuatro cifras de arriba (a quién se le debe, cuánta deuda concentra un solo
+// ADR-0106: las cuatro cifras de arriba (a quién se le debe, cuánta deuda concentra un solo
 // proveedor, quiénes llevan más de 90 días sin comprar) salen de `fn_proveedores_resumen()`, que
 // se calcula sobre la misma lectura que la tabla: una sola fuente de verdad.
 export default async function ProveedoresPage() {

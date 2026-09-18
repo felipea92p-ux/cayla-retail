@@ -3,7 +3,7 @@ import { BotonRegistrarNota } from "@/components/AccionesFaltantes";
 import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/lib/compras-reglas";
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 
-// Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0104): lo que el proveedor
+// Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0106): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos), con el enlace para registrar la que
 // todavía no llega. Si no hay notas y ya no hay nada que se deba, la sección no aparece: no
 // hay qué mostrar ni qué registrar.

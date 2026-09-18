@@ -2,7 +2,7 @@ import type { CompraResumen } from "./compras-reglas";
 import { diaMes, diasHastaLima } from "./fechas-lima";
 import { diasDeAtraso, textoEsperada } from "./recepciones-reglas";
 
-// Cómo se rotula cada fila de la lista de Comprobantes (maqueta 01, ADR-0104): un estado (chip)
+// Cómo se rotula cada fila de la lista de Comprobantes (maqueta 01, ADR-0106): un estado (chip)
 // y, debajo, la cifra que lo explica — «Parcial» solo decía que faltaba algo, no cuánto. Puro,
 // sin I/O; las fechas son de Lima.
 

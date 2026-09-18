@@ -32,7 +32,7 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // actualizar_proveedor); desactivar nunca borra — los comprobantes históricos siguen diciendo de
 // quién fueron.
 //
-// ADR-0104 (maqueta 08): la lista ahora ayuda a decidir. Arriba, cuatro cifras (a quién se le debe,
+// ADR-0106 (maqueta 08): la lista ahora ayuda a decidir. Arriba, cuatro cifras (a quién se le debe,
 // cuánta deuda concentra uno solo, quiénes llevan meses sin comprar). En la tabla, «Facturado · 12 m»
 // (lo reciente pesa más que «desde siempre»), «Saldo» en rojo si ya venció algo, «Entregas» (lo que
 // hay que reclamar), columnas ordenables (por defecto por saldo) y «+ Comprobante» en la fila.

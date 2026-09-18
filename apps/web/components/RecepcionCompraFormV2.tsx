@@ -28,7 +28,7 @@ import { soles, type CompraResumen, type LineaCompra } from "@/lib/compras-regla
 // (y reemplaza lo que hubiera); «+ Sumar» agrega otro del mismo proveedor; los de otros
 // proveedores quedan atenuados mientras la guía tenga dueño.
 //
-// 2026-09-18 (ADR-0104):
+// 2026-09-18 (ADR-0106):
 // · D1 — las cantidades ARRANCAN EN 0. Antes se precargaba todo lo pendiente y bastaba apretar
 //   «Recibir» para que el stock subiera por prendas que quizá no llegaron. Ahora cada línea está
 //   «Sin contar» hasta que alguien la cuenta; «Todo llegó» llena un comprobante en un toque. Lo que

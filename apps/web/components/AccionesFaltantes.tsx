@@ -13,7 +13,7 @@ import { ETIQUETA_MOTIVO_NOTA, soles, type CompraResumen, type LineaCompra } fro
 import { hoyLima } from "@/lib/fechas-lima";
 import { parseMonto } from "@/lib/por-pagar-reglas";
 
-// Acciones del libro de faltantes desde el DETALLE de un comprobante (D2, ADR-0104):
+// Acciones del libro de faltantes desde el DETALLE de un comprobante (D2, ADR-0106):
 // cerrar con faltante una línea que ya tiene cantidades pendientes, y registrar DESPUÉS la nota
 // de crédito que el proveedor tarda en emitir. El detalle es solo de líder (el layout de Compras
 // lo exige), así que estas acciones asumen líder; la base lo vuelve a exigir.

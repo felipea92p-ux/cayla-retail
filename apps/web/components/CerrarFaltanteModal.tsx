@@ -15,7 +15,7 @@ import { efectoCierre, igvDeMonto, montoNotaSugerido, tasaIgv } from "@/lib/rece
 import { parseMonto } from "@/lib/por-pagar-reglas";
 import type { MotivoCierre } from "@/lib/compras-faltantes";
 
-// Cerrar una línea con faltante (D2, ADR-0104). Antes, una factura con 3 prendas que nunca
+// Cerrar una línea con faltante (D2, ADR-0106). Antes, una factura con 3 prendas que nunca
 // llegaron quedaba «parcial» para siempre: contaba como atrasada, inflaba «por recibir» y la
 // deuda con el proveedor seguía completa. Ahora la línea se CIERRA (un registro nuevo en el
 // libro de cierres — no se edita ni se borra nada) y, si el proveedor emite nota de crédito, se

@@ -16,7 +16,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // Lo que llegó SIN comprobante (todavía no llega el papel, muestras) vive en «Ingreso sin
 // comprobante» de Inventario: es una excepción, no un par de esta pantalla.
 //
-// ADR-0104: la pantalla no tenía ni una cifra de cabecera, a diferencia de /compras y de
+// ADR-0106: la pantalla no tenía ni una cifra de cabecera, a diferencia de /compras y de
 // /compras/por-pagar. Ahora responde tres preguntas de quien decide: ¿cuánto falta llegar y
 // cuánto vale? (por recibir), ¿qué ya debió llegar? (atrasadas) y ¿cuál lleva más esperando?
 //

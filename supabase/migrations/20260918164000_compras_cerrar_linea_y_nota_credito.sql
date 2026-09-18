@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0104, D2): cerrar una línea con faltante y registrar la nota de
+-- Compras (ADR-0106, D2): cerrar una línea con faltante y registrar la nota de
 -- crédito del proveedor
 --
 -- EL CASO. La factura dice 24 unidades, llegaron 20 y el proveedor no manda las 4
@@ -134,7 +134,7 @@ end;
 $$;
 
 comment on function retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid) is
-  'Interna (ADR-0104 D2): valida e inserta una nota de crédito. El llamador ya bloqueó el comprobante y validó el permiso. No expuesta a authenticated.';
+  'Interna (ADR-0106 D2): valida e inserta una nota de crédito. El llamador ya bloqueó el comprobante y validó el permiso. No expuesta a authenticated.';
 
 revoke all on function retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid) from public, anon, authenticated;
 
@@ -175,7 +175,7 @@ end;
 $$;
 
 comment on function retail.registrar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid) is
-  'Registra una nota de crédito del proveedor contra un comprobante (ADR-0104 D2): baja el saldo y el IGV resta del crédito fiscal del mes. Solo líder. monto <= saldo (total - pagado - notas previas). motivo: faltante | devolucion | descuento | otro.';
+  'Registra una nota de crédito del proveedor contra un comprobante (ADR-0106 D2): baja el saldo y el IGV resta del crédito fiscal del mes. Solo líder. monto <= saldo (total - pagado - notas previas). motivo: faltante | devolucion | descuento | otro.';
 
 revoke all on function retail.registrar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid) from public, anon;
 grant execute on function retail.registrar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid) to authenticated;
@@ -269,7 +269,7 @@ end;
 $$;
 
 comment on function retail.cerrar_linea_compra(uuid, integer, text, text, jsonb) is
-  'Cierra unidades pendientes de una línea de comprobante: «no van a llegar» (ADR-0104 D2). p_cantidad <= pendiente (cantidad - recibido - cerrado). Opcionalmente registra en el mismo acto la nota de crédito del proveedor (solo líder). Devuelve {cierre_id, nota_credito_id}. No toca stock.';
+  'Cierra unidades pendientes de una línea de comprobante: «no van a llegar» (ADR-0106 D2). p_cantidad <= pendiente (cantidad - recibido - cerrado). Opcionalmente registra en el mismo acto la nota de crédito del proveedor (solo líder). Devuelve {cierre_id, nota_credito_id}. No toca stock.';
 
 revoke all on function retail.cerrar_linea_compra(uuid, integer, text, text, jsonb) from public, anon;
 grant execute on function retail.cerrar_linea_compra(uuid, integer, text, text, jsonb) to authenticated;

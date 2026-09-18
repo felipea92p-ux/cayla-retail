@@ -2,7 +2,7 @@
 
 Diseño aprobado por Felipe para las pantallas de Compras. **La implementación debe verse
 igual que estas imágenes** — mismas jerarquías, espaciados, colores, textos y estados.
-Decisiones y contrato de datos: `docs/adr/0104-compras-indicadores-pago-por-lote-y-faltantes.md`.
+Decisiones y contrato de datos: `docs/adr/0106-compras-indicadores-pago-por-lote-y-faltantes.md`.
 
 Cada `NN-nombre.html` es autocontenido (CSS inline con los tokens reales de
 `apps/web/app/globals.css`); ábrelo en un navegador o léelo para sacar medidas exactas

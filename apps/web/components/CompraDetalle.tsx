@@ -51,7 +51,7 @@ export type DetalleCompra = {
   pagos: PagoCompra[];
   recepciones: RecepcionCompra[];
   adjuntos: AdjuntoCompra[];
-  /** Notas de crédito del proveedor y líneas cerradas por faltante (D2, ADR-0104). */
+  /** Notas de crédito del proveedor y líneas cerradas por faltante (D2, ADR-0106). */
   notasCredito: NotaCreditoCompra[];
   cierres: CierreLinea[];
   /** Nombre de la ubicación destino, o "—" si ya no existe. */

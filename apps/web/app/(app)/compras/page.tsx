@@ -13,7 +13,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 
-// Comprobantes de proveedores (ADR-0035, rediseño ADR-0104): la lista de lo que se compró. Cada
+// Comprobantes de proveedores (ADR-0035, rediseño ADR-0106): la lista de lo que se compró. Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
 // debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
 // Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o

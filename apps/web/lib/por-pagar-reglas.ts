@@ -1,6 +1,6 @@
 import { diasHastaLima } from "./fechas-lima";
 
-// Reglas puras de Por pagar (ADR-0104): a qué tramo de urgencia pertenece una deuda, cómo se
+// Reglas puras de Por pagar (ADR-0106): a qué tramo de urgencia pertenece una deuda, cómo se
 // rotula su vencimiento y cómo se reparte UN pago entre varios comprobantes. Sin I/O: se
 // prueba sin base ni navegador. Las fechas son de Lima (`fechas-lima`), nunca el reloj del
 // servidor: entre las 19:00 y la medianoche de Lima el servidor ya está en «mañana».

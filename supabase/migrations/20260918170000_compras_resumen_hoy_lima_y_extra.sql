@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Compras: "hoy" en Lima para las cifras de cabecera + las cifras que faltaban
--- (ADR-0104, sección «Lectura»)
+-- (ADR-0106, sección «Lectura»)
 --
 -- EL PROBLEMA. Dos cosas en las tarjetas que decide Felipe cada mañana:
 --
@@ -76,7 +76,7 @@ as $$
 $$;
 
 comment on function retail.resumen_compras() is
-  'Cifras de cabecera de Compras (10 columnas). "Hoy" = fn_hoy_lima(), no current_date (ADR-0104). Acotada por sede (ADR-0075).';
+  'Cifras de cabecera de Compras (10 columnas). "Hoy" = fn_hoy_lima(), no current_date (ADR-0106). Acotada por sede (ADR-0075).';
 
 revoke all on function retail.resumen_compras() from public, anon;
 grant execute on function retail.resumen_compras() to authenticated;
@@ -197,7 +197,7 @@ end;
 $$;
 
 comment on function retail.resumen_compras_extra() is
-  'Una fila: por recibir (unidades y valor con IGV), entrega más atrasada, compras del mes vs mes anterior, IGV del mes (facturas − notas de crédito) y proveedor que concentra la deuda. "Hoy" = fn_hoy_lima(). Acotada por sede (ADR-0075). ADR-0104.';
+  'Una fila: por recibir (unidades y valor con IGV), entrega más atrasada, compras del mes vs mes anterior, IGV del mes (facturas − notas de crédito) y proveedor que concentra la deuda. "Hoy" = fn_hoy_lima(). Acotada por sede (ADR-0075). ADR-0106.';
 
 revoke all on function retail.resumen_compras_extra() from public, anon;
 grant execute on function retail.resumen_compras_extra() to authenticated;

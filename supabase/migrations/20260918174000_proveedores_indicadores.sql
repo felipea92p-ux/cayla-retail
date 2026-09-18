@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Proveedores: indicadores para decidir a quién se le compra y a quién se le debe
--- (ADR-0104, maquetas 08 y 09)
+-- (ADR-0106, maquetas 08 y 09)
 --
 -- EL PROBLEMA. La lista de proveedores decía cuánto se facturó «desde siempre» y, a los seis
 -- meses de datos, importa más lo reciente. No decía qué proveedores concentran la deuda ni

@@ -148,7 +148,7 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     condicion: p.cond === "contado" || p.cond === "credito" ? p.cond : undefined,
     tipo: TIPOS_DOCUMENTO.find((t) => t === p.tipo),
     soloVencidas: p.vencidas === "1" || undefined,
-    // Vistas de Comprobantes (ADR-0104): «Por pagar» = con saldo, «Por recibir» = mercadería pendiente.
+    // Vistas de Comprobantes (ADR-0106): «Por pagar» = con saldo, «Por recibir» = mercadería pendiente.
     conSaldo: p.saldo === "1" || undefined,
     porRecibir: p.porrecibir === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,

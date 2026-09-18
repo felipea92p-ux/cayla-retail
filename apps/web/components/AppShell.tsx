@@ -348,7 +348,7 @@ function GrupoLateral({
 // revienta contra un esquema que ya no existe. "Nueva venta" exige caja
 // abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
 //
-// ADR-0104: UNA sola puerta para recibir según quién eres. Compras es solo de líder (su layout devuelve al
+// ADR-0106: UNA sola puerta para recibir según quién eres. Compras es solo de líder (su layout devuelve al
 // Inicio a cualquier colaborador), así que el líder ve «Recibir mercadería» contra el comprobante del
 // proveedor y el colaborador —que no puede entrar a Compras— conserva su camino: «Ingreso sin
 // comprobante». Antes este menú mostraba a todos las entradas de Compras y, al colaborador, cada una lo

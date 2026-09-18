@@ -4,7 +4,7 @@ import { celdaCsv, rangoDelMes } from "@/lib/comprobantes-lista-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 
 // GET /compras/exportar?mes=aaaa-mm — el registro de compras del mes en CSV, para el contador
-// (ADR-0104). Un comprobante por fila: fecha, tipo, serie-número, RUC, razón social, base, IGV,
+// (ADR-0106). Un comprobante por fila: fecha, tipo, serie-número, RUC, razón social, base, IGV,
 // total, estado, condición y vencimiento. Las anuladas van MARCADAS, no ocultas: el contador
 // necesita ver que existieron. Sin `mes`, el mes en curso (Lima).
 //

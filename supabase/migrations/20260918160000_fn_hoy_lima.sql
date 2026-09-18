@@ -8,7 +8,7 @@
 -- quién se le paga: un día corrido en la tarde-noche los vuelve poco confiables.
 --
 -- LA DECISIÓN. Una sola función que responde "¿qué día es en Lima?", usada por
--- todo lo nuevo de Compras (ADR-0104) y por lo que ya existía y comparaba contra
+-- todo lo nuevo de Compras (ADR-0106) y por lo que ya existía y comparaba contra
 -- `current_date`. Mismo criterio que `hoyLima` en apps/web/lib/traslados-reglas.ts
 -- (una sola fuente de verdad para "hoy", ahora también en la base).
 --
@@ -25,7 +25,7 @@ as $$
 $$;
 
 comment on function retail.fn_hoy_lima() is
-  'Fecha de hoy en America/Lima. Usar en lugar de current_date en todo cálculo de "vence/venció/atrasada" (ADR-0104).';
+  'Fecha de hoy en America/Lima. Usar en lugar de current_date en todo cálculo de "vence/venció/atrasada" (ADR-0106).';
 
 -- Mismo candado que el resto (ADR-0078): nada de EXECUTE público.
 revoke all on function retail.fn_hoy_lima() from public, anon;

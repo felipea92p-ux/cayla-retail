@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 
-// Ficha de un proveedor (maqueta 09, ADR-0104): prenda terminada (vía Compras) e insumos del Taller
+// Ficha de un proveedor (maqueta 09, ADR-0106): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
 // aunque compartan la misma ficha (20260917230000_proveedor_metricas_compras_e_insumos.sql).
 //

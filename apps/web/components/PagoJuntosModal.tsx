@@ -13,7 +13,7 @@ import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-pagar-reglas";
 
-// Pago juntos (D3, ADR-0104): UNA transferencia que se aplica a varios comprobantes DEL MISMO
+// Pago juntos (D3, ADR-0106): UNA transferencia que se aplica a varios comprobantes DEL MISMO
 // proveedor. En Gamarra se le paga al proveedor «lo que se le debe», no factura por factura;
 // obligar a registrar N pagos sueltos deja el estado de cuenta del banco (una línea) imposible
 // de conciliar con el sistema (N pagos). Cada comprobante conserva su propio historial: la base

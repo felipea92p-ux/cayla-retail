@@ -35,7 +35,7 @@ export type CompraResumen = {
   fechaEstimadaLlegada: string | null;
   /** La mercadería debía haber llegado y no llegó (lo calcula la vista, con fecha de Lima). */
   recepcionAtrasada: boolean;
-  /** Suma de notas de crédito del proveedor registradas contra este comprobante (D2, ADR-0104). `saldo` ya la descuenta. */
+  /** Suma de notas de crédito del proveedor registradas contra este comprobante (D2, ADR-0106). `saldo` ya la descuenta. */
   notasCredito: number;
   /** Unidades cerradas por faltante: no van a llegar. `estadoRecepcion` y lo pendiente ya las descuentan. */
   cerradoCantidad: number;
@@ -186,7 +186,7 @@ export const ETIQUETA_METODO: Record<string, string> = {
   otro: "Otro",
 };
 
-/** Motivos de una nota de crédito del proveedor (D2, ADR-0104): lo que acepta `registrar_nota_credito_compra`. */
+/** Motivos de una nota de crédito del proveedor (D2, ADR-0106): lo que acepta `registrar_nota_credito_compra`. */
 export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
   faltante: "Faltante",
   devolucion: "Devolución",
