@@ -16,3 +16,18 @@ supabase/.temp/
 # La plantilla sí se versiona (va sin valores). Debe ir al final: en git
 # gana la última regla que coincide, y `.env*` de arriba la anularía.
 !.env.example
+
+# Salida del generador de la hoja de prueba de etiquetas (se regenera con el script)
+scripts/etiquetas/hoja-de-prueba.html
+
+# Seed de la taxonomia universal: dato derivado, ~2MB, se regenera con
+# `node scripts/taxonomia/cargar.mjs` desde un release inmutable.
+supabase/seed-taxonomia/
+
+# Imita LOCALMENTE las tablas reales de Dynamic (public.sedes/personas +
+# sus funciones) para poder probar 0009_integracion_dynamic.sql contra
+# `supabase db reset` sin tocar el proyecto compartido real. NUNCA debe
+# llegar a producción — ahí esas tablas ya existen de verdad. Se queda
+# fuera de git a propósito: así jamás puede colarse en un `git archive`
+# ni en un copy/paste al SQL Editor de producción.
+supabase/migrations/0000_local_stub_dynamic.sql

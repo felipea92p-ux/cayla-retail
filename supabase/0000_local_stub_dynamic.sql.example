@@ -1,0 +1,108 @@
+-- ============================================================================
+-- 0000_local_stub_dynamic.sql.example — imita lo mínimo de Dynamic que retail necesita
+--
+-- CÓMO SE USA. Copiar a `supabase/migrations/0000_local_stub_dynamic.sql` (una sola
+-- vez, igual que `apps/web/.env.example` → `.env.local`):
+--
+--   cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
+--
+-- El destino está en `.gitignore` A PROPÓSITO: es un archivo con forma de migración
+-- que solo debe existir en tu Postgres local — si viviera como archivo normal en
+-- `supabase/migrations/`, un copy/paste apurado al SQL Editor de producción
+-- sobreescribiría en silencio `public.fn_rol_actual()`/`fn_sede_actual_persona()`
+-- REALES con esta versión simplificada. Esta plantilla sí se versiona (como
+-- `.env.example`); el archivo que genera, nunca.
+--
+-- POR QUÉ EXISTE. Desde 0009_integracion_dynamic.sql, retail ya no tiene su
+-- propia tabla de personas: delega en `public.sedes`/`public.personas` y en
+-- `public.fn_rol_actual()`/`public.fn_sede_actual_persona()`, que en
+-- PRODUCCIÓN son de Dynamic (mismo proyecto Supabase, mismo `auth.users`).
+-- En LOCAL no existe ningún Dynamic — cada Postgres local es su propio
+-- proyecto aislado (ADR-0010) — así que sin este archivo `supabase db reset`
+-- rompe apenas `seed.sql` intenta `insert into public.sedes` (ver ADR-0033).
+--
+-- QUÉ IMITA Y QUÉ NO. Solo las 4 cosas que retail realmente toca (verificado
+-- con grep sobre supabase/migrations/000[1-9]*.sql y 0010): las columnas de
+-- `sedes`/`personas` que retail lee o inserta, no la tabla real de Dynamic
+-- completa (en producción `personas` tiene ~40 columnas de planilla —
+-- pin_hash, sueldo_base_legal, régimen de pensión... nada de eso le importa
+-- a retail, y varias son NOT NULL sin default ahí, lo que habría roto el
+-- INSERT de `seed.sql` si se copiaran tal cual). Las dos funciones SÍ son
+-- copia exacta del cuerpo real de producción (verificado contra cayla-dynamic
+-- con `pg_get_functiondef`, 2026-09-12): que el comportamiento calce importa
+-- más que que calcen las columnas.
+--
+-- SE ROMPE SI: Dynamic le agrega una columna NOT NULL sin default a `sedes`/
+-- `personas` que retail empiece a leer, o le cambia un valor al enum
+-- `rol_usuario` — ese día hay que volver a mirar producción, no adivinar.
+-- ============================================================================
+
+set search_path = public, extensions;
+
+create type public.rol_usuario as enum ('integrante', 'supervisor_sede', 'lider_do', 'admin');
+
+create table public.sedes (
+  id uuid primary key default gen_random_uuid(),
+  codigo text not null,
+  nombre text not null,
+  activa boolean not null default true,
+  tipo text not null default 'tienda',
+  ciudad text
+);
+
+create table public.personas (
+  id uuid primary key default gen_random_uuid(),
+  auth_user_id uuid unique,
+  nombres text not null,
+  apellidos text not null,
+  sede_base_id uuid not null references public.sedes(id),
+  rol public.rol_usuario not null default 'integrante',
+  estado text not null default 'activo',
+  -- La lee `retail.fn_mi_perfil()` (0014_perfil.sql). En producción la escribe
+  -- el autoservicio de foto de Dynamic (su migración 0381/0399), no retail.
+  foto_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Solo las dos columnas que retail toca de verdad: `retail.fn_mi_perfil()` hace
+-- `left join public.datos_personales dp on dp.persona_id = p.id` y lee
+-- `dp.celular`. La tabla real de Dynamic tiene 24 columnas (DNI, dirección,
+-- cuenta bancaria, CUSPP, discapacidad…) y NINGUNA le importa a retail —
+-- copiarlas acá solo invitaría a llenarlas con datos de prueba realistas, que es
+-- justo lo que `docs/datos/06-DATOS-PERSONALES.md` pide no hacer.
+create table public.datos_personales (
+  persona_id uuid primary key references public.personas(id),
+  celular text
+);
+
+-- Copia exacta del cuerpo real (cayla-dynamic, public.fn_rol_actual(), verificado 2026-09-12).
+create or replace function public.fn_rol_actual() returns public.rol_usuario
+language sql stable security definer
+set search_path to 'public'
+as $$
+  select rol from personas where auth_user_id = auth.uid() and estado = 'activo';
+$$;
+
+-- Copia exacta del cuerpo real (cayla-dynamic, public.fn_sede_actual_persona(), verificado 2026-09-12).
+create or replace function public.fn_sede_actual_persona() returns uuid
+language sql stable security definer
+set search_path to 'public'
+as $$
+  select sede_base_id from personas where auth_user_id = auth.uid();
+$$;
+
+-- La llama `retail.actualizar_mi_foto_perfil()` (0014_perfil.sql), que delega
+-- en ella en vez de escribir `personas.foto_url` por su cuenta.
+-- ⚠️ Esta NO es copia exacta del cuerpo real, a diferencia de las dos de arriba.
+-- La de Dynamic trae su propio permiso (uno mismo, o admin/lider_do) y valida la
+-- ruta del bucket; acá solo se imita el efecto para que la pantalla se pueda
+-- probar en local. La firma sí es la real, verificada contra producción el
+-- 2026-09-14: `fn_actualizar_foto_perfil(p_persona_id uuid, p_foto_url text)`.
+create or replace function public.fn_actualizar_foto_perfil(p_persona_id uuid, p_foto_url text)
+returns void
+language sql security definer
+set search_path to 'public'
+as $$
+  update personas set foto_url = p_foto_url, updated_at = now() where id = p_persona_id;
+$$;
