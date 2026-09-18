@@ -47,7 +47,7 @@ ADR-0102).
       Colores categóricos de método de pago (`--color-metodo-*`) nuevos en
       `globals.css`/`design-tokens.ts` — compartidos con Vender, no son de marca.
 - [x] **`ubicaciones.meta_venta_diaria`** — columna nullable nueva
-      (`20260918080000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
+      (`20260918100000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
       (se configura por UPDATE directo). Aplicada en local, **pendiente producción con
       ok de Felipe**.
 - [x] **Punto de Venta: extendida la misma piel visual** — la mayoría YA calzaba

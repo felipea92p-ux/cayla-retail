@@ -73,7 +73,7 @@ Consecuencias concretas de esa elección:
 ## Consecuencias
 
 - Nueva columna `retail.ubicaciones.meta_venta_diaria numeric null`
-  (`20260918080000_meta_venta_diaria_por_ubicacion.sql`) — nullable, sin
+  (`20260918100000_meta_venta_diaria_por_ubicacion.sql`) — nullable, sin
   default inventado; si es null, la barra de meta simplemente no se muestra.
   Aplicada en local; **pendiente producción con ok de Felipe**.
 - `lib/caja.ts`: `MovimientoCaja` gana `registradoPorNombre` (resuelto vía
