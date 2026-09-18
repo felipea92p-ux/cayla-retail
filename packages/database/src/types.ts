@@ -634,9 +634,78 @@ export type Database = {
           },
         ]
       }
+      compra_ajustes: {
+        Row: {
+          cantidad: number
+          compra_id: string
+          compra_item_id: string
+          costo_unitario: number
+          created_at: string
+          id: string
+          monto: number | null
+          motivo: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          compra_id: string
+          compra_item_id: string
+          costo_unitario: number
+          created_at?: string
+          id?: string
+          monto?: number | null
+          motivo: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          compra_id?: string
+          compra_item_id?: string
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          monto?: number | null
+          motivo?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_ajustes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_items: {
         Row: {
           cantidad: number
+          cantidad_cerrada: number
           compra_id: string
           costo_unitario: number
           descripcion: string | null
@@ -647,6 +716,7 @@ export type Database = {
         }
         Insert: {
           cantidad: number
+          cantidad_cerrada?: number
           compra_id: string
           costo_unitario: number
           descripcion?: string | null
@@ -657,6 +727,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cantidad_cerrada?: number
           compra_id?: string
           costo_unitario?: number
           descripcion?: string | null
@@ -746,6 +817,8 @@ export type Database = {
       }
       compras: {
         Row: {
+          ajustado: number
+          cerrado_cantidad: number
           condicion: string
           created_at: string
           documento: string | null
@@ -766,13 +839,15 @@ export type Database = {
           saldo: number | null
           serie: string
           subtotal: number
+          tiene_faltante_cerrado: boolean | null
           tipo: string
-          token_cliente: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
         }
         Insert: {
+          ajustado?: number
+          cerrado_cantidad?: number
           condicion: string
           created_at?: string
           documento?: string | null
@@ -793,13 +868,15 @@ export type Database = {
           saldo?: number | null
           serie: string
           subtotal: number
+          tiene_faltante_cerrado?: boolean | null
           tipo?: string
-          token_cliente?: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
         }
         Update: {
+          ajustado?: number
+          cerrado_cantidad?: number
           condicion?: string
           created_at?: string
           documento?: string | null
@@ -820,8 +897,8 @@ export type Database = {
           saldo?: number | null
           serie?: string
           subtotal?: number
+          tiene_faltante_cerrado?: boolean | null
           tipo?: string
-          token_cliente?: string | null
           total?: number
           ubicacion_destino_id?: string
           usuario_id?: string | null
@@ -1234,6 +1311,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
           solicitado_por: string | null
@@ -1248,6 +1326,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1262,6 +1341,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
           solicitado_por?: string | null
@@ -1274,6 +1354,13 @@ export type Database = {
             columns: ["caja_id"]
             isOneToOne: false
             referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_nota_credito_id_fkey"
+            columns: ["nota_credito_id"]
+            isOneToOne: false
+            referencedRelation: "comprobantes"
             referencedColumns: ["id"]
           },
           {
@@ -1330,75 +1417,6 @@ export type Database = {
           sedes_permitidas?: string[] | null
         }
         Relationships: []
-      }
-      gastos: {
-        Row: {
-          categoria: string
-          created_at: string
-          documento_numero: string | null
-          documento_serie: string | null
-          documento_tipo: string
-          especificacion: string | null
-          id: string
-          igv: number
-          metodo_pago: string
-          proveedor_id: string | null
-          subtotal: number
-          token_cliente: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id: string | null
-        }
-        Insert: {
-          categoria: string
-          created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id?: string | null
-        }
-        Update: {
-          categoria?: string
-          created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago?: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total?: number
-          ubicacion_id?: string
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gastos_proveedor_id_fkey"
-            columns: ["proveedor_id"]
-            isOneToOne: false
-            referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gastos_ubicacion_id_fkey"
-            columns: ["ubicacion_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       historial_producto_cambios: {
         Row: {
@@ -2148,14 +2166,18 @@ export type Database = {
       }
       productos: {
         Row: {
+          aprobado_en: string | null
+          aprobado_por: string | null
           categoria_id: string | null
           codigo: string | null
           created_at: string
           descripcion: string | null
           estado: string
+          estado_alta: string
           id: string
           patron_id: string | null
           permitir_venta_sin_stock: boolean
+          propuesto_por: string | null
           referencia: string
           stock_minimo: number | null
           tejido_id: string | null
@@ -2163,14 +2185,18 @@ export type Database = {
           token_cliente: string | null
         }
         Insert: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -2178,14 +2204,18 @@ export type Database = {
           token_cliente?: string | null
         }
         Update: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia?: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -3014,6 +3044,7 @@ export type Database = {
       compra_items_resumen: {
         Row: {
           cantidad: number | null
+          cerrado: number | null
           compra_id: string | null
           costo_unitario: number | null
           descripcion: string | null
@@ -3026,6 +3057,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number | null
+          cerrado?: number | null
           compra_id?: string | null
           costo_unitario?: number | null
           descripcion?: string | null
@@ -3038,6 +3070,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number | null
+          cerrado?: number | null
           compra_id?: string | null
           costo_unitario?: number | null
           descripcion?: string | null
@@ -3081,6 +3114,8 @@ export type Database = {
       }
       compras_resumen: {
         Row: {
+          ajustado: number | null
+          cerrado_cantidad: number | null
           condicion: string | null
           created_at: string | null
           documento: string | null
@@ -3102,6 +3137,7 @@ export type Database = {
           saldo: number | null
           serie: string | null
           subtotal: number | null
+          tiene_faltante_cerrado: boolean | null
           tipo: string | null
           total: number | null
           ubicacion_destino_id: string | null
@@ -3262,29 +3298,49 @@ export type Database = {
           p_reembolso_metodo?: string
           p_reembolso_monto?: number
         }
-        Returns: undefined
+        Returns: {
+          nota_credito_id: string
+          nota_credito_numero: number
+          nota_credito_serie: string
+        }[]
       }
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
-      catalogo_actualizar_producto: {
-        Args: {
-          p_categoria_id?: string
-          p_descripcion?: string
-          p_estado: string
-          p_fotos?: Json
-          p_patron_id?: string
-          p_permitir_venta_sin_stock?: boolean
-          p_producto_id: string
-          p_referencia: string
-          p_stock_minimo?: number
-          p_tejido_id?: string
-          p_temporada?: string
-          p_variantes: Json
-        }
-        Returns: undefined
-      }
+      catalogo_actualizar_producto:
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_patron_id?: string
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_tejido_id?: string
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
       catalogo_crear_producto: {
         Args: {
           p_categoria_id?: string
@@ -3299,6 +3355,26 @@ export type Database = {
           p_variantes: Json
         }
         Returns: string
+      }
+      censo_crear_variante: {
+        Args: {
+          p_categoria_id: string
+          p_codigo_barras: string
+          p_color_codigo?: string
+          p_costo?: number
+          p_precio?: number
+          p_referencia: string
+          p_talla_id?: string
+        }
+        Returns: {
+          codigo_barras: string
+          color: string
+          costo: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
       }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
@@ -3315,6 +3391,10 @@ export type Database = {
           unidades_faltantes: number
           unidades_sobrantes: number
         }[]
+      }
+      cerrar_linea_recepcion: {
+        Args: { p_compra_item_id: string; p_motivo: string }
+        Returns: undefined
       }
       cerrar_produccion: {
         Args: {
@@ -3841,6 +3921,8 @@ export type Database = {
           p_solo_vigentes?: boolean
         }
         Returns: {
+          ajustado: number | null
+          cerrado_cantidad: number | null
           condicion: string | null
           created_at: string | null
           documento: string | null
@@ -3862,6 +3944,7 @@ export type Database = {
           saldo: number | null
           serie: string | null
           subtotal: number | null
+          tiene_faltante_cerrado: boolean | null
           tipo: string | null
           total: number | null
           ubicacion_destino_id: string | null
@@ -3985,7 +4068,6 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
-          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
         }
@@ -3997,22 +4079,6 @@ export type Database = {
           p_insumo_id: string
           p_nota?: string
           p_produccion_id: string
-        }
-        Returns: string
-      }
-      registrar_gasto: {
-        Args: {
-          p_categoria: string
-          p_documento_numero?: string
-          p_documento_serie?: string
-          p_documento_tipo?: string
-          p_especificacion?: string
-          p_igv?: number
-          p_metodo_pago: string
-          p_proveedor_id?: string
-          p_token?: string
-          p_total: number
-          p_ubicacion_id: string
         }
         Returns: string
       }
@@ -4122,6 +4188,10 @@ export type Database = {
       }
       revertir_produccion: {
         Args: { p_produccion_id: string }
+        Returns: undefined
+      }
+      revisar_producto_censo: {
+        Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined
       }
       set_etapa_produccion: {

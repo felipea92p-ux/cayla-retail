@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { ProductoForm } from "@/components/ProductoForm";
+import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -43,6 +44,8 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
           {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
         </h1>
       </div>
+
+      {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
 
       <ProductoForm categorias={categorias} colores={colores} ejes={ejes} etiquetas={etiquetas} producto={producto} />
 
