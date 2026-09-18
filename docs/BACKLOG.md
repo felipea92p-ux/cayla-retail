@@ -70,8 +70,11 @@ tiene de verdad — detalle y descartes en ADR-0104.
       necesita la base de clientas de R-33); cambio de una venta que nunca se registró (R-15,
       toca el núcleo); paleta de comandos Ctrl+K global (toca AppShell y todos los módulos);
       endurecer `cambios.motivo` a obligatorio en la base cuando ya no haya pantallas viejas.
-- [ ] **A revisar:** `crear_devolucion` probablemente tiene el mismo hueco de venta anulada
-      que se cerró en `registrar_cambio` (no verificado en esta sesión).
+- [ ] **Devoluciones tiene el mismo hueco de venta anulada — CONFIRMADO 2026-09-18** contra
+      `pg_proc` local: ni `crear_devolucion` ni `aprobar_devolucion` miran `ventas.estado`.
+      Una devolución aprobada sobre una venta ya anulada vuelve a meter la prenda al stock
+      (la anulación ya la había devuelto) y puede reembolsar plata de una venta revertida.
+      Mismo arreglo que `registrar_cambio` (20260918150000), en su propia migración.
 
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
