@@ -26,8 +26,8 @@ export function FinanzasNav() {
           <Link
             key={s.href}
             href={s.href}
-            className={`label-cayla -mb-px shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[10px] transition-colors ${
-              activo ? "border-rojo text-tinta" : "border-transparent text-tinta/45 hover:text-rojo"
+            className={`label-cayla -mb-px shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+              activo ? "border-rojo text-tinta" : "border-transparent text-tinta/65 hover:text-rojo"
             }`}
           >
             {s.etiqueta}

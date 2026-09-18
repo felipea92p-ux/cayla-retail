@@ -14,11 +14,30 @@
 // que este componente hace cumplir MAX_ROJO_POR_PANTALLA sin necesitar un
 // contador global: el rojo no es una opción de estilo, es lo que significa
 // "esto necesita tu atención".
+//
+// 2026-09-09: el Inicio dejó de escribir sus 4 tarjetas a mano y pasó a usar
+// esta. Para eso hacían falta dos huecos que Finanzas no necesitaba —`ayuda`
+// (el botón "(!)") y `pie` (desglose por sede, un enlace, una aclaración)—.
+// Ambos son opcionales: las llamadas de Finanzas y de ProformasPanel no
+// cambian ni una línea.
 
 type Comparativo = {
   texto: string; // ej. "+12% vs mes anterior" — ya redactado, este componente no formatea
   positivo: boolean;
 };
+
+/**
+ * Lleva una serie de valores a los 0-1 que espera `sparkline`, anclando el
+ * CERO abajo del todo — no el mínimo de la serie. Con dinero, encuadrar contra
+ * el mínimo miente: dos días de S/900 y S/1000 se verían como un derrumbe.
+ * Vive acá y no en quien la llama para que todas las mini-líneas de la app
+ * midan igual.
+ */
+export function normalizarSparkline(valores: number[]): number[] {
+  const max = Math.max(...valores);
+  if (!(max > 0)) return valores.map(() => 0);
+  return valores.map((v) => Math.max(0, v) / max);
+}
 
 export function TarjetaIndicador({
   etiqueta,
@@ -27,6 +46,8 @@ export function TarjetaIndicador({
   alerta,
   critico = false,
   sparkline,
+  ayuda,
+  pie,
 }: {
   etiqueta: string;
   valor: string;
@@ -35,20 +56,32 @@ export function TarjetaIndicador({
   alerta?: string;
   /** true solo si el valor es una cifra negativa real o requiere atención real. */
   critico?: boolean;
-  /** Puntos ya normalizados 0-1 para la mini-línea de tendencia. */
+  /**
+   * Puntos ya normalizados 0-1 para la mini-línea. Si la serie entera es cero
+   * no se dibuja nada: una línea plana sobre la nada no es una tendencia, es
+   * ruido — y confunde con una tendencia real que resultó ser plana.
+   */
   sparkline?: number[];
+  /** El botón "(!)" de <Ayuda>, pegado a la etiqueta. */
+  ayuda?: React.ReactNode;
+  /** Línea(s) chicas al pie: desglose por sede, un enlace, una aclaración. */
+  pie?: React.ReactNode;
 }) {
   return (
     <div className="card-cayla p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="label-cayla text-[9px] text-tinta/45">{etiqueta}</p>
-        {sparkline && sparkline.length > 1 && <Sparkline puntos={sparkline} critico={critico} />}
+        <p className="label-cayla text-[11px] text-tinta/65">
+          {etiqueta}
+          {ayuda}
+        </p>
+        {sparkline && sparkline.length > 1 && sparkline.some((p) => p > 0) && <Sparkline puntos={sparkline} critico={critico} />}
       </div>
       <p className={`font-display mt-1 text-2xl ${critico ? "text-rojo" : "text-tinta"}`}>{valor}</p>
       {comparativo && (
-        <p className={`mt-1 text-xs ${comparativo.positivo ? "text-verde" : "text-tinta/60"}`}>{comparativo.texto}</p>
+        <p className={`mt-1 text-xs ${comparativo.positivo ? "text-verde" : "text-tinta/75"}`}>{comparativo.texto}</p>
       )}
-      {alerta && <p className="mt-2 text-xs leading-snug text-tinta/70">{alerta}</p>}
+      {alerta && <p className="mt-2 text-xs leading-snug text-tinta/80">{alerta}</p>}
+      {pie && <div className="mt-1 text-xs text-tinta/65">{pie}</div>}
     </div>
   );
 }

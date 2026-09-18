@@ -1,91 +1,48 @@
 import { redirect } from "next/navigation";
-import { requirePersonaActual } from "@/lib/persona";
-import { getSedes } from "@/lib/sedes";
-import { createClient } from "@/lib/supabase/server";
-import { OrdenesProduccion, type OrdenRow, type OrdenLinea } from "@/components/OrdenesProduccion";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
+import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
 
-// Producción (Taller): una sola forma de producir — la Orden de producción.
-// Se abre con costo estimado y variantes, avanza por etapas (corte → confección →
-// acabado, flexibles) y al cerrar confirma cuántas salieron buenas y el costo real,
-// que entra al inventario del taller.
+// Producción del Taller (restaurada 2026-09-15 sobre V2). Una sola forma de
+// producir: la orden. Se abre con costo estimado y cantidades por talla-color,
+// avanza por etapas y al cerrar confirma cuántas salieron buenas y el costo
+// real, que entra al stock del Taller (`cerrar_produccion` → `movimientos`).
+// Ver supabase/migrations/20260915130000_produccion_del_taller.sql.
+//
+// Se entra solo parado EN el Taller (revertido 2026-09-17, pedido de
+// Felipe): la excepción de líder-desde-cualquier-ubicación duraba dos días
+// y dejaba entrar por URL directa aunque el AppShell ya no mostrara el
+// link — dos partes del sistema decidiendo lo mismo de dos formas. La base
+// lo vuelve a comprobar en cada RPC (fn_puede_operar_ubicacion) de todos modos.
 export default async function ProduccionPage() {
-  const persona = await requirePersonaActual();
-  const supabase = await createClient();
+  const persona = await requirePersonaActualV2();
+  if (persona.ubicacionTipo !== "taller") redirect("/");
 
-  const sedes = await getSedes();
-  const taller = sedes.find((s) => s.tipo === "fabrica");
-
-  const esLider = persona.rol === "lider";
-  const esTaller = taller != null && persona.sedeId === taller.id;
-  if (!esLider && !esTaller) redirect("/");
-  if (!taller) redirect("/");
-
-  const [{ data: producciones }, { data: modelosData }] = await Promise.all([
-    supabase
-      .from("producciones")
-      .select(
-        "id, cantidad, costo_unitario, costo_tela, costo_avios, costo_maquila, precio_taller, detalle, es_muestra, estado, inventariado_at, etapas, fecha_entrega, productos(referencia, material)"
-      )
-      .eq("unidad_id", taller.id)
-      .order("created_at", { ascending: false })
-      .limit(60),
-    supabase.from("productos").select("id, referencia, material").order("referencia").limit(500),
-  ]);
-
-  const ids = (producciones ?? []).map((p) => p.id);
-  const { data: lineasData } = ids.length
-    ? await supabase
-        .from("produccion_lineas")
-        .select("produccion_id, variante_id, cantidad, variantes(talla, color)")
-        .in("produccion_id", ids)
-    : { data: [] };
-
-  const lineasPorOrden = new Map<string, OrdenLinea[]>();
-  for (const l of lineasData ?? []) {
-    const v = Array.isArray(l.variantes) ? l.variantes[0] : l.variantes;
-    const arr = lineasPorOrden.get(l.produccion_id) ?? [];
-    arr.push({ varianteId: l.variante_id, talla: v?.talla ?? null, color: v?.color ?? null, cantidad: l.cantidad });
-    lineasPorOrden.set(l.produccion_id, arr);
+  const taller = await getTaller();
+  if (!taller) {
+    return (
+      <div className="space-y-6">
+        <h1 className="font-display text-2xl text-tinta">Producción</h1>
+        <p className="card-cayla p-5 text-sm text-tinta/75">
+          No hay una ubicación de tipo Taller activa. Producción necesita una para saber dónde entra el stock.
+        </p>
+      </div>
+    );
   }
 
-  const ordenes: OrdenRow[] = (producciones ?? []).map((p) => {
-    const prod = Array.isArray(p.productos) ? p.productos[0] : p.productos;
-    return {
-      id: p.id,
-      modelo: prod?.referencia ?? "(modelo)",
-      material: prod?.material ?? null,
-      detalle: p.detalle ?? null,
-      esMuestra: p.es_muestra,
-      estado: p.estado,
-      inventariado: p.inventariado_at != null,
-      cantidad: p.cantidad,
-      costoUnitario: Number(p.costo_unitario),
-      precioTaller: Number(p.precio_taller ?? 0),
-      costoTela: Number(p.costo_tela ?? 0),
-      costoAvios: Number(p.costo_avios ?? 0),
-      costoMaquila: Number(p.costo_maquila ?? 0),
-      etapas: (p.etapas ?? {}) as Record<string, string>,
-      fechaEntrega: p.fecha_entrega ?? null,
-      lineas: lineasPorOrden.get(p.id) ?? [],
-    };
-  });
-
-  const modelos = (modelosData ?? []).map((m) => ({ id: m.id, referencia: m.referencia }));
-  const materiales = [
-    ...new Set((modelosData ?? []).map((m) => m.material).filter((x): x is string => !!x && x.trim() !== "")),
-  ].sort();
+  const [ordenes, modelos] = await Promise.all([getOrdenesProduccion(taller.id), getModelosProducibles()]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[10px] text-tinta/45">Taller · {taller.codigo}</p>
+        <p className="label-cayla text-[11px] text-tinta/65">{taller.nombre}</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-        <p className="mt-1 text-sm text-tinta/50">
+        <p className="mt-1 text-sm text-tinta/65">
           Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
         </p>
       </div>
 
-      <OrdenesProduccion unidadId={taller.id} modelos={modelos} materiales={materiales} ordenes={ordenes} />
+      <OrdenesProduccionV2 tallerId={taller.id} ordenes={ordenes} modelos={modelos} />
     </div>
   );
 }

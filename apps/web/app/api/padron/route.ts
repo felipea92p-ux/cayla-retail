@@ -50,8 +50,15 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
 
-  const { data: persona } = await supabase.from("personas").select("id").eq("auth_user_id", user.id).single();
-  if (!persona?.id) return Response.json({ error: "Sin persona vinculada" }, { status: 403 });
+  // La identidad la resuelve Dynamic (integración 2026-09-12, ver
+  // supabase/migrations/0009_integracion_dynamic.sql) — sin fila activa ahí,
+  // esta RPC no devuelve nada.
+  const { data: persona, error: errPersona } = await supabase.rpc("fn_persona_actual_resumen").maybeSingle();
+  // Mismo criterio que en el export: un fallo del servidor no se le achaca al usuario.
+  if (errPersona) {
+    return Response.json({ error: "No se pudo verificar tu cuenta. Reintenta." }, { status: 503 });
+  }
+  if (!persona) return Response.json({ error: "Sin persona vinculada" }, { status: 403 });
 
   // Se revalida en el servidor aunque el formulario ya lo haya hecho: la
   // validación del navegador es una cortesía para quien tipea, nunca una
@@ -61,13 +68,16 @@ export async function GET(request: Request) {
     return Response.json({ error: validacion.motivo }, { status: 400 });
   }
 
-  if (excedeTope(persona.id)) {
+  if (excedeTope(user.id)) {
     return Response.json({ error: "Demasiadas consultas seguidas. Espera un minuto." }, { status: 429 });
   }
 
   // 1) Memoria propia primero: si a este documento ya se le emitió un
   //    comprobante, el nombre está en casa — gratis, instantáneo y disponible
   //    aunque el padrón esté caído. RLS decide qué comprobantes ve cada quien.
+  // Esta SÍ ignora su error a propósito, y es la única del archivo: es una memoria de
+  // conveniencia. Si falla, todavía queda preguntarle al padrón — degradarse a la ruta
+  // lenta es correcto; tumbar la consulta por un caché frío, no.
   const { data: previo } = await supabase
     .from("comprobantes")
     .select("cliente_nombre")

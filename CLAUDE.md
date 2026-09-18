@@ -74,7 +74,10 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 **Producción de retail NO vive en su propio proyecto Supabase — vive DENTRO del
 proyecto de cayla-dynamic, en un schema llamado `retail`.** Verificado 2026-09-03:
 `select schema_name from information_schema.schemata where schema_name = 'retail'`
-devuelve la fila, con 28 tablas ahí adentro (más que las ~22 que prometía la
+devuelve la fila. **Verificado el 2026-09-12 preguntándole a la base: 45 tablas y 2
+vistas** — no 28, no 36, no 44; esos números circulaban en tres documentos distintos y
+ninguno era el bueno. El conteo al día vive en `docs/datos/generado/DICCIONARIO-RETAIL.md`
+y se regenera con `pnpm datos:generar:produccion`. (Históricamente eran ~22 según la
 unificación original — las migraciones de producción `0024`-`0029`, posteriores,
 sumaron tablas propias). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al
 proyecto de Dynamic, no al proyecto original de retail.
@@ -147,6 +150,52 @@ Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura comp
 (rutas↔lib↔RPC/tablas, modelo de datos, RLS) — actualizarla cuando cambie el modelo
 de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
 (eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
+
+## La base de datos: `/docs/datos/` (desde 2026-09-12)
+
+El modelo de datos —los dos sistemas, campo por campo— vive en `/docs/datos/`.
+Empieza por su `README.md`; el mapa conceptual es `00-MAPA.md` y los candados que la
+base hace cumplir, `01-INVARIANTES.md`. Las 52 decisiones que lo gobiernan están en
+`/docs/datos/DECISIONES-2026-09-12.md` y **mandan sobre el resto de esa carpeta**.
+
+Está partido en dos mitades y funcionan distinto: `/docs/datos/generado/` lo escribe
+un script leyendo la base real y **nadie lo edita a mano**; el resto explica el porqué
+y se escribe a mano. Mezclarlas es lo que mató a los intentos anteriores.
+
+**Regla de oro:** una migración no está terminada hasta que su tabla está en el
+diccionario. Al cerrar un cambio de esquema, correr:
+
+```
+pnpm datos:generar:produccion   # reescribe el diccionario desde el volcado de producción
+pnpm datos:comparar             # avisa si una pantalla llama a una función que producción no acepta
+```
+
+**Cuidado (aprendido el 2026-09-14): `pnpm datos:generar` a secas lee el Postgres LOCAL y
+pisa los diccionarios con la foto de tu máquina** — DYNAMIC pasa de 63 tablas a las 2 del
+stub y RETAIL deja de describir producción. Sirve solo para mirar un diff y volver atrás
+(`git checkout -- docs/datos/generado/`), nunca para commitear. Una migración nueva entra
+al diccionario cuando se aplica en producción y se refresca el volcado
+(`generado/COMO-REFRESCAR.md`); mientras tanto vive en BACKLOG como "no está en producción".
+
+`datos:comparar` cierra un hueco que ni `typecheck` ni `migraciones:verificar`
+cubrían: el primero compara el código contra los tipos generados (que suelen estar
+viejos) y el segundo el repo contra la base, pero ninguno compara **la pantalla contra
+la base real**. Así estuvieron rotos en producción `registrar_gasto` y `recibir_lote`
+sin que nada avisara.
+
+**Antes de empezar algo grande en este repo**, mirar si alguien más ya lo está
+haciendo: `git status --short` y los archivos tocados en las últimas horas. El
+2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
 Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

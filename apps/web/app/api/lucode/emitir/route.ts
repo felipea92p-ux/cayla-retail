@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { emitirDocumentoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
+import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 
 // POST /api/lucode/emitir  { comprobante_id: string }
 //
@@ -33,6 +33,7 @@ type FilaComprobante = {
   items: unknown;
   comprobante_original_id: string | null;
   motivo: string | null;
+  entorno_transmision: "sandbox" | "produccion" | null;
 };
 
 function itemsValidos(raw: unknown): ItemComprobante[] | null {
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo"
+      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision"
     )
     .eq("id", comprobanteId)
     .maybeSingle();
@@ -116,13 +117,30 @@ export async function POST(request: Request) {
     if (!fila.comprobante_original_id || !fila.motivo) {
       return Response.json({ error: "La nota no tiene comprobante original o motivo — no debería poder existir así (ADR-0007)." }, { status: 500 });
     }
-    const { data: original } = await supabase
+    const { data: original, error: errOriginal } = await supabase
       .from("comprobantes")
-      .select("tipo, serie, numero")
+      .select("tipo, serie, numero, entorno_transmision")
       .eq("id", fila.comprobante_original_id)
       .maybeSingle();
+    // Distinguir el fallo de lectura del "no es boleta ni factura": lo primero se reintenta,
+    // lo segundo es un dato mal formado que nunca se va a arreglar solo.
+    if (errOriginal) {
+      return Response.json({ error: "No se pudo leer el comprobante original de la nota. Reintenta." }, { status: 503 });
+    }
     if (!original || (original.tipo !== "boleta" && original.tipo !== "factura")) {
       return Response.json({ error: "El comprobante original de esta nota no es una boleta ni una factura." }, { status: 500 });
+    }
+    // Una nota vive en el mismo ambiente que el documento que corrige. Sin
+    // esto se puede emitir una nota de crédito REAL contra una boleta que solo
+    // existe en el sandbox: `emitir_nota` solo exige que el original esté
+    // "aceptado" (0034), y una boleta de prueba también lo está.
+    if (original.entorno_transmision && original.entorno_transmision !== entornoLucode()) {
+      return Response.json(
+        {
+          error: `El comprobante original se transmitió en "${original.entorno_transmision}" y ahora estás en "${entornoLucode()}". Una nota no puede cruzar de ambiente.`,
+        },
+        { status: 409 }
+      );
     }
     datos.original = { tipo: original.tipo, serie: original.serie, numero: original.numero };
     datos.motivoCodigo = fila.motivo;
@@ -141,8 +159,18 @@ export async function POST(request: Request) {
   const { error: errActualizar } = await supabase.rpc("actualizar_transmision_comprobante", {
     p_comprobante_id: fila.id,
     p_estado: nuevoEstado,
+    // El ambiente que devolvió la llamada, no el que hay ahora: son el mismo
+    // valor hoy, pero atarlo al resultado hace imposible guardar "aceptado en
+    // producción" para algo que se transmitió al sandbox.
+    p_entorno: resultado.entorno,
     p_respuesta_sunat: resultado,
-    p_motivo_rechazo: resultado.estado === "RECHAZADO" ? resultado.mensaje : null,
+    // `undefined` y no `null`: el parámetro de la RPC tiene default, así que
+    // supabase-js lo tipa opcional (`string | undefined`) y omitir la clave deja
+    // que Postgres aplique ese default —que es `null`—. Mandar `null` explícito
+    // no compila, y era el único error que quedaba escondido detrás de los tipos
+    // generados contra el proyecto viejo. Lucode además puede devolver un
+    // rechazo sin mensaje, así que el `?? undefined` cubre ese caso.
+    p_motivo_rechazo: resultado.estado === "RECHAZADO" ? (resultado.mensaje ?? undefined) : undefined,
   });
   if (errActualizar) {
     // Lucode SÍ transmitió — perder este registro sería peor que un error de
@@ -155,5 +183,11 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json({ estado: nuevoEstado, xmlUrl: resultado.xmlUrl, cdrUrl: resultado.cdrUrl, pdfUrl: resultado.pdfUrl });
+  return Response.json({
+    estado: nuevoEstado,
+    entorno: resultado.entorno,
+    xmlUrl: resultado.xmlUrl,
+    cdrUrl: resultado.cdrUrl,
+    pdfUrl: resultado.pdfUrl,
+  });
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { Avisos } from "@/components/ui/Avisos";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -16,7 +17,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${serif.variable} ${sans.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        {/* Avisos globales (arriba a la derecha): montado una sola vez, acá,
+            para que valga también en /login y sobreviva a la navegación. */}
+        <Avisos />
+      </body>
     </html>
   );
 }
