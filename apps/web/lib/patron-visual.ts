@@ -13,7 +13,7 @@ export type FamiliaPatron = "liso" | "rayas" | "cuadros" | "lunares" | "floral" 
 
 // Sin tildes, minúsculas y sin dobles espacios: "  Animal  PRINT " y
 // "animal print" son el mismo patrón, igual que en `fn_clave_texto` de la base.
-function normalizar(nombre: string): string {
+export function normalizarNombre(nombre: string): string {
   return nombre
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -35,7 +35,7 @@ const REGLAS: ReadonlyArray<readonly [FamiliaPatron, RegExp]> = [
 ];
 
 export function familiaDePatron(nombre: string): FamiliaPatron | null {
-  const limpio = normalizar(nombre);
+  const limpio = normalizarNombre(nombre);
   for (const [familia, regla] of REGLAS) {
     if (regla.test(limpio)) return familia;
   }

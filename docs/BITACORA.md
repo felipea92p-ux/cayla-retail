@@ -7531,6 +7531,17 @@ sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
 typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
 `/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
 
+## 2026-09-18 (Atributos → Etiquetas: cada etiqueta con su ilustración)
+Felipe pidió lo mismo que en Patrones para Etiquetas: una imagen simple y bonita por tarjeta.
+`components/MuestraEtiqueta.tsx` dibuja un ícono por concepto (corazón, gato, huella de perro,
+reloj de arena, calabaza, arbolito, bandera…) elegido por nombre en `lib/etiqueta-visual.ts`, así
+"Para liquidar — Tienda AQP" comparte dibujo con "Para liquidar". Decisión de color: NINGÚN rojo
+(es el acento sagrado, máx. 2 por pantalla y esta grilla tiene 21 tarjetas); cada dibujo usa el
+tono de su grupo — ámbar/verde/taupe — sobre un tinte suave del mismo tono. A diferencia de
+patrones, una etiqueta desconocida cae en un ícono genérico de etiqueta, no en "Sin muestra":
+es un concepto, no una tela. Sin cambio de esquema. Pendiente: foto propia por etiqueta
+(mismo mecanismo que tejidos/patrones, aún sin publicar) si algún día hace falta.
+
 ## 2026-09-18 (El aviario vuelve a cerrar: 60 de 60 tablas con pájaro — ADR-0104)
 
 Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). La sesión había
