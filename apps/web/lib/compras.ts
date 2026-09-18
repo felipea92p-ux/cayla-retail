@@ -131,7 +131,7 @@ export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
 /** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string };
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
@@ -148,6 +148,9 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     condicion: p.cond === "contado" || p.cond === "credito" ? p.cond : undefined,
     tipo: TIPOS_DOCUMENTO.find((t) => t === p.tipo),
     soloVencidas: p.vencidas === "1" || undefined,
+    // Vistas de Comprobantes (ADR-0104): «Por pagar» = con saldo, «Por recibir» = mercadería pendiente.
+    conSaldo: p.saldo === "1" || undefined,
+    porRecibir: p.porrecibir === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,
     hasta: esFecha(p.hasta) ? p.hasta : undefined,
   };
