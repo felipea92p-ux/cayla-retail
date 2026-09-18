@@ -1529,6 +1529,15 @@
    "ordinal_position": 25,
    "table_name": "compras",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "fecha_estimada_llegada",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 26,
+   "table_name": "compras",
+   "table_schema": "retail"
   }
  ],
  "compras_resumen": [
@@ -1754,6 +1763,51 @@
    "data_type": "boolean",
    "is_nullable": "YES",
    "ordinal_position": 25,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "fecha_estimada_llegada",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 26,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recepcion_atrasada",
+   "data_type": "boolean",
+   "is_nullable": "YES",
+   "ordinal_position": 27,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_telefono",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 28,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_banco",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 29,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_cuenta_bancaria",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 30,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   }
@@ -2035,6 +2089,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "YES",
    "ordinal_position": 31,
+   "table_name": "comprobantes",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "token_cliente",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 32,
    "table_name": "comprobantes",
    "table_schema": "retail"
   }
@@ -2553,6 +2616,15 @@
    "ordinal_position": 12,
    "table_name": "devoluciones",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota_credito_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "devoluciones",
+   "table_schema": "retail"
   }
  ],
  "etiquetas": [
@@ -2644,6 +2716,80 @@
    "is_nullable": "YES",
    "ordinal_position": 10,
    "table_name": "etiquetas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "vigente_desde",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "etiquetas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "vigente_hasta",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "etiquetas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'neutral'::text",
+   "column_name": "estilo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 13,
+   "table_name": "etiquetas",
+   "table_schema": "retail"
+  }
+ ],
+ "familias": [
+  {
+   "column_default": null,
+   "column_name": "codigo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "familias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "familias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "activo",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "familias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "100",
+   "column_name": "orden",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "familias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "familias",
    "table_schema": "retail"
   }
  ],
@@ -3525,6 +3671,15 @@
    "ordinal_position": 9,
    "table_name": "patrones",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "imagen_muestra_url",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "patrones",
+   "table_schema": "retail"
   }
  ],
  "prendas_danadas": [
@@ -3633,6 +3788,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "NO",
    "ordinal_position": 12,
+   "table_name": "prendas_danadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
    "table_name": "prendas_danadas",
    "table_schema": "retail"
   }
@@ -4039,6 +4203,42 @@
    "ordinal_position": 13,
    "table_name": "productos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "'aprobado'::text",
+   "column_name": "estado_alta",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 14,
+   "table_name": "productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "propuesto_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "aprobado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "aprobado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
+   "table_name": "productos",
+   "table_schema": "retail"
   }
  ],
  "proformas": [
@@ -4212,6 +4412,60 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "NO",
    "ordinal_position": 6,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rubro",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "plazo_credito_dias",
+   "data_type": "integer",
+   "is_nullable": "YES",
+   "ordinal_position": 8,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "forma_pago_preferida",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "telefono",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "banco",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuenta_bancaria",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
    "table_name": "proveedores",
    "table_schema": "retail"
   }
@@ -4519,6 +4773,15 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 9,
+   "table_name": "tejidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "imagen_muestra_url",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
    "table_name": "tejidos",
    "table_schema": "retail"
   }
@@ -4889,6 +5152,15 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 6,
+   "table_name": "ubicaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "meta_venta_diaria",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
    "table_name": "ubicaciones",
    "table_schema": "retail"
   }

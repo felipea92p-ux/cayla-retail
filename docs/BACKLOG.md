@@ -51,9 +51,24 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 - [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
       `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
       los documentos del porqué, todavía no.
-- [ ] **Refrescar el volcado de producción** (`generado/COMO-REFRESCAR.md`):
-      `retail.familias` ya existe allá desde el PR #129 y el volcado del 17-sep no la
-      tiene. Hasta refrescarlo, la alarma del aviario no ve las tablas nacidas después.
+- [x] **Volcado de producción refrescado (2026-09-18)** (`generado/COMO-REFRESCAR.md`):
+      `retail.familias` entró; el aviario ve 61 tablas y ninguna «no en el volcado».
+      Sale de aquí una alarma más fresca, no permanente: se vuelve a quedar vieja con
+      cada tanda de migraciones pegadas en producción.
+- [ ] **Producción va por delante de `main` en dos columnas:** `retail.patrones.imagen_muestra_url`
+      y `retail.tejidos.imagen_muestra_url` existen en producción, pero su SQL solo está en
+      ramas sin fusionar (PR #131, migración `20260918140000_patrones_muestra_visual.sql`, y
+      la rama `claude/muestra-foto-tejidos-patrones`, migración
+      `20260918160000_tejidos_patrones_imagen_muestra.sql`, sin PR). Ojo: `main` ya tiene un
+      `20260918140000_tejidos_seed.sql`; el PR #131 traería un segundo archivo con la misma
+      versión y `supabase db reset` local se quejaría. Renumerar antes de fusionar.
+- [ ] **Registro de migraciones incompleto en producción (refuerza el pendiente de Gorrión de
+      arriba):** con efecto vivo en producción (verificado por sus columnas/funciones) pero sin fila en
+      `supabase_migrations.schema_migrations` están, al menos siete: `devolver_proveedor_entra_a_cuarentena`,
+      las tres de Proveedores (`…071000`, `…073000`, `…120000`),
+      `compras_atraso_recepcion`, `etiquetas_estilo_visual`, `emitir_comprobante_idempotente_y_valida_igv`.
+      No hay SQL desconocido (cada columna nueva del volcado tiene su archivo en el repo, salvo lo
+      de arriba): lo que falta es el rastro.
 
 ---
 

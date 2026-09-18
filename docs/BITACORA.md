@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (El volcado de producción se refresca: `familias` entra y el aviario vuelve a ver todo)
+
+Se refrescaron los siete archivos de `docs/datos/generado/` (`retail_*.json` y `funciones-produccion.txt`) contra producción (`cayla-dynamic`, schema `retail`), solo con consultas de lectura. Pasó de 57 tablas + 3 vistas a 58 + 3: entra `retail.familias` (PR #129) y 11 tablas o vistas ganaron columnas (`proveedores`, `compras`, `productos`, `etiquetas`, `comprobantes`, `ubicaciones`…); 9 funciones cambiaron de firma. Resultado: `datos:aviario --verificar` en verde con 61 tablas y ninguna «no en el volcado»; `datos:comparar` sin pantallas rotas (78 llamadas contra 128 funciones).
+
+Cómo se verificó que el volcado quedó fiel: cada archivo se comparó con producción por firma (md5 por tabla, calculado igual en Postgres y en local) y solo se descargó lo que difería; después se recalculó y las 61/58/58/57 firmas coinciden, y el conjunto de las 128 funciones da el mismo md5 que producción.
+
+Hallazgo: todo lo nuevo tiene su migración en el repo salvo `patrones.imagen_muestra_url` y `tejidos.imagen_muestra_url`, que ya están en producción y cuyo SQL solo existe en ramas sin fusionar (PR #131 y `claude/muestra-foto-tejidos-patrones`). Además, al menos siete migraciones cuyo efecto está vivo en producción no figuran en `supabase_migrations.schema_migrations` (se pegaron en el SQL Editor). Ambos quedan en BACKLOG.
+
+Lo que Felipe se lleva: el volcado es una foto, y esta se quedó vieja en un día porque ese mismo día se pegaron varias migraciones; la alarma del aviario es tan fresca como esta foto, así que conviene refrescarla al cerrar cualquier tanda de migraciones pegadas en producción.
+
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
 Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).

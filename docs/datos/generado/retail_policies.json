@@ -379,6 +379,24 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "familias_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "familias_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "gastos_select",
   "qual": "(auth.role() = 'authenticated'::text)",
   "roles": "{public}",

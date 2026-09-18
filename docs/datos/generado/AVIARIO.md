@@ -4,14 +4,14 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 60 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 61 · **Sin pájaro:** 0
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | `colaboradores` · `ubicaciones` |
-| 02 | **Loro** | Catálogo y vocabulario | `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiquetas` · `historial_producto_cambios` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
+| 02 | **Loro** | Catálogo y vocabulario | `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiquetas` · `familias` · `historial_producto_cambios` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `costo_historial` · `lotes` · `movimientos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
@@ -59,6 +59,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `devolucion_items` | 07 · Colibrí |
 | `devoluciones` | 07 · Colibrí |
 | `etiquetas` | 02 · Loro |
+| `familias` | 02 · Loro |
 | `gastos` | 11 · Garza |
 | `historial_producto_cambios` | 02 · Loro |
 | `insumo_lotes` | 10 · Gallito |
@@ -91,10 +92,3 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `venta_items` | 07 · Colibrí |
 | `venta_pagos` | 07 · Colibrí |
 | `ventas` | 07 · Colibrí |
-
-## En el aviario, pero no en el volcado de producción
-
-Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
-`COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
-
-- `familias`

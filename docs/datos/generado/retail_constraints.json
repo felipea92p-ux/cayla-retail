@@ -165,8 +165,8 @@
   "tabla": "retail.categorias"
  },
  {
-  "conname": "categorias_familia_check",
-  "definicion": "CHECK ((familia = ANY (ARRAY['indumentaria'::text, 'calzado'::text, 'accesorios'::text, 'bisuteria'::text, 'belleza'::text, 'papeleria'::text])))",
+  "conname": "categorias_familia_fk",
+  "definicion": "FOREIGN KEY (familia) REFERENCES retail.familias(codigo)",
   "tabla": "retail.categorias"
  },
  {
@@ -565,6 +565,11 @@
   "tabla": "retail.comprobantes"
  },
  {
+  "conname": "comprobantes_token_cliente_key",
+  "definicion": "UNIQUE (token_cliente)",
+  "tabla": "retail.comprobantes"
+ },
+ {
   "conname": "comprobantes_total_check",
   "definicion": "CHECK ((total > (0)::numeric))",
   "tabla": "retail.comprobantes"
@@ -790,6 +795,11 @@
   "tabla": "retail.devoluciones"
  },
  {
+  "conname": "devoluciones_nota_credito_id_fkey",
+  "definicion": "FOREIGN KEY (nota_credito_id) REFERENCES retail.comprobantes(id)",
+  "tabla": "retail.devoluciones"
+ },
+ {
   "conname": "devoluciones_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.devoluciones"
@@ -820,6 +830,11 @@
   "tabla": "retail.etiquetas"
  },
  {
+  "conname": "etiquetas_estilo_valido",
+  "definicion": "CHECK ((estilo = ANY (ARRAY['neutral'::text, 'urgencia'::text, 'positivo'::text, 'campana'::text])))",
+  "tabla": "retail.etiquetas"
+ },
+ {
   "conname": "etiquetas_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.etiquetas"
@@ -833,6 +848,16 @@
   "conname": "etiquetas_rechazado_no_activo",
   "definicion": "CHECK (((estado <> 'rechazado'::text) OR (activo = false)))",
   "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "etiquetas_vigencia_coherente",
+  "definicion": "CHECK (((vigente_desde IS NULL) OR (vigente_hasta IS NULL) OR (vigente_desde <= vigente_hasta)))",
+  "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "familias_pkey",
+  "definicion": "PRIMARY KEY (codigo)",
+  "tabla": "retail.familias"
  },
  {
   "conname": "gastos_documento_tipo_check",
@@ -1191,7 +1216,7 @@
  },
  {
   "conname": "prendas_danadas_estado_check",
-  "definicion": "CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text])))",
+  "definicion": "CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text, 'devuelta_proveedor'::text])))",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -1207,6 +1232,16 @@
  {
   "conname": "prendas_danadas_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_proveedor_coherente",
+  "definicion": "CHECK (((estado = 'devuelta_proveedor'::text) = (proveedor_id IS NOT NULL)))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -1335,8 +1370,18 @@
   "tabla": "retail.producto_fotos"
  },
  {
+  "conname": "productos_aprobado_por_fkey",
+  "definicion": "FOREIGN KEY (aprobado_por) REFERENCES personas(id)",
+  "tabla": "retail.productos"
+ },
+ {
   "conname": "productos_categoria_id_fkey",
   "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_estado_alta_check",
+  "definicion": "CHECK ((estado_alta = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))",
   "tabla": "retail.productos"
  },
  {
@@ -1352,6 +1397,11 @@
  {
   "conname": "productos_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_propuesto_por_fkey",
+  "definicion": "FOREIGN KEY (propuesto_por) REFERENCES personas(id)",
   "tabla": "retail.productos"
  },
  {
@@ -1400,8 +1450,18 @@
   "tabla": "retail.proformas"
  },
  {
+  "conname": "proveedores_forma_pago_valida",
+  "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))",
+  "tabla": "retail.proveedores"
+ },
+ {
   "conname": "proveedores_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_plazo_credito_positivo",
+  "definicion": "CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))",
   "tabla": "retail.proveedores"
  },
  {
@@ -1648,6 +1708,11 @@
   "conname": "ubicacion_datos_fiscales_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.ubicacion_datos_fiscales"
+ },
+ {
+  "conname": "ubicaciones_meta_venta_diaria_positiva",
+  "definicion": "CHECK (((meta_venta_diaria IS NULL) OR (meta_venta_diaria > (0)::numeric)))",
+  "tabla": "retail.ubicaciones"
  },
  {
   "conname": "ubicaciones_nombre_key",

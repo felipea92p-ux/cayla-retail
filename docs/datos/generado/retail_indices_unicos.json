@@ -150,6 +150,11 @@
   "tablename": "comprobantes"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_token_cliente_key ON retail.comprobantes USING btree (token_cliente)",
+  "indexname": "comprobantes_token_cliente_key",
+  "tablename": "comprobantes"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX configuracion_empresa_pkey ON retail.configuracion_empresa USING btree (id)",
   "indexname": "configuracion_empresa_pkey",
   "tablename": "configuracion_empresa"
@@ -213,6 +218,16 @@
   "indexdef": "CREATE UNIQUE INDEX etiquetas_pkey ON retail.etiquetas USING btree (id)",
   "indexname": "etiquetas_pkey",
   "tablename": "etiquetas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX familias_nombre_unico ON retail.familias USING btree (retail.fn_clave_texto(nombre))",
+  "indexname": "familias_nombre_unico",
+  "tablename": "familias"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX familias_pkey ON retail.familias USING btree (codigo)",
+  "indexname": "familias_pkey",
+  "tablename": "familias"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX gastos_pkey ON retail.gastos USING btree (id)",
