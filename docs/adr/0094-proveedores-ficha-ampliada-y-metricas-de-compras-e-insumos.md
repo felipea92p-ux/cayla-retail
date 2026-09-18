@@ -4,9 +4,9 @@
 **Estado:** Construido y verificado en local, esta vez incluido el navegador real (no solo
 `psql`) — ver "Cómo se verificó", sección "Segunda vuelta", para el bug real que esa prueba
 encontró y que `psql` con parámetros nombrados no detectaba. Pendiente: pegar en producción.
-**Afecta:** `supabase/migrations/20260917210000_devolver_proveedor_entra_a_cuarentena.sql`,
-`20260917220000_proveedores_rubro_plazo_forma_pago.sql`,
-`20260917230000_proveedor_metricas_compras_e_insumos.sql`; `apps/web/lib/proveedores.ts`;
+**Afecta:** `supabase/migrations/20260918070000_devolver_proveedor_entra_a_cuarentena.sql`,
+`20260918071000_proveedores_rubro_plazo_forma_pago.sql`,
+`20260918072000_proveedor_metricas_compras_e_insumos.sql`; `apps/web/lib/proveedores.ts`;
 `apps/web/components/ProveedoresPanel.tsx`; nueva ruta
 `apps/web/app/(app)/compras/proveedores/[id]/page.tsx`; `docs/datos/DECISIONES-2026-09-12.md`
 (D-46, corrección de staleness).
@@ -46,7 +46,7 @@ le debemos a un proveedor" iba a ser una métrica real, sí valía la pena cerra
 **DECIDÍ, en 4 piezas:**
 
 **1. `devolver_proveedor` entra a cuarentena, igual que Dañado — reusando la máquina que ya
-existe, no una nueva.** `20260917195448_cuarentena_prendas_danadas.sql` (mismo día, sesión
+existe, no una nueva.** `20260917095000_cuarentena_prendas_danadas.sql` (mismo día, sesión
 anterior) había resuelto exactamente este bug para `danada_reparacion`/`danada_donar` y dejó
 `devolver_proveedor` flageado a propósito, afuera. En vez de una tabla/flujo gemelo,
 `devolver_proveedor` se suma como tercera condición que entra a `cuarentena`, y
@@ -166,7 +166,7 @@ vea eso y entre al detalle.**
   asumió una respuesta. Decidió una versión más angosta que "reemplazar D-27 del todo":
   el directorio (nombre/RUC/contacto/rubro/plazo/forma de pago) sigue siendo para
   cualquiera con cuenta; lo financiero (facturas, montos, vencidas, recepción) y el clic
-  al detalle pasan a ser solo de líder. `20260917240000_proveedores_lista_indicadores_y_candado_sede.sql`
+  al detalle pasan a ser solo de líder. `20260918073000_proveedores_lista_indicadores_y_candado_sede.sql`
   extiende `fn_proveedores()` con `total_facturado`, `facturas_vencidas`,
   `facturas_recibidas_completas`, `facturas_con_recepcion_pendiente`, y envuelve TODO lo
   financiero en `case when fn_es_lider() then ... end` — la base no manda el dato a quien

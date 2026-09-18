@@ -271,7 +271,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       onKeyDown={(e) => {
         if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
       }}
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
+      className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start"
     >
       {/* Columna principal: documento, líneas, pago, nota. El resumen va en
           la columna de la derecha y se queda fijo al hacer scroll. */}
@@ -316,11 +316,13 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
                 </option>
               ))}
             </CampoSelectNativo>
-            <div className="grid grid-cols-[7rem_1fr] gap-3">
+            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]">
               <CampoTexto etiqueta="Serie" id="compra-serie" mono value={serie} onChange={(e) => setSerie(e.target.value.toUpperCase())} placeholder="F001" maxLength={8} autoComplete="off" />
               <CampoTexto etiqueta="Número" id="compra-numero" mono value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="000123" maxLength={12} autoComplete="off" inputMode="numeric" />
+              <div className="col-span-2 sm:col-span-1">
+                <CampoFecha etiqueta="Fecha de emisión" valor={fechaEmision} onValor={setFechaEmision} required />
+              </div>
             </div>
-            <CampoFecha etiqueta="Fecha de emisión" valor={fechaEmision} onValor={setFechaEmision} required />
             <Segmentado
               etiqueta="Condición de pago"
               valor={condicion}
@@ -477,7 +479,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
           total ya cuadraba con el papel. El resumen vive a la derecha y se
           queda pegado al hacer scroll (pedido de Felipe, 2026-09-14 — antes
           era un pie fijo abajo). En celular cae al final del formulario. */}
-      <aside className="card-cayla space-y-4 p-5 lg:sticky lg:top-24">
+      <aside className="card-cayla space-y-4 p-5 xl:sticky xl:top-24">
         <p className={campoEtiqueta}>Resumen</p>
         <dl className="space-y-1.5 text-sm">
           <div className="flex justify-between">

@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, Campo, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
+import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FAMILIAS, type Familia } from "@cayla-retail/shared";
 
 /**
  * Las 6 familias fijas, cada una con sus categorías (BLU, POL, JEA…).
- * Portado de V1 (ADR-0072) — a diferencia de V1, en V2 `categorias.nombre`
+ * Portado de V1 (ADR-0095) — a diferencia de V1, en V2 `categorias.nombre`
  * es único GLOBAL (no por familia): dos familias no pueden tener una
  * categoría con el mismo nombre, a propósito, para no repetir el error que
  * V1 sí permitía.
@@ -28,6 +29,18 @@ import { FAMILIAS, type Familia } from "@cayla-retail/shared";
  * pantalla nunca deja elegir un padre que ya sea hija, ni un padre para una
  * categoría que ya tiene hijas propias, pero el candado real vive en la
  * base, no acá.
+ *
+ * TALLAS/TEJIDOS/PATRONES QUE OFRECE (2026-09-17, ADR-0095).
+ * `categoria_tallas`/`categoria_tejidos`/`categoria_patrones` reemplazan,
+ * no amplían: una subcategoría tiene su propia lista, nunca hereda la del
+ * padre — por eso el selector vive para CUALQUIER categoría en edición,
+ * no solo para raíces (a diferencia de Subcategorías, que sí es solo-raíz
+ * porque una hija no puede tener hijas propias). Se guarda JUNTO con el
+ * resto del formulario, un solo botón ("Guardar cambios") — la primera
+ * versión tenía un botón aparte ("Guardar tallas/tejidos/patrones") y el
+ * botón grande de abajo lo descartaba en silencio mostrando igual un aviso
+ * de éxito. Dos botones de guardar en el mismo modal era el error de
+ * diseño (principio 12), no una falta de atención de quien hacía clic.
  */
 
 type Categoria = {
@@ -43,7 +56,10 @@ type Categoria = {
 const ETIQUETA_FAMILIA: Record<Familia, string> = {
   indumentaria: "Indumentaria",
   calzado: "Calzado",
-  accesorios: "Accesorios",
+  // Contenido validado con Felipe el 2026-09-17 contra Ralph Lauren/Zara
+  // (ambas usan "Accesorios y Complementos" fusionado) — el valor guardado
+  // sigue siendo 'accesorios', solo cambia lo que ve la persona.
+  accesorios: "Accesorios y Complementos",
   bisuteria: "Bisutería",
   belleza: "Belleza",
   papeleria: "Papelería",
@@ -81,12 +97,19 @@ function ChipCategoria({
   );
 }
 
+type EjesDraft = { tallaIds: string[]; tejidoIds: string[]; patronIds: string[] };
+const EJES_VACIO: EjesDraft = { tallaIds: [], tejidoIds: [], patronIds: [] };
+
 export function CategoriasLista({
   categoriasIniciales,
   puedeEditar,
+  universo,
+  ejesPorCategoria: ejesPorCategoriaInicial,
 }: {
   categoriasIniciales: Categoria[];
   puedeEditar: boolean;
+  universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
+  ejesPorCategoria: EjesPorCategoria;
 }) {
   const [categorias, setCategorias] = useState(categoriasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -94,6 +117,12 @@ export function CategoriasLista({
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [subDraft, setSubDraft] = useState({ nombre: "", prefijo: "" });
   const [subGuardando, setSubGuardando] = useState(false);
+  // Copia local de lo que YA ofrece cada categoría — igual que `categorias`,
+  // arranca del prop y se actualiza sola tras cada guardado, así reabrir el
+  // modal de la misma categoría en la misma sesión muestra lo recién
+  // guardado en vez de la foto del primer render.
+  const [ejesPorCategoria, setEjesPorCategoria] = useState(ejesPorCategoriaInicial);
+  const [ejesDraft, setEjesDraft] = useState<EjesDraft>(EJES_VACIO);
 
   const editando = borrador?.id !== null && borrador?.id !== undefined;
   const activas = categorias.filter((c) => c.activo);
@@ -102,6 +131,15 @@ export function CategoriasLista({
   function abrirBorrador(b: Borrador | null) {
     setBorrador(b);
     setSubDraft({ nombre: "", prefijo: "" });
+    setEjesDraft(
+      b?.id
+        ? {
+            tallaIds: (ejesPorCategoria.tallas[b.id] ?? []).map((v) => v.id),
+            tejidoIds: (ejesPorCategoria.tejidos[b.id] ?? []).map((v) => v.id),
+            patronIds: (ejesPorCategoria.patrones[b.id] ?? []).map((v) => v.id),
+          }
+        : EJES_VACIO
+    );
   }
 
   // Una hija "visible como raíz" cubre el caso raro de que su padre se haya
@@ -153,6 +191,34 @@ export function CategoriasLista({
         const sinEsta = actual.filter((c) => c.id !== guardada.id);
         return [...sinEsta, guardada].sort((a, b) => a.nombre.localeCompare(b.nombre));
       });
+
+      // Tallas/tejidos/patrones se guardan en la MISMA acción — antes vivían
+      // en un botón aparte dentro del mismo modal, y el botón grande de
+      // abajo ("Guardar cambios", el que cualquiera espera que cierre el
+      // formulario guardando todo) los descartaba en silencio mostrando
+      // igual un aviso de éxito. Dos botones de guardar en el mismo modal
+      // era el error de diseño, no una falta de atención de quien hacía
+      // clic — se resuelve juntándolos en uno solo, no agregando una
+      // advertencia encima.
+      if (editando) {
+        const resEjes = await fetch("/api/productos/categorias/ejes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ categoriaId: guardada.id, ...ejesDraft }),
+        });
+        if (!resEjes.ok) {
+          const datosEjes = await resEjes.json().catch(() => null);
+          avisar.error(datosEjes?.error ?? "La categoría se guardó, pero no se pudieron guardar las tallas/tejidos/patrones. Reintenta editándola de nuevo.");
+          abrirBorrador(null);
+          return;
+        }
+        setEjesPorCategoria((actual) => ({
+          tallas: { ...actual.tallas, [guardada.id]: universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)) },
+          tejidos: { ...actual.tejidos, [guardada.id]: universo.tejidos.filter((v) => ejesDraft.tejidoIds.includes(v.id)) },
+          patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
+        }));
+      }
+
       avisar.exito(editando ? `Categoría ${guardada.nombre} actualizada` : `Categoría ${guardada.nombre} agregada`);
       abrirBorrador(null);
     } catch {
@@ -451,6 +517,54 @@ export function CategoriasLista({
               </span>
               .
             </p>
+          )}
+
+          {editando && (
+            <div className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Tallas que ofrece</p>
+                {universo.tallas.length > 0 ? (
+                  <div className="mt-1.5">
+                    <SelectorMultiple
+                      opciones={universo.tallas.map((v) => ({ valor: v.id, texto: v.texto }))}
+                      seleccionadas={ejesDraft.tallaIds}
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v })}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tallas aprobadas.</p>
+                )}
+              </div>
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Tejidos que ofrece</p>
+                {universo.tejidos.length > 0 ? (
+                  <div className="mt-1.5">
+                    <SelectorMultiple
+                      opciones={universo.tejidos.map((v) => ({ valor: v.id, texto: v.texto }))}
+                      seleccionadas={ejesDraft.tejidoIds}
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tejidoIds: v })}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tejidos aprobados.</p>
+                )}
+              </div>
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Patrones que ofrece</p>
+                {universo.patrones.length > 0 ? (
+                  <div className="mt-1.5">
+                    <SelectorMultiple
+                      opciones={universo.patrones.map((v) => ({ valor: v.id, texto: v.texto }))}
+                      seleccionadas={ejesDraft.patronIds}
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, patronIds: v })}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay patrones aprobados.</p>
+                )}
+              </div>
+              {puedeEditar && <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
+            </div>
           )}
 
           <div className="mt-5 flex items-center justify-between gap-2">

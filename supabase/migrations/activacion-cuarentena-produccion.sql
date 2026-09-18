@@ -17,7 +17,7 @@
 -- alguien apruebe una devolución con condición dañada.
 --
 -- ORDEN DE APLICACIÓN EN PRODUCCIÓN (no antes de confirmar con Felipe):
---   1) La migración de esquema `20260917100000_cuarentena_prendas_danadas.sql`
+--   1) La migración de esquema `20260917095000_cuarentena_prendas_danadas.sql`
 --      completa, pegada en el SQL Editor CON el prefijo `retail.` agregado a
 --      cada tabla (regla del repo: el SQL Editor de producción, a diferencia
 --      de `supabase db reset` local, busca en `public` por defecto).

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { DevolucionFormV2 } from "@/components/DevolucionFormV2";
 import { AnularVentaForm } from "@/components/AnularVentaForm";
@@ -35,12 +36,14 @@ export function DevolucionesLista({
   ubicacionId,
   esLider,
   busqueda,
+  todasLasSedes = false,
 }: {
   lineas: LineaVentaParaDevolucion[];
   pendientes: DevolucionPendiente[];
   ubicacionId: string;
   esLider: boolean;
   busqueda: string;
+  todasLasSedes?: boolean;
 }) {
   const [enDevolucion, setEnDevolucion] = useState<LineaVentaParaDevolucion | null>(null);
   const [enAnulacion, setEnAnulacion] = useState<LineaVentaParaDevolucion | null>(null);
@@ -62,13 +65,17 @@ export function DevolucionesLista({
       )}
 
       <div className="space-y-3">
-        <BuscarPorComprobante valorInicial={busqueda} />
+        <BuscarPorComprobante valorInicial={busqueda} todasInicial={todasLasSedes} />
         <p className="label-cayla text-[11px] text-tinta/65">
           {busqueda ? `Resultado de "${busqueda}"` : "Ventas recientes"}
         </p>
         {lineas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/75">
-            {busqueda ? "No encontramos esa boleta o factura en esta sede." : "Todavía no hay ventas recientes."}
+            {busqueda
+              ? todasLasSedes
+                ? "No encontramos esa boleta o factura en ninguna sede."
+                : "No encontramos esa boleta o factura en esta sede — prueba marcando \"Buscar en todas las sedes\"."
+              : "Todavía no hay ventas recientes."}
           </p>
         ) : (
         <div className="card-cayla divide-y divide-tinta/10">
@@ -138,7 +145,7 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("aprobar_devolucion", {
+    const { data, error } = await supabase.rpc("aprobar_devolucion", {
       p_devolucion_id: d.id,
       p_reembolso_monto: monto ? Number(monto) : undefined,
       p_reembolso_metodo: monto ? metodo : undefined,
@@ -147,6 +154,18 @@ function FilaPendiente({ devolucion: d, puedeResolver }: { devolucion: Devolucio
     if (error) {
       setError(traducirError(error, "aprobar la devolución"));
       return;
+    }
+    // Si la venta tenía un comprobante ya aceptado por SUNAT, aprobar_devolucion
+    // (20260918) emite la Nota de Crédito sola — nadie tiene que acordarse de
+    // ir a Facturación aparte. `data` es una tabla vacía cuando no aplicaba
+    // (venta sin comprobante, o comprobante nunca aceptado).
+    const nota = data?.[0];
+    if (nota?.nota_credito_id) {
+      avisar.exito("Devolución aprobada", {
+        detalle: `Nota de crédito ${nota.nota_credito_serie}-${String(nota.nota_credito_numero).padStart(6, "0")} reservada — transmítela desde Facturación.`,
+      });
+    } else {
+      avisar.exito("Devolución aprobada");
     }
     router.refresh();
   }

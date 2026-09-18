@@ -49,7 +49,7 @@
 -- colaborador ya no ve el dato en absoluto), pero el candado de sede se dejó
 -- igual — un líder de otra sede seguía sin motivo real para verlo cruzado,
 -- y es la misma pieza ya probada en
--- `20260917230000_proveedor_metricas_compras_e_insumos.sql`.
+-- `20260918072000_proveedor_metricas_compras_e_insumos.sql`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;

@@ -71,7 +71,7 @@ select id, 'Piso de venta', 'piso_venta' from retail.ubicaciones where tipo = 't
 union all
 select id, 'Almacén de tienda', 'almacen_tienda' from retail.ubicaciones where tipo = 'tienda';
 
--- Cuarentena (20260917100000_cuarentena_prendas_danadas.sql): mismo criterio
+-- Cuarentena (20260917095000_cuarentena_prendas_danadas.sql): mismo criterio
 -- que piso/almacén — solo tiendas, porque solo una tienda puede recibir una
 -- devolución dañada (el Taller no vende a clientas).
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
@@ -188,76 +188,84 @@ insert into retail.clientes (tipo_doc, num_doc, nombre, telefono) values
   ('ruc', '20601234567', 'Boutique Mía SAC', '014567890'),
   ('sin_documento', null, 'Cliente de mostrador', null);
 
+-- ---------- tallas (vocabulario cerrado desde 20260917100000/100500) ----------
+-- Nacen 'aprobado' directo, igual que los 30 colores de 20260912235500: son
+-- datos de seed reales, no propuestas de un colaborador de prueba.
+insert into retail.tallas (valor, estado) values
+  ('S', 'aprobado'), ('M', 'aprobado'), ('L', 'aprobado'),
+  ('28', 'aprobado'), ('30', 'aprobado'), ('32', 'aprobado'), ('34', 'aprobado')
+on conflict do nothing;
+
 -- ---------- productos + variantes (10 productos, ~48 variantes) ----------
 insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo' from retail.categorias where nombre = 'Blusas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'BLU-EMMA-' || c.codigo || '-' || t.talla, 79.90, 32.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Blusa Emma' and c.codigo in ('NEG', 'BEI');
+select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo' from retail.categorias where nombre = 'Camisas y Blusas';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'BLU-EMMA-' || c.codigo || '-' || t.valor, 79.90, 32.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Blusa Emma' and c.codigo in ('NEG', 'BEI') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Valentina', 'Blusa cropped manga corta' from retail.categorias where nombre = 'Blusas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'BLU-VALE-' || c.codigo || '-' || t.talla, 69.90, 28.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Blusa Valentina' and c.codigo in ('BLA', 'ROS');
+select id, 'Blusa Valentina', 'Blusa cropped manga corta' from retail.categorias where nombre = 'Camisas y Blusas';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'BLU-VALE-' || c.codigo || '-' || t.valor, 69.90, 28.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Blusa Valentina' and c.codigo in ('BLA', 'ROS') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Vestido Sofía', 'Vestido midi con cinturón' from retail.categorias where nombre = 'Vestidos';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'VES-SOFI-' || c.codigo || '-' || t.talla, 149.90, 58.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Vestido Sofía' and c.codigo in ('NEG', 'AZM');
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'VES-SOFI-' || c.codigo || '-' || t.valor, 149.90, 58.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Vestido Sofía' and c.codigo in ('NEG', 'AZM') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Vestido Antonella', 'Vestido corto de tiras' from retail.categorias where nombre = 'Vestidos';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'VES-ANTO-' || c.codigo || '-' || t.talla, 129.90, 50.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Vestido Antonella' and c.codigo = 'ROS';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'VES-ANTO-' || c.codigo || '-' || t.valor, 129.90, 50.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Vestido Antonella' and c.codigo = 'ROS' and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Pantalón Carla', 'Pantalón recto tiro alto' from retail.categorias where nombre = 'Pantalones';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'PAN-CARL-' || c.codigo || '-' || t.talla, 99.90, 40.00
-from retail.productos p, retail.colores c, (values ('28'), ('30'), ('32'), ('34')) as t (talla)
-where p.referencia = 'Pantalón Carla' and c.codigo in ('NEG', 'BEI');
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'PAN-CARL-' || c.codigo || '-' || t.valor, 99.90, 40.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Pantalón Carla' and c.codigo in ('NEG', 'BEI') and t.valor in ('28', '30', '32', '34');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Pantalón Mía', 'Pantalón wide leg' from retail.categorias where nombre = 'Pantalones';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'PAN-MIA-' || c.codigo || '-' || t.talla, 109.90, 44.00
-from retail.productos p, retail.colores c, (values ('28'), ('30'), ('32')) as t (talla)
-where p.referencia = 'Pantalón Mía' and c.codigo = 'AZM';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'PAN-MIA-' || c.codigo || '-' || t.valor, 109.90, 44.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Pantalón Mía' and c.codigo = 'AZM' and t.valor in ('28', '30', '32');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Falda Renata', 'Falda midi plisada' from retail.categorias where nombre = 'Faldas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'FAL-RENA-' || c.codigo || '-' || t.talla, 74.90, 30.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Falda Renata' and c.codigo in ('NEG', 'BEI');
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'FAL-RENA-' || c.codigo || '-' || t.valor, 74.90, 30.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Falda Renata' and c.codigo in ('NEG', 'BEI') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Falda Ariana', 'Falda corta acampanada' from retail.categorias where nombre = 'Faldas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'FAL-ARIA-' || c.codigo || '-' || t.talla, 64.90, 26.00
-from retail.productos p, retail.colores c, (values ('S'), ('M')) as t (talla)
-where p.referencia = 'Falda Ariana' and c.codigo = 'ROS';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'FAL-ARIA-' || c.codigo || '-' || t.valor, 64.90, 26.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Falda Ariana' and c.codigo = 'ROS' and t.valor in ('S', 'M');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Casaca Ximena', 'Casaca acolchada' from retail.categorias where nombre = 'Casacas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'CAS-XIME-' || c.codigo || '-' || t.talla, 179.90, 72.00
-from retail.productos p, retail.colores c, (values ('S'), ('M'), ('L')) as t (talla)
-where p.referencia = 'Casaca Ximena' and c.codigo in ('NEG', 'AZM');
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'CAS-XIME-' || c.codigo || '-' || t.valor, 179.90, 72.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Casaca Ximena' and c.codigo in ('NEG', 'AZM') and t.valor in ('S', 'M', 'L');
 
 insert into retail.productos (categoria_id, referencia, descripcion)
 select id, 'Casaca Luciana', 'Casaca de jean oversize' from retail.categorias where nombre = 'Casacas';
-insert into retail.variantes (producto_id, color_codigo, talla, sku, precio, costo)
-select p.id, c.codigo, t.talla, 'CAS-LUCI-' || c.codigo || '-' || t.talla, 159.90, 64.00
-from retail.productos p, retail.colores c, (values ('M'), ('L')) as t (talla)
-where p.referencia = 'Casaca Luciana' and c.codigo = 'BEI';
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, c.codigo, t.id, 'CAS-LUCI-' || c.codigo || '-' || t.valor, 159.90, 64.00
+from retail.productos p, retail.colores c, retail.tallas t
+where p.referencia = 'Casaca Luciana' and c.codigo = 'BEI' and t.valor in ('M', 'L');
 
 insert into retail.codigos_barras (variante_id, codigo, origen)
 select v.id, '77501' || lpad((row_number() over (order by v.sku))::text, 8, '0'), 'fabrica'
@@ -475,5 +483,38 @@ begin
        where ubicacion_id = ubic_lima and sububicacion_id = sub_piso_lima and variante_id = sku_blu_emma_neg_m));
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
+
+-- ---------- "Para liquidar" — UNA sola, global (corregido 2026-09-18) ----------
+-- Versión anterior: una fila por sede con `sedes_permitidas` fija a esa
+-- sede — mal diseño, no solo "visualmente confuso" (Felipe lo notó en la
+-- pantalla: "por qué existen 4, uno solo y elegimos"). `sedes_permitidas`
+-- NO es cosmético: `fn_variante_permitida_en_sede`, usada por
+-- `registrar_venta`/`transferir`, BLOQUEA la venta/traslado de esa
+-- variante en cualquier sede que no esté en la lista. "Para liquidar —
+-- Tienda TRU" habría bloqueado sin querer la venta de esa misma prenda en
+-- Tienda AQP, aunque AQP tuviera su propio stock fresco — mezclaba dos
+-- problemas distintos (exclusividad real de venta vs. aviso informativo
+-- de liquidación). Verificado antes de corregir: 0 variantes tenían
+-- alguna de las 4 aplicada todavía, así que no hay nada que migrar.
+-- Costo aceptado de ir a una sola etiqueta global: es puramente
+-- cosmético — una prenda puede mostrarse "para liquidar" en una sede
+-- donde en realidad no lo está. Se afina con vigencia/estilo visual más
+-- adelante si hace falta, nunca con un candado de venta.
+alter table retail.etiquetas disable trigger etiquetas_estado_biut;
+
+insert into retail.etiquetas (nombre, estado, activo, notas)
+values (
+  'Para liquidar', 'aprobado', true,
+  'Global a propósito — sedes_permitidas es un candado real que bloquea venta/traslado (ver registrar_venta/transferir), no algo cosmético. No restringir por sede acá: mezclaría "avisar que se liquida" con "prohibir vender en otra sede".'
+)
+on conflict (retail.fn_clave_texto(nombre)) do nothing;
+
+alter table retail.etiquetas enable trigger etiquetas_estado_biut;
+
+-- Estilo visual (20260918060000): esa migración clasifica "Para liquidar"
+-- por nombre, pero corre ANTES que este seed (migraciones primero, seed
+-- después) — acá todavía no existía la fila. Mismo criterio, aplicado
+-- después de crearla.
+update retail.etiquetas set estilo = 'urgencia' where nombre = 'Para liquidar';
 
 commit;

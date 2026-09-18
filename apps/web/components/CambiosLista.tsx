@@ -31,23 +31,29 @@ export function CambiosLista({
   ubicacionId,
   catalogo,
   busqueda,
+  todasLasSedes = false,
 }: {
   lineas: LineaVentaReciente[];
   ubicacionId: string;
   catalogo: VarianteCatalogo[];
   busqueda: string;
+  todasLasSedes?: boolean;
 }) {
   const [enCambio, setEnCambio] = useState<LineaVentaReciente | null>(null);
 
   return (
     <div className="space-y-3">
-      <BuscarPorComprobante valorInicial={busqueda} />
+      <BuscarPorComprobante valorInicial={busqueda} todasInicial={todasLasSedes} />
       <p className="label-cayla text-[11px] text-tinta/65">
         {busqueda ? `Resultado de "${busqueda}"` : "Ventas recientes"}
       </p>
       {lineas.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
-          {busqueda ? "No encontramos esa boleta o factura en esta sede." : "Todavía no hay ventas recientes."}
+          {busqueda
+            ? todasLasSedes
+              ? "No encontramos esa boleta o factura en ninguna sede."
+              : "No encontramos esa boleta o factura en esta sede — prueba marcando \"Buscar en todas las sedes\"."
+            : "Todavía no hay ventas recientes."}
         </p>
       ) : (
         <div className="card-cayla divide-y divide-tinta/10">

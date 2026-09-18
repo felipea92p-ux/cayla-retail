@@ -37,6 +37,14 @@ export type Comprobante = {
   anulacion_solicitada_at: string | null;
   created_at: string;
   ubicacion_id: string;
+  /** Sacados de `respuesta_sunat` (lo que Lucode devolvió al transmitir) —
+   *  `null` mientras no se transmite o si el proveedor no los mandó. SUNAT
+   *  ya los tiene desde que `estado` pasa a "enviado"/"aceptado"; sin esto
+   *  la clienta nunca los ve, aunque el documento ya sea legal (hueco
+   *  encontrado en la auditoría de Facturación, 2026-09-17). */
+  pdfUrl: string | null;
+  xmlUrl: string | null;
+  cdrUrl: string | null;
 };
 
 export type SerieComprobante = {

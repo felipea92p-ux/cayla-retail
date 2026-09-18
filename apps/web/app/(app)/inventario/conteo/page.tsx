@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
 import { avanceConteo, exactitudConteos, resumirVarianza } from "@/lib/conteo-varianza";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogo, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -28,15 +28,18 @@ function soles(n: number) {
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad] = await Promise.all([
+  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosResumen(persona.ubicacionId),
     getCatalogo(),
     getSububicaciones(persona.ubicacionId),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     getPrioridadConteo(persona.ubicacionId),
+    supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
+    getEjesPorCategoria(),
   ]);
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }));
 
   // El avance y la diferencia del conteo abierto salen de la misma vista
   // previa que usa «Revisar y cerrar» — una sola forma de calcularlos.
@@ -129,6 +132,8 @@ export default async function ConteoPage() {
           sububicaciones={sububicaciones}
           categorias={categoriasOpciones}
           prioridad={prioridad}
+          colores={coloresOpciones}
+          tallasPorCategoria={ejes.tallas}
           catalogo={catalogo
             .filter((v) => v.activo)
             .map((v) => ({

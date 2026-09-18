@@ -76,14 +76,6 @@ function IconoPercha({ color, size = 36 }: { color?: string; size?: number }) {
   );
 }
 
-function IconoAmpliar() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
-      <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" />
-    </svg>
-  );
-}
-
 /** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
  *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
  *  (hover, o si no hay hover, el fijado, o si no hay ninguno, el primero). */
@@ -102,7 +94,23 @@ function SwatchesColor({
 }) {
   if (colores.length === 0) return null;
   return (
-    <div role="radiogroup" aria-label="Color" className="flex items-center gap-1.5">
+    // onMouseLeave/onBlur van en el GRUPO, no en cada botón: `mouseleave` no
+    // burbujea entre hermanos, así que mover el mouse de un swatch al
+    // vecino nunca pasa por un instante "sin hover" — antes, con el
+    // handler en cada botón, ese instante hacía caer `activo` al primer
+    // color de la lista (el fallback de `nombreActivo`) y el anillo
+    // "saltaba" ahí antes de asentarse en el nuevo, un parpadeo que se
+    // sentía trabado. Mismo motivo para el blur por teclado: `relatedTarget`
+    // decide si el foco se fue del grupo entero, no solo del botón actual.
+    <div
+      role="radiogroup"
+      aria-label="Color"
+      className="flex items-center gap-1.5"
+      onMouseLeave={() => onHover(null)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
+      }}
+    >
       {colores.map((c) => (
         <button
           key={c.nombre}
@@ -111,9 +119,7 @@ function SwatchesColor({
           aria-checked={c.nombre === activo}
           aria-label={c.nombre}
           onMouseEnter={() => onHover(c.nombre)}
-          onMouseLeave={() => onHover(null)}
           onFocus={() => onHover(c.nombre)}
-          onBlur={() => onHover(null)}
           onClick={() => onFijar(c.nombre)}
           className={`${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
             c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
@@ -174,8 +180,14 @@ function TarjetaProducto({
   const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
 
   return (
-    <div className="card-cayla group flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-      <div className="relative aspect-[4/5] transition-colors duration-300" style={activo?.fotoUrl ? undefined : { background: tinte }}>
+    <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+      <button
+        type="button"
+        onClick={() => setVistaRapida(true)}
+        aria-label={`Vista rápida de ${producto.referencia}`}
+        className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
+        style={activo?.fotoUrl ? undefined : { background: tinte }}
+      >
         {activo?.fotoUrl ? (
           <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" unoptimized />
         ) : (
@@ -188,15 +200,7 @@ function TarjetaProducto({
             </span>
           </>
         )}
-        <button
-          type="button"
-          onClick={() => setVistaRapida(true)}
-          aria-label={`Vista rápida de ${producto.referencia}`}
-          className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-papel/85 text-tinta opacity-0 transition-opacity duration-200 hover:bg-papel focus-visible:opacity-100 group-hover:opacity-100"
-        >
-          <IconoAmpliar />
-        </button>
-      </div>
+      </button>
 
       <div className="flex flex-1 flex-col gap-2.5 px-4 py-4">
         <div>
@@ -291,7 +295,6 @@ function VistaRapidaModal({
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Talla</th>
                   <th className="label-cayla py-2 pr-3 text-[10.5px] text-tinta/60">Color</th>
                   <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Precio</th>
-                  <th className="label-cayla py-2 pr-3 text-right text-[10.5px] text-tinta/60">Costo</th>
                   <th className="label-cayla py-2 text-[10.5px] text-tinta/60">Código</th>
                 </tr>
               </thead>
@@ -301,7 +304,6 @@ function VistaRapidaModal({
                     <td className="py-2 pr-3 text-tinta/80">{v.talla ?? "—"}</td>
                     <td className="py-2 pr-3 text-tinta/80">{v.color ?? "—"}</td>
                     <td className="py-2 pr-3 text-right tabular-nums text-tinta">S/{v.precio.toFixed(2)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-tinta/65">S/{v.costo.toFixed(2)}</td>
                     <td className="py-2 font-mono text-xs text-tinta/65">{v.codigo ?? v.sku ?? "—"}</td>
                   </tr>
                 ))}

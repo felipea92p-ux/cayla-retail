@@ -164,7 +164,7 @@ tocar nada, no se asumió. Lo que sigue como D-27 lo dejó: el directorio en sí
 existieran esas columnas) sigue visible para cualquiera con cuenta. Lo que cambia es
 solo el bloque que sale de `compras` — eso es "lo financiero" del título de esta
 decisión, y ahora `fn_proveedores()` lo devuelve `NULL` si quien pregunta no es líder
-(`20260917240000_proveedores_lista_indicadores_y_candado_sede.sql`). De paso se
+(`20260918073000_proveedores_lista_indicadores_y_candado_sede.sql`). De paso se
 confirmó que `/compras/proveedores` (la pantalla) ya era solo-líder desde el
 2026-09-16 por `app/(app)/compras/layout.tsx` — este documento nunca se actualizó para
 decirlo, y por eso seguía leyéndose como si todo el módulo fuera abierto.
