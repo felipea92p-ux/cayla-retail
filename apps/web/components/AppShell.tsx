@@ -350,7 +350,7 @@ function GrupoLateral({
 function MenuNuevo({ onClose }: { onClose: () => void }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
+    { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
@@ -578,7 +578,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // son lo que se hace CONTRA una factura) — esa nav queda redundante con
   // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
   const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
-  const facturas: Item = { href: "/compras", etiqueta: "Facturas", icono: IC.facturas };
+  const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };

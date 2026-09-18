@@ -52,16 +52,16 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de proveedores</h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Comprobantes de proveedores</h1>
           <p className="mt-1 text-sm text-tinta/65">
-            Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.
+            Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.
           </p>
         </div>
         <Link
           href="/compras/nueva"
           className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
         >
-          + Registrar factura
+          + Registrar comprobante
         </Link>
       </div>
 
