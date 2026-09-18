@@ -80,6 +80,8 @@ const IC = {
   // "Inventario" se queda con la caja de siempre (IC.inventario), que
   // "Existencias" comparte — es la raíz del módulo, la misma cosa.
   conteo: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+  // Cuatro recuadros: la foto completa de una sede de un vistazo (Resumen).
+  resumen: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
@@ -348,7 +350,7 @@ function GrupoLateral({
 function MenuNuevo({ onClose }: { onClose: () => void }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    { href: "/compras/nueva", etiqueta: "Registrar factura", detalle: "Una compra a proveedor, con su pago si es al contado" },
+    { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
     { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
@@ -517,7 +519,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
-    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo"],
+    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -567,13 +569,16 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const movimientos: Item = { href: "/inventario/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
   const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados };
   const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
+  // Quinta pestaña de Inventario (ADR-0101): decisión a nivel sede, solo líder —
+  // mismo criterio de visibilidad que Compras.
+  const resumen: Item = { href: "/inventario/resumen", etiqueta: "Resumen", icono: IC.resumen };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
   // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
   // son lo que se hace CONTRA una factura) — esa nav queda redundante con
   // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
   const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
-  const facturas: Item = { href: "/compras", etiqueta: "Facturas", icono: IC.facturas };
+  const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
@@ -637,7 +642,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     id: "inventario",
     etiqueta: "Inventario",
     icono: IC.inventario,
-    hijos: [existencias, movimientos, traslados, conteo],
+    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [])],
   };
 
   const grupos = [

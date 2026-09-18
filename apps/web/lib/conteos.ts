@@ -172,6 +172,10 @@ export type PrioridadConteo = {
   referencia: string;
   talla: string | null;
   color: string | null;
+  /** Una variante puede tener unidades sin contar en piso Y en almacén a
+   *  la vez — son dos filas reales, no una duplicada (20260918). Null en
+   *  ubicaciones sin piso/almacén separado (Taller). */
+  sububicacionId: string | null;
   diasSinContar: number | null;
   valorEnRiesgo: number;
 };
@@ -194,6 +198,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     referencia: f.referencia,
     talla: f.talla,
     color: f.color,
+    sububicacionId: f.sububicacion_id,
     diasSinContar: f.dias_sin_contar,
     valorEnRiesgo: Number(f.valor_en_riesgo),
   }));
