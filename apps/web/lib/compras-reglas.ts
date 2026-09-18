@@ -35,6 +35,10 @@ export type CompraResumen = {
   fechaEstimadaLlegada: string | null;
   /** La mercadería debía haber llegado y no llegó (lo calcula la vista, con fecha de Lima). */
   recepcionAtrasada: boolean;
+  /** Suma de notas de crédito del proveedor registradas contra este comprobante (D2, ADR-0104). `saldo` ya la descuenta. */
+  notasCredito: number;
+  /** Unidades cerradas por faltante: no van a llegar. `estadoRecepcion` y lo pendiente ya las descuentan. */
+  cerradoCantidad: number;
   nota: string | null;
   creadoEn: string;
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */
@@ -55,6 +59,8 @@ export type LineaCompra = {
   costoUnitario: number;
   subtotal: number;
   recibido: number;
+  /** Unidades cerradas por faltante (D2): no van a llegar. `pendiente` ya las descuenta. */
+  cerrado: number;
   pendiente: number;
 };
 
@@ -177,6 +183,14 @@ export const ETIQUETA_METODO: Record<string, string> = {
   plin: "Plin",
   efectivo: "Efectivo",
   deposito: "Depósito",
+  otro: "Otro",
+};
+
+/** Motivos de una nota de crédito del proveedor (D2, ADR-0104): lo que acepta `registrar_nota_credito_compra`. */
+export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
+  faltante: "Faltante",
+  devolucion: "Devolución",
+  descuento: "Descuento",
   otro: "Otro",
 };
 

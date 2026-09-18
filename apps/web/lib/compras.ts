@@ -54,6 +54,8 @@ type FilaResumen = {
   // trae estas columnas; `select("*")` las devuelve).
   fecha_estimada_llegada?: string | null;
   recepcion_atrasada?: boolean | null;
+  notas_credito?: number | null;
+  cerrado_cantidad?: number | null;
   nota: string | null;
   created_at: string | null;
 };
@@ -86,6 +88,8 @@ function aResumen(f: FilaResumen): CompraResumen {
     vencida: f.vencida ?? false,
     fechaEstimadaLlegada: f.fecha_estimada_llegada ?? null,
     recepcionAtrasada: f.recepcion_atrasada ?? false,
+    notasCredito: Number(f.notas_credito ?? 0),
+    cerradoCantidad: Number(f.cerrado_cantidad ?? 0),
     nota: f.nota,
     creadoEn: f.created_at ?? "",
   };
@@ -256,7 +260,7 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
   const filas = exigir(
     await supabase
       .from("compra_items_resumen")
-      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, pendiente")
+      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
       .in("compra_id", compraIds),
     "las líneas de la factura"
   );
@@ -292,6 +296,7 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
       costoUnitario: Number(f.costo_unitario ?? 0),
       subtotal: Number(f.subtotal ?? 0),
       recibido: Number(f.recibido ?? 0),
+      cerrado: Number(f.cerrado ?? 0),
       pendiente: Number(f.pendiente ?? 0),
     };
   });
