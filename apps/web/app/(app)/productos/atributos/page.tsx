@@ -20,7 +20,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas] = await Promise.all([
     supabase
       .from("colores")
-      .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
+      .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado")
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
@@ -36,8 +36,6 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     hex: c.hex,
     orden: c.orden,
     activo: c.activo,
-    tipo: c.tipo,
-    imagenMuestraUrl: c.imagen_muestra_url,
     notas: c.notas,
     estado: c.estado as "pendiente" | "aprobado",
   }));

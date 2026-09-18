@@ -7580,3 +7580,11 @@ Al fusionar con `main`, el PR #129 ya había tomado el ADR-0103 (familias): gan�
 número y el del aviario pasó a 0104. Y `retail.familias`, ya en producción pero no en el
 volcado del 17-sep, entró al aviario bajo Loro. El límite que el propio ADR anotaba —la
 alarma es tan fresca como el volcado— se cumplió el mismo día.
+
+### 2026-09-18 — Colores: sin Tipo ni foto; se acepta HTML o RGB
+Producción mostró que `colores.tipo` no se usaba (35 de 35 en «sólido») y que duplicaba lo que
+ya dicen Tejidos y Patrones, así que salió del modal, la API y la tarjeta (ADR-0106). Las
+columnas y las 3 fotos quedan en la base sin tocar. Al crear o editar un color ahora se puede
+pegar `#c9b79c` o `rgb(201, 183, 156)`; la base sigue guardando solo el hex.
+Decidido con Felipe pero NO construido: descuento automático por etiqueta de campaña (ver
+BACKLOG, pasos 2 y 3).

@@ -328,6 +328,18 @@ verde.
 - [x] **Etiquetas: pantalla rediseñada (2026-09-18).** Ilustración protagonista, chip de
       temporada (Vigente / En N días / Fuera de temporada), filtros con conteo, búsqueda sin
       tildes, "Desactivar" solo al pasar el mouse. Arregló de paso "hoy" en UTC → hora de Lima.
+- [x] **Colores: sin Tipo ni foto de la tela (2026-09-18, ADR-0106).** Textura = Tejidos,
+      estampado = Patrones. Se puede escribir el código HTML o RGB al crear/editar un color.
+      Las columnas `tipo` e `imagen_muestra_url` quedan sin uso en la base (no se borran).
+- [ ] **Etiquetas de campaña con descuento automático (decidido 2026-09-18, sin construir).**
+      Paso 2 (modelo, sin efecto en caja): `etiquetas.descuento_pct` + tabla puente
+      `etiqueta_categorias` (opcional: sin categorías, solo las prendas etiquetadas a mano) +
+      campos en el modal de Etiquetas (solo Líder). Paso 3 (dinero real, confirmar antes):
+      `registrar_venta` calcula el descuento en la base — solo UNO por prenda, el mayor entre
+      todas sus etiquetas vigentes; un descuento manual reemplaza al de campaña solo si es
+      mayor; la campaña no exige código. Vigencia en hora de Lima, no `current_date` (UTC):
+      revisar si `codigos_descuento` y la restricción de sedes tienen el mismo defecto.
+      `codigos_descuento` sigue aparte (quién puede descontar ≠ qué campaña rige).
 - [ ] **Unificar la tarjeta de Patrones/Tejidos/Colores con la de Etiquetas.** Hoy Etiquetas
       tiene el diseño nuevo y las otras tres el anterior: mismo sistema, dos lenguajes. Extraer
       una `TarjetaAtributo` compartida cuando se decida cuál es el estándar.
