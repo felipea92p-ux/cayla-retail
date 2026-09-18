@@ -60,6 +60,35 @@ verde.
             etc.) queda vivo solo en este repo/local. Cambia el desplegable que ve una
             encargada de sede ahora mismo — el momento de activarlo en producción lo
             decide Felipe, no es un fix pendiente. Ver 🎯 Familias y categorías, abajo.
+- [x] **La reverificación de arriba no cazó todo: a `retail.etiquetas` en producción le
+      faltaba la columna `notas` — Catálogo > Etiquetas caía en vivo con "Esta pantalla
+      no está mostrando datos".** La tabla la había creado una rama vieja nunca
+      fusionada (ver `pegar-en-produccion-taxonomia-parte-segura.sql`); esa
+      reconciliación arregló los triggers pero nunca comparó columna por columna.
+      `alter table retail.etiquetas add column if not exists notas text;` corrida por
+      Felipe en el SQL Editor, reverificada por lectura contra
+      `information_schema.columns` (0 filas, sin riesgo). De paso, el trigger que trae
+      `20260917100200_etiquetas_catalogo.sql` estaba desactualizado frente al que de
+      verdad corre en producción (le faltaba "reactivar retira el rechazo") — corregido
+      en el archivo para que un `db reset` local no diverja.
+- [x] **Vocabulario real de Etiquetas cargado: 22 filas (2026-09-17).** 19 comerciales/
+      festividades (investigadas contra Zara/Bershka/Ralph Lauren/Hermès y calendario
+      peruano real — CyberWow lo organiza IAB Perú, Black Friday 27-nov distinto de
+      CyberWow, Galentine's/Día del Gato/Día del Perro/Día de la Tierra con fecha
+      verificada) + "Para liquidar" generada por sede (`retail.ubicaciones` activa,
+      dinámico — no hardcodeado, porque local y producción no comparten nombres de
+      sede). Migración `20260917230000`: `vigente_desde`/`vigente_hasta` (calculado en
+      lectura, no un cron) + comentario obligatorio al aprobar (mismo candado que
+      Tallas, ahora en las 5). Migración `20260917230100`: la semilla. Verificado con
+      `db reset` completo (no incremental), `typecheck`/`lint`, y navegador contra
+      Postgres local real — las 22 tarjetas con el candado de sede visible.
+      **Pendiente, a propósito, no a medias:** ninguna pantalla lee todavía
+      `vigente_desde`/`vigente_hasta` (la columna existe, el filtro "¿está vigente
+      hoy?" en `/productos/etiquetas` y en el selector de `ProductoForm.tsx` falta); y
+      el estilo visual (color/ícono por etiqueta) que Felipe pidió sigue sin diseñar —
+      con la estética CAYLA (sin gradientes, sin decoración porque sí) un picker de
+      color libre se pelea con el brandbook, propuesto usar 3-4 variantes fijas de
+      marca en vez de color arbitrario, sin decidir todavía.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"

@@ -484,4 +484,21 @@ begin
   perform retail.cerrar_conteo(conteo1_id);
 end $$;
 
+-- ---------- "Para liquidar" por sede (20260917230100) — solo local ----------
+-- En producción esto ya lo hace la propia migración (ubicaciones reales ya
+-- existen cuando se pega el SQL). En local, retail.ubicaciones recién se
+-- llena ACÁ (seed.sql corre después de las migraciones) — sin este bloque,
+-- un `db reset` completo se queda con 0 filas de "Para liquidar" porque la
+-- migración corrió antes de que hubiera alguna sede que leer.
+insert into retail.etiquetas (nombre, estado, activo, sedes_permitidas, notas)
+select
+  'Para liquidar — ' || u.nombre,
+  'aprobado',
+  true,
+  array[u.id],
+  'Liquidación local de ' || u.nombre || ' — restringida a esta sede a propósito: sin este candado, liquidar algo en una sede lo mostraría como "para liquidar" en todas las demás, aunque ahí no aplique.'
+from retail.ubicaciones u
+where u.activo
+on conflict (retail.fn_clave_texto(nombre)) do nothing;
+
 commit;
