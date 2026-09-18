@@ -1,60 +1,95 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getLineasVentaRecientes } from "@/lib/ventas-v2";
+import { getVentasParaCambio } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
-import { getEstadisticasCambios } from "@/lib/cambios-estadisticas";
-import { CambiosLista } from "@/components/CambiosLista";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { getCajaAbierta } from "@/lib/caja";
+import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
+import { soles } from "@/lib/compras-reglas";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
+import { CambiosPanel } from "@/components/CambiosPanel";
 
-// Prioridad 1 (2026-09-12): cambio de talla/color. Ver
-// supabase/migrations/0007_cambios.sql y CambioFormV2.tsx para el modelo.
+// Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
+// modelo vive en supabase/migrations/0007_cambios.sql y
+// 20260918150000_cambios_motivo_y_estado_de_prenda.sql; la pantalla, en CambiosPanel.
 export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string }> }) {
   const persona = await requirePersonaActualV2();
   const { q, todas } = await searchParams;
-  const todasLasSedes = todas === "1";
-  // Mismo par de lecturas que Vender (vender/page.tsx): el catálogo entero más el piso
-  // de ESTA ubicación, para que el selector de "entregar en su lugar" no ofrezca una
-  // talla que `registrar_cambio` va a rechazar por falta de stock.
-  const [lineas, catalogo, stock, estadisticas] = await Promise.all([
-    getLineasVentaRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes }),
+  const esLider = persona.rol === "lider";
+  // Solo un líder ve otras sedes (RLS de ventas): a una integrante, "todas" no le
+  // traería nada y la pantalla mentiría diciendo "no encontramos".
+  const todasLasSedes = esLider && todas === "1";
+  const supabase = await createClient();
+  // Mismas lecturas de stock que Vender (vender/page.tsx): el piso de ESTA ubicación
+  // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
+  // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
+  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja] = await Promise.all([
+    getVentasParaCambio(persona.ubicacionId, { busqueda: q, todasLasSedes }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
+    supabase.rpc("fn_stock_por_sede"),
+    getUbicaciones(),
     getEstadisticasCambios(persona.ubicacionId),
+    esLider ? getTallasQueNoCalzan() : Promise.resolve([]),
+    getCajaAbierta(persona.ubicacionId),
   ]);
   const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
+  const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Cambios</h1>
-        <p className="mt-1 text-sm text-tinta/65">Elige la prenda vendida que la clienta quiere cambiar por otra talla o color.</p>
-      </div>
+    <div className="space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+        <div>
+          <h1 className="font-display text-3xl text-tinta">Cambios</h1>
+          <p className="mt-1.5 text-[15px] text-tinta/70">Gestiona cambios de prendas de manera rápida y segura.</p>
+        </div>
+        {/* Indicadores chicos, no tarjetas de tablero: acompañan al título, no compiten
+            con él. Las tres cifras son de ESTA sede. */}
+        <dl className="flex gap-8">
+          <Indicador valor={String(estadisticas.cambiosHoy)} etiqueta="Cambios hoy" />
+          <Indicador valor={String(estadisticas.cambiosMes)} etiqueta="Este mes" />
+          <Indicador valor={soles(estadisticas.valorMes)} etiqueta="Valor cambiado" />
+        </dl>
+      </header>
 
-      {lineas.length === 0 && !q ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay ventas recientes en esta ubicación.</p>
-      ) : (
-        <CambiosLista
-          lineas={lineas}
-          ubicacionId={persona.ubicacionId}
-          busqueda={q ?? ""}
-          todasLasSedes={todasLasSedes}
-          estadisticas={estadisticas}
-          catalogo={catalogo
-            .filter((v) => v.activo)
-            .map((v) => ({
-              varianteId: v.varianteId,
-              productoId: v.productoId,
-              sku: v.sku,
-              codigo: v.codigo,
-              referencia: v.referencia,
-              talla: v.talla,
-              color: v.color,
-              colorHex: v.colorHex,
-              precio: v.precio,
-              stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
-            }))}
-        />
-      )}
+      <CambiosPanel
+        lineas={lineas}
+        busqueda={q?.trim() ?? ""}
+        todasLasSedes={todasLasSedes}
+        puedeVerTodas={esLider}
+        sede={persona.ubicacionEtiqueta}
+        ubicacionId={persona.ubicacionId}
+        colaboradora={persona.nombre}
+        cajaAbierta={caja !== null}
+        tallasQueNoCalzan={tallasQueNoCalzan}
+        catalogo={catalogo
+          .filter((v) => v.activo)
+          .map((v) => ({
+            varianteId: v.varianteId,
+            productoId: v.productoId,
+            sku: v.sku,
+            codigo: v.codigo,
+            referencia: v.referencia,
+            talla: v.talla,
+            color: v.color,
+            colorHex: v.colorHex,
+            fotoUrl: v.fotoUrl,
+            precio: v.precio,
+            stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+            stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
+          }))}
+      />
+    </div>
+  );
+}
+
+function Indicador({ valor, etiqueta }: { valor: string; etiqueta: string }) {
+  return (
+    <div className="flex flex-col-reverse">
+      <dt className="mt-0.5 text-xs text-tinta/70">{etiqueta}</dt>
+      <dd className="text-xl font-semibold tabular-nums text-tinta">{valor}</dd>
     </div>
   );
 }

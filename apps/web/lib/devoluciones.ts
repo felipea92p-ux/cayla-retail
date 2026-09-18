@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 import { parsearComprobante } from "@/lib/comprobantes-reglas";
 import { buscarVentaIdsPorComprobante } from "@/lib/ventas-v2";
 
 // Devoluciones (Felipe, 2026-09-14): el backend (crear_devolucion,
 // aprobar_devolucion, rechazar_devolucion) ya existía y sigue probado
 // intacto — este archivo solo trae lecturas. Mismo patrón que
-// `getLineasVentaRecientes` en ventas-v2.ts (el módulo de Cambios), pero
+// `getVentasParaCambio` en ventas-v2.ts (el módulo de Cambios), pero
 // contando "cuánto ya se devolvió" en vez de "cuánto ya se cambió".
 
 export type LineaVentaParaDevolucion = {
@@ -27,15 +27,24 @@ export type LineaVentaParaDevolucion = {
 
 export async function getLineasVentaParaDevolucion(
   ubicacionId: string,
-  opts: { busqueda?: string; limite?: number; todasLasSedes?: boolean } = {}
+  opts: { busqueda?: string; limite?: number; todasLasSedes?: boolean; ventaItemId?: string } = {}
 ): Promise<LineaVentaParaDevolucion[]> {
-  const { busqueda, limite = 30, todasLasSedes = false } = opts;
+  const { busqueda, limite = 30, ventaItemId } = opts;
+  // Desde Cambios ("¿no hay nada de su agrado?", 2026-09-18) llega la línea exacta: su
+  // venta puede ser de otra sede — Cambios ya la encontró —, así que no se filtra por sede.
+  let todasLasSedes = opts.todasLasSedes ?? false;
   const supabase = await createClient();
 
   // Con búsqueda: no importa la fecha, solo la(s) venta(s) de esa boleta — puede ser de
   // hace meses. Sin ella: las últimas `limite`, el comportamiento de siempre.
   let ventaIdsBuscados: string[] | null = null;
-  if (busqueda && busqueda.trim()) {
+  if (ventaItemId) {
+    const res = await supabase.from("venta_items").select("venta_id").eq("id", ventaItemId).maybeSingle();
+    const item = exigirOpcional(res, "la prenda que venía de Cambios");
+    if (!item) return [];
+    ventaIdsBuscados = [item.venta_id];
+    todasLasSedes = true;
+  } else if (busqueda && busqueda.trim()) {
     const { serie, numero } = parsearComprobante(busqueda);
     if (numero === null) return [];
     ventaIdsBuscados = await buscarVentaIdsPorComprobante(ubicacionId, serie, numero, todasLasSedes);

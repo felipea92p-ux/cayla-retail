@@ -7,7 +7,7 @@ describe("codigoPrenda", () => {
   });
 
   it("muestra el código cuando el lector convirtió el sku nulo en ''", () => {
-    // Así llega desde getCatalogo, getLineasVentaRecientes y las lecturas de Devoluciones.
+    // Así llega desde getCatalogo, getVentasParaCambio y las lecturas de Devoluciones.
     expect(codigoPrenda({ codigo: "BLU-0003-NEG-M", sku: "" })).toBe("BLU-0003-NEG-M");
   });
 
