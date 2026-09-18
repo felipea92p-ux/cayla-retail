@@ -7517,7 +7517,9 @@ reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fisc
 Cuervo, `sububicaciones` → Halcón); todo pendiente de que Felipe lo apruebe línea por
 línea antes de fusionar.
 
-De paso: `retail.migraciones_aplicadas` no existe en producción (retail no tiene registro
-de qué SQL se pegó); `main` tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
+De paso: `retail.migraciones_aplicadas`, el registro que describe GOBIERNO §4, no existe en
+producción; el que sí se llena es `supabase_migrations.schema_migrations` (114 filas, la
+última de hoy), pero lo pegado a mano en el SQL Editor no deja fila ahí. Además, `main`
+tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
 y `claude/facturacion-modal-shared-state-186f2d` tienen trabajo sin fusionar sobre la base
 V1 (la segunda con un ADR-0011 que choca con el existente).

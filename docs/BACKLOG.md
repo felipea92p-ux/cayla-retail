@@ -43,9 +43,11 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 - [ ] **Felipe aprueba línea por línea las asignaciones** (tabla en ADR-0103: 21 nuevas y
       3 que cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones`
       → Halcón) y se abre el PR. Rama `claude/aviario-cayla-8d1efc`, sin publicar.
-- [ ] **Gorrión: retail no tiene registro de qué SQL se pegó en producción.**
-      `retail.migraciones_aplicadas` no existe allá (la `public.migraciones_aplicadas`
-      que sí existe tiene otra forma y el repo no la usa). GOBIERNO §4 ya lo dice.
+- [ ] **Gorrión: lo que se pega a mano en el SQL Editor de producción no deja rastro.**
+      GOBIERNO §4 apuntaba a `retail.migraciones_aplicadas`, que ya no existe. El
+      registro vivo es `supabase_migrations.schema_migrations` (114 filas, la última de
+      hoy), pero solo lo llena el camino de migraciones (CLI/MCP), con versión propia y
+      no el nombre del archivo del repo. Decidir si todo SQL de producción pasa por ahí.
 - [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
       `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
       los documentos del porqué, todavía no.

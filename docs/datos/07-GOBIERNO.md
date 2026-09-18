@@ -328,9 +328,13 @@ falta, el estado de producción es una suposición, no un hecho.
 > **Corrección 2026-09-18 (verificado contra producción, solo lectura):** esa tabla ya
 > no existe. En el schema `retail` no hay ninguna `migraciones_aplicadas`; la única del
 > proyecto es `public.migraciones_aplicadas`, con otra forma (`numero`, `nombre`,
-> `aplicada_at`), y el repo no la menciona en ningún lado. O sea que **hoy retail no
-> tiene registro de qué SQL se pegó en producción**. Es de Gorrión y está en el BACKLOG.
-> Lo que sigue en esta sección describe cómo era antes del corte a V2.
+> `aplicada_at`), y el repo no la menciona en ningún lado. El registro que **sí** funciona
+> es el propio de Supabase, `supabase_migrations.schema_migrations`: 114 filas, la última
+> de hoy (`prioridad_conteo_por_sububicacion`). Lo llena el camino de migraciones (CLI o
+> `apply_migration` del MCP), con su propia fecha como versión —no el nombre del archivo
+> del repo—, y **no** lo que se pega a mano en el SQL Editor: eso sigue sin dejar rastro.
+> Es de Gorrión y está en el BACKLOG. Lo que sigue en esta sección describe cómo era antes
+> del corte a V2.
 
 **Y hoy es, en parte, una suposición.** El backfill sembró **17 filas**
 (`unificacion/38_migraciones_aplicadas.sql:75-95`), de las cuales **11 dicen "según
