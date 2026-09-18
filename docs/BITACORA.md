@@ -17,6 +17,37 @@ Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo me
 
 Lo que Felipe se lleva: aquí el color de la muestra ES la información (el denim tiene que ser azul), así que no usa la paleta de marca como Etiquetas — pero sí respeta lo sagrado: nada de rojo, sin degradados. Y el orden de las reglas importa: «Rib licrado» debe ser canalé, no licra, y «Algodón pima» su propia fibra, no algodón — está fijado en `tejido-visual.test.ts`.
 
+## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, en PR)
+
+Felipe pidió rediseñar Inventario → Traslados sobre una referencia visual. **Qué se cerró:** franja «Atención
+hoy» (solo si algo le toca a quien mira), cuatro indicadores que filtran, buscador, tabla con estado y acción
+de formas distintas, y un número «por atender» junto a «Traslados» en el menú. Todo sale de una sola regla
+(`situacionTraslado`, con 61 pruebas) y de datos que la base ya guardaba: **cero migraciones, cero cambios en
+stock/recepción/cierre.** **Qué aprendió Felipe:** (1) «en tránsito» mezclaba el bulto que ya está en la puerta
+de la tienda con el que sigue en la carretera; separarlos con la hora estimada convierte el contador en algo
+que se puede accionar. (2) Una revisión con cinco lectores y dos escépticos por hallazgo encontró un error que
+las pruebas no veían — el orden de «Revisar ahora» contaba cuándo salió el envío, no cuánto lleva esperando —
+porque las pruebas usaban una hora estimada anterior a la salida, algo imposible en la práctica. (3) El diseño
+de referencia no cabía con las mayúsculas de la marca: el chip y el botón miden 187 y 184 px, se midió en el
+navegador y se ajustaron las columnas en vez de recortar el texto.
+
+**Al probar con sesión de líder apareció otra cosa, ajena al rediseño:** la base local llevaba 4 migraciones atrás
+del repo (las que llegaron con el merge del día) y el layout del líder lee `ubicaciones.meta_venta_diaria`
+(`20260918100000`): `AppLayout` reventaba con `column ubicaciones.meta_venta_diaria does not exist` en cualquier
+pantalla. `supabase start` solo aplica migraciones al CREAR la base; las que llegan después no se aplican solas.
+Se puso al día con `npx supabase migration up --local` (sin reset; 112 → 116). Un worktree nuevo tampoco trae
+`0000_local_stub_dynamic.sql` (gitignorado): sin copiarlo del checkout principal, la CLI ve el historial desalineado.
+
+**Hallazgos que NO se tocaron (no eran de este cambio):** `authenticated` puede hacer UPDATE directo sobre
+`transferencias` **en la base local y en las migraciones del repo** — producción NO: allí solo tiene SELECT (el
+`REVOKE` vive solo en producción; verificado en solo lectura), o sea drift repo ≠ producción, no un hueco abierto; una
+prenda distinta congela todas las de su traslado fuera del stock hasta que un líder cierra; quien envía escribe la
+hora estimada a mano, al minuto y sin poder corregirla después. Los tres quedan en BACKLOG. **Producción: nada que
+desplegar** — comprobado que ya tiene todo lo que la pantalla lee, y que las tres migraciones que la base local
+llevaba atrasadas (`emitir_comprobante` idempotente, contacto bancario de proveedores, atraso de recepción de compras)
+ya están en producción. Datos de prueba: 31 traslados nuevos en la base local con `[prueba UI]` en la nota (sin borrar ni
+modificar los 4 que había).
+
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
 Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).

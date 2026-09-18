@@ -152,10 +152,18 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria, semáforo de 4 estados con
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda) → `ReponerPisoModal.tsx` (RPC
   `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
-- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosEnCurso`, `getTrasladosCerrados`,
-  con `numero`) → `TrasladosLista.tsx` (vista rápida por chips, en memoria) →
+- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
+  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`) →
+  `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
+  `TrasladosAtencion` / `TrasladosResumen` / `TrasladosFiltros` / `TrasladosLista` +
+  `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
+  acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
+  `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
+  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx` e `inventario/layout.tsx`
+  → `AppShell` / `InventarioNav` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
+  (color exacto o general, nunca de otro color) →
   `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
-  `confirmar_traslado`, `cerrar_traslado_con_diferencia`). Reglas en `lib/traslados-reglas.ts`.
+  `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo`) →
   `ConteoPanel.tsx` (RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`; avance con
