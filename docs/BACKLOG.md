@@ -28,6 +28,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
+
+Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sola regla
+(`traslados-reglas.ts`) para franja, tarjetas, chips, tabla, detalle y el número del menú. **100% local, sin
+migración.** Hecho: reglas + 61 pruebas, miniaturas reales con regla propia, insignia en lateral/pestañas/celular,
+refresco cada minuto, detalle con el mismo vocabulario que la lista.
+
+- [ ] **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
+      producción `authenticated` solo tiene SELECT (verificado en solo lectura, 2026-09-18); en la base local y en
+      cualquier base creada desde las migraciones tiene UPDATE/INSERT/DELETE, y con la policy `transferencias_update`
+      un integrante podría marcar un traslado `cerrada` por la API sin crear `movimientos`. Migración
+      `revoke insert, update, delete on retail.transferencias, retail.transferencia_items from authenticated, anon`
+      (todas las escrituras legítimas son `security definer`): en producción es un no-op. Antes: confirmar que ningún
+      script (`scripts/pruebas/*.mjs`) escribe directo en esas tablas.
+- [ ] **Decidir la regla de diferencias** (negocio, no código): hoy una prenda distinta congela TODAS las de ese
+      traslado fuera del stock hasta que un líder cierra, y la caja rechaza vender sin stock. Opción B: entran las
+      líneas que coinciden (`cerrar_traslado_con_diferencia` ya filtra «líneas sin movimiento»). Y quién recibe el
+      aviso de revisión: cualquier líder (lo que permite la RPC) o el líder del destino (lo que hace la pantalla).
+- [ ] **Verificar con sesión iniciada** la pantalla real (`/login` local: líder y integrante de TRU). Ojo: en local
+      hace falta `npx supabase migration up --local` (la base puede ir atrasada tras un merge: sin
+      `meta_venta_diaria` el layout del líder revienta). Lo probado sin sesión fue el panel con datos ficticios, el
+      menú con el contador y las reglas contra los 35 traslados reales.
+
+Observado, sin priorizar: la hora estimada se escribe a mano, al minuto, y no se puede reprogramar; en el detalle
+las cantidades vienen precargadas pero «Confirmar recepción» sigue apagado hasta salir de cada campo (una
+recepción «a medias» accidental cuenta como «requiere acción»); las fotos se suben sin redimensionar y hay cuatro
+criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
+diferencia.
+
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
