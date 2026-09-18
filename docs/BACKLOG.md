@@ -98,11 +98,17 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       Corregido en `20260918090000_prioridad_conteo_por_sububicacion.sql`: ahora cada fila
       dice "Piso de venta" o "Almacén de tienda"; de paso, "días sin contar" ahora exige que
       el conteo cerrado haya cubierto esa misma sububicación, no cualquiera de la sede.
-- [ ] **Aplicar a producción**, en este orden y con ok puntual: taxonomía cerrada (aún
-      "solo local"), `20260916100000_punto_reorden.sql`, `20260917220000_resumen_inventario.sql`
-      (renombrada localmente a `20260918080000_` por choque de timestamp con
-      `reconcilia_talla_id...` de `main` — sin choque de contenido), y
-      `20260918090000_prioridad_conteo_por_sububicacion.sql` (con `retail.` al pegar).
+- [x] **Aplicadas a producción, con ok puntual de Felipe (2026-09-18): las dos
+      migraciones de Resumen** — `fn_resumen_variantes` (renombrada localmente a
+      `20260918080000_` por choque de timestamp con `reconcilia_talla_id...` de `main`,
+      sin choque de contenido) y `fn_prioridad_conteo` con sububicación
+      (`20260918090000_prioridad_conteo_por_sububicacion.sql`). Verificado contra
+      producción real vía MCP de Supabase: las dos funciones existen con la firma
+      correcta, `anon` no puede ejecutarlas, `fn_resumen_inventario`/`transferir` viejas
+      quedaron dropeadas, el índice existe. `pnpm datos:comparar` sale limpio (PR #121).
+      `20260916100000_punto_reorden.sql` y la taxonomía cerrada NO se tocaron en esta
+      pasada — ya estaban en producción (`variantes.talla_id` confirmado presente antes
+      de aplicar nada).
 - [ ] **`movimientos.motivo` sin CHECK**: Resumen lo esquiva clasificando por FK, pero
       `fn_productos`/`fn_movimientos` siguen dependiendo del texto — vocabulario cerrado
       como colores/tallas.
