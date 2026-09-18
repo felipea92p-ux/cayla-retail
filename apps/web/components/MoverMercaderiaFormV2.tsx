@@ -50,17 +50,29 @@ export function MoverMercaderiaFormV2({
   origenEtiqueta,
   destinos,
   variantes,
+  destinoInicialId,
+  lineaInicial,
 }: {
   origenId: string;
   origenEtiqueta: string;
   destinos: Ubicacion[];
   variantes: VarianteConStock[];
+  /** Prellenado desde una sugerencia de Resumen (ADR-0101). La página ya
+   *  validó que el destino existe y que la variante tiene stock movible en
+   *  el origen; acá solo se usa como valor inicial — el usuario sigue
+   *  decidiendo todo antes de enviar. */
+  destinoInicialId?: string;
+  lineaInicial?: { varianteId: string; cantidad: number };
 }) {
   const router = useRouter();
-  const [destinoId, setDestinoId] = useState(destinos[0]?.id ?? "");
+  const [destinoId, setDestinoId] = useState(destinoInicialId ?? destinos[0]?.id ?? "");
   const [nota, setNota] = useState("");
   const [etaLocal, setEtaLocal] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
+  const [lineas, setLineas] = useState<Linea[]>([
+    lineaInicial
+      ? { varianteId: lineaInicial.varianteId, cantidad: String(Math.max(1, Math.min(lineaInicial.cantidad, variantes.find((v) => v.varianteId === lineaInicial.varianteId)?.cantidad ?? 1))) }
+      : { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" },
+  ]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
 

@@ -3676,6 +3676,7 @@ export type Database = {
           dias_sin_contar: number
           referencia: string
           sku: string
+          sububicacion_id: string
           talla: string
           valor_en_riesgo: number
           variante_id: string
@@ -3800,6 +3801,42 @@ export type Database = {
         Returns: {
           numero: number
           serie: string
+        }[]
+      }
+      fn_resumen_variantes: {
+        Args: { p_ubicacion_id: string; p_ventana_dias?: number }
+        Returns: {
+          almacen: number
+          categoria_nombre: string
+          codigo: string
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          cuarentena: number
+          devoluciones_ventana: number
+          dias_observables: number
+          disponible: number
+          en_camino: number
+          en_camino_a_tiempo: number
+          en_camino_atrasado: boolean
+          en_red: Json
+          entradas_ventana: number
+          foto_url: string
+          mermas_ventana: number
+          piso: number
+          primer_ingreso: string
+          producto_id: string
+          proxima_llegada: string
+          referencia: string
+          separa_piso_almacen: boolean
+          sin_sububicacion: number
+          sku: string
+          stock_minimo: number
+          talla: string
+          traslados_salida_ventana: number
+          ultima_venta: string
+          variante_id: string
+          ventas_ventana: number
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
@@ -4178,15 +4215,6 @@ export type Database = {
         Args: { p_estado: string; p_etapa: string; p_produccion_id: string }
         Returns: undefined
       }
-      transferir: {
-        Args: {
-          p_items: Json
-          p_nota?: string
-          p_ubicacion_destino_id: string
-          p_ubicacion_origen_id: string
-        }
-        Returns: string
-      }
     }
     Enums: {
       [_ in never]: never
@@ -4205,12 +4233,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4234,11 +4262,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4259,11 +4287,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4284,11 +4312,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4301,11 +4329,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

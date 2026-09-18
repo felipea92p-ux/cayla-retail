@@ -1,7 +1,11 @@
-# ADR-0101 — Rediseño visual de Caja: se adapta a la paleta ya decidida, sin modo oscuro
+# ADR-0102 — Rediseño visual de Caja: se adapta a la paleta ya decidida, sin modo oscuro
 
 **Fecha:** 2026-09-18
-**Estado:** Aplicado (Caja) · Punto de Venta pendiente en el mismo hilo de trabajo
+**Estado:** Aplicado (Caja y Punto de Venta)
+**Nota de numeración:** escrito originalmente como ADR-0101; renumerado a 0102 al
+sincronizar con `main`, donde esa numeración ya la había tomado la sesión de "Resumen de
+Inventario" (`0101-resumen-inventario-quinta-pantalla.md`), fusionada mientras esta rama
+seguía sin pushear.
 
 ## Contexto
 
@@ -77,7 +81,8 @@ Consecuencias concretas de esa elección:
   `getSeriesVentasCaja()` para la serie horaria y el desglose por método —
   separada de `ResumenCaja` a propósito, para no mezclar el contrato del
   conteo ciego con lo que existe solo para dibujar.
-- Punto de Venta queda para un paso siguiente del mismo hilo: extender el
-  mismo lenguaje visual (tarjetas de producto, pills de categoría, selector de
-  método de pago con los mismos 3 colores categóricos, botón de cobro) sin
-  tocar su flujo ni su lógica.
+- Punto de Venta, extendido en el mismo hilo: la mayoría de `PuntoDeVentaCatalogo.tsx`/
+  `PuntoDeVentaTicket.tsx` ya calzaba (tarjetas de producto, total en serif, botón
+  "Cobrar") — solo cambiaron los chips de categoría/stock (`rounded-lg`→`rounded-md`,
+  el radio real de la "pastilla") y el color del selector de método de pago, ahora con
+  los mismos 3 categóricos de la dona de Caja.

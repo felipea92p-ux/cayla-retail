@@ -293,6 +293,16 @@ exactamente como una venta — antes de este ajuste la fila era correcta en la b
 veía distinta a una venta normal en pantalla, contradiciendo la propia decisión de
 tratarla como venta real.
 
+## Enmienda 2026-09-17 (ADR-0101): Inventario pasa a cinco pestañas
+
+La decisión 1 de este ADR ("cuatro hijos, las mismas cuatro pestañas") queda enmendada:
+se suma **Resumen** (`/inventario/resumen`, solo líder) como quinta pestaña, al final.
+No reemplaza ni reordena a las cuatro operativas ni cambia qué muestra `/inventario` a
+secas. La razón, el diseño y lo que sigue igual están en
+`0101-resumen-inventario-quinta-pantalla.md` (renumerado de 0097 el 2026-09-18 por choque
+con `0097-activar-tienda-lima.md`, ya en producción). Este ADR sigue vigente para todo lo demás
+(semáforo, numeración, conteo a ciegas, cuarentena).
+
 ## Consecuencias
 
 - La "exactitud del inventario" que muestra Conteo es sobre LÍNEAS de conteos
