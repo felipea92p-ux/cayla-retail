@@ -98,17 +98,11 @@ const IC = {
   catalogo: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
   // Etiqueta colgante: el vocabulario que clasifica una prenda.
   categorias: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
-  // Gota: el color de la tela.
-  colores: "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z",
-  // Barras ascendentes: S, M, L — la progresión de una talla.
-  tallas: "M4 18h4M4 12h10M4 6h16",
-  // Cuadrícula 2x2: la trama de un tejido.
-  tejidos: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
-  // Rombos en quincunce: un estampado/patrón repetido.
-  patrones: "M12 2l2 2-2 2-2-2zM4 10l2 2-2 2-2-2zM20 10l2 2-2 2-2-2zM12 18l2 2-2 2-2-2zM12 10l2 2-2 2-2-2z",
-  // Cinta de marcapáginas — distinto del colgante de Categorías a propósito:
-  // esta etiqueta es libre (folksonomy), la de Categorías es la jerarquía fija.
-  etiquetas: "M6 3h12a1 1 0 011 1v16l-7-4-7 4V4a1 1 0 011-1z",
+  // Tres muestras en racimo (2026-09-17, consolidación de Catálogo): Color/
+  // Talla/Tejido/Patrón/Etiqueta eran 5 filas e ícono propio cada una — ahora
+  // son pestañas de una sola pantalla, "Atributos", que se queda con un solo
+  // trazo que sugiere "varias muestras a la vez" en vez de una cosa puntual.
+  atributos: "M4 4h6v6H4zM14 4h6v6h-6zM9 14h6v6H9z",
   // Camión: quien entrega la mercadería — "Compras" (cabecera) se queda con
   // la bolsa+recibo de siempre; sus hijas necesitan trazo propio cada una.
   proveedores: "M1 3h15v13H1zM16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
@@ -521,15 +515,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: [
-      "/productos",
-      "/productos/categorias",
-      "/productos/colores",
-      "/productos/tallas",
-      "/productos/tejidos",
-      "/productos/patrones",
-      "/productos/etiquetas",
-    ],
+    catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo"],
   };
@@ -569,11 +555,10 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
   const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
   const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
-  const colores: Item = { href: "/productos/colores", etiqueta: "Colores", icono: IC.colores };
-  const tallas: Item = { href: "/productos/tallas", etiqueta: "Tallas", icono: IC.tallas };
-  const tejidos: Item = { href: "/productos/tejidos", etiqueta: "Tejidos", icono: IC.tejidos };
-  const patrones: Item = { href: "/productos/patrones", etiqueta: "Patrones", icono: IC.patrones };
-  const etiquetas: Item = { href: "/productos/etiquetas", etiqueta: "Etiquetas", icono: IC.etiquetas };
+  // Reemplaza a Colores/Tallas/Tejidos/Patrones/Etiquetas como filas sueltas
+  // (2026-09-17, pedido de Felipe: "con 3 está bien") — las 5 siguen vivas,
+  // ahora como pestañas dentro de `/productos/atributos`.
+  const atributos: Item = { href: "/productos/atributos", etiqueta: "Atributos", icono: IC.atributos };
   const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
   // Los cuatro hijos de Inventario (Felipe, 2026-09-16, integrando sus
   // diseños): "Existencias" es la raíz del módulo; Movimientos se mudó de
@@ -630,7 +615,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     id: "catalogo",
     etiqueta: "Catálogo",
     icono: IC.catalogo,
-    hijos: [productos, categorias, colores, tallas, tejidos, patrones, etiquetas],
+    hijos: [productos, categorias, atributos],
   };
   // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
   // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que

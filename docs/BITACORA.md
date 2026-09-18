@@ -6493,3 +6493,103 @@ BACKLOG/BITACORA corregidas; no se tocó ninguna de las referencias de la otra s
 propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igual que
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
+
+## 2026-09-17 (worktree `ganso-module-mockup-4f4def`: entorno local de Categorías + rediseño a tarjetas)
+
+Felipe pidió primero analizar si el módulo de Categorías estaba listo para probarse en
+local, y a mitad del diagnóstico cambió el pedido a rediseñarlo. No lo estaba: faltaban
+`.env.local` y el stub `0000` (gitignored, patrón ya conocido — copiados del checkout
+principal, no reparados), `node_modules` (worktree nuevo), y el Postgres compartido de
+`cayla-retail` (`Up 9h`, project_id fijo — no es por-worktree) estaba varias migraciones
+detrás de lo que ya vive en `main`: `tejidos`/`patrones`/`categoria_tallas`/
+`categoria_tejidos`/`categoria_patrones` y el RPC `actualizar_categoria_ejes` (ADR-0095)
+no existían todavía, así que la pantalla de Categorías iba a tirar "relation does not
+exist" apenas alguien la abriera. `migration up --local --include-all` no alcanzó solo:
+el historial remoto tenía versiones sin archivo local (algunas con timestamp mal
+formado de 15 dígitos, típicas de otra sesión concurrente) y, más abajo, varias
+migraciones más que ya habían corrido en los hechos (`prendas_danadas`, `tejidos`,
+`talla_id`, `familias reales`, `variante_etiquetas_actualizar`, `anular_conteo`,
+`insumos_taller_reconstruido` — todas de sesiones paralelas activas ahora mismo sobre el
+mismo Postgres). Cada una se verificó con `\d` antes de saltarla (columnas/RPC ya
+presentes, nunca una definición distinta) y se marcó con `migration repair --status
+applied|reverted` — solo toca la tabla de bookkeeping, ninguna sentencia DDL de otra
+sesión se tocó ni se revirtió. La de `prendas_danadas` es la misma que ya tiene worktree
+propio (`fix-prendas-danadas-duplicada`) — no se intentó arreglarla de fondo, solo
+destrabar el camino hacia Categorías. Quedó reconciliado hasta el final de
+`supabase/migrations/`, confirmado consultando la base real (`information_schema`), no
+el historial de migraciones.
+
+Con el entorno andando, el rediseño: `CategoriasLista.tsx` pasó de una fila de chips de
+texto a una grilla de tarjetas (mismo lenguaje que `ProductosGrilla`: elevación + sombra
+al pasar el mouse, tipografía `font-display`/`label-cayla`), agrupadas por familia con
+un ícono propio por familia — seis trazos monocromos nuevos en el mismo estilo que
+`IconoPercha`, nunca color por familia porque el brandbook reserva el rojo como "acento
+sagrado, máx. 2 por pantalla" y verde/ámbar para estado, no para categorizar. La vuelta
+de tuerca pedida: un clic en una tarjeta ya no cae directo al formulario de edición —
+abre primero una "Vista rápida" de solo lectura (cualquier rol, no solo Líder:
+`categorias_select` ya lo permitía, antes nadie más podía ver qué tallas/tejidos/
+patrones ofrece una categoría) con el conteo de productos activos enlazado a
+`/productos?cat=<id>`, las subcategorías como chips clickeables, y los 3 ejes como
+`Chip` de solo lectura. "Editar" recién ahí entra al formulario de siempre — ninguna
+mutación (`guardar`/`guardarSubcategoria`/`cambiarEstado`) se tocó. `page.tsx` suma un
+conteo de productos activos por categoría (`productos.categoria_id`, reducido en
+memoria — sin RPC nueva, a esta escala no hace falta) para la tarjeta y para la línea de
+resumen bajo el título, mismo patrón que el `Resumen` compacto de Productos.
+
+Verificado en navegador contra Supabase local: las 38 categorías activas cargan, Vista
+Rápida de "Blusas" muestra 2 productos activos y las tallas reales
+(Estándar/XS/S/M/L/XL/XXL), "Ver en Productos" aterriza en `/productos?cat=...`
+filtrado correctamente, "Editar" abre el formulario con los datos precargados y guarda
+igual que antes. `tsc --noEmit` en verde. Pendiente: esto es un primer borrador para que
+Felipe lo vea y reaccione en vivo, no una versión cerrada — falta su ok antes de tocar
+la sección "Desactivadas" (se dejó casi intacta a propósito) o pulir el detalle en
+celular.
+
+## 2026-09-17 (mismo worktree: Colores/Tallas/Tejidos/Patrones/Etiquetas se consolidan en "Atributos")
+
+Al ver el rediseño de Categorías, Felipe pidió ir más allá: el lateral de Catálogo tenía
+7 filas (Productos, Categorías, Colores, Tallas, Tejidos, Patrones, Etiquetas) para lo
+que en el fondo son 2 pantallas reales (Productos, Categorías) más 5 copias del mismo
+mecanismo (vocabulario cerrado: propone/aprueba/rechaza). Pedido textual: "con 3 está
+bien" — condensar Colores/Tallas/Tejidos/Patrones/Etiquetas (todo lo que iba DEBAJO de
+Categorías) en un solo submódulo "Atributos", con las acciones en modales en vez de los
+paneles que se abrían dentro de la misma tarjeta.
+
+Se leyeron los 5 pares página+lista antes de tocar nada: Tallas/Tejidos/Patrones son el
+mismo molde casi letra por letra (nombre, propone/aprueba/rechaza); Colores suma hex/
+tipo/muestra/orden y ya usaba `Modal` para agregar/editar; Etiquetas suma
+`sedes_permitidas`. Decisión de diseño: NO fusionar las 5 en un componente genérico —
+las diferencias reales (comentario obligatorio en Tallas, sedes en Etiquetas) hubieran
+llenado un componente único de `if` (principio 3). Se mantuvieron las 5
+`XLista.tsx` con sus mutaciones intactas, sin tocar un solo `fetch`; lo que cambió fue
+la presentación: cada panel que se abría dentro de la tarjeta (agregar/aprobar-con-
+comentario/rechazar/sedes) pasó a un `Modal`, y un componente nuevo (`AtributosHub.tsx`)
+las muestra una a la vez detrás de una fila de pestañas.
+
+`AppShell.tsx`: las 5 filas y sus 5 íconos propios se retiran de `grupoCatalogo.hijos` y
+de `RUTAS_POR_GRUPO.catalogo`; una sola fila "Atributos" con un ícono nuevo (tres
+muestras en racimo). Las 5 rutas viejas (`/productos/{colores,tallas,tejidos,patrones,
+etiquetas}`) no quedan en 404: `next.config.ts` las redirige a
+`/productos/atributos?tipo=X` (mismo patrón que los redirects de `/almacen`, `permanent:
+false` a propósito). `NuevoProductoForm.tsx` tenía dos textos de ayuda apuntando a
+`/productos/tallas` a mano — corregidos a "Catálogo → Atributos".
+
+Bug real encontrado verificando el redirect en el navegador (no en el código a simple
+vista): la pestaña activa arrancó como `useState(tipoInicial)` en `AtributosHub.tsx` —
+al navegar de `/productos/atributos` a `/productos/tallas` (redirige a
+`?tipo=tallas`), la pantalla se quedó mostrando la ÚLTIMA pestaña vista en esa sesión del
+navegador, no Tallas. Causa: el App Router de Next reusa la instancia del componente
+cliente entre navegaciones a la misma ruta, y `useState` solo lee su argumento inicial
+la primera vez que monta — un cambio de prop en visitas siguientes no lo vuelve a leer
+(antipatrón clásico de "estado derivado de una prop"). Corregido de raíz, no con un
+`useEffect` de sincronización: la pestaña activa dejó de vivir en estado de React y pasó
+a leerse directo de la URL (`tipo` como prop obligatoria, pestañas como `<Link>`, mismo
+patrón que Grilla/Tabla en `/productos`) — sin estado que se pueda desincronizar.
+Verificado después: los 5 redirects aterrizan cada uno en su pestaña correcta
+(confirmado por `aria-current` en el DOM, no solo por lectura visual), y "+ Agregar
+etiqueta" abre su modal con el selector de sedes andando.
+
+`tsc --noEmit` y `eslint` en verde. Igual que el rediseño de Categorías: primer borrador
+para que Felipe lo recorra en vivo, no cerrado — no se tocó la mecánica de aprobar/
+rechazar en sí (sigue siendo la misma RPC/API de siempre), solo dónde vive cada pantalla
+y cómo se abre cada acción.

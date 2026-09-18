@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 
 /**
@@ -219,51 +220,27 @@ export function EtiquetasLista({
     }
   }
 
+  const rechazandoEtiqueta = etiquetas.find((e) => e.id === rechazandoAbierto) ?? null;
+  const editandoSedesEtiqueta = etiquetas.find((e) => e.id === editandoSedesId) ?? null;
+
   return (
     <div className="space-y-6">
-      {agregando ? (
-        <div className="card-cayla space-y-3 p-4">
-          <div className="flex items-end gap-2">
-            <CampoTexto
-              etiqueta="Nombre de la etiqueta"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Oferta, Verano 2026"
-              className="flex-1"
-              autoFocus
-            />
-          </div>
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Restringir a sedes (opcional)</p>
-            <p className="mt-1 text-xs text-tinta/55">Sin elegir ninguna = visible y vendible en cualquier sede.</p>
-            <div className="mt-1.5">
-              <SelectorSedes sedes={sedes} seleccionadas={sedesNuevas} onCambio={setSedesNuevas} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
-              Guardar etiqueta
-            </Boton>
-            <Boton peso="fantasma" className="flex-1" onClick={() => setAgregando(false)} disabled={guardando}>
-              Cancelar
-            </Boton>
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar etiqueta
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAgregando(true)}
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Agregar etiqueta
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {activas.map((e) => (
-          <div key={e.id} className="card-cayla flex flex-col gap-2 p-4">
+          <div
+            key={e.id}
+            className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-tinta">{e.nombre}</p>
               {e.estado === "pendiente" && (
@@ -287,7 +264,7 @@ export function EtiquetasLista({
                     peso="discreto"
                     className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
                     onClick={() => {
-                      setRechazandoAbierto(rechazandoAbierto === e.id ? null : e.id);
+                      setRechazandoAbierto(e.id);
                       setMotivoRechazo("");
                     }}
                   >
@@ -299,7 +276,7 @@ export function EtiquetasLista({
                       peso="discreto"
                       className="flex-1 px-2.5 py-1.5 text-[11px]"
                       onClick={() => {
-                        setEditandoSedesId(editandoSedesId === e.id ? null : e.id);
+                        setEditandoSedesId(e.id);
                         setSedesEditando(e.sedesPermitidas ?? []);
                       }}
                     >
@@ -310,28 +287,6 @@ export function EtiquetasLista({
                     </Boton>
                   </>
                 )}
-              </div>
-            )}
-            {rechazandoAbierto === e.id && (
-              <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                <input
-                  autoFocus
-                  value={motivoRechazo}
-                  onChange={(ev) => setMotivoRechazo(ev.target.value)}
-                  placeholder="Motivo (opcional)"
-                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === e.id} onClick={() => rechazar(e)}>
-                  Confirmar rechazo
-                </Boton>
-              </div>
-            )}
-            {editandoSedesId === e.id && (
-              <div className="space-y-2 border-t border-tinta/10 pt-2">
-                <SelectorSedes sedes={sedes} seleccionadas={sedesEditando} onCambio={setSedesEditando} />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={guardandoSedes} onClick={() => guardarSedes(e)}>
-                  Guardar sedes
-                </Boton>
               </div>
             )}
           </div>
@@ -359,6 +314,72 @@ export function EtiquetasLista({
             ))}
           </div>
         </section>
+      )}
+
+      {agregando && (
+        <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={() => setAgregando(false)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Nombre de la etiqueta" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Restringir a sedes (opcional)</p>
+                <p className="mt-1 text-xs text-tinta/55">Sin elegir ninguna = visible y vendible en cualquier sede.</p>
+                <div className="mt-1.5">
+                  <SelectorSedes sedes={sedes} seleccionadas={sedesNuevas} onCambio={setSedesNuevas} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                  Guardar etiqueta
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {rechazandoEtiqueta && (
+        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={rechazandoId === rechazandoEtiqueta.id}
+                  onClick={() => rechazar(rechazandoEtiqueta)}
+                >
+                  Confirmar rechazo
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {editandoSedesEtiqueta && (
+        <Modal titulo={`Sedes de «${editandoSedesEtiqueta.nombre}»`} subtitulo="Sin elegir ninguna, la etiqueta no restringe nada." ancho="max-w-sm" onClose={() => setEditandoSedesId(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <SelectorSedes sedes={sedes} seleccionadas={sedesEditando} onCambio={setSedesEditando} />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardandoSedes}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" cargando={guardandoSedes} onClick={() => guardarSedes(editandoSedesEtiqueta)}>
+                  Guardar sedes
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );

@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Claude (worktree `ganso-module-mockup-4f4def`) | `claude/analisis-local-categorias-be96a0` | Rediseño visual de `/productos/categorias` (tarjetas + "Vista rápida") y consolidación de Colores/Tallas/Tejidos/Patrones/Etiquetas en una sola pantalla `/productos/atributos` (pestañas + modales) — `CategoriasLista.tsx`, `AtributosHub.tsx`, `AppShell.tsx`, `next.config.ts` (5 redirects nuevos), borró las 5 rutas viejas. Solo UI/lectura + presentación, ninguna RPC/tabla nueva, ninguna mutación reescrita. De paso reconcilió el Postgres local compartido (`migration repair` de 13 versiones cuyo efecto ya estaba aplicado por sesiones concurrentes — detalle en BITACORA de hoy), no tocó ninguna migración ajena. | 2026-09-17 |
 
 ## Cerradas hoy
 

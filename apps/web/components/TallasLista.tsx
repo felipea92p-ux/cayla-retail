@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
@@ -157,40 +158,27 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     }
   }
 
+  const aprobandoTalla = tallas.find((t) => t.id === aprobandoAbierto) ?? null;
+  const rechazandoTalla = tallas.find((t) => t.id === rechazandoAbierto) ?? null;
+
   return (
     <div className="space-y-6">
-      {agregando ? (
-        <div className="card-cayla flex items-end gap-2 p-4">
-          <CampoTexto
-            etiqueta="Valor de la talla"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            placeholder="Ej. M, 38, XSS"
-            className="flex-1"
-            autoFocus
-          />
-          <Boton peso="primario" className="px-4 py-2.5" onClick={guardar} cargando={guardando} disabled={!valor.trim()}>
-            Guardar
-          </Boton>
-          <Boton peso="fantasma" className="px-4 py-2.5" onClick={() => setAgregando(false)} disabled={guardando}>
-            Cancelar
-          </Boton>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar talla
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAgregando(true)}
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Agregar talla
+        </button>
+      </div>
 
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
         {activos.map((t) => (
-          <div key={t.id} className="card-cayla flex flex-col gap-2 p-3">
+          <div
+            key={t.id}
+            className="card-cayla flex flex-col gap-2 p-3 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+          >
             <div className="flex items-center justify-between gap-1">
               <p className="text-sm font-medium text-tinta">{t.valor}</p>
               {t.estado === "pendiente" && (
@@ -203,7 +191,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="primario"
                   className="flex-1 px-2 py-1.5 text-[11px]"
                   onClick={() => {
-                    setAprobandoAbierto(aprobandoAbierto === t.id ? null : t.id);
+                    setAprobandoAbierto(t.id);
                     setComentarioAprobar("");
                   }}
                 >
@@ -213,7 +201,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="discreto"
                   className="flex-1 px-2 py-1.5 text-[11px] text-rojo"
                   onClick={() => {
-                    setRechazandoAbierto(rechazandoAbierto === t.id ? null : t.id);
+                    setRechazandoAbierto(t.id);
                     setMotivoRechazo("");
                   }}
                 >
@@ -225,41 +213,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
               <Boton peso="discreto" className="px-2 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => desactivar(t)}>
                 Desactivar
               </Boton>
-            )}
-            {aprobandoAbierto === t.id && (
-              <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                <input
-                  autoFocus
-                  value={comentarioAprobar}
-                  onChange={(e) => setComentarioAprobar(e.target.value)}
-                  placeholder="Comentario (obligatorio)"
-                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                />
-                <p className="text-[10px] text-tinta/55">A qué categoría aplica, por qué es distinta de las que ya existen.</p>
-                <Boton
-                  peso="primario"
-                  className="w-full px-2.5 py-1.5 text-[11px]"
-                  cargando={aprobandoId === t.id}
-                  disabled={!comentarioAprobar.trim()}
-                  onClick={() => aprobar(t)}
-                >
-                  Confirmar aprobación
-                </Boton>
-              </div>
-            )}
-            {rechazandoAbierto === t.id && (
-              <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                <input
-                  autoFocus
-                  value={motivoRechazo}
-                  onChange={(e) => setMotivoRechazo(e.target.value)}
-                  placeholder="Motivo (opcional)"
-                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                />
-                <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === t.id} onClick={() => rechazar(t)}>
-                  Confirmar rechazo
-                </Boton>
-              </div>
             )}
           </div>
         ))}
@@ -282,30 +235,80 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                     Reactivar
                   </Boton>
                 )}
-                {aprobandoAbierto === t.id && (
-                  <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                    <input
-                      autoFocus
-                      value={comentarioAprobar}
-                      onChange={(e) => setComentarioAprobar(e.target.value)}
-                      placeholder="Comentario (obligatorio)"
-                      className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                    />
-                    <Boton
-                      peso="primario"
-                      className="w-full px-2.5 py-1.5 text-[11px]"
-                      cargando={aprobandoId === t.id}
-                      disabled={!comentarioAprobar.trim()}
-                      onClick={() => aprobar(t)}
-                    >
-                      Confirmar
-                    </Boton>
-                  </div>
-                )}
               </div>
             ))}
           </div>
         </section>
+      )}
+
+      {agregando && (
+        <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." ancho="max-w-sm" onClose={() => setAgregando(false)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Valor de la talla" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ej. M, 38, XSS" autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valor.trim()}>
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {aprobandoTalla && (
+        <Modal
+          titulo={`Aprobar «${aprobandoTalla.valor}»`}
+          subtitulo="A qué categoría aplica, por qué es distinta de las que ya existen — queda de referencia."
+          ancho="max-w-sm"
+          onClose={() => setAprobandoAbierto(null)}
+        >
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoTalla.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={aprobandoId === aprobandoTalla.id}
+                  disabled={!comentarioAprobar.trim()}
+                  onClick={() => aprobar(aprobandoTalla)}
+                >
+                  Confirmar aprobación
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {rechazandoTalla && (
+        <Modal titulo={`Rechazar «${rechazandoTalla.valor}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTalla.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={rechazandoId === rechazandoTalla.id}
+                  onClick={() => rechazar(rechazandoTalla)}
+                >
+                  Confirmar rechazo
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );
