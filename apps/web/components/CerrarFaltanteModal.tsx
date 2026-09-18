@@ -9,11 +9,10 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { ETIQUETA_ESTADO_RECEPCION, soles, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
+import { ETIQUETA_ESTADO_RECEPCION, soles, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { efectoCierre, igvDeMonto, montoNotaSugerido, tasaIgv } from "@/lib/recepciones-reglas";
 import { parseMonto } from "@/lib/por-pagar-reglas";
-import type { MotivoCierre } from "@/lib/compras-faltantes";
 
 // Cerrar una línea con faltante (D2, ADR-0106). Antes, una factura con 3 prendas que nunca
 // llegaron quedaba «parcial» para siempre: contaba como atrasada, inflaba «por recibir» y la
@@ -134,6 +133,9 @@ export function CerrarFaltanteModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            // Un modal se monta en un portal, pero React propaga los eventos por el árbol de componentes, no
+            // por el DOM: sin esto, este «enviar» subiría al <form> de quien lo abra (si lo hubiera).
+            e.stopPropagation();
             void cerrar(notaActiva);
           }}
           className="space-y-5"

@@ -6,13 +6,10 @@ import { exigir } from "@/lib/resultado";
 // nunca se editan ni se borran. Las escrituras pasan por `cerrar_linea_compra` y
 // `registrar_nota_credito_compra` desde los componentes cliente.
 
-export type MotivoCierre = "no_llego" | "danada" | "error_proveedor";
-
-export const ETIQUETA_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
-  no_llego: "No llegaron",
-  danada: "Llegaron dañadas",
-  error_proveedor: "Error del proveedor",
-};
+// `MotivoCierre` y su etiqueta viven en `compras-reglas` (módulo puro): un componente cliente que importara un
+// valor de ESTE archivo arrastraría `supabase/server` (y `next/headers`) al navegador y rompería la compilación.
+import { ETIQUETA_MOTIVO_CIERRE, type MotivoCierre } from "./compras-reglas";
+export { ETIQUETA_MOTIVO_CIERRE, type MotivoCierre };
 
 export type NotaCreditoCompra = {
   id: string;

@@ -186,6 +186,15 @@ export const ETIQUETA_METODO: Record<string, string> = {
   otro: "Otro",
 };
 
+/** Por qué no va a llegar lo que faltó (D2, ADR-0106): lo que acepta `cerrar_linea_compra`. */
+export type MotivoCierre = "no_llego" | "danada" | "error_proveedor";
+
+export const ETIQUETA_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
+  no_llego: "No llegaron",
+  danada: "Llegaron dañadas",
+  error_proveedor: "Error del proveedor",
+};
+
 /** Motivos de una nota de crédito del proveedor (D2, ADR-0106): lo que acepta `registrar_nota_credito_compra`. */
 export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
   faltante: "Faltante",

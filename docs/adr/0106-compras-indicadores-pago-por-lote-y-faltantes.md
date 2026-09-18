@@ -26,6 +26,9 @@ contra producción el 2026-09-18):
 «Faltan N»; «Todo llegó» llena un comprobante en un toque. El stock solo sube con lo confirmado
 (principio 2). Lo que no se cuenta no suma y sigue pendiente. Cambiar de comprobante con
 cantidades anotadas pide confirmación.
+*Corrección (2026-09-18, tras probarlo Felipe):* «sin contar» es el campo **vacío**, no el 0. Un 0
+escrito es un dato —«se contó y no llegó nada»— y esa línea queda «Faltan N» y puede cerrarse.
+Antes el campo mostraba 0 por defecto y una línea que de verdad llegó en 0 nunca ofrecía cerrar el faltante.
 
 **D2 — Faltantes: cierre de línea + nota de crédito del proveedor, como libro append-only.**
 Dos tablas nuevas que nunca se editan ni se borran; el saldo y el estado de recepción **siguen
@@ -39,6 +42,18 @@ siendo un cálculo** (principio 4). Sirven también, más adelante, para devoluc
 - Una línea cerrada deja de contar como «por recibir»/«atrasada». Cuando `recibido + cerrado ≥
   facturado` el comprobante pasa a `recibida`.
 - La nota puede registrarse junto con el cierre o después, desde el comprobante.
+- *Corrección (2026-09-18):* en la guía de recepción **no hay un modal por línea que escriba al
+  instante**. Cada línea que llegó corta lleva solo una decisión en el panel «Lo que faltó» —«lo espero
+  (sigue pendiente)» o el motivo por el que no va a llegar— y **un único botón de confirmar** registra, en
+  este orden: `recibir_compras` (si algo llegó), un `cerrar_linea_compra` por línea (siempre la cantidad
+  entera que faltó) y **una sola** nota de crédito por comprobante (`registrar_nota_credito_compra`), con el
+  monto sugerido = lo cerrado a su costo + IGV. Motivos: varias líneas cortas son lo normal, y el proveedor
+  emite una nota por comprobante, no por línea. Si falla algo tras la recepción, la línea sigue pendiente
+  (estado válido) y se informa cuál; jamás se reintenta la recepción (sumaría el stock dos veces). Cerrar
+  solo una parte de una línea sigue siendo posible desde el detalle del comprobante (modal, sin guía de por medio).
+- *Causa del defecto anterior:* el modal se montaba en un portal pero dentro del `<form>` de la guía; React
+  propaga eventos por el árbol de componentes y no por el DOM, así que el «enviar» del modal disparaba también
+  el `onSubmit` de la guía y registraba TODA la recepción al cerrar una sola línea.
 
 **D3 — Pago por lote.** Un solo pago (una transferencia) que se aplica a varios comprobantes **del
 mismo proveedor**. Cada aplicación es una fila de `compra_pagos` (el historial por comprobante
