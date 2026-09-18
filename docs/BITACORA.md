@@ -6588,3 +6588,20 @@ nueva — es un insert de datos, sin tabla/política/función nueva.
 Queda operable pero vacía a propósito: cargar stock inicial (traslado desde Taller o
 almacén) y asignar una Encargada son pasos operativos posteriores, no parte de "activar
 la tienda". Documentado en ADR-0097.
+
+## 2026-09-17/18 (diccionario de producción desactualizado, 3 falsas alarmas)
+
+Con el PR de Compras abierto (#110, rama separada — ver ahí ADR-0098, renumerado de 0097
+por esta misma colisión con Tienda Lima), se corrió `pnpm datos:comparar` para buscar otra
+pieza que construir — encontró 3 "pantallas rotas en producción" (`actualizar_categoria_ejes`,
+`marcar_comprobante_no_emitido`, `actualizar_variantes_etiquetas`). Antes de alarmar a
+Felipe, se verificó contra producción de verdad con el MCP de Supabase (consulta de solo
+lectura, `begin transaction read only`, proyecto `vovjyyiafkxteijimpuy`): las 3 funciones
+existen — el volcado local (`docs/datos/generado/`) tenía hora 15:26, de antes de que
+aterrizaran ADR-0093 y ADR-0095 esa misma tarde-noche. Se repitieron los 7 queries de
+`COMO-REFRESCAR.md` contra producción (solo lectura) y se regeneró el diccionario
+completo: `pnpm datos:comparar` ahora sale limpio. Hallazgo de paso: producción pasó de
+45 a 60 tablas desde la foto del 12-sep. Quedan sin actualizar (deuda ya existente, no
+agrandada): `glosario.json` (425/586 columnas explicadas) y 21 tablas "sin módulo" en
+`DICCIONARIO-RETAIL.md`. Solo `docs/datos/generado/*` — rama propia
+(`claude/refresca-diccionario-produccion`), sin código ni esquema.
