@@ -1,0 +1,35 @@
+-- ============================================================================
+-- PEGAR EN PRODUCCIÓN — falta la columna `notas` en retail.etiquetas
+-- (2026-09-17, hallado al diagnosticar "Catálogo > Etiquetas" caída en vivo)
+--
+-- No es un archivo de migración numerado: no lo recoge `supabase db reset`
+-- local (mismo patrón que `pegar-en-produccion-taxonomia-parte-segura.sql`
+-- y el resto de archivos `*-produccion.sql` de esta carpeta) — localmente
+-- `retail.etiquetas` ya nace con `notas` porque así la crea
+-- `20260917100200_etiquetas_catalogo.sql` desde el día uno.
+--
+-- POR QUÉ ESTE ARCHIVO EXISTE
+--   La reconciliación de `pegar-en-produccion-taxonomia-parte-segura.sql`
+--   (mismo día) arregló los triggers de etiquetas/tejidos/patrones
+--   ("rechazar" + "reactivar retira el rechazo") pero nunca tocó las
+--   columnas — porque el problema de columnas nadie lo había visto
+--   todavía. Confirmado leyendo producción directo (solo lectura,
+--   `information_schema.columns`): `retail.etiquetas` tiene
+--   id/nombre/activo/sedes_permitidas/estado/propuesto_por/aprobado_por/
+--   aprobado_en/created_at — le falta `notas`, la única columna que sí
+--   entró en la migración local pero nunca se propagó a la tabla vieja de
+--   producción (la misma que trajo la otra rama nunca fusionada). Sin
+--   `notas`, cualquier `select` de la pantalla `/productos/etiquetas`
+--   revienta con "column etiquetas.notas does not exist" — PostgREST lo
+--   traduce en un error genérico, `exigir()` (`lib/resultado.ts`) lo
+--   relanza a propósito (decisión de Felipe del 09-09: nunca mostrar un
+--   dato falso), y `error.tsx` es la pantalla "Esta pantalla no está
+--   mostrando datos" que Felipe vio en vivo.
+--
+-- QUÉ VA ACÁ (100% seguro)
+--   Una sola columna nullable sobre una tabla con 0 filas en producción
+--   (verificado). No toca RLS, no toca el trigger, no tiene default que
+--   reescriba filas existentes porque no hay ninguna.
+-- ============================================================================
+
+alter table retail.etiquetas add column if not exists notas text;

@@ -6561,6 +6561,25 @@ propio ADR-0077. Conflictos de `BACKLOG.md`/`SESIONES-ACTIVAS.md` resueltos igua
 siempre: se conservó todo, de los dos lados. `pnpm --filter web typecheck`/`lint`/295 tests
 en verde después de reconciliar.
 
+## 2026-09-17 (Etiquetas caída en vivo — a la reconciliación de talla_id le faltó una columna)
+
+Felipe reportó Catálogo > Etiquetas caída ("Esta pantalla no está mostrando datos") con
+un screenshot real. Diagnóstico leyendo producción en solo-lectura (transacción
+`read only`, sin escribir nada): `retail.etiquetas` le faltaba la columna `notas` que
+`/productos/etiquetas/page.tsx` sí pide — la tabla la había creado una rama vieja nunca
+fusionada, y la reconciliación de esta misma tarde
+(`pegar-en-produccion-taxonomia-parte-segura.sql`) arregló los triggers de ese mismo
+vocabulario pero nunca comparó columna por columna contra lo que el frontend fusionado
+en `main` realmente pide. Felipe corrió `alter table retail.etiquetas add column if not
+exists notas text;` en el SQL Editor; reverificado por lectura que la columna quedó
+creada. Aparte, el trigger que trae `20260917100200_etiquetas_catalogo.sql` en el repo
+estaba un paso atrás del que de verdad corre en producción (le faltaba "reactivar
+retira el rechazo") — corregido para que `supabase db reset` local no vuelva a divergir
+de producción en este vocabulario. Aprendizaje para la próxima reconciliación de
+esquema: comparar triggers/constraints no basta, hay que comparar columnas también
+(`information_schema.columns`), porque una tabla creada por otra rama puede tener el
+mismo nombre y un subconjunto distinto de columnas.
+
 ## 2026-09-18 (Tienda Lima activada en producción, ADR-0097)
 
 Felipe pidió activar la tienda de Lima. Antes de tocar nada se auditó el estado real

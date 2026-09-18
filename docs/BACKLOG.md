@@ -60,6 +60,17 @@ verde.
             etc.) queda vivo solo en este repo/local. Cambia el desplegable que ve una
             encargada de sede ahora mismo — el momento de activarlo en producción lo
             decide Felipe, no es un fix pendiente. Ver 🎯 Familias y categorías, abajo.
+- [x] **La reverificación de arriba no cazó todo: a `retail.etiquetas` en producción le
+      faltaba la columna `notas` — Catálogo > Etiquetas caía en vivo con "Esta pantalla
+      no está mostrando datos".** La tabla la había creado una rama vieja nunca
+      fusionada (ver `pegar-en-produccion-taxonomia-parte-segura.sql`); esa
+      reconciliación arregló los triggers pero nunca comparó columna por columna.
+      `alter table retail.etiquetas add column if not exists notas text;` corrida por
+      Felipe en el SQL Editor, reverificada por lectura contra
+      `information_schema.columns` (0 filas, sin riesgo). De paso, el trigger que trae
+      `20260917100200_etiquetas_catalogo.sql` estaba desactualizado frente al que de
+      verdad corre en producción (le faltaba "reactivar retira el rechazo") — corregido
+      en el archivo para que un `db reset` local no diverja.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
