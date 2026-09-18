@@ -102,10 +102,25 @@ con verificación contra Postgres real (Felipe vs. Micaela, sede por sede), en A
       pantalla en el navegador. Corregido calificando cada columna con alias (`c.saldo`,
       `il.fecha_ingreso`). Verificado de nuevo en el navegador, dos veces (líder y
       colaboradora).
+- [x] **Fusionado con `main` (26 commits, 2026-09-18) — dos hallazgos reales en el
+      camino**, ninguno cosmético: (1) `aprobar_devolucion`/`resolver_prenda_danada`
+      también las había tocado otra sesión (Nota de Crédito automática; "Liquidada"
+      exige venta real) — la migración de `devolver_proveedor` se reconstruyó sobre
+      ese cuerpo real, no el viejo, para no revivir un backdoor de integridad ya
+      cerrado ni perder la Nota de Crédito. (2) `resolver_prenda_danada` quedó con
+      dos sobrecargas vivas (3 params de la otra sesión + 4 de esta) — mismo bug que
+      `registrar_proveedor`, cerrado igual con `drop function`. Migraciones
+      renombradas `20260918070000`-`073000` por choque de timestamp con 3 archivos
+      de `main`. `db reset`/typecheck/lint/297 tests en verde sobre el árbol
+      mezclado. Detalle completo en BITÁCORA 2026-09-18.
 - [ ] **Pegar las 4 migraciones en producción** — con el prefijo `retail.` en el SQL Editor
       (CLAUDE.md) o vía MCP de Supabase. Ninguna toca datos existentes (solo columnas/
       funciones nuevas), pero sigue siendo cambio de esquema en producción — confirmar con
-      Felipe antes, no autónomo.
+      Felipe antes, no autónomo. **Ojo: no son independientes** — `20260918070000`
+      redefine `aprobar_devolucion`/`resolver_prenda_danada` sobre el cuerpo que
+      trajeron `20260918050000` (Nota de Crédito) y `20260917195508`/`095000`
+      (Liquidada), que también tienen que estar aplicadas antes en producción, o
+      `create or replace` fallaría al no encontrar la firma que espera reemplazar.
 - [ ] **Sin pruebas automatizadas** para `devolver_proveedor`/las métricas nuevas — mismo
       patrón de deuda que el resto de RPC de escritura del repo.
 - [ ] **Filtrar/agrupar proveedores por `rubro` en la lista** — el campo ya se guarda, se

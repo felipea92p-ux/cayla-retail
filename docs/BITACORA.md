@@ -7030,3 +7030,61 @@ tabla nueva, `censo_crear_variante`/`revisar_producto_censo` existen. `get_advis
 Pendiente real, sigue sin resolverse: Felipe tiene que registrar la serie de
 `nota_credito` en cada ubicación con boleta/factura (botón "Registrar serie" en
 Facturación) antes de que la primera devolución sobre una venta facturada funcione.
+
+## 2026-09-18 (Fusión con main: 26 commits, dos sobrecargas duplicadas reales)
+
+Felipe pidió fusionar la rama de Proveedores con `main` y, aparte, la lista de
+migraciones para pegar en producción (recordó que todo lo de `main` se despliega
+solo). Primer commit real de toda la sesión de Proveedores (nunca se había commiteado
+nada hasta acá). `main` se había movido 26 commits desde que empezó esta rama — nada
+raro dado que cambió el día.
+
+`git merge origin/main` dejó 2 conflictos reales (`BACKLOG.md`/`BITACORA.md`, mismo
+punto de inserción en los dos lados) — resueltos igual que siempre, todo de los dos
+lados. `SESIONES-ACTIVAS.md`/`types.ts` fusionaron solos, verificados igual (`grep`
+confirmó que ninguna función quedó duplicada ni perdida en `types.ts`).
+
+**Lo que git no marca como conflicto pero sí lo es: 3 de las 4 migraciones nuevas de
+Proveedores compartían timestamp exacto con 3 archivos de otras sesiones ya en
+`main`** (`20260917210000`/`220000`/`230000`, cada uno con contenido total). Renombradas
+a `20260918070000`-`20260918073000` (después de la última de `main`, orden relativo
+intacto) — mismo síntoma que ya nombró BITÁCORA el 2026-09-17 ("2 migraciones con
+timestamp duplicado"), pero esta vez con 3 a la vez.
+
+**El hallazgo real, el que un `db reset` sí atrapó:** `aprobar_devolucion` y
+`resolver_prenda_danada` — las dos funciones que `devolver_proveedor` extiende —
+también las había tocado OTRA sesión mientras esta rama seguía sin pushear:
+`resolver_prenda_danada` le sacó 'liquidada' (movida a `liquidar_prenda_danada`,
+que sí pide precio/venta real) y `aprobar_devolucion` ganó emisión automática de
+Nota de Crédito (`RETURNS` cambió de `void` a una fila con el id/serie/número).
+Reescribir la migración de `devolver_proveedor` sobre el cuerpo VIEJO habría
+revivido el backdoor de "liquidada sin venta" que la otra sesión acababa de cerrar,
+y habría perdido la Nota de Crédito automática entera. Reconstruida sobre el cuerpo
+real más reciente de las dos, sumando solo lo de `devolver_proveedor` — verificado
+con `db reset` limpio de punta a punta.
+
+**Segunda vuelta del mismo bug de sobrecargas (ya visto hoy con
+`registrar_proveedor`/`actualizar_proveedor`): `resolver_prenda_danada` quedó con dos
+firmas vivas** (la de 3 parámetros de la otra sesión + la de 4 de esta, con
+`p_proveedor_id` nuevo) porque sumar un parámetro cambia la lista de tipos y
+`create or replace` no reemplaza, crea una segunda. Las pruebas por `psql` con los 4
+parámetros explícitos no lo detectaban (resolvían sin ambigüedad); la pantalla real
+(`ResolverDanadosModal.tsx`) llama con 3 parámetros nombrados para "Se botó"/"Donada"
+— ahí sí habría sido ambiguo. Corregido con `drop function` de la firma vieja;
+reverificado simulando la llamada real (3 params nombrados) y la nueva (4).
+
+**De paso, un archivo suelto que no era mío:** `docs/adr/0094-ci-suma-un-job-piloto...md`
+— sin commitear, sin trackear, con el mismo contenido que `0074-ci-suma-un-job-piloto...md`
+(que sí sigue en el historial) salvo el número del título. Parece trabajo sin terminar
+de otra sesión que usó este worktree antes (`claude/pruebas-registrar-venta-cd2119`
+había mencionado ese mismo ADR-0074 de CI, "sin pushear todavía", en
+`SESIONES-ACTIVAS.md`). `git add -A` casi lo mete al commit como si YO hubiera
+renombrado 0074→0094 — habría chocado con mi propio ADR-0094 de Proveedores y borrado
+el 0074 real. Sacado del staging, el archivo suelto se dejó tal cual en disco (no es
+mío para decidir si se borra), `0074` restaurado sin tocar.
+
+Verificación final sobre el árbol ya mezclado, no solo "no rompió": `npx supabase db
+reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filter web
+typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
+producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
+producción).

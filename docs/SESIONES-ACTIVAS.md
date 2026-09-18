@@ -15,9 +15,10 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-| Felipe (Claude) | `claude/supplier-metrics-analysis-87a863` (worktree `cayla-invoices-module-review-451aa5`) | Proveedores: ficha ampliada (`rubro`/`plazo_credito_dias`/`forma_pago_preferida`) + métricas de compras/insumos separadas por sección + cierre de `devolver_proveedor` (ADR-0094, siguiente número libre confirmado contra `docs/adr/` al momento de escribir esto — puede necesitar renumerarse al fusionar, como ya pasó varias veces hoy). Migraciones `20260917210000`-`20260917230000`, todas verificadas en local. Pantalla de detalle en construcción. | 2026-09-17 |
 
 ## Cerradas hoy
+
+| Felipe (Claude) | `claude/supplier-metrics-analysis-87a863` (worktree `cayla-invoices-module-review-451aa5`) | Proveedores: ficha ampliada (`rubro`/`plazo_credito_dias`/`forma_pago_preferida`), métricas de compras/insumos por sección solo-líder (corrección angosta de D-27), cierre de `devolver_proveedor` (ADR-0094, sin choque). Fusionado con `main` (26 commits) — dos sobrecargas duplicadas reales encontradas y cerradas en el camino (`resolver_prenda_danada`, y el propio `aprobar_devolucion`/`resolver_prenda_danada` reconstruidos sobre la versión real de Nota de Crédito automática y de "Liquidada exige venta"). Migraciones renombradas a `20260918070000`-`20260918073000` por choque de timestamp con 3 archivos de otras sesiones. `db reset`, typecheck, lint y 297 tests en verde sobre el árbol ya mezclado. PR abierto, esperando merge desde GitHub. | 2026-09-18 |
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
