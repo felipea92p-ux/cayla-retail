@@ -11,6 +11,12 @@ Bug real que salió al tocar esto: "hoy" se calculaba con `toISOString()`, que e
 
 Pendiente a propósito: Patrones/Tejidos/Colores siguen con la tarjeta anterior — ver BACKLOG si se quiere unificar. Y falta saber cuántas variantes usan cada etiqueta antes de desactivarla (no hay dato en pantalla todavía).
 
+## 2026-09-18 (Tejidos con su imagen: la textura de cada tela en Atributos, como ya tenían Patrones y Etiquetas)
+
+Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo mecanismo que `patron-visual.ts` + `MuestraPatron`: `lib/tejido-visual.ts` traduce el nombre a una de 17 texturas y `components/MuestraTejido.tsx` la dibuja en SVG (sarga del denim, canalé de la pana, panal del piqué, fibra de la alpaca…). Sin cambios de esquema y sin migración: el nombre es lo único estable del vocabulario, así que un tejido nuevo como "Full Lycra" o "Interlock" (que las notas del seed dicen cubrir) cae solo en la textura de Licra/Jersey. Un nombre que no reconoce dice «Sin muestra» en vez de dibujar una tela equivocada.
+
+Lo que Felipe se lleva: aquí el color de la muestra ES la información (el denim tiene que ser azul), así que no usa la paleta de marca como Etiquetas — pero sí respeta lo sagrado: nada de rojo, sin degradados. Y el orden de las reglas importa: «Rib licrado» debe ser canalé, no licra, y «Algodón pima» su propia fibra, no algodón — está fijado en `tejido-visual.test.ts`.
+
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
 Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).
