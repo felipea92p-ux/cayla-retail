@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Resumen a producción: PR #120 mergeado por Claude con ok explícito de Felipe, dos migraciones aplicadas)
+
+Con el ok puntual de Felipe ("sí, mergea tú y sí, aplica solo las dos migraciones de
+Resumen a producción") se mergeó PR #120 a `main` y se aplicaron `fn_resumen_variantes`
+y el `fn_prioridad_conteo` con sububicación directo a producción (proyecto
+`cayla-dynamic`, vía MCP de Supabase). Antes de aplicar nada: verificación de solo
+lectura contra el esquema real (`variantes.talla_id` presente, `fn_resumen_variantes`
+no existía, `fn_prioridad_conteo` ya sin el bug viejo de `.talla` — confirmando que
+`reconcilia_talla_id...` sí había llegado a producción antes). Después de aplicar:
+las dos funciones responden con la firma correcta, `anon` sigue sin poder ejecutarlas,
+`fn_prioridad_conteo` tirado sin sesión da el mensaje de permiso esperado (no un error
+de columna/relación faltante — prueba de que el cuerpo calza con el esquema real).
+`pnpm datos:comparar` sale limpio tras refrescar `funciones-produccion.txt` (PR #121,
+sin mergear todavía).
+
+Lo que NO se hizo, y por qué: no se aplicó el resto de la carpeta de migraciones
+locales (taxonomía, punto de reorden, etc.) — el pedido de Felipe fue explícito ("solo
+las dos migraciones de Resumen"), y varias de las otras ya estaban confirmadas en
+producción por sesiones anteriores. Tampoco se pusheó directo a `main` para el ajuste
+del diccionario (PR #121): el clasificador de auto-modo lo bloqueó como "merge sin
+revisión" — correcto, ese permiso puntual era solo para PR #120.
+
 ## 2026-09-18 (Resumen se fusiona con 22 commits de `main` — un bug ajeno encontrado y corregido de paso)
 
 Al fusionar la rama de Resumen con `main` (PR #106-#119, todo ya en producción) salieron 5
