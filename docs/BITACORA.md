@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
+
+El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
+que la venta; lo que faltaba era *verla e imprimirla*. Se comparó imprimir por el navegador (HTML de 80 mm)
+contra ESC/POS por WebUSB, un agente local y el PDF de Lucode: ganó el navegador (cero instalación, sirve
+con cualquier térmica de Windows) y el PDF de Lucode quedó descartado como camino principal porque solo
+existe *después* de transmitir a SUNAT, que hoy es manual y puede fallar. El recibo sale de la venta recién
+cobrada + serie/número/fecha de la base, con «SON: …», QR de SUNAT y hora de Lima; la lógica es pura y
+tiene 25 pruebas. Detalle y alternativas en ADR-0103.
+
+Dos cosas que Felipe debe saber: (1) el RUC, la razón social y la dirección de CAYLA **no estaban en ningún
+lado del repo ni de la base** — solo en la cuenta de Lucode — así que ahora se piden por variables
+`NEXT_PUBLIC_EMISOR_*` y, si faltan, el ticket sale sin QR y el modal lo avisa en vez de inventar un RUC;
+(2) **nada se probó con la impresora real ni con una venta real** (el panel del navegador no tenía sesión):
+se verificó el HTML en modo impresión (solo el recibo visible, 72 mm exactos) con una ruta temporal, ya borrada.
+
+En la misma sesión, a pedido: «Solo con stock» como interruptor activo por defecto, modal de talla (una sola
+talla vendible se agrega directo), avisos de tope con resaltado rojo de la tarjeta, un color por método de
+pago, tocar de nuevo un método lo quita y traspasa su monto, y subtotal/IGV en el pie. Aprendizaje: cambiar
+tokens de `globals.css` no llegó al navegador hasta borrar `apps/web/.next` (los chips salían grises, no con
+el color viejo), y esos tokens los comparte la dona de Caja — el cambio de color de un método es de las dos
+pantallas.
+
 ## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
 
 Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
