@@ -110,8 +110,9 @@ export type TipoContenedor = (typeof TIPOS_CONTENEDOR)[number];
 export const MOTIVOS_DEVOLUCION = ["no_vendida", "danada_reparacion", "danada_donar", "devolver_proveedor"] as const;
 export type MotivoDevolucion = (typeof MOTIVOS_DEVOLUCION)[number];
 
-// Taxonomía del catálogo (supabase/migrations/0009_categorias.sql). Familia es fija
-// (6, poco probable que cambie); categoría vive en una tabla real porque son ~30
-// valores con jerarquía por familia — un Líder puede agregar una nueva sin deploy.
-export const FAMILIAS = ["indumentaria", "calzado", "accesorios", "bisuteria", "belleza", "papeleria"] as const;
-export type Familia = (typeof FAMILIAS)[number];
+// Taxonomía del catálogo. Familia vive en `retail.familias`
+// (20260918010000_familias_tabla_propia.sql) — dejó de ser una lista fija acá: un
+// Líder agrega una familia nueva desde /productos/familias, sin deploy, igual que ya
+// podía con categoría. El código (`codigo`, ej. 'indumentaria') es estable y es lo
+// que guarda `categorias.familia` como FK; el `string` de este tipo es ese código.
+export type Familia = string;

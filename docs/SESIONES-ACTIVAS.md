@@ -15,6 +15,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
+| Felipe (Claude) | `claude/arreglemos-esto-079019` | Definiendo con Felipe cómo convertir `categorias.familia` (CHECK constraint fijo) en algo editable sin deploy (ADR-0096 lo pide). Todavía sin tocar esquema — esperando decisión de modelo de datos. | 2026-09-18 |
 
 ## Cerradas hoy
 

@@ -1331,6 +1331,37 @@ export type Database = {
         }
         Relationships: []
       }
+      // Stub a mano — 20260918010000_familias_tabla_propia.sql, todavía sin
+      // aplicar contra Postgres local (Docker apagado por RAM, 2026-09-18).
+      // `codigo` no tiene DEFAULT en SQL (lo llena fn_familias_generar_codigo,
+      // un trigger BEFORE INSERT) — un `gen-types` real lo marcaría requerido
+      // en Insert; se deja opcional acá porque en runtime SÍ se puede omitir.
+      // Reemplazar corriendo `pnpm gen-types` contra local en cuanto Docker
+      // esté arriba, para no arrastrar esta nota a producción.
+      familias: {
+        Row: {
+          activo: boolean
+          codigo: string
+          created_at: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          created_at?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       gastos: {
         Row: {
           categoria: string
