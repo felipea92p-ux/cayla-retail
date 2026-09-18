@@ -27,6 +27,17 @@ type Talla = {
   estado: "pendiente" | "aprobado" | "rechazado";
 };
 
+// Grilla que se adapta al ancho en vez de fijar 8 columnas: con columnas fijas,
+// a ciertos anchos la tarjeta quedaba más angosta que la palabra "DESACTIVAR"
+// (letras espaciadas de `label-cayla`) y el botón la cortaba. Con un mínimo de
+// 9rem por tarjeta el botón siempre cabe, y sobran columnas en pantallas grandes.
+const GRILLA = "grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3";
+
+// `Boton` trae px-4 y un px-2 pasado por className no lo pisa (mismo peso, y en
+// el CSS generado px-4 va después); el `!` fuerza el padding compacto. nowrap
+// evita que la palabra se parta en dos líneas dentro de la tarjeta.
+const BOTON_TARJETA = "px-2! py-1.5 text-[11px] whitespace-nowrap";
+
 function ordenar(lista: Talla[]) {
   return [...lista].sort((a, b) => a.valor.localeCompare(b.valor, "es", { numeric: true }));
 }
@@ -173,23 +184,23 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+      <div className={GRILLA}>
         {activos.map((t) => (
           <div
             key={t.id}
-            className="card-cayla flex flex-col gap-2 p-3 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+            className="card-cayla flex flex-col gap-3 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="flex items-center justify-between gap-1">
-              <p className="text-sm font-medium text-tinta">{t.valor}</p>
+              <p className="font-display text-2xl text-tinta">{t.valor}</p>
               {t.estado === "pendiente" && (
                 <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-1.5 py-0.5 text-[9px] text-rojo">Pendiente</span>
               )}
             </div>
             {puedeEditar && t.estado === "pendiente" && (
-              <div className="flex gap-1.5">
+              <div className="mt-auto flex flex-col gap-1.5">
                 <Boton
                   peso="primario"
-                  className="flex-1 px-2 py-1.5 text-[11px]"
+                  className={BOTON_TARJETA}
                   onClick={() => {
                     setAprobandoAbierto(t.id);
                     setComentarioAprobar("");
@@ -199,7 +210,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                 </Boton>
                 <Boton
                   peso="discreto"
-                  className="flex-1 px-2 py-1.5 text-[11px] text-rojo"
+                  className={`${BOTON_TARJETA} text-rojo`}
                   onClick={() => {
                     setRechazandoAbierto(t.id);
                     setMotivoRechazo("");
@@ -210,7 +221,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
               </div>
             )}
             {puedeEditar && t.estado !== "pendiente" && (
-              <Boton peso="discreto" className="px-2 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => desactivar(t)}>
+              <Boton peso="discreto" className={`${BOTON_TARJETA} mt-auto`} cargando={cambiandoId === t.id} onClick={() => desactivar(t)}>
                 Desactivar
               </Boton>
             )}
@@ -221,17 +232,17 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
       {desactivados.length > 0 && (
         <section className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — ya no se pueden elegir en una prenda nueva</p>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+          <div className={GRILLA}>
             {desactivados.map((t) => (
-              <div key={t.id} className="card-cayla flex flex-col gap-2 p-3 opacity-60">
+              <div key={t.id} className="card-cayla flex flex-col gap-3 p-4 opacity-60">
                 <div className="flex items-center justify-between gap-1">
-                  <p className="text-sm font-medium text-tinta">{t.valor}</p>
+                  <p className="font-display text-2xl text-tinta">{t.valor}</p>
                   {t.estado === "rechazado" && (
                     <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-1.5 py-0.5 text-[9px] text-rojo">Rechazada</span>
                   )}
                 </div>
                 {puedeEditar && (
-                  <Boton peso="discreto" className="px-2 py-1.5 text-[11px]" onClick={() => abrirReactivar(t)}>
+                  <Boton peso="discreto" className={`${BOTON_TARJETA} mt-auto`} onClick={() => abrirReactivar(t)}>
                     Reactivar
                   </Boton>
                 )}

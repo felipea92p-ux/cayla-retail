@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Atributos → Tallas: el botón "Desactivar" ya no se corta, y "Único" pasa a "Única")
+
+La pantalla fijaba 8 columnas de tarjetas; a ciertos anchos la tarjeta quedaba más angosta que la palabra "DESACTIVAR" (las letras de `label-cayla` van espaciadas) y el botón la cortaba. Ahora la grilla se adapta (`auto-fill`, mínimo 9rem), la talla se lee más grande en serif y Aprobar/Rechazar se apilan en vez de competir por el mismo ancho. Además `Boton` trae `px-4` y un `px-2` pasado por `className` no lo pisa — hay que forzarlo con `px-2!`; el mismo síntoma puede estar en otras listas de Atributos.
+
+"Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918160000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. **No está en producción**: falta pegarla en el SQL Editor con el prefijo `retail.`. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
+
 ## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
 
 La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.

@@ -348,7 +348,7 @@ nada (`0057:98-110`, `importaciones_token_unico`).
 ### Las funciones que acuñan
 
 - **`fn_clave_texto(text) → text`** — `IMMUTABLE`, sin permisos. La clave de comparación que sostiene `colores_clave_unica`.
-- **`fn_token_talla(text) → text`** — `IMMUTABLE`. `M` → `M`, `Único` → `U`, `Estándar` → `STD`.
+- **`fn_token_talla(text) → text`** — `IMMUTABLE`. `M` → `M`, `Única` → `U`, `Estándar` → `STD`.
 - **`fn_componer_codigo_variante(base, color_id, talla) → text`** — `IMMUTABLE`. Arma `BLU-0042-AZM-M`; sin color arma `CIN-0001-U`, sin relleno.
 - **`fn_siguiente_correlativo(prefijo) → integer`** — `security definer`. Entrega el siguiente número sin huecos y sin carrera.
 - **`fn_asignar_codigo_producto(uuid) → text`** — `security definer`, **idempotente**: si el producto ya tiene código lo devuelve y no renumera. Sin categoría usa el prefijo `GEN`.

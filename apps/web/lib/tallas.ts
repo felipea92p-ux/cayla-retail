@@ -13,7 +13,7 @@ function rango(talla: string): [number, number | string] {
   if (letra >= 0) return [0, letra];
   const n = Number(t);
   if (Number.isFinite(n)) return [1, n];
-  // "Estándar"/"Único" son los valores reales del vocabulario cerrado
+  // "Estándar"/"Única" son los valores reales del vocabulario cerrado
   // (20260917100000_tallas_vocabulario_cerrado.sql); antes solo se
   // reconocían las grafías de V1 y caían en "desconocida".
   if (["ÚNICA", "UNICA", "ÚNICO", "UNICO", "STD", "U", "ESTÁNDAR", "ESTANDAR"].includes(t)) return [3, 0];
