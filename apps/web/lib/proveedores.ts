@@ -10,16 +10,20 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
+  /** El WhatsApp por el que se pacta el fardo — y, en el modal de pago, el número al que se yapea/plinea. */
+  telefono: string | null;
+  banco: string | null;
+  cuenta_bancaria: string | null;
   activo: boolean;
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
    * facturas_vencidas, facturas_recibidas_completas,
-   * facturas_con_recepcion_pendiente) llega `null` si quien pregunta no es
-   * líder — corrección de D-27, 2026-09-17
+   * facturas_con_recepcion_pendiente, facturas_atrasadas) llega `null` si
+   * quien pregunta no es líder — corrección de D-27, 2026-09-17
    * (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). No es
    * "todavía no se cargó": es que a esta persona no le corresponde verlo. El
-   * directorio (nombre/ruc/contacto/rubro/plazo/forma de pago) sí es para
-   * cualquiera con cuenta.
+   * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubro/plazo/forma
+   * de pago) sí es para cualquiera con cuenta.
    */
   facturas: number | null;
   total_facturado: number | null;
@@ -28,6 +32,7 @@ export type Proveedor = {
   facturas_vencidas: number | null;
   facturas_recibidas_completas: number | null;
   facturas_con_recepcion_pendiente: number | null;
+  facturas_atrasadas: number | null;
   /** Rubro (tela, avíos, prenda terminada, servicios...), texto libre. */
   rubro: string | null;
   plazo_credito_dias: number | null;
@@ -60,6 +65,9 @@ export type ProveedorFicha = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
+  telefono: string | null;
+  banco: string | null;
+  cuenta_bancaria: string | null;
   activo: boolean;
   rubro: string | null;
   plazo_credito_dias: number | null;
@@ -71,7 +79,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   return exigirOpcional(
     await supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, activo, rubro, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, rubro, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
     "la ficha del proveedor"
@@ -90,6 +98,7 @@ export type MetricasCompras = {
   facturas_vencidas: number;
   facturas_recibidas_completas: number;
   facturas_con_recepcion_pendiente: number;
+  facturas_atrasadas: number;
 };
 
 export async function getProveedorMetricasCompras(id: string): Promise<MetricasCompras> {
