@@ -7,6 +7,7 @@ import {
   getProveedoresActivos,
   ETIQUETA_ESTADO_PAGO,
   ETIQUETA_ESTADO_RECEPCION,
+  ETIQUETA_TIPO_DOCUMENTO,
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
@@ -88,11 +89,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         <Indicador etiqueta="Registradas" valor={resumen.registradas.toLocaleString("es-PE")} detalle={`${resumen.vigentes.toLocaleString("es-PE")} vigentes`} tono="neutro" />
       </div>
 
-      <FiltrosCompras
-        proveedores={proveedores}
-        visibles={["busqueda", "proveedor", "pago", "recepcion", "condicion", "fechas", "vencidas"]}
-        principales={["busqueda", "proveedor", "pago"]}
-      />
+      <FiltrosCompras proveedores={proveedores} visibles={["proveedor", "pago", "recepcion", "condicion", "tipo", "fechas", "vencidas"]} />
 
       {compras.length === 0 && !cursor ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
@@ -137,7 +134,10 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                 <span className={`text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>{c.proveedorNombre}</span>
                 {c.proveedorRuc && <span className="ml-1.5 text-xs tabular-nums text-tinta/45">{c.proveedorRuc}</span>}
               </span>
-              <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{c.documento}</span>
+              <span className={celda("izq", "whitespace-normal text-xs tabular-nums text-tinta/65")}>
+                <span className="block">{c.documento}</span>
+                <span className="block text-tinta/45">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+              </span>
               <span className={celda("izq", "overflow-visible")}>
                 <Chip tono={TONO_ESTADO_RECEPCION[c.estadoRecepcion]}>{ETIQUETA_ESTADO_RECEPCION[c.estadoRecepcion]}</Chip>
               </span>

@@ -8,6 +8,7 @@ import {
   ETIQUETA_ESTADO_PAGO,
   ETIQUETA_ESTADO_RECEPCION,
   ETIQUETA_METODO,
+  ETIQUETA_TIPO_DOCUMENTO,
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
@@ -73,7 +74,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
 }
 
 export function tipoCompra(compra: CompraResumen): string {
-  return compra.tipo === "factura" ? "Factura" : compra.tipo === "boleta" ? "Boleta" : "Nota de venta";
+  return ETIQUETA_TIPO_DOCUMENTO[compra.tipo];
 }
 
 /** Ficha bajo el título — emisión, condición, destino y RUC — igual en página y modal.
