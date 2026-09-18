@@ -319,6 +319,18 @@ verde.
       verificado antes de escribirla) y se quitó el botón "SEDES"/todo el flujo de
       edición de `sedes_permitidas` de las 20 etiquetas restantes — "empresa
       uniforme", decisión de Felipe. La columna sigue en el esquema, dormida. PR #115.
+- [x] **Tejidos sembrado: 17 valores reales (2026-09-18).** Vacío desde ADR-0095
+      (17-sep). Investigado contra Google Merchant Center + el vocabulario propio de
+      proveedores de Gamarra (Tejido de Punto vs Tejido Plano), con dos fibras
+      peruanas reales (algodón pima, alpaca). Un solo nombre por concepto sin "/"
+      (Licra cubre Full Lycra, Jersey cubre Interlock, Rib no se separa de Rib
+      licrado). Migración `20260918140000`, los 17 nacen `aprobado`. Verificado con
+      `db reset` completo, typecheck/lint, navegador. PR pendiente de abrir.
+      **Pendiente, aparte:** Patrones también sembrado (7 valores) y "Estampado"/
+      "Multicolor"/"Animal print" retirados de Colores donde estaban duplicados
+      (migración `20260918100000`, PR #123, todavía sin fusionar) — imagen de
+      muestra para Patrones (como ya tiene Colores) quedó pedida por Felipe, sin
+      construir todavía.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
