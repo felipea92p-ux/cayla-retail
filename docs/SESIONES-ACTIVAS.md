@@ -15,8 +15,9 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué está tocando | Desde |
 |---|---|---|---|
-
 ## Cerradas hoy
+
+| Claude (worktree `ganso-module-mockup-4f4def`) | `claude/analisis-local-categorias-be96a0` | Rediseño visual de `/productos/categorias` (tarjetas + "Vista rápida") y consolidación de Colores/Tallas/Tejidos/Patrones/Etiquetas en `/productos/atributos` (pestañas + modales) — `CategoriasLista.tsx`, `AtributosHub.tsx`, `AppShell.tsx`, `next.config.ts` (5 redirects). Fusionado con `main`: reconcilió el cambio paralelo de Etiquetas (estilo visual + vigencia, sin sedes) sin perder ninguna de las dos features. `tsc`/`lint`/297 tests en verde. PR [#119](https://github.com/felipea92p-ux/cayla-retail/pull/119) abierto, esperando revisión de Felipe. | 2026-09-18 |
 
 | Felipe (Claude) | `claude/supplier-metrics-analysis-87a863` (worktree `cayla-invoices-module-review-451aa5`) | Proveedores: ficha ampliada (`rubro`/`plazo_credito_dias`/`forma_pago_preferida`), métricas de compras/insumos por sección solo-líder (corrección angosta de D-27), cierre de `devolver_proveedor` (ADR-0094, sin choque). Fusionado con `main` (26 commits) — dos sobrecargas duplicadas reales encontradas y cerradas en el camino (`resolver_prenda_danada`, y el propio `aprobar_devolucion`/`resolver_prenda_danada` reconstruidos sobre la versión real de Nota de Crédito automática y de "Liquidada exige venta"). Migraciones renombradas a `20260918070000`-`20260918073000` por choque de timestamp con 3 archivos de otras sesiones. `db reset`, typecheck, lint y 297 tests en verde sobre el árbol ya mezclado. PR [#117](https://github.com/felipea92p-ux/cayla-retail/pull/117) abierto, esperando merge desde GitHub. | 2026-09-18 |
 

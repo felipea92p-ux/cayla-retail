@@ -1,0 +1,101 @@
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
+import { Ayuda } from "@/components/Ayuda";
+import { AtributosHub } from "@/components/AtributosHub";
+
+// Consolidación de Catálogo (2026-09-17, pedido de Felipe): reemplaza a
+// `/productos/{colores,tallas,tejidos,patrones,etiquetas}` — 5 pantallas
+// completas (sesión + persona/ubicación + AppShell cada una) que en el
+// fondo mostraban el mismo tipo de dato: vocabulario cerrado, propone/
+// aprueba/rechaza. Una sola carga de datos, una sola pantalla, 5 pestañas.
+// Las rutas viejas siguen funcionando vía `redirects()` en next.config.ts.
+export default async function AtributosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+  const persona = await requirePersonaActualV2();
+  const supabase = await createClient();
+  const { tipo: tipoParam } = await searchParams;
+  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "etiquetas"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? "colores";
+
+  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas] = await Promise.all([
+    supabase
+      .from("colores")
+      .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
+      .order("orden")
+      .order("nombre"),
+    supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
+    supabase.from("tejidos").select("id, nombre, activo, notas, estado").order("nombre"),
+    supabase.from("patrones").select("id, nombre, activo, notas, estado").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta").order("nombre"),
+  ]);
+
+  const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
+    codigo: c.codigo,
+    nombre: c.nombre,
+    familiaColor: c.familia_color,
+    hex: c.hex,
+    orden: c.orden,
+    activo: c.activo,
+    tipo: c.tipo,
+    imagenMuestraUrl: c.imagen_muestra_url,
+    notas: c.notas,
+    estado: c.estado as "pendiente" | "aprobado",
+  }));
+  const tallas = exigir(resTallas, "las tallas del vocabulario").map((t) => ({
+    id: t.id,
+    valor: t.valor,
+    activo: t.activo,
+    notas: t.notas,
+    estado: t.estado as "pendiente" | "aprobado" | "rechazado",
+  }));
+  const tejidos = exigir(resTejidos, "los tejidos del vocabulario").map((t) => ({
+    id: t.id,
+    nombre: t.nombre,
+    activo: t.activo,
+    notas: t.notas,
+    estado: t.estado as "pendiente" | "aprobado" | "rechazado",
+  }));
+  const patrones = exigir(resPatrones, "los patrones del vocabulario").map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    activo: p.activo,
+    notas: p.notas,
+    estado: p.estado as "pendiente" | "aprobado" | "rechazado",
+  }));
+  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+    activo: e.activo,
+    notas: e.notas,
+    estado: e.estado as "pendiente" | "aprobado" | "rechazado",
+    estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
+    vigenteDesde: e.vigente_desde,
+    vigenteHasta: e.vigente_hasta,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
+        <h1 className="font-display mt-1 text-2xl text-tinta">
+          Atributos
+          <Ayuda titulo="Atributos">
+            Los 5 vocabularios cerrados que describen una prenda además de su categoría: color,
+            talla, tejido, patrón y etiqueta libre. Cualquiera con sesión propone un valor nuevo
+            y lo puede usar de inmediato; un Líder lo aprueba o lo rechaza después.
+          </Ayuda>
+        </h1>
+      </div>
+
+      <AtributosHub
+        tipo={tipo}
+        colores={colores}
+        tallas={tallas}
+        tejidos={tejidos}
+        patrones={patrones}
+        etiquetas={etiquetas}
+        puedeEditar={persona.rol === "lider"}
+      />
+    </div>
+  );
+}

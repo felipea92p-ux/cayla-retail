@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
@@ -158,40 +159,26 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
     }
   }
 
+  const rechazandoTejido = tejidos.find((t) => t.id === rechazandoAbierto) ?? null;
+
   return (
     <div className="space-y-6">
-      {agregando ? (
-        <div className="card-cayla flex items-end gap-2 p-4">
-          <CampoTexto
-            etiqueta="Nombre del tejido"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej. Algodón"
-            className="flex-1"
-            autoFocus
-          />
-          <Boton peso="primario" className="px-4 py-2.5" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
-            Guardar
-          </Boton>
-          <Boton peso="fantasma" className="px-4 py-2.5" onClick={() => setAgregando(false)} disabled={guardando}>
-            Cancelar
-          </Boton>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar tejido
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAgregando(true)}
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Agregar tejido
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {activos.map((t) => (
-          <div key={t.id} className="card-cayla flex flex-col gap-2 p-4">
+          <div
+            key={t.id}
+            className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-tinta">{t.nombre}</p>
               {t.estado === "pendiente" && (
@@ -210,7 +197,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
                     peso="discreto"
                     className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
                     onClick={() => {
-                      setRechazandoAbierto(rechazandoAbierto === t.id ? null : t.id);
+                      setRechazandoAbierto(t.id);
                       setMotivoRechazo("");
                     }}
                   >
@@ -223,28 +210,50 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
                 )}
               </div>
             )}
-            {rechazandoAbierto === t.id && (
-              <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                <input
-                  autoFocus
-                  value={motivoRechazo}
-                  onChange={(e) => setMotivoRechazo(e.target.value)}
-                  placeholder="Motivo (opcional)"
-                  className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                />
-                <div className="flex gap-2">
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === t.id} onClick={() => rechazar(t)}>
-                    Confirmar rechazo
-                  </Boton>
-                  <Boton peso="fantasma" className="px-2.5 py-1.5 text-[11px]" onClick={() => setRechazandoAbierto(null)}>
-                    Cancelar
-                  </Boton>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {agregando && (
+        <Modal titulo="Nuevo tejido" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." ancho="max-w-sm" onClose={() => setAgregando(false)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Nombre del tejido" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Algodón" autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {rechazandoTejido && (
+        <Modal titulo={`Rechazar «${rechazandoTejido.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTejido.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={rechazandoId === rechazandoTejido.id}
+                  onClick={() => rechazar(rechazandoTejido)}
+                >
+                  Confirmar rechazo
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
 
       {desactivados.length > 0 && (
         <section className="space-y-2">

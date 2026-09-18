@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
 /**
@@ -77,6 +78,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
 
   const activas = etiquetas.filter((e) => e.activo);
   const desactivadas = etiquetas.filter((e) => !e.activo);
+  const rechazandoEtiqueta = etiquetas.find((e) => e.id === rechazandoAbierto) ?? null;
 
   async function guardar() {
     setGuardando(true);
@@ -211,38 +213,15 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
 
   return (
     <div className="space-y-6">
-      {agregando ? (
-        <div className="card-cayla space-y-3 p-4">
-          <div className="flex items-end gap-2">
-            <CampoTexto
-              etiqueta="Nombre de la etiqueta"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Oferta, Verano 2026"
-              className="flex-1"
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2">
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
-              Guardar etiqueta
-            </Boton>
-            <Boton peso="fantasma" className="flex-1" onClick={() => setAgregando(false)} disabled={guardando}>
-              Cancelar
-            </Boton>
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setAgregando(true)}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Agregar etiqueta
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAgregando(true)}
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Agregar etiqueta
+        </button>
+      </div>
 
       <div className="space-y-5">
         {ORDEN_GRUPOS.map((clave) => {
@@ -259,7 +238,11 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                 {delGrupo.map((e) => {
                   const vigencia = rangoVigencia(e.vigenteDesde, e.vigenteHasta);
                   return (
-                    <div key={e.id} className="card-cayla flex flex-col gap-2 p-4" title={e.notas ?? undefined}>
+                    <div
+                      key={e.id}
+                      className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+                      title={e.notas ?? undefined}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-tinta">{e.nombre}</p>
                         {e.estado === "pendiente" && (
@@ -286,7 +269,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                               peso="discreto"
                               className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
                               onClick={() => {
-                                setRechazandoAbierto(rechazandoAbierto === e.id ? null : e.id);
+                                setRechazandoAbierto(e.id);
                                 setMotivoRechazo("");
                               }}
                             >
@@ -302,20 +285,6 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                               Desactivar
                             </Boton>
                           )}
-                        </div>
-                      )}
-                      {rechazandoAbierto === e.id && (
-                        <div className="space-y-1.5 border-t border-tinta/10 pt-2">
-                          <input
-                            autoFocus
-                            value={motivoRechazo}
-                            onChange={(ev) => setMotivoRechazo(ev.target.value)}
-                            placeholder="Motivo (opcional)"
-                            className="w-full border-b border-tinta/25 bg-transparent px-0.5 py-1 text-[11px] text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo"
-                          />
-                          <Boton peso="primario" className="w-full px-2.5 py-1.5 text-[11px]" cargando={rechazandoId === e.id} onClick={() => rechazar(e)}>
-                            Confirmar rechazo
-                          </Boton>
                         </div>
                       )}
                     </div>
@@ -348,6 +317,47 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
             ))}
           </div>
         </section>
+      )}
+
+      {agregando && (
+        <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={() => setAgregando(false)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Nombre de la etiqueta" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                  Guardar etiqueta
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {rechazandoEtiqueta && (
+        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={rechazandoId === rechazandoEtiqueta.id}
+                  onClick={() => rechazar(rechazandoEtiqueta)}
+                >
+                  Confirmar rechazo
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );
