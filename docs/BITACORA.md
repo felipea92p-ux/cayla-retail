@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, 100% local)
+## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, en PR)
 
 Felipe pidió rediseñar Inventario → Traslados sobre una referencia visual. **Qué se cerró:** franja «Atención
 hoy» (solo si algo le toca a quien mira), cuatro indicadores que filtran, buscador, tabla con estado y acción
@@ -33,6 +33,55 @@ desplegar** — comprobado que ya tiene todo lo que la pantalla lee, y que las t
 llevaba atrasadas (`emitir_comprobante` idempotente, contacto bancario de proveedores, atraso de recepción de compras)
 ya están en producción. Datos de prueba: 31 traslados nuevos en la base local con `[prueba UI]` en la nota (sin borrar ni
 modificar los 4 que había).
+
+## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
+
+Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).
+
+Lo que Felipe se lleva: con auto-merge activo y las migraciones sin pegar en producción, el PR se habría fusionado y desplegado esperando `retail.familias`, que no existe allá — la regla de este repo es base primero, pantalla después (2026-07-18). Verificado contra producción en solo lectura: `categorias_familia_check` existe con ese nombre, las 6 familias en uso caben en la semilla y las funciones que usa la migración existen; es seguro pegarla. Y una consecuencia del propio agrupado: `orden` ya no ordena la grilla entera, solo manda dentro de cada familia, y ahí hoy conviven dos criterios (ver BACKLOG).
+
+## 2026-09-18 (Resumen a producción: PR #120 mergeado por Claude con ok explícito de Felipe, dos migraciones aplicadas)
+
+Con el ok puntual de Felipe ("sí, mergea tú y sí, aplica solo las dos migraciones de
+Resumen a producción") se mergeó PR #120 a `main` y se aplicaron `fn_resumen_variantes`
+y el `fn_prioridad_conteo` con sububicación directo a producción (proyecto
+`cayla-dynamic`, vía MCP de Supabase). Antes de aplicar nada: verificación de solo
+lectura contra el esquema real (`variantes.talla_id` presente, `fn_resumen_variantes`
+no existía, `fn_prioridad_conteo` ya sin el bug viejo de `.talla` — confirmando que
+`reconcilia_talla_id...` sí había llegado a producción antes). Después de aplicar:
+las dos funciones responden con la firma correcta, `anon` sigue sin poder ejecutarlas,
+`fn_prioridad_conteo` tirado sin sesión da el mensaje de permiso esperado (no un error
+de columna/relación faltante — prueba de que el cuerpo calza con el esquema real).
+`pnpm datos:comparar` sale limpio tras refrescar `funciones-produccion.txt` (PR #121,
+sin mergear todavía).
+
+Lo que NO se hizo, y por qué: no se aplicó el resto de la carpeta de migraciones
+locales (taxonomía, punto de reorden, etc.) — el pedido de Felipe fue explícito ("solo
+las dos migraciones de Resumen"), y varias de las otras ya estaban confirmadas en
+producción por sesiones anteriores. Tampoco se pusheó directo a `main` para el ajuste
+del diccionario (PR #121): el clasificador de auto-modo lo bloqueó como "merge sin
+revisión" — correcto, ese permiso puntual era solo para PR #120.
+
+## 2026-09-18 (Familia deja de ser un CHECK fijo; Colores se agrupa por familia; una colisión real resuelta en vivo)
+
+Se cerró: `retail.familias` (tabla propia, sin proponer/aprobar — mismo patrón que
+Categorías, ADR-0103) reemplaza el `CHECK constraint` de 6 valores fijos; pantalla
+`/productos/familias` nueva. `/productos/colores` se agrupa por familia (antes una
+sola grilla ordenada por `orden` global, dejaba un color nuevo "colgando" al final);
+de paso, investigación real contra Zara/Ralph Lauren/LVMH/Platanitos sumó 4 colores
+(Cobalto, Gris antracita, Caqui, Tostado) que Zara usa y CAYLA no tenía.
+
+Lo que Felipe aprendió/decidió: esta sesión y `claude/fix-old-stuff-0192ff`
+construyeron "familia como tabla" en paralelo sin saberlo — el tablero
+`SESIONES-ACTIVAS.md` lo detectó, Felipe comparó las dos versiones en vivo y se
+quedó con la de acá (menor cambio estructural: no migra el tipo de `categorias.familia`
+de texto a uuid). Aviso dejado en `SESIONES-ACTIVAS.md` para que esa sesión descarte
+la suya.
+
+Docker/Supabase local se cayó/cerró varias veces por RAM durante la sesión — se
+avanzó con `git`/`node` (typecheck, lint, 297 tests, dos bugs reales encontrados así:
+`avisar.ok` inexistente y un `<a>` donde iba `<Link>`) sin bloquear el trabajo hasta
+que Docker volvió a estar disponible para la verificación final en navegador.
 
 ## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
 
@@ -7439,6 +7488,9 @@ nuevo); candado `subtotal+igv=total` agregado a `emitir_comprobante` y `crear_pr
 manda el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`); `types.ts` parcheado a
 mano (una línea) en vez de regenerado completo, para no arrastrar drift ajeno.
 
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
+
 **Hallazgo operativo, no de esta tarea:** el Postgres local es un contenedor Docker
 compartido por los 40+ worktrees del repo — no uno por worktree. La migración se revirtió
 sola dos veces mientras se verificaba (`supabase migration up --local` reportaba "up to
@@ -7477,3 +7529,71 @@ de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
 **20260918091500** (después de la última migración del día, `20260918090000`). Referencias
 corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
 08-facturacion-sunat.md` con el mismo ajuste.
+
+## 2026-09-18 (Atributos → Patrones: cada patrón con su muestra visual)
+Felipe notó que en Atributos, Colores muestra un cuadrito de color y Patrones solo el
+nombre ("Rayas" no se ve a rayas). Se agregó `components/MuestraPatron.tsx`: un dibujo de
+respaldo por familia (rayas, cuadros, lunares, floral, animal print, estampado, liso) en la
+paleta del brandbook, elegido por `lib/patron-visual.ts` a partir del nombre — así "Rayado"
+o "Tartán" creados mañana por un Líder caen en la familia correcta sin tocar código. Un
+nombre desconocido muestra "Sin muestra", nunca un dibujo equivocado. Sin cambio de esquema.
+Pendiente propuesto (no hecho, es migración): `patrones.imagen_muestra_url` con foto real,
+mismo mecanismo que `colores.imagen_muestra_url`; el dibujo pasaría a ser el respaldo.
+Nota: el worktree estaba 668 commits atrás de main; se hizo merge (único conflicto:
+`package.json`, se tomó la versión de main que ya incluye el script `typecheck`).
+
+## 2026-09-18 (Tejidos por fin sembrado — 17 valores, investigados y negociados)
+
+Felipe venía trabajando este vocabulario en otra sesión que "no le hacía caso" — pidió
+cerrarlo de una vez acá. La lista ya estaba negociada en rondas previas (no improvisada
+hoy): investigación real contra el estándar (Google Merchant Center) y contra el
+vocabulario propio de los proveedores de Gamarra, La Victoria (Tejido de Punto vs
+Tejido Plano), más dos fibras peruanas reales (algodón pima — costa norte, ~35% más
+larga que el algodón convencional; alpaca — Perú tiene el 87% de la población mundial).
+Felipe simplificó en el camino: un solo nombre por concepto, nunca combinado con "/"
+("Licra" cubre Full Lycra, "Jersey" cubre Interlock, "Rib" no se separa de "Rib
+licrado"); Piqué sí entra (tejido real de un polo); Tocuyo/French Terry/Punto Inglés/
+Gamuza/Jacquard quedan fuera por ahora, sin evidencia de que el catálogo real los use.
+
+Migración `20260918140000`: 17 tejidos, todos `aprobado` desde el día uno (trigger
+desactivado durante el insert — mismo patrón que Etiquetas/Patrones, si no se hace así
+el propio trigger recalcula `estado` desde `auth.uid()` y en una migración no hay
+sesión, quedaría `pendiente` sin querer). Verificado con `db reset` completo,
+typecheck/lint, y navegador: los 17 tejidos visibles y aprobados en
+`/productos/atributos?tipo=tejidos`. PR pendiente de abrir.
+
+## 2026-09-18 (Atributos → Etiquetas: cada etiqueta con su ilustración)
+Felipe pidió lo mismo que en Patrones para Etiquetas: una imagen simple y bonita por tarjeta.
+`components/MuestraEtiqueta.tsx` dibuja un ícono por concepto (corazón, gato, huella de perro,
+reloj de arena, calabaza, arbolito, bandera…) elegido por nombre en `lib/etiqueta-visual.ts`, así
+"Para liquidar — Tienda AQP" comparte dibujo con "Para liquidar". Decisión de color: NINGÚN rojo
+(es el acento sagrado, máx. 2 por pantalla y esta grilla tiene 21 tarjetas); cada dibujo usa el
+tono de su grupo — ámbar/verde/taupe — sobre un tinte suave del mismo tono. A diferencia de
+patrones, una etiqueta desconocida cae en un ícono genérico de etiqueta, no en "Sin muestra":
+es un concepto, no una tela. Sin cambio de esquema. Pendiente: foto propia por etiqueta
+(mismo mecanismo que tejidos/patrones, aún sin publicar) si algún día hace falta.
+
+## 2026-09-18 (El aviario vuelve a cerrar: 60 de 60 tablas con pájaro — ADR-0104)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). La sesión había
+nacido de un `main` local del 5-sep, 668 commits atrás y sin `docs/datos/`; Felipe puso su
+`main` al día con `git reset --keep origin/main`. Al cruzar el aviario con producción (en
+vivo, solo lectura) salió que su índice tabla→pájaro describía V1 —26 de 47 tablas ya no
+existen, 39 de las 60 reales sin pájaro— y que el generador llevaba otra lista distinta.
+
+Ahora hay una sola lista (`scripts/datos/aviario.mjs`), un índice generado
+(`generado/AVIARIO.md`) y un paso de CI que falla si una tabla nace sin pájaro. 21 tablas
+reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fiscales` →
+Cuervo, `sububicaciones` → Halcón). Felipe aprobó las 24 tal cual y se abrió el PR.
+
+De paso: `retail.migraciones_aplicadas`, el registro que describe GOBIERNO §4, no existe en
+producción; el que sí se llena es `supabase_migrations.schema_migrations` (114 filas, la
+última de hoy), pero lo pegado a mano en el SQL Editor no deja fila ahí. Además, `main`
+tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
+y `claude/facturacion-modal-shared-state-186f2d` tienen trabajo sin fusionar sobre la base
+V1 (la segunda con un ADR-0011 que choca con el existente).
+
+Al fusionar con `main`, el PR #129 ya había tomado el ADR-0103 (familias): ganó el
+número y el del aviario pasó a 0104. Y `retail.familias`, ya en producción pero no en el
+volcado del 17-sep, entró al aviario bajo Loro. El límite que el propio ADR anotaba —la
+alarma es tan fresca como el volcado— se cumplió el mismo día.

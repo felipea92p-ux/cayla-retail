@@ -17,6 +17,7 @@
     "datos:generar": "node scripts/datos/generar.mjs",
     "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",
     "datos:comparar": "node scripts/datos/comparar.mjs --md",
+    "datos:aviario": "node scripts/datos/aviario.mjs",
     "local:donde": "node scripts/local/donde-estoy.mjs",
     "prepare": "git config core.hooksPath .githooks || true"
   },

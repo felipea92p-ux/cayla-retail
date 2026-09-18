@@ -83,7 +83,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         />
       </div>
 
-      <FiltrosCompras proveedores={proveedores} visibles={["busqueda", "proveedor", "vencidas", "condicion"]} principales={["busqueda", "proveedor", "vencidas"]} />
+      <FiltrosCompras proveedores={proveedores} visibles={["proveedor", "vencidas", "condicion"]} />
 
       {compras.length === 0 && !cursor ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">

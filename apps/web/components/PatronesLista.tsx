@@ -4,6 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { MuestraPatron } from "@/components/MuestraPatron";
 
 /**
  * Vocabulario cerrado de patrones (ADR-0095/0096) — mismo mecanismo que
@@ -179,6 +180,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
             key={p.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
+            <MuestraPatron nombre={p.nombre} />
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-tinta">{p.nombre}</p>
               {p.estado === "pendiente" && (
@@ -261,6 +263,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((p) => (
               <div key={p.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
+                <MuestraPatron nombre={p.nombre} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{p.nombre}</p>
                   {p.estado === "rechazado" && (

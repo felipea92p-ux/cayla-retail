@@ -32,7 +32,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sola regla
 (`traslados-reglas.ts`) para franja, tarjetas, chips, tabla, detalle y el número del menú. **100% local, sin
-migración.** Hecho: reglas + 61 pruebas, miniaturas reales con regla propia, insignia en lateral/pestañas/celular,
+migración, en PR.** Hecho: reglas + 61 pruebas, miniaturas reales con regla propia, insignia en lateral/pestañas/celular,
 refresco cada minuto, detalle con el mismo vocabulario que la lista.
 
 - [ ] **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
@@ -56,6 +56,71 @@ las cantidades vienen precargadas pero «Confirmar recepción» sigue apagado ha
 recepción «a medias» accidental cuenta como «requiere acción»); las fotos se suben sin redimensionar y hay cuatro
 criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
 diferencia.
+
+## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0104)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). Al cruzarlo con
+producción, su índice tabla→pájaro describía V1 (26 de 47 tablas ya no existen, 39 de 60
+reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
+
+- [x] **Una sola lista** en `scripts/datos/aviario.mjs`: las 60 tablas y vistas de
+      `retail` con un pájaro cada una. El índice se genera en
+      `docs/datos/generado/AVIARIO.md` y GOBIERNO §1 apunta ahí.
+- [x] **Alarma en CI:** `node scripts/datos/aviario.mjs --verificar` falla si una tabla
+      nace sin pájaro, tiene dos, los pájaros no coinciden con GOBIERNO o `AVIARIO.md`
+      quedó viejo. Probado sobre una copia: los errores fallan y apuntarse no rompe nada.
+- [x] **Felipe aprobó las asignaciones tal cual** (tabla en ADR-0104: 21 nuevas y 3 que
+      cambian — `proformas` y `ubicacion_datos_fiscales` → Cuervo, `sububicaciones` →
+      Halcón). PR abierto desde `claude/aviario-cayla-8d1efc`, esperando merge.
+- [ ] **Gorrión: lo que se pega a mano en el SQL Editor de producción no deja rastro.**
+      GOBIERNO §4 apuntaba a `retail.migraciones_aplicadas`, que ya no existe. El
+      registro vivo es `supabase_migrations.schema_migrations` (114 filas, la última de
+      hoy), pero solo lo llena el camino de migraciones (CLI/MCP), con versión propia y
+      no el nombre del archivo del repo. Decidir si todo SQL de producción pasa por ahí.
+- [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
+      `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
+      los documentos del porqué, todavía no.
+- [ ] **Refrescar el volcado de producción** (`generado/COMO-REFRESCAR.md`):
+      `retail.familias` ya existe allá desde el PR #129 y el volcado del 17-sep no la
+      tiene. Hasta refrescarlo, la alarma del aviario no ve las tablas nacidas después.
+
+---
+
+## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
+
+`/productos/colores` era una sola grilla continua ordenada por `orden`
+global (10→92) — con 34+ colores un tono nuevo quedaba "colgando" al final
+en vez de junto a sus parecidos, y la última fila (Estampados, 3 items)
+se veía a medio llenar sin motivo. Se agrupó por familia (Neutro/Azul/
+Rojo/Amarillo/Verde/Morado/Tierra/Metálico/Estampado), mismo patrón visual
+que ya usa Categorías (`gruposPorFamilia()`, `ColoresLista.tsx`).
+
+De paso, auditoría real (mismo método que ADR-0096: navegar en vivo, citar
+URL, declarar cuando un sitio bloquea) contra Zara, Ralph Lauren, LVMH
+(Fendi/Dior) y Platanitos. Zara y Platanitos dieron datos reales; Ralph
+Lauren bloqueó el acceso en el primer intento y funcionó en el segundo
+(navegación más orgánica en vez de URLs directas); LVMH agrupa por familia
+amplia, no por tono fino, así que no aportó huecos nuevos. Resultado: 4
+colores nuevos con hueco real en Zara (Cobalto, Gris antracita, Caqui,
+Tostado — "Caqui" en español, no "Khaki", por la regla de idioma de
+CLAUDE.md), confirmados también en Ralph Lauren ("Dark Cobalt"). Nacen
+`aprobado` directo — decisión de marca ya tomada con Felipe, no una
+propuesta de piso de venta.
+
+- [ ] Verificado tras fusionar con `main` (2026-09-18): `tsc`, 380 tests, lint de
+      lo tocado y `next build` en verde; componente renderizado con los datos
+      reales de producción. **Falta, en este orden:** (1) Felipe pega en
+      producción `20260918010000_familias_tabla_propia.sql` y después
+      `20260918154730_colores_audit_zara_platanitos.sql` (supuestos ya
+      verificados contra producción, solo lectura); (2) recién ahí se fusiona
+      el PR — antes, el despliegue espera `retail.familias`, que no existe.
+      **Decisión abierta de Felipe:** con la grilla agrupada, `orden` solo manda
+      dentro de cada familia y hoy queda incoherente (Tierra: Arena → Camel →
+      Marrón → Chocolate → Caqui → Tostado; los 4 tonos nuevos van al final de
+      su familia). Propuesta: de más oscuro a más claro, medido con el hex real
+      de la muestra; solo cambia `orden` (dato de presentación, reversible).
+
+---
 
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
@@ -127,11 +192,17 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       Corregido en `20260918090000_prioridad_conteo_por_sububicacion.sql`: ahora cada fila
       dice "Piso de venta" o "Almacén de tienda"; de paso, "días sin contar" ahora exige que
       el conteo cerrado haya cubierto esa misma sububicación, no cualquiera de la sede.
-- [ ] **Aplicar a producción**, en este orden y con ok puntual: taxonomía cerrada (aún
-      "solo local"), `20260916100000_punto_reorden.sql`, `20260917220000_resumen_inventario.sql`
-      (renombrada localmente a `20260918080000_` por choque de timestamp con
-      `reconcilia_talla_id...` de `main` — sin choque de contenido), y
-      `20260918090000_prioridad_conteo_por_sububicacion.sql` (con `retail.` al pegar).
+- [x] **Aplicadas a producción, con ok puntual de Felipe (2026-09-18): las dos
+      migraciones de Resumen** — `fn_resumen_variantes` (renombrada localmente a
+      `20260918080000_` por choque de timestamp con `reconcilia_talla_id...` de `main`,
+      sin choque de contenido) y `fn_prioridad_conteo` con sububicación
+      (`20260918090000_prioridad_conteo_por_sububicacion.sql`). Verificado contra
+      producción real vía MCP de Supabase: las dos funciones existen con la firma
+      correcta, `anon` no puede ejecutarlas, `fn_resumen_inventario`/`transferir` viejas
+      quedaron dropeadas, el índice existe. `pnpm datos:comparar` sale limpio (PR #121).
+      `20260916100000_punto_reorden.sql` y la taxonomía cerrada NO se tocaron en esta
+      pasada — ya estaban en producción (`variantes.talla_id` confirmado presente antes
+      de aplicar nada).
 - [ ] **`movimientos.motivo` sin CHECK**: Resumen lo esquiva clasificando por FK, pero
       `fn_productos`/`fn_movimientos` siguen dependiendo del texto — vocabulario cerrado
       como colores/tallas.
@@ -348,6 +419,18 @@ verde.
       verificado antes de escribirla) y se quitó el botón "SEDES"/todo el flujo de
       edición de `sedes_permitidas` de las 20 etiquetas restantes — "empresa
       uniforme", decisión de Felipe. La columna sigue en el esquema, dormida. PR #115.
+- [x] **Tejidos sembrado: 17 valores reales (2026-09-18).** Vacío desde ADR-0095
+      (17-sep). Investigado contra Google Merchant Center + el vocabulario propio de
+      proveedores de Gamarra (Tejido de Punto vs Tejido Plano), con dos fibras
+      peruanas reales (algodón pima, alpaca). Un solo nombre por concepto sin "/"
+      (Licra cubre Full Lycra, Jersey cubre Interlock, Rib no se separa de Rib
+      licrado). Migración `20260918140000`, los 17 nacen `aprobado`. Verificado con
+      `db reset` completo, typecheck/lint, navegador. PR pendiente de abrir.
+      **Pendiente, aparte:** Patrones también sembrado (7 valores) y "Estampado"/
+      "Multicolor"/"Animal print" retirados de Colores donde estaban duplicados
+      (migración `20260918100000`, PR #123, todavía sin fusionar) — imagen de
+      muestra para Patrones (como ya tiene Colores) quedó pedida por Felipe, sin
+      construir todavía.
 - [x] **Las 4 pantallas de administración de vocabulario** (`/productos/tallas`,
       `/productos/tejidos`, `/productos/patrones`, `/productos/etiquetas`, mismo patrón
       que `ColoresLista.tsx`) — construidas y agregadas al nav de "Catálogo"
@@ -404,12 +487,18 @@ Investigación real contra Zara, H&M, Bershka, Hermès, Ralph Lauren, LVMH y Pla
 Complementos"), 39 categorías activas + 2 archivadas (Blusas fusionada con Camisas,
 Trajes de baño sin uso). Migración `20260917110000`, probada en navegador.
 
-- [ ] **`familia` sigue siendo un `CHECK constraint` fijo de 6 valores, no una tabla.**
-      Felipe pidió una pantalla de configuración para agregar familias/categorías nuevas
-      a futuro — eso exige convertir `familia` al mismo mecanismo que tallas/tejidos/
-      patrones (tabla propia, propone/aprueba), no solo agregar una pantalla sobre el
-      constraint actual. Decisión estructural real, pendiente de diseñar con Felipe antes
-      de construirla (no es continuación directa de lo ya hecho).
+- [x] **`familia` ya no es un `CHECK constraint` fijo — pasó a tabla propia
+      (2026-09-18, ADR-0103).** `retail.familias` (código estable en texto,
+      autogenerado del nombre), SIN proponer/aprobar — es decisión de marca,
+      no vocabulario operativo, mismo patrón que ya usa `retail.categorias`
+      (no el de tejidos/patrones, que sí tienen ese flujo). Pantalla nueva
+      `/productos/familias`, líder-only. **Colisión resuelta con Felipe en
+      vivo**: `claude/fix-old-stuff-0192ff` construyó en paralelo una
+      versión distinta (`familia_id` uuid, con proponer/aprobar) — Felipe
+      comparó las dos y eligió esta; ver ADR-0103 para el porqué completo y
+      el aviso a esa sesión en `SESIONES-ACTIVAS.md`. Verificado en
+      navegador como líder; `pnpm typecheck`/`lint`/297 tests en verde.
+      Pendiente: aplicar en producción (SQL con prefijo `retail.`).
 - [ ] **Categorías desactivadas de esta sesión (Blusas, Trajes de baño)** — confirmar con
       Felipe si alguna vuelve a activarse cuando el censo real (no el inventario de
       prueba de hoy) muestre que sí hay volumen ahí.

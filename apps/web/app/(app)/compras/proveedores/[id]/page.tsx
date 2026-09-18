@@ -44,10 +44,16 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         <h1 className="font-display mt-2 text-2xl text-tinta">{proveedor.nombre}</h1>
         <p className="mt-1 text-sm text-tinta/65">
           {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
+          {proveedor.telefono && <> · {proveedor.telefono}</>}
           {proveedor.rubro && <> · {proveedor.rubro}</>}
           {proveedor.plazo_credito_dias != null && <> · Crédito a {proveedor.plazo_credito_dias} días</>}
           {proveedor.forma_pago_preferida && <> · Paga por {ETIQUETA_METODO[proveedor.forma_pago_preferida] ?? proveedor.forma_pago_preferida}</>}
         </p>
+        {(proveedor.banco || proveedor.cuenta_bancaria) && (
+          <p className="mt-1 text-sm text-tinta/65">
+            {proveedor.banco ?? "Banco sin definir"} · {proveedor.cuenta_bancaria ?? "Sin cuenta"}
+          </p>
+        )}
       </div>
 
       <section className="space-y-3">
