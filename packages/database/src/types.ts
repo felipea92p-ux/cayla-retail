@@ -2076,14 +2076,18 @@ export type Database = {
       }
       productos: {
         Row: {
+          aprobado_en: string | null
+          aprobado_por: string | null
           categoria_id: string | null
           codigo: string | null
           created_at: string
           descripcion: string | null
           estado: string
+          estado_alta: string
           id: string
           patron_id: string | null
           permitir_venta_sin_stock: boolean
+          propuesto_por: string | null
           referencia: string
           stock_minimo: number | null
           tejido_id: string | null
@@ -2091,14 +2095,18 @@ export type Database = {
           token_cliente: string | null
         }
         Insert: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -2106,14 +2114,18 @@ export type Database = {
           token_cliente?: string | null
         }
         Update: {
+          aprobado_en?: string | null
+          aprobado_por?: string | null
           categoria_id?: string | null
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
           estado?: string
+          estado_alta?: string
           id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
+          propuesto_por?: string | null
           referencia?: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -3229,35 +3241,41 @@ export type Database = {
             }
             Returns: undefined
           }
-      catalogo_crear_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_fotos?: Json
-              p_patron_id?: string
-              p_permitir_venta_sin_stock?: boolean
-              p_referencia: string
-              p_stock_minimo?: number
-              p_tejido_id?: string
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: string
-          }
+      catalogo_crear_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_descripcion?: string
+          p_fotos?: Json
+          p_patron_id?: string
+          p_permitir_venta_sin_stock?: boolean
+          p_referencia: string
+          p_stock_minimo?: number
+          p_tejido_id?: string
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
+      censo_crear_variante: {
+        Args: {
+          p_categoria_id: string
+          p_codigo_barras: string
+          p_color_codigo?: string
+          p_costo?: number
+          p_precio?: number
+          p_referencia: string
+          p_talla_id?: string
+        }
+        Returns: {
+          codigo_barras: string
+          color: string
+          costo: number
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
+      }
       cerrar_caja: {
         Args: { p_caja_id: string; p_monto_real: number }
         Returns: {
@@ -4099,6 +4117,10 @@ export type Database = {
       }
       revertir_produccion: {
         Args: { p_produccion_id: string }
+        Returns: undefined
+      }
+      revisar_producto_censo: {
+        Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined
       }
       set_etapa_produccion: {
