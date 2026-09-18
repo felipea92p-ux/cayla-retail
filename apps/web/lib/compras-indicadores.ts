@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { rpcSinTipos } from "@/lib/rpc-sin-tipos";
 
 // Indicadores de Compras para decidir (ADR-0104). Solo LEE. Cada función es una llamada
 // a una función SQL del contrato de `docs/adr/0104-…md` (sección «Lectura»); las cifras
@@ -8,10 +7,10 @@ import { rpcSinTipos } from "@/lib/rpc-sin-tipos";
 // puede ser más). Los `numeric` de Postgres viajan como texto por JSON: se normalizan
 // acá, una sola vez, para que las pantallas reciban `number`.
 //
-// TEMPORAL: mientras los tipos generados de `packages/database` no incluyan estas
-// funciones se llaman con `rpcSinTipos`. Cuando los tipos existan, se cambia cada
-// llamada por `supabase.rpc("nombre", {...})` tipado y se borra `rpc-sin-tipos.ts`.
-// Los nombres de campo (camelCase) de los tipos de abajo NO cambian.
+// Las llamadas son tipadas: los tipos de `packages/database` se generan contra la base local
+// (`pnpm --filter @cayla-retail/database gen-types`) y traen estas funciones. Cada función
+// devuelve una sola fila de agregados o una lista corta; el `Number(...)` de cada campo cubre
+// que un `numeric` de Postgres viaje como texto por JSON.
 
 const n = (v: unknown): number => (v == null ? 0 : Number(v));
 const nOpt = (v: unknown): number | null => (v == null ? null : Number(v));
@@ -36,24 +35,22 @@ export type ResumenComprasExtra = {
   topProveedorPct: number;
 };
 
-type FilaExtra = Record<string, unknown>;
-
 export async function getResumenComprasExtra(): Promise<ResumenComprasExtra> {
   const supabase = await createClient();
-  const filas = exigir(await rpcSinTipos<FilaExtra[]>(supabase, "resumen_compras_extra"), "los indicadores de compras");
-  const r = filas[0] ?? {};
+  const filas = exigir(await supabase.rpc("resumen_compras_extra"), "los indicadores de compras");
+  const r = filas[0];
   return {
-    unidadesPendientes: n(r.unidades_pendientes),
-    valorPorRecibir: n(r.valor_por_recibir),
-    diasMasAtrasada: nOpt(r.dias_mas_atrasada),
-    documentoMasAtrasada: (r.documento_mas_atrasada as string | null) ?? null,
-    proveedorMasAtrasado: (r.proveedor_mas_atrasado as string | null) ?? null,
-    comprasMes: n(r.compras_mes),
-    comprasMesAnterior: n(r.compras_mes_anterior),
-    igvMes: n(r.igv_mes),
-    topProveedorId: (r.top_proveedor_id as string | null) ?? null,
-    topProveedorNombre: (r.top_proveedor_nombre as string | null) ?? null,
-    topProveedorPct: n(r.top_proveedor_pct),
+    unidadesPendientes: n(r?.unidades_pendientes),
+    valorPorRecibir: n(r?.valor_por_recibir),
+    diasMasAtrasada: nOpt(r?.dias_mas_atrasada),
+    documentoMasAtrasada: (r?.documento_mas_atrasada as string | null) ?? null,
+    proveedorMasAtrasado: (r?.proveedor_mas_atrasado as string | null) ?? null,
+    comprasMes: n(r?.compras_mes),
+    comprasMesAnterior: n(r?.compras_mes_anterior),
+    igvMes: n(r?.igv_mes),
+    topProveedorId: (r?.top_proveedor_id as string | null) ?? null,
+    topProveedorNombre: (r?.top_proveedor_nombre as string | null) ?? null,
+    topProveedorPct: n(r?.top_proveedor_pct),
   };
 }
 
@@ -64,7 +61,7 @@ export type DeudaPorVencimiento = { tramo: TramoVencimiento; comprobantes: numbe
 /** Siempre 4 filas, en este orden (vencida, 0–7, 8–30, más de 30), aunque sean ceros. */
 export async function getDeudaPorVencimiento(): Promise<DeudaPorVencimiento[]> {
   const supabase = await createClient();
-  const filas = exigir(await rpcSinTipos<FilaExtra[]>(supabase, "deuda_por_vencimiento"), "la deuda por vencimiento");
+  const filas = exigir(await supabase.rpc("deuda_por_vencimiento"), "la deuda por vencimiento");
   return filas.map((f) => ({ tramo: f.tramo as TramoVencimiento, comprobantes: n(f.comprobantes), monto: n(f.monto) }));
 }
 
@@ -82,7 +79,7 @@ export type SalidaCaja = {
 /** 6 filas: Vencido, cuatro semanas desde hoy (Lima), Después. */
 export async function getSalidasCaja30d(): Promise<SalidaCaja[]> {
   const supabase = await createClient();
-  const filas = exigir(await rpcSinTipos<FilaExtra[]>(supabase, "salidas_caja_30d"), "las salidas de caja");
+  const filas = exigir(await supabase.rpc("salidas_caja_30d"), "las salidas de caja");
   return filas.map((f) => ({
     orden: n(f.orden),
     etiqueta: String(f.etiqueta ?? ""),
@@ -103,7 +100,7 @@ export type TotalesTramosPorPagar = Record<ClaveTramoPorPagar, TotalTramoPorPaga
 export async function getPorPagarTramos(filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string } = {}): Promise<TotalesTramosPorPagar> {
   const supabase = await createClient();
   const filas = exigir(
-    await rpcSinTipos<FilaExtra[]>(supabase, "por_pagar_tramos", {
+    await supabase.rpc("por_pagar_tramos", {
       ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
       ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
       ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
@@ -135,16 +132,16 @@ export type ResumenRecepciones = {
 /** `desde` (aaaa-mm-dd) omitido = últimos 90 días. */
 export async function getResumenRecepciones(desde?: string): Promise<ResumenRecepciones> {
   const supabase = await createClient();
-  const filas = exigir(await rpcSinTipos<FilaExtra[]>(supabase, "resumen_recepciones", desde ? { p_desde: desde } : {}), "el resumen de recepciones");
-  const r = filas[0] ?? {};
+  const filas = exigir(await supabase.rpc("resumen_recepciones", desde ? { p_desde: desde } : {}), "el resumen de recepciones");
+  const r = filas[0];
   return {
-    unidadesRecibidas: n(r.unidades_recibidas),
-    recepciones: n(r.recepciones),
-    diasEntregaPromedio: nOpt(r.dias_entrega_promedio),
-    comprobantesRecibidos: n(r.comprobantes_recibidos),
-    entregasCompletas: n(r.entregas_completas),
-    faltanteUnidades: n(r.faltante_unidades),
-    faltanteComprobantes: n(r.faltante_comprobantes),
+    unidadesRecibidas: n(r?.unidades_recibidas),
+    recepciones: n(r?.recepciones),
+    diasEntregaPromedio: nOpt(r?.dias_entrega_promedio),
+    comprobantesRecibidos: n(r?.comprobantes_recibidos),
+    entregasCompletas: n(r?.entregas_completas),
+    faltanteUnidades: n(r?.faltante_unidades),
+    faltanteComprobantes: n(r?.faltante_comprobantes),
   };
 }
 
@@ -170,7 +167,7 @@ export type RecepcionDeCompra = {
 export async function listarRecepcionesCompras(opciones: { proveedorId?: string; desde?: string; hasta?: string; busqueda?: string; limite?: number } = {}): Promise<RecepcionDeCompra[]> {
   const supabase = await createClient();
   const filas = exigir(
-    await rpcSinTipos<FilaExtra[]>(supabase, "listar_recepciones_compras", {
+    await supabase.rpc("listar_recepciones_compras", {
       ...(opciones.proveedorId ? { p_proveedor_id: opciones.proveedorId } : {}),
       ...(opciones.desde ? { p_desde: opciones.desde } : {}),
       ...(opciones.hasta ? { p_hasta: opciones.hasta } : {}),
@@ -209,16 +206,16 @@ export type ResumenSinComprobante = {
 export async function getResumenSinComprobante(ubicacionId?: string): Promise<ResumenSinComprobante> {
   const supabase = await createClient();
   const filas = exigir(
-    await rpcSinTipos<FilaExtra[]>(supabase, "resumen_sin_comprobante", ubicacionId ? { p_ubicacion_id: ubicacionId } : {}),
+    await supabase.rpc("resumen_sin_comprobante", ubicacionId ? { p_ubicacion_id: ubicacionId } : {}),
     "el resumen de ingresos sin comprobante"
   );
-  const r = filas[0] ?? {};
+  const r = filas[0];
   return {
-    unidadesMes: n(r.unidades_mes),
-    recepcionesMes: n(r.recepciones_mes),
-    unidadesSinCostoMes: n(r.unidades_sin_costo_mes),
-    ultimaRecepcion: (r.ultima_recepcion as string | null) ?? null,
-    ultimaUbicacion: (r.ultima_ubicacion as string | null) ?? null,
+    unidadesMes: n(r?.unidades_mes),
+    recepcionesMes: n(r?.recepciones_mes),
+    unidadesSinCostoMes: n(r?.unidades_sin_costo_mes),
+    ultimaRecepcion: (r?.ultima_recepcion as string | null) ?? null,
+    ultimaUbicacion: (r?.ultima_ubicacion as string | null) ?? null,
   };
 }
 
@@ -239,7 +236,7 @@ export type RecepcionSinComprobante = {
 export async function listarRecepcionesSinComprobante(opciones: { ubicacionId?: string; limite?: number } = {}): Promise<RecepcionSinComprobante[]> {
   const supabase = await createClient();
   const filas = exigir(
-    await rpcSinTipos<FilaExtra[]>(supabase, "recepciones_sin_comprobante", {
+    await supabase.rpc("recepciones_sin_comprobante", {
       ...(opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
       ...(opciones.limite ? { p_limite: opciones.limite } : {}),
     }),

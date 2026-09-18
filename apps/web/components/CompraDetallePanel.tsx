@@ -50,7 +50,7 @@ export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraRes
         )}
         {puedeAnular && (
           <Boton peso="discreto" onClick={() => setAnulando(true)}>
-            Anular factura
+            Anular comprobante
           </Boton>
         )}
       </div>
@@ -130,7 +130,7 @@ export function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen;
     }
     const resta = Math.round((compra.saldo - suma) * 100) / 100;
     avisar.exito(`Pago de ${soles(suma)} registrado · ${compra.documento}`, {
-      detalle: resta > 0 ? `Quedan ${soles(resta)} por pagar.` : "Factura saldada.",
+      detalle: resta > 0 ? `Quedan ${soles(resta)} por pagar.` : "Comprobante saldado.",
     });
     router.refresh();
     onClose();
@@ -182,20 +182,20 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
     const { error } = await supabase.rpc("anular_compra", { p_compra_id: compra.id, p_motivo: motivo.trim() });
     setLoading(false);
     if (error) {
-      avisar.error(traducirError(error, "anular la factura"));
+      avisar.error(traducirError(error, "anular el comprobante"));
       return;
     }
-    avisar.exito(`Factura ${compra.documento} anulada`, { detalle: "Deja de contar en Por pagar y en Recibir." });
+    avisar.exito(`Comprobante ${compra.documento} anulado`, { detalle: "Deja de contar en Por pagar y en Recibir." });
     router.refresh();
     onClose();
   }
 
   return (
-    <Modal titulo="Anular factura" subtitulo={`${compra.documento} · ${compra.proveedorNombre}`} onClose={onClose}>
+    <Modal titulo="Anular comprobante" subtitulo={`${compra.documento} · ${compra.proveedorNombre}`} onClose={onClose}>
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">
           <p className="text-sm text-tinta/75">
-            La factura queda como anulada y deja de contar en Por pagar y en Recibir. No se borra: el registro se conserva con el motivo.
+            El comprobante queda como anulado y deja de contar en Por pagar y en Recibir. No se borra: el registro se conserva con el motivo.
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <div className="flex gap-3 pt-1">

@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { rpcSinTipos } from "@/lib/rpc-sin-tipos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -122,7 +121,7 @@ export function PagoJuntosModal({
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
-    const { error } = await rpcSinTipos<string>(supabase, "registrar_pago_compras", {
+    const { error } = await supabase.rpc("registrar_pago_compras", {
       p_proveedor_id: proveedorId,
       p_metodo: metodo,
       p_aplicaciones: lote,

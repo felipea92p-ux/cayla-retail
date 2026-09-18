@@ -185,7 +185,7 @@ export function CompraDetalle({
 
       {/* ---------- líneas ---------- */}
       <section className="space-y-2">
-        <p className="label-cayla text-[11px] text-tinta/65">Líneas de la factura</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Líneas del comprobante</p>
         <Tabla>
           <Encabezado
             plantilla={PLANTILLA_LINEAS}
@@ -273,7 +273,7 @@ export function CompraDetalle({
             )}
           </div>
           {recepciones.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de esta factura.</p>
+            <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de este comprobante.</p>
           ) : (
             <Tabla>
               <Encabezado plantilla={PLANTILLA_RECEPCIONES} columnas={[{ titulo: "Fecha" }, { titulo: "Guía · Destino" }, { titulo: "Unidades", alinear: "der" }]} />
