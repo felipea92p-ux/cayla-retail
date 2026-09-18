@@ -20,6 +20,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 
 | Quién | Rama / worktree | Qué tocó | Cerrada |
 |---|---|---|---|
+| Claude (worktree `activar-tienda-lima-eff087`) | `claude/activar-tienda-lima-v2` | Alta de Tienda Lima en producción: `retail.ubicaciones` + `retail.sububicaciones` (ADR-0097, migración `20260918010733_activar_tienda_lima.sql`), verificada con dry-run (rollback) y aplicada con ok de Felipe | 2026-09-18 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 1: cola offline en `CerrarCajaModalV2.tsx`/`CajaAbiertaPanel.tsx`/`PuntoDeVenta.tsx` (ADR-0092) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 2: inventario de insumos del Taller — esquema huérfano adoptado + `registrar_consumo_insumo` (ADR-0090, reconciliado con `claude/strange-golick-420bb9`) | 2026-09-17 |
 | Felipe (Claude) | `claude/validar-tareas-sistema-89d271` | Tarea 3: liberar comprobante SUNAT pendiente (ADR-0093) | 2026-09-17 |
