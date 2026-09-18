@@ -1,5 +1,5 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getVentasParaCambio } from "@/lib/ventas-v2";
+import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -14,9 +14,11 @@ import { CambiosPanel } from "@/components/CambiosPanel";
 // Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
 // modelo vive en supabase/migrations/0007_cambios.sql y
 // 20260918150000_cambios_motivo_y_estado_de_prenda.sql; la pantalla, en CambiosPanel.
-export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string }> }) {
+export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string; item?: string }> }) {
   const persona = await requirePersonaActualV2();
-  const { q, todas } = await searchParams;
+  // `item`: llegar desde Devoluciones con «Cambiar por otra prenda» (R-37) abre el flujo
+  // sobre esa prenda exacta.
+  const { q, todas, item } = await searchParams;
   const esLider = persona.rol === "lider";
   // Solo un líder ve otras sedes (RLS de ventas): a una integrante, "todas" no le
   // traería nada y la pantalla mentiría diciendo "no encontramos".
@@ -26,7 +28,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
   // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
   const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja] = await Promise.all([
-    getVentasParaCambio(persona.ubicacionId, { busqueda: q, todasLasSedes }),
+    getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
     supabase.rpc("fn_stock_por_sede"),
@@ -64,6 +66,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
         colaboradora={persona.nombre}
         cajaAbierta={caja !== null}
         tallasQueNoCalzan={tallasQueNoCalzan}
+        abrirItemId={item}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({

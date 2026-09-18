@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { EstadoPrendaChip, MetaCompra, formatearHora } from "@/components/CambiosVentas";
-import { ImpactoVista, ListaValidaciones, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
+import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
+import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
+import {
+  AvisoDeError,
+  BotonPrincipal,
+  BotonRojo,
+  BotonSecundario,
+  Dato,
+  EncabezadoFlujo,
+  PanelValidaciones,
+  PieDelPaso,
+  useEscapeRetrocede,
+  useFocoAlCambiarDePaso,
+} from "@/components/FlujoGuiado";
 import {
   CambioReemplazo,
   agruparCatalogo,
@@ -24,6 +36,7 @@ import {
   etiquetaMotivo,
   impactoCambio,
   primerBloqueo,
+  unidadesDisponibles,
   validarCambio,
   varianteLegible,
   type Validacion,
@@ -119,7 +132,7 @@ export function CambiosFlujo({
           venta: { comprobante: compra.comprobante, creadoEn: compra.creadoEn, anulada: compra.anulada },
           ahora,
           cantidadComprada: linea.cantidad,
-          disponible: linea.cantidad - linea.yaCambiado,
+          disponible: unidadesDisponibles(linea),
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
           nueva: r.varianteNueva ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, otrasSedes: r.otrasSedes } : null,
@@ -146,15 +159,9 @@ export function CambiosFlujo({
         })
       : null;
 
-  // El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está.
-  useEffect(() => {
-    titulo.current?.focus();
-  }, [paso]);
-
-  // Y si la base rechazó el cambio, el foco va al aviso, al lado del botón.
-  useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
+  useFocoAlCambiarDePaso(titulo, paso);
+  // Si la base rechazó el cambio, el foco va al aviso, al lado del botón.
+  useFocoAlCambiarDePaso(errorRef, error);
 
   function retroceder() {
     setAvisoContinuar(null);
@@ -163,18 +170,7 @@ export function CambiosFlujo({
     else if (paso === 3) setPaso(2);
     else onCerrar();
   }
-
-  useEffect(() => {
-    function alTeclado(e: KeyboardEvent) {
-      if (e.key !== "Escape" || e.defaultPrevented || enviando || paso === "exito") return;
-      // Escape dentro de un campo es del campo (borrar, cerrar su lista), no del flujo.
-      const destino = e.target as HTMLElement | null;
-      if (destino && ["INPUT", "SELECT", "TEXTAREA"].includes(destino.tagName)) return;
-      retroceder();
-    }
-    document.addEventListener("keydown", alTeclado);
-    return () => document.removeEventListener("keydown", alTeclado);
-  });
+  useEscapeRetrocede(retroceder, !enviando && paso !== "exito");
 
   function elegirLinea(id: string) {
     const nueva = venta.find((l) => l.ventaItemId === id);
@@ -247,33 +243,19 @@ export function CambiosFlujo({
     router.refresh();
   }
 
-  const numeroPaso = paso === "exito" ? 5 : paso;
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onCerrar}
-          disabled={enviando}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-tinta/75 transition-colors duration-200 hover:bg-papel hover:text-tinta disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Volver a Cambios
-        </button>
-        {paso !== "exito" && (
-          <p className="text-sm text-tinta/70" aria-live="polite">
-            Paso {numeroPaso} de {PASOS.length} · <span className="font-semibold text-tinta">{PASOS[numeroPaso - 1]}</span>
-          </p>
-        )}
-      </div>
-
-      {paso !== "exito" && <Pasos actual={numeroPaso} onIr={(n) => (n === 1 ? onCerrar() : setPaso(n as Paso))} />}
-
       {paso !== "exito" && (
-        <h2 ref={titulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">
-          {TITULOS[paso]}
-        </h2>
+        <EncabezadoFlujo
+          volverA="Volver a Cambios"
+          onVolver={onCerrar}
+          deshabilitado={enviando}
+          pasos={PASOS}
+          actual={paso}
+          onIrAPaso={(n) => (n === 1 ? onCerrar() : setPaso(n as Paso))}
+          titulo={TITULOS[paso]}
+          refTitulo={titulo}
+        />
       )}
 
       {paso === 2 && (
@@ -309,7 +291,7 @@ export function CambiosFlujo({
                           <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
                         </span>
                       </span>
-                      <EstadoPrendaChip estado={estado} />
+                      <ChipEstado estado={estado} />
                     </label>
                   );
                 })}
@@ -389,23 +371,7 @@ export function CambiosFlujo({
             <PanelValidaciones validaciones={validaciones} />
           </div>
 
-          {error && (
-            <div
-              ref={errorRef}
-              tabIndex={-1}
-              role="alert"
-              className="anim-revelar flex gap-3 rounded-xl border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-sm text-rojo-profundo outline-none"
-            >
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              {/* `traducirError` ya abre con "No se pudo registrar…" cuando no reconoce el
-                  error; con un mensaje de la base ("Stock insuficiente…") hay que decir
-                  que no se guardó nada. */}
-              <p>
-                {!error.startsWith("No se pudo") && <span className="font-semibold">No se registró el cambio. </span>}
-                {error}
-              </p>
-            </div>
-          )}
+          {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró el cambio." />}
 
           <PieDelPaso aviso={null}>
             <BotonSecundario onClick={retroceder} disabled={enviando}>
@@ -416,16 +382,10 @@ export function CambiosFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              {/* La única acción roja del flujo: la que mueve stock y plata de verdad. */}
-              <button
-                type="button"
-                onClick={confirmar}
-                disabled={enviando}
-                className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-rojo px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70"
-              >
+              <BotonRojo onClick={confirmar} disabled={enviando}>
                 {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                 {enviando ? "Registrando…" : "Confirmar cambio"}
-              </button>
+              </BotonRojo>
             </div>
           </PieDelPaso>
         </div>
@@ -463,106 +423,5 @@ export function CambiosFlujo({
         </div>
       )}
     </div>
-  );
-}
-
-function Pasos({ actual, onIr }: { actual: number; onIr: (n: number) => void }) {
-  return (
-    <ol className="flex items-center gap-2 sm:gap-3" aria-label="Pasos del cambio">
-      {PASOS.map((nombre, i) => {
-        const n = i + 1;
-        const hecho = n < actual;
-        const esActual = n === actual;
-        return (
-          <li key={nombre} className={`flex items-center gap-2 sm:gap-3 ${n < PASOS.length ? "min-w-0 flex-1" : ""}`}>
-            <button
-              type="button"
-              disabled={!hecho}
-              onClick={() => onIr(n)}
-              aria-current={esActual ? "step" : undefined}
-              title={hecho ? `Volver a «${nombre}»` : undefined}
-              className="group flex shrink-0 items-center gap-2 rounded-md disabled:cursor-default"
-            >
-              <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-200 ${
-                  hecho
-                    ? "bg-tinta text-crema group-hover:bg-tinta/80"
-                    : esActual
-                      ? "bg-papel text-tinta ring-2 ring-tinta"
-                      : "bg-papel text-tinta/65 ring-1 ring-tinta/20"
-                }`}
-              >
-                {hecho ? <Check className="h-3.5 w-3.5" aria-hidden /> : n}
-              </span>
-              <span
-                className={`hidden text-sm md:inline ${esActual ? "font-semibold text-tinta" : hecho ? "text-tinta/80 group-hover:underline" : "text-tinta/65"}`}
-              >
-                {nombre}
-              </span>
-              <span className="sr-only">{hecho ? `${nombre}, hecho` : esActual ? `${nombre}, paso actual` : `${nombre}, pendiente`}</span>
-            </button>
-            {n < PASOS.length && <span aria-hidden className={`h-px min-w-3 flex-1 transition-colors duration-200 ${hecho ? "bg-tinta/50" : "bg-tinta/15"}`} />}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function PanelValidaciones({ validaciones }: { validaciones: readonly Validacion[] }) {
-  return (
-    <aside className="self-start rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] lg:sticky lg:top-24">
-      <h3 className="mb-4 text-sm font-semibold text-tinta">Lo que el sistema revisa</h3>
-      <ListaValidaciones validaciones={validaciones} />
-    </aside>
-  );
-}
-
-function Dato({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs font-semibold text-tinta/70">{titulo}</dt>
-      <dd className="mt-0.5 text-tinta">{children}</dd>
-    </div>
-  );
-}
-
-function PieDelPaso({ aviso, children }: { aviso: string | null; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-3">{children}</div>
-      {aviso && (
-        <p className="anim-revelar flex items-start justify-end gap-1.5 text-sm text-ambar-profundo" role="alert">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          {aviso}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function BotonPrincipal({ onClick, children, disabled = false }: { onClick: () => void; children: React.ReactNode; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-tinta px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60"
-    >
-      {children}
-    </button>
-  );
-}
-
-function BotonSecundario({ onClick, children, disabled = false }: { onClick: () => void; children: React.ReactNode; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
-    >
-      {children}
-    </button>
   );
 }

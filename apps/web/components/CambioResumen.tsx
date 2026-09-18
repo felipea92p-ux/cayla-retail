@@ -1,14 +1,15 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, CheckCircle2, Circle } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Circle, Info } from "lucide-react";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { varianteLegible, type ImpactoCambio, type Validacion } from "@/lib/cambios-reglas";
+import { varianteLegible, type ImpactoOperacion, type Validacion } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
 
-// Piezas de solo lectura del flujo de Cambios (2026-09-18): lo que el sistema le
-// explica a la colaboradora antes de que confirme. Sin estado propio — todo llega ya
-// calculado desde `cambios-reglas.ts`, así la pantalla no puede decir algo distinto
-// de lo que `registrar_cambio` va a hacer.
+// Piezas de solo lectura del flujo de Cambios (2026-09-18) — `ListaValidaciones` e
+// `ImpactoVista` también las usa Devoluciones: lo que el sistema le explica a la
+// colaboradora antes de que confirme. Sin estado propio — todo llega ya calculado desde
+// `cambios-reglas.ts` / `devoluciones-reglas.ts`, así la pantalla no puede decir algo
+// distinto de lo que la base va a hacer.
 
 export type PrendaFicha = {
   referencia: string;
@@ -73,6 +74,7 @@ const ICONO_VALIDACION = {
   ok: { Icono: CheckCircle2, clase: "text-verde-profundo", lector: "Listo" },
   alerta: { Icono: AlertTriangle, clase: "text-ambar-profundo", lector: "Atención" },
   pendiente: { Icono: Circle, clase: "text-tinta/40", lector: "Pendiente" },
+  aviso: { Icono: Info, clase: "text-ambar-profundo", lector: "Aviso" },
 } as const;
 
 /** "✓ Compra encontrada · ✓ Dentro del plazo · ○ Falta el motivo…": lo que el sistema
@@ -99,15 +101,16 @@ export function ListaValidaciones({ validaciones }: { validaciones: readonly Val
   );
 }
 
-/** Impacto en inventario y en caja — de lo que `registrar_cambio` hace de verdad. */
-export function ImpactoVista({ impacto }: { impacto: ImpactoCambio }) {
+/** Impacto en inventario y en caja — de lo que la base hace de verdad al confirmar (o, en
+ *  una devolución, al aprobar). Con `documento`, una tercera línea a lo ancho. */
+export function ImpactoVista({ impacto }: { impacto: ImpactoOperacion }) {
   return (
     <div className="grid gap-6 sm:grid-cols-2">
       <section aria-label="Impacto en inventario">
         <h3 className="text-xs font-semibold text-tinta/70">Impacto en inventario</h3>
         <ul className="mt-2.5 space-y-2">
           {impacto.inventario.map((i) => (
-            <li key={i.signo} className="flex gap-3 text-sm">
+            <li key={`${i.signo}|${i.prenda}|${i.donde}`} className="flex gap-3 text-sm">
               <span className={`w-8 shrink-0 font-mono font-semibold tabular-nums ${i.signo === "+" ? "text-verde-profundo" : "text-tinta"}`}>
                 {i.signo}
                 {i.cantidad}
@@ -125,6 +128,13 @@ export function ImpactoVista({ impacto }: { impacto: ImpactoCambio }) {
         <p className="mt-2.5 text-sm font-semibold tabular-nums text-tinta">{impacto.caja.titulo}</p>
         <p className="mt-0.5 text-xs text-tinta/70">{impacto.caja.detalle}</p>
       </section>
+      {impacto.documento && (
+        <section aria-label="Documento que se emite" className="sm:col-span-2">
+          <h3 className="text-xs font-semibold text-tinta/70">Documento</h3>
+          <p className="mt-2.5 text-sm font-semibold text-tinta">{impacto.documento.titulo}</p>
+          <p className="mt-0.5 text-xs text-tinta/70">{impacto.documento.detalle}</p>
+        </section>
+      )}
     </div>
   );
 }

@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { CambiosBuscador } from "@/components/CambiosBuscador";
+import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
 import { CambiosVentas } from "@/components/CambiosVentas";
 import { CambiosFlujo } from "@/components/CambiosFlujo";
+import {
+  EsqueletoBusqueda,
+  EstadoVacio,
+  FiltrosActividad,
+  SinResultadosVentas,
+  mostrarActividad,
+} from "@/components/ComprasAgrupadas";
 import type { VarianteCatalogo } from "@/components/CambioReemplazo";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import type { TallaQueNoCalza } from "@/lib/cambios-reglas";
+import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -38,6 +45,9 @@ function ventasDelFiltro(lineas: LineaVentaReciente[], filtro: Filtro): Set<stri
  *      pueden cambiar), con filtros.
  * Al iniciar un cambio, los dos bloques se van y queda el flujo guiado
  * (`CambiosFlujo`): una sola cosa a la vez.
+ *
+ * `abrirItemId` (`?item=`): llegar desde Devoluciones con «Cambiar por otra prenda» abre el
+ * flujo ya sobre esa prenda (R-37: primero se intenta un cambio).
  */
 export function CambiosPanel({
   lineas,
@@ -50,6 +60,7 @@ export function CambiosPanel({
   cajaAbierta,
   catalogo,
   tallasQueNoCalzan,
+  abrirItemId,
 }: {
   lineas: LineaVentaReciente[];
   busqueda: string;
@@ -61,18 +72,25 @@ export function CambiosPanel({
   cajaAbierta: boolean;
   catalogo: VarianteCatalogo[];
   tallasQueNoCalzan: TallaQueNoCalza[];
+  abrirItemId?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
-  const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(null);
+  const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
+    if (!l) return null;
+    // Una prenda que ya no se puede cambiar (fuera de plazo, ya devuelta…) abre el flujo en
+    // el paso de elegir prenda, donde cada una dice por qué sí o por qué no.
+    return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaVendida(l, ahora).cambiable ? l.ventaItemId : null };
+  });
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const campoBusqueda = useRef<HTMLInputElement>(null);
   const tituloActividad = useRef<HTMLHeadingElement>(null);
   // "Sin comprobante" con una búsqueda puesta: primero se limpia la búsqueda y, recién
   // cuando la actividad vuelve a estar en pantalla, se la lleva a la vista.
   const irAActividad = useRef(false);
-  const ahora = useMemo(() => new Date(), []);
 
   useEffect(() => {
     if (!irAActividad.current || busqueda) return;
@@ -80,19 +98,7 @@ export function CambiosPanel({
     mostrarActividad(tituloActividad.current);
   }, [busqueda]);
 
-  // "/" enfoca la búsqueda desde cualquier parte de la pantalla (como en Linear o
-  // GitHub). Solo fuera de un campo: dentro de uno, "/" es un carácter más.
-  useEffect(() => {
-    function alTeclado(e: KeyboardEvent) {
-      if (e.key !== "/" || flujo || e.defaultPrevented) return;
-      const destino = e.target as HTMLElement | null;
-      if (destino && (["INPUT", "SELECT", "TEXTAREA"].includes(destino.tagName) || destino.isContentEditable)) return;
-      e.preventDefault();
-      campoBusqueda.current?.focus();
-    }
-    document.addEventListener("keydown", alTeclado);
-    return () => document.removeEventListener("keydown", alTeclado);
-  }, [flujo]);
+  useAtajoBusqueda(campoBusqueda, !flujo);
 
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
@@ -107,6 +113,13 @@ export function CambiosPanel({
   function iniciar(linea: LineaVentaReciente) {
     setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: linea.ventaItemId });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /** Con `?item=` en la URL la lista de fondo es solo esa compra: al salir se vuelve a la
+   *  pantalla de siempre, no a una actividad de una sola compra. */
+  function cerrarFlujo() {
+    setFlujo(null);
+    if (abrirItemId) navegar(null);
   }
 
   function sinComprobante() {
@@ -130,10 +143,10 @@ export function CambiosPanel({
         cajaAbierta={cajaAbierta}
         catalogo={catalogo}
         ahora={ahora}
-        onCerrar={() => setFlujo(null)}
+        onCerrar={cerrarFlujo}
         onNuevo={() => {
           setFlujo(null);
-          if (busqueda) navegar(null);
+          if (busqueda || abrirItemId) navegar(null);
           requestAnimationFrame(() => campoBusqueda.current?.focus());
         }}
       />
@@ -142,7 +155,6 @@ export function CambiosPanel({
 
   const ventasVisibles = ventasDelFiltro(lineas, filtro);
   const lineasVisibles = lineas.filter((l) => ventasVisibles.has(l.ventaId));
-  const cuantas = (f: Filtro) => ventasDelFiltro(lineas, f).size;
   const comprasEncontradas = new Set(lineas.map((l) => l.ventaId)).size;
 
   return (
@@ -151,7 +163,7 @@ export function CambiosPanel({
         <h2 id="iniciar-cambio" className="text-[15px] font-semibold text-tinta">
           Iniciar un cambio
         </h2>
-        <CambiosBuscador
+        <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
           valorInicial={busqueda}
           todasInicial={todasLasSedes}
@@ -166,11 +178,17 @@ export function CambiosPanel({
 
         {busqueda &&
           (buscando ? (
-            <Esqueleto />
+            <EsqueletoBusqueda />
           ) : (
             <div className="space-y-4 pt-2" aria-live="polite">
               {lineas.length === 0 ? (
-                <SinResultados busqueda={busqueda} todasLasSedes={todasLasSedes} puedeVerTodas={puedeVerTodas} sede={sede} onBuscarEnTodas={() => buscar(busqueda, true)} />
+                <SinResultadosVentas
+                  busqueda={busqueda}
+                  todasLasSedes={todasLasSedes}
+                  puedeVerTodas={puedeVerTodas}
+                  sede={sede}
+                  onBuscarEnTodas={() => buscar(busqueda, true)}
+                />
               ) : (
                 <>
                   <p className="text-sm text-tinta/70">
@@ -193,27 +211,17 @@ export function CambiosPanel({
               </h2>
               <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días en {sede}: las que todavía se pueden cambiar.</p>
             </div>
-            <div role="group" aria-label="Filtrar la actividad" className="flex flex-wrap gap-1 rounded-lg bg-sand/40 p-1">
-              {FILTROS.map((f) => (
-                <button
-                  key={f.valor}
-                  type="button"
-                  aria-pressed={filtro === f.valor}
-                  onClick={() => setFiltro(f.valor)}
-                  className={`h-8 rounded-md px-3 text-sm transition-colors duration-200 ${
-                    filtro === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_rgba(26,26,24,0.08)]" : "text-tinta/75 hover:text-tinta"
-                  }`}
-                >
-                  {f.texto} <span className="tabular-nums text-tinta/65">{cuantas(f.valor)}</span>
-                </button>
-              ))}
-            </div>
+            <FiltrosActividad
+              valor={filtro}
+              onCambio={setFiltro}
+              opciones={FILTROS.map((f) => ({ ...f, cuantas: ventasDelFiltro(lineas, f.valor).size }))}
+            />
           </div>
 
           {lineasVisibles.length > 0 ? (
             <CambiosVentas lineas={lineasVisibles} ahora={ahora} onIniciar={iniciar} />
           ) : (
-            <Vacio
+            <EstadoVacio
               titulo={
                 filtro === "todas"
                   ? `No hay ventas de los últimos 15 días en ${sede}.`
@@ -231,71 +239,6 @@ export function CambiosPanel({
 
           {tallasQueNoCalzan.length > 0 && <TallasQueNoCalzan tallas={tallasQueNoCalzan} />}
         </section>
-      )}
-    </div>
-  );
-}
-
-function mostrarActividad(titulo: HTMLHeadingElement | null) {
-  titulo?.scrollIntoView({ behavior: "smooth", block: "start" });
-  titulo?.focus({ preventScroll: true });
-}
-
-function Esqueleto() {
-  return (
-    <div className="space-y-3 pt-2" aria-label="Buscando" role="status">
-      {[0, 1].map((i) => (
-        <div key={i} className="animate-pulse rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.05]">
-          <div className="h-3 w-48 rounded bg-sand/70" />
-          <div className="mt-5 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-md bg-sand/60" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3.5 w-40 rounded bg-sand/70" />
-              <div className="h-3 w-24 rounded bg-sand/50" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Vacio({ titulo, detalle }: { titulo: string; detalle: string }) {
-  return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">{titulo}</p>
-      <p className="mt-1 text-sm text-tinta/70">{detalle}</p>
-    </div>
-  );
-}
-
-function SinResultados({
-  busqueda,
-  todasLasSedes,
-  puedeVerTodas,
-  sede,
-  onBuscarEnTodas,
-}: {
-  busqueda: string;
-  todasLasSedes: boolean;
-  puedeVerTodas: boolean;
-  sede: string;
-  onBuscarEnTodas: () => void;
-}) {
-  return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">
-        No encontramos ventas con «{busqueda}»{todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}.
-      </p>
-      <p className="mt-1 text-sm text-tinta/70">Prueba con el número de boleta, el DNI de la clienta, o escanea la etiqueta de la prenda.</p>
-      {puedeVerTodas && !todasLasSedes && (
-        <button
-          type="button"
-          onClick={onBuscarEnTodas}
-          className="mt-4 inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema"
-        >
-          Buscar en todas las tiendas
-        </button>
       )}
     </div>
   );

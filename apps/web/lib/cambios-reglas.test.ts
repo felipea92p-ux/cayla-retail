@@ -13,6 +13,7 @@ import {
   impactoCambio,
   primerBloqueo,
   tallasQueNoCalzan,
+  unidadesDisponibles,
   validarCambio,
   type CambioParaTallas,
 } from "./cambios-reglas";
@@ -145,10 +146,18 @@ describe("clasificarBusqueda", () => {
 
 describe("estadoPrendaVendida", () => {
   const ahora = lima(2026, 9, 18);
-  const base = { cantidad: 1, yaCambiado: 0, anulada: false, creadoEn: lima(2026, 9, 18).toISOString() };
+  const base = { cantidad: 1, yaCambiado: 0, yaDevuelto: 0, anulada: false, creadoEn: lima(2026, 9, 18).toISOString() };
 
   it("recién vendida: dentro del plazo y se puede cambiar", () => {
     expect(estadoPrendaVendida(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", cambiable: true, tono: "neutro" });
+  });
+
+  it("con devolución registrada (aunque solo esté pendiente de aprobar): no se cambia — volvería al stock dos veces", () => {
+    expect(estadoPrendaVendida({ ...base, yaDevuelto: 1 }, ahora)).toMatchObject({ clave: "devuelta", cambiable: false, texto: "Devolución registrada" });
+  });
+
+  it("2 unidades, 1 cambiada y 1 devuelta: no queda nada por cambiar", () => {
+    expect(estadoPrendaVendida({ ...base, cantidad: 2, yaCambiado: 1, yaDevuelto: 1 }, ahora).cambiable).toBe(false);
   });
 
   it("ya cambiada entera: completado, aunque además esté fuera de plazo", () => {
@@ -172,6 +181,20 @@ describe("estadoPrendaVendida", () => {
   it("fuera de plazo o de una venta anulada: no se puede iniciar el cambio", () => {
     expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 1).toISOString() }, ahora)).toMatchObject({ clave: "fuera_de_plazo", cambiable: false });
     expect(estadoPrendaVendida({ ...base, anulada: true }, ahora)).toMatchObject({ clave: "anulada", cambiable: false });
+  });
+});
+
+describe("unidadesDisponibles / aviso", () => {
+  it("descuenta lo cambiado y lo devuelto, y nunca baja de cero", () => {
+    expect(unidadesDisponibles({ cantidad: 3, yaCambiado: 1, yaDevuelto: 1 })).toBe(1);
+    expect(unidadesDisponibles({ cantidad: 1, yaCambiado: 1, yaDevuelto: 1 })).toBe(0);
+  });
+
+  it("un aviso no frena; una alerta o un pendiente sí, y el primero de ellos manda", () => {
+    const aviso = { clave: "plazo", estado: "aviso", titulo: "Fuera del plazo" } as const;
+    const pendiente = { clave: "motivo", estado: "pendiente", titulo: "Falta el motivo" } as const;
+    expect(primerBloqueo([aviso])).toBeNull();
+    expect(primerBloqueo([aviso, pendiente])).toBe(pendiente);
   });
 });
 

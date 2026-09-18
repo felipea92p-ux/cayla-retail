@@ -90,29 +90,46 @@ export function clasificarBusqueda(texto: string): Busqueda | null {
 // paso "Prenda" y las validaciones nunca se contradigan.
 // ============================================================================
 
-export type EstadoPrenda = {
-  clave: "anulada" | "completado" | "fuera_de_plazo" | "por_vencer" | "dentro_del_plazo";
+/** Lo que dice el chip de estado de una prenda — lo comparten Cambios y Devoluciones
+ *  (2026-09-18): siempre palabra, y ícono cuando ayuda; nunca solo color. */
+export type EstadoVisual = {
+  clave: string;
   texto: string;
   /** Tono del `Chip` del sistema: neutro casi siempre, verde = hecho, ámbar = urgencia. */
   tono: "neutro" | "ambar" | "verde" | "apagado";
-  cambiable: boolean;
+  icono: "check" | "reloj" | null;
 };
 
-/** En este orden: una venta anulada no cuenta; una prenda ya cambiada dice eso (más
- *  útil que "fuera de plazo"); después, el plazo. */
+export type EstadoPrenda = EstadoVisual & { cambiable: boolean };
+
+/** Cuántas unidades de una línea vendida todavía se pueden cambiar o devolver: lo
+ *  comprado menos lo ya cambiado y lo ya devuelto (pendiente o aprobado). Cambios y
+ *  Devoluciones se descuentan entre sí a propósito: la base solo cruza cada una contra
+ *  sí misma, y una prenda cambiada que luego se devuelve —o al revés— vuelve al stock
+ *  dos veces (BACKLOG, ADR-0105). */
+export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; yaDevuelto: number }): number {
+  return Math.max(0, l.cantidad - l.yaCambiado - l.yaDevuelto);
+}
+
+/** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
+ *  eso (más útil que "fuera de plazo"); después, el plazo. */
 export function estadoPrendaVendida(
-  linea: { cantidad: number; yaCambiado: number; anulada: boolean; creadoEn: string },
+  linea: { cantidad: number; yaCambiado: number; yaDevuelto: number; anulada: boolean; creadoEn: string },
   ahora: Date
 ): EstadoPrenda {
-  if (linea.anulada) return { clave: "anulada", texto: "Venta anulada", tono: "apagado", cambiable: false };
-  if (linea.yaCambiado >= linea.cantidad) return { clave: "completado", texto: "Cambio completado", tono: "verde", cambiable: false };
+  if (linea.anulada) return { clave: "anulada", texto: "Venta anulada", tono: "apagado", icono: null, cambiable: false };
+  if (unidadesDisponibles(linea) <= 0) {
+    return linea.yaDevuelto > linea.yaCambiado
+      ? { clave: "devuelta", texto: "Devolución registrada", tono: "neutro", icono: "check", cambiable: false }
+      : { clave: "completado", texto: "Cambio completado", tono: "verde", icono: "check", cambiable: false };
+  }
   const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "neutro", cambiable: false };
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "neutro", icono: null, cambiable: false };
   if (estado === "por_vencer") {
     const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "ambar", cambiable: true };
+    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj", cambiable: true };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "neutro", cambiable: true };
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "neutro", icono: "reloj", cambiable: true };
 }
 
 // ============================================================================
@@ -129,8 +146,13 @@ export function estadoPrendaVendida(
 // ============================================================================
 
 export type Validacion = {
-  clave: "compra" | "plazo" | "prenda" | "motivo" | "stock" | "caja";
-  estado: "ok" | "alerta" | "pendiente";
+  /** Qué se está revisando ("compra", "plazo", "motivo"…): de ahí sale a qué campo va
+   *  el foco cuando frena. Cada flujo (Cambios, Devoluciones) tiene las suyas. */
+  clave: string;
+  /** `ok` ✓ · `alerta` frena (algo está mal) · `pendiente` frena (falta un dato) ·
+   *  `aviso` NO frena: lo que conviene saber antes de seguir (ej. fuera de plazo en una
+   *  devolución, que igual decide un líder). */
+  estado: "ok" | "alerta" | "pendiente" | "aviso";
   titulo: string;
   detalle?: string;
 };
@@ -219,9 +241,10 @@ export function validarCambio(e: {
   return lista;
 }
 
-/** Lo primero que falta o que frena — lo que explica el botón y a dónde va el foco. */
+/** Lo primero que falta o que frena — lo que explica el botón y a dónde va el foco.
+ *  Un `aviso` informa pero no cuenta: no frena. */
 export function primerBloqueo(validaciones: readonly Validacion[]): Validacion | null {
-  return validaciones.find((v) => v.estado !== "ok") ?? null;
+  return validaciones.find((v) => v.estado === "alerta" || v.estado === "pendiente") ?? null;
 }
 
 // ============================================================================
@@ -231,9 +254,11 @@ export function primerBloqueo(validaciones: readonly Validacion[]): Validacion |
 // solo mueve el cajón si es en efectivo (ADR-0053).
 // ============================================================================
 
-export type ImpactoCambio = {
+export type ImpactoOperacion = {
   inventario: { signo: "+" | "−"; cantidad: number; prenda: string; donde: string }[];
   caja: { titulo: string; detalle: string };
+  /** Un papel que se emite por el camino (Devoluciones: la nota de crédito). */
+  documento?: { titulo: string; detalle: string };
 };
 
 export function impactoCambio(e: {
@@ -244,7 +269,7 @@ export function impactoCambio(e: {
   diferencia: number;
   metodo: MetodoDiferencia;
   sede: string;
-}): ImpactoCambio {
+}): ImpactoOperacion {
   // En medio de una frase: "con tarjeta", pero "con Yape" — las marcas no se achican.
   const etiqueta = METODOS_DIFERENCIA.find((m) => m.valor === e.metodo)?.etiqueta ?? e.metodo;
   const metodo = e.metodo === "yape" || e.metodo === "plin" ? etiqueta : etiqueta.toLowerCase();

@@ -1,0 +1,319 @@
+"use client";
+
+import { useState, type RefObject } from "react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Check, Clock, Info, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { traducirError } from "@/lib/error-escritura";
+import { avisar } from "@/components/ui/Avisos";
+import { Chip } from "@/components/ui/Chip";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { formatearHora } from "@/components/ComprasAgrupadas";
+import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
+import type { DevolucionPendiente } from "@/lib/devoluciones";
+import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
+import { etiquetaCondicion, revisarAprobacion } from "@/lib/devoluciones-reglas";
+import { soles } from "@/lib/compras-reglas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
+
+/**
+ * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
+ * todavía no resolvió. Un líder ve las acciones; quien no lo es ve que están esperando —
+ * `aprobar_devolucion` y `rechazar_devolucion` exigen líder y lo vuelven a validar.
+ *
+ * Aprobar es lo que mueve las cosas (stock, nota de crédito, reembolso), así que la
+ * tarjeta le pone delante al líder lo que necesita para decidir: qué prendas y en qué estado
+ * vuelven, cuánto pagó la clienta, y si la compra ya venció el plazo (que no bloquea: lo
+ * decide él). El reembolso es opcional y es la última opción (R-37).
+ */
+export function DevolucionesPendientes({
+  pendientes,
+  esLider,
+  cajaAbierta,
+  ahora,
+  refTitulo,
+}: {
+  pendientes: DevolucionPendiente[];
+  esLider: boolean;
+  cajaAbierta: boolean;
+  ahora: Date;
+  refTitulo: RefObject<HTMLHeadingElement | null>;
+}) {
+  if (pendientes.length === 0) return null;
+  return (
+    <section aria-labelledby="por-aprobar" className="space-y-4">
+      <div>
+        <h2 id="por-aprobar" ref={refTitulo} tabIndex={-1} className="scroll-mt-28 text-[15px] font-semibold text-tinta outline-none">
+          Por aprobar <span className="font-normal text-tinta/70">({pendientes.length})</span>
+        </h2>
+        <p className="mt-0.5 text-sm text-tinta/70">
+          {esLider ? "Revisa cada una: al aprobarla se mueve el stock." : "Esperan que un líder las apruebe: hasta entonces el stock no cambia."}
+        </p>
+      </div>
+      <div className="space-y-3">
+        {pendientes.map((d) => (
+          <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devolucion: DevolucionPendiente; esLider: boolean; cajaAbierta: boolean; ahora: Date }) {
+  const router = useRouter();
+  const [resolviendo, setResolviendo] = useState<"aprobar" | "rechazar" | null>(null);
+  const [monto, setMonto] = useState("");
+  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>("efectivo");
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const plazo = estadoPlazoCambio(d.vendidoEn, ahora);
+  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
+
+  async function aprobar() {
+    if (revision.bloqueo) return;
+    setCargando(true);
+    setError(null);
+    const { data, error: fallo } = await createClient().rpc("aprobar_devolucion", {
+      p_devolucion_id: d.id,
+      p_reembolso_monto: montoNumero && montoNumero > 0 ? montoNumero : undefined,
+      p_reembolso_metodo: montoNumero && montoNumero > 0 ? metodo : undefined,
+    });
+    setCargando(false);
+    if (fallo) {
+      setError(traducirError(fallo, "aprobar la devolución"));
+      return;
+    }
+    // Si la venta tenía un comprobante ya aceptado por SUNAT, aprobar_devolucion (ADR-0100)
+    // emite la Nota de Crédito sola — nadie tiene que acordarse de ir a Facturación aparte.
+    // `data` es una tabla vacía cuando no aplicaba.
+    const nota = data?.[0];
+    if (nota?.nota_credito_id) {
+      avisar.exito("Devolución aprobada", {
+        detalle: `Nota de crédito ${nota.nota_credito_serie}-${String(nota.nota_credito_numero).padStart(6, "0")} reservada — transmítela desde Facturación.`,
+      });
+    } else {
+      avisar.exito("Devolución aprobada");
+    }
+    router.refresh();
+  }
+
+  async function rechazar() {
+    if (!motivoRechazo.trim()) {
+      setError("Escribe el motivo del rechazo.");
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    const { error: fallo } = await createClient().rpc("rechazar_devolucion", { p_devolucion_id: d.id, p_motivo: motivoRechazo.trim() });
+    setCargando(false);
+    if (fallo) {
+      setError(traducirError(fallo, "rechazar la devolución"));
+      return;
+    }
+    router.refresh();
+  }
+
+  function cancelar() {
+    setResolviendo(null);
+    setError(null);
+  }
+
+  return (
+    // `anim-revelar` sin `key` extra: `key={d.id}` del `.map` ya hace que React reutilice la
+    // tarjeta de una devolución que sigue pendiente tras un `router.refresh()` (no reanima) y
+    // solo monte —y por lo tanto anime— la que recién se registró.
+    <article className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pt-4 text-[13px] text-tinta/70">
+        <span className="font-semibold text-tinta">{d.comprobante ?? "Venta sin comprobante"}</span>
+        <span>
+          Pidió {d.solicitadoPorNombre} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
+        </span>
+        {plazo.estado === "fuera_de_plazo" && (
+          <Chip tono="ambar" versalitas={false}>
+            <Info className="h-3.5 w-3.5" aria-hidden />
+            Compra hace {DIAS_PLAZO_CAMBIO - plazo.diasRestantes} días · fuera del plazo
+          </Chip>
+        )}
+      </header>
+
+      <ul className="space-y-1 px-2 pt-2">
+        {d.items.map((i, n) => (
+          <li key={n} className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2.5">
+            <MiniaturaPrenda fotoUrl={i.fotoUrl} colorHex={i.colorHex} tamano="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold text-tinta">
+                {i.referencia} <span className="font-normal text-tinta/70">× {i.cantidad}</span>
+              </p>
+              <p className="text-sm text-tinta/75">{varianteLegible(i)}</p>
+              <p className="mt-0.5 text-xs text-tinta/70">
+                <span className="font-mono">{codigoPrenda(i)}</span> · {soles(i.valorPagado)}
+              </p>
+            </div>
+            <Chip tono={i.condicion === "vendible" ? "neutro" : "ambar"} versalitas={false}>
+              {etiquetaCondicion(i.condicion)}
+            </Chip>
+          </li>
+        ))}
+      </ul>
+
+      <div className="space-y-2 px-5 pb-4 pt-2 text-sm">
+        <p className="text-tinta/80">
+          <span className="font-semibold text-tinta">Motivo:</span> {d.motivo}
+        </p>
+        <p className="text-xs text-tinta/70">
+          La clienta pagó {soles(d.valorPagado)} por esto.
+          {d.comprobanteAceptado && " Al aprobarla se emite la nota de crédito."}
+        </p>
+      </div>
+
+      {!resolviendo && (
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
+          {esLider ? (
+            <>
+              <p className="text-xs text-tinta/70">Al aprobarla, las prendas vuelven al piso o entran a cuarentena.</p>
+              <div className="flex items-center gap-2">
+                <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
+                <button
+                  type="button"
+                  onClick={() => setResolviendo("aprobar")}
+                  className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-tinta px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/85"
+                >
+                  Aprobar
+                </button>
+              </div>
+            </>
+          ) : (
+            <Chip tono="ambar" versalitas={false}>
+              <Clock className="h-3.5 w-3.5" aria-hidden />
+              Esperando aprobación de un líder
+            </Chip>
+          )}
+        </footer>
+      )}
+
+      {resolviendo === "aprobar" && (
+        <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
+          <div>
+            <h3 className="text-sm font-semibold text-tinta">¿Se le reembolsa algo?</h3>
+            <p className="mt-0.5 text-xs text-tinta/70">
+              Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label htmlFor={`monto-${d.id}`} className="text-xs font-semibold text-tinta/70">
+                Monto
+              </label>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  id={`monto-${d.id}`}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  autoFocus
+                  value={monto}
+                  onChange={(e) => setMonto(e.target.value)}
+                  placeholder="S/ 0.00"
+                  className="h-10 w-36 rounded-lg border border-tinta/15 bg-papel px-3 text-sm tabular-nums text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMonto(d.valorPagado.toFixed(2))}
+                  className="h-10 rounded-lg px-3 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-crema/70"
+                >
+                  Todo ({soles(d.valorPagado)})
+                </button>
+              </div>
+            </div>
+            {montoNumero !== null && montoNumero > 0 && (
+              <div className="anim-revelar">
+                <label htmlFor={`metodo-${d.id}`} className="text-xs font-semibold text-tinta/70">
+                  ¿Cómo se le devuelve?
+                </label>
+                <select
+                  id={`metodo-${d.id}`}
+                  value={metodo}
+                  onChange={(e) => setMetodo(e.target.value as typeof metodo)}
+                  className="mt-1 h-10 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+                >
+                  {METODOS_DIFERENCIA.map((m) => (
+                    <option key={m.valor} value={m.valor}>
+                      {m.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {revision.bloqueo && (
+            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="alert">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {revision.bloqueo}
+            </p>
+          )}
+          {revision.aviso && (
+            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="status">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {revision.aviso}
+            </p>
+          )}
+          {error && (
+            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BotonSecundario onClick={cancelar} disabled={cargando}>
+              Cancelar
+            </BotonSecundario>
+            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo}>
+              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+              {cargando ? "Aprobando…" : "Aprobar devolución"}
+            </BotonRojo>
+          </div>
+        </div>
+      )}
+
+      {resolviendo === "rechazar" && (
+        <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
+          <div>
+            <label htmlFor={`rechazo-${d.id}`} className="text-sm font-semibold text-tinta">
+              ¿Por qué se rechaza?
+            </label>
+            <p className="mt-0.5 text-xs text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
+            <input
+              id={`rechazo-${d.id}`}
+              type="text"
+              autoFocus
+              value={motivoRechazo}
+              onChange={(e) => setMotivoRechazo(e.target.value)}
+              className="mt-2 h-10 w-full max-w-lg rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+            />
+          </div>
+          {error && (
+            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {error}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BotonSecundario onClick={cancelar} disabled={cargando}>
+              Cancelar
+            </BotonSecundario>
+            <BotonPrincipal onClick={rechazar} disabled={cargando}>
+              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {cargando ? "Rechazando…" : "Rechazar devolución"}
+            </BotonPrincipal>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, exigirOpcional } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
@@ -174,6 +174,15 @@ export type CambioHecho = {
   color: string | null;
 };
 
+/** Una devolución ya registrada sobre una línea — pendiente de aprobar o aprobada. Las
+ *  rechazadas no cuentan: no movieron nada y la base tampoco las suma (`crear_devolucion`
+ *  mira `estado <> 'rechazada'`). */
+export type DevolucionHecha = {
+  cantidad: number;
+  estado: "pendiente" | "aprobada";
+  creadoEn: string;
+};
+
 export type LineaVentaReciente = {
   ventaItemId: string;
   ventaId: string;
@@ -193,13 +202,22 @@ export type LineaVentaReciente = {
   fotoUrl: string | null;
   cantidad: number;
   precioUnitario: number;
+  /** Lo que se le descontó a esta prenda al venderla (por unidad). Lo que la clienta
+   *  pagó de verdad es `precioUnitario - descuentoUnitario`. */
+  descuentoUnitario: number;
   yaCambiado: number;
   cambiosHechos: CambioHecho[];
+  /** Unidades con una devolución pendiente o aprobada (la suma de `devolucionesHechas`). */
+  yaDevuelto: number;
+  devolucionesHechas: DevolucionHecha[];
   /** Quien registró la venta en caja — no necesariamente quien atendió a la clienta
    *  (R-17, docs/datos/15-COMO-OPERA-CAYLA.md), pero es el dato real que hay. */
   vendedorNombre: string | null;
   /** "Boleta B001-000010" — null si la venta no tiene boleta ni factura (R-15). */
   comprobante: string | null;
+  /** SUNAT ya aceptó alguno de sus comprobantes: al aprobar una devolución de esta venta
+   *  `aprobar_devolucion` emite sola la nota de crédito (ADR-0100). */
+  comprobanteAceptado: boolean;
   /** Quién compró, si el comprobante lo guardó ("Ana Pérez · DNI 45879632"). */
   clienta: string | null;
   /** Nombre de la sede donde se vendió, solo si NO es la sede desde la que se mira
@@ -213,30 +231,38 @@ export type LineaVentaReciente = {
 };
 
 /**
- * Las compras que muestra Cambios, con sus prendas:
- * - sin búsqueda: "Actividad reciente" — las de ESTA sede de los últimos 15 días, que
- *   son exactamente las que todavía se pueden cambiar (R-38);
+ * Las compras que muestran Cambios y Devoluciones, con sus prendas — un solo lector para
+ * las dos pantallas (2026-09-18: `devoluciones.ts` tenía su propia copia, con el mismo
+ * defecto de abajo):
+ * - sin búsqueda: "Actividad reciente" — las de ESTA sede de los últimos 15 días (el plazo
+ *   de R-38);
  * - con búsqueda: por boleta ("B001-10"), por DNI/RUC o nombre de la clienta, por la
- *   etiqueta de la prenda ("CMS-0001-NEG-M") o por su nombre ("blusa emma").
+ *   etiqueta de la prenda ("CMS-0001-NEG-M") o por su nombre ("blusa emma");
+ * - con `ventaItemId`: la compra de esa prenda exacta, sea de la sede que sea — lo usa el
+ *   salto entre pantallas ("Cambiar por otra prenda", "Pasar a devolución").
  *
- * 2026-09-18: antes pedía TODAS las líneas de venta de la sede, sin `.order()`, y
- * ordenaba y recortaba en JS. PostgREST corta en 1000 filas y, sin orden, devuelve las
- * que le toque — pasadas las 1000 prendas vendidas en la sede, las ventas más nuevas
- * podían quedar afuera. Ahora se eligen primero las ventas (ordenadas y limitadas en
- * Postgres) y después sus líneas: además, una compra ya no aparece cortada.
+ * Antes pedía TODAS las líneas de venta de la sede, sin `.order()`, y ordenaba y recortaba
+ * en JS. PostgREST corta en 1000 filas y, sin orden, devuelve las que le toque — pasadas
+ * las 1000 prendas vendidas en la sede, las ventas más nuevas podían quedar afuera. Ahora
+ * se eligen primero las ventas (ordenadas y limitadas en Postgres) y después sus líneas:
+ * además, una compra ya no aparece cortada.
  */
-export async function getVentasParaCambio(
+export async function getVentasRecientes(
   ubicacionId: string,
-  opts: { busqueda?: string; todasLasSedes?: boolean } = {},
+  opts: { busqueda?: string; todasLasSedes?: boolean; ventaItemId?: string } = {},
   ahora = new Date()
 ): Promise<LineaVentaReciente[]> {
-  const { todasLasSedes = false } = opts;
+  const { todasLasSedes = false, ventaItemId } = opts;
   const busqueda = clasificarBusqueda(opts.busqueda ?? "");
   const supabase = await createClient();
 
   let ventaIds: string[];
   let variantesQueCalzan = new Set<string>();
-  if (!busqueda) {
+  if (ventaItemId) {
+    const res = await supabase.from("venta_items").select("venta_id").eq("id", ventaItemId).maybeSingle();
+    const item = exigirOpcional(res, "la prenda que venía de la otra pantalla");
+    ventaIds = item ? [item.venta_id] : [];
+  } else if (!busqueda) {
     const desde = inicioDeDiaLima(diaLima(ahora.getTime()) - DIAS_PLAZO_CAMBIO);
     ventaIds = exigir(
       await supabase
@@ -258,7 +284,7 @@ export async function getVentasParaCambio(
     await supabase
       .from("venta_items")
       .select(
-        `id, venta_id, variante_id, cantidad, precio_unitario,
+        `id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
          venta:ventas!inner ( ubicacion_id, created_at, usuario_id, estado, ubicacion:ubicaciones ( nombre ) ),
          variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
            producto:productos ( id, referencia, producto_fotos ( url, color_codigo ) ) )`
@@ -276,7 +302,7 @@ export async function getVentasParaCambio(
 
   const ids = filas.map((f) => f.id);
   const idsVendedores = Array.from(new Set(filas.map((f) => f.venta?.usuario_id).filter((v): v is string => !!v)));
-  const [cambiosRes, comprobantesRes, nombresRes] = await Promise.all([
+  const [cambiosRes, devolucionesRes, comprobantesRes, nombresRes] = await Promise.all([
     supabase
       .from("cambios")
       .select(
@@ -285,9 +311,17 @@ export async function getVentasParaCambio(
       )
       .in("venta_item_id", ids)
       .order("created_at"),
+    // Mismo filtro exacto que usa `crear_devolucion` para su propio "ya devuelto": lo
+    // rechazado no cuenta. La pantalla nunca debe mostrar disponible algo que la base
+    // va a negar.
+    supabase
+      .from("devolucion_items")
+      .select("venta_item_id, cantidad, devolucion:devoluciones!inner ( estado, created_at )")
+      .in("venta_item_id", ids)
+      .neq("devolucion.estado", "rechazada"),
     supabase
       .from("comprobantes")
-      .select("venta_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, created_at")
+      .select("venta_id, tipo, serie, numero, estado, cliente_tipo_doc, cliente_num_doc, cliente_nombre, created_at")
       .in("venta_id", ventaIds)
       .in("tipo", ["boleta", "factura"])
       .order("created_at"),
@@ -310,11 +344,24 @@ export async function getVentasParaCambio(
     cambiosPorItem.set(c.venta_item_id, lista);
   }
 
+  const devolucionesPorItem = new Map<string, DevolucionHecha[]>();
+  for (const d of exigir(devolucionesRes, "las devoluciones ya hechas")) {
+    const lista = devolucionesPorItem.get(d.venta_item_id) ?? [];
+    lista.push({
+      cantidad: d.cantidad,
+      estado: d.devolucion?.estado === "aprobada" ? "aprobada" : "pendiente",
+      creadoEn: d.devolucion?.created_at ?? "",
+    });
+    devolucionesPorItem.set(d.venta_item_id, lista);
+  }
+
   // Si una venta tiene más de un comprobante (uno rechazado y vuelto a emitir), queda el
   // último: vienen ordenados por fecha y cada uno pisa al anterior.
   const comprobantePorVenta = new Map<string, { texto: string; clienta: string | null }>();
+  const ventasConComprobanteAceptado = new Set<string>();
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
+    if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
     const documento =
       c.cliente_num_doc && c.cliente_tipo_doc !== "sin_documento" ? `${c.cliente_tipo_doc === "ruc" ? "RUC" : "DNI"} ${c.cliente_num_doc}` : null;
     const clienta = [c.cliente_nombre?.trim() || null, documento].filter(Boolean).join(" · ") || null;
@@ -328,6 +375,7 @@ export async function getVentasParaCambio(
 
   return filas.map((f) => {
     const cambiosHechos = cambiosPorItem.get(f.id) ?? [];
+    const devolucionesHechas = devolucionesPorItem.get(f.id) ?? [];
     const comprobante = comprobantePorVenta.get(f.venta_id);
     const referencia = f.variante?.producto?.referencia ?? "";
     return {
@@ -345,10 +393,14 @@ export async function getVentasParaCambio(
       fotoUrl: f.variante?.producto?.producto_fotos.find((p) => p.color_codigo === f.variante?.color_codigo)?.url ?? null,
       cantidad: f.cantidad,
       precioUnitario: Number(f.precio_unitario),
+      descuentoUnitario: Number(f.descuento_unitario ?? 0),
       yaCambiado: cambiosHechos.reduce((suma, c) => suma + c.cantidad, 0),
       cambiosHechos,
+      yaDevuelto: devolucionesHechas.reduce((suma, d) => suma + d.cantidad, 0),
+      devolucionesHechas,
       vendedorNombre: f.venta?.usuario_id ? (nombreVendedor.get(f.venta.usuario_id) ?? null) : null,
       comprobante: comprobante?.texto ?? null,
+      comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
       clienta: comprobante?.clienta ?? null,
       sedeVenta: f.venta && f.venta.ubicacion_id !== ubicacionId ? (f.venta.ubicacion?.nombre ?? null) : null,
       anulada: f.venta?.estado === "anulada",

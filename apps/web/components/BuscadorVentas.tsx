@@ -1,13 +1,31 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { ArrowRight, Loader2, ReceiptText, ScanLine, Search, X } from "lucide-react";
 import { Desplegable } from "@/components/ui/campos";
 
+/** "/" enfoca la búsqueda desde cualquier parte de la pantalla (como en Linear o GitHub).
+ *  Solo fuera de un campo: dentro de uno, "/" es un carácter más. `activo` es false
+ *  mientras hay un flujo abierto, que tiene sus propios campos. */
+export function useAtajoBusqueda(campoRef: RefObject<HTMLInputElement | null>, activo: boolean) {
+  useEffect(() => {
+    if (!activo) return;
+    function alTeclado(e: KeyboardEvent) {
+      if (e.key !== "/" || e.defaultPrevented) return;
+      const destino = e.target as HTMLElement | null;
+      if (destino && (["INPUT", "SELECT", "TEXTAREA"].includes(destino.tagName) || destino.isContentEditable)) return;
+      e.preventDefault();
+      campoRef.current?.focus();
+    }
+    document.addEventListener("keydown", alTeclado);
+    return () => document.removeEventListener("keydown", alTeclado);
+  }, [campoRef, activo]);
+}
+
 /**
- * El área de acción de Cambios (2026-09-18): responde "¿qué quiero hacer?" antes que
- * nada. La búsqueda es la protagonista; al lado, las dos formas de llegar a una venta
- * cuando la clienta no trae la boleta.
+ * El área de acción de Cambios y de Devoluciones (2026-09-18): responde "¿qué quiero
+ * hacer?" antes que nada. La búsqueda es la protagonista; al lado, las dos formas de llegar
+ * a una venta cuando la clienta no trae la boleta.
  *
  * - Un solo campo entiende boleta ("B001-10"), DNI/RUC, nombre de la clienta, nombre de
  *   la prenda o su etiqueta — `clasificarBusqueda` decide cuál es cuál. El teléfono NO:
@@ -18,7 +36,7 @@ import { Desplegable } from "@/components/ui/campos";
  *   la RLS de ventas (`fn_puede_operar_ubicacion`) no deja a una integrante ver otras
  *   sedes — el switch le decía "no encontramos" aunque la boleta existiera.
  */
-export function CambiosBuscador({
+export function BuscadorVentas({
   valorInicial,
   todasInicial,
   puedeVerTodas,

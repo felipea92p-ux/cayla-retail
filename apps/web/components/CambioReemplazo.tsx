@@ -4,9 +4,11 @@ import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { ComparacionPrendas } from "@/components/CambioResumen";
+import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import {
   condicionForzada,
+  unidadesDisponibles,
   varianteLegible,
   METODOS_DIFERENCIA,
   MOTIVOS_CAMBIO,
@@ -55,7 +57,7 @@ export function seleccionInicial(linea: LineaVentaReciente): Seleccion {
     talla: null,
     color: null,
     condicionElegida: "vendible",
-    cantidad: Math.min(1, linea.cantidad - linea.yaCambiado),
+    cantidad: Math.min(1, unidadesDisponibles(linea)),
     metodo: "efectivo",
   };
 }
@@ -116,9 +118,6 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
 
 export type Reemplazo = ReturnType<typeof derivarReemplazo>;
 
-const OPCION = "h-10 rounded-lg border px-4 text-sm font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40";
-const OPCION_INACTIVA = `${OPCION} border-tinta/15 bg-papel text-tinta/80 hover:border-tinta/40 hover:text-tinta`;
-const OPCION_ACTIVA = `${OPCION} border-tinta bg-tinta text-crema`;
 /** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
 const OPCION_SIN_STOCK = `${OPCION} border-dashed border-tinta/35 bg-transparent text-tinta/65 hover:border-tinta/55`;
 
@@ -155,7 +154,7 @@ export function CambioReemplazo({
   refMetodo: RefObject<HTMLSelectElement | null>;
   onCambio: (cambio: Partial<Seleccion>) => void;
 }) {
-  const disponible = linea.cantidad - linea.yaCambiado;
+  const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
 
   return (
