@@ -41,6 +41,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AVIARIO } from "./aviario.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..");
@@ -241,22 +242,7 @@ function desdeVolcado() {
 
 // ── Escritura ───────────────────────────────────────────────────────────────
 
-const DOMINIOS_RETAIL = [
-  // Mapa V2 (2026-09-15). Antes describía V1 (sedes, stock_almacen, taxonomía,
-  // producción, contabilidad…) y 21 de las 39 tablas reales quedaban «sin
-  // módulo». Las tablas de V1 que ya no existen en producción se quitaron; si
-  // un día vuelven, el generador las lista como huérfanas y se las asigna acá.
-  ["01 · Identidad y acceso", ["colaboradores", "ubicaciones", "sububicaciones", "ubicacion_datos_fiscales"]],
-  ["02 · Catálogo y vocabulario", ["categorias", "productos", "variantes", "colores", "codigos_barras", "codigos_correlativos"]],
-  ["05 · Inventario y movimientos", ["movimientos", "stock", "lotes", "transferencias", "transferencia_items"]],
-  ["06 · Conteo y censo físico", ["conteos", "conteo_items"]],
-  ["07 · Ventas y caja", ["cajas", "caja_movimientos", "ventas", "venta_items", "venta_pagos", "clientes", "codigos_descuento", "cambios", "devoluciones", "devolucion_items"]],
-  // `proformas` vive en Ventas en 07-GOBIERNO.md (es la cotización del mostrador, no
-  // viaja a SUNAT), pero se lista arriba con Facturación porque comparte ciclo de vida.
-  ["08 · Facturación SUNAT", ["series_comprobantes", "comprobantes", "proformas", "configuracion_empresa"]],
-  ["09 · Compras y proveedores", ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen"]],
-  ["12 · Contabilidad", ["activos_fijos"]],
-];
+// De qué pájaro es cada tabla: la lista vive en `aviario.mjs`, no acá.
 
 const MUERTAS = {
   ordenes_produccion: "Modelo de producción de la Fase 1. Reemplazado por `producciones` + `produccion_lineas`. Sigue vivo porque nunca se retiró; no tiene RPC activo.",
@@ -370,21 +356,23 @@ const dynamic = tablas.filter(t => t.esquema === "public");
   L.push(cabecera("Diccionario — CAYLA Retail (schema `retail`)", inv, fuente,
 `> **Tablas y vistas encontradas:** ${retail.length}
 >
-> El orden sigue los 14 módulos de \`docs/datos/00-MAPA.md\`. Para entender **por qué**
+> El orden sigue los 14 pájaros de \`scripts/datos/aviario.mjs\`, la única lista de qué
+> pájaro es cada tabla (el índice está en \`AVIARIO.md\`). Para entender **por qué**
 > existe cada tabla, abre el archivo del módulo en \`docs/datos/modulos/\`; este archivo
 > solo dice **qué hay**.`));
 
-  for (const [dominio, nombres] of DOMINIOS_RETAIL) {
-    const delDominio = nombres.map(n => retail.find(t => t.tabla === n)).filter(Boolean);
+  for (const { n, pajaro, modulo, tablas: nombres } of AVIARIO) {
+    const delDominio = nombres.map(nombre => retail.find(t => t.tabla === nombre)).filter(Boolean);
     if (!delDominio.length) continue;
-    L.push(`\n## ${dominio}\n`);
+    L.push(`\n## ${n} · ${pajaro} — ${modulo}\n`);
     for (const t of delDominio) { vistas.add(t.tabla); L.push(fichaTabla(t, glosas), ""); }
   }
 
   const huerfanas = retail.filter(t => !vistas.has(t.tabla));
   if (huerfanas.length) {
     L.push(`\n## Sin módulo asignado\n`);
-    L.push(`> Estas tablas existen en la base y **no están en ningún módulo** de \`00-MAPA.md\`.`);
+    L.push(`> Estas tablas existen en la base y **no tienen pájaro** en \`scripts/datos/aviario.mjs\`,`);
+    L.push(`> y \`pnpm datos:aviario\` falla mientras sigan acá.`);
     L.push(`> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una`);
     L.push(`> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.\n`);
     for (const t of huerfanas) L.push(fichaTabla(t, glosas), "");
