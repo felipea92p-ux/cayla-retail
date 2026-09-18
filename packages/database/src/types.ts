@@ -377,13 +377,6 @@ export type Database = {
             referencedRelation: "categorias"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "categorias_familia_fk"
-            columns: ["familia"]
-            isOneToOne: false
-            referencedRelation: "familias"
-            referencedColumns: ["codigo"]
-          },
         ]
       }
       clientes: {
@@ -641,9 +634,78 @@ export type Database = {
           },
         ]
       }
+      compra_ajustes: {
+        Row: {
+          cantidad: number
+          compra_id: string
+          compra_item_id: string
+          costo_unitario: number
+          created_at: string
+          id: string
+          monto: number | null
+          motivo: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          compra_id: string
+          compra_item_id: string
+          costo_unitario: number
+          created_at?: string
+          id?: string
+          monto?: number | null
+          motivo: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          compra_id?: string
+          compra_item_id?: string
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          monto?: number | null
+          motivo?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_ajustes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ajustes_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_items: {
         Row: {
           cantidad: number
+          cantidad_cerrada: number
           compra_id: string
           costo_unitario: number
           descripcion: string | null
@@ -654,6 +716,7 @@ export type Database = {
         }
         Insert: {
           cantidad: number
+          cantidad_cerrada?: number
           compra_id: string
           costo_unitario: number
           descripcion?: string | null
@@ -664,6 +727,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cantidad_cerrada?: number
           compra_id?: string
           costo_unitario?: number
           descripcion?: string | null
@@ -753,6 +817,8 @@ export type Database = {
       }
       compras: {
         Row: {
+          ajustado: number
+          cerrado_cantidad: number
           condicion: string
           created_at: string
           documento: string | null
@@ -773,12 +839,15 @@ export type Database = {
           saldo: number | null
           serie: string
           subtotal: number
+          tiene_faltante_cerrado: boolean | null
           tipo: string
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
         }
         Insert: {
+          ajustado?: number
+          cerrado_cantidad?: number
           condicion: string
           created_at?: string
           documento?: string | null
@@ -799,12 +868,15 @@ export type Database = {
           saldo?: number | null
           serie: string
           subtotal: number
+          tiene_faltante_cerrado?: boolean | null
           tipo?: string
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
         }
         Update: {
+          ajustado?: number
+          cerrado_cantidad?: number
           condicion?: string
           created_at?: string
           documento?: string | null
@@ -825,6 +897,7 @@ export type Database = {
           saldo?: number | null
           serie?: string
           subtotal?: number
+          tiene_faltante_cerrado?: boolean | null
           tipo?: string
           total?: number
           ubicacion_destino_id?: string
@@ -1342,30 +1415,6 @@ export type Database = {
           notas?: string | null
           propuesto_por?: string | null
           sedes_permitidas?: string[] | null
-        }
-        Relationships: []
-      }
-      familias: {
-        Row: {
-          activo: boolean
-          codigo: string
-          created_at: string
-          nombre: string
-          orden: number
-        }
-        Insert: {
-          activo?: boolean
-          codigo: string
-          created_at?: string
-          nombre: string
-          orden?: number
-        }
-        Update: {
-          activo?: boolean
-          codigo?: string
-          created_at?: string
-          nombre?: string
-          orden?: number
         }
         Relationships: []
       }
@@ -2995,6 +3044,7 @@ export type Database = {
       compra_items_resumen: {
         Row: {
           cantidad: number | null
+          cerrado: number | null
           compra_id: string | null
           costo_unitario: number | null
           descripcion: string | null
@@ -3007,6 +3057,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number | null
+          cerrado?: number | null
           compra_id?: string | null
           costo_unitario?: number | null
           descripcion?: string | null
@@ -3019,6 +3070,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number | null
+          cerrado?: number | null
           compra_id?: string | null
           costo_unitario?: number | null
           descripcion?: string | null
@@ -3062,6 +3114,8 @@ export type Database = {
       }
       compras_resumen: {
         Row: {
+          ajustado: number | null
+          cerrado_cantidad: number | null
           condicion: string | null
           created_at: string | null
           documento: string | null
@@ -3083,6 +3137,7 @@ export type Database = {
           saldo: number | null
           serie: string | null
           subtotal: number | null
+          tiene_faltante_cerrado: boolean | null
           tipo: string | null
           total: number | null
           ubicacion_destino_id: string | null
@@ -3336,6 +3391,10 @@ export type Database = {
           unidades_faltantes: number
           unidades_sobrantes: number
         }[]
+      }
+      cerrar_linea_recepcion: {
+        Args: { p_compra_item_id: string; p_motivo: string }
+        Returns: undefined
       }
       cerrar_produccion: {
         Args: {
@@ -3862,6 +3921,8 @@ export type Database = {
           p_solo_vigentes?: boolean
         }
         Returns: {
+          ajustado: number | null
+          cerrado_cantidad: number | null
           condicion: string | null
           created_at: string | null
           documento: string | null
@@ -3883,6 +3944,7 @@ export type Database = {
           saldo: number | null
           serie: string | null
           subtotal: number | null
+          tiene_faltante_cerrado: boolean | null
           tipo: string | null
           total: number | null
           ubicacion_destino_id: string | null

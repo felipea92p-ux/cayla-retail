@@ -26,6 +26,15 @@
 
 alter table retail.devoluciones add column if not exists nota_credito_id uuid references retail.comprobantes (id);
 
+-- IMPORTANTE (encontrado por CI, `scripts/pruebas/aprobar_devolucion_caja.mjs`):
+-- la primera versión de esta migración reconstruyó `aprobar_devolucion` a
+-- partir del cuerpo viejo de `0003_funciones.sql` y sin querer se llevó por
+-- delante 3 migraciones posteriores reales — el candado de caja abierta para
+-- reembolsos en efectivo (`20260916180000_cambio_y_devolucion_exigen_caja_
+-- si_hay_efectivo.sql`) y la cuarentena de prendas dañadas
+-- (`20260917095000_cuarentena_prendas_danadas.sql`, `sububicacion_id`,
+-- `prendas_danadas`). Esta versión parte del cuerpo real más reciente (el de
+-- cuarentena, que ya incluye el de caja) y le agrega SOLO la Nota de Crédito.
 drop function if exists retail.aprobar_devolucion(uuid, numeric, text);
 
 create function retail.aprobar_devolucion(
@@ -41,6 +50,9 @@ declare
   r record;
   v_mov_id uuid;
   v_persona uuid;
+  v_sub uuid;
+  v_sub_cuarentena uuid;
+  v_caja_id uuid;
   v_comprobante comprobantes%rowtype;
   v_total_devuelto numeric;
   v_subtotal numeric;
@@ -55,20 +67,43 @@ begin
     raise exception 'Solo un líder puede aprobar una devolución';
   end if;
   select id into v_persona from personas where auth_user_id = auth.uid();
+  v_sub := fn_sububicacion_por_defecto(d.ubicacion_id, 'venta');
+  select id into v_caja_id from cajas where ubicacion_id = d.ubicacion_id and estado = 'abierta';
+
+  if p_reembolso_metodo = 'efectivo' and coalesce(p_reembolso_monto, 0) > 0 and v_caja_id is null then
+    raise exception 'No hay una caja abierta en esta ubicación — ábrela antes de aprobar un reembolso en efectivo';
+  end if;
 
   for r in select * from devolucion_items where devolucion_id = p_devolucion_id loop
     if r.condicion = 'vendible' then
-      insert into movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, devolucion_item_id, usuario_id)
-        select vi.variante_id, d.ubicacion_id, 'entrada', r.cantidad, 'devolucion', r.id, v_persona
+      insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, devolucion_item_id, usuario_id)
+        select vi.variante_id, d.ubicacion_id, v_sub, 'entrada', r.cantidad, 'devolucion', r.id, v_persona
         from venta_items vi where vi.id = r.venta_item_id
         returning id into v_mov_id;
       perform fn_aplicar_movimiento(v_mov_id);
       update devolucion_items set movimiento_id = v_mov_id where id = r.id;
+    elsif r.condicion in ('danada_reparacion', 'danada_donar') then
+      if v_sub_cuarentena is null then
+        select id into v_sub_cuarentena from sububicaciones where ubicacion_id = d.ubicacion_id and tipo = 'cuarentena';
+      end if;
+      if v_sub_cuarentena is null then
+        raise exception 'Esta ubicación no tiene sububicación de cuarentena configurada';
+      end if;
+      insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, devolucion_item_id, usuario_id)
+        select vi.variante_id, d.ubicacion_id, v_sub_cuarentena, 'entrada', r.cantidad, 'devolucion', r.id, v_persona
+        from venta_items vi where vi.id = r.venta_item_id
+        returning id into v_mov_id;
+      perform fn_aplicar_movimiento(v_mov_id);
+      update devolucion_items set movimiento_id = v_mov_id where id = r.id;
+      insert into prendas_danadas (variante_id, ubicacion_id, cantidad, devolucion_item_id, movimiento_entrada_id)
+        select vi.variante_id, d.ubicacion_id, r.cantidad, r.id, v_mov_id
+        from venta_items vi where vi.id = r.venta_item_id;
     end if;
   end loop;
 
   update devoluciones set estado = 'aprobada', aprobado_por = v_persona, aprobado_en = now(),
-                          reembolso_monto = p_reembolso_monto, reembolso_metodo = p_reembolso_metodo
+                          reembolso_monto = p_reembolso_monto, reembolso_metodo = p_reembolso_metodo,
+                          caja_id = v_caja_id
     where id = p_devolucion_id;
 
   -- El comprobante más reciente y ACEPTADO de esta venta — si nunca llegó a
@@ -123,7 +158,15 @@ begin
     end if;
   end if;
 
-  return query select v_nota_id, c.serie, c.numero from comprobantes c where c.id = v_nota_id;
+  -- Subconsultas escalares, no `... from comprobantes where id = v_nota_id`:
+  -- con `v_nota_id` null (no aplicaba Nota de Crédito) un `where` habría
+  -- devuelto CERO filas en vez de una fila con nulls — encontrado por CI,
+  -- `aprobar_devolucion_caja.mjs` usa `\gset` y necesita exactamente una fila
+  -- siempre, aplique o no la nota.
+  return query select
+    v_nota_id,
+    (select serie from comprobantes where id = v_nota_id),
+    (select numero from comprobantes where id = v_nota_id);
 end;
 $$;
 
