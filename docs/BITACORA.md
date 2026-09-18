@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
+
+Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918150000`).
+
+Lo que Felipe se lleva: con auto-merge activo y las migraciones sin pegar en producción, el PR se habría fusionado y desplegado esperando `retail.familias`, que no existe allá — la regla de este repo es base primero, pantalla después (2026-07-18). Verificado contra producción en solo lectura: `categorias_familia_check` existe con ese nombre, las 6 familias en uso caben en la semilla y las funciones que usa la migración existen; es seguro pegarla. Y una consecuencia del propio agrupado: `orden` ya no ordena la grilla entera, solo manda dentro de cada familia, y ahí hoy conviven dos criterios (ver BACKLOG).
+
 ## 2026-09-18 (Familia deja de ser un CHECK fijo; Colores se agrupa por familia; una colisión real resuelta en vivo)
 
 Se cerró: `retail.familias` (tabla propia, sin proponer/aprobar — mismo patrón que
