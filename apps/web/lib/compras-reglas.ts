@@ -31,6 +31,10 @@ export type CompraResumen = {
   recibidoCantidad: number;
   estadoRecepcion: EstadoRecepcion;
   vencida: boolean;
+  /** Cuándo se espera el fardo (opcional al registrar). Sin ella, «atrasada» cuenta desde emisión + 7 días. */
+  fechaEstimadaLlegada: string | null;
+  /** La mercadería debía haber llegado y no llegó (lo calcula la vista, con fecha de Lima). */
+  recepcionAtrasada: boolean;
   nota: string | null;
   creadoEn: string;
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */

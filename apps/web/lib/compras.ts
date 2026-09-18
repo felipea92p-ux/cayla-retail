@@ -50,6 +50,10 @@ type FilaResumen = {
   recibido_cantidad: number | null;
   estado_recepcion: string | null;
   vencida: boolean | null;
+  // Opcionales solo hasta que se regeneren los tipos de `packages/database` (la vista ya
+  // trae estas columnas; `select("*")` las devuelve).
+  fecha_estimada_llegada?: string | null;
+  recepcion_atrasada?: boolean | null;
   nota: string | null;
   created_at: string | null;
 };
@@ -80,6 +84,8 @@ function aResumen(f: FilaResumen): CompraResumen {
     recibidoCantidad: Number(f.recibido_cantidad ?? 0),
     estadoRecepcion: (f.estado_recepcion as EstadoRecepcion) ?? "sin_recibir",
     vencida: f.vencida ?? false,
+    fechaEstimadaLlegada: f.fecha_estimada_llegada ?? null,
+    recepcionAtrasada: f.recepcion_atrasada ?? false,
     nota: f.nota,
     creadoEn: f.created_at ?? "",
   };
@@ -205,6 +211,8 @@ export type ResumenCompras = {
   /** Con vencimiento de hoy a 7 días (migración compras_resumen_por_vencer). */
   porVencer: number;
   porVencerMonto: number;
+  /** Por recibir cuya fecha esperada ya pasó (migración compras_atraso_recepcion). */
+  porRecibirAtrasadas: number;
 };
 
 export async function getResumenCompras(): Promise<ResumenCompras> {
@@ -224,6 +232,9 @@ export async function getResumenCompras(): Promise<ResumenCompras> {
     // en vez de tumbar la página.
     porVencer: Number(r.por_vencer ?? 0),
     porVencerMonto: Number(r.por_vencer_monto ?? 0),
+    // Los tipos generados todavía no traen esta columna (la función ya la devuelve): se lee
+    // por nombre. `?? 0` como las demás: si falta, la tarjeta dice 0, no tumba la página.
+    porRecibirAtrasadas: Number((r as Record<string, unknown>).por_recibir_atrasadas ?? 0),
   };
 }
 
