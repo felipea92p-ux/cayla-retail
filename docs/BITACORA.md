@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
+
+La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.
+
+Bug real que salió al tocar esto: "hoy" se calculaba con `toISOString()`, que es UTC. En Lima, después de las 7 pm ya es "mañana" allá, así que una campaña que termina hoy aparecía como fuera de temporada con la tienda todavía abierta. Ahora `lib/etiqueta-vigencia.ts` calcula "hoy" en hora de Lima, con prueba que fija el caso de las 8 pm.
+
+Pendiente a propósito: Patrones/Tejidos/Colores siguen con la tarjeta anterior — ver BACKLOG si se quiere unificar. Y falta saber cuántas variantes usan cada etiqueta antes de desactivarla (no hay dato en pantalla todavía).
+
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
 Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).

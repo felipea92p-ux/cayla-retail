@@ -31,7 +31,7 @@ const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
 };
 
 const ANCHO = 120;
-const ALTO = 40;
+const ALTO = 60;
 
 // Cada ícono se dibuja centrado en (0,0) dentro de ±14 unidades. `a` es el
 // color de acento del grupo.
@@ -240,10 +240,20 @@ const ICONOS: Record<IconoEtiqueta | "generico", (a: string) => ReactElement> = 
   ),
 };
 
+/**
+ * `group/etq` lo pone la tarjeta que la contiene: al pasarle el mouse por
+ * encima el dibujo principal se asienta un poco y los ecos se abren hacia los
+ * lados. Es el mismo gesto de "acuse de recibo" del sistema (`alza-cayla`) y
+ * responde a una acción de la persona, nunca corre solo. Los grupos exteriores
+ * llevan el `transform` fijo de cada dibujo; el movimiento va en el interior
+ * para que un CSS no pise al atributo SVG.
+ */
+const MOV = "transition-transform duration-500 ease-cayla [transform-box:fill-box] origin-center";
+
 export function MuestraEtiqueta({
   nombre,
   estilo,
-  className = "aspect-[3/1] w-full",
+  className = "aspect-[2/1] w-full",
 }: {
   nombre: string;
   estilo: Estilo;
@@ -254,16 +264,18 @@ export function MuestraEtiqueta({
   const dibujo = ICONOS[icono];
 
   return (
-    <div className={`${className} overflow-hidden rounded-lg border border-tinta/10`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
+    <div className={`${className} overflow-hidden rounded-lg`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
       <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" aria-hidden>
         {/* Ecos tenues a los lados: llenan el ancho sin competir con el ícono. */}
-        <g transform="translate(19 21) rotate(-14) scale(0.55)" opacity={0.2}>
-          {dibujo(acento)}
+        <g transform="translate(20 38) rotate(-14) scale(0.85)" opacity={0.18}>
+          <g className={`${MOV} group-hover/etq:-translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(101 19) rotate(12) scale(0.55)" opacity={0.2}>
-          {dibujo(acento)}
+        <g transform="translate(100 24) rotate(12) scale(0.85)" opacity={0.18}>
+          <g className={`${MOV} group-hover/etq:translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(60 20) scale(1.1)">{dibujo(acento)}</g>
+        <g transform="translate(60 30) scale(1.7)">
+          <g className={`${MOV} group-hover/etq:-translate-y-0.5 group-hover/etq:scale-[1.06]`}>{dibujo(acento)}</g>
+        </g>
       </svg>
     </div>
   );
