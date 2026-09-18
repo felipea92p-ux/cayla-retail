@@ -15,7 +15,6 @@ import {
   History,
 } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
-import { Chip } from "@/components/ui/Chip";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { Sparkline, DonutChart, BarrasHorarias, TendenciaCierres, type SegmentoDona } from "@/components/ui/Graficos";
@@ -23,20 +22,10 @@ import { useCountUp } from "@/lib/useCountUp";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
-import { egresosElevados, iniciales, senalCaja, type Comparativo, type PuntoTendenciaCierres } from "@/lib/caja-panel-reglas";
+import { iniciales } from "@/lib/caja-panel-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
-}
-
-/** «Felipe Alvarez» → «FA»: mismo recurso que la grilla de Vender cuando no hay foto. */
-function iniciales(nombre: string) {
-  return nombre
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 const ETIQUETA_METODO: Record<string, { texto: string; color: string }> = {
@@ -73,7 +62,6 @@ export function CajaAbiertaPanel({
   personaNombre,
   personaRol,
   caja,
-  ubicacionEtiqueta,
   resumen,
   movimientos,
   series,
@@ -97,8 +85,10 @@ export function CajaAbiertaPanel({
   // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCola(leer<VentaEncolada[]>(claveLocal(caja.ubicacionId, "cola"), []));
+    const id = window.setTimeout(() => {
+      setCola(leer<VentaEncolada[]>(claveLocal(caja.ubicacionId, "cola"), []));
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [caja.ubicacionId]);
 
   const totalVentas = resumen.ventasEfectivo + resumen.ventasOtros;
@@ -423,5 +413,3 @@ function TablaOGrafico({ segmentos, total }: { segmentos: SegmentoDona[]; total:
     </div>
   );
 }
-
-const LABEL_METODO_CORTO: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", yape: "Yape", plin: "Plin", transferencia: "Transf." };

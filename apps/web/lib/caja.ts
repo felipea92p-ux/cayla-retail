@@ -55,6 +55,7 @@ export type MovimientoCaja = {
   nota: string | null;
   esAjuste: boolean;
   creadoEn: string;
+  usuarioId: string | null;
   registradoPorNombre: string | null;
 };
 
@@ -280,6 +281,7 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     nota: m.nota,
     esAjuste: m.es_ajuste,
     creadoEn: m.created_at,
+    usuarioId: m.usuario_id,
     registradoPorNombre: m.usuario_id ? (nombrePorId.get(m.usuario_id) ?? null) : null,
   }));
 }
