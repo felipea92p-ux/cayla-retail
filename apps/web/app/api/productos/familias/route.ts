@@ -27,9 +27,13 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+  // `codigo: ""` es el contrato del trigger `familias_generar_codigo_biu`
+  // ("vacío = derívalo del nombre"). Se manda porque el tipo generado lo pide
+  // obligatorio: la columna no tiene DEFAULT y el generador de tipos no ve
+  // triggers. Sin esto el PR no compilaba (y Vercel no podía desplegar).
   const { data, error } = await supabase
     .from("familias")
-    .insert({ nombre })
+    .insert({ nombre, codigo: "" })
     .select("codigo, nombre, activo, orden")
     .single();
 
