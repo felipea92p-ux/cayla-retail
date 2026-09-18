@@ -41,6 +41,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AVIARIO } from "./aviario.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..");
@@ -241,22 +242,7 @@ function desdeVolcado() {
 
 // ── Escritura ───────────────────────────────────────────────────────────────
 
-const DOMINIOS_RETAIL = [
-  // Mapa V2 (2026-09-15). Antes describía V1 (sedes, stock_almacen, taxonomía,
-  // producción, contabilidad…) y 21 de las 39 tablas reales quedaban «sin
-  // módulo». Las tablas de V1 que ya no existen en producción se quitaron; si
-  // un día vuelven, el generador las lista como huérfanas y se las asigna acá.
-  ["01 · Identidad y acceso", ["colaboradores", "ubicaciones", "sububicaciones", "ubicacion_datos_fiscales"]],
-  ["02 · Catálogo y vocabulario", ["categorias", "productos", "variantes", "colores", "codigos_barras", "codigos_correlativos"]],
-  ["05 · Inventario y movimientos", ["movimientos", "stock", "lotes", "transferencias", "transferencia_items"]],
-  ["06 · Conteo y censo físico", ["conteos", "conteo_items"]],
-  ["07 · Ventas y caja", ["cajas", "caja_movimientos", "ventas", "venta_items", "venta_pagos", "clientes", "codigos_descuento", "cambios", "devoluciones", "devolucion_items"]],
-  // `proformas` vive en Ventas en 07-GOBIERNO.md (es la cotización del mostrador, no
-  // viaja a SUNAT), pero se lista arriba con Facturación porque comparte ciclo de vida.
-  ["08 · Facturación SUNAT", ["series_comprobantes", "comprobantes", "proformas", "configuracion_empresa"]],
-  ["09 · Compras y proveedores", ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen"]],
-  ["12 · Contabilidad", ["activos_fijos"]],
-];
+// De qué pájaro es cada tabla: la lista vive en `aviario.mjs`, no acá.
 
 const MUERTAS = {
   ordenes_produccion: "Modelo de producción de la Fase 1. Reemplazado por `producciones` + `produccion_lineas`. Sigue vivo porque nunca se retiró; no tiene RPC activo.",
@@ -374,10 +360,10 @@ const dynamic = tablas.filter(t => t.esquema === "public");
 > existe cada tabla, abre el archivo del módulo en \`docs/datos/modulos/\`; este archivo
 > solo dice **qué hay**.`));
 
-  for (const [dominio, nombres] of DOMINIOS_RETAIL) {
-    const delDominio = nombres.map(n => retail.find(t => t.tabla === n)).filter(Boolean);
+  for (const { n, modulo, tablas: nombres } of AVIARIO) {
+    const delDominio = nombres.map(nombre => retail.find(t => t.tabla === nombre)).filter(Boolean);
     if (!delDominio.length) continue;
-    L.push(`\n## ${dominio}\n`);
+    L.push(`\n## ${n} · ${modulo}\n`);
     for (const t of delDominio) { vistas.add(t.tabla); L.push(fichaTabla(t, glosas), ""); }
   }
 
