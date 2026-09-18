@@ -325,6 +325,15 @@ sede extendido a traslados. Backend + `NuevoProductoForm.tsx`/`ProductoForm.tsx`
 probados en navegador como Líder (crear, editar, guardar). Tipos, lint y 293 pruebas en
 verde.
 
+- [x] **Etiquetas: pantalla rediseñada (2026-09-18).** Ilustración protagonista, chip de
+      temporada (Vigente / En N días / Fuera de temporada), filtros con conteo, búsqueda sin
+      tildes, "Desactivar" solo al pasar el mouse. Arregló de paso "hoy" en UTC → hora de Lima.
+- [ ] **Unificar la tarjeta de Patrones/Tejidos/Colores con la de Etiquetas.** Hoy Etiquetas
+      tiene el diseño nuevo y las otras tres el anterior: mismo sistema, dos lenguajes. Extraer
+      una `TarjetaAtributo` compartida cuando se decida cuál es el estándar.
+- [ ] **Mostrar cuántas variantes usan cada etiqueta** (en la tarjeta y antes de desactivar).
+      Requiere contar `variante_etiquetas` por `etiqueta_id`; no hay dato en pantalla todavía.
+
 - [x] **Pegada en producción (2026-09-17, tarde-noche) — la mitad que faltaba, después
       de que #75 se fusionara a `main` sin su migración.** El "Production Deploy" del
       entorno de esa sesión se la bloqueó, y Vercel desplegó igual el frontend que ya

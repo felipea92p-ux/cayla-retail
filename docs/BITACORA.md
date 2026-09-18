@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
+
+La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.
+
+Bug real que salió al tocar esto: "hoy" se calculaba con `toISOString()`, que es UTC. En Lima, después de las 7 pm ya es "mañana" allá, así que una campaña que termina hoy aparecía como fuera de temporada con la tienda todavía abierta. Ahora `lib/etiqueta-vigencia.ts` calcula "hoy" en hora de Lima, con prueba que fija el caso de las 8 pm.
+
+Pendiente a propósito: Patrones/Tejidos/Colores siguen con la tarjeta anterior — ver BACKLOG si se quiere unificar. Y falta saber cuántas variantes usan cada etiqueta antes de desactivarla (no hay dato en pantalla todavía).
+
 ## 2026-09-18 (Tejidos con su imagen: la textura de cada tela en Atributos, como ya tenían Patrones y Etiquetas)
 
 Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo mecanismo que `patron-visual.ts` + `MuestraPatron`: `lib/tejido-visual.ts` traduce el nombre a una de 17 texturas y `components/MuestraTejido.tsx` la dibuja en SVG (sarga del denim, canalé de la pana, panal del piqué, fibra de la alpaca…). Sin cambios de esquema y sin migración: el nombre es lo único estable del vocabulario, así que un tejido nuevo como "Full Lycra" o "Interlock" (que las notas del seed dicen cubrir) cae solo en la textura de Licra/Jersey. Un nombre que no reconoce dice «Sin muestra» en vez de dibujar una tela equivocada.
