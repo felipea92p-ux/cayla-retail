@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getResumenCaja, getVentasMismaHoraSemanaAnterior, getHistorialCierres } from "@/lib/caja";
-import { getDetalleCierre, type EventoCaja } from "@/app/actions/caja";
+import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { createClient } from "@/lib/supabase/server";
+import { tolerar } from "@/lib/resultado";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
-import { CajaAbiertaPanel } from "@/components/CajaAbiertaPanel";
-import { comparativoSemanaAnterior, rangoHorasCaja, tendenciaCierres7Dias, ventasPorHora } from "@/lib/caja-panel-reglas";
-import { horaDelDiaLima } from "@/lib/panel-serie";
+import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
 // Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
 // posible es abrirla — `registrar_venta` la exige (0008_caja_y_pagos.sql),
@@ -40,9 +39,12 @@ export default async function CajaPage() {
           <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
         </div>
       ) : (
-        <div className="anim-entrada">
-          <CajaConDatos caja={caja} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
-        </div>
+        <CajaConDatos
+          caja={caja}
+          ubicacionNombre={persona.ubicacionEtiqueta}
+          personaNombre={persona.nombre}
+          personaRol={persona.rol}
+        />
       )}
     </div>
   );
@@ -50,41 +52,50 @@ export default async function CajaPage() {
 
 async function CajaConDatos({
   caja,
-  ubicacionEtiqueta,
+  ubicacionNombre,
+  personaNombre,
+  personaRol,
 }: {
   caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
-  ubicacionEtiqueta: string;
+  ubicacionNombre: string;
+  personaNombre: string;
+  personaRol: "lider" | "integrante";
 }) {
-  const ahora = new Date();
-  const [resumen, eventosHoy, ventasSemanaAnterior, ubicaciones, historial] = await Promise.all([
+  const supabase = await createClient();
+  const [resumen, movimientos, series, ubicaciones, historial, resVentasHoy] = await Promise.all([
     getResumenCaja(caja.id),
-    getDetalleCierre(caja.id),
-    getVentasMismaHoraSemanaAnterior(caja.ubicacionId, ahora),
+    getMovimientosCaja(caja.id),
+    getSeriesVentasCaja(caja.id),
     getUbicaciones(),
-    getHistorialCierres(120),
+    getHistorialCierres(),
+    supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: caja.ubicacionId }),
   ]);
 
-  const ubicacion = ubicaciones.find((u) => u.id === caja.ubicacionId);
-  const ventasHoy = resumen.ventasEfectivo + resumen.ventasOtros;
-  const nombreDiaHoy = ahora.toLocaleDateString("es-PE", { weekday: "long", timeZone: "America/Lima" });
-  const horaActual = Math.floor(horaDelDiaLima(ahora.getTime()) / 3_600_000);
+  const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
+  const ventasHoy: VentaDelDia[] = fallo
+    ? []
+    : (filasVentas ?? []).map((v) => ({
+        ventaId: v.venta_id,
+        hora: v.hora,
+        vendedor: v.vendedor ?? null,
+        metodosPago: v.metodos_pago ?? null,
+        total: Number(v.total),
+      }));
 
-  const horas = rangoHorasCaja(caja.abiertaEn, ahora);
-  const esVentaActiva = (e: EventoCaja): e is Extract<EventoCaja, { tipo: "venta" }> => e.tipo === "venta" && !e.anulada;
-  const porHoraMapa = ventasPorHora(eventosHoy.filter(esVentaActiva).map((e) => ({ hora: e.hora, total: e.total })));
-  const ventasPorHoraArr = horas.map((h) => ({ hora: h, monto: porHoraMapa.get(h) ?? 0 }));
+  const metaVentaDiaria = ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null;
 
   return (
     <CajaAbiertaPanel
+      ubicacionNombre={ubicacionNombre}
+      personaNombre={personaNombre}
+      personaRol={personaRol}
       caja={caja}
-      ubicacionEtiqueta={ubicacionEtiqueta}
       resumen={resumen}
-      eventosHoy={eventosHoy}
-      metaVentaDiaria={ubicacion?.metaVentaDiaria ?? null}
-      comparativoMeta={comparativoSemanaAnterior(ventasHoy, ventasSemanaAnterior, nombreDiaHoy)}
-      ventasPorHora={ventasPorHoraArr}
-      horaActual={horaActual}
-      tendenciaCierres={tendenciaCierres7Dias(historial, caja.ubicacionId, ahora)}
+      movimientos={movimientos}
+      series={series}
+      ventasHoy={ventasHoy}
+      metaVentaDiaria={metaVentaDiaria}
+      cierresRecientes={historial}
     />
   );
 }

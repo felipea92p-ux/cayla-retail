@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Unlock,
+  Banknote,
+  CreditCard,
+  CirclePlus,
+  CircleMinus,
+  CircleCheck,
+  TriangleAlert,
+  ShoppingBag,
+  ArrowRightLeft,
+  History,
+} from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
-import { TarjetaIndicador, normalizarSparkline } from "@/components/TarjetaIndicador";
-import { DonaMetodosPago, TendenciaCierres, VentasPorHoraChart } from "@/components/CajaGraficos";
-import type { CajaAbierta, ResumenCaja } from "@/lib/caja";
-import type { EventoCaja } from "@/app/actions/caja";
+import { Sparkline, DonutChart, BarrasHorarias, TendenciaCierres, type SegmentoDona } from "@/components/ui/Graficos";
+import { useCountUp } from "@/lib/useCountUp";
+import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { egresosElevados, iniciales, senalCaja, type Comparativo, type PuntoTendenciaCierres } from "@/lib/caja-panel-reglas";
@@ -19,165 +29,296 @@ function money(n: number) {
   return "S/" + n.toFixed(2);
 }
 
-type Props = {
-  caja: CajaAbierta;
-  ubicacionEtiqueta: string;
-  resumen: ResumenCaja;
-  eventosHoy: EventoCaja[];
-  metaVentaDiaria: number | null;
-  comparativoMeta: Comparativo | null;
-  ventasPorHora: { hora: number; monto: number }[];
-  horaActual: number;
-  tendenciaCierres: PuntoTendenciaCierres[];
+/** «Felipe Alvarez» → «FA»: mismo recurso que la grilla de Vender cuando no hay foto. */
+function iniciales(nombre: string) {
+  return nombre
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+const ETIQUETA_METODO: Record<string, { texto: string; color: string }> = {
+  efectivo: { texto: "Efectivo", color: "var(--color-metodo-efectivo)" },
+  tarjeta: { texto: "Tarjeta", color: "var(--color-metodo-tarjeta)" },
+  yape: { texto: "Yape / Plin", color: "var(--color-metodo-yape)" },
+  plin: { texto: "Yape / Plin", color: "var(--color-metodo-yape)" },
+  transferencia: { texto: "Transferencia", color: "var(--color-taupe)" },
+};
+
+function colorDeMetodo(texto: string | null): string {
+  const t = (texto ?? "").toLowerCase();
+  if (t.includes("efectivo")) return "var(--color-metodo-efectivo)";
+  if (t.includes("tarjeta")) return "var(--color-metodo-tarjeta)";
+  if (t.includes("yape") || t.includes("plin")) return "var(--color-metodo-yape)";
+  return "var(--color-taupe)";
+}
+
+function minutosDeHora(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export type VentaDelDia = {
+  ventaId: string;
+  hora: string;
+  vendedor: string | null;
+  metodosPago: string | null;
+  total: number;
 };
 
 export function CajaAbiertaPanel({
+  ubicacionNombre,
+  personaNombre,
+  personaRol,
   caja,
   ubicacionEtiqueta,
   resumen,
-  eventosHoy,
+  movimientos,
+  series,
+  ventasHoy,
   metaVentaDiaria,
-  comparativoMeta,
-  ventasPorHora,
-  horaActual,
-  tendenciaCierres,
-}: Props) {
+  cierresRecientes,
+}: {
+  ubicacionNombre: string;
+  personaNombre: string;
+  personaRol: "lider" | "integrante";
+  caja: CajaAbierta;
+  resumen: ResumenCaja;
+  movimientos: MovimientoCaja[];
+  series: SeriesVentasCaja;
+  ventasHoy: VentaDelDia[];
+  metaVentaDiaria: number | null;
+  cierresRecientes: CierreCaja[];
+}) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | null>(null);
-  const [alertaVisible, setAlertaVisible] = useState(true);
-  // Cola de ventas offline de ESTA sede (ADR-0092): esta pantalla (/caja) es una
-  // segunda puerta a "Cerrar caja" además de Vender, y comparte el mismo riesgo —
-  // efectivo cobrado sin red que el "esperado" del servidor todavía no ve. NO corre
-  // el trío de sincronización (mount/online/latido): por ADR-0043 ese estado vive
-  // solo en `PuntoDeVenta.tsx`. Acá basta una lectura de una sola vez.
+  // Cola de ventas offline de ESTA sede (ADR-0092): ver nota original en este
+  // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCola(leer<VentaEncolada[]>(claveLocal(caja.ubicacionId, "cola"), []));
   }, [caja.ubicacionId]);
 
-  const ventasHoy = resumen.ventasEfectivo + resumen.ventasOtros;
-  const senal = senalCaja(cola.length);
-  const alerta = egresosElevados(resumen.egresos, ventasHoy);
-  const pctMeta = metaVentaDiaria ? Math.min(100, Math.round((ventasHoy / metaVentaDiaria) * 100)) : 0;
+  const totalVentas = resumen.ventasEfectivo + resumen.ventasOtros;
+  const metaPct = metaVentaDiaria ? Math.min(100, Math.round((totalVentas / metaVentaDiaria) * 100)) : null;
 
-  const eventosFeed = eventosHoy.filter(esEventoDeFeed).slice(0, 8);
+  const segmentosDona: SegmentoDona[] = Object.entries(series.porMetodo)
+    .filter(([metodo]) => metodo !== "yape" && metodo !== "plin")
+    .map(([metodo, valor]) => ({
+      etiqueta: ETIQUETA_METODO[metodo]?.texto ?? metodo,
+      valor: valor ?? 0,
+      color: ETIQUETA_METODO[metodo]?.color ?? "var(--color-taupe)",
+    }));
+  const yapePlin = (series.porMetodo.yape ?? 0) + (series.porMetodo.plin ?? 0);
+  if (yapePlin > 0) segmentosDona.push({ etiqueta: "Yape / Plin", valor: yapePlin, color: "var(--color-metodo-yape)" });
+  const totalDona = segmentosDona.reduce((a, s) => a + s.valor, 0);
+
+  const horaActual = new Date().getHours();
+  const todasLasHoras = Array.from({ length: 24 }, (_, hora) => {
+    const punto = series.porHora.find((p) => p.hora === hora);
+    return { hora, monto: (punto?.efectivo ?? 0) + (punto?.otros ?? 0) };
+  });
+  // Recorta a la ventana con actividad, siempre hasta la hora actual — nunca
+  // muestra horas futuras del día, que todavía no pasaron.
+  const primeraConVentas = todasLasHoras.findIndex((x) => x.monto > 0);
+  const desdeHora = primeraConVentas === -1 ? horaActual : Math.min(primeraConVentas, horaActual);
+  const barrasHora = todasLasHoras.filter((p) => p.hora >= desdeHora && p.hora <= horaActual);
+
+  type EventoTimeline = {
+    id: string;
+    minutos: number;
+    horaTexto: string;
+    icono: "venta" | "ingreso" | "egreso";
+    titulo: string;
+    meta: string;
+    monto: number;
+    color: string;
+  };
+  const eventos: EventoTimeline[] = [
+    ...ventasHoy.map((v) => ({
+      id: v.ventaId,
+      minutos: minutosDeHora(v.hora),
+      horaTexto: v.hora,
+      icono: "venta" as const,
+      titulo: `Venta${v.metodosPago ? ` · ${v.metodosPago}` : ""}`,
+      meta: v.vendedor ?? "—",
+      monto: v.total,
+      color: colorDeMetodo(v.metodosPago),
+    })),
+    ...movimientos.map((m) => {
+      const d = new Date(m.creadoEn);
+      return {
+        id: m.id,
+        minutos: d.getHours() * 60 + d.getMinutes(),
+        horaTexto: d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
+        icono: m.tipo,
+        titulo: m.motivo,
+        meta: m.registradoPorNombre ?? "—",
+        monto: m.tipo === "egreso" ? -m.monto : m.monto,
+        color: m.tipo === "egreso" ? "var(--color-rojo)" : "var(--color-verde)",
+      };
+    }),
+  ]
+    .sort((a, b) => b.minutos - a.minutos)
+    .slice(0, 8);
+
+  const cierresUbicacion = cierresRecientes
+    .filter((c) => c.ubicacionId === caja.ubicacionId)
+    .slice(0, 7)
+    .reverse();
+  const maxCierre = Math.max(...cierresUbicacion.map((c) => c.montoCierreSistema), 0.0001);
+
+  const haySincronizando = cola.length > 0;
 
   return (
-    <div className="space-y-4">
-      {alerta.alerta && alertaVisible && (
-        <div className="anim-revelar flex items-start gap-3 rounded-xl border border-ambar/35 bg-ambar/12 px-4 py-3 text-[13px] text-tinta">
-          <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-ambar-profundo" aria-hidden />
-          <p className="flex-1">
-            <b className="text-ambar-profundo">Egresos elevados:</b> hoy van {money(resumen.egresos)}, el {alerta.pct}% de lo vendido hoy.
-          </p>
-          <button
-            type="button"
-            onClick={() => setAlertaVisible(false)}
-            aria-label="Descartar aviso"
-            className="shrink-0 text-tinta/50 hover:text-tinta"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Encabezado: quién abrió, desde cuándo, y la señal de la cola offline en vez
-          de un "cuadre" en vivo (ADR-0042 — ver caja-panel-reglas.ts:senalCaja). */}
-      <div className="card-cayla flex flex-wrap items-center justify-between gap-4 p-5">
+    <div className="anim-entrada space-y-4 pb-8 sm:pb-24">
+      {/* ---------- Encabezado ---------- */}
+      <div className="card-cayla flex flex-wrap items-center justify-between gap-4 p-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rojo to-rojo-profundo text-sm font-bold text-crema">
-            {iniciales(caja.abiertaPorNombre ?? "—")}
+          <div
+            aria-hidden
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-tinta text-sm font-bold text-crema"
+          >
+            {iniciales(personaNombre)}
           </div>
           <div>
-            <p className="label-cayla text-[11px] text-tinta/60">Caja · {ubicacionEtiqueta}</p>
+            <p className="label-cayla text-[11px] text-tinta/55">Caja · {ubicacionNombre}</p>
             <h1 className="font-display mt-0.5 text-2xl text-tinta">Caja abierta</h1>
-            <p className="mt-0.5 text-[13px] text-tinta/70">
-              {caja.abiertaPorNombre ?? "—"} · Abierta desde las{" "}
-              {new Date(caja.abiertaEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })} · <RelojEnVivo />
+            <p className="mt-0.5 text-[13px] text-tinta/65">
+              {personaNombre} · {personaRol === "lider" ? "Líder de equipo" : "Integrante"} · Abierta desde las{" "}
+              {new Date(caja.abiertaEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })} ·{" "}
+              <RelojEnVivo />
             </p>
           </div>
         </div>
-        <Chip tono={senal.tono === "verde" ? "verde" : "ambar"}>{senal.texto}</Chip>
+        {haySincronizando ? (
+          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-ambar/15 px-3.5 py-2 text-[12px] font-bold text-ambar-profundo">
+            <TriangleAlert size={14} aria-hidden />
+            {cola.length} venta{cola.length === 1 ? "" : "s"} sin sincronizar
+          </span>
+        ) : (
+          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-verde/15 px-3.5 py-2 text-[12px] font-bold text-verde-profundo">
+            <CircleCheck size={14} aria-hidden />
+            Todo sincronizado
+          </span>
+        )}
       </div>
 
-      {metaVentaDiaria === null ? (
-        <p className="px-1 text-xs text-tinta/50">Meta del día: sin configurar para esta sede.</p>
-      ) : (
+      {/* ---------- Meta del día (solo si la ubicación tiene una configurada) ---------- */}
+      {metaVentaDiaria !== null && metaPct !== null && (
         <div className="card-cayla p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="label-cayla text-[11px] text-tinta/60">Meta del día</span>
+          <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-1.5">
+            <span className="label-cayla text-[11px] text-tinta/55">Meta del día</span>
             <span className="text-sm font-semibold text-tinta">
-              {money(ventasHoy)} <span className="font-normal text-tinta/55">de {money(metaVentaDiaria)}</span>
-              {comparativoMeta && (
-                <span className={`ml-2 text-xs font-bold ${comparativoMeta.positivo ? "text-verde" : "text-tinta/60"}`}>
-                  {comparativoMeta.texto}
-                </span>
-              )}
+              {money(totalVentas)} <span className="font-normal text-tinta/50">de {money(metaVentaDiaria)}</span>
             </span>
           </div>
-          <div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-sand">
+          <div className="h-2.5 overflow-hidden rounded-full bg-sand">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-rojo to-verde transition-[width] duration-700"
-              style={{ width: `${pctMeta}%` }}
+              className="h-full rounded-full bg-rojo transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]"
+              style={{ width: `${metaPct}%` }}
             />
           </div>
         </div>
       )}
 
+      {/* ---------- KPIs ---------- */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <TarjetaIndicador etiqueta="Apertura" valor={money(caja.montoApertura)} />
-        <TarjetaIndicador
+        <TarjetaKpi etiqueta="Apertura" valor={caja.montoApertura} icono={<Unlock size={15} aria-hidden />} colorBorde="var(--color-taupe)" />
+        <TarjetaKpi
           etiqueta="Ventas efectivo"
-          valor={money(resumen.ventasEfectivo)}
-          sparkline={normalizarSparkline(cumulativo(ventasPorHora, "efectivo", resumen))}
+          valor={resumen.ventasEfectivo}
+          icono={<Banknote size={15} aria-hidden />}
+          colorBorde="var(--color-metodo-efectivo)"
+          sparkline={series.porHora.map((p) => p.efectivo)}
         />
-        <TarjetaIndicador
+        <TarjetaKpi
           etiqueta="Ventas otro método"
-          valor={money(resumen.ventasOtros)}
-          sparkline={normalizarSparkline(cumulativo(ventasPorHora, "otros", resumen))}
+          valor={resumen.ventasOtros}
+          icono={<CreditCard size={15} aria-hidden />}
+          colorBorde="var(--color-taupe)"
+          sparkline={series.porHora.map((p) => p.otros)}
         />
-        <TarjetaIndicador etiqueta="Ingresos" valor={money(resumen.ingresos)} />
-        <TarjetaIndicador etiqueta="Egresos" valor={money(resumen.egresos)} critico={alerta.alerta} />
+        <TarjetaKpi etiqueta="Ingresos" valor={resumen.ingresos} icono={<CirclePlus size={15} aria-hidden />} colorBorde="var(--color-verde)" />
+        <TarjetaKpi etiqueta="Egresos" valor={resumen.egresos} icono={<CircleMinus size={15} aria-hidden />} colorBorde="var(--color-rojo)" />
       </div>
 
+      {/* ---------- Métodos de pago + Ventas por hora ---------- */}
       <div className="grid gap-3 lg:grid-cols-2">
-        <DonaMetodosPago porMetodo={resumen.porMetodo} />
-        <VentasPorHoraChart datos={ventasPorHora} horaActual={horaActual} />
+        <div className="card-cayla p-5">
+          <p className="text-sm font-bold text-tinta">Métodos de pago</p>
+          <p className="mb-3.5 text-xs text-tinta/50">Distribución de ventas de esta caja</p>
+          {segmentosDona.length === 0 ? (
+            <p className="py-6 text-center text-xs text-tinta/50">Sin ventas registradas todavía.</p>
+          ) : (
+            <TablaOGrafico segmentos={segmentosDona} total={totalDona} />
+          )}
+        </div>
+        <div className="card-cayla p-5">
+          <p className="text-sm font-bold text-tinta">Ventas por hora</p>
+          <p className="mb-3.5 text-xs text-tinta/50">Hoy · hora actual resaltada</p>
+          <BarrasHorarias puntos={barrasHora} horaActual={horaActual} />
+        </div>
       </div>
 
+      {/* ---------- Movimientos recientes + Historial de cierres ---------- */}
       <div className="grid gap-3 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="card-cayla p-5">
-          <p className="text-sm font-semibold text-tinta">Movimientos recientes</p>
-          <p className="mt-1 text-xs text-tinta/60">Últimos registros de esta caja</p>
-          {eventosFeed.length === 0 ? (
-            <p className="mt-6 text-sm text-tinta/50">Todavía no hay movimientos hoy.</p>
+          <p className="text-sm font-bold text-tinta">Movimientos recientes</p>
+          <p className="mb-1.5 text-xs text-tinta/50">Últimos registros de esta caja</p>
+          {eventos.length === 0 ? (
+            <p className="py-6 text-center text-xs text-tinta/50">Todavía no hay movimientos.</p>
           ) : (
-            <div className="mt-3 divide-y divide-sand">
-              {eventosFeed.map((e) => (
-                <FilaEvento key={`${e.tipo}-${e.id}`} evento={e} />
+            <div className="divide-y divide-sand">
+              {eventos.map((e) => (
+                <div key={e.id} className="anim-revelar flex items-center gap-3 py-2.5">
+                  <div
+                    aria-hidden
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `color-mix(in srgb, ${e.color} 14%, transparent)`, color: e.color }}
+                  >
+                    {e.icono === "venta" ? <ShoppingBag size={14} /> : e.icono === "ingreso" ? <CirclePlus size={14} /> : <CircleMinus size={14} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-semibold text-tinta">{e.titulo}</p>
+                    <p className="text-[11.5px] text-tinta/50">
+                      {e.horaTexto} · {e.meta}
+                    </p>
+                  </div>
+                  <p key={e.monto} className={`anim-asentar shrink-0 text-sm font-bold tabular-nums ${e.monto < 0 ? "text-rojo" : "text-verde-profundo"}`}>
+                    {e.monto < 0 ? "−" : "+"}
+                    {money(Math.abs(e.monto))}
+                  </p>
+                </div>
               ))}
             </div>
           )}
         </div>
 
         <div className="card-cayla p-5">
-          <p className="text-sm font-semibold text-tinta">Historial de cierres</p>
-          <p className="mt-1 text-xs text-tinta/60">Últimos 7 días</p>
-          <div className="mt-4">
-            <TendenciaCierres serie={tendenciaCierres} />
-          </div>
-          <Link href="/caja/historial" className="mt-3 inline-block text-xs font-semibold text-rojo hover:text-rojo-profundo">
-            Ver historial completo →
+          <p className="text-sm font-bold text-tinta">Historial de cierres</p>
+          <p className="mb-3.5 text-xs text-tinta/50">Últimos días · {ubicacionNombre}</p>
+          <TendenciaCierres
+            dias={cierresUbicacion.map((c) => ({
+              etiqueta: new Date(c.cerradaEn).toLocaleDateString("es-PE", { weekday: "narrow" }).toUpperCase(),
+              alturaPct: (c.montoCierreSistema / maxCierre) * 100,
+              ok: Math.abs(c.diferencia) < 0.01,
+            }))}
+          />
+          <Link href="/caja/historial" className="label-cayla inline-flex items-center gap-1.5 text-[11px] font-bold text-rojo hover:text-rojo-profundo">
+            <History size={12} aria-hidden /> Ver historial completo
           </Link>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-1">
-        <Link
-          href="/cambios"
-          className="alza-cayla label-cayla rounded-md border border-tinta/15 bg-papel px-4 py-2.5 text-[12px] text-tinta hover:border-tinta/30"
-        >
-          ↔ Cambios
+      {/* ---------- Barra de acciones ---------- */}
+      <div className="fixed inset-x-0 bottom-16 z-30 flex justify-center gap-2.5 border-t border-tinta/10 bg-crema/95 px-4 py-3 backdrop-blur-sm sm:bottom-0">
+        <Link href="/cambios">
+          <Boton peso="discreto" className="inline-flex items-center gap-2">
+            <ArrowRightLeft size={14} aria-hidden /> Cambios
+          </Boton>
         </Link>
         <Boton peso="discreto" onClick={() => setModal("movimiento")}>
           + Ingreso / egreso
@@ -193,82 +334,92 @@ export function CajaAbiertaPanel({
   );
 }
 
-/** Suma acumulada intradía de un lado del gráfico de dona — no hay serie histórica
- *  de 7 días por KPI (ver auditoría), así que el sparkline muestra el momentum de
- *  HOY: cuánto se llevaba vendido a cada hora, real y barato de calcular con lo que
- *  ya se pidió para el gráfico de barras. `resumen.porMetodo` no distingue por hora,
- *  así que el reparto efectivo/otros de cada hora se aproxima con la proporción del
- *  día completo — suficiente para una mini-línea de tendencia, no para un monto exacto. */
-function cumulativo(porHora: { hora: number; monto: number }[], cual: "efectivo" | "otros", resumen: ResumenCaja): number[] {
-  const totalDia = resumen.ventasEfectivo + resumen.ventasOtros;
-  const proporcion = totalDia > 0 ? (cual === "efectivo" ? resumen.ventasEfectivo : resumen.ventasOtros) / totalDia : 0;
-  let acumulado = 0;
-  return porHora.map((p) => {
-    acumulado += p.monto * proporcion;
-    return acumulado;
-  });
-}
-
 function RelojEnVivo() {
-  const [hora, setHora] = useState<string | null>(null);
+  const [texto, setTexto] = useState<string | null>(null);
   useEffect(() => {
-    const tick = () => setHora(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    const tick = () => setTexto(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-  // `hora` arranca null: en el servidor no hay reloj — mostrar algo distinto ahí
-  // desincronizaría la hidratación. Se llena recién tras montar en el cliente.
-  return <span className="tabular-nums">{hora ?? "—:—:—"}</span>;
+  // `null` en el primer render del servidor: la hora del cliente puede diferir
+  // de la del servidor, mostrarla recién montado evita un mismatch de hidratación.
+  return <span className="tabular-nums">{texto ?? "—"}</span>;
 }
 
-type EventoFeed = Extract<EventoCaja, { tipo: "venta" }> | Extract<EventoCaja, { tipo: "movimiento" }>;
-
-function esEventoDeFeed(e: EventoCaja): e is EventoFeed {
-  return (e.tipo === "venta" && !e.anulada) || e.tipo === "movimiento";
-}
-
-function FilaEvento({ evento }: { evento: EventoFeed }) {
-  const hora = new Date(evento.hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
-  if (evento.tipo === "venta") {
-    return (
-      <div className="flex items-center gap-3 py-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-metodo-efectivo/15 text-metodo-efectivo">
-          <ShoppingBag className="h-4 w-4" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-semibold text-tinta">
-            Venta{" "}
-            <span className="label-cayla ml-1 rounded-full bg-sand px-2 py-0.5 text-[10px] text-tinta/70">
-              {evento.metodos.map((m) => LABEL_METODO_CORTO[m] ?? m).join(" + ") || "—"}
-            </span>
-          </p>
-          <p className="text-[11.5px] text-tinta/55">
-            {hora} {evento.colaboradorNombre ? `· ${evento.colaboradorNombre}` : ""}
-          </p>
-        </div>
-        <span className="shrink-0 text-sm font-bold tabular-nums text-verde-profundo">+ {money(evento.total)}</span>
-      </div>
-    );
-  }
-  const esEgreso = evento.direccion === "egreso";
+function TarjetaKpi({
+  etiqueta,
+  valor,
+  icono,
+  colorBorde,
+  sparkline,
+}: {
+  etiqueta: string;
+  valor: number;
+  icono: ReactNode;
+  colorBorde: string;
+  sparkline?: number[];
+}) {
+  const animado = useCountUp(valor);
   return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${esEgreso ? "bg-rojo/12 text-rojo-profundo" : "bg-verde/12 text-verde-profundo"}`}
-      >
-        {esEgreso ? <TrendingDown className="h-4 w-4" aria-hidden /> : <TrendingUp className="h-4 w-4" aria-hidden />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[13.5px] font-semibold text-tinta">{evento.motivo}</p>
-        <p className="text-[11.5px] text-tinta/55">
-          {hora} {evento.colaboradorNombre ? `· ${evento.colaboradorNombre}` : ""}
-          {evento.nota && <span className="block">{evento.nota}</span>}
-        </p>
+    <div className="card-cayla alza-cayla relative overflow-hidden p-4" style={{ borderLeft: `3px solid ${colorBorde}` }}>
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="label-cayla text-[10.5px] text-tinta/55">{etiqueta}</span>
+        <span style={{ color: colorBorde }}>{icono}</span>
       </div>
-      <span className={`shrink-0 text-sm font-bold tabular-nums ${esEgreso ? "text-rojo" : "text-tinta"}`}>
-        {esEgreso ? "−" : "+"} {money(evento.monto)}
-      </span>
+      <p className="font-display text-xl font-semibold text-tinta">{money(animado)}</p>
+      <div className="mt-2">{sparkline && sparkline.length > 1 && <Sparkline puntos={sparkline} color={colorBorde} />}</div>
+    </div>
+  );
+}
+
+function TablaOGrafico({ segmentos, total }: { segmentos: SegmentoDona[]; total: number }) {
+  const [comoTabla, setComoTabla] = useState(false);
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-5">
+        <DonutChart segmentos={segmentos} total={total} />
+        <div className="min-w-[150px] flex-1 space-y-2">
+          {segmentos.map((s) => (
+            <div key={s.etiqueta} className="flex items-center justify-between gap-2 text-[13px]">
+              <span className="flex items-center gap-2">
+                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: s.color }} />
+                {s.etiqueta}
+              </span>
+              <span className="font-bold tabular-nums text-tinta/70">
+                {total > 0 ? Math.round((s.valor / total) * 100) : 0}% · {money(s.valor)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setComoTabla((v) => !v)}
+        className="mt-2 text-[11.5px] text-tinta/50 underline hover:text-tinta"
+      >
+        {comoTabla ? "Ocultar tabla" : "Ver como tabla"}
+      </button>
+      {comoTabla && (
+        <table className="mt-2.5 w-full text-[12.5px]">
+          <thead>
+            <tr className="text-left text-tinta/50">
+              <th className="border-b border-sand pb-1 font-medium">Método</th>
+              <th className="border-b border-sand pb-1 font-medium">%</th>
+              <th className="border-b border-sand pb-1 font-medium">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {segmentos.map((s) => (
+              <tr key={s.etiqueta} className="text-tinta/70">
+                <td className="border-b border-sand/60 py-1">{s.etiqueta}</td>
+                <td className="border-b border-sand/60 py-1">{total > 0 ? Math.round((s.valor / total) * 100) : 0}%</td>
+                <td className="border-b border-sand/60 py-1">{money(s.valor)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

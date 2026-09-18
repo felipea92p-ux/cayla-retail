@@ -28,47 +28,44 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Rediseño visual de Ventas: Caja/POS/Cambios (2026-09-18, en curso)
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
-Rediseño de las 3 pantallas de Ventas sobre el sistema visual YA vigente (`globals.css`
-v3.0, ADR-0012) — Felipe confirmó explícitamente NO adoptar la paleta terracota/modo
-oscuro de las maquetas de referencia que trajo. Caja (`/caja`) y Cambios (`/cambios`)
-cerradas y verificadas en navegador; Punto de Venta queda para el siguiente paso.
+Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
+extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
+maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
+antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
+ADR-0102).
 
-- [x] **Caja (`/caja`)** — encabezado con avatar/colaborador/reloj en vivo, badge
-      reproposto ("Caja abierta · sin pendientes" / "N ventas sin subir" en vez de un
-      cuadre en vivo — ver 🩹 abajo), barra de meta del día con comparativo vs. semana
-      pasada, 5 KPI (`TarjetaIndicador`, reusado), dona de métodos de pago + tabla
-      accesible, ventas por hora, feed de movimientos con colaborador real, tendencia de
-      cierres de 7 días. `packages/shared/design-tokens.ts` NO se tocó (sigue siendo el
-      duplicado desactualizado de Finanzas — su radio 0px contradice `globals.css` desde
-      hace tiempo; no es de este alcance arreglarlo).
-- [x] **Cambios (`/cambios`)** — mini-fila de estadísticas (cambios hoy/mes/prenda más
-      cambiada, `cambios-estadisticas.ts`), buscador con switch real (checkbox restylado,
-      no hay primitivo de switch en el repo) + chips de categoría (derivados de los datos
-      reales, no hardcodeados), lista agrupada por día (`agruparPorDia`), tarjeta con
-      swatch de color + chip de estado (Vigente/Por vencer/Fuera de plazo, `Chip.tsx`
-      reusado) + vendedora real (`ventas.usuario_id`, no viajaba antes a esta pantalla) +
-      flujo de cambio EXPANDIDO DENTRO de la tarjeta (`CambioFormV2` dejó de ser modal,
-      aplicando por fin a esta pantalla el patrón que ADR-0044 ya había resuelto para
-      Vender). Probado end-to-end en navegador con un `registrar_cambio` real (no solo
-      visual): stock, `yaCambiado` y las 3 estadísticas se actualizaron correctos tras
-      confirmar.
-- [ ] **Pantalla para editar `ubicaciones.meta_venta_diaria` por sede** — hoy se setea
-      por SQL Editor (migración `20260918091000`). Sin pantalla, un líder no puede
-      cambiar la meta del día sin pedirle a alguien que corra SQL.
-- [ ] **Plazo de cambio configurable por sede** — hoy `DIAS_PLAZO_CAMBIO`/
-      `DIAS_UMBRAL_POR_VENCER` son constantes iguales para toda la empresa
-      (`cambios-reglas.ts`, ok explícito de Felipe). Si algún día CAYLA necesita un plazo
-      distinto por sede, hace falta columna + migración + pantalla — no existe hoy.
-- [ ] **Punto de Venta** — pendiente de este mismo rediseño.
-
-🩹 **Decisiones conscientes, no huecos**:
-- El badge de estado de Caja NUNCA compara contra "lo esperado" mientras la caja sigue
-  abierta — haría exactamente lo que ADR-0042 (conteo ciego) prohíbe. Ver
-  `apps/web/lib/caja-panel-reglas.ts:senalCaja`.
-- El plazo de cambio (R-38, 15 días) y su umbral de "por vencer" (3 días) son constantes
-  documentadas, no un dato configurable — ver arriba.
+- [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
+      reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
+      tiene una configurada), 5 KPIs con sparkline, dona de métodos de pago (+ tabla
+      accesible), barras de ventas por hora, timeline de movimientos+ventas, tendencia
+      de 7 cierres, barra de acciones fija. `CajaAbiertaPanel.tsx` reescrito,
+      `Graficos.tsx`/`useCountUp.ts` nuevos, `lib/caja.ts` gana `getSeriesVentasCaja()`
+      y `MovimientoCaja.registradoPorNombre`. Verificado en navegador con la caja real
+      de Tienda Lima (`felipe@cayla.local`).
+      Colores categóricos de método de pago (`--color-metodo-*`) nuevos en
+      `globals.css`/`design-tokens.ts` — compartidos con Vender, no son de marca.
+- [x] **`ubicaciones.meta_venta_diaria`** — columna nullable nueva
+      (`20260918100000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
+      (se configura por UPDATE directo). Aplicada en local, **pendiente producción con
+      ok de Felipe**.
+- [x] **Punto de Venta: extendida la misma piel visual** — la mayoría YA calzaba
+      (tarjetas de producto ya usaban `alza-cayla`+radio `xl`, total ya en serif,
+      botón "Cobrar" ya `bg-tinta`/hover `rojo` igual que "Cerrar caja" — no hizo
+      falta tocar nada de eso). Lo que sí cambió: chips de categoría y el toggle
+      "Solo con stock" pasan de `rounded-lg` a `rounded-md` (mismo radio que la
+      "pastilla" real del selector de ubicación, `campos.tsx`); el selector de
+      método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
+      se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
+      navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
+- [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
+      maqueta, NO construido: no existe ningún rollup histórico de egresos por día
+      (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes
+      de poder mostrar un número real.
+- [ ] **Delta "vs. mismo día de la semana anterior" en la barra de meta** — mismo
+      motivo: no hay una cifra de "total vendido" histórico por día en ningún lado;
+      `montoCierreSistema` mide otra cosa (el esperado en el cajón, no lo vendido).
 
 ---
 
@@ -811,15 +808,34 @@ con cita, para que nadie los reconstruya.
       a fallar con un mensaje que se lo pide explícitamente (a propósito:
       mejor bloquear con un mensaje claro que aprobar la devolución y dejar
       la Nota de Crédito perdida para siempre).
+- [x] **`emitir_comprobante` sin idempotencia (hueco 1) y sin candado de IGV (hueco 2b)
+      — CERRADO 2026-09-18 (ADR-0102), `20260918091500_emitir_comprobante_idempotente_y_valida_igv.sql`.**
+      Portado el mismo patrón `token_cliente`/`p_token` de `registrar_venta`: el guard
+      revisa el token antes de reservar el correlativo, así un reintento (respuesta
+      perdida, no doble clic) no quema un segundo número. `ComprobantesPanel.tsx` manda
+      el token con `useRef` (mismo patrón que `PuntoDeVenta.tsx`). Además, `subtotal +
+      igv = total` ahora se valida en la base en `emitir_comprobante` y `crear_proforma`
+      — ya no se puede guardar una cifra que no cuadra llamando la RPC directo. Aplicado
+      y verificado contra Postgres local (`psql -f`, `CREATE FUNCTION` sin error,
+      `pg_get_function_identity_arguments` confirma `p_token`); `pnpm --filter database
+      typecheck`/`pnpm --filter web typecheck` en verde. **No probado con una llamada RPC
+      autenticada real** (exige JWT/persona real, ver ADR-0102) — solo verificación
+      estructural. **No aplicado en producción** — pendiente de Felipe (D-11), aunque ya
+      verificado contra `cayla-dynamic` de solo lectura: `emitir_comprobante`/
+      `crear_proforma` tienen la misma firma que local (`p_ubicacion_id` incluido,
+      no `p_sede_id`), `token_cliente` no existe todavía, 0 filas en
+      `comprobantes`/`proformas` con `subtotal+igv≠total` — la migración está lista para
+      pegar tal cual, prefijo `retail.` ya incluido en el archivo. **Sigue sin resolver:**
+      el 18% hardcodeado en 3 archivos (parte (a) del hueco 2) y el redondeo
+      navegador-vs-Lucode (parte (c)) — ver "Lo que falta" en ADR-0102.
 
 Encontrado pero no listado arriba (menor prioridad, incluido en el doc de módulo, no
-repetido acá por la regla de 3 ítems por cubo): idempotencia real solo cubre lo que
-emite Vender, el panel manual de Facturación sigue expuesto a doble emisión (hueco 1);
-`registrar_serie_comprobante` no valida ubicación, un líder puede reapuntar la serie de
-otra tienda (hueco 12); `comprobantes.cliente_*` no está ligado a la tabla `clientes`
-(hueco 16); cero pruebas de las RPC del módulo contra Postgres real (a diferencia de
-`registrar_cambio`/`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de
-"Monto facturado" sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
+repetido acá por la regla de 3 ítems por cubo): `registrar_serie_comprobante` no valida
+ubicación, un líder puede reapuntar la serie de otra tienda (hueco 12);
+`comprobantes.cliente_*` no está ligado a la tabla `clientes` (hueco 16); cero pruebas de
+las RPC del módulo contra Postgres real (a diferencia de `registrar_cambio`/
+`aprobar_devolucion`, ADR-0066); y el bug ya anotado 2026-09-16 de "Monto facturado"
+sumando pendientes/rechazados/anulados/prueba sigue sin decisión.
 
 ---
 

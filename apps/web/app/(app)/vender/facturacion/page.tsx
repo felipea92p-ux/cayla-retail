@@ -24,7 +24,10 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
 
   const { m } = await searchParams;
   const actual = mesActualLima();
-  const [anio, mes] = m && /^\d{4}-\d{1,2}$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
+  // Mes 1-12 explícito: un `?m=2026-13` con el regex viejo pasaba la validación y
+  // `mesLimaUTC` (Date.UTC) lo enrollaba en silencio a enero del año siguiente,
+  // mientras el título seguía mostrando "undefined 2026" (MESES[12] no existe).
+  const [anio, mes] = m && /^\d{4}-(0?[1-9]|1[0-2])$/.test(m) ? m.split("-").map(Number) : [actual.anio, actual.mes];
   const { desde, hasta } = mesLimaUTC(anio, mes);
 
   const [comprobantes, series, proformas, ubicaciones, ventasHoy] = await Promise.all([
