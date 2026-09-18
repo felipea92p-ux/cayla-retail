@@ -3923,14 +3923,39 @@ export type Database = {
           total_variantes: number
         }[]
       }
+      fn_proveedor_costo_evolucion: {
+        Args: { p_limite?: number; p_proveedor_id: string }
+        Returns: {
+          compra_id: string
+          costo_unitario: number
+          documento: string
+          fecha: string
+          producto_id: string
+          referencia: string
+        }[]
+      }
+      fn_proveedor_devoluciones: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          ultima: string
+          unidades: number
+        }[]
+      }
       fn_proveedor_metricas_compras: {
         Args: { p_proveedor_id: string }
         Returns: {
+          dias_entrega_muestra: number
+          dias_entrega_promedio: number
+          dias_pago_muestra: number
+          dias_pago_real_promedio: number
+          entregado_completo_pct: number
+          facturado_12m: number
           facturas_atrasadas: number
           facturas_con_recepcion_pendiente: number
           facturas_recibidas_completas: number
           facturas_vencidas: number
           facturas_vigentes: number
+          monto_vencido: number
           saldo: number
           total_facturado: number
           ultima_compra: string
@@ -3951,6 +3976,9 @@ export type Database = {
           banco: string
           contacto: string
           cuenta_bancaria: string
+          dias_desde_ultima_compra: number
+          entregas_por_recibir: number
+          facturado_12m: number
           facturas: number
           facturas_atrasadas: number
           facturas_con_recepcion_pendiente: number
@@ -3963,9 +3991,25 @@ export type Database = {
           rubro: string
           ruc: string
           saldo: number
+          saldo_vencido: number
           telefono: string
           total_facturado: number
           ultima_compra: string
+        }[]
+      }
+      fn_proveedores_resumen: {
+        Args: never
+        Returns: {
+          activos: number
+          con_saldo: number
+          con_vencidas: number
+          desactivados: number
+          deuda_total: number
+          sin_compras_90d: number
+          top_pct: number
+          top_proveedor_id: string
+          top_proveedor_nombre: string
+          top3_pct: number
         }[]
       }
       fn_puede_operar_ubicacion: {
