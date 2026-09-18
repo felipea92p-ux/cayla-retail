@@ -377,6 +377,13 @@ export type Database = {
             referencedRelation: "categorias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categorias_familia_fk"
+            columns: ["familia"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       clientes: {
@@ -767,7 +774,6 @@ export type Database = {
           serie: string
           subtotal: number
           tipo: string
-          token_cliente: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id: string | null
@@ -794,7 +800,6 @@ export type Database = {
           serie: string
           subtotal: number
           tipo?: string
-          token_cliente?: string | null
           total: number
           ubicacion_destino_id: string
           usuario_id?: string | null
@@ -821,7 +826,6 @@ export type Database = {
           serie?: string
           subtotal?: number
           tipo?: string
-          token_cliente?: string | null
           total?: number
           ubicacion_destino_id?: string
           usuario_id?: string | null
@@ -1331,13 +1335,6 @@ export type Database = {
         }
         Relationships: []
       }
-      // Stub a mano — 20260918010000_familias_tabla_propia.sql, todavía sin
-      // aplicar contra Postgres local (Docker apagado por RAM, 2026-09-18).
-      // `codigo` no tiene DEFAULT en SQL (lo llena fn_familias_generar_codigo,
-      // un trigger BEFORE INSERT) — un `gen-types` real lo marcaría requerido
-      // en Insert; se deja opcional acá porque en runtime SÍ se puede omitir.
-      // Reemplazar corriendo `pnpm gen-types` contra local en cuanto Docker
-      // esté arriba, para no arrastrar esta nota a producción.
       familias: {
         Row: {
           activo: boolean
@@ -1348,7 +1345,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
-          codigo?: string
+          codigo: string
           created_at?: string
           nombre: string
           orden?: number
@@ -1361,75 +1358,6 @@ export type Database = {
           orden?: number
         }
         Relationships: []
-      }
-      gastos: {
-        Row: {
-          categoria: string
-          created_at: string
-          documento_numero: string | null
-          documento_serie: string | null
-          documento_tipo: string
-          especificacion: string | null
-          id: string
-          igv: number
-          metodo_pago: string
-          proveedor_id: string | null
-          subtotal: number
-          token_cliente: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id: string | null
-        }
-        Insert: {
-          categoria: string
-          created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total: number
-          ubicacion_id: string
-          usuario_id?: string | null
-        }
-        Update: {
-          categoria?: string
-          created_at?: string
-          documento_numero?: string | null
-          documento_serie?: string | null
-          documento_tipo?: string
-          especificacion?: string | null
-          id?: string
-          igv?: number
-          metodo_pago?: string
-          proveedor_id?: string | null
-          subtotal?: number
-          token_cliente?: string | null
-          total?: number
-          ubicacion_id?: string
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gastos_proveedor_id_fkey"
-            columns: ["proveedor_id"]
-            isOneToOne: false
-            referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gastos_ubicacion_id_fkey"
-            columns: ["ubicacion_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       historial_producto_cambios: {
         Row: {
@@ -3299,23 +3227,39 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
-      catalogo_actualizar_producto: {
-        Args: {
-          p_categoria_id?: string
-          p_descripcion?: string
-          p_estado: string
-          p_fotos?: Json
-          p_patron_id?: string
-          p_permitir_venta_sin_stock?: boolean
-          p_producto_id: string
-          p_referencia: string
-          p_stock_minimo?: number
-          p_tejido_id?: string
-          p_temporada?: string
-          p_variantes: Json
-        }
-        Returns: undefined
-      }
+      catalogo_actualizar_producto:
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_categoria_id?: string
+              p_descripcion?: string
+              p_estado: string
+              p_fotos?: Json
+              p_patron_id?: string
+              p_permitir_venta_sin_stock?: boolean
+              p_producto_id: string
+              p_referencia: string
+              p_stock_minimo?: number
+              p_tejido_id?: string
+              p_temporada?: string
+              p_variantes: Json
+            }
+            Returns: undefined
+          }
       catalogo_crear_producto: {
         Args: {
           p_categoria_id?: string
@@ -4016,7 +3960,6 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
-          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
         }
@@ -4028,22 +3971,6 @@ export type Database = {
           p_insumo_id: string
           p_nota?: string
           p_produccion_id: string
-        }
-        Returns: string
-      }
-      registrar_gasto: {
-        Args: {
-          p_categoria: string
-          p_documento_numero?: string
-          p_documento_serie?: string
-          p_documento_tipo?: string
-          p_especificacion?: string
-          p_igv?: number
-          p_metodo_pago: string
-          p_proveedor_id?: string
-          p_token?: string
-          p_total: number
-          p_ubicacion_id: string
         }
         Returns: string
       }
