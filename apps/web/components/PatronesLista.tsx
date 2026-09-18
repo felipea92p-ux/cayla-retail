@@ -4,14 +4,24 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Muestra, SelectorMuestra } from "@/components/ui/MuestraVisual";
+import { BUCKET_MUESTRAS_PATRONES } from "@/lib/muestra-visual";
 
 /**
  * Vocabulario cerrado de patrones (ADR-0095/0096) — mismo mecanismo que
  * Colores: cualquiera con sesión propone, cualquiera de los Líderes aprueba
  * o rechaza. A diferencia de Colores, patrón no tiene código de 3 letras
  * (no se inyecta en el código de barras — es atributo del PRODUCTO, no de
- * la variante), ni hex/tipo/muestra: solo un nombre y el candado de clave
- * única normalizada que ya hace `fn_clave_texto` en la base.
+ * la variante), ni hex/tipo: solo un nombre y el candado de clave única
+ * normalizada que ya hace `fn_clave_texto` en la base.
+ *
+ * `imagenMuestraUrl` (20260918140000, pedido de Felipe: "sería ideal
+ * ponerle su imagen referencial así como en colores") reusa el mismo
+ * mecanismo de Colores (`components/ui/MuestraVisual.tsx`,
+ * `lib/muestra-visual.ts`) — mismo bucket público, misma subida directa
+ * navegador→bucket, distinto bucket de destino. Sin `hex` de respaldo:
+ * el cuadro queda neutro (`Muestra` con `hex={null}`) hasta que alguien
+ * sube la foto real.
  */
 
 type Patron = {
@@ -20,6 +30,7 @@ type Patron = {
   activo: boolean;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  imagenMuestraUrl: string | null;
 };
 
 function ordenar(lista: Patron[]) {
@@ -30,15 +41,20 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
   const [patrones, setPatrones] = useState(() => ordenar(patronesIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
+  const [imagenMuestraUrl, setImagenMuestraUrl] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoId, setAprobandoId] = useState<string | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [imagenEditando, setImagenEditando] = useState<string | null>(null);
+  const [guardandoImagen, setGuardandoImagen] = useState(false);
 
   const activos = patrones.filter((p) => p.activo);
   const desactivados = patrones.filter((p) => !p.activo);
+  const patronEditando = patrones.find((p) => p.id === editandoId) ?? null;
 
   async function guardar() {
     setGuardando(true);
@@ -46,7 +62,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
       const res = await fetch("/api/productos/patrones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, imagenMuestraUrl }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -54,7 +70,17 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) =>
-        ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado }])
+        ordenar([
+          ...actual,
+          {
+            id: datos.patron.id,
+            nombre: datos.patron.nombre,
+            activo: true,
+            notas: datos.patron.notas,
+            estado: datos.patron.estado,
+            imagenMuestraUrl: datos.patron.imagen_muestra_url,
+          },
+        ])
       );
       avisar.exito(
         datos.patron.estado === "pendiente" ? `${datos.patron.nombre} agregado — ya lo puedes usar` : `Patrón ${datos.patron.nombre} agregado`,
@@ -62,10 +88,34 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
       );
       setAgregando(false);
       setNombre("");
+      setImagenMuestraUrl(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function guardarImagen(p: Patron) {
+    setGuardandoImagen(true);
+    try {
+      const res = await fetch("/api/productos/patrones", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: p.id, imagenMuestraUrl: imagenEditando }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo guardar la muestra.");
+        return;
+      }
+      setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, imagenMuestraUrl: datos.patron.imagen_muestra_url } : x))));
+      avisar.exito(`Muestra de ${p.nombre} actualizada`);
+      setEditandoId(null);
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setGuardandoImagen(false);
     }
   }
 
@@ -179,6 +229,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
             key={p.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
+            <Muestra url={p.imagenMuestraUrl} hex={null} />
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-tinta">{p.nombre}</p>
               {p.estado === "pendiente" && (
@@ -204,9 +255,21 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
                     Rechazar
                   </Boton>
                 ) : (
-                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => desactivar(p)}>
-                    Desactivar
-                  </Boton>
+                  <>
+                    <Boton
+                      peso="discreto"
+                      className="flex-1 px-2.5 py-1.5 text-[11px]"
+                      onClick={() => {
+                        setEditandoId(p.id);
+                        setImagenEditando(p.imagenMuestraUrl);
+                      }}
+                    >
+                      Editar
+                    </Boton>
+                    <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => desactivar(p)}>
+                      Desactivar
+                    </Boton>
+                  </>
                 )}
               </div>
             )}
@@ -219,11 +282,33 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Nombre del patrón" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Rayado" autoFocus />
+              <div>
+                <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">Muestra (opcional)</p>
+                <SelectorMuestra urlActual={imagenMuestraUrl} hex={null} bucket={BUCKET_MUESTRAS_PATRONES} onSubida={setImagenMuestraUrl} />
+              </div>
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {patronEditando && (
+        <Modal titulo={`Muestra de «${patronEditando.nombre}»`} ancho="max-w-sm" onClose={() => setEditandoId(null)}>
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <SelectorMuestra urlActual={imagenEditando} hex={null} bucket={BUCKET_MUESTRAS_PATRONES} onSubida={setImagenEditando} />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardandoImagen}>
+                  Cancelar
+                </Boton>
+                <Boton peso="primario" className="flex-1" onClick={() => guardarImagen(patronEditando)} cargando={guardandoImagen}>
                   Guardar
                 </Boton>
               </div>

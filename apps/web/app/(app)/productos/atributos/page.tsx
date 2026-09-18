@@ -25,7 +25,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado").order("nombre"),
-    supabase.from("patrones").select("id, nombre, activo, notas, estado").order("nombre"),
+    supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url").order("nombre"),
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta").order("nombre"),
   ]);
 
@@ -61,6 +61,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     activo: p.activo,
     notas: p.notas,
     estado: p.estado as "pendiente" | "aprobado" | "rechazado",
+    imagenMuestraUrl: p.imagen_muestra_url,
   }));
   const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
     id: e.id,

@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { createClient } from "@/lib/supabase/client";
-import { subirMuestraColor } from "@/lib/colores-muestra";
+import { Muestra, SelectorMuestra } from "@/components/ui/MuestraVisual";
+import { BUCKET_MUESTRAS_COLORES } from "@/lib/muestra-visual";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -64,61 +63,6 @@ const ETIQUETA_TIPO: Record<string, string> = { solido: "Sólido", textura: "Tex
 
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
-}
-
-// El cuadradito de la grilla: la muestra real si existe, si no el hex de
-// siempre. Mismo tamaño en los dos casos para que la grilla no salte.
-// `unoptimized` como en PerfilModal.tsx: viene del bucket de Storage, no de
-// /public, y no vale la pena pasarla por el optimizador de imágenes de Next.
-function Muestra({ url, hex, className = "h-12 w-full" }: { url: string | null; hex: string | null; className?: string }) {
-  if (url) {
-    return (
-      <div className={`relative ${className} overflow-hidden rounded-lg border border-tinta/10`}>
-        <Image src={url} alt="" fill unoptimized className="object-cover" />
-      </div>
-    );
-  }
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ backgroundColor: hex ?? "#e8e0d0" }} aria-hidden />;
-}
-
-// El botón de subir/cambiar muestra, sobre un <input type=file> oculto —
-// mismo dispositivo que BotonElegir en AdjuntosCompra.tsx. Sube al instante
-// (bucket público, sin RPC de registro) y avisa la URL nueva por callback;
-// quien lo usa decide si va al estado de "nuevo color" o al PATCH de edición.
-function SelectorMuestra({ urlActual, hex, onSubida }: { urlActual: string | null; hex: string | null; onSubida: (url: string) => void }) {
-  const [subiendo, setSubiendo] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
-
-  async function onArchivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0];
-    e.target.value = "";
-    if (!archivo) return;
-    setSubiendo(true);
-    const { url, error } = await subirMuestraColor(createClient(), archivo);
-    setSubiendo(false);
-    if (error || !url) {
-      avisar.error(error ?? "No se pudo subir la muestra.");
-      return;
-    }
-    onSubida(url);
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      <Muestra url={urlActual} hex={hex} className="h-12 w-12 shrink-0" />
-      <input
-        ref={input}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-        className="sr-only"
-        disabled={subiendo}
-        onChange={onArchivo}
-      />
-      <Boton type="button" peso="discreto" className="px-2.5 py-1.5 text-[11px]" onClick={() => input.current?.click()} disabled={subiendo}>
-        {subiendo ? "Subiendo…" : urlActual ? "Cambiar muestra" : "Subir muestra"}
-      </Boton>
-    </div>
-  );
 }
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
@@ -387,7 +331,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
                 <p className="mt-1 text-xs text-tinta/55">Opcional — sin foto, el catálogo muestra el color de arriba.</p>
                 <div className="mt-1.5">
-                  <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+                  <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} bucket={BUCKET_MUESTRAS_COLORES} onSubida={setImagenMuestraUrl} />
                 </div>
               </div>
 
@@ -608,7 +552,7 @@ function ColorEditarModal({
           <div>
             <p className="label-cayla text-[11px] text-tinta/65">Muestra (foto de la tela)</p>
             <div className="mt-1.5">
-              <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} onSubida={setImagenMuestraUrl} />
+              <SelectorMuestra urlActual={imagenMuestraUrl} hex={hex} bucket={BUCKET_MUESTRAS_COLORES} onSubida={setImagenMuestraUrl} />
             </div>
           </div>
 

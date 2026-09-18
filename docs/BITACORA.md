@@ -7259,3 +7259,28 @@ reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filt
 typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
+
+## 2026-09-18 (Patrones ganan foto de muestra — mismo mecanismo de Colores, no uno nuevo)
+
+Felipe, viendo los 7 patrones ya sembrados sin ninguna referencia visual: "sería ideal
+ponerle su imagen referencial así como en colores". En vez de construir un mecanismo
+propio para Patrones (que habría sido la tercera variante del mismo problema, después
+de reconciliar hoy mismo Patrones vs `colores.tipo='estampado'`), se generalizó el que
+ya usa Colores: `lib/colores-muestra.ts` → `lib/muestra-visual.ts` (acepta el bucket
+como parámetro en vez de tenerlo fijo), y `Muestra`/`SelectorMuestra` salieron de
+`ColoresLista.tsx` a `components/ui/MuestraVisual.tsx` para que ambas pantallas los
+reusen tal cual, no que cada una tenga su propia copia que termine divergiendo.
+
+Migración `20260918140000`: `retail.patrones.imagen_muestra_url` + bucket público
+`retail-patrones-muestras` (mismo tamaño/tipos permitidos que el de Colores). Sin
+`hex` de respaldo — Patrones nunca tuvo ese campo — así que el cuadro queda neutro
+hasta que alguien sube la foto real, mismo fallback que ya usa `Muestra` cuando
+`hex=null`. `PatronesLista.tsx` ganó "Editar" (antes solo tenía Aprobar/Rechazar/
+Desactivar/Reactivar, sin forma de tocar un patrón ya aprobado) — modal chico, solo
+para la muestra, no un editor completo de nombre/notas que nadie pidió.
+
+Verificado con `db reset` completo, typecheck/lint, y navegador: sembré 2 patrones de
+prueba en el Postgres local (uno con foto real, uno sin) solo para confirmar el
+render — la tarjeta y el modal de edición mostraron la foto correctamente, el
+`reset` final los volvió a dejar en 0 (la migración en sí no siembra datos, solo
+agrega la columna y el bucket). El placeholder neutro se ve bien en "Liso" sin foto.

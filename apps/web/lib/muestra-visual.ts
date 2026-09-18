@@ -1,14 +1,21 @@
 import type { createClient } from "@/lib/supabase/client";
 
-// Muestra real de un color (20260915230000_colores_tipo_y_muestra.sql):
-// sube DESDE EL NAVEGADOR al bucket público `retail-colores-muestras` y
-// devuelve la URL pública para guardarla en `colores.imagen_muestra_url`
-// vía POST/PATCH de /api/productos/colores. Sin RPC de registro (a
-// diferencia de adjuntos-compra.ts): no hay un candado de negocio que
-// validar antes de que el objeto exista — el candado real es
-// `colores_write_lider`, que ya protege quién puede guardar la URL en la fila.
+// Foto real de muestra de un valor de vocabulario cerrado (colores, y desde
+// 20260918140000 también patrones): sube DESDE EL NAVEGADOR al bucket
+// público que se le indique y devuelve la URL pública para guardarla en
+// `imagen_muestra_url` vía POST/PATCH del vocabulario correspondiente. Sin
+// RPC de registro (a diferencia de adjuntos-compra.ts): no hay un candado
+// de negocio que validar antes de que el objeto exista — el candado real
+// es la policy de UPDATE de la tabla (`colores_update_lider`/
+// `patrones_update_lider`), que ya protege quién puede guardar la URL en
+// la fila. Antes vivía solo en `colores-muestra.ts`; generalizado acá para
+// que Patrones lo reuse en vez de duplicar el mismo mecanismo con otro
+// nombre (el mismo error de integridad conceptual que ya se corrigió hoy
+// entre Patrones y `colores.tipo='estampado'`).
 
-export const MUESTRA_BUCKET = "retail-colores-muestras";
+export const BUCKET_MUESTRAS_COLORES = "retail-colores-muestras";
+export const BUCKET_MUESTRAS_PATRONES = "retail-patrones-muestras";
+
 export const MUESTRA_TIPOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 export const MUESTRA_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -31,7 +38,7 @@ function tipoDeArchivo(f: File): string | null {
   return null;
 }
 
-export async function subirMuestraColor(supabase: Cliente, f: File): Promise<{ url: string | null; error: string | null }> {
+export async function subirMuestra(supabase: Cliente, f: File, bucket: string): Promise<{ url: string | null; error: string | null }> {
   const objecion = objecionMuestra(f);
   if (objecion) return { url: null, error: objecion };
 
@@ -43,10 +50,10 @@ export async function subirMuestraColor(supabase: Cliente, f: File): Promise<{ u
     .slice(0, 80);
   const ruta = `${crypto.randomUUID()}-${limpio || "muestra"}`;
 
-  const subida = await supabase.storage.from(MUESTRA_BUCKET).upload(ruta, f, { contentType: tipo, upsert: false });
+  const subida = await supabase.storage.from(bucket).upload(ruta, f, { contentType: tipo, upsert: false });
   if (subida.error) return { url: null, error: leerErrorStorage(subida.error.message) };
 
-  const { data } = supabase.storage.from(MUESTRA_BUCKET).getPublicUrl(ruta);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(ruta);
   return { url: data.publicUrl, error: null };
 }
 

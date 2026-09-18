@@ -6,6 +6,8 @@ import { traducirError } from "@/lib/error-escritura";
 // (ADR-0095/0096), mismo mecanismo y misma forma que
 // /api/productos/tejidos: cualquiera con sesión propone (nace 'pendiente'
 // y usable al instante, salvo `fn_es_lider()`), un Líder aprueba/rechaza.
+// `imagenMuestraUrl` (20260918140000) es igual que en /colores: la URL ya
+// viene subida al bucket desde el navegador, acá solo se guarda.
 export async function POST(request: Request) {
   await requirePersonaActualV2();
 
@@ -14,9 +16,14 @@ export async function POST(request: Request) {
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del patrón." }, { status: 400 });
   }
+  const imagenMuestraUrl = typeof cuerpo?.imagenMuestraUrl === "string" && cuerpo.imagenMuestraUrl.trim() ? cuerpo.imagenMuestraUrl.trim() : null;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("patrones").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
+  const { data, error } = await supabase
+    .from("patrones")
+    .insert({ nombre, imagen_muestra_url: imagenMuestraUrl })
+    .select("id, nombre, activo, notas, estado, imagen_muestra_url")
+    .single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar el patrón") }, { status: 400 });
@@ -38,7 +45,7 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
-  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};
+  const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string; imagen_muestra_url?: string | null } = {};
 
   if ("estado" in cuerpoObj) {
     if (cuerpoObj.estado !== "aprobado" && cuerpoObj.estado !== "rechazado") {
@@ -57,6 +64,10 @@ export async function PATCH(request: Request) {
 
   if ("notas" in cuerpoObj) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
+  }
+
+  if ("imagenMuestraUrl" in cuerpoObj) {
+    patch.imagen_muestra_url = typeof cuerpoObj.imagenMuestraUrl === "string" && cuerpoObj.imagenMuestraUrl.trim() ? cuerpoObj.imagenMuestraUrl.trim() : null;
   }
 
   const supabase = await createClient();
@@ -87,7 +98,12 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("patrones").update(patch).eq("id", id).select("id, nombre, activo, notas, estado").single();
+  const { data, error } = await supabase
+    .from("patrones")
+    .update(patch)
+    .eq("id", id)
+    .select("id, nombre, activo, notas, estado, imagen_muestra_url")
+    .single();
 
   if (error) {
     if (error.code === "PGRST116") {

@@ -2311,6 +2311,17 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 
 ## 🔨 CONSTRUIR (lo que no existe y desbloquea)
 
+- [x] **Patrones ganó foto de muestra, mismo mecanismo que Colores (2026-09-18).**
+      Felipe pidió imagen referencial para los 7 patrones (Liso/Rayas/Cuadros/Lunares/
+      Floral/Animal print/Estampado). En vez de un mecanismo propio, se generalizó
+      `lib/colores-muestra.ts` → `lib/muestra-visual.ts` (bucket como parámetro) y se
+      sacaron `Muestra`/`SelectorMuestra` de `ColoresLista.tsx` a
+      `components/ui/MuestraVisual.tsx` para que ambas pantallas reusen exactamente
+      el mismo código. Migración `20260918140000`: `retail.patrones.imagen_muestra_url`
+      + bucket público `retail-patrones-muestras`. `PatronesLista.tsx` ganó "Editar"
+      (antes no existía ninguna edición de un patrón ya aprobado). Verificado con
+      `db reset` completo, typecheck/lint, navegador (foto real + placeholder neutro
+      sin foto, ambos correctos). PR pendiente de abrir.
 - [x] **`20260915130000_produccion_del_taller` — resuelta la contradicción (2026-09-17
       tarde).** Consultado directo contra `information_schema`/`pg_proc` en `cayla-dynamic`
       (schema `retail`): `abrir_produccion`, `cerrar_produccion`, `set_etapa_produccion` y
