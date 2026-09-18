@@ -28,6 +28,51 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Cambios: flujo guiado, motivo y estado de la prenda que vuelve (2026-09-18, ADR-0104)
+
+Felipe no quedó convencido con la pantalla del PR #128 y pidió primero una auditoría y
+después un rediseño profundo (brief detallado: flujo en 4 pasos, validaciones visibles,
+impacto en inventario/caja, estados, accesibilidad, responsive). Adaptado a lo que CAYLA
+tiene de verdad — detalle y descartes en ADR-0104.
+
+- [x] **Migración `20260918150000_cambios_motivo_y_estado_de_prenda.sql`** — `cambios.motivo`
+      (lista cerrada) y `cambios.condicion` (vendible → piso / no_vendible → cuarentena, R-39);
+      candado "un cambio por defecto no vuelve al piso"; `prendas_danadas.cambio_id` (la
+      cuarentena de Devoluciones recibe también lo de Cambios); `registrar_cambio` rechaza
+      ventas anuladas (antes duplicaba stock). Aplicada en local; `pruebas:registrar-cambio`
+      18/18 (13 viejas con la firma de antes + 5 nuevas).
+- [ ] **Aplicar la migración en producción — ANTES de fusionar el front.** La firma nueva
+      acepta las llamadas viejas (defaults), la pantalla nueva no funciona contra la firma
+      vieja. Pegar el archivo tal cual (ya trae `retail.`), confirmar en `pg_proc` UNA
+      sola `registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text)`, y recién
+      después fusionar. Necesita el ok de Felipe (cambio de esquema en producción).
+- [x] **`/cambios` rehecha** — bloques "Iniciar un cambio" y "Actividad reciente" (últimos
+      15 días, filtros Todas / Con cambio / Sin comprobante); flujo guiado Venta → Prenda →
+      Reemplazo → Confirmación → éxito sin modal; validaciones en vivo con foco al campo
+      que falta; impacto en inventario y caja; buscador único (boleta, DNI/RUC, nombre de
+      clienta, nombre o etiqueta de la prenda); "Buscar en" solo para líderes (RLS);
+      "Tallas que no calzan" para líderes; `/devoluciones?item=` abre la prenda que viene
+      de Cambios. Componentes: `CambiosPanel`, `CambiosBuscador`, `CambiosVentas`,
+      `CambiosFlujo`, `CambioReemplazo`, `CambioResumen` (reemplazan a `CambiosLista` y
+      `CambioFormV2`). Reglas puras con 35 pruebas en `cambios-reglas.test.ts`.
+- [x] **De paso:** la lista de Cambios pedía todas las líneas de la sede sin orden
+      (PostgREST corta en 1000) — ahora elige las ventas en Postgres; `--color-papel` a
+      blanco cálido `#fbf6ec` en todo el sistema (pedido de Felipe).
+- [ ] **Verificar con sesión real** — la vuelta se probó con datos de ejemplo (el panel del
+      navegador no tenía login): falta buscar contra datos reales y registrar un cambio de
+      punta a punta hasta la pantalla de éxito.
+- [ ] **Decisiones de dinero/política que Felipe dejó en pausa (no tocadas):** (1) la
+      diferencia de precio de un cambio no emite boleta ni nota de crédito —el título "Cambios
+      no emitían NC — CERRADO" de más abajo solo es cierto para Devoluciones—, y el método
+      arranca en efectivo cuando R-37 dice que devolver plata es lo último; (2) excepciones al
+      plazo de 15 días / "cambio extendido" de R-33 (hoy el plazo solo lo controla la pantalla).
+- [ ] **Ideas que quedaron fuera a propósito:** buscar por teléfono (no existe el dato:
+      necesita la base de clientas de R-33); cambio de una venta que nunca se registró (R-15,
+      toca el núcleo); paleta de comandos Ctrl+K global (toca AppShell y todos los módulos);
+      endurecer `cambios.motivo` a obligatorio en la base cuando ya no haya pantallas viejas.
+- [ ] **A revisar:** `crear_devolucion` probablemente tiene el mismo hueco de venta anulada
+      que se cerró en `registrar_cambio` (no verificado en esta sesión).
+
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y

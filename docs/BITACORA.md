@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Cambios: de "no me convence" a flujo guiado — ADR-0104)
+
+**Qué se cerró.** Auditoría de `/cambios` y rediseño completo en dos vueltas. Flujo
+Venta → Prenda → Reemplazo → Confirmación con validaciones en vivo e impacto en inventario
+y caja; buscador único (boleta, DNI, clienta, prenda o etiqueta); actividad de los 15 días
+del plazo. Migración `20260918150000`: motivo del cambio, estado de la prenda que vuelve
+(con defecto va a la cuarentena de Devoluciones) y bloqueo de ventas anuladas. 18/18 en
+`pruebas:registrar-cambio`, 407 unitarias, build en verde. **No está en producción:** la
+migración va antes que el front.
+
+**Qué se aprendió.** Tres de los hallazgos no eran de pantalla sino del modelo. Un cambio
+por defecto devolvía la prenda fallada al piso: el stock mentía. Se podía cambiar una prenda
+de una venta anulada: el stock se duplicaba. Y el switch "todas las sedes" le respondía "no
+encontramos" a una integrante porque la RLS no la deja ver otras sedes. Del brief se
+descartó a propósito lo que no existe en CAYLA: estados "pendiente" o "requiere
+autorización", buscar por teléfono y el cambio de una venta nunca registrada. Mostrarlo
+habría sido lógica falsa.
+
+**Pendiente.** Probar con sesión real: el panel del navegador no tenía login y la vuelta se
+hizo con datos de ejemplo. Siguen en pausa, por decisión de Felipe, dos temas: la
+diferencia de precio ante SUNAT y el método que arranca en efectivo, y las excepciones al
+plazo.
+
 ## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
 
 Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y

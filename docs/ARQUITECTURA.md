@@ -248,6 +248,23 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
+- `/cambios` (ADR-0104) → `lib/ventas-v2.ts:getVentasParaCambio` (actividad = ventas de
+  la sede de los últimos 15 días; búsqueda por boleta, DNI/RUC o nombre de la clienta
+  —de `comprobantes`—, nombre o etiqueta de la prenda; `clasificarBusqueda` decide) +
+  `getCatalogo` + stock del piso + `fn_stock_por_sede` + `getCajaAbierta` +
+  `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no calzan" solo
+  para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad reciente",
+  lista en `CambiosVentas.tsx`, buscador en `CambiosBuscador.tsx`) → `CambiosFlujo.tsx`
+  (Venta → Prenda → Reemplazo → Confirmación, sin modal; paso 3 en `CambioReemplazo.tsx`,
+  piezas de lectura en `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición
+  de la prenda que vuelve: vendible al piso, no vendible a cuarentena con fila en
+  `prendas_danadas.cambio_id`; rechaza ventas anuladas; migración 20260918150000). Reglas
+  puras —plazo R-38, estado de cada prenda, validaciones, impacto en inventario/caja— en
+  `lib/cambios-reglas.ts`.
+- `/devoluciones` → `lib/devoluciones.ts` (misma búsqueda por boleta; `?item=` abre la
+  prenda que llega desde Cambios) → `DevolucionesLista.tsx` / `DevolucionFormV2.tsx` →
+  RPCs `crear_devolucion` y `aprobar_devolucion` (Nota de Crédito automática, ADR-0100;
+  lo dañado entra a cuarentena).
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
