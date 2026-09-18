@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918150000 — 4 colores nuevos: hueco real encontrado auditando Zara/Platanitos
+-- 20260918154730 — 4 colores nuevos: hueco real encontrado auditando Zara/Platanitos
 --
 -- EL PROBLEMA
 --   Los 30 colores de 20260912235500 vienen de V1 — nunca se investigaron

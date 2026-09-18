@@ -5,9 +5,31 @@
 
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
-Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918150000`).
+Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).
 
 Lo que Felipe se lleva: con auto-merge activo y las migraciones sin pegar en producción, el PR se habría fusionado y desplegado esperando `retail.familias`, que no existe allá — la regla de este repo es base primero, pantalla después (2026-07-18). Verificado contra producción en solo lectura: `categorias_familia_check` existe con ese nombre, las 6 familias en uso caben en la semilla y las funciones que usa la migración existen; es seguro pegarla. Y una consecuencia del propio agrupado: `orden` ya no ordena la grilla entera, solo manda dentro de cada familia, y ahí hoy conviven dos criterios (ver BACKLOG).
+
+## 2026-09-18 (Resumen a producción: PR #120 mergeado por Claude con ok explícito de Felipe, dos migraciones aplicadas)
+
+Con el ok puntual de Felipe ("sí, mergea tú y sí, aplica solo las dos migraciones de
+Resumen a producción") se mergeó PR #120 a `main` y se aplicaron `fn_resumen_variantes`
+y el `fn_prioridad_conteo` con sububicación directo a producción (proyecto
+`cayla-dynamic`, vía MCP de Supabase). Antes de aplicar nada: verificación de solo
+lectura contra el esquema real (`variantes.talla_id` presente, `fn_resumen_variantes`
+no existía, `fn_prioridad_conteo` ya sin el bug viejo de `.talla` — confirmando que
+`reconcilia_talla_id...` sí había llegado a producción antes). Después de aplicar:
+las dos funciones responden con la firma correcta, `anon` sigue sin poder ejecutarlas,
+`fn_prioridad_conteo` tirado sin sesión da el mensaje de permiso esperado (no un error
+de columna/relación faltante — prueba de que el cuerpo calza con el esquema real).
+`pnpm datos:comparar` sale limpio tras refrescar `funciones-produccion.txt` (PR #121,
+sin mergear todavía).
+
+Lo que NO se hizo, y por qué: no se aplicó el resto de la carpeta de migraciones
+locales (taxonomía, punto de reorden, etc.) — el pedido de Felipe fue explícito ("solo
+las dos migraciones de Resumen"), y varias de las otras ya estaban confirmadas en
+producción por sesiones anteriores. Tampoco se pusheó directo a `main` para el ajuste
+del diccionario (PR #121): el clasificador de auto-modo lo bloqueó como "merge sin
+revisión" — correcto, ese permiso puntual era solo para PR #120.
 
 ## 2026-09-18 (Familia deja de ser un CHECK fijo; Colores se agrupa por familia; una colisión real resuelta en vivo)
 
@@ -7476,6 +7498,18 @@ de este archivo) y `supabase/migrations/20260918080000_*.sql` coincidía con
 **20260918091500** (después de la última migración del día, `20260918090000`). Referencias
 corregidas en el propio ADR, BACKLOG.md y este archivo — `docs/datos/modulos/
 08-facturacion-sunat.md` con el mismo ajuste.
+
+## 2026-09-18 (Atributos → Patrones: cada patrón con su muestra visual)
+Felipe notó que en Atributos, Colores muestra un cuadrito de color y Patrones solo el
+nombre ("Rayas" no se ve a rayas). Se agregó `components/MuestraPatron.tsx`: un dibujo de
+respaldo por familia (rayas, cuadros, lunares, floral, animal print, estampado, liso) en la
+paleta del brandbook, elegido por `lib/patron-visual.ts` a partir del nombre — así "Rayado"
+o "Tartán" creados mañana por un Líder caen en la familia correcta sin tocar código. Un
+nombre desconocido muestra "Sin muestra", nunca un dibujo equivocado. Sin cambio de esquema.
+Pendiente propuesto (no hecho, es migración): `patrones.imagen_muestra_url` con foto real,
+mismo mecanismo que `colores.imagen_muestra_url`; el dibujo pasaría a ser el respaldo.
+Nota: el worktree estaba 668 commits atrás de main; se hizo merge (único conflicto:
+`package.json`, se tomó la versión de main que ya incluye el script `typecheck`).
 
 ## 2026-09-18 (Tejidos por fin sembrado — 17 valores, investigados y negociados)
 

@@ -2,9 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt } from "lucide-react";
+import { Popover } from "radix-ui";
+import { CampoTexto, Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { ETIQUETA_ESTADO_PAGO, ETIQUETA_ESTADO_RECEPCION, fechaCorta, type EstadoPago, type EstadoRecepcion } from "@/lib/compras-reglas";
+import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import {
+  ETIQUETA_ESTADO_PAGO,
+  ETIQUETA_ESTADO_RECEPCION,
+  ETIQUETA_TIPO_DOCUMENTO,
+  fechaCorta,
+  type EstadoPago,
+  type EstadoRecepcion,
+  type TipoDocumentoCompra,
+} from "@/lib/compras-reglas";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
 // página es un Server Component que filtra en Postgres, el enlace se puede
@@ -12,55 +23,41 @@ import { ETIQUETA_ESTADO_PAGO, ETIQUETA_ESTADO_RECEPCION, fechaCorta, type Estad
 // filtro borra el cursor de paginación — una página 3 de otro filtro no
 // significa nada.
 //
-// 2026-09-14: se partieron en dos niveles. Siete controles en dos filas
-// empujaban la tabla —lo que se vino a ver— debajo del pliegue, y la
-// mayoría de los días solo se usa la búsqueda y el proveedor. Los
-// `principales` van siempre a la vista; el resto se abre con "Más filtros"
-// (y se abre solo si alguno de ellos ya está aplicado, para que un filtro
-// activo nunca quede escondido). Lo aplicado se repite como chips con ×,
-// que es como se lee "por qué veo estas 3 facturas y no las 40".
-export type FiltroVisible = "busqueda" | "proveedor" | "pago" | "recepcion" | "condicion" | "fechas" | "vencidas";
+// 2026-09-18: mismo diseño que `FiltrosProductos.tsx` (compacto) — Buscar
+// siempre a la vista + un botón "Filtros · N" que despliega el panel de
+// píldoras (`DesplegablePildora`, ver `ui/FiltrosPildora.tsx`). Reemplaza
+// la versión anterior (card con `<select>` nativos y un "Más filtros ↓"
+// de dos niveles): los chips debajo ya decían qué estaba aplicado aunque
+// el panel estuviera cerrado, así que la distinción principales/
+// secundarios no hacía falta — un filtro nunca queda escondido, solo el
+// control para CAMBIARLO. Los filtros en sí siguen siendo los de Compras
+// (proveedor/pago/recepción/condición/fechas/vencidas), no los de
+// Productos — lo que se comparte es el molde, no el vocabulario.
+export type FiltroVisible = "proveedor" | "pago" | "recepcion" | "condicion" | "tipo" | "fechas" | "vencidas";
 
 type Proveedor = { id: string; nombre: string };
 
 // Qué parámetro(s) de la URL usa cada filtro. `fechas` usa dos.
 const PARAMS: Record<FiltroVisible, string[]> = {
-  busqueda: ["q"],
   proveedor: ["prov"],
   pago: ["pago"],
   recepcion: ["recep"],
   condicion: ["cond"],
+  tipo: ["tipo"],
   fechas: ["desde", "hasta"],
   vencidas: ["vencidas"],
 };
 
-export function FiltrosCompras({
-  proveedores,
-  visibles,
-  principales = ["busqueda", "proveedor"],
-}: {
-  proveedores: Proveedor[];
-  visibles: FiltroVisible[];
-  /** Los que van siempre a la vista; el resto de `visibles` queda bajo "Más filtros". */
-  principales?: FiltroVisible[];
-}) {
+export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveedor[]; visibles: FiltroVisible[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
+  const [panelAbierto, setPanelAbierto] = useState(false);
   const primera = useRef(true);
 
-  const secundarios = visibles.filter((f) => !principales.includes(f));
-  const activo = (f: FiltroVisible) => PARAMS[f].some((k) => params.get(k));
-  const haySecundarioActivo = secundarios.some(activo);
-  const [expandidoAMano, setExpandidoAMano] = useState(false);
-  // Si hay un filtro secundario aplicado (llegó por URL desde una tarjeta, o
-  // por el botón "atrás"), el panel está abierto sí o sí: nunca se filtra
-  // "a ciegas". Se deriva, no se sincroniza con un efecto.
-  const expandido = expandidoAMano || haySecundarioActivo;
-
   function ver(f: FiltroVisible) {
-    return visibles.includes(f) && (principales.includes(f) || expandido);
+    return visibles.includes(f);
   }
 
   function aplicar(cambios: Record<string, string>) {
@@ -88,23 +85,30 @@ export function FiltrosCompras({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda]);
 
+  const prov = params.get("prov");
+  const pago = params.get("pago") as EstadoPago | null;
+  const recep = params.get("recep") as EstadoRecepcion | null;
+  const cond = params.get("cond");
+  const tipo = params.get("tipo") as TipoDocumentoCompra | null;
+  const vencidas = params.get("vencidas");
+  const desde = params.get("desde");
+  const hasta = params.get("hasta");
+
+  const activo = (f: FiltroVisible) => PARAMS[f].some((k) => params.get(k));
+  const activos = visibles.filter(activo).length;
+
   // Los chips: un texto legible por cada filtro aplicado, con qué borrar al
   // tocar la ×. La búsqueda se lee desde la URL (no del estado local) para
   // que el chip aparezca cuando la consulta ya se hizo, no mientras se tipea.
   const chips: { texto: string; quitar: Record<string, string> }[] = [];
   const q = params.get("q");
   if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
-  const prov = params.get("prov");
   if (prov) chips.push({ texto: proveedores.find((p) => p.id === prov)?.nombre ?? "Proveedor", quitar: { prov: "" } });
-  const pago = params.get("pago") as EstadoPago | null;
   if (pago && ETIQUETA_ESTADO_PAGO[pago]) chips.push({ texto: `Pago: ${ETIQUETA_ESTADO_PAGO[pago]}`, quitar: { pago: "" } });
-  const recep = params.get("recep") as EstadoRecepcion | null;
   if (recep && ETIQUETA_ESTADO_RECEPCION[recep]) chips.push({ texto: `Recepción: ${ETIQUETA_ESTADO_RECEPCION[recep]}`, quitar: { recep: "" } });
-  const cond = params.get("cond");
   if (cond) chips.push({ texto: cond === "contado" ? "Al contado" : "Al crédito", quitar: { cond: "" } });
-  if (params.get("vencidas")) chips.push({ texto: "Solo vencidas", quitar: { vencidas: "" } });
-  const desde = params.get("desde");
-  const hasta = params.get("hasta");
+  if (tipo && ETIQUETA_TIPO_DOCUMENTO[tipo]) chips.push({ texto: ETIQUETA_TIPO_DOCUMENTO[tipo], quitar: { tipo: "" } });
+  if (vencidas) chips.push({ texto: "Solo vencidas", quitar: { vencidas: "" } });
   if (desde || hasta) {
     chips.push({
       texto: desde && hasta ? `Emitida ${fechaCorta(desde)} – ${fechaCorta(hasta)}` : desde ? `Emitida desde ${fechaCorta(desde)}` : `Emitida hasta ${fechaCorta(hasta)}`,
@@ -113,88 +117,112 @@ export function FiltrosCompras({
   }
 
   return (
-    <div className="card-cayla p-4">
-      {/* `grid-cols-2` ya desde celular (antes solo desde `sm:`): con un solo
-          campo por fila, "Buscar" + "Proveedor" + "Vencimiento" (los tres
-          `principales` de Por pagar) apilados a ancho completo empujaban la
-          tabla casi 300px más abajo. Buscar ocupa las dos columnas en
-          celular (escribir en la mitad de un campo de texto es incómodo);
-          los `<select>` sí se emparejan bien a media columna. */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-        {ver("busqueda") && (
-          <div className="col-span-2 sm:col-span-1">
-            <CampoTexto
-              etiqueta="Buscar"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Número de documento o proveedor"
-              autoComplete="off"
-              type="search"
-            />
-          </div>
-        )}
-        {ver("proveedor") && (
-          <CampoSelectNativo etiqueta="Proveedor" value={params.get("prov") ?? ""} onChange={(e) => aplicar({ prov: e.target.value })}>
-            <option value="">Todos</option>
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
-          </CampoSelectNativo>
-        )}
-        {ver("pago") && (
-          <CampoSelectNativo etiqueta="Pago" value={params.get("pago") ?? ""} onChange={(e) => aplicar({ pago: e.target.value })}>
-            <option value="">Todos</option>
-            {(["pendiente", "parcial", "pagada", "anulada"] as const).map((v) => (
-              <option key={v} value={v}>{ETIQUETA_ESTADO_PAGO[v]}</option>
-            ))}
-          </CampoSelectNativo>
-        )}
-        {ver("recepcion") && (
-          <CampoSelectNativo etiqueta="Recepción" value={params.get("recep") ?? ""} onChange={(e) => aplicar({ recep: e.target.value })}>
-            <option value="">Todas</option>
-            {(["sin_recibir", "parcial", "recibida"] as const).map((v) => (
-              <option key={v} value={v}>{ETIQUETA_ESTADO_RECEPCION[v]}</option>
-            ))}
-          </CampoSelectNativo>
-        )}
-        {ver("vencidas") && (
-          <CampoSelectNativo etiqueta="Vencimiento" value={params.get("vencidas") ?? ""} onChange={(e) => aplicar({ vencidas: e.target.value })}>
-            <option value="">Todas</option>
-            <option value="1">Solo vencidas</option>
-          </CampoSelectNativo>
-        )}
-        {ver("condicion") && (
-          <CampoSelectNativo etiqueta="Condición" value={params.get("cond") ?? ""} onChange={(e) => aplicar({ cond: e.target.value })}>
-            <option value="">Todas</option>
-            <option value="contado">Al contado</option>
-            <option value="credito">Al crédito</option>
-          </CampoSelectNativo>
-        )}
-        {ver("fechas") && (
-          <>
-            <CampoFecha etiqueta="Emitida desde" valor={params.get("desde") ?? ""} onValor={(v) => aplicar({ desde: v })} />
-            <CampoFecha etiqueta="Emitida hasta" valor={params.get("hasta") ?? ""} onValor={(v) => aplicar({ hasta: v })} />
-          </>
-        )}
+    <div className="space-y-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <CampoTexto
+            etiqueta="Buscar"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Número de documento o proveedor"
+            autoComplete="off"
+            type="search"
+          />
+        </div>
+        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
+            que el botón quede a la altura del input, no de toda la columna. */}
+        <div className="shrink-0">
+          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
+            {" "}
+          </span>
+          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+        </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {chips.map((c) => (
-          <button
-            key={c.texto}
-            type="button"
-            onClick={() => {
-              if ("q" in c.quitar) setBusqueda("");
-              aplicar(c.quitar);
-            }}
-            className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-            aria-label={`Quitar filtro ${c.texto}`}
-          >
-            {c.texto}
-            <span aria-hidden className="text-sm leading-none">×</span>
-          </button>
-        ))}
-        {chips.length > 0 && (
+      {panelAbierto && (
+        <PanelPildoras>
+          {ver("proveedor") && (
+            <DesplegablePildora icono={Building2} etiqueta="Proveedor" valor={prov ?? TODOS} onValor={(v) => aplicar({ prov: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
+              {proveedores.map((p) => (
+                <ItemDesplegable key={p.id} value={p.id}>
+                  {p.nombre}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+          )}
+
+          {ver("pago") && (
+            <DesplegablePildora icono={Banknote} etiqueta="Pago" valor={pago ?? TODOS} onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
+              {(["pendiente", "parcial", "pagada", "anulada"] as const).map((v) => (
+                <ItemDesplegable key={v} value={v}>
+                  {ETIQUETA_ESTADO_PAGO[v]}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+          )}
+
+          {ver("recepcion") && (
+            <DesplegablePildora icono={PackageCheck} etiqueta="Recepción" valor={recep ?? TODOS} onValor={(v) => aplicar({ recep: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
+              {(["sin_recibir", "parcial", "recibida"] as const).map((v) => (
+                <ItemDesplegable key={v} value={v}>
+                  {ETIQUETA_ESTADO_RECEPCION[v]}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+          )}
+
+          {ver("condicion") && (
+            <DesplegablePildora icono={HandCoins} etiqueta="Condición" valor={cond ?? TODOS} onValor={(v) => aplicar({ cond: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
+              <ItemDesplegable value="contado">Al contado</ItemDesplegable>
+              <ItemDesplegable value="credito">Al crédito</ItemDesplegable>
+            </DesplegablePildora>
+          )}
+
+          {ver("tipo") && (
+            <DesplegablePildora icono={Receipt} etiqueta="Tipo de documento" valor={tipo ?? TODOS} onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
+              {(["factura", "boleta", "nota_venta"] as const).map((v) => (
+                <ItemDesplegable key={v} value={v}>
+                  {ETIQUETA_TIPO_DOCUMENTO[v]}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+          )}
+
+          {ver("vencidas") && (
+            <DesplegablePildora icono={AlarmClock} etiqueta="Vencimiento" valor={vencidas ? "1" : TODOS} onValor={(v) => aplicar({ vencidas: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
+              <ItemDesplegable value="1">Solo vencidas</ItemDesplegable>
+            </DesplegablePildora>
+          )}
+
+          {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}
+        </PanelPildoras>
+      )}
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((c) => (
+            <button
+              key={c.texto}
+              type="button"
+              onClick={() => {
+                if ("q" in c.quitar) setBusqueda("");
+                aplicar(c.quitar);
+              }}
+              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+              aria-label={`Quitar filtro ${c.texto}`}
+            >
+              {c.texto}
+              <span aria-hidden className="text-sm leading-none">
+                ×
+              </span>
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => {
@@ -205,18 +233,40 @@ export function FiltrosCompras({
           >
             Limpiar todo
           </button>
-        )}
-        {secundarios.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpandidoAMano(!expandido)}
-            aria-expanded={expandido}
-            className="label-cayla ml-auto text-[11px] text-tinta/65 hover:text-rojo"
-          >
-            {expandido ? "Menos filtros ↑" : "Más filtros ↓"}
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Rango de fechas como píldora con popover (en vez de Select — acá no se
+ *  elige UNA opción de una lista, se llenan dos campos). Mismo hueco visual
+ *  que `DesplegablePildora`: ícono + texto + hilo vivo, la diferencia es
+ *  qué se abre debajo. */
+function PildoraFechas({ desde, hasta, onCambiar }: { desde: string; hasta: string; onCambiar: (desde: string, hasta: string) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const activa = Boolean(desde || hasta);
+  const texto = activa ? `${desde ? fechaCorta(desde) : "…"} – ${hasta ? fechaCorta(hasta) : "…"}` : "Emisión";
+  return (
+    <Popover.Root open={abierto} onOpenChange={setAbierto}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[11px] outline-none transition-colors ${
+            activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
+          }`}
+        >
+          <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
+          {texto}
+          <Hilo activo={abierto} />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content sideOffset={6} align="start" className="anim-revelar z-50 w-64 space-y-3 rounded-lg border border-sand bg-papel p-3 shadow-md">
+          <CampoFecha etiqueta="Emitida desde" valor={desde} onValor={(v) => onCambiar(v, hasta)} />
+          <CampoFecha etiqueta="Emitida hasta" valor={hasta} onValor={(v) => onCambiar(desde, v)} />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

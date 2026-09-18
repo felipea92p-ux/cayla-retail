@@ -13,6 +13,7 @@ import {
   type RecepcionReciente,
   type LineaRecepcion,
   type ProveedorResumen,
+  type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
@@ -62,7 +63,7 @@ function aResumen(f: FilaResumen): CompraResumen {
     proveedorId: f.proveedor_id ?? "",
     proveedorNombre: f.proveedor_nombre ?? "",
     proveedorRuc: f.proveedor_ruc,
-    tipo: f.tipo ?? "factura",
+    tipo: (f.tipo as TipoDocumentoCompra) ?? "factura",
     documento: f.documento ?? "",
     fechaEmision: f.fecha_emision ?? "",
     condicion: (f.condicion as Condicion) ?? "contado",
@@ -99,6 +100,7 @@ export type FiltrosCompras = {
   estadoPago?: EstadoPago;
   estadoRecepcion?: EstadoRecepcion;
   condicion?: Condicion;
+  tipo?: TipoDocumentoCompra;
   soloVigentes?: boolean;
   conSaldo?: boolean;
   soloVencidas?: boolean;
@@ -119,10 +121,11 @@ export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
 /** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string };
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
+const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta"];
 const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */
@@ -133,6 +136,7 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     estadoPago: ESTADOS_PAGO.find((e) => e === p.pago),
     estadoRecepcion: ESTADOS_RECEPCION.find((e) => e === p.recep),
     condicion: p.cond === "contado" || p.cond === "credito" ? p.cond : undefined,
+    tipo: TIPOS_DOCUMENTO.find((t) => t === p.tipo),
     soloVencidas: p.vencidas === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,
     hasta: esFecha(p.hasta) ? p.hasta : undefined,
@@ -158,6 +162,7 @@ export async function listarCompras(
       ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
       ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
       ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
       ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
       ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
       ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
