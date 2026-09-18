@@ -23,6 +23,9 @@ export const COLOR_TOKENS = {
   tintaSecundaria: { $value: "#5b544c", $type: "color", $description: "Texto secundario cálido / estado inactivo — cubre el rol de 'gris medio' sin agregar una escala numérica nueva." },
   verde: { $value: "#5f7a52", $type: "color", $description: "Semántico: va bien / hecho. Separado del acento, jamás decoración." },
   ambar: { $value: "#b0812f", $type: "color", $description: "Semántico: al filo / en proceso." },
+  metodoEfectivo: { $value: "#2f5f8a", $type: "color", $description: "Categórico de dato (no de marca): método de pago 'efectivo', compartido por la dona de Caja y el selector de Vender." },
+  metodoTarjeta: { $value: "#96541a", $type: "color", $description: "Categórico de dato: método de pago 'tarjeta'." },
+  metodoYape: { $value: "#1f7a68", $type: "color", $description: "Categórico de dato: método de pago 'Yape / Plin' (billetera digital, un solo color para ambos)." },
 } as const;
 
 export const TYPE_TOKENS = {

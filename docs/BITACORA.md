@@ -7204,3 +7204,28 @@ reset` limpio de punta a punta, `pnpm --filter database typecheck`, `pnpm --filt
 typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraciones para
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
+
+## 2026-09-18 (Rediseño visual de Caja — la maqueta traía dark mode y una paleta que no es la de la app)
+
+Felipe pidió rediseñar Caja con una maqueta HTML de referencia. Antes de tocar código: la
+maqueta traía modo oscuro persistente y una paleta terracota que no es la de CAYLA — choca
+de punta a punta con `globals.css:130` ("sin modo oscuro, una sola paleta") y el brandbook
+v3.0. Se le presentaron 3 opciones (adaptar a la paleta existente / isla visual solo para
+Caja+POS / nuevo estándar para toda la app); eligió adaptar. Detalle completo en ADR-0101.
+
+Construido con datos 100% reales (`getResumenCaja`/`getMovimientosCaja`/`fn_ventas_del_dia`,
+nueva `getSeriesVentasCaja` para la serie horaria): KPIs con sparkline, dona de métodos de
+pago con tabla alternativa, barras por hora, timeline unificado (ventas+movimientos),
+tendencia de 7 cierres, barra de meta diaria (nueva columna nullable
+`ubicaciones.meta_venta_diaria`, aplicada en local, pendiente producción). El badge
+"balanceada/descuadre" que pedía la maqueta es imposible de calcular en vivo sin romper el
+conteo ciego (ADR-0042) — se reemplazó por una señal real: ventas offline sin sincronizar.
+Dos cosas de la maqueta NO se construyeron por falta de dato real (no inventado): el banner
+de "egresos por encima del promedio semanal" y el delta "vs. mismo día de la semana
+anterior" en la meta — ninguno de los dos tiene un rollup histórico del que salir hoy.
+
+Un bug propio encontrado verificando en navegador con datos reales (no en tsc/lint): el
+filtro de "ventas por hora" mostraba 14 barras vacías (10h a 23h) en vez de cortar en la
+hora actual — `Math.max(horaActual, 23)` siempre daba 23. Corregido y reverificado con
+`felipe@cayla.local` contra la caja real de Tienda Lima (S/389.60 vendidos, 2 ventas + 2
+movimientos). Punto de Venta queda para el siguiente paso del mismo hilo.

@@ -50,6 +50,24 @@ export type MovimientoCaja = {
   nota: string | null;
   esAjuste: boolean;
   creadoEn: string;
+  registradoPorNombre: string | null;
+};
+
+/** Una barra del gráfico de ventas por hora / sparkline de un KPI. */
+export type PuntoHora = {
+  /** 0-23, hora local del servidor (la misma que ya usa el resto de Caja). */
+  hora: number;
+  efectivo: number;
+  otros: number;
+};
+
+/** Serie horaria + distribución por método, para la dona y los gráficos del
+ *  tablero de Caja. Separado de `ResumenCaja` a propósito: ese tipo existe
+ *  para el conteo ciego (ADR-0042, montos ya sumados), esto es para dibujar,
+ *  no para contar — mezclarlos ensuciaría el contrato del conteo ciego. */
+export type SeriesVentasCaja = {
+  porMetodo: Partial<Record<string, number>>;
+  porHora: PuntoHora[];
 };
 
 export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta | null> {
@@ -188,11 +206,21 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
   const filas = exigir(
     await supabase
       .from("caja_movimientos")
-      .select("id, tipo, monto, motivo, nota, es_ajuste, created_at")
+      .select("id, tipo, monto, motivo, nota, es_ajuste, created_at, usuario_id")
       .eq("caja_id", cajaId)
       .order("created_at", { ascending: false }),
     "los movimientos de caja"
   );
+
+  // `usuario_id` referencia public.personas (Dynamic) — mismo motivo que en
+  // getCajaAbierta(): PostgREST no embebe entre schemas, se resuelve aparte.
+  const idsUsuarios = Array.from(new Set(filas.map((m) => m.usuario_id).filter((v): v is string => v !== null)));
+  const nombresUsuarios =
+    idsUsuarios.length === 0
+      ? []
+      : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: idsUsuarios }), "quién registró cada movimiento");
+  const nombrePorId = new Map(nombresUsuarios.map((n) => [n.id, n.nombre]));
+
   return filas.map((m) => ({
     id: m.id,
     tipo: m.tipo as "ingreso" | "egreso",
@@ -201,5 +229,51 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     nota: m.nota,
     esAjuste: m.es_ajuste,
     creadoEn: m.created_at,
+    registradoPorNombre: m.usuario_id ? (nombrePorId.get(m.usuario_id) ?? null) : null,
   }));
+}
+
+/**
+ * Serie horaria de ventas de ESTA caja (para la dona de métodos de pago, las
+ * barras "ventas por hora" y los sparkline de los KPI de venta). Reusa las
+ * mismas dos tablas que `getResumenCaja` (ventas + venta_pagos) en vez de
+ * duplicar la fórmula de "cuánto se vendió" en una tercera función.
+ */
+export async function getSeriesVentasCaja(cajaId: string): Promise<SeriesVentasCaja> {
+  const supabase = await createClient();
+  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId);
+  const filasVentas = exigir(ventasRes, "las ventas de esta caja");
+  if (filasVentas.length === 0) return { porMetodo: {}, porHora: [] };
+
+  const horaPorVenta = new Map(filasVentas.map((v) => [v.id, new Date(v.created_at).getHours()]));
+  const filasPagos = exigir(
+    await supabase
+      .from("venta_pagos")
+      .select("venta_id, metodo, monto")
+      .in(
+        "venta_id",
+        filasVentas.map((v) => v.id)
+      ),
+    "los pagos de esta caja"
+  );
+
+  const porMetodo: Partial<Record<string, number>> = {};
+  const porHoraMap = new Map<number, { efectivo: number; otros: number }>();
+  for (const p of filasPagos) {
+    const monto = Number(p.monto);
+    porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + monto;
+
+    const hora = horaPorVenta.get(p.venta_id);
+    if (hora === undefined) continue;
+    const punto = porHoraMap.get(hora) ?? { efectivo: 0, otros: 0 };
+    if (p.metodo === "efectivo") punto.efectivo += monto;
+    else punto.otros += monto;
+    porHoraMap.set(hora, punto);
+  }
+
+  const porHora = Array.from(porHoraMap.entries())
+    .map(([hora, v]) => ({ hora, ...v }))
+    .sort((a, b) => a.hora - b.hora);
+
+  return { porMetodo, porHora };
 }

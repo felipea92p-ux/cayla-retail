@@ -28,6 +28,42 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0101)
+
+Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
+extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
+maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
+antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
+ADR-0101).
+
+- [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
+      reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
+      tiene una configurada), 5 KPIs con sparkline, dona de métodos de pago (+ tabla
+      accesible), barras de ventas por hora, timeline de movimientos+ventas, tendencia
+      de 7 cierres, barra de acciones fija. `CajaAbiertaPanel.tsx` reescrito,
+      `Graficos.tsx`/`useCountUp.ts` nuevos, `lib/caja.ts` gana `getSeriesVentasCaja()`
+      y `MovimientoCaja.registradoPorNombre`. Verificado en navegador con la caja real
+      de Tienda Lima (`felipe@cayla.local`).
+      Colores categóricos de método de pago (`--color-metodo-*`) nuevos en
+      `globals.css`/`design-tokens.ts` — compartidos con Vender, no son de marca.
+- [x] **`ubicaciones.meta_venta_diaria`** — columna nullable nueva
+      (`20260918080000_meta_venta_diaria_por_ubicacion.sql`), sin RPC propia todavía
+      (se configura por UPDATE directo). Aplicada en local, **pendiente producción con
+      ok de Felipe**.
+- [ ] **Punto de Venta: extender la misma piel visual** — tarjetas de producto, pills
+      de categoría, panel de ticket, selector de método de pago con los mismos 3
+      colores categóricos, botón de cobro con el mismo estilo que "Cerrar caja". Sin
+      lógica nueva. Siguiente paso del mismo hilo, todavía no empezado.
+- [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
+      maqueta, NO construido: no existe ningún rollup histórico de egresos por día
+      (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes
+      de poder mostrar un número real.
+- [ ] **Delta "vs. mismo día de la semana anterior" en la barra de meta** — mismo
+      motivo: no hay una cifra de "total vendido" histórico por día en ningún lado;
+      `montoCierreSistema` mide otra cosa (el esperado en el cajón, no lo vendido).
+
+---
+
 ## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
 
 Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió
