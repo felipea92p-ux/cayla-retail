@@ -6854,3 +6854,30 @@ primero) de `lg:` a `xl:` (1280px, donde sí hay espacio). Verificado en 1024px,
 curva de tallas) verificado sin problemas. `tsc`/`eslint`/297 tests en verde. Detalle en
 ADR-0098. Queda sin probar "+ Sumar"/"Todo llegó" en Recibir, y el mismo patrón sin
 `minmax(0,…)` sigue latente en `PLANTILLA_LINEAS` (líneas de factura) — no disparado hoy.
+
+## 2026-09-18 (Etiquetas — Felipe preguntó "por qué 4" y destapó un bug de diseño real)
+
+Felipe vio las 4 tarjetas de "Para liquidar" (una por sede) y preguntó por qué no era
+una sola — la pregunta destapó algo más grave que UX confusa. `sedes_permitidas` no es
+cosmético: `fn_variante_permitida_en_sede` (`registrar_venta`/`transferir`) lo usa para
+BLOQUEAR venta/traslado de esa variante en cualquier sede que no esté en la lista.
+"Para liquidar — Tienda TRU" habría bloqueado sin querer la venta de esa misma prenda
+en Tienda AQP, aunque AQP tuviera su propio stock fresco — mezclé "avisar que se
+liquida" (informativo) con "prohibir vender en otra sede" (candado real), el mismo
+error que el principio 2 (integridad conceptual) existe para evitar. Verificado antes
+de corregir: 0 variantes tenían alguna de las 4 aplicada, nada que migrar.
+
+Felipe fue más allá: "empresa uniforme" — ninguna etiqueta debe restringirse por sede.
+Se quitó el botón "SEDES" y todo el flujo de edición de `sedes_permitidas` de
+`EtiquetasLista.tsx`/`route.ts`/`page.tsx`; la columna se queda en el esquema, dormida
+(Felipe: revivirla no pide migración nueva si algún día hace falta de verdad). Dos bugs
+propios cazados verificando en pantalla, no asumidos: (1) el insert de la nueva
+etiqueta "Para liquidar" olvidó desactivar el trigger — quedaba `pendiente` en vez de
+`aprobado`, mismo patrón que ya se había usado para las otras 19; (2) colisión de
+timestamp de migración (`20260918020000`) con `#108`, otra sesión que tomó el mismo
+minuto — renombrada a `20260918030000`. PR #115. `db reset` completo, typecheck, lint
+y navegador en verde después de las dos correcciones.
+
+Sigue abierto: color por etiqueta. Felipe vio un ejemplo de Shopify (badges azul/verde
+vivos) y confirmó que la paleta debe ser suave, dentro del sistema CAYLA, no colores
+libres — pendiente de construir (esquema + UI), anotado en BACKLOG.
