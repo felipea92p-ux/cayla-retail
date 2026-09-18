@@ -3,6 +3,29 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Devoluciones con el modelo de Cambios — ADR-0105)
+
+**Qué se cerró.** `/devoluciones` rehecha con el mismo flujo que Cambios, sin migración ni backend.
+Lo que cambia de fondo: una devolución tiene dos tiempos (la registra una colaboradora, la aprueba
+un líder), así que el impacto se dice «al aprobarla» y la caja se valida en la aprobación. Se elige
+más de una prenda por boleta en una sola devolución —la base ya lo aceptaba y la pantalla vieja
+creaba una por línea, con una nota de crédito parcial cada una—. Nuevo bloque «Por aprobar» con lo
+que necesita el líder: valor pagado, aviso de plazo y de caja cerrada. Lo compartido con Cambios se
+extrajo (`getVentasRecientes`, `FlujoGuiado`, `ComprasAgrupadas`, `BuscadorVentas`) en vez de copiarse.
+437 pruebas, build en verde; 9 consultas nuevas probadas contra datos reales.
+
+**Qué se aprendió.** Tres hallazgos de datos, no de pantalla. (1) Lo que la clienta pagó no es
+`precio_unitario`: hay líneas con `descuento_unitario` (149.90 con 15 de descuento) y la nota de
+crédito de `aprobar_devolucion` acredita el precio de lista —queda en BACKLOG, es plata—. (2) La base
+no cruza cambios con devoluciones: una línea cambiada se puede devolver y el stock se duplica; se
+cubrió en pantalla, el candado real sigue pendiente. (3) La sesión paralela cerró el hueco de venta
+anulada el mismo día, así que se dejó de tocar `crear_devolucion` a propósito: dos sesiones sobre la
+misma función habrían dejado sobrecargas duplicadas (el mismo bug de ADR-0104).
+
+**Pendiente.** El plazo de 15 días solo se avisa en Devoluciones (decisión mía por Felipe,
+reversible): falta que diga quién decide pasado el plazo. Y probar con clic real: el panel oculto no
+hidrata las páginas del menú.
+
 ## 2026-09-18 (Cambios: de "no me convence" a flujo guiado — ADR-0104)
 
 **Qué se cerró.** Auditoría de `/cambios` y rediseño completo en dos vueltas. Flujo

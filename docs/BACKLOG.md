@@ -70,11 +70,50 @@ tiene de verdad — detalle y descartes en ADR-0104.
       necesita la base de clientas de R-33); cambio de una venta que nunca se registró (R-15,
       toca el núcleo); paleta de comandos Ctrl+K global (toca AppShell y todos los módulos);
       endurecer `cambios.motivo` a obligatorio en la base cuando ya no haya pantallas viejas.
-- [ ] **Devoluciones tiene el mismo hueco de venta anulada — CONFIRMADO 2026-09-18** contra
-      `pg_proc` local: ni `crear_devolucion` ni `aprobar_devolucion` miran `ventas.estado`.
-      Una devolución aprobada sobre una venta ya anulada vuelve a meter la prenda al stock
-      (la anulación ya la había devuelto) y puede reembolsar plata de una venta revertida.
-      Mismo arreglo que `registrar_cambio` (20260918150000), en su propia migración.
+- [x] **Devoluciones tenía el mismo hueco de venta anulada — CERRADO 2026-09-18** en la base
+      local por la otra sesión (`20260918163712_devolucion_rechaza_venta_anulada.sql`, rama
+      `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
+      nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
+
+## 🎯 Devoluciones con el mismo modelo que Cambios (2026-09-18, ADR-0105)
+
+Felipe aprobó el flujo de Cambios y pidió repetirlo en Devoluciones. Sin migración ni backend:
+solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-0105.
+
+- [x] **`/devoluciones` rehecha** — «Iniciar una devolución» (buscador único, escanear, sin
+      comprobante), «Por aprobar» (para un líder: prendas, estado, lo que pagó la clienta,
+      aviso de plazo, reembolso opcional con aviso de caja cerrada) y «Actividad reciente»
+      (15 días, filtros). Flujo guiado Venta → Prendas → Detalle → Confirmación → registrada,
+      con **varias prendas en una sola devolución** (una nota de crédito en vez de varias
+      parciales). Piezas compartidas con Cambios: `getVentasRecientes`, `FlujoGuiado`,
+      `ComprasAgrupadas`, `BuscadorVentas`. 26 pruebas nuevas en `devoluciones-reglas.test.ts`.
+- [x] **Hueco cruzado cambio↔devolución cubierto en PANTALLA**: `unidadesDisponibles` descuenta lo
+      cambiado y lo devuelto en las dos pantallas; una prenda con devolución registrada ya no
+      ofrece «Iniciar cambio» y al revés.
+- [ ] **La BASE sigue sin ese candado — hueco real de otra clase que el de venta anulada.**
+      `crear_devolucion` cruza solo contra devoluciones y `registrar_cambio` solo contra
+      cambios: una línea cambiada se puede devolver por otra vía y la prenda vuelve al stock dos
+      veces (0 casos locales). Mismo arreglo que el de venta anulada, en su propia migración.
+      **Necesita tocar `crear_devolucion` y `registrar_cambio`: coordinar con la migración
+      `20260918163712` (otra sesión) para no dejar dos sobrecargas.**
+- [ ] **Plazo de 15 días en Devoluciones: hoy solo se AVISA, no bloquea** (decisión mía por Felipe,
+      reversible en `estadoPrendaDevolucion`). Falta que Felipe diga quién decide pasado el plazo
+      (¿solo un líder?, ¿con motivo escrito?), y si una prenda con defecto de fábrica debe poder
+      devolverse pasado el plazo (no está escrito en R-38; conviene revisarlo con quien lleve lo legal).
+- [ ] **`devoluciones.motivo_codigo` estructurado** (hoy el motivo es uno de cinco textos fijos +
+      detalle, sumables con `group by`): esperar a fusionar la migración de venta anulada para no
+      tocar `crear_devolucion` en paralelo.
+- [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
+      una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
+- [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**
+      (`aprobar_devolucion`, ADR-0100) y la diferencia de un cambio tampoco: en una línea con
+      descuento (149.90 con 15 de descuento) se acredita de más. La pantalla ya muestra lo que
+      pagó de verdad. Es plata: confirmar con Felipe/contador antes de tocarlo.
+- [ ] **Verificar con clic real** `/devoluciones` con datos reales: el panel oculto del navegador no
+      hidrata las páginas del menú. Falta registrar una devolución de punta a punta, aprobarla y ver
+      la nota de crédito en Facturación.
+- [ ] **Números de ADR:** hay otro ADR-0104 en otra sesión («el aviario…»); al fusionar, renumerar
+      el de Cambios.
 
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
