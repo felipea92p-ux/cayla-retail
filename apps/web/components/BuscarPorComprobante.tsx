@@ -63,8 +63,20 @@ export function BuscarPorComprobante({ valorInicial, todasInicial = false }: { v
           Buscar
         </button>
       </div>
-      <label className="flex items-center gap-2 text-xs text-tinta/65">
-        <input type="checkbox" checked={todas} onChange={(e) => setTodas(e.target.checked)} className="h-3.5 w-3.5 accent-rojo" />
+      <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-tinta/65">
+        <input
+          type="checkbox"
+          checked={todas}
+          onChange={(e) => setTodas(e.target.checked)}
+          className="peer sr-only"
+        />
+        {/* Switch dibujado sobre un checkbox nativo (semántica y teclado intactos) — no
+            hay un primitivo de switch deslizante en el repo hoy, así que se restyla el
+            control real en vez de armar un componente ARIA aparte. */}
+        <span
+          aria-hidden
+          className="relative h-[19px] w-[34px] shrink-0 rounded-full bg-sand transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-[15px] after:w-[15px] after:rounded-full after:bg-papel after:shadow after:transition-transform peer-checked:bg-tinta peer-checked:after:translate-x-[15px] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo"
+        />
         Buscar en todas las sedes
       </label>
     </form>

@@ -40,6 +40,15 @@ export function inicioDeDiaLima(n: number): Date {
   return new Date(n * DIA_MS + LIMA_OFFSET_MS);
 }
 
+/** Medianoche de Lima del día 1 del mes en que cae `t` — para acumulados "este mes"
+ *  (estadísticas de Cambios, etc). Perú no tiene horario de verano, así que restar
+ *  el offset fijo para leer año/mes en hora de Lima es correcto (mismo criterio que
+ *  el resto de este archivo). */
+export function inicioDeMesLima(t: number): Date {
+  const limaWallClock = new Date(t - LIMA_OFFSET_MS);
+  return new Date(Date.UTC(limaWallClock.getUTCFullYear(), limaWallClock.getUTCMonth(), 1) + LIMA_OFFSET_MS);
+}
+
 /** El instante desde el que hay que pedir ventas para llenar la serie entera. */
 export function inicioDeLaVentana(ahora: number): Date {
   return inicioDeDiaLima(diaLima(ahora) - INDICE_HOY);

@@ -16,20 +16,20 @@ export default async function CajaPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Caja · {persona.ubicacionEtiqueta}</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">
-            {caja ? "Caja abierta" : "Sin caja abierta"}
-          </h1>
+      {!caja && (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="label-cayla text-[11px] text-tinta/65">Caja · {persona.ubicacionEtiqueta}</p>
+            <h1 className="font-display mt-1 text-2xl text-tinta">Sin caja abierta</h1>
+          </div>
+          <Link
+            href="/caja/historial"
+            className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+          >
+            Historial de cierres →
+          </Link>
         </div>
-        <Link
-          href="/caja/historial"
-          className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
-        >
-          Historial de cierres →
-        </Link>
-      </div>
+      )}
 
       {/* Abrir/cerrar caja cambia de componente entero (formulario ↔ panel), así que
           React ya lo remonta solo — `anim-entrada` no necesita `key` para retriggerse,
