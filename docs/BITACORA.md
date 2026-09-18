@@ -3,6 +3,72 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
+
+Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
+Cambios; antes de tocar código se auditó `globals.css` y confirmó con él que el sistema
+YA vigente (ADR-0012, rojo/crema/tinta, sin modo oscuro) manda — las maquetas se leyeron
+solo por layout/componentes, no por color. `/caja` (`CajaAbiertaPanel.tsx` reescrito,
+`CajaGraficos.tsx` nuevo, `caja-panel-reglas.ts` puro con 14 pruebas) quedó con encabezado
++ reloj en vivo, meta del día (`ubicaciones.meta_venta_diaria`, migración `20260918091000`,
+nullable — sin pantalla de edición todavía), 5 KPI, dona de métodos de pago con tabla
+accesible, ventas por hora y tendencia de cierres de 7 días — todo de datos reales
+(`getDetalleCierre` reusado para el feed en vivo, antes solo servía cierres ya cerrados).
+
+El badge "Caja balanceada/Descuadre" de la maqueta comparaba contra "lo esperado" — que
+ADR-0042 (conteo ciego) prohíbe mostrar mientras la caja sigue abierta. Se le presentó la
+contradicción a Felipe con 3 opciones (Ganas/Pagas); eligió reproponer la señal a algo
+calculable sin rompler el conteo ciego ("sin pendientes" / "N ventas sin subir", de la
+cola offline ya existente) en vez de exponer el número. Mismo protocolo para: colores
+categóricos del gráfico de dona (nuevos tokens `--color-metodo-*`, acotados a ese
+gráfico — el selector de método del POS sigue monocromo, decisión previa de Felipe) y
+el plazo de cambio de Cambios (constantes documentadas citando R-38, no columna nueva).
+`tsc`/lint/311 tests en verde; verificado en navegador con datos reales sembrados a mano
+(meta S/800 en Tienda Lima, egreso de prueba para confirmar el aviso de "egresos
+elevados" — borrado después de verificar). Worktree necesitó `pnpm install` +
+`.env.local`/stub de migración copiados a mano (gitignored, no existían en este worktree
+nuevo) antes de poder correr nada.
+
+## 2026-09-18 (Cambios deja de ser un modal — el patrón de ADR-0044, aplicado dos meses después a la pantalla que lo necesitaba)
+
+Segundo paso del rediseño visual de Ventas (después de Caja, mismo día). `CambiosLista.tsx`
+pasó de lista plana a agrupada por día (`agruparPorDia`, "Hoy"/"Ayer"/fecha) con mini-fila
+de estadísticas reales (`cambios-estadisticas.ts`: cambios hoy/mes agregados en JS desde
+`retail.cambios`, mismo criterio que `getResumenCaja`; "prenda más cambiada" cruza
+`cambios→venta_items→variantes/productos` agrupando en JS, sin RPC nueva). El buscador
+ganó un switch real (checkbox restylado con `peer`/`::after` — no hay primitivo de switch
+en el repo) y chips de categoría derivados de las categorías que de verdad aparecen en los
+resultados, nunca una lista fija.
+
+El cambio más grande: `CambioFormV2` dejó de ser `<Modal>` y ahora se expande DENTRO de la
+tarjeta de la línea. Releer ADR-0044 (el ticket de Vender) mostró que ya había resuelto
+exactamente este problema — "sin modal, sin preselección" — pero Cambios nunca lo había
+adoptado, seguía citando el ADR en un comentario sin aplicar su decisión. `opcionesDeCambio`
+sigue sin restringir a "misma prenda" (nunca lo hizo, y cambiarlo habría sido tocar lógica
+de negocio fuera del alcance de un rediseño visual) — para que la maqueta (chips de talla +
+puntos de color) siguiera siendo honesta con esa flexibilidad real, las opciones se agrupan
+por producto: con un solo producto disponible va directo a talla/color; con varios, aparece
+un selector de prenda primero. Ni talla ni color se preseleccionan cuando hay más de una
+opción real (mismo criterio que ADR-0044); si solo hay una, se completa sola porque ahí no
+hay decisión que tomar.
+
+El plazo de cambio (R-38: 15 días, `docs/datos/15-COMO-OPERA-CAYLA.md`) no existía como
+dato en ningún lado — se le presentó la contradicción a Felipe (protocolo de pregunta) y
+eligió constantes documentadas (`DIAS_PLAZO_CAMBIO`/`DIAS_UMBRAL_POR_VENCER` en
+`cambios-reglas.ts`) en vez de una columna nueva: no hay evidencia de que el plazo varíe por
+sede hoy. "Vendido por X" tampoco viajaba a esta pantalla aunque el dato ya existía
+(`ventas.usuario_id`) — se agregó al mismo query de `getLineasVentaRecientes` sin consulta
+extra, mismo patrón que ya usa `getDetalleCierre` de Caja.
+
+Un bug de entorno, no de código: tras editar `cambios/page.tsx` para pasarle `estadisticas`
+a `CambiosLista`, la pantalla reventó en el navegador con "Cannot read properties of
+undefined (reading 'cambiosHoy')" pese a que el archivo en disco estaba correcto — Turbopack
+sirvió una versión vieja compilada. Se resolvió reiniciando el servidor de preview
+(`preview_stop`+`preview_start`), no tocando código. Verificado de punta a punta en
+navegador: un `registrar_cambio` real (Vestido Sofía → Pantalón Carla, -S/50 devueltos)
+actualizó stock, `yaCambiado`, y las 3 estadísticas de la mini-fila sin recargar la página a
+mano. `tsc`/lint/319 tests en verde (26 archivos, +8 desde Caja).
+
 ## 2026-09-18 (Resumen se fusiona con 22 commits de `main` — un bug ajeno encontrado y corregido de paso)
 
 Al fusionar la rama de Resumen con `main` (PR #106-#119, todo ya en producción) salieron 5
@@ -7260,6 +7326,70 @@ typecheck`/`lint`, `pnpm test` (297 pruebas) — todo en verde. Lista de migraci
 producción, en orden, entregada a Felipe aparte (no autónomo — cambio de esquema en
 producción).
 
+## 2026-09-18 (Rediseño visual de Caja — la maqueta traía dark mode y una paleta que no es la de la app)
+
+Felipe pidió rediseñar Caja con una maqueta HTML de referencia. Antes de tocar código: la
+maqueta traía modo oscuro persistente y una paleta terracota que no es la de CAYLA — choca
+de punta a punta con `globals.css:130` ("sin modo oscuro, una sola paleta") y el brandbook
+v3.0. Se le presentaron 3 opciones (adaptar a la paleta existente / isla visual solo para
+Caja+POS / nuevo estándar para toda la app); eligió adaptar. Detalle completo en ADR-0102
+(renumerado desde 0101: al sincronizar con `main` esa numeración ya la había tomado la
+sesión de "Resumen de Inventario", fusionada mientras esta rama seguía sin pushear).
+
+Construido con datos 100% reales (`getResumenCaja`/`getMovimientosCaja`/`fn_ventas_del_dia`,
+nueva `getSeriesVentasCaja` para la serie horaria): KPIs con sparkline, dona de métodos de
+pago con tabla alternativa, barras por hora, timeline unificado (ventas+movimientos),
+tendencia de 7 cierres, barra de meta diaria (nueva columna nullable
+`ubicaciones.meta_venta_diaria`, aplicada en local, pendiente producción). El badge
+"balanceada/descuadre" que pedía la maqueta es imposible de calcular en vivo sin romper el
+conteo ciego (ADR-0042) — se reemplazó por una señal real: ventas offline sin sincronizar.
+Dos cosas de la maqueta NO se construyeron por falta de dato real (no inventado): el banner
+de "egresos por encima del promedio semanal" y el delta "vs. mismo día de la semana
+anterior" en la meta — ninguno de los dos tiene un rollup histórico del que salir hoy.
+
+Un bug propio encontrado verificando en navegador con datos reales (no en tsc/lint): el
+filtro de "ventas por hora" mostraba 14 barras vacías (10h a 23h) en vez de cortar en la
+hora actual — `Math.max(horaActual, 23)` siempre daba 23. Corregido y reverificado con
+`felipe@cayla.local` contra la caja real de Tienda Lima (S/389.60 vendidos, 2 ventas + 2
+movimientos).
+
+Segunda parte del mismo hilo: extender la piel visual a Punto de Venta. Sorpresa buena —
+`PuntoDeVentaCatalogo.tsx`/`PuntoDeVentaTicket.tsx` ya cumplían casi todo lo pedido (radio
+y hover de las tarjetas de producto, serif en el total, botón "Cobrar" ya con el mismo
+`bg-tinta`/hover `rojo` que "Cerrar caja") — nada de eso se tocó, por no reinventar lo que
+ya estaba bien. Los dos cambios reales: chips de categoría y el toggle "Solo con stock" de
+`rounded-lg` a `rounded-md` (el radio real de la "pastilla" del selector de ubicación, no
+el que se había copiado a ojo); y el selector de método de pago + el ícono de cada pago ya
+puesto ahora usan los mismos 3 colores categóricos que la dona de Caja (`COLOR_METODO` en
+`PuntoDeVentaTicket.tsx`). Verificado armando una venta real con pago mixto
+efectivo+tarjeta+yape — cada botón se pinta con su color y el checklist de "Cubierto"
+sigue funcionando igual que antes. `tsc`/`lint` en verde, sin tests nuevos (cambio
+puramente visual, sin lógica). PR pendiente de abrir.
+## 2026-09-18 (Compras: label "Facturas" → "Comprobantes", cero migraciones pendientes)
+
+Felipe pidió renombrar el label "Facturas" a "Comprobantes" en Compras (nav, título del
+módulo, botón de alta, ficha de proveedor, detalle de movimiento) — el módulo maneja
+factura/boleta/nota de venta, no solo facturas. El selector "Tipo de documento" del
+formulario conserva "Factura" como valor específico, sin tocar (ahí sí es el tipo real,
+no el nombre del módulo). Verificado en preview local (navegador) antes de commitear.
+
+Al pedir fusionar con `main` y la lista de migraciones pendientes: la rama ya nacía al
+día con `main` (0 commits de diferencia, nada que traer) y **`list_migrations` contra
+producción resultó no confiable para responder "qué falta"** — nombres pegados a mano,
+sin relación 1:1 con los archivos del repo (mismo síntoma que ya advertía la memoria de
+sesión). Verificado en cambio contra la base real, objeto por objeto (`information_schema`
++ `pg_constraint` para tablas/columnas/funciones/constraints de cada migración desde
+`0001` hasta `20260918090000`, más los 8 archivos sueltos `*-produccion.sql`): **cero
+migraciones pendientes** — todo lo que el repo espera ya existe en producción, incluidas
+las de hoy mismo (`proveedores.rubro/plazo_credito_dias/forma_pago_preferida`,
+`resumen_inventario`, `prioridad_conteo_por_sububicacion`). De paso, `activacion-
+cuarentena-produccion.sql` tenía la cabecera desactualizada ("todavía no se aplicó"
+cuando la sububicación «Cuarentena» ya existe en las 3 tiendas) — corregida, sin tocar
+el SQL. `benja-migracion.sql` sigue marcado por su propio autor "NO CORRER TAL CUAL"
+(dump de referencia, no cuenta como pendiente).
+
+PR #122 abierto y fusionado a `main` (CI verde, 5/5 checks); Vercel desplegó el commit
+de merge en menos de un minuto. Felipe confirmó verlo en producción.
 ## 2026-09-18 (Facturación: `emitir_comprobante` idempotente + candado de IGV — ADR-0102)
 
 Felipe pidió analizar `vender/facturacion/page.tsx` y decir qué mejorar. La pantalla en sí
