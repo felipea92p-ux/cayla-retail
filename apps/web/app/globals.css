@@ -48,6 +48,17 @@
 
   --color-ambar-profundo: #734f15;
 
+  /* Colores categóricos de método de pago (2026-09-18, rediseño de Caja) — SOLO
+     para el gráfico de dona/leyenda de Caja (reporte agregado). No son acento de
+     marca ni semántico de estado: úsalos únicamente como relleno de swatch/gráfico,
+     nunca como texto ni en un control de captura de datos (el selector de método
+     del POS sigue monocromo a propósito — decisión de Felipe, ver
+     `PuntoDeVentaTicket.tsx`). Por eso el texto de la leyenda va en tinta, no en
+     estos colores: no hace falta una variante "profunda" que pase AA. */
+  --color-metodo-efectivo: #2a78d6;
+  --color-metodo-tarjeta: #eb6834;
+  --color-metodo-digital: #1baf7a;
+
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
      13px y sm de 14 a 15px, y `text-2xl`/`3xl` quedan como estaban. Cambiarlo

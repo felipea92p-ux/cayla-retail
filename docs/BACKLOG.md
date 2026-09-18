@@ -28,6 +28,50 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Rediseño visual de Ventas: Caja/POS/Cambios (2026-09-18, en curso)
+
+Rediseño de las 3 pantallas de Ventas sobre el sistema visual YA vigente (`globals.css`
+v3.0, ADR-0012) — Felipe confirmó explícitamente NO adoptar la paleta terracota/modo
+oscuro de las maquetas de referencia que trajo. Caja (`/caja`) y Cambios (`/cambios`)
+cerradas y verificadas en navegador; Punto de Venta queda para el siguiente paso.
+
+- [x] **Caja (`/caja`)** — encabezado con avatar/colaborador/reloj en vivo, badge
+      reproposto ("Caja abierta · sin pendientes" / "N ventas sin subir" en vez de un
+      cuadre en vivo — ver 🩹 abajo), barra de meta del día con comparativo vs. semana
+      pasada, 5 KPI (`TarjetaIndicador`, reusado), dona de métodos de pago + tabla
+      accesible, ventas por hora, feed de movimientos con colaborador real, tendencia de
+      cierres de 7 días. `packages/shared/design-tokens.ts` NO se tocó (sigue siendo el
+      duplicado desactualizado de Finanzas — su radio 0px contradice `globals.css` desde
+      hace tiempo; no es de este alcance arreglarlo).
+- [x] **Cambios (`/cambios`)** — mini-fila de estadísticas (cambios hoy/mes/prenda más
+      cambiada, `cambios-estadisticas.ts`), buscador con switch real (checkbox restylado,
+      no hay primitivo de switch en el repo) + chips de categoría (derivados de los datos
+      reales, no hardcodeados), lista agrupada por día (`agruparPorDia`), tarjeta con
+      swatch de color + chip de estado (Vigente/Por vencer/Fuera de plazo, `Chip.tsx`
+      reusado) + vendedora real (`ventas.usuario_id`, no viajaba antes a esta pantalla) +
+      flujo de cambio EXPANDIDO DENTRO de la tarjeta (`CambioFormV2` dejó de ser modal,
+      aplicando por fin a esta pantalla el patrón que ADR-0044 ya había resuelto para
+      Vender). Probado end-to-end en navegador con un `registrar_cambio` real (no solo
+      visual): stock, `yaCambiado` y las 3 estadísticas se actualizaron correctos tras
+      confirmar.
+- [ ] **Pantalla para editar `ubicaciones.meta_venta_diaria` por sede** — hoy se setea
+      por SQL Editor (migración `20260918080000`). Sin pantalla, un líder no puede
+      cambiar la meta del día sin pedirle a alguien que corra SQL.
+- [ ] **Plazo de cambio configurable por sede** — hoy `DIAS_PLAZO_CAMBIO`/
+      `DIAS_UMBRAL_POR_VENCER` son constantes iguales para toda la empresa
+      (`cambios-reglas.ts`, ok explícito de Felipe). Si algún día CAYLA necesita un plazo
+      distinto por sede, hace falta columna + migración + pantalla — no existe hoy.
+- [ ] **Punto de Venta** — pendiente de este mismo rediseño.
+
+🩹 **Decisiones conscientes, no huecos**:
+- El badge de estado de Caja NUNCA compara contra "lo esperado" mientras la caja sigue
+  abierta — haría exactamente lo que ADR-0042 (conteo ciego) prohíbe. Ver
+  `apps/web/lib/caja-panel-reglas.ts:senalCaja`.
+- El plazo de cambio (R-38, 15 días) y su umbral de "por vencer" (3 días) son constantes
+  documentadas, no un dato configurable — ver arriba.
+
+---
+
 ## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
 
 Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió

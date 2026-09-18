@@ -3,6 +3,72 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
+
+Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
+Cambios; antes de tocar código se auditó `globals.css` y confirmó con él que el sistema
+YA vigente (ADR-0012, rojo/crema/tinta, sin modo oscuro) manda — las maquetas se leyeron
+solo por layout/componentes, no por color. `/caja` (`CajaAbiertaPanel.tsx` reescrito,
+`CajaGraficos.tsx` nuevo, `caja-panel-reglas.ts` puro con 14 pruebas) quedó con encabezado
++ reloj en vivo, meta del día (`ubicaciones.meta_venta_diaria`, migración `20260918080000`,
+nullable — sin pantalla de edición todavía), 5 KPI, dona de métodos de pago con tabla
+accesible, ventas por hora y tendencia de cierres de 7 días — todo de datos reales
+(`getDetalleCierre` reusado para el feed en vivo, antes solo servía cierres ya cerrados).
+
+El badge "Caja balanceada/Descuadre" de la maqueta comparaba contra "lo esperado" — que
+ADR-0042 (conteo ciego) prohíbe mostrar mientras la caja sigue abierta. Se le presentó la
+contradicción a Felipe con 3 opciones (Ganas/Pagas); eligió reproponer la señal a algo
+calculable sin rompler el conteo ciego ("sin pendientes" / "N ventas sin subir", de la
+cola offline ya existente) en vez de exponer el número. Mismo protocolo para: colores
+categóricos del gráfico de dona (nuevos tokens `--color-metodo-*`, acotados a ese
+gráfico — el selector de método del POS sigue monocromo, decisión previa de Felipe) y
+el plazo de cambio de Cambios (constantes documentadas citando R-38, no columna nueva).
+`tsc`/lint/311 tests en verde; verificado en navegador con datos reales sembrados a mano
+(meta S/800 en Tienda Lima, egreso de prueba para confirmar el aviso de "egresos
+elevados" — borrado después de verificar). Worktree necesitó `pnpm install` +
+`.env.local`/stub de migración copiados a mano (gitignored, no existían en este worktree
+nuevo) antes de poder correr nada.
+
+## 2026-09-18 (Cambios deja de ser un modal — el patrón de ADR-0044, aplicado dos meses después a la pantalla que lo necesitaba)
+
+Segundo paso del rediseño visual de Ventas (después de Caja, mismo día). `CambiosLista.tsx`
+pasó de lista plana a agrupada por día (`agruparPorDia`, "Hoy"/"Ayer"/fecha) con mini-fila
+de estadísticas reales (`cambios-estadisticas.ts`: cambios hoy/mes agregados en JS desde
+`retail.cambios`, mismo criterio que `getResumenCaja`; "prenda más cambiada" cruza
+`cambios→venta_items→variantes/productos` agrupando en JS, sin RPC nueva). El buscador
+ganó un switch real (checkbox restylado con `peer`/`::after` — no hay primitivo de switch
+en el repo) y chips de categoría derivados de las categorías que de verdad aparecen en los
+resultados, nunca una lista fija.
+
+El cambio más grande: `CambioFormV2` dejó de ser `<Modal>` y ahora se expande DENTRO de la
+tarjeta de la línea. Releer ADR-0044 (el ticket de Vender) mostró que ya había resuelto
+exactamente este problema — "sin modal, sin preselección" — pero Cambios nunca lo había
+adoptado, seguía citando el ADR en un comentario sin aplicar su decisión. `opcionesDeCambio`
+sigue sin restringir a "misma prenda" (nunca lo hizo, y cambiarlo habría sido tocar lógica
+de negocio fuera del alcance de un rediseño visual) — para que la maqueta (chips de talla +
+puntos de color) siguiera siendo honesta con esa flexibilidad real, las opciones se agrupan
+por producto: con un solo producto disponible va directo a talla/color; con varios, aparece
+un selector de prenda primero. Ni talla ni color se preseleccionan cuando hay más de una
+opción real (mismo criterio que ADR-0044); si solo hay una, se completa sola porque ahí no
+hay decisión que tomar.
+
+El plazo de cambio (R-38: 15 días, `docs/datos/15-COMO-OPERA-CAYLA.md`) no existía como
+dato en ningún lado — se le presentó la contradicción a Felipe (protocolo de pregunta) y
+eligió constantes documentadas (`DIAS_PLAZO_CAMBIO`/`DIAS_UMBRAL_POR_VENCER` en
+`cambios-reglas.ts`) en vez de una columna nueva: no hay evidencia de que el plazo varíe por
+sede hoy. "Vendido por X" tampoco viajaba a esta pantalla aunque el dato ya existía
+(`ventas.usuario_id`) — se agregó al mismo query de `getLineasVentaRecientes` sin consulta
+extra, mismo patrón que ya usa `getDetalleCierre` de Caja.
+
+Un bug de entorno, no de código: tras editar `cambios/page.tsx` para pasarle `estadisticas`
+a `CambiosLista`, la pantalla reventó en el navegador con "Cannot read properties of
+undefined (reading 'cambiosHoy')" pese a que el archivo en disco estaba correcto — Turbopack
+sirvió una versión vieja compilada. Se resolvió reiniciando el servidor de preview
+(`preview_stop`+`preview_start`), no tocando código. Verificado de punta a punta en
+navegador: un `registrar_cambio` real (Vestido Sofía → Pantalón Carla, -S/50 devueltos)
+actualizó stock, `yaCambiado`, y las 3 estadísticas de la mini-fila sin recargar la página a
+mano. `tsc`/lint/319 tests en verde (26 archivos, +8 desde Caja).
+
 ## 2026-09-17 (Producción se cayó dos veces hoy — y una tercera vez que nadie reportó, encontrada antes de que doliera)
 
 Primera caída real del día: `retail.fn_productos` con dos sobrecargas vivas (9 y 10

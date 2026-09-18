@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigirOpcional, exigir } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
 // `resumen` se calcula acá con las MISMAS reglas que cerrar_caja() en SQL
@@ -40,6 +41,10 @@ export type ResumenCaja = {
    *  clientas pagaron de más en total, negativa si se les devolvió más de lo que
    *  pagaron — igual que `cambios.diferencia`, que ya lo trae así. */
   cambiosEfectivo: number;
+  /** Desglose de `ventasEfectivo + ventasOtros` por método real (efectivo/tarjeta/
+   *  yape/plin/transferencia) — para el gráfico de dona del rediseño de Caja. Sale
+   *  de los mismos `venta_pagos` que ya se piden para el resumen, sin consulta extra. */
+  porMetodo: { metodo: string; monto: number }[];
 };
 
 export type MovimientoCaja = {
@@ -50,6 +55,7 @@ export type MovimientoCaja = {
   nota: string | null;
   esAjuste: boolean;
   creadoEn: string;
+  usuarioId: string | null;
 };
 
 export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta | null> {
@@ -113,7 +119,53 @@ export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
     .reduce((a, d) => a + Number(d.reembolso_monto ?? 0), 0);
   const cambiosEfectivo = filasCambios.reduce((a, c) => a + Number(c.diferencia), 0);
 
-  return { ventasEfectivo, ventasOtros, ingresos, egresos, reembolsosEfectivo, cambiosEfectivo };
+  const montosPorMetodo = new Map<string, number>();
+  for (const p of filasPagos) {
+    montosPorMetodo.set(p.metodo, (montosPorMetodo.get(p.metodo) ?? 0) + Number(p.monto));
+  }
+  const porMetodo = Array.from(montosPorMetodo, ([metodo, monto]) => ({ metodo, monto }));
+
+  return { ventasEfectivo, ventasOtros, ingresos, egresos, reembolsosEfectivo, cambiosEfectivo, porMetodo };
+}
+
+/**
+ * Total vendido (todos los métodos) de esta ubicación entre el inicio del día de
+ * Lima de hace 7 días y la misma hora de ese día — el comparativo "vs. mismo día de
+ * la semana pasada" de la barra de meta. Ventana acotada a una hora (`hastaEstaHora`
+ * en el caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
+ * llevamos hoy. Independiente de `getResumenCaja`: mira TODAS las ventas de la sede
+ * ese día, no solo las de una caja puntual (una sede puede abrir/cerrar caja varias
+ * veces en el día).
+ */
+export async function getVentasMismaHoraSemanaAnterior(ubicacionId: string, ahora = new Date()): Promise<number> {
+  const supabase = await createClient();
+  const hoyMs = ahora.getTime();
+  const inicioDia = inicioDeDiaLima(diaLima(hoyMs) - 7);
+  const finVentana = new Date(inicioDia.getTime() + horaDelDiaLima(hoyMs));
+
+  const ventasRes = exigir(
+    await supabase
+      .from("ventas")
+      .select("id")
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "completada")
+      .gte("created_at", inicioDia.toISOString())
+      .lt("created_at", finVentana.toISOString()),
+    "las ventas de la sede la semana pasada"
+  );
+  if (ventasRes.length === 0) return 0;
+
+  const pagos = exigir(
+    await supabase
+      .from("venta_pagos")
+      .select("monto")
+      .in(
+        "venta_id",
+        ventasRes.map((v) => v.id)
+      ),
+    "los pagos de esas ventas"
+  );
+  return pagos.reduce((a, p) => a + Number(p.monto), 0);
 }
 
 export type CierreCaja = {
@@ -188,7 +240,7 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
   const filas = exigir(
     await supabase
       .from("caja_movimientos")
-      .select("id, tipo, monto, motivo, nota, es_ajuste, created_at")
+      .select("id, tipo, monto, motivo, nota, es_ajuste, created_at, usuario_id")
       .eq("caja_id", cajaId)
       .order("created_at", { ascending: false }),
     "los movimientos de caja"
@@ -201,5 +253,6 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     nota: m.nota,
     esAjuste: m.es_ajuste,
     creadoEn: m.created_at,
+    usuarioId: m.usuario_id,
   }));
 }

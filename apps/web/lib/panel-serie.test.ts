@@ -8,6 +8,7 @@ import {
   indiceEnSerie,
   inicioDeDiaLima,
   inicioDeLaVentana,
+  inicioDeMesLima,
 } from "./panel-serie";
 
 // El corte de día en hora de Lima es lo que más se puede romper en silencio del
@@ -88,5 +89,17 @@ describe("hastaEstaHora — el comparativo no compara peras con días completos"
   it("a las 11:59pm ya cuenta el día entero", () => {
     const casiMedianoche = lima(2026, 9, 9, 23, 59);
     expect(hastaEstaHora(lima(2026, 9, 2, 20, 0), casiMedianoche)).toBe(true);
+  });
+});
+
+describe("inicioDeMesLima", () => {
+  it("el día 18 cae dentro del mes que empezó el día 1, en hora de Lima", () => {
+    const inicio = inicioDeMesLima(lima(2026, 9, 18, 10, 30));
+    expect(inicio.toISOString()).toBe("2026-09-01T05:00:00.000Z"); // medianoche del 1-sep en Lima
+  });
+
+  it("la primera hora de un mes (aún de madrugada en Lima) no se cuela al mes anterior", () => {
+    const inicio = inicioDeMesLima(lima(2026, 10, 1, 0, 30));
+    expect(inicio.toISOString()).toBe("2026-10-01T05:00:00.000Z");
   });
 });

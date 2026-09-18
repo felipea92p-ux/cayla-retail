@@ -2746,6 +2746,7 @@ export type Database = {
           activo: boolean
           created_at: string
           id: string
+          meta_venta_diaria: number | null
           nombre: string
           sede_dynamic_id: string | null
           tipo: string
@@ -2754,6 +2755,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           id?: string
+          meta_venta_diaria?: number | null
           nombre: string
           sede_dynamic_id?: string | null
           tipo: string
@@ -2762,6 +2764,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           id?: string
+          meta_venta_diaria?: number | null
           nombre?: string
           sede_dynamic_id?: string | null
           tipo?: string

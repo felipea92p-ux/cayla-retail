@@ -5,8 +5,8 @@ import { exigir } from "@/lib/resultado";
 import { getMovimientosCaja } from "@/lib/caja";
 
 export type EventoCaja =
-  | { tipo: "venta"; id: string; hora: string; total: number; unidades: number; metodos: string[]; anulada: boolean }
-  | { tipo: "movimiento"; id: string; hora: string; direccion: "ingreso" | "egreso"; monto: number; motivo: string; nota: string | null; esAjuste: boolean }
+  | { tipo: "venta"; id: string; hora: string; total: number; unidades: number; metodos: string[]; anulada: boolean; colaboradorNombre: string | null }
+  | { tipo: "movimiento"; id: string; hora: string; direccion: "ingreso" | "egreso"; monto: number; motivo: string; nota: string | null; esAjuste: boolean; colaboradorNombre: string | null }
   | { tipo: "devolucion"; id: string; hora: string; monto: number; metodo: string | null }
   | { tipo: "cambio"; id: string; hora: string; diferencia: number; metodo: string | null };
 
@@ -29,13 +29,25 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
   const supabase = await createClient();
 
   const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
-    supabase.from("ventas").select("id, created_at, estado").eq("caja_id", cajaId),
+    supabase.from("ventas").select("id, created_at, estado, usuario_id").eq("caja_id", cajaId),
     getMovimientosCaja(cajaId),
     supabase.from("devoluciones").select("id, aprobado_en, reembolso_monto, reembolso_metodo").eq("caja_id", cajaId),
     supabase.from("cambios").select("id, created_at, diferencia, metodo_pago_diferencia").eq("caja_id", cajaId),
   ]);
 
   const filasVentas = exigir(ventasRes, "las ventas de esta caja");
+
+  // Nombres de quién registró cada venta/movimiento — mismo patrón que
+  // getCajaAbierta()/getHistorialCierres() (personas vive en public, Dynamic;
+  // PostgREST no embebe entre schemas). Un solo lote para las dos fuentes.
+  const idsColaboradores = Array.from(
+    new Set([...filasVentas.map((v) => v.usuario_id), ...movimientos.map((m) => m.usuarioId)].filter((v): v is string => v !== null))
+  );
+  const nombresColaboradores =
+    idsColaboradores.length === 0
+      ? []
+      : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: idsColaboradores }), "quién registró cada evento de esta caja");
+  const nombreColaborador = new Map(nombresColaboradores.map((n) => [n.id, n.nombre]));
   const ventaIds = filasVentas.map((v) => v.id);
   const [pagosRes, itemsRes] = await Promise.all([
     ventaIds.length
@@ -61,6 +73,7 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
       unidades: items.reduce((a, i) => a + i.cantidad, 0),
       metodos: [...new Set(pagos.map((p) => p.metodo))],
       anulada: v.estado === "anulada",
+      colaboradorNombre: v.usuario_id ? (nombreColaborador.get(v.usuario_id) ?? null) : null,
     });
   }
 
@@ -74,6 +87,7 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
       motivo: m.motivo,
       nota: m.nota,
       esAjuste: m.esAjuste,
+      colaboradorNombre: m.usuarioId ? (nombreColaborador.get(m.usuarioId) ?? null) : null,
     });
   }
 

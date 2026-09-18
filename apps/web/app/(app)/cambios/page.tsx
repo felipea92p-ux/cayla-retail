@@ -2,6 +2,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getLineasVentaRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getEstadisticasCambios } from "@/lib/cambios-estadisticas";
 import { CambiosLista } from "@/components/CambiosLista";
 
 // Prioridad 1 (2026-09-12): cambio de talla/color. Ver
@@ -13,10 +14,11 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Mismo par de lecturas que Vender (vender/page.tsx): el catálogo entero más el piso
   // de ESTA ubicación, para que el selector de "entregar en su lugar" no ofrezca una
   // talla que `registrar_cambio` va a rechazar por falta de stock.
-  const [lineas, catalogo, stock] = await Promise.all([
+  const [lineas, catalogo, stock, estadisticas] = await Promise.all([
     getLineasVentaRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
+    getEstadisticasCambios(persona.ubicacionId),
   ]);
   const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
 
@@ -36,15 +38,18 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
           ubicacionId={persona.ubicacionId}
           busqueda={q ?? ""}
           todasLasSedes={todasLasSedes}
+          estadisticas={estadisticas}
           catalogo={catalogo
             .filter((v) => v.activo)
             .map((v) => ({
               varianteId: v.varianteId,
+              productoId: v.productoId,
               sku: v.sku,
               codigo: v.codigo,
               referencia: v.referencia,
               talla: v.talla,
               color: v.color,
+              colorHex: v.colorHex,
               precio: v.precio,
               stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
             }))}
