@@ -1625,6 +1625,60 @@ export type Database = {
           },
         ]
       }
+      marca_proveedores: {
+        Row: {
+          created_at: string
+          marca_id: string
+          proveedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          marca_id: string
+          proveedor_id: string
+        }
+        Update: {
+          created_at?: string
+          marca_id?: string
+          proveedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marca_proveedores_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marca_proveedores_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marcas: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       movimientos: {
         Row: {
           cambio_id: string | null
@@ -2187,9 +2241,11 @@ export type Database = {
           estado: string
           estado_alta: string
           id: string
+          marca_id: string
           patron_id: string | null
           permitir_venta_sin_stock: boolean
           propuesto_por: string | null
+          proveedor_id: string
           referencia: string
           stock_minimo: number | null
           tejido_id: string | null
@@ -2206,9 +2262,11 @@ export type Database = {
           estado?: string
           estado_alta?: string
           id?: string
+          marca_id: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
+          proveedor_id: string
           referencia: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -2225,9 +2283,11 @@ export type Database = {
           estado?: string
           estado_alta?: string
           id?: string
+          marca_id?: string
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
+          proveedor_id?: string
           referencia?: string
           stock_minimo?: number | null
           tejido_id?: string | null
@@ -2254,6 +2314,20 @@ export type Database = {
             columns: ["tejido_id"]
             isOneToOne: false
             referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_marca_fk"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_proveedor_fk"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
             referencedColumns: ["id"]
           },
         ]
@@ -3361,39 +3435,26 @@ export type Database = {
           similitud: number
         }[]
       }
-      catalogo_actualizar_producto:
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_fotos?: Json
-              p_permitir_venta_sin_stock?: boolean
-              p_producto_id: string
-              p_referencia: string
-              p_stock_minimo?: number
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_categoria_id?: string
-              p_descripcion?: string
-              p_estado: string
-              p_fotos?: Json
-              p_patron_id?: string
-              p_permitir_venta_sin_stock?: boolean
-              p_producto_id: string
-              p_referencia: string
-              p_stock_minimo?: number
-              p_tejido_id?: string
-              p_temporada?: string
-              p_variantes: Json
-            }
-            Returns: undefined
-          }
+      catalogo_actualizar_producto: {
+        Args: {
+          p_categoria_id?: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_estado: string
+          p_fotos?: Json
+          p_marca_id?: string
+          p_patron_id?: string
+          p_permitir_venta_sin_stock?: boolean
+          p_producto_id: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_stock_minimo?: number
+          p_tejido_id?: string
+          p_temporada?: string
+          p_variantes: Json
+        }
+        Returns: undefined
+      }
       catalogo_crear_producto: {
         Args: {
           p_categoria_id?: string
@@ -3415,7 +3476,9 @@ export type Database = {
           p_codigo_barras: string
           p_color_codigo?: string
           p_costo?: number
+          p_marca_id?: string
           p_precio?: number
+          p_proveedor_id?: string
           p_referencia: string
           p_talla_id?: string
         }
@@ -3507,13 +3570,19 @@ export type Database = {
         }
         Returns: string
       }
+      crear_marca: {
+        Args: { p_nombre: string; p_proveedor_id: string }
+        Returns: string
+      }
       crear_producto_con_variantes: {
         Args: {
           p_categoria_id: string
           p_confirmo_distinto?: boolean
           p_descripcion?: string
           p_etiqueta_ids?: string[]
+          p_marca_id?: string
           p_patron_id?: string
+          p_proveedor_id?: string
           p_referencia: string
           p_tejido_id?: string
           p_token?: string
