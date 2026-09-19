@@ -184,12 +184,12 @@ export function CajaAbiertaPanel({
           </div>
         </div>
         {haySincronizando ? (
-          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-ambar/15 px-3.5 py-2 text-[12px] font-bold text-ambar-profundo">
+          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-ambar/15 px-3.5 py-2 text-[12px] text-ambar-profundo">
             <TriangleAlert size={14} aria-hidden />
             {cola.length} venta{cola.length === 1 ? "" : "s"} sin sincronizar
           </span>
         ) : (
-          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-verde/15 px-3.5 py-2 text-[12px] font-bold text-verde-profundo">
+          <span className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-full bg-verde/15 px-3.5 py-2 text-[12px] text-verde-profundo">
             <CircleCheck size={14} aria-hidden />
             Todo sincronizado
           </span>
@@ -297,7 +297,7 @@ export function CajaAbiertaPanel({
               ok: Math.abs(c.diferencia) < 0.01,
             }))}
           />
-          <Link href="/caja/historial" className="label-cayla inline-flex items-center gap-1.5 text-[11px] font-bold text-rojo hover:text-rojo-profundo">
+          <Link href="/caja/historial" className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:text-rojo-profundo">
             <History size={12} aria-hidden /> Ver historial completo
           </Link>
         </div>
@@ -357,7 +357,7 @@ function TarjetaKpi({
         <span className="label-cayla text-[10.5px] text-tinta/55">{etiqueta}</span>
         <span style={{ color: colorBorde }}>{icono}</span>
       </div>
-      <p className="font-display text-xl font-semibold text-tinta">{money(animado)}</p>
+      <p className="font-display text-xl text-tinta">{money(animado)}</p>
       <div className="mt-2">{sparkline && sparkline.length > 1 && <Sparkline puntos={sparkline} color={colorBorde} />}</div>
     </div>
   );

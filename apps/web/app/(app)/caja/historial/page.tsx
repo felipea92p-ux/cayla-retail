@@ -83,7 +83,7 @@ export default async function HistorialCierresPage() {
                   {money(c.montoCierreReal)}
                 </span>
                 <span className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
-                  <span className="label-cayla mr-1 font-normal text-tinta/40 sm:hidden">Diferencia</span>
+                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Diferencia</span>
                   {c.diferencia >= 0 ? "+" : ""}
                   {money(c.diferencia)}
                 </span>
