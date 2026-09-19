@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { avisar } from "@/components/ui/Avisos";
@@ -39,18 +40,6 @@ type Color = {
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
 };
-
-const FAMILIAS_COLOR = [
-  { valor: "neutro", texto: "Neutro" },
-  { valor: "azul", texto: "Azul" },
-  { valor: "rojo", texto: "Rojo" },
-  { valor: "amarillo", texto: "Amarillo" },
-  { valor: "verde", texto: "Verde" },
-  { valor: "morado", texto: "Morado" },
-  { valor: "tierra", texto: "Tierra" },
-  { valor: "metalico", texto: "Metálico" },
-  { valor: "estampado", texto: "Estampado" },
-] as const;
 
 // Naturaleza visual del color (20260915230000_colores_tipo_y_muestra.sql) —
 // ortogonal a FAMILIAS_COLOR (matiz): un mismo tipo cruza todas las familias.
