@@ -11,7 +11,7 @@ import type { EvolucionCosto } from "@/lib/proveedores";
 // «es caro» que «subió 8.7 % en tres compras». Sale de `compra_items` (lo que de verdad se pagó en
 // cada comprobante), no de `costo_historial`, que mezcla a todos los proveedores de la misma prenda.
 //
-// ADR-0122: al llegar, la línea se dibuja y los puntos aparecen uno tras otro (una vez); al pasar el mouse
+// ADR-0128: al llegar, la línea se dibuja y los puntos aparecen uno tras otro (una vez); al pasar el mouse
 // por el gráfico una guía salta a la compra más cercana, su punto crece y las demás cifras se apagan — se
 // lee UNA compra sin buscarla en la fila de abajo.
 //

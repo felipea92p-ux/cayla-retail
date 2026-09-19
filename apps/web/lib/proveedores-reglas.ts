@@ -1,4 +1,4 @@
-// Reglas puras de Proveedores (maquetas 08 y 09, ADR-0111; vista rápida y mini-tendencias, ADR-0122).
+// Reglas puras de Proveedores (maquetas 08 y 09, ADR-0111; vista rápida y mini-tendencias, ADR-0128).
 // Sin I/O: se prueban sin base.
 
 import { soles } from "./compras-reglas";
@@ -122,7 +122,7 @@ export function subeEnCadaCompra(costos: number[]): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Facturado por mes (ADR-0122): la forma detrás de «Facturado 12 m».
+// Facturado por mes (ADR-0128): la forma detrás de «Facturado 12 m».
 // ---------------------------------------------------------------------------
 
 /**

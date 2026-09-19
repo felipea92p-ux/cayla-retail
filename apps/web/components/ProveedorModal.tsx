@@ -23,16 +23,16 @@ import { proveedorConRuc } from "@/lib/proveedores-reglas";
 // (principio 9): un proveedor no se queda sin registrar por una API ajena.
 //
 // El rubro sigue siendo texto libre (ADR-0094) pero sugiere los ya usados (`rubros`): así «Tela»,
-// «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0122: las sugerencias
+// «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0128: las sugerencias
 // ahora son botones a la vista (un toque) además de la lista desplegable del campo.
 //
-// ADR-0122 (spike visual 2026-09-19): el formulario se rehízo con la carcasa y las piezas del spike — encabezado
+// ADR-0128 (spike visual 2026-09-19): el formulario se rehízo con la carcasa y las piezas del spike — encabezado
 // con su rótulo, contador y validación del RUC («n/11», hilo verde, ✓ que se dibuja), plazo de crédito y forma de
 // pago como opciones a la vista (el plazo con un pulgar que se desliza), rubro con sugerencias en botones, y un
 // botón que barre mientras guarda y confirma con un ✓ antes de cerrar. Los campos reales que el spike no tenía
 // (consulta a SUNAT, teléfono, banco, cuenta) siguen: cambia cómo se ven, no qué se guarda.
 //
-// ADR-0122: el RUC duplicado se dice AL ESCRIBIR, con el nombre del proveedor con el que choca
+// ADR-0128: el RUC duplicado se dice AL ESCRIBIR, con el nombre del proveedor con el que choca
 // (`existentes`). El candado de verdad sigue siendo el índice único de la base; esto solo evita que el
 // error llegue recién al guardar, después de haber llenado todo el formulario.
 

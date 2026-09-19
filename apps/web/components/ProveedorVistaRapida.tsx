@@ -16,7 +16,7 @@ import { PasoSugerido } from "@/components/ui/PasoSugerido";
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
 
-// Vista rápida de un proveedor (ADR-0122, spike 2026-09-19): al tocar una fila se abre un cajón desde el
+// Vista rápida de un proveedor (ADR-0128, spike 2026-09-19): al tocar una fila se abre un cajón desde el
 // borde derecho en vez de saltar a la ficha. El problema que resuelve: comparar cinco proveedores
 // obligaba a ir a la ficha y volver a la lista cinco veces, perdiendo el orden, el filtro y la búsqueda.
 // Acá la lista queda detrás, intacta, y con ↑ ↓ se pasa de un proveedor al siguiente sin cerrar.

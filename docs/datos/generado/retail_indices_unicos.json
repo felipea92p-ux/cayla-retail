@@ -230,6 +230,26 @@
   "tablename": "devoluciones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX envio_extras_pkey ON retail.envio_extras USING btree (movimiento_id)",
+  "indexname": "envio_extras_pkey",
+  "tablename": "envio_extras"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX envio_traslados_pkey ON retail.envio_traslados USING btree (envio_id, transferencia_id)",
+  "indexname": "envio_traslados_pkey",
+  "tablename": "envio_traslados"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX envios_pkey ON retail.envios USING btree (id)",
+  "indexname": "envios_pkey",
+  "tablename": "envios"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX envios_token_cliente_key ON retail.envios USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)",
+  "indexname": "envios_token_cliente_key",
+  "tablename": "envios"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX etiqueta_categorias_pkey ON retail.etiqueta_categorias USING btree (etiqueta_id, categoria_id)",
   "indexname": "etiqueta_categorias_pkey",
   "tablename": "etiqueta_categorias"

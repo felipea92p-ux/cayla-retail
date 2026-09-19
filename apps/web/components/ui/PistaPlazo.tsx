@@ -1,5 +1,5 @@
 /**
- * El plazo de pago real contra el pactado (ADR-0122): una pista con la marca del plazo pactado y el
+ * El plazo de pago real contra el pactado (ADR-0128): una pista con la marca del plazo pactado y el
  * relleno hasta lo que de verdad se tarda en pagar — verde si se paga dentro del plazo, ámbar si se pasa.
  * Es decorativa (`aria-hidden`): el texto de la tarjeta ya dice «Pactado: N días» y la cifra es la real.
  */

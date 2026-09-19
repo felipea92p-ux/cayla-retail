@@ -51,7 +51,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const pactado = proveedor.plazo_credito_dias;
   const conCompras = m.facturas_vigentes > 0;
   const pagoDemoraMas = m.dias_pago_real_promedio != null && pactado != null && m.dias_pago_real_promedio > pactado;
-  // «¿Y ahora qué?»: la sugerencia más urgente, la misma que dice la vista rápida de la lista (ADR-0122).
+  // «¿Y ahora qué?»: la sugerencia más urgente, la misma que dice la vista rápida de la lista (ADR-0128).
   const paso = siguientePaso({
     activo: proveedor.activo,
     conCompras,

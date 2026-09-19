@@ -62,6 +62,8 @@ colaborador solo recibe comprobantes destinados a SU sede (la misma regla con qu
   `resumen_compras_extra`: las pruebas SQL de Compras (PR #165) encontraron que esas lecturas —igual que
   `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos`— devuelven a un integrante los montos de su
   sede, porque solo tienen el candado de sede (ADR-0075). Ese hueco no lo resuelve este ADR: solo lo evita.
+  **Lo cerró después ADR-0126** (2026-09-19): las funciones, las tablas y el bucket de escaneos pasaron a solo-líder y
+  el integrante lee los comprobantes por `listar_compras_operativo`/`lineas_compra_operativo`, sin un solo monto.
 - **Quién decide qué pasa con lo que faltó** es una decisión *de la pantalla*, no de la base: un colaborador
   cuenta y lo que falta queda pendiente («Sigue pendiente»); el líder decide si se espera o se cierra, como
   en Traslados (cuenta cualquiera, un líder cierra las diferencias). Relajarlo no requiere migración.
@@ -103,8 +105,9 @@ Fuera de comprobante (D1 y D2 de ADR-0111 se conservan: «sin contar» ≠ «fal
   Compras (la ruta vieja redirige). La pestaña «Recibidas» queda en `/recibir?vista=recibidas`; la rama
   `feat/recibidas-pastillas` de esa sesión (filtros como pastillas) reusa sus componentes y aplica su cambio de
   página en `/recibir/page.tsx`.
-- **El historial** («Recibidas recientemente») todavía lista una fila por comprobante (los de un mismo envío
-  comparten guía); agruparlo por envío es lo siguiente.
+- **El historial** («Recibidas recientemente») listaba una fila por comprobante (los de un mismo envío comparten
+  guía). **Ya sale agrupado por envío** (ADR-0126, `agruparPorEnvio`): una cabecera «Envío de N proveedores · Guía …»
+  con lo que llegó y lo que faltó, sin migración (lee `lotes.envio_id`).
 - **Sin hacer:** borrador local del conteo, miniaturas de prenda, foto de la guía, «Imprimir». Y ni
   `recibir_compras` ni `recibir_lote` sueltos tienen token: hoy solo `recibir_envio` es idempotente.
 - **Cruce conocido:** ADR-0107 de la rama `modulos-por-tienda` (un comprobante repartido entre tiendas,

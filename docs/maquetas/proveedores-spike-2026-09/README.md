@@ -1,6 +1,6 @@
 # Spike visual · Proveedores (2026-09-19)
 
-> **Estado (2026-09-19): aplicado al ERP, ENTRADA INCLUIDA — ver `docs/adr/0122-proveedores-vista-rapida-y-gestos-de-movimiento.md`.**
+> **Estado (2026-09-19): aplicado al ERP, ENTRADA INCLUIDA — ver `docs/adr/0128-proveedores-vista-rapida-y-gestos-de-movimiento.md`.**
 > La regla «nada se anima solo al entrar» de `globals.css` se cambió por decisión de Felipe: la llegada a una
 > pantalla con varias piezas también se anima. Este HTML queda como referencia visual del diseño aprobado.
 

@@ -1,5 +1,5 @@
 /**
- * Mini-tendencia (ADR-0122): la forma de una serie en 46×18 px, sin ejes ni números — el número ya está
+ * Mini-tendencia (ADR-0128): la forma de una serie en 46×18 px, sin ejes ni números — el número ya está
  * al lado; esto solo dice si sube, baja o si fue un solo mes. Se dibuja al llegar la fila y `pathLength=1`
  * hace que se pueda redibujar al pasar el mouse por ella (`.group:hover .trazo-al-pasar`, globals.css) sin medir la línea.
  * Sin datos (todo cero) no dibuja nada: una línea plana en cero no informa, ocupa lugar.

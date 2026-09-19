@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 
 /**
- * FLIP para una lista que se reordena o se filtra (ADR-0122): las filas que ya estaban se DESLIZAN de
+ * FLIP para una lista que se reordena o se filtra (ADR-0128): las filas que ya estaban se DESLIZAN de
  * donde estaban a donde quedan, en vez de saltar. Es lo que hace que ordenar por «Saldo» se lea como
  * «las mismas filas se movieron» y no como «la tabla se redibujó».
  *

@@ -52,13 +52,13 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // hay que reclamar), columnas ordenables (por defecto por saldo) y «+ Comprobante» en la fila.
 // Un filtro por rubro con conteo — el rubro ya se guardaba y se veía por fila, faltaba poder filtrar.
 //
-// ADR-0122 (spike visual 2026-09-19): la lista RESPONDE. Tocar una fila abre una vista rápida (cajón)
+// ADR-0128 (spike visual 2026-09-19): la lista RESPONDE. Tocar una fila abre una vista rápida (cajón)
 // sin perder el orden ni el filtro; ordenar y filtrar deslizan las filas a su lugar (FLIP); el filtro
 // de rubro tiene un pulgar que viaja; la búsqueda marca dónde coincidió; la barra de concentración
 // enciende la fila del proveedor al que apuntas; y lo recién creado, reactivado o desactivado se marca
 // con un destello. Desactivar se puede deshacer (7 s). Al llegar, las piezas entran escalonadas (cifras,
 // buscador, tabla, filas: `anim-entra` con `--i`) y las cifras y trazos se arman una vez — regla de
-// movimiento revisada el 2026-09-19 (globals.css, ADR-0122). Lo demás responde a una acción.
+// movimiento revisada el 2026-09-19 (globals.css, ADR-0128). Lo demás responde a una acción.
 //
 // `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, abrir el detalle
 // (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición

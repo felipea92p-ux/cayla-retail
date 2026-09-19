@@ -1,5 +1,5 @@
 -- ============================================================================
--- Proveedores: facturado por mes, últimos 12 meses (ADR-0122, spike visual 2026-09-19)
+-- Proveedores: facturado por mes, últimos 12 meses (ADR-0128, spike visual 2026-09-19)
 --
 -- EL PROBLEMA. «Facturado 12 m» es un solo número: no dice si el proveedor viene subiendo,
 -- cayendo o si compraste todo en un mes. La lista y la vista rápida de Proveedores ahora
@@ -46,4 +46,4 @@ revoke all on function retail.fn_proveedores_serie_12m() from public, anon;
 grant execute on function retail.fn_proveedores_serie_12m() to authenticated;
 
 comment on function retail.fn_proveedores_serie_12m() is
-  'Lo facturado por proveedor y mes, últimos 12 meses de calendario (solo meses con compras). Solo líder. ADR-0122.';
+  'Lo facturado por proveedor y mes, últimos 12 meses de calendario (solo meses con compras). Solo líder. ADR-0128.';

@@ -1,7 +1,7 @@
 import { soles } from "@/lib/compras-reglas";
 
 /**
- * Doce barras, una por mes (ADR-0122): lo facturado a un proveedor mes a mes. La última (el mes en curso)
+ * Doce barras, una por mes (ADR-0128): lo facturado a un proveedor mes a mes. La última (el mes en curso)
  * va en tinta y las demás apagadas. Crecen desde su base con `.anim-crece-y`, escalonadas — pero este
  * componente solo se monta cuando la persona abre la vista rápida, así que el movimiento responde a un clic.
  * Cada barra dice su monto al pasar el mouse; para el lector de pantalla hay un resumen.

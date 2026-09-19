@@ -5,16 +5,14 @@ import type { ReactNode } from "react";
 import { Modal, botonCancelar } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import {
-  ETIQUETA_CATEGORIA,
   ETIQUETA_ESTADO_DEVOLUCION,
   ETIQUETA_ESTADO_TRASLADO,
   etiquetaDia,
   etiquetaEstadoComprobante,
-  etiquetaProceso,
+  etiquetaMovimiento,
   hoyEnLima,
   textoComprobante,
   textoDelta,
-  tonoCategoria,
   tonoEstadoTraslado,
   type Movimiento,
 } from "@/lib/movimientos-reglas";
@@ -32,12 +30,7 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
   return (
     <Modal
-      titulo={
-        <span className="flex flex-wrap items-center gap-2">
-          <Chip tono={tonoCategoria(m.categoria, m.delta)}>{ETIQUETA_CATEGORIA[m.categoria]}</Chip>
-          <span>{etiquetaProceso(m.motivo)}</span>
-        </span>
-      }
+      titulo={etiquetaMovimiento(m)}
       subtitulo={`${etiquetaDia(m.fecha, hoyEnLima())} · ${m.hora} · ${m.esSistema ? "Movimiento de sistema, sin persona" : (m.usuario ?? "Persona no identificada")}`}
       onClose={onClose}
       ancho="max-w-md"
@@ -74,10 +67,17 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
                 {m.sububicacion?.nombre ?? "Sin sububicación"} <span className="text-tinta/55">→</span> {m.sububicacionDestino?.nombre ?? "Sin sububicación"}
               </Dato>
             ) : m.categoria === "transferencia" ? (
-              (m.sububicacion || m.sububicacionDestino) && (
+              m.sububicacion && m.sububicacionDestino ? (
+                // Una fila del modelo anterior (una sola fila que sale de una sede y entra a otra): las dos puntas.
                 <Dato etiqueta="Sububicaciones">
-                  {m.sububicacion?.nombre ?? "Sin sububicación"} <span className="text-tinta/55">→</span> {m.sububicacionDestino?.nombre ?? "Sin sububicación"}
+                  {m.sububicacion.nombre} <span className="text-tinta/55">→</span> {m.sububicacionDestino.nombre}
                 </Dato>
+              ) : (
+                // Una pierna del traslado: la sububicación es la de ESTA sede — donde entró o de donde salió. Poner
+                // «→ Sin sububicación» hacía parecer que la mercadería iba del almacén a ninguna parte.
+                (m.sububicacion ?? m.sububicacionDestino) && (
+                  <Dato etiqueta={m.delta > 0 ? "Entró a" : "Salió de"}>{(m.sububicacion ?? m.sububicacionDestino)?.nombre}</Dato>
+                )
               )
             ) : (
               m.sububicacion && <Dato etiqueta="Sububicación">{m.sububicacion.nombre}</Dato>
@@ -108,20 +108,20 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
             {m.transferencia && (
               <>
+                {/* El proceso completo (qué prendas viajaron juntas, envío, recepción, diferencias) lo cuenta
+                    Traslados: acá solo el número, el estado y el camino para llegar. */}
                 <Dato etiqueta="Traslado">
-                  <span className="flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/inventario/traslados/${m.transferencia.id}`}
+                      className="text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
+                      onClick={cerrar}
+                    >
+                      {m.transferencia.numero !== null ? `Traslado ${m.transferencia.numero}` : "Ver traslado"} →
+                    </Link>
                     <Chip tono={tonoEstadoTraslado(m.transferencia.estado ?? "completada")}>
                       {ETIQUETA_ESTADO_TRASLADO[m.transferencia.estado ?? "completada"] ?? m.transferencia.estado ?? "—"}
                     </Chip>
-                    {m.transferencia.estado && m.transferencia.estado !== "completada" && (
-                      <Link
-                        href={`/inventario/traslados/${m.transferencia.id}`}
-                        className="text-xs text-rojo hover:underline"
-                        onClick={cerrar}
-                      >
-                        Ver traslado →
-                      </Link>
-                    )}
                   </span>
                 </Dato>
                 {m.transferencia.nota && <Dato etiqueta="Nota">{m.transferencia.nota}</Dato>}
@@ -142,6 +142,13 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
             {m.conteo && (
               <Dato etiqueta="Conteo">
+                <Link
+                  href={`/inventario/conteo/${m.conteo.id}`}
+                  className="mr-2 text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
+                  onClick={cerrar}
+                >
+                  {m.conteo.numero !== null ? `Conteo ${m.conteo.numero}` : "Ver conteo"} →
+                </Link>
                 Sistema {m.conteo.sistema ?? "—"} <span className="text-tinta/55">→</span> contado {m.conteo.contado ?? "—"}
                 {dif !== null && (
                   <span className={dif < 0 ? "text-rojo-profundo" : "text-verde-profundo"}>

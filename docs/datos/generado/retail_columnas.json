@@ -2874,6 +2874,138 @@
    "table_schema": "retail"
   }
  ],
+ "envio_extras": [
+  {
+   "column_default": null,
+   "column_name": "movimiento_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "envio_extras",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "envio_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "envio_extras",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "envio_extras",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "es_regalo",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "envio_extras",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "envio_extras",
+   "table_schema": "retail"
+  }
+ ],
+ "envio_traslados": [
+  {
+   "column_default": null,
+   "column_name": "envio_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "envio_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "transferencia_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "envio_traslados",
+   "table_schema": "retail"
+  }
+ ],
+ "envios": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "numero_guia",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recibido_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "fecha_recepcion",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "envios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "token_cliente",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "envios",
+   "table_schema": "retail"
+  }
+ ],
  "etiqueta_categorias": [
   {
    "column_default": null,
@@ -3579,6 +3711,15 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 8,
+   "table_name": "lotes",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "envio_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
    "table_name": "lotes",
    "table_schema": "retail"
   }

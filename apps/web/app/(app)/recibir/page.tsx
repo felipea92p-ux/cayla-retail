@@ -7,7 +7,7 @@ import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas } from "@/lib/recibidas-filtros-reglas";
-import { getTrasladosHaciaAca } from "@/lib/envio";
+import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
 import { KpisRecibir } from "@/components/KpisRecibir";
@@ -74,12 +74,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
     const filtrosRecibidas = filtrosRecibidasDesdeParams(params);
+    const LIMITE_RECIBIDAS = 30;
     const [resumen, recepciones, recientes, proveedores] = await Promise.all([
       getResumenRecepciones(),
-      listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: 30 }),
+      listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: LIMITE_RECIBIDAS }),
       getRecepcionesRecientes({ conFactura: true, limite: 40 }),
       getProveedoresActivos(),
     ]);
+    // A qué envío pertenece cada guía: las filas de una misma llegada de varios proveedores salen bajo una cabecera.
+    const envios = await getEnviosDeLotes(recepciones.map((r) => r.loteId));
     // Detalle prenda por prenda y quién recibió, por guía (de la misma lectura que ya resuelve los nombres).
     const detalles = Object.fromEntries(recientes.map((r) => [r.loteId, r.detalle]));
     const nombres = Object.fromEntries(recientes.flatMap((r) => (r.recibidoPor ? [[r.loteId, r.recibidoPor] as const] : [])));
@@ -136,6 +139,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             recepciones={recepciones}
             detalles={detalles}
             nombres={nombres}
+            envios={envios}
+            limite={LIMITE_RECIBIDAS}
             enlaceAlComprobante={esLider}
             vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
           />
@@ -151,14 +156,16 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const hayFiltros = Object.values(filtros).some(Boolean);
 
   const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
-    listarPorRecibir(filtros, cursor),
+    // ADR-0126: quien no es líder lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
+    // tablas de dinero quedan cerradas para él en la base). El líder lee `listar_compras`, como siempre.
+    listarPorRecibir(filtros, cursor, { sinMontos: !esLider }),
     getUbicaciones(),
     getCatalogo(),
     getProveedoresActivos(),
   ]);
-  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: `resumen_compras` y
-  // `resumen_compras_extra` devuelven a un integrante los montos de su sede (solo tienen el candado de sede,
-  // ADR-0075), así que para él ni se piden — se calculan de su propia lista, solo cantidades y fechas.
+  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: esas funciones ya le
+  // responden «Solo un líder puede ver …» (ADR-0126), así que para él ni se piden — se calculan de su propia lista,
+  // solo cantidades y fechas.
   const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
   const kpis =
     resumen && extra
@@ -172,13 +179,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           valorPorRecibir: extra.valorPorRecibir as number | null,
         }
       : { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: null as number | null };
-  // Quien cuenta pero no es líder no ve dinero: los montos ni siquiera salen del servidor.
+  // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
+  // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
   const ubicacionesPermitidas = esLider ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, saldoFavorPorProveedor, trasladosPorUbicacion] = await Promise.all([
-    getLineasCompra(compras.map((c) => c.id)),
+    getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     esLider ? getSaldosFavor(compras.map((c) => c.proveedorId)) : Promise.resolve({} as Record<string, number>),
     getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),

@@ -70,7 +70,7 @@ export async function getProveedores(): Promise<Proveedor[]> {
   }));
 }
 
-// Lo facturado por proveedor y mes, últimos 12 meses (fn_proveedores_serie_12m, ADR-0122): la forma
+// Lo facturado por proveedor y mes, últimos 12 meses (fn_proveedores_serie_12m, ADR-0128): la forma
 // detrás de «Facturado 12 m». Devuelve, por id de proveedor, doce montos del mes más antiguo al actual;
 // un proveedor sin compras en la ventana no aparece (quien la pinta lo trata como doce ceros).
 //

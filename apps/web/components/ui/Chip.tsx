@@ -26,10 +26,22 @@ const TONO: Record<TonoChip, string> = {
   apagado: "border-tinta/10 bg-transparent text-tinta/45 line-through",
 };
 
-export function Chip({ tono = "neutro", children, className = "" }: { tono?: TonoChip; children: ReactNode; className?: string }) {
-  return (
-    <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] leading-4 ${TONO[tono]} ${className}`}>
-      {children}
-    </span>
-  );
+export function Chip({
+  tono = "neutro",
+  versalitas = true,
+  children,
+  className = "",
+}: {
+  tono?: TonoChip;
+  /** `false` (Cambios, 2026-09-18): texto en minúscula normal y un ícono al lado — un
+   *  estado que se lee como frase ("Vence en 2 días"). El default deja a Compras y
+   *  Facturación exactamente como estaban. */
+  versalitas?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  const forma = versalitas
+    ? "label-cayla inline-block px-2.5 py-0.5 text-[10px] leading-4"
+    : "inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold leading-5";
+  return <span className={`${forma} whitespace-nowrap rounded-full border ${TONO[tono]} ${className}`}>{children}</span>;
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import type { LineaVentaParaDevolucion } from "@/lib/devoluciones";
+import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 
 const CONDICIONES = [
@@ -31,7 +31,14 @@ type ItemVenta = {
 // que sí es por línea. anular_venta (ADR-0065) exige la condición de cada
 // ítem de la venta, así que este formulario carga todas las líneas al abrir,
 // no solo la que se clickeó en la lista.
-export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevolucion; onClose: () => void }) {
+export function AnularVentaForm({
+  linea,
+  onClose,
+}: {
+  /** Solo se usa para identificar la venta y decir de qué prenda se clickeó. */
+  linea: Pick<LineaVentaReciente, "ventaId" | "referencia" | "codigo" | "sku">;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [items, setItems] = useState<ItemVenta[] | null>(null);
   const [condiciones, setCondiciones] = useState<Record<string, Condicion>>({});

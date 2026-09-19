@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Una cifra que CAMBIÓ cuenta hasta su valor nuevo (ADR-0122): el gesto «asentar» de la capa de
+ * Una cifra que CAMBIÓ cuenta hasta su valor nuevo (ADR-0128): el gesto «asentar» de la capa de
  * movimiento, pero con el número mismo — el ojo nota que cambió sin releerla. Por defecto arranca en el
  * valor que llega y cuenta solo cuando algo lo mueve (registrar un proveedor, desactivar…).
  * `alMontar`: además se «arma» una vez al llegar a la pantalla, contando desde 0 (entrada escalonada de la

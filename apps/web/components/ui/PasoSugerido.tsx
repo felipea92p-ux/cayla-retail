@@ -4,7 +4,7 @@ import type { SiguientePaso } from "@/lib/proveedores-reglas";
 const BORDE = { rojo: "border-l-rojo", ambar: "border-l-ambar", verde: "border-l-verde", neutro: "border-l-tinta/25" } as const;
 
 /**
- * «¿Y ahora qué?» de un proveedor, en una línea (ADR-0122): la sugerencia más urgente que devuelve
+ * «¿Y ahora qué?» de un proveedor, en una línea (ADR-0128): la sugerencia más urgente que devuelve
  * `siguientePaso`, con su enlace cuando la acción es ir a otra pantalla. Lo dibujan igual la vista rápida
  * de la lista y la ficha, para que digan lo mismo. Las acciones que cambian el estado del proveedor
  * (desactivar / reactivar) NO llevan enlace acá: tienen su propio botón donde corresponde.

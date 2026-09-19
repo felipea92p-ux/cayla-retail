@@ -14,7 +14,7 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // proveedor, quiénes llevan más de 90 días sin comprar) salen de `fn_proveedores_resumen()`, que
 // se calcula sobre la misma lectura que la tabla: una sola fuente de verdad.
 //
-// ADR-0122: las cifras ahora las dibuja `ProveedoresIndicadores` (componente cliente: cuentan al cambiar
+// ADR-0128: las cifras ahora las dibuja `ProveedoresIndicadores` (componente cliente: cuentan al cambiar
 // y la barra de concentración conversa con la tabla). La serie mensual (`fn_proveedores_serie_12m`) es
 // opcional: si la función no está en la base, `getProveedoresSerie()` devuelve `null` y la lista se pinta
 // sin tendencias.

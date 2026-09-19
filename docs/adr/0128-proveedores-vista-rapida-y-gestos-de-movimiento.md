@@ -1,4 +1,4 @@
-# ADR-0122 — Proveedores: vista rápida, mini-tendencias y revisión de la regla de movimiento (la entrada se anima)
+# ADR-0128 — Proveedores: vista rápida, mini-tendencias y revisión de la regla de movimiento (la entrada se anima)
 
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado. **Producción:** la migración `20260919150000_proveedores_serie_mensual.sql` (una función

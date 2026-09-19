@@ -7,7 +7,7 @@ import type { TramoDeuda } from "@/lib/proveedores-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
-// Las cifras de arriba de la lista (ADR-0111; movidas del servidor a un componente cliente en ADR-0122).
+// Las cifras de arriba de la lista (ADR-0111; movidas del servidor a un componente cliente en ADR-0128).
 // Nada del contenido cambió: son las mismas tarjetas y los mismos textos que `page.tsx` armaba. Lo nuevo
 // son dos cosas que necesitan estado del navegador:
 //   · las cifras se «arman» al llegar (cuentan desde 0, una vez) y CUENTAN hasta su valor nuevo cuando

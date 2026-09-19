@@ -3,12 +3,110 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0122)
+## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0128)
 Se aplicó al ERP el spike visual de Proveedores (`docs/maquetas/proveedores-spike-2026-09/`): tocar una fila abre una vista rápida (↑ ↓ entre proveedores) en vez de saltar a la ficha; ordenar y filtrar deslizan las filas (FLIP); el filtro de rubro tiene un pulgar que viaja; la barra de concentración enciende la fila del proveedor al que apuntas; desactivar se puede deshacer 7 s; el RUC repetido se avisa al escribir.
-Decisión de Felipe: la primera versión respetó la regla «nada se anima solo al entrar» y quedó quieta al abrir; Felipe la vio, esperaba el spike y pidió cambiar la regla. Ahora la llegada a una pantalla con varias piezas también se anima (entrada escalonada, cifras y trazos que se arman una vez, siempre con límites: sin bucle, sin rebote, sin re-animar lo que ya se usa, movimiento reducido = instante). Regla reescrita en `globals.css` y ADR-0122; Proveedores es la primera pantalla, no es obligatoria en las demás.
-Corrección de criterio (misma sesión): el formulario «Registrar proveedor» se había quedado con el diseño viejo, con la excusa de que el real tiene campos que el spike no (SUNAT, teléfono, banco); Felipe lo notó. Se rehízo con la carcasa y las piezas del spike conservando todos los campos reales (ADR-0122, D7). Regla para la próxima: «copia el diseño» incluye TODAS las piezas del diseño, y lo que el real tenga de más se viste igual, no se usa de pretexto.
+Decisión de Felipe: la primera versión respetó la regla «nada se anima solo al entrar» y quedó quieta al abrir; Felipe la vio, esperaba el spike y pidió cambiar la regla. Ahora la llegada a una pantalla con varias piezas también se anima (entrada escalonada, cifras y trazos que se arman una vez, siempre con límites: sin bucle, sin rebote, sin re-animar lo que ya se usa, movimiento reducido = instante). Regla reescrita en `globals.css` y ADR-0128; Proveedores es la primera pantalla, no es obligatoria en las demás.
+Corrección de criterio (misma sesión): el formulario «Registrar proveedor» se había quedado con el diseño viejo, con la excusa de que el real tiene campos que el spike no (SUNAT, teléfono, banco); Felipe lo notó. Se rehízo con la carcasa y las piezas del spike conservando todos los campos reales (ADR-0128, D7). Regla para la próxima: «copia el diseño» incluye TODAS las piezas del diseño, y lo que el real tenga de más se viste igual, no se usa de pretexto.
 Lección: dos fallos solo se vieron en el navegador con sesión de líder (no en tsc, lint ni las 1061 pruebas): la tabla decidía sus columnas por el ancho de la VENTANA y con el menú lateral el nombre quedaba en «C…» (ahora container queries), y un hook de conteo quedaba en 0 porque React repite los efectos en desarrollo.
 Un dato nuevo (facturado por mes) → función aparte `fn_proveedores_serie_12m` (migración `20260919150000`, solo lectura), no una columna más en `fn_proveedores`. La lista degrada sin ella: si producción todavía no la tiene, se ve igual, sin tendencias. Falta pegarla en producción.
+
+## 2026-09-19 (Atelier: el diseño visual de Cambios y Devoluciones — ADR-0123)
+
+**Qué se cerró.** Felipe pidió ver el rediseño «más estético, con más animaciones» antes de
+decidir: se armaron tres maquetas interactivas (A Atelier, B Tablero, C Vitrina) y eligió la A. Se
+llevó a la app real: el hilo taupe como línea de tiempo, pasos y unión entre prendas; cabecera con
+la sede y la hora de Lima viva; cifras que suben; checks que se trazan; y el impacto en inventario
+y caja visible desde el paso 3. Afecta a Cambios y Devoluciones a la vez (piezas compartidas).
+
+**Qué se aprendió.** Mostrar tres direcciones con los mismos datos hizo la decisión en minutos y
+sin tocar el código. Y aterrizar una maqueta es ajustar su escala a la app (el título de 66 px
+desentonaba), no copiarla. Pendiente: probar con clic real y datos reales.
+
+## 2026-09-19 (Movimientos: qué cambió en el stock y qué proceso lo originó — ADR-0127)
+
+**Qué se cerró.** `/inventario/movimientos` dice directo qué cambió en el stock de la sede y qué
+proceso lo originó: columna «Referencia» (`Traslado 26` y `Conteo 12` con enlace a su detalle,
+`Boleta B001-000184`, `Factura F001-000210`), el proceso en lenguaje claro («Transferencia ·
+llegada», «Reposición interna»), un buscador que entiende «Traslado 24» y «B001-000184», y a la
+vista solo Tipo, Sububicación y Período (el proceso específico va en «Más filtros»). Se quitaron el
+filtro Persona y la columna Responsable de esta pantalla; la autoría sigue guardada y en el detalle.
+Traslados entiende las mismas formas de escribir un número. La migración `20260919155000` se
+**aplicó en producción antes de fusionar el front** (PR #179): se ensayó entera en una transacción
+revertida contra datos reales, se aplicó con el texto exacto del archivo y se verificó (una sola firma,
+permisos idénticos, `md5` de los cuatro cuerpos igual al del archivo).
+
+**Qué se aprendió.** Tres de los cinco ejemplos del pedido (Venta 184, Recepción 31, Devolución 7)
+no existen como número: solo traslados y conteos tienen número corrido; lo demás se identifica por
+comprobante, factura o guía. Comprobarlo en producción antes de dibujar la columna evitó mostrar
+números inventados — y dejó una decisión de negocio para Felipe (¿numerar ventas y recepciones por
+sede?). Y una tabla que se ve bien a 1440 px puede cortar justo la palabra que importa a 1024
+(«Transferencia · lleg…»): se mira en los tres anchos, no en uno.
+
+## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0122)
+
+**Qué se cerró.** Las tres cifras de arriba a la derecha de Cambios y Devoluciones eran texto suelto
+alineado a la izquierda; ahora viven en un recuadro con el nombre de la sede (`ResumenSede`), cada
+cifra centrada sobre su etiqueta y con un ícono. Y el plazo se lee por color: verde dentro del plazo
+(incluido «Vence en N días»), rojo fuera, en la fila, en la validación y en «Por aprobar».
+
+Después, pedido de Felipe: las dos pantallas pasan a **todo el ancho** (`SIN_TOPE_DE_ANCHO` en
+`AppShell`), las compras se reparten en columnas de 34rem como mínimo en vez de una fila de 1500 px
+con un vacío entre el nombre y el botón, y el panel de validaciones sube a 21rem en pantallas
+anchas. El título sube (`items-start`), el resumen se compacta (el nombre de la sede es un rótulo
+sobre el borde, no una fila más), toma el `sand` del sistema en vez de la tarjeta clara y sus
+números suben hasta su valor (`CifraAnimada`, sin movimiento si el usuario lo pidió así). Todo lo
+de abajo sube con ellos: menos aire entre la cabecera y el buscador.
+
+**Qué se aprendió.** Un color que significa algo tiene que salir de una sola regla: el chip, la
+validación y la tarjeta de aprobación leen el mismo `EstadoVisual`, por eso cambiarlo fue tocar dos
+funciones y no doce pantallas. Pendiente: el rojo puede pasar el tope de 2 por pantalla si una
+búsqueda trae varias compras vencidas — decidir si se acepta.
+
+## 2026-09-18 (Devoluciones con el modelo de Cambios — ADR-0122)
+
+**Qué se cerró.** `/devoluciones` rehecha con el mismo flujo que Cambios, sin migración ni backend.
+Lo que cambia de fondo: una devolución tiene dos tiempos (la registra una colaboradora, la aprueba
+un líder), así que el impacto se dice «al aprobarla» y la caja se valida en la aprobación. Se elige
+más de una prenda por boleta en una sola devolución —la base ya lo aceptaba y la pantalla vieja
+creaba una por línea, con una nota de crédito parcial cada una—. Nuevo bloque «Por aprobar» con lo
+que necesita el líder: valor pagado, aviso de plazo y de caja cerrada. Lo compartido con Cambios se
+extrajo (`getVentasRecientes`, `FlujoGuiado`, `ComprasAgrupadas`, `BuscadorVentas`) en vez de copiarse.
+437 pruebas, build en verde; 9 consultas nuevas probadas contra datos reales.
+
+**Qué se aprendió.** Tres hallazgos de datos, no de pantalla. (1) Lo que la clienta pagó no es
+`precio_unitario`: hay líneas con `descuento_unitario` (149.90 con 15 de descuento) y la nota de
+crédito de `aprobar_devolucion` acredita el precio de lista —queda en BACKLOG, es plata—. (2) La base
+no cruza cambios con devoluciones: una línea cambiada se puede devolver y el stock se duplica; se
+cubrió en pantalla, el candado real sigue pendiente. (3) La sesión paralela cerró el hueco de venta
+anulada el mismo día, así que se dejó de tocar `crear_devolucion` a propósito: dos sesiones sobre la
+misma función habrían dejado sobrecargas duplicadas (el mismo bug de ADR-0125).
+
+**Pendiente.** El plazo de 15 días solo se avisa en Devoluciones (decisión mía por Felipe,
+reversible): falta que diga quién decide pasado el plazo. Y probar con clic real: el panel oculto no
+hidrata las páginas del menú.
+
+## 2026-09-18 (Cambios: de "no me convence" a flujo guiado — ADR-0125)
+
+**Qué se cerró.** Auditoría de `/cambios` y rediseño completo en dos vueltas. Flujo
+Venta → Prenda → Reemplazo → Confirmación con validaciones en vivo e impacto en inventario
+y caja; buscador único (boleta, DNI, clienta, prenda o etiqueta); actividad de los 15 días
+del plazo. Migración `20260919000100`: motivo del cambio, estado de la prenda que vuelve
+(con defecto va a la cuarentena de Devoluciones) y bloqueo de ventas anuladas. 18/18 en
+`pruebas:registrar-cambio`, 407 unitarias, build en verde. **No está en producción:** la
+migración va antes que el front.
+
+**Qué se aprendió.** Tres de los hallazgos no eran de pantalla sino del modelo. Un cambio
+por defecto devolvía la prenda fallada al piso: el stock mentía. Se podía cambiar una prenda
+de una venta anulada: el stock se duplicaba. Y el switch "todas las sedes" le respondía "no
+encontramos" a una integrante porque la RLS no la deja ver otras sedes. Del brief se
+descartó a propósito lo que no existe en CAYLA: estados "pendiente" o "requiere
+autorización", buscar por teléfono y el cambio de una venta nunca registrada. Mostrarlo
+habría sido lógica falsa.
+
+**Pendiente.** Probar con sesión real: el panel del navegador no tenía login y la vuelta se
+hizo con datos de ejemplo. Siguen en pausa, por decisión de Felipe, dos temas: la
+diferencia de precio ante SUNAT y el método que arranca en efectivo, y las excepciones al
+plazo.
 
 ## 2026-09-19 (Cuatro hallazgos de los indicadores de Compras quedan corregidos: la ficha, las devoluciones, los subtotales de Por pagar y la fecha de los pagos)
 
@@ -8120,3 +8218,15 @@ sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen 
 (`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
 candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
 de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
+
+## 2026-09-19 (El dinero de Compras es solo del líder — ADR-0126)
+Un integrante leía los montos de su sede por tres puertas aunque las pantallas se los taparan: cinco funciones con solo el
+candado de sede, las tablas de Compras y el bucket de escaneos (hallazgo H4 de las pruebas de Compras; cerrar solo las
+funciones no habría servido). Ahora `fn_puede_ver_dinero_de_compras()` es la regla única (hoy: el líder), el integrante
+recibe por `listar_compras_operativo`/`lineas_compra_operativo` (lista de permitidos, sin una columna de dinero) y las
+tablas y el bucket pasan a solo-líder en dos migraciones que pega Felipe (A, luego B). El candado se inyecta leyendo la
+definición vigente (`fn_aplicar_candado_de_dinero`) porque otra migración en vuelo recrea `por_pagar_tramos` con otra
+firma y en producción se pegan a mano en el orden que toque. De paso, «Recibidas» sale agrupada por envío y el
+diccionario incorpora `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id` (los 0 lotes de producción confirman
+que aún no hay nada que agrupar). El ADR quedó como 0126: el 0121 lo tomó el Resumen v2 mientras se trabajaba.
+

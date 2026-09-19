@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 export type OpcionSegmento = { clave: string; etiqueta: ReactNode; conteo?: number };
 
 /**
- * Segmentado con un «pulgar» que se DESLIZA hasta la opción elegida (ADR-0122), en vez de que el fondo
+ * Segmentado con un «pulgar» que se DESLIZA hasta la opción elegida (ADR-0128), en vez de que el fondo
  * oscuro salte de una a otra: se ve de dónde viene el cambio. Es un `radiogroup` (misma semántica que el
  * filtro de rubro que ya había); en una pantalla angosta se desplaza en horizontal y el pulgar sigue a
  * la opción activa. La primera vez se coloca sin transición (si no, se vería viajar desde 0 al abrir la
