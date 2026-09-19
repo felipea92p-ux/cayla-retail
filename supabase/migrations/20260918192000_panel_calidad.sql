@@ -24,11 +24,10 @@
 -- El precio: la pantalla no ve las últimas dos semanas. Se dice en voz alta en la pantalla.
 --
 -- A QUIÉN SE ATRIBUYE (decisión de Felipe, 2026-09-18): al proveedor de la COMPRA MÁS RECIENTE del producto
--- anterior a la venta ("comprar lo mismo a dos proveedores en la misma fecha casi no ocurre"). Una compra
--- posterior no puede explicar una prenda que ya se vendió, por eso se mira hacia atrás desde la fecha de la
--- venta. El Taller cuenta como otro posible origen: una producción terminada e inventariada (no muestra, no
--- anulada). Gana el origen más reciente. Sin ninguno: "Sin origen registrado", visible, nunca escondido.
--- Las compras anuladas no cuentan.
+-- anterior a la venta, o al Taller. La regla vive UNA sola vez, en `fn_origen_producto`
+-- (20260918191500_fn_origen_producto.sql), que también usa Rentabilidad: dos copias de la misma regla es como
+-- nacen números distintos en dos pantallas. Sin ningún origen: "Sin origen registrado", visible, nunca escondido.
+-- DEPENDE de esa migración: se pega ANTES de esta.
 --
 -- QUÉ ES UNA "DAÑADA": `danada_reparacion` o `danada_donar`. `devolver_proveedor` es otra cosa (la prenda
 -- se manda de vuelta) y se muestra aparte. `vendible` es la prenda que volvió sana: es devolución, no falla.
@@ -104,28 +103,7 @@ begin
     join variantes va on va.id = vi.variante_id
     join productos p on p.id = va.producto_id
     left join tallas ta on ta.id = va.talla_id
-    left join lateral (
-      -- El origen más reciente ANTERIOR (o igual) al día de la venta. Empate de fecha: orden fijo.
-      select x.tipo, x.origen_id
-      from (
-        select 'proveedor'::text as tipo, c.proveedor_id as origen_id, c.fecha_emision as fecha
-        from compra_items ci
-        join compras c on c.id = ci.compra_id
-        where ci.producto_id = p.id
-          and c.estado = 'vigente'
-          and c.fecha_emision <= (ve.created_at at time zone 'America/Lima')::date
-        union all
-        select 'taller'::text, null::uuid, (pr.inventariado_at at time zone 'America/Lima')::date
-        from producciones pr
-        where pr.producto_id = p.id
-          and pr.estado = 'terminada'
-          and not pr.es_muestra
-          and pr.inventariado_at is not null
-          and (pr.inventariado_at at time zone 'America/Lima')::date <= (ve.created_at at time zone 'America/Lima')::date
-      ) x
-      order by x.fecha desc, x.tipo, x.origen_id
-      limit 1
-    ) o on true
+    left join lateral fn_origen_producto(p.id, (ve.created_at at time zone 'America/Lima')::date) o on true
     where ve.estado = 'completada'
       and ve.created_at >= v_ts_desde
       and ve.created_at <  v_ts_hasta

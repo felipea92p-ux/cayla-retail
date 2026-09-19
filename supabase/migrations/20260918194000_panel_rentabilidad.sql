@@ -2,12 +2,12 @@
 -- 20260918194000_panel_rentabilidad.sql — CAYLA V2 · Gestión comercial: rentabilidad (ADR-0118)
 --
 -- ESTADO: escrita y probada contra un Postgres desechable (scripts/pruebas/panel_rentabilidad_aislado.sql).
+--   DEPENDE de `20260918191500_fn_origen_producto.sql` (la regla de atribución): se pega ANTES de esta.
 --   NO en producción — la pega Felipe en el SQL Editor. Ya va calificada con `retail.`: se pega tal cual.
---   Solo LECTURA: no crea tablas, no toca filas. Se deshace con dos `drop function`.
+--   Solo LECTURA: no crea tablas, no toca filas. Se deshace con `drop function retail.fn_rentabilidad(date, integer, numeric)`.
 --
 -- PARA QUÉ. `/comercial/rentabilidad` responde "¿qué vendo mucho pero deja poco, y qué deja mucho pero rota
 -- lento?". Estas dos funciones son la ÚNICA casa de esas cuentas.
---   fn_origen_producto(producto, día)  → quién surtió ese producto más recientemente hasta ese día (proveedor o Taller).
 --   fn_rentabilidad(p_dia, p_dias, p_igv) → unidades, venta neta, costo, margen, descuentos, devoluciones y stock,
 --       por producto, categoría, temporada y origen, más un total. Una sola pasada (GROUPING SETS).
 --
@@ -37,49 +37,20 @@
 -- Días de inventario y sell-through los calcula `rentabilidad-reglas.ts` con estos números crudos.
 --
 -- A QUIÉN SE ATRIBUYE UNA VENTA (origen): igual que Calidad (ADR-0113, decisión de Felipe): a la compra más reciente del
--- producto ANTERIOR a la venta, o al Taller (producción terminada, no muestra, no anulada). Vive en `fn_origen_producto`
--- para que las dos pantallas no puedan discrepar. Calidad debe adoptarla (pendiente en BACKLOG: hoy tiene su propia copia).
+-- producto ANTERIOR a la venta, o al Taller (producción terminada, no muestra, no anulada). Vive UNA sola vez en
+-- `fn_origen_producto` (migración 191500) y la llaman las dos pantallas, para que no puedan discrepar.
 --
 -- HORA DE LIMA (misma razón que ADR-0110). NÚMEROS (Jeff Dean): 90 días ≈ 3.000 líneas de venta; por cada una una
 -- subconsulta pequeña de origen; decenas de milisegundos hoy, decenas de miles de filas a 3 años. Sin índice nuevo hasta
 -- que una llamada pase de ~200 ms, midiendo.
 --
 -- SEGURIDAD. security definer para leer todas las tiendas (RLS solo deja ver la propia) → candado propio `fn_es_lider()`.
--- `fn_origen_producto` NO se concede a nadie: solo la ejecutan las funciones definer (dueñas de la base) que la llaman.
--- Explícito `revoke ... from authenticated`, porque `0005_grants.sql` concede EXECUTE por defecto (ADR-0112).
+-- `fn_origen_producto` (migración 191500) no se concede a nadie: solo la ejecutan las funciones definer que la llaman.
 --
 -- SE ROMPE SI: se agrega un estado de venta nuevo sin decidir si cuenta; el IGV cambia y alguien pasa otra tasa; un
 -- producto pasa a tener más de un proveedor cercano en fecha (se atribuye al último); o la rotación se lee de un producto
 -- recién lanzado: la velocidad se calcula sobre TODA la ventana, así que un producto de 10 días parecerá lento.
 -- ============================================================================
-
-create or replace function retail.fn_origen_producto(p_producto_id uuid, p_dia date)
-returns table (tipo text, origen_id uuid)
-language sql
-stable
-security definer
-set search_path to 'retail', 'public', 'extensions'
-as $$
-  select x.tipo, x.origen_id
-  from (
-    select 'proveedor'::text as tipo, c.proveedor_id as origen_id, c.fecha_emision as fecha
-    from compra_items ci
-    join compras c on c.id = ci.compra_id
-    where ci.producto_id = p_producto_id
-      and c.estado = 'vigente'
-      and c.fecha_emision <= p_dia
-    union all
-    select 'taller'::text, null::uuid, (pr.inventariado_at at time zone 'America/Lima')::date
-    from producciones pr
-    where pr.producto_id = p_producto_id
-      and pr.estado = 'terminada'
-      and not pr.es_muestra
-      and pr.inventariado_at is not null
-      and (pr.inventariado_at at time zone 'America/Lima')::date <= p_dia
-  ) x
-  order by x.fecha desc, x.tipo, x.origen_id
-  limit 1
-$$;
 
 create or replace function retail.fn_rentabilidad(
   p_dia date default null,
@@ -249,8 +220,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Permisos. `0005_grants.sql` concede EXECUTE a `authenticated` por defecto: se revoca EXPLÍCITO lo que no debe.
+-- Permisos: `authenticated` ejecuta la función; `public` (y por tanto `anon`) no.
 -- ---------------------------------------------------------------------------
-revoke all on function retail.fn_origen_producto(uuid, date) from public, anon, authenticated;
 revoke all on function retail.fn_rentabilidad(date, integer, numeric) from public;
 grant execute on function retail.fn_rentabilidad(date, integer, numeric) to authenticated;

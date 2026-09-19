@@ -3,7 +3,8 @@
 **Fecha:** 2026-09-18
 **Estado:** Construido y verificado en la parte que no depende de la base real (ver "Qué está y qué no está
 verificado"). **La migración NO está en producción** — la pega Felipe.
-**Afecta:** `supabase/migrations/20260918194000_panel_rentabilidad.sql` (dos funciones de solo lectura),
+**Afecta:** `supabase/migrations/20260918194000_panel_rentabilidad.sql` (una función de solo lectura; llama a `fn_origen_producto`, de
+`20260918191500_fn_origen_producto.sql`, que se pega ANTES),
 `apps/web/lib/rentabilidad.ts`, `rentabilidad-reglas.ts`, `components/PanelRentabilidadVista.tsx`,
 `app/(app)/comercial/rentabilidad/` y un enlace desde `/comercial`. No toca ninguna tabla ni RPC de escritura.
 **Relacionado:** ADR-0110 (panel comercial, misma hora de Lima y mismo candado), ADR-0113 (Calidad: cuenta la otra mitad,
@@ -38,9 +39,10 @@ que no existe sin que ningún número dé error**, y esta pantalla las cierra.
 5. **El stock es lo vendible hoy: sin la cuarentena.** Una prenda dañada no se puede vender; contarla haría parecer que sobra
    inventario. **Difiere a propósito de `fn_productos.stock_total`, que sí suma la cuarentena** (esa es una inconsistencia
    conocida, no se replica). El stock **no se atribuye a un origen**: un producto pudo surtirse de dos.
-6. **El origen sale de una función única** (`fn_origen_producto`): la compra más reciente anterior a la venta, o el Taller
-   (decisión de Felipe en ADR-0113). Nadie más puede discrepar de ella. Se concede a nadie: solo la ejecutan las funciones
-   definer que la llaman (revoke explícito, porque `0005_grants.sql` concede EXECUTE por defecto a `authenticated`).
+6. **El origen sale de una función única** (`fn_origen_producto`, en su propia migración anterior a Calidad y a Rentabilidad): la
+   compra más reciente anterior a la venta, o el Taller (decisión de Felipe en ADR-0113). **Calidad y Rentabilidad la llaman las
+   dos: no pueden discrepar.** Se concede a nadie: solo la ejecutan las funciones definer que la llaman (revoke explícito,
+   porque `0005_grants.sql` concede EXECUTE por defecto a `authenticated`).
 7. **Una sola pasada SQL** (`GROUPING SETS`: producto, categoría, temporada, origen, total). Un producto con stock y sin
    ventas aparece igual (unión completa de las dos fuentes): el inventario parado no se pierde.
 8. **El margen es antes de devoluciones**, que se muestran aparte en el dato (`unidades_devueltas`) y se cuentan en Calidad.
@@ -103,17 +105,16 @@ que no existe sin que ningún número dé error**, y esta pantalla las cierra.
 
 ```sql
 drop function retail.fn_rentabilidad(date, integer, numeric);
-drop function retail.fn_origen_producto(uuid, date);
+-- fn_origen_producto se deshace aparte, y solo después de deshacer también Calidad (que la usa).
 ```
 
 Sin pérdida de datos: solo lectura.
 
 ## Pendiente
 
-- **Calidad debe adoptar `fn_origen_producto`**: hoy `fn_calidad` tiene su propia copia de esa lógica en línea. Dos copias de la
-  misma regla es cómo nacen números distintos en dos pantallas.
 - Abrir `/comercial/rentabilidad` como líder contra el stack local, y como colaboradora (debe redirigir).
-- Aplicar en producción `20260918194000_panel_rentabilidad.sql` (después de comercial y calidad).
+- Aplicar en producción, en orden: `20260918191500_fn_origen_producto.sql`, `20260918194000_panel_rentabilidad.sql` (y Calidad, `192000`,
+  que también necesita la primera).
 - Velocidad sobre "días observables" en vez de toda la ventana, como ya hace el Resumen de Inventario.
 - Mover `IGV_TASA` a una tabla de parámetros (ADR-0109), de donde debería salir el `p_igv`.
 - Valorizar el inventario parado (stock × costo) para ver cuánta plata está detenida.

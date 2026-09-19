@@ -52,6 +52,7 @@ create table retail.devolucion_items (id uuid primary key default gen_random_uui
 create function retail.fn_es_lider() returns boolean language sql stable
 as $$ select coalesce(nullif(current_setting('test.lider', true), '')::boolean, false) $$;
 
+\i supabase/migrations/20260918191500_fn_origen_producto.sql
 \i supabase/migrations/20260918194000_panel_rentabilidad.sql
 
 create function pg_temp.verifica(condicion boolean, mensaje text) returns void language plpgsql as $$

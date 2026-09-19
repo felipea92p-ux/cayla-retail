@@ -35,10 +35,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       aislada de 29 verificaciones con 7 mutaciones que la hacen fallar.
 - [ ] **Cargar los costos del catálogo.** Sin costo cargado el margen sale "—" (por diseño: un costo 0 daría 100% de margen).
       La pantalla dice cuántas unidades vendidas quedaron sin costo. Es lo que más limita su utilidad hoy.
-- [ ] **Calidad debe adoptar `fn_origen_producto`** (hoy `fn_calidad` tiene su propia copia): dos copias de una regla dan
-      números distintos en dos pantallas. Cambio pequeño; ambas migraciones están sin aplicar, así que se puede editar.
 - [ ] **Abrir `/comercial/rentabilidad` como líder contra el stack local con Docker arriba**, y como colaboradora (debe
-      redirigir). **Aplicar `20260918194000` en producción** después de comercial y calidad.
+      redirigir). **Aplicar en producción, en orden: `20260918191500` (función de origen), `20260918192000` (calidad) y `20260918194000` (rentabilidad).**
 - [ ] **Inconsistencia conocida:** `fn_productos.stock_total` suma la cuarentena; rentabilidad no. Decidir cuál es "el stock" y
       unificar. También: velocidad sobre días observables (un producto nuevo parece lento) y valorizar el inventario parado.
 
@@ -276,7 +274,7 @@ sobre una venta anulada — no hay nada que limpiar.
       aislada de 26 verificaciones con 5 mutaciones que la hacen fallar.
 - [ ] **Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
       redirigir). Es lo que la prueba aislada no cubre: RLS, `fn_es_lider` verdadera, `getUbicaciones` real.
-- [ ] **Aplicar en producción `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
+- [ ] **Aplicar en producción `20260918191500_fn_origen_producto.sql` y DESPUÉS `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
       `variantes.talla_id`, `compras.estado` y `producciones.es_muestra`. Solo lectura; se deshace con 2 `drop function`.
 - [ ] **La vista por proveedor no dirá nada hasta que haya compras reales:** hoy el catálogo casi no está cargado y
       casi todo saldría como "Sin origen registrado". Es un dato, no un defecto.

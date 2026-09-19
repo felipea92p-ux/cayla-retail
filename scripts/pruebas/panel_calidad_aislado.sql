@@ -5,6 +5,7 @@
 --   · la COHORTE MADURA: solo ventas que ya cumplieron su plazo de cambio (una venta de hace 3 días no cuenta);
 --   · la ATRIBUCIÓN: el origen más reciente ANTERIOR a la venta, ignorando compras anuladas, producciones de
 --     muestra y producciones anuladas, y sin dejarse engañar por una compra POSTERIOR a la venta;
+--   · (la atribución vive en `fn_origen_producto`, migración aparte que esta prueba carga primero);
 --   · que solo cuentan devoluciones APROBADAS, que un cambio se cuenta aparte y que "dañada" no es "vendible";
 --   · que las cuatro vistas (producto, talla, origen, categoría) suman exactamente lo mismo.
 -- Cada verificación falla con mensaje si el número no coincide.
@@ -26,6 +27,10 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
 end $$;
 
+-- Igual que `0005_grants.sql` en producción: toda función NUEVA nace ejecutable por `authenticated`.
+-- Sin esto, la prueba de "la auxiliar no es ejecutable" pasaría sin probar nada.
+alter default privileges in schema retail grant execute on functions to authenticated;
+
 create table retail.ubicaciones (id uuid primary key, nombre text not null, tipo text not null, activo boolean not null default true);
 create table retail.categorias (id uuid primary key, nombre text not null);
 create table retail.productos (id uuid primary key, categoria_id uuid references retail.categorias (id), referencia text not null);
@@ -44,6 +49,7 @@ create table retail.venta_anulacion_items (id uuid primary key default gen_rando
 create function retail.fn_es_lider() returns boolean language sql stable
 as $$ select coalesce(nullif(current_setting('test.lider', true), '')::boolean, false) $$;
 
+\i supabase/migrations/20260918191500_fn_origen_producto.sql
 \i supabase/migrations/20260918192000_panel_calidad.sql
 
 create function pg_temp.verifica(condicion boolean, mensaje text) returns void language plpgsql as $$
@@ -243,6 +249,9 @@ exception when others then
   if sqlerrm not like 'Parámetros fuera de rango%' then raise; end if;
   raise notice 'ok  rechaza una ventana de 0 días';
 end $$;
+select pg_temp.verifica(not has_function_privilege('authenticated', 'retail.fn_origen_producto(uuid,date)', 'execute')
+                        and not has_function_privilege('anon', 'retail.fn_origen_producto(uuid,date)', 'execute'),
+  'la función auxiliar de origen NO es ejecutable por authenticated ni anon (aunque los permisos por defecto se lo darían)');
 select pg_temp.verifica(not has_function_privilege('anon', 'retail.fn_calidad(date,integer,integer)', 'execute')
                         and not has_function_privilege('anon', 'retail.fn_calidad_danadas(date,integer)', 'execute')
                         and has_function_privilege('authenticated', 'retail.fn_calidad(date,integer,integer)', 'execute'),
