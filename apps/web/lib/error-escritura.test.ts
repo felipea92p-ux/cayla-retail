@@ -8,6 +8,18 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("renombrar una marca a un nombre existente se explica, no cita el índice", () => {
+    const salida = traducirError({ message: 'duplicate key value violates unique constraint "marcas_nombre_unico"', code: "23505" }, "renombrar la marca");
+    expect(salida).not.toContain("marcas_nombre_unico");
+    expect(salida).toContain("Ya existe una marca con ese nombre");
+  });
+
+  it("una pareja marca-proveedor inválida dice cómo arreglarla", () => {
+    const salida = traducirError({ message: 'insert or update on table "productos" violates foreign key constraint "productos_marca_proveedor_fk"', code: "23503" }, "guardar el producto");
+    expect(salida).not.toContain("productos_marca_proveedor_fk");
+    expect(salida).toContain("no trae esa marca");
+  });
+
   it("un nombre de producto repetido dice a dónde ir, sin nombrar el índice", () => {
     const salida = traducirError(
       {

@@ -139,7 +139,7 @@ aplicado en producción**.
       `231200_retira_catalogo_crear_producto` → `231300_productos_por_marca_y_proveedor`.
       **Los cuatro de marca, seguidos y desplegando enseguida:** `231000` deja `marca_id` NOT NULL y hasta `231100` el
       alta y el censo VIEJOS fallan. **NO desplegar antes del SQL:** `pnpm datos:comparar` marca rotas las pantallas
-      que llaman a `buscar_productos_parecidos`, `crear_marca` y a las firmas nuevas. Vivien en `2309…` a propósito:
+      que llaman a `buscar_productos_parecidos`, `crear_marca` y a las firmas nuevas. Viven en `2309…` a propósito:
       Compras reclamó la banda `20260918200000`–`20260918219999` (ADR-0111). Después: `pnpm datos:generar:produccion`
       y `pnpm datos:comparar` (deben desaparecer esas alarmas; `emitir_comprobante p_token` es de otra sesión).
 - [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
