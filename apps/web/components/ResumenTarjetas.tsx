@@ -18,7 +18,10 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaKpiVidrio } from "@/components/ui/TarjetaKpiVidrio";
 import { BarraDeEnvio, BarrasDeTicket, EjeDeVentas, SparklineAcumulado } from "@/components/ResumenVisualizaciones";
 
-// Las cuatro tarjetas de arriba del Resumen (spec §7 y §9). Es de servidor: decide el tono, el
+// Las cuatro tarjetas de arriba del Resumen (spec §7 y §9). En fila de cuatro desde 1280 px de
+// ventana (`xl:`): el spec decía 980 px, pero con el menú lateral desplegado (17 rem) a esa
+// ventana el contenido mide ~670 px y cada tarjeta quedaba en ~150 px; por debajo, de dos en dos.
+// Es de servidor: decide el tono, el
 // texto de contexto y la visualización de cada una a partir de lo que llega; el dibujo y la luz
 // viven en `TarjetaKpiVidrio` y `ResumenVisualizaciones`. Cada dato es independiente: si falla la
 // referencia de la semana pasada, o la cola de SUNAT, esa tarjeta lo dice y las demás siguen.
@@ -68,7 +71,7 @@ export function ResumenTarjetas({
   const { enviados, total: deHoy } = progresoDeEnvio(comprobantesDeHoy);
 
   return (
-    <div className="grid grid-cols-2 gap-3 min-[980px]:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <TarjetaKpiVidrio
         etiqueta="Vendido hoy"
         tono={tonoVendido}

@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { useFacturacionAcciones } from "@/lib/useFacturacionAcciones";
+import { useTransmitir } from "@/lib/useTransmitir";
 import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
@@ -181,33 +182,9 @@ export function ComprobantesPanel({
   const [modal, setModal] = useState<"serie" | "anular" | "liberar" | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
-  // global: transmitir la fila 3 no debe deshabilitar el botón de la fila 1.
-  const [transmitiendoId, setTransmitiendoId] = useState<string | null>(null);
-
-  async function onTransmitir(comprobanteId: string) {
-    setTransmitiendoId(comprobanteId);
-    const cerrarProceso = avisar.proceso("Transmitiendo a SUNAT…");
-    try {
-      const respuesta = await fetch("/api/lucode/emitir", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comprobante_id: comprobanteId }),
-      });
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        avisar.error("No se pudo transmitir el comprobante", { detalle: datos.error ?? undefined });
-        return;
-      }
-      avisar.exito("Comprobante transmitido", { detalle: "SUNAT lo tiene; el estado se actualiza en la lista." });
-      router.refresh();
-    } catch {
-      avisar.error("No se pudo transmitir el comprobante", { detalle: "No se pudo conectar con el servidor." });
-    } finally {
-      cerrarProceso();
-      setTransmitiendoId(null);
-    }
-  }
+  // Transmisión a Lucode (Fase 1, ADR-0009), por fila: la misma implementación que usa la
+  // fila de «Actividad de hoy» del Resumen (`lib/useTransmitir.ts`).
+  const { transmitiendoId, transmitir: onTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
   // pero `anular_comprobante` lo vuelve a exigir en la base.

@@ -2,11 +2,12 @@ import { exigirLider } from "@/lib/persona-actual";
 import { getComprobantesMes, getResumenPorEnviar, getVentasDeHoy } from "@/lib/comprobantes";
 import { getVentasDeReferencia } from "@/lib/ventas-comparativo";
 import { ventanaDelDiaLima } from "@/lib/facturacion-resumen-reglas";
+import { enlazarVentasConComprobantes } from "@/lib/facturacion-actividad";
 import { ResumenTarjetas } from "@/components/ResumenTarjetas";
-import { VentasDelDiaPanel } from "@/components/VentasDelDiaPanel";
+import { ActividadDeHoy } from "@/components/ActividadDeHoy";
 
-// Resumen = hoy: las cuatro tarjetas de vidrio y, debajo, las ventas del día. La rebanada B
-// reemplaza la lista por «Actividad de hoy» con el hilo del comprobante.
+// Resumen = hoy: las cuatro tarjetas de vidrio y, debajo, la actividad del día con el camino de
+// cada comprobante hasta SUNAT.
 export default async function ResumenPage() {
   await exigirLider();
   const ahora = new Date();
@@ -29,7 +30,7 @@ export default async function ResumenPage() {
   return (
     <div className="space-y-6">
       <ResumenTarjetas ventas={ventasHoy} porEnviar={porEnviar} comprobantesDeHoy={comprobantesHoy} referencia={referencia} ahora={ahora} />
-      <VentasDelDiaPanel ventas={ventasHoy} />
+      <ActividadDeHoy filas={enlazarVentasConComprobantes(ventasHoy, comprobantesHoy)} ahora={ahora} />
     </div>
   );
 }

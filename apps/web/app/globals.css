@@ -1123,6 +1123,145 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------
+   El hilo del comprobante (R2, ADR-0124): cuatro nodos —venta, número, SUNAT, aceptado— y tres
+   tramos, en verde cuando está hecho, ámbar cuando falta o se espera, rojo si SUNAT rechazó, y
+   punteado en tinta —nunca verde— si SUNAT no lo vio (pruebas). Valores de la maqueta v8. Cuando
+   un comprobante cambia de estado, los mismos nodos cambian de clase y estas transiciones
+   animan el paso: el relleno, el tilde que se traza y el tramo que avanza.
+   ------------------------------------------------------------------ */
+@keyframes hilo-ping {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes hilo-barrido {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(190%); }
+}
+
+@layer components {
+  .hilo-comprobante {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+  }
+  .hilo-n {
+    position: relative;
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid rgb(26 26 24 / 0.24);
+    background: transparent;
+    transition:
+      background-color 450ms var(--ease-cayla),
+      border-color 450ms var(--ease-cayla);
+  }
+  .hilo-n--on {
+    background: var(--color-verde);
+    border-color: var(--color-verde);
+  }
+  .hilo-n--next {
+    border-color: var(--color-ambar);
+    border-style: dashed;
+  }
+  .hilo-n--wait {
+    background: var(--color-ambar);
+    border-color: var(--color-ambar);
+  }
+  /* El anillo que late: SUNAT recibió el comprobante y todavía no contesta. */
+  .hilo-n--wait::after {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-ambar);
+    animation: hilo-ping 1.8s var(--ease-cayla) infinite;
+  }
+  .hilo-n--bad {
+    background: var(--color-rojo);
+    border-color: var(--color-rojo);
+  }
+  /* Aceptado en el entorno de pruebas: SUNAT no lo vio. Punteado y sin relleno, jamás verde. */
+  .hilo-n--prueba {
+    border-color: rgb(26 26 24 / 0.4);
+    border-style: dashed;
+  }
+  .hilo-n--apagado {
+    border-color: rgb(26 26 24 / 0.25);
+  }
+  .hilo-n svg {
+    position: absolute;
+    inset: 1px;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* Los dos trazos existen siempre (con `pathLength=1`): el estado prende uno por clase y se dibuja. */
+  .hilo-n path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 500ms var(--ease-cayla) 180ms;
+  }
+  .hilo-n--on .hilo-ck,
+  .hilo-n--bad .hilo-xx {
+    stroke-dashoffset: 0;
+  }
+  .hilo-l {
+    position: relative;
+    display: block;
+    width: 26px;
+    height: 2px;
+    flex: none;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgb(26 26 24 / 0.24);
+  }
+  .hilo-l::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--color-verde);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 600ms var(--ease-cayla);
+  }
+  .hilo-l--on::after {
+    transform: scaleX(1);
+  }
+  .hilo-l--prueba {
+    background: rgb(26 26 24 / 0.4);
+  }
+  .hilo-l--apagado {
+    background: rgb(26 26 24 / 0.15);
+  }
+  /* Mientras se transmite: un destello ámbar recorre el tramo hacia SUNAT. */
+  .hilo-l--trabaja::after {
+    width: 55%;
+    transform: none;
+    background: linear-gradient(90deg, transparent, var(--color-ambar), transparent);
+    animation: hilo-barrido 900ms linear infinite;
+  }
+
+  /* Con movimiento reducido las animaciones que nunca terminan se apagan (el anillo y el destello). */
+  @media (prefers-reduced-motion: reduce) {
+    .hilo-n--wait::after {
+      display: none;
+    }
+    .hilo-l--trabaja::after {
+      animation: none;
+    }
+  }
+}
+
 /* ---- Proveedores (2026-09-19, ADR-0128): la entrada escalonada y los gestos que responden ----
         · entra: la entrada escalonada de la regla de arriba. `backwards` (no `both`): al terminar no deja
           un `transform` retenido que pisaría el deslizamiento de las filas (`useFlip`) ni el hover.
