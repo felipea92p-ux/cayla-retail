@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Calidad — la regla de "de quién es esta prenda" vive una sola vez)
+Al construir Rentabilidad quedó una copia de la lógica de origen dentro de `fn_calidad`. Dos copias de la misma regla son dos
+pantallas que tarde o temprano dan números distintos de la misma prenda. Se extrajo a `fn_origen_producto` en su propia
+migración (`20260918191500`, anterior a Calidad y a Rentabilidad, para que ninguna dependa de algo posterior) y Calidad la llama.
+La prueba de Calidad ahora carga primero la auxiliar, simula los permisos por defecto de `0005_grants.sql` y comprueba que la
+función NO es ejecutable por `authenticated`; seis mutaciones (las tres de la regla de origen apuntan ahora a la auxiliar) la
+hacen fallar. Sin cambios de comportamiento: las 27 verificaciones dan los mismos números de antes. ADR-0113 actualizado.
+
 ## 2026-09-18 (Calidad — una tasa con pocas ventas no es una tasa, y una fila no puede medirse contra sí misma)
 Tarea 15 del plan: `/comercial/calidad` (solo líder) responde "¿qué talla, qué proveedor o qué producto genera
 devoluciones?". Tres decisiones pesan más que el código. (1) La cohorte es madura: solo entran ventas que ya cumplieron

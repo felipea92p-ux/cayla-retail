@@ -3,7 +3,8 @@
 **Fecha:** 2026-09-18
 **Estado:** Construido y verificado en la parte que no depende de la base real (ver "Qué está y qué no está
 verificado"). **La migración NO está en producción** — la pega Felipe.
-**Afecta:** `supabase/migrations/20260918192000_panel_calidad.sql` (dos funciones de solo lectura),
+**Afecta:** `supabase/migrations/20260918191500_fn_origen_producto.sql` (la regla de atribución, compartida con
+Rentabilidad) y `20260918192000_panel_calidad.sql` (dos funciones de solo lectura),
 `apps/web/lib/calidad.ts`, `calidad-reglas.ts`, `components/PanelCalidadVista.tsx`, `app/(app)/comercial/calidad/`
 y un enlace desde `/comercial`. No toca ninguna RPC de post-venta ni ninguna tabla.
 **Relacionado:** ADR-0110 (panel comercial: misma hora de Lima, mismo candado de líder). Cierra la sugerencia de la
@@ -34,7 +35,8 @@ Dos preguntas de datos definieron el diseño:
    dos proveedores en la misma fecha casi no ocurre"). Se mira hacia atrás desde la fecha de la venta: una compra
    posterior no explica una prenda ya vendida. El Taller cuenta como otro origen posible (producción terminada e
    inventariada, no muestra, no anulada). Gana el más reciente. Sin ninguno: "Sin origen registrado", visible. Las
-   compras anuladas no cuentan.
+   compras anuladas no cuentan. **La regla vive una sola vez** en `fn_origen_producto`, que también usa Rentabilidad
+   (ADR-0118): dos copias de la misma regla son dos pantallas que tarde o temprano dan números distintos.
 3. **Una tasa con pocas ventas no es una tasa.** Una fila con menos de 10 unidades vendidas se marca "muestra chica" y
    va al final: una talla con 2 ventas y 1 devolución "tiene 50%" y es el número más alto de la pantalla sin decir
    nada. "Requiere atención" exige a la vez una tasa de al menos el doble Y al menos 3 devoluciones.
@@ -85,10 +87,11 @@ Dos preguntas de datos definieron el diseño:
 ## Qué está y qué no está verificado
 
 **Verificado (con evidencia):**
-- `scripts/pruebas/panel_calidad_aislado.sql`: 26 verificaciones sobre un Postgres desechable (sin Supabase ni Docker),
+- `scripts/pruebas/panel_calidad_aislado.sql`: 27 verificaciones sobre un Postgres desechable (sin Supabase ni Docker),
   con ventas anuladas, compras anuladas, una producción de muestra, una anulada, una compra posterior a la venta, una
-  devolución pendiente y una rechazada, y una venta que aún no cumplió su plazo. **Cinco mutaciones del SQL** (sin
-  maduración, origen futuro, todas las devoluciones, con muestras, con compras anuladas) hacen fallar la prueba.
+  devolución pendiente y una rechazada, y una venta que aún no cumplió su plazo. **Seis mutaciones del SQL** (sin
+  maduración, origen futuro, todas las devoluciones, con muestras, con compras anuladas, y la función de origen abierta a
+  `authenticated`) hacen fallar la prueba.
 - `lib/calidad-reglas.test.ts`: 26 pruebas de las reglas, incluido el caso de la fila que se disimula a sí misma.
   Suite completa: 734 en verde. `tsc`, `eslint` y `next build` en verde.
 - Pantalla vista en escritorio y celular con datos inventados, sin scroll horizontal de página. Al mirarla aparecieron
@@ -114,7 +117,7 @@ Sin pérdida de datos: solo lectura.
 ## Pendiente
 
 - Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba, y como colaboradora (debe redirigir).
-- Aplicar en producción `20260918192000_panel_calidad.sql`. Depende de que existan `variantes.talla_id`,
+- Aplicar en producción, en este orden: `20260918191500_fn_origen_producto.sql` y luego `20260918192000_panel_calidad.sql`. Depende de que existan `variantes.talla_id`,
   `compras.estado` y `producciones.es_muestra` (verificarlo con `docs/datos/VERIFICAR-PRODUCCION-2026-09-18.sql`).
 - Cambios por talla de origen a talla de destino (un cambio de M a L dice más sobre las medidas que un cambio suelto).
 - Motivo de la devolución: `devoluciones.motivo` es texto libre; con un vocabulario cerrado se podría separar "talla" de
