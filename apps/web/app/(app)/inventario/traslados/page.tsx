@@ -107,8 +107,6 @@ function Tarjeta({
   accion?: { href: string; texto: string };
   children: React.ReactNode;
 }) {
-  // Una tarjeta, un rojo: con acento el borde ya gastó el rojo (MAX_ROJO_POR_PANTALLA).
-  const colorAccion = acento ? "text-tinta" : "text-rojo";
   return (
     <div className={`card-cayla p-5 ${acento ? "border-l-2 border-l-rojo" : ""}`}>
       <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
@@ -118,7 +116,7 @@ function Tarjeta({
       </p>
       <p className="mt-1 text-xs text-tinta/65">{children}</p>
       {accion && (
-        <Link href={accion.href} className={`label-cayla mt-3 inline-block text-[11px] ${colorAccion} underline-offset-2 hover:underline`}>
+        <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
           {accion.texto} →
         </Link>
       )}

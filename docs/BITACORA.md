@@ -15,7 +15,7 @@ Lo que Felipe se lleva: una utilidad de Tailwind que "no hace nada" no es inocua
 pantalla que nadie vio como se diseñó. Salieron a la luz tres cosas que no eran el bug pedido: el
 filtro seleccionado en Resumen/Existencias no se distinguía (solo lo decía `aria-pressed`), las
 tarjetas de `/compras` y `campoSelect` no tenían indicador de foco de teclado, y `MAX_ROJO_POR_PANTALLA`
-ya estaba roto en Resumen (5 rojos) sin que nada avisara. Decisión suya pendiente en BACKLOG.
+ya estaba roto en Resumen (5 rojos) sin que nada avisara. Felipe eligió la opción A: los enlaces de acción de las tarjetas pasan a tinta subrayado y el rojo queda para el borde, con lo que Resumen baja de 5 a 2 rojos.
 Límite honesto: el Docker local estaba caído, así que se verificó con el componente real y el corpus,
 no con las pantallas con datos.
 

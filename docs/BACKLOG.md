@@ -75,19 +75,11 @@ con cada una: ADR-0105.
       Inventario → Resumen (borde rojo en "Necesita reposición ahora"; el filtro elegido queda
       sombreado), Traslados (borde en "Por confirmar en mi sede"), Conteo con un conteo abierto,
       Productos con una prenda dada de alta en un conteo, y Compras con Tab (borde rojo al enfocar).
-- [ ] **Decisión de Felipe — `MAX_ROJO_POR_PANTALLA` en Resumen y Productos.** No la causó este cambio
-      pero el borde la hizo visible. Resumen muestra 5 rojos en el peor caso (cifra de Riesgo + borde +
-      tres "Ver detalle →"); Productos con 2+ prendas pendientes pasa de 2 (el borde se suma a un
-      enlace rojo por prenda). Traslados y Conteo quedaron en 2: ahí el borde sustituye al enlace de
-      su tarjeta (una tarjeta, un rojo).
-      **A)** "Ver detalle →" de `TarjetaCifra` y los enlaces del banner de Productos a tinta
-      subrayado. *Ganas:* Resumen queda en 2 y el borde por fin destaca entre neutros. *Pagas:*
-      cambia una pantalla que ya aprobaste; los enlaces pierden el "clic aquí" rojo.
-      **B)** Dejarlo como está. *Ganas:* cero cambio de aspecto. *Pagas:* Resumen sigue en 5 y el
-      borde rojo compite con cuatro rojos más — el acento que acabamos de arreglar no se distingue.
-      **C)** Cambiar la regla a "2 por bloque" en `design-tokens.ts`. *Ganas:* la regla calza con lo
-      que ya hay. *Pagas:* es tocar la marca para acomodar la pantalla, no al revés.
-      **Recomiendo A.** Si no respondes, queda B (lo ya hecho): A cambia algo que ya viste aprobado.
+- [x] **`MAX_ROJO_POR_PANTALLA` — decidido por Felipe el 2026-09-18 (opción A).** Los enlaces de
+      acción de las tarjetas ("Ver detalle →"…) y los del banner de altas pendientes de Productos
+      pasaron a tinta subrayado; el rojo de una tarjeta es su borde. Resumen bajó de 5 a 2 rojos
+      (medido en navegador); Traslados, Conteo y Productos quedan en ≤2. Verificar con datos reales
+      junto con lo de arriba.
 - [ ] **`ComercialPanel.tsx`** (sesión `comercial-command-leaders-bb5771`, sin commitear, no está en
       `main`): usa `border-l-2! border-l-rojo!` como parche. Con este cambio el `!` sobra y hay que
       quitarlo. Aviso dejado en `SESIONES-ACTIVAS.md`. Ojo: su tarjeta destacada suma borde rojo +

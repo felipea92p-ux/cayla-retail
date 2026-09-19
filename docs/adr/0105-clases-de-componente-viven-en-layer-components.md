@@ -64,15 +64,18 @@ quedan y ahora aplican; las que contradecían el sistema se borran.**
 | `font-semibold` sobre `font-display` | 1 (`CajaAbiertaPanel:360`) | **Se borra** — `font-display` es 400, "el alma del sistema"; el 600 nunca se vio |
 | `transition-colors` / `transition-shadow` sobre `alza-cayla` | 3 | **Se borra** — sobreescribirían la lista de transiciones de `alza-cayla` y el "levante" de 2px pasaría de animarse a saltar. Hoy el color no anima y el levante sí; se conserva así |
 
-**DECIDÍ: una tarjeta con `acento` lleva un solo rojo — el borde. Su enlace de acción
-(`accion`) va en tinta.** Aplica en `TarjetaCifra` y en las tarjetas locales de Conteo y
-Traslados (las únicas donde `acento` y `accion` coinciden).
+**DECIDÍ (Felipe eligió la opción A el 2026-09-18): los enlaces de acción de las tarjetas
+("Ver detalle →", "Confirmar el…", "Seguir contando →") pasan de rojo a tinta subrayado, y lo
+mismo los enlaces de prenda del banner de altas pendientes de Productos.** Aplica en
+`TarjetaCifra` y en las copias locales de Conteo y Traslados. El rojo de una tarjeta queda para
+el borde `acento`: lo que "pide algo" se ve por el borde, no por cuatro enlaces iguales.
 
-DESCARTÉ dejar borde + enlace rojos en la misma tarjeta (lo que decía el comentario original
-de `TarjetaCifra`, escrito sin haber visto nunca el borde) porque `MAX_ROJO_POR_PANTALLA = 2`
-se rompía apenas el borde se hizo visible: Traslados pasaba de 2 a 3 rojos y Conteo (con un
-conteo abierto) de 2 a 3. Con el cambio, el acento sustituye al enlace rojo en vez de
-sumarse: ninguna pantalla empeora.
+DESCARTÉ dejar los enlaces rojos junto al borde (lo que decía el comentario original de
+`TarjetaCifra`, escrito sin haber visto nunca el borde) porque `MAX_ROJO_POR_PANTALLA = 2` se
+rompía apenas el borde se hizo visible: Resumen mostraba 5 rojos. También descarté ("C") cambiar
+la regla a "2 por bloque": es tocar la marca para acomodar la pantalla, no al revés. Y descarté una
+solución a medias que probé primero (solo el enlace de la tarjeta con borde en tinta): dejaba a
+Resumen en 4 y hacía que dos tarjetas iguales se vieran distinto según tuvieran o no borde.
 
 ## Cómo se verificó
 
@@ -98,21 +101,17 @@ animación, sombra).
 Cuenta el color de acento `rojo` (no `rojo-profundo`), por elemento; no cuenta puntos de
 estado repetidos por fila de una tabla.
 
-| Pantalla | Antes | Después |
-|---|---|---|
-| Traslados (Por confirmar + Con diferencia) | 2 | **2** (acento sustituye enlace) |
-| Conteo, con un conteo abierto | 2 | **2** |
-| Existencias (tarjetas) | 1 | 2 |
-| Producto → editar (banner de alta pendiente) | 0 | 1 (+ lo que ya tenga el formulario) |
-| **Resumen** | **5** | **5** — ya violaba: 3 enlaces "Ver detalle →" rojos + la cifra de Riesgo + el borde |
-| **Productos** (con altas pendientes) | N+1 | N+2 — el borde se suma a un enlace rojo por cada prenda pendiente |
+| Pantalla | Antes del cambio | Con solo mover la capa | Final (con A) |
+|---|---|---|---|
+| **Resumen** | 4 (3 enlaces + cifra de Riesgo) | 5 (+ borde) | **2** (borde + cifra de Riesgo) — medido en el navegador |
+| Traslados | 2 | 3 | **1** (solo el borde; "Con diferencia" va en rojo-profundo) |
+| Conteo, con un conteo abierto | 2 | 3 | **2** (borde + "Ver ajustes por conteo →") |
+| Existencias (tarjetas) | 1 | 2 | 2 |
+| Productos, con altas pendientes | N+1 | N+2 | **2** (borde + "N sin stock") |
+| Producto → editar (banner de alta pendiente) | 0 | 1 | 1 (+ lo que ya tenga el formulario) |
 
-**Resumen ya violaba antes de este cambio** (los tres "Ver detalle →" rojos siempre visibles, más
-la cifra de Riesgo): el borde no lo empeora porque sustituye al enlace de su tarjeta. **Productos
-sí suma uno**: el borde del banner de altas pendientes se acumula con los enlaces rojos de cada
-prenda; con 2 o más prendas pendientes ya pasaba de 2. No se tocó ninguna de las dos: rediseñar los
-"Ver detalle →" de Resumen (aprobados a la vista de Felipe) o los enlaces de Productos es una
-decisión de marca, no un efecto colateral de mover una capa. Queda en BACKLOG con opciones.
+Conteos hechos leyendo el código (Traslados, Conteo, Existencias, Productos) y midiendo en el
+navegador (Resumen, con el componente real). Ninguna pantalla medida pasa de 2.
 
 ## Se rompe si
 
