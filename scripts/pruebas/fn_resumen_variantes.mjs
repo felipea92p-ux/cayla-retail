@@ -75,10 +75,19 @@ create function pg_temp.saldo(v uuid, sub uuid, cant int) returns void language 
   on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = excluded.cantidad
 $$;
 -- Un producto + variante de prueba (cada uno su producto: evita el UNIQUE producto/talla/color).
+-- Desde ADR-0109 todo producto lleva marca y proveedor (NOT NULL, con llave compuesta a marca_proveedores):
+-- se usa la pareja que esa misma migración siembra (marca CAYLA / proveedor CAYLA SAC). En un Postgres local
+-- que todavía no la aplicó esas columnas no existen y el alta va sin ellas.
 create function pg_temp.variante(sku text, costo numeric default 40, estado_prod text default 'activo', activa boolean default true) returns uuid language plpgsql as $$
 declare p uuid; v uuid;
 begin
-  insert into retail.productos (referencia, estado) values ('ZZ ' || sku, estado_prod) returning id into p;
+  if exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'productos' and column_name = 'marca_id') then
+    insert into retail.productos (referencia, estado, marca_id, proveedor_id)
+      select 'ZZ ' || sku, estado_prod, mp.marca_id, mp.proveedor_id from retail.marca_proveedores mp order by mp.created_at limit 1
+      returning id into p;
+  else
+    insert into retail.productos (referencia, estado) values ('ZZ ' || sku, estado_prod) returning id into p;
+  end if;
   insert into retail.variantes (producto_id, sku, precio, costo, activo) values (p, sku, 100, costo, activa) returning id into v;
   return v;
 end $$;
