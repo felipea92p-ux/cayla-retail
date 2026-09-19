@@ -725,7 +725,8 @@ body {
 
    Rendimiento: el desenfoque cuesta en las tablets de las tiendas. Se limita a las
    tarjetas de arriba (R2), al contenedor de pestañas y a los botones «vidrio». Si se
-   nota, se baja `--vidrio-blur` acá, sin tocar ningún componente.
+   nota, se baja `--vidrio-blur` acá (`.tema-vidrio`, para tarjetas y botones); el contenedor
+   de pestañas fija el suyo (22 px, en `.pestanas-vidrio`) y se baja allá.
 
    Movimiento: la transición de la píldora es de `transform`/`width`, y la regla global de
    movimiento reducido (`transition-duration: 1ms !important`, al final del archivo) ya la
@@ -763,9 +764,12 @@ body {
 
   /* Con pantalla ancha las cuatro pestañas caben siempre: sin recorte, la sombra de la
      píldora (que se derrama bajo el contenedor, como en la maqueta aprobada) y el anillo de
-     foco de las pestañas de los extremos se ven completos. El desplazamiento horizontal solo
-     hace falta en celular, y ahí sí recorta. */
-  @media (min-width: 720px) {
+     foco de las pestañas de los extremos se ven completos. El umbral es de 1024 px y no de
+     celular a tablet: desde 640 px el menú lateral (17rem) y el margen de la página se comen
+     352 px, y a 768 el contenedor mide ~400 px para unas pestañas que suman ~545 (con
+     `visible` la última se saldría del vidrio y de la pantalla). Por debajo de 1024 px sigue
+     desplazándose en horizontal, y ahí sí recorta la sombra (el mal menor). */
+  @media (min-width: 64rem) {
     .pestanas-vidrio {
       overflow: visible;
     }
