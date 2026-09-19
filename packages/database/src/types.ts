@@ -4994,6 +4994,17 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_pago_compras_medios: {
+        Args: {
+          p_aplicaciones: Json
+          p_credito?: number
+          p_fecha?: string
+          p_medios?: Json
+          p_proveedor_id: string
+          p_token?: string
+        }
+        Returns: string
+      }
       registrar_pagos_compra: {
         Args: { p_compra_id: string; p_fecha?: string; p_pagos: Json }
         Returns: string[]

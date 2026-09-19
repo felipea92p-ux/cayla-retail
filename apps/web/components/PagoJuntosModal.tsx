@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Confirmacion, DatosDelMedio, DatosDelProveedor, PILDORA, PastillasMedio, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
+import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
+import { lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
@@ -19,6 +20,10 @@ import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-paga
 // obligar a registrar N pagos sueltos deja el estado de cuenta del banco (una línea) imposible
 // de conciliar con el sistema (N pagos). Cada comprobante conserva su propio historial: la base
 // escribe una fila de pago por comprobante y todas comparten un `pago_grupo_id`.
+//
+// Varios medios (2026-09-19, ADR-0132): la transferencia grande se puede completar con efectivo o Yape. Con UN medio el pago va por
+// `registrar_pago_compras` (la de siempre, sin cambios); con dos o más, por `registrar_pago_compras_medios`, que reparte cada medio
+// en cascada sobre los comprobantes y deja una fila de pago por comprobante y por medio, todas con el mismo `pago_grupo_id`.
 //
 // `registrar_pago_compras` es todo-o-nada y aplica candado por comprobante; el `token` hace que
 // apretar dos veces (o reintentar tras un corte) no pague dos veces. El pago individual de
@@ -73,8 +78,8 @@ export function PagoJuntosModal({
   const [totalTxt, setTotalTxt] = useState(totalSaldos.toFixed(2));
   const [montos, setMontos] = useState<Record<string, string>>(() => Object.fromEntries(ordenados.map((c) => [c.id, c.saldo.toFixed(2)])));
   const formaInicial = datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia";
-  const [metodo, setMetodo] = useState(formaInicial);
-  const [referencia, setReferencia] = useState("");
+  // Los medios con que se paga. Con una sola línea su monto no se escribe: es lo que sale de verdad (`aTransferir`).
+  const [lineas, setLineas] = useState<LineaPago[]>([{ monto: "", metodo: formaInicial, referencia: "" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [loading, setLoading] = useState(false);
   // Pago registrado: la confirmación reemplaza al formulario. El resultado se guarda en una ref porque el cierre
@@ -103,6 +108,10 @@ export function PagoJuntosModal({
   const credito = usarFavor ? Math.round(Math.min(saldoFavor, total) * 100) / 100 : 0;
   const aTransferir = Math.round((total - credito) * 100) / 100;
   const todoConFavor = credito > 0 && aTransferir <= 0;
+  const variosMedios = lineas.length > 1;
+  // Lo que se manda: con un medio, todo lo que sale; con varios, lo que escribió cada línea (y deben sumar `aTransferir`).
+  const medios = todoConFavor ? [] : variosMedios ? lineas : [{ ...lineas[0], monto: aTransferir.toFixed(2) }];
+  const mediosSuman = todoConFavor || !variosMedios || (medios.every((m) => Number(m.monto) > 0) && Math.abs(sumaLineasPago(medios) - aTransferir) < 0.005);
 
   function repartir(nuevoTotal: number) {
     const r = repartirPago(nuevoTotal, ordenados);
@@ -145,18 +154,32 @@ export function PagoJuntosModal({
     if (excede) return void avisar.error("Un comprobante recibe más de lo que debe. Baja el monto marcado en rojo.");
     const lote = aplicaciones.filter((a) => a.monto > 0).map((a) => ({ compra_id: a.c.id, monto: a.monto }));
     if (lote.length === 0) return void avisar.error("El pago necesita al menos un comprobante con monto.");
+    if (!mediosSuman) return void avisar.error(`Los medios de pago tienen que sumar ${soles(aTransferir)}: ajusta los montos.`);
+    const mediosRpc = todoConFavor ? [] : lineasPagoParaRpc(medios);
+    if (!mediosRpc) return void avisar.error("Cada medio de pago necesita un monto mayor a cero.");
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_pago_compras", {
-      p_proveedor_id: proveedorId,
-      p_metodo: metodo,
-      p_aplicaciones: lote,
-      ...(referencia.trim() ? { p_referencia: referencia.trim() } : {}),
-      p_fecha: fecha,
-      p_token: token.current,
-      ...(credito > 0 ? { p_credito: credito } : {}),
-    });
+    // Un medio (o todo con saldo a favor): la función de siempre. Dos o más: la que reparte por medio.
+    const { error } =
+      mediosRpc.length > 1
+        ? await supabase.rpc("registrar_pago_compras_medios", {
+            p_proveedor_id: proveedorId,
+            p_aplicaciones: lote,
+            p_medios: mediosRpc,
+            p_fecha: fecha,
+            p_token: token.current,
+            ...(credito > 0 ? { p_credito: credito } : {}),
+          })
+        : await supabase.rpc("registrar_pago_compras", {
+            p_proveedor_id: proveedorId,
+            p_metodo: mediosRpc[0]?.metodo ?? formaInicial,
+            p_aplicaciones: lote,
+            ...(mediosRpc[0]?.referencia ? { p_referencia: mediosRpc[0].referencia.trim() } : {}),
+            p_fecha: fecha,
+            p_token: token.current,
+            ...(credito > 0 ? { p_credito: credito } : {}),
+          });
     cerrarProceso();
     setLoading(false);
     if (error) {
@@ -165,7 +188,7 @@ export function PagoJuntosModal({
     }
     token.current = crypto.randomUUID();
     avisar.exito(`Pago de ${soles(total)} registrado`, {
-      detalle: `${lote.length === 1 ? "1 comprobante" : `${lote.length} comprobantes`} de ${proveedorNombre}, como un solo pago.${credito > 0 ? ` Se descontaron ${soles(credito)} de tu saldo a favor.` : ""}`,
+      detalle: `${lote.length === 1 ? "1 comprobante" : `${lote.length} comprobantes`} de ${proveedorNombre}, como un solo pago.${mediosRpc.length > 1 ? ` Repartido en ${mediosRpc.length} medios de pago.` : ""}${credito > 0 ? ` Se descontaron ${soles(credito)} de tu saldo a favor.` : ""}`,
     });
     // Quedan en cero los que recibieron todo su saldo; el resto sigue debiendo (y la lista lo enciende en verde).
     const r: ResultadoPago = {
@@ -335,19 +358,16 @@ export function PagoJuntosModal({
             </div>
           )}
 
-          <div className={`grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr] ${todoConFavor ? "opacity-50" : ""}`}>
-            <div>
-              <p className="label-cayla text-[11px] text-tinta/65">Medio de pago{todoConFavor ? " (no hace falta: cubre todo el saldo a favor)" : ""}</p>
-              <div className="mt-2">
-                <PastillasMedio valor={metodo} onValor={setMetodo} />
-              </div>
+          {todoConFavor ? (
+            <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
+              <p className="rounded-xl border border-dashed border-tinta/25 px-4 py-3 text-sm text-tinta/65 sm:col-span-2">
+                No hace falta medio de pago: el saldo a favor cubre todo el pago.
+              </p>
+              <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
-            <CampoTexto etiqueta="Referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Op. 00871234" autoComplete="off" />
-            <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
-            <div className="sm:col-span-3">
-              <DatosDelMedio key={metodo} medio={metodo} datos={datos} saldoFavor={saldoFavor} />
-            </div>
-          </div>
+          ) : (
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} />
+          )}
 
           <div className="border-t border-tinta/10 pt-4">
             <p className="text-sm text-tinta">
@@ -364,9 +384,15 @@ export function PagoJuntosModal({
             </p>
             <p className="mt-1 text-xs leading-relaxed text-tinta/65">
               {aTransferir > 0 ? (
-                <>
-                  Se registra como <b className="font-semibold">un solo pago</b>: en el estado de cuenta del banco verás una línea de {soles(aTransferir)}. Cada comprobante conserva su propio historial de pagos.
-                </>
+                variosMedios ? (
+                  <>
+                    Se registra como <b className="font-semibold">un solo pago en {lineas.length} medios</b>: cada medio va por su monto y cada comprobante conserva su propio historial de pagos.
+                  </>
+                ) : (
+                  <>
+                    Se registra como <b className="font-semibold">un solo pago</b>: en el estado de cuenta del banco verás una línea de {soles(aTransferir)}. Cada comprobante conserva su propio historial de pagos.
+                  </>
+                )
               ) : (
                 <>Se cubre entero con tu saldo a favor: no sale plata del banco. Cada comprobante lo muestra en su historial como «Saldo a favor».</>
               )}
@@ -379,7 +405,7 @@ export function PagoJuntosModal({
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar}>
+            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
               {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
             </Boton>
           </div>

@@ -21,6 +21,7 @@
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
+    "pruebas:pago-por-lote-medios": "node scripts/pruebas/pago_por_lote_medios.mjs",
     "caja:verificar": "node scripts/caja/verificar.mjs",
     "datos:generar": "node scripts/datos/generar.mjs",
     "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",

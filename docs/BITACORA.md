@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Pagar juntos con varios medios — ADR-0132)
+«Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
+cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada
+con 24 casos locales y un pago real en el navegador. **Migración pendiente en producción:** `20260919190000_pago_por_lote_varios_medios.sql`.
+
 ## 2026-09-19 (Por pagar responde: el spike aplicado al ERP — ADR-0131)
 Se aplicó el spike visual de Por pagar (`docs/maquetas/por-pagar-spike-2026-09/`): la pantalla llega escalonada con cifras que cuentan; deuda por vencimiento, salidas de caja y la barra de concentración se encienden entre sí y filtran la lista; «¿alcanza la caja?»; tocar una fila abre una vista rápida con línea de vida y siguiente paso; la barra de «Pagar juntos» sube y ofrece «＋ agregar» lo demás del proveedor; el modal muestra la cascada del pago y, al registrar, la pantalla reacciona (sello «Pagada» → la fila se pliega → las cifras cuentan). Sin migración ni RPC nuevo.
 Decisiones: el filtro por tramo/semana es local a la página cargada y lo dice (`listar_compras` filtra por emisión; tocar la función en producción no valía la pena); la vista rápida no trae el historial de pagos (`CompraResumen` no lo tiene); sin «Deshacer» un pago (es plata que salió). Verificado en navegador con pago real (uno completo y uno parcial, cifras cuadradas al céntimo); los comprobantes de prueba `TSTPP-…` se anularon, no se borraron.
