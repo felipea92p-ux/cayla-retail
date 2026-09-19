@@ -13,7 +13,7 @@
 -- best candidate function»): Registrar comprobante fallaba en producción.
 --
 -- QUÉ HACE ESTA MIGRACIÓN (idempotente):
---   1. `compras.token_cliente` y su UNIQUE `compras_token_cliente_key`: producción ya los tiene;
+--   1. `compras.token_cliente` y su índice único `compras_token_cliente_key`: producción ya los tiene;
 --      el repo no. Se agregan si faltan, para que una base nueva converja con producción.
 --   2. Se suelta la sobrecarga de 14 parámetros.
 --   3. Se reescribe la de 15 parámetros (la de producción, línea por línea) con UN solo cambio:
@@ -29,16 +29,10 @@ set search_path = retail, public, extensions;
 -- ==================== 1. lo que producción ya tiene y el repo no ====================
 alter table compras add column if not exists token_cliente uuid;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'retail.compras'::regclass and conname = 'compras_token_cliente_key'
-  ) then
-    alter table compras add constraint compras_token_cliente_key unique (token_cliente);
-  end if;
-end;
-$$;
+-- En producción `compras_token_cliente_key` es un ÍNDICE único (no una restricción): un `add constraint`
+-- con ese nombre falla con «relation … already exists» (42P07). El índice único hace el mismo trabajo (los
+-- NULL no chocan entre sí) y `get stacked diagnostics … constraint_name` de la función también lo reporta.
+create unique index if not exists compras_token_cliente_key on compras (token_cliente);
 
 comment on column compras.token_cliente is
   'Token de idempotencia que manda la pantalla al registrar: si la respuesta se corta y se reintenta con el mismo token, se devuelve la compra que ya existe en vez de duplicarla.';
