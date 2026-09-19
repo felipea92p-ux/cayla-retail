@@ -1,14 +1,15 @@
 # ADR-0117 — Gastos: un egreso de caja solo es un gasto si un gasto lo señala
 
 **Fecha:** 2026-09-18
-**Estado:** **PROPUESTO — espera la aprobación de Felipe para construir.** No hay código ni migración. Las cuatro
-decisiones de diseño de abajo ya las tomó Felipe; falta su ok al modelo completo.
-**Afectará (cuando se apruebe):** tablas nuevas `gastos`, `categorias_gasto` y `egresos_no_gasto`; RPC
-`registrar_gasto` y `anular_gasto`; pantalla `/finanzas/egresos`. **No toca** `caja_movimientos`, `registrar_movimiento_caja`
-ni `cerrar_caja`.
-**Reservados:** migración `20260918193000_gastos.sql`.
-**Relacionado:** ADR-0109 (los estados financieros; el gasto es su regla 9), ADR-0112 (los permisos por defecto
-dejan escribir a `authenticated`: hay que revocar explícitamente).
+**Estado:** **APROBADO por Felipe el 2026-09-18 y CONSTRUIDO el 2026-09-19.** La migración
+`20260918193000_gastos.sql` existe en el repo y **aún NO está aplicada en producción** (ver «Pendiente» al final).
+**Afecta:** tablas nuevas `gastos`, `categorias_gasto` y `egresos_no_gasto`; RPC `registrar_gasto`, `anular_gasto`,
+`marcar_egreso_no_gasto` y `revertir_egreso_no_gasto`; lecturas `fn_egresos_resumen`, `fn_egresos_sin_clasificar`,
+`fn_egresos_no_gasto_lista` y `fn_gastos_lista`; pantalla `/finanzas/egresos` y el grupo «Finanzas» del menú (solo
+líder). **No toca** `caja_movimientos`, `registrar_movimiento_caja` ni `cerrar_caja`.
+**Migración:** `20260918193000_gastos.sql`.
+**Relacionado:** ADR-0109 (los estados financieros; el gasto es su regla 9), ADR-0119 (ventas y devoluciones solo por
+RPC; los permisos por defecto dejan escribir a `authenticated`, por eso el revoke explícito de aquí).
 
 ## El problema
 
@@ -85,7 +86,7 @@ lados, y además trataría un depósito bancario como si fuera un gasto.
   categoría para eso, a propósito (van a inventario, a `activos_fijos` y a la cuenta 609).
 - Se **cierra un mes** (ADR-0109) y se registra un gasto con fecha de ese mes: hace falta el bloqueo por período (tarea 8).
 
-## Modelo (borrador; se afina al construir)
+## Modelo (como quedó construido; las diferencias con la propuesta están en la sección siguiente)
 
 ```
 retail.categorias_gasto ( codigo text pk, nombre text, cuenta_pcge text, activo boolean )   -- 7 filas sembradas
@@ -111,6 +112,25 @@ retail.gastos (
 retail.egresos_no_gasto ( caja_movimiento_id uuid pk references retail.caja_movimientos, motivo text, revisado_por uuid, revisado_en timestamptz )
 ```
 
+## Lo que cambió al construir (para que Felipe pueda objetarlo)
+
+Cinco cosas se decidieron construyendo, no en la propuesta:
+
+1. **La marca «no es gasto» se puede revertir** (la propuesta decía «solo agrega filas»). Un clic que esconde plata y no
+   se puede deshacer es un mal diseño: el error es del sistema, no de quien hizo clic. Se agregó `revertido_en/por`, el
+   RPC `revertir_egreso_no_gasto` y una lista (`fn_egresos_no_gasto_lista`) para poder llegar a la marca; sin la lista la
+   reversión existía solo en el papel. La fila nunca se borra ni se edita, salvo para revertirse.
+2. **Los candados viven en la base, no en la RPC.** Lo que la propuesta atribuía a «validación dentro de la RPC» (monto
+   igual al del egreso, egreso que no sea un ingreso, misma sede) es un trigger: vale también para quien escriba desde una
+   consola. El mismo trigger toma un candado por egreso (`pg_advisory_xact_lock`) porque «clasificar como gasto» y «marcar
+   no es gasto» tocan tablas distintas: sin él, dos líderes simultáneos pasan ambos (se probó con dos sesiones reales).
+3. **La caja de un gasto en efectivo debe ser de la misma sede** que el gasto; si el gasto es «de la empresa», sirve
+   cualquier caja abierta. Un gasto de AQP no se paga con el cajón de TRU.
+4. **`registrar_gasto` deja lo opcional al final con `default`** (IGV, número, proveedor, caja, token) para que el tipo
+   generado deje llamarla «sin proveedor». La sede sigue siendo **obligatoria** (`null` = «de la empresa»): con default,
+   olvidarla atribuiría el gasto a la empresa en silencio.
+5. **«Hoy» sale de `retail.fn_hoy_lima()`**, la misma definición que usa el resto del sistema (no una copia).
+
 ## Estados imposibles (Lamport: qué NUNCA debe existir, y quién lo impide)
 
 | Estado imposible | Se impide con |
@@ -122,7 +142,9 @@ retail.egresos_no_gasto ( caja_movimiento_id uuid pk references retail.caja_movi
 | Una factura sin número | `check` |
 | Un gasto anulado sin motivo ni responsable | `check` de coherencia (mismo patrón que `ventas`) |
 | Un gasto borrado | `revoke delete` + sin política de escritura |
-| Cualquier colaboradora insertando un gasto directo desde la consola | `revoke insert, update, delete ... from authenticated` — **explícito, porque `0005_grants.sql` da escritura por defecto a toda tabla nueva** (ADR-0112) |
+| Un gasto que señala un ingreso, o de otra sede que la caja | trigger `fn_gastos_validar_egreso` |
+| Un gasto editado (monto, categoría…) en vez de anulado | trigger `fn_gastos_solo_anular` (solo permite `vigente → anulado`) |
+| Cualquier colaboradora insertando un gasto directo desde la consola | `revoke insert, update, delete ... from authenticated` — **explícito, porque `0005_grants.sql` da escritura por defecto a toda tabla nueva** (ADR-0119) |
 | Un egreso a la vez "gasto" y "no es gasto" | la RPC de "no es gasto" rechaza si ya tiene un gasto vigente, y la de gasto rechaza si está marcado |
 | El mismo gasto guardado dos veces por un doble clic o un reintento de red | `token_cliente` único (mismo patrón que `registrar_venta`) |
 
@@ -154,23 +176,44 @@ día. Cualquier consulta agrega decenas de miles de filas como máximo. No hace 
 fecha)` y el único parcial. **Supuesto, no dato:** 150 al mes se estimó en ADR-0109; el volumen real de gastos se mide
 cuando haya carga.
 
-## Verificación prevista (principio 7)
+## Verificación hecha (principio 7)
 
-1. Prueba aislada con un Postgres desechable (patrón de ADR-0110/0113): los cinco estados imposibles de la tabla, los
-   tres caminos, el anular, y **mutaciones** que la hagan fallar (quitar el índice único, quitar el `check` de efectivo,
-   permitir el `DELETE`).
-2. Un gasto de prueba en UNA tienda y comprobar que **solo mueve esa tarjeta** y que el egreso de caja no se cuenta doble.
-3. Contra el stack local con Docker: los permisos reales, `fn_es_lider` verdadera y la pantalla autenticada.
+- **Prueba aislada** (`node scripts/pruebas/gastos_aislado.mjs`, Postgres efímero, sin Docker): **94 verificaciones** —los
+  tres caminos, los estados imposibles rechazados también al dueño de la fila, permisos como líder/colaboradora,
+  idempotencia por token, anular sin tocar la caja, y que la suma de las tarjetas es exactamente la de gastos vigentes—.
+  La `registrar_movimiento_caja` que se usa es la **real** (se carga su migración), así el camino B se prueba contra la
+  regla de caja verdadera, incluido el rechazo de una caja cerrada y el fallo *después* de crear el egreso.
+- **Concurrencia con dos sesiones reales:** una marca «no es gasto» y tarda en confirmar; otra clasifica el mismo egreso.
+  Con el candado, un solo destino.
+- **10 mutantes, 10 detectados:** se quita un candado a la vez (índice único, check efectivo⇔egreso, trigger de anulación,
+  permisos, monto igual, exigir líder, anulados en el resumen, exclusión «no es gasto» en las dos direcciones, y el candado
+  de concurrencia) y la prueba tiene que fallar. Una prueba que nunca puede fallar no prueba nada.
+- **19 pruebas de las reglas de pantalla** (`gastos-reglas.test.ts`); `typecheck`, `lint` y la suite completa (795) en verde.
+  Se comprobó que el typecheck muerde rompiendo a propósito un nombre de RPC.
+- **Pantalla en el navegador** con datos de ejemplo (sin base): cuatro tarjetas, el Taller en cero con borde punteado,
+  botones sugeridos según el egreso, validación que lleva el cursor al campo, «no hay caja abierta en esa sede», caja
+  preseleccionada, IGV solo con factura, y el camino C con monto y sede fijos. **Encontró un defecto real** (el tipo de
+  comprobante se cortaba: «Recibo por honorar…») y se corrigió.
+- **NO verificado:** la pantalla autenticada contra la base real, con la `fn_es_lider` verdadera (Dynamic + colaboradores):
+  Docker está caído. Y los tipos de `packages/database/src/types.ts` para estas tablas y funciones están escritos a mano
+  con el formato del generador; regenerarlos cuando haya base local debe dar un diff nulo o trivial.
 
-## Preguntas abiertas para Felipe
+## Decisiones que tomé por defecto al construir (revisables)
 
-1. **Efectivo fuera de caja.** ¿Alguna vez se paga un gasto en efectivo sacado de un cajón que no es la caja del día
-   (una caja fuerte, plata de la oficina)? Si es así, esta versión no lo cubre.
-2. **Las siete categorías y sus cuentas** deben pasar por el contador antes de sembrarse.
-3. **Menú:** la pantalla es `/finanzas/egresos`, y hoy no existe ninguna entrada "Finanzas". ¿Dónde va en el menú que
-   ordenaste el 16-sep?
-4. **Historial:** los egresos de caja anteriores a este módulo aparecerán todos "sin clasificar". ¿Se clasifican, o se
-   marcan como "no es gasto" en bloque los anteriores a una fecha?
+- **Menú:** grupo «Finanzas» al final del menú del líder, con «Gastos» adentro; el Estado de Resultados y el Balance se
+  suman ahí. El orden que Felipe fijó el 2026-09-16 no incluía Finanzas; va último para no mover nada de lo que ya usa.
+- **Historial:** los egresos de caja anteriores a este módulo aparecen todos «sin clasificar» y se clasifican **uno por
+  uno**. No se construyó el marcado en bloque por fecha: es fácil de agregar después y difícil de deshacer.
+- **Efectivo fuera de una caja** (caja fuerte, plata de oficina): sigue sin camino. Si hace falta, se registra primero el
+  egreso en una caja y se clasifica. Se decide con Felipe cuando aparezca el caso.
+
+## Pendiente
+
+1. **Aplicar la migración en producción** (`retail.` ya viene escrito en el archivo) y refrescar el volcado y el diccionario
+   (`docs/datos/generado/COMO-REFRESCAR.md`). Requiere el ok explícito de Felipe.
+2. **El contador confirma las siete categorías y sus cuentas PCGE.** Están sembradas como provisionales.
+3. **Bloqueo por período** (tarea 8, cierre de mes): `anular_gasto` y `registrar_gasto` deben rechazar fechas de un mes cerrado.
+4. **Abrir la pantalla como líder y como colaboradora** con la base local levantada.
 
 ## Cómo se deshace (una vez construido)
 

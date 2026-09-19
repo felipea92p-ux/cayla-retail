@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Gastos construidos — la protección no estaba en la RPC, estaba en la base)
+Se construyó el modelo de gastos que Felipe aprobó (ADR-0117): `gastos`, `categorias_gasto` y `egresos_no_gasto`, cuatro RPC,
+cuatro lecturas y la pantalla `/finanzas/egresos` con una tarjeta por sede y una para «De la empresa». Lo importante es dónde
+viven las reglas: que un egreso de caja no respalde dos gastos, que un gasto en efectivo tenga su egreso, que un gasto no se
+edite ni se borre, todo eso lo hace cumplir la base (índice único, checks, triggers), no la RPC. La RPC es el camino cómodo; la
+base es la que impide el estado imposible aunque alguien escriba desde una consola.
+
+Verificado con un Postgres efímero: 94 comprobaciones, una prueba de concurrencia con dos sesiones reales (una marca «no es gasto»
+mientras otra clasifica el mismo egreso: sin el candado por egreso, los dos pasan) y 10 mutantes —se quita un candado a la vez—
+que la prueba detectó todos. Dos cosas que solo aparecieron construyendo: la marca «no es gasto» tenía que poder revertirse (y
+tener una lista para llegar a ella; reversible sin forma de llegar es irreversible), y el formulario cortaba «Recibo por honorar…».
+
+Lo que Felipe se lleva: una prueba que nunca puede fallar no prueba nada —por eso cada candado se quitó a propósito para ver
+caer la prueba—. Pendiente: aplicarla en producción (con su ok), que el contador confirme las categorías, y abrir la pantalla
+con la base local (hoy solo se vio con datos de ejemplo).
+
 ## 2026-09-19 (Etiquetar prendas más fácil — puerta 1: desde la etiqueta, con vista previa antes de tocar precios)
 
 Hoy 0 de 127 variantes activas tenían etiqueta: la única forma era «Editar producto», una variante a la vez, y esa función reemplaza el conjunto completo de etiquetas (dos Líderes a la vez se pisarían). Se construyó `etiquetar_variantes`, un RPC incremental (agrega o quita UNA etiqueta a muchas variantes sin tocar las demás, todo o nada, idempotente) y el botón «Prendas» en cada tarjeta de Etiquetas: lista de productos con casilla (una marca todas sus tallas), excepciones por talla, filtro por categoría y «Marcar visibles». Si la etiqueta lleva descuento, antes de guardar dice el efecto real: «Black Friday baja el precio 30 % a 3 prendas · empieza el 9 nov: hasta entonces no cambia ningún precio · 2 prendas quedarían bajo su costo».

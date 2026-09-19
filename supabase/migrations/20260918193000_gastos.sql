@@ -143,7 +143,7 @@ create unique index egresos_no_gasto_vigente_uq
 
 -- ---------- 4. Permisos: solo el líder ve; NADIE escribe directo ----------
 -- 0005_grants.sql da select/insert/update/delete a `authenticated` en toda tabla
--- nueva del schema (ADR-0112): sin este revoke explícito, cualquier colaboradora
+-- nueva del schema (ADR-0119): sin este revoke explícito, cualquier colaboradora
 -- podría insertar un gasto desde la consola del navegador.
 alter table retail.categorias_gasto enable row level security;
 alter table retail.gastos enable row level security;
