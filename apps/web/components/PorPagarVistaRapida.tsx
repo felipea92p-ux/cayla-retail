@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import type { DatosPagoProveedor, ResultadoPago } from "@/components/PagoPiezas";
-import { soles, type CompraResumen } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO_PAGO, soles, type CompraResumen, type PagoCompra } from "@/lib/compras-reglas";
 import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
 import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } from "@/lib/por-pagar-reglas";
@@ -33,6 +33,7 @@ export function PorPagarVistaRapida({
   otros,
   datos,
   nota,
+  pagos,
   posicion,
   ahora,
   onCerrar,
@@ -44,6 +45,8 @@ export function PorPagarVistaRapida({
   otros: CompraResumen[];
   datos?: DatosPagoProveedor;
   nota?: NotaPendiente;
+  /** Los pagos ya registrados de este comprobante (del más reciente al más antiguo); `undefined` si no se pudieron leer: la sección se omite. */
+  pagos?: PagoCompra[];
   posicion: { indice: number; total: number };
   ahora: Date;
   onCerrar: () => void;
@@ -128,15 +131,38 @@ export function PorPagarVistaRapida({
                   </div>
                 ))}
               </div>
+
+              {/* Pagos de este comprobante (como en el spike): cuándo, con qué medio y cuánto. Sin pagos, se dice. */}
+              {pagos && (
+                <section className="mt-[22px]">
+                  <h3 className="label-cayla mb-1 text-[11px] text-tinta/65">Pagos de este comprobante</h3>
+                  {pagos.length === 0 ? (
+                    <p className="border-t border-tinta/10 py-2.5 text-[13px] text-tinta/55">Sin pagos todavía.</p>
+                  ) : (
+                    <ul>
+                      {pagos.map((p, i) => (
+                        <li key={p.id} className="anim-revelar grid grid-cols-[3.4rem_1fr_auto] items-baseline gap-3 border-t border-tinta/10 py-2.5 text-[13px]" style={{ animationDelay: `${260 + i * 60}ms` }}>
+                          <span className="tabular-nums text-tinta/55">{diaMes(p.fecha)}</span>
+                          <span>
+                            {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
+                            {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
+                          </span>
+                          <b className="font-medium tabular-nums">{soles(p.monto)}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
+              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
               <Link
                 href={`/compras/factura/${c.id}`}
-                className="label-cayla rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
+                className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"
               >
-                Abrir comprobante →
+                Abrir comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
               </Link>
               <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">
                 {posicion.indice + 1} de {posicion.total}

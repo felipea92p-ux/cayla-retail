@@ -13,7 +13,7 @@ import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { PagoJuntosModal, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoJuntosModal";
 import { coincideConEco, usePorPagar } from "@/components/PorPagarContexto";
 import { PorPagarVistaRapida } from "@/components/PorPagarVistaRapida";
-import { soles, type CompraResumen } from "@/lib/compras-reglas";
+import { soles, type CompraResumen, type PagoCompra } from "@/lib/compras-reglas";
 import type { NotaPendiente, TotalesTramosPorPagar } from "@/lib/compras-indicadores";
 import { diaMes } from "@/lib/fechas-lima";
 import { detalleSeleccion, etiquetaVence, partirCoincidencia, plazoConsumido, TITULO_TRAMO, tramoDe, type ClaveTramo } from "@/lib/por-pagar-reglas";
@@ -77,6 +77,7 @@ export function PorPagarLista({
   hayMasPaginas,
   datosProveedores,
   notas,
+  pagos = {},
   seleccionInicial = [],
   indice = 0,
 }: {
@@ -86,6 +87,8 @@ export function PorPagarLista({
   datosProveedores: Record<string, DatosPagoProveedor>;
   /** Por id de comprobante: el faltante cerrado que todavía espera su nota de crédito (solo líder; vacío si ninguno). */
   notas: Record<string, NotaPendiente>;
+  /** Por id de comprobante: sus pagos, del más reciente al más antiguo (solo de los que ya recibieron alguno). El cajón los muestra. */
+  pagos?: Record<string, PagoCompra[]>;
   /** Comprobantes que llegan ya marcados («Pagar con este saldo»). */
   seleccionInicial?: string[];
   /** Posición de la lista en la entrada escalonada de la pantalla. */
@@ -275,20 +278,36 @@ export function PorPagarLista({
 
   return (
     <div className={seleccion.length > 0 ? "pb-28 sm:pb-24" : ""}>
-      {filtroLocal && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-tinta/65">
+      {/* La línea de resumen del spike: cuántos comprobantes y cuánto suman lo que se ve. Con un filtro por clic lleva además su chip
+          (para quitarlo) y dice «de cuántos». La cifra cuenta hasta su valor nuevo al filtrar. */}
+      <div className="anim-entra mb-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-tinta/65" style={{ ["--i" as string]: Math.max(0, indice - 1) }}>
+        {filtroLocal && (
           <span className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] py-1 pl-2.5 pr-1.5 text-[10px] text-tinta/75">
             {filtroLocal.etiqueta}
             <button type="button" onClick={quitarFiltro} aria-label={`Quitar filtro ${filtroLocal.etiqueta}`} className="grid h-4 w-4 place-items-center rounded-full text-sm leading-none transition-colors hover:bg-tinta hover:text-crema">
               ×
             </button>
           </span>
-          <span className="tabular-nums" aria-live="polite">
-            Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {compras.length}
-            {hayMasPaginas ? " en esta página" : ""} · <b className="font-semibold text-tinta">{soles(Math.round(visibles.reduce((a, c) => a + c.saldo, 0) * 100) / 100)}</b>
-          </span>
-        </div>
-      )}
+        )}
+        <span className="tabular-nums" aria-live="polite">
+          {filtroLocal ? (
+            <>
+              Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {compras.length}
+              {hayMasPaginas ? " en esta página" : ""}
+            </>
+          ) : (
+            <>
+              <b className="font-semibold text-tinta">{visibles.length}</b> {visibles.length === 1 ? "comprobante con saldo" : "comprobantes con saldo"}
+            </>
+          )}
+        </span>
+        <span className="tabular-nums">
+          <b className="font-semibold text-tinta">
+            <CifraQueCuenta valor={Math.round(visibles.reduce((a, c) => a + c.saldo, 0) * 100) / 100} formato="soles" alMontar={llegando} />
+          </b>{" "}
+          {filtroLocal ? "en pantalla" : `por pagar${hayMasPaginas ? " en esta página" : ""}`}
+        </span>
+      </div>
 
       <Tabla className={`@container anim-entra ${hayEco ? "[&_[data-fila]:not([data-eco])]:opacity-50" : ""}`} style={{ ["--i" as string]: indice }}>
         <div className={`hidden gap-x-4 px-5 py-2 @[40rem]:grid ${PLANTILLA}`} role="row">
@@ -437,6 +456,7 @@ export function PorPagarLista({
           otros={otrosDeVista}
           datos={datosProveedores[vista.proveedorId]}
           nota={notas[vista.id]}
+          pagos={vista.pagado > 0 ? pagos[vista.id] : []}
           posicion={{ indice: Math.max(0, indiceVista), total: ordenVisual.length }}
           ahora={ahora}
           onCerrar={() => setVistaId(null)}
@@ -473,14 +493,15 @@ function SugerenciasDelProveedor({ proveedorId, compras, seleccion, ahora, onAgr
     .slice(0, 3);
   if (otros.length === 0) return null;
   return (
-    <span className="flex flex-wrap items-center gap-1.5">
+    // En celular las sugerencias van en UNA fila que se desliza (partidas en tres líneas cada una se leían mal).
+    <span className="flex max-w-full items-center gap-1.5 overflow-x-auto [scrollbar-width:none] max-sm:basis-full sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
       {otros.map((o, i) => (
         <button
           key={o.id}
           type="button"
           onClick={() => onAgregar(o.id)}
           title={o.fechaVencimiento ? etiquetaVence(o.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}
-          className="anim-revelar rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-xs tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
+          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-xs tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
           style={{ animationDelay: `${i * 50}ms` }}
         >
           ＋ {o.documento} · {soles(o.saldo)}
@@ -545,6 +566,10 @@ function FilaPorPagar({
   entrada: { indice: number } | null;
   posicion: number;
 }) {
+  // Cómo entra esta fila se decide UNA vez, al montarse: con la pantalla (escalonada) o, si aparece después (un filtro que la muestra), con
+  // el gesto corto SIN retener el estado final. Si la clase cambiara al terminar la entrada, la animación se repetiría en toda la tabla y,
+  // al retener `opacity: 1`, pisaría la atenuación de las filas de otros proveedores y el eco al apuntar una barra.
+  const [alEntrar] = useState(() => (entrada ? { clase: "anim-entra", i: entrada.indice } : { clase: "anim-revelar [animation-fill-mode:backwards]", i: null }));
   const tramo = tramoDe(c, ahora);
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta";
   const vence = c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha";
@@ -594,8 +619,8 @@ function FilaPorPagar({
         marcada ? "bg-rojo/[0.045] before:scale-y-100" : ""
       } ${eco || foco ? "bg-tinta/[0.04] before:scale-y-100" : ""} ${atenuada ? "opacity-40" : ""} ${destello ? "anim-destello-ok" : ""} ${
         sellada ? "pointer-events-none bg-verde/10 before:scale-y-100 before:bg-verde" : ""
-      } ${entrada ? "anim-entra" : "anim-revelar"}`}
-      style={entrada ? { ["--i" as string]: entrada.indice } : undefined}
+      } ${alEntrar.clase}`}
+      style={alEntrar.i != null ? { ["--i" as string]: alEntrar.i } : undefined}
     >
       {sellada && (
         <span aria-hidden className="anim-revelar absolute right-5 top-1/2 z-10 flex -translate-y-1/2 items-center gap-2 rounded-lg bg-papel/95 px-3 py-1.5 text-verde-profundo">

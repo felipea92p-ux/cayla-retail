@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { listarPorPagar, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
+import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
@@ -50,8 +50,13 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
   // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
   // la página tiene algo cerrado, sin frenar las demás consultas.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
-    listarPorPagar(filtros, cursor).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
+  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
+    // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
+    // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
+    listarPorPagar(filtros, cursor).then(async (pagina) => {
+      const [notas, pagos] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getPagosDeCompras(pagina.filas.filter((c) => c.pagado > 0).map((c) => c.id))]);
+      return { pagina, notas, pagos };
+    }),
     getResumenCompras(),
     getResumenComprasExtra(),
     getDeudaPorVencimiento(),
@@ -131,7 +136,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             «Deuda total» ocupa las dos columnas por ser la cifra ancla. Las cifras cuentan desde 0 al llegar
             y, cuando algo las mueve (un pago), cuentan hasta su valor nuevo. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="col-span-2 sm:col-span-1">
+          <div className="col-span-2 sm:col-span-1 [&>*]:h-full">
             <TarjetaCifra compacta punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
               {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
             </TarjetaCifra>
@@ -140,7 +145,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             compacta
             acentoTrazo={resumen.vencidas > 0}
             punto="neutro"
-            tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
+            tono={resumen.vencidas > 0 ? "text-rojo max-sm:text-[26px] whitespace-nowrap" : undefined}
             etiqueta="Vencido"
             valor={<CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
             href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
@@ -162,12 +167,12 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana} →` : "Ninguno en los próximos 7 días"}
           </TarjetaCifra>
           {conDeuda && extra.topProveedorNombre ? (
-            <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)}>
+            <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
               {extra.topProveedorNombre} concentra la deuda
               <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—" {...entra(4)}>
+            <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—" {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
               Aparece cuando haya deuda
             </TarjetaCifra>
           )}
@@ -181,7 +186,8 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             .sort((a, b) => b.saldoFavor - a.saldoFavor)}
         />
 
-        <div className="grid gap-3 lg:grid-cols-2">
+        {/* `grid-cols-1` = `minmax(0, 1fr)`: sin él, en celular la columna única crece hasta el contenido más ancho (las etiquetas de las barras) y la tarjeta se sale de la pantalla. */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <DeudaPorVencimiento tramos={vencimiento} indice={6} />
           <SalidasDeCaja salidas={salidas} indice={7} />
         </div>
@@ -190,7 +196,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
           <FiltrosCompras
             proveedores={directorio}
             visibles={["proveedor", "vencidas", "condicion"]}
-            atajoBuscar
+            estiloSpike
             accionesAntes={
               <div className="flex items-start gap-3">
                 <BotonSoloVencidas cantidad={resumen.vencidas} />
@@ -218,6 +224,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             hayMasPaginas={hayMasPaginas}
             datosProveedores={datosProveedores}
             notas={notas}
+            pagos={pagos}
             seleccionInicial={seleccionInicial}
             indice={10}
           />

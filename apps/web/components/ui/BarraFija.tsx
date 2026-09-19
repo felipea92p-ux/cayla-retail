@@ -40,8 +40,8 @@ export function BarraFija({
     >
       {medidor}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-10">
-        <div className="min-w-0 text-sm text-tinta/75">{resumen}</div>
-        <div className="flex shrink-0 items-center gap-3">{acciones}</div>
+        <div className={`min-w-0 text-sm text-tinta/75 ${animada ? "basis-full sm:basis-0 sm:flex-1" : ""}`}>{resumen}</div>
+        <div className={`flex shrink-0 items-center gap-3 ${animada ? "max-sm:w-full max-sm:justify-between" : ""}`}>{acciones}</div>
       </div>
     </div>
   );

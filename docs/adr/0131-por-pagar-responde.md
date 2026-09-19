@@ -36,11 +36,7 @@ y probadas contra los casos borde (bordes inclusivos, sin fecha = «vence hoy»)
 cubierto (`cubrirCaja`, pura) con una frase. El monto no se guarda ni viaja a ningún lado: no hay tabla de caja
 disponible en este módulo y no se inventa una.
 
-**D4 — La vista rápida no trae el historial de pagos.** Tocar una fila abre un cajón (mismo molde que
-`ProveedorVistaRapida`) con saldo, total/pagado/crédito, la línea de vida (emisión → vencimiento → hoy) y el
-«siguiente paso» (`pasosDeComprobante`, pura y probada). `CompraResumen` no trae los pagos y pedirlos en cada
-clic sería una consulta más por fila; el historial completo sigue en el detalle, al que el cajón enlaza. Es solo
-de líder (ADR-0126).
+**D4 — Vista rápida del comprobante.** Tocar una fila abre un cajón (mismo molde que `ProveedorVistaRapida`) con saldo, total/pagado/crédito, la línea de vida (emisión → vencimiento → hoy), el «siguiente paso» (`pasosDeComprobante`, pura y probada) y los **pagos ya registrados** (fecha, medio, referencia y monto; «Sin pagos todavía» si no hay). Los pagos se piden en UNA consulta por toda la página (`getPagosDeCompras`, solo de los comprobantes que ya recibieron alguno) y, si la consulta falla, la lista se dibuja igual y el cajón omite la sección: se registra en el log del servidor. El botón del cajón es «Pagar S/ …» (con el billete), como en el spike. Es solo de líder (ADR-0126).
 
 **D5 — Pagar no hace `router.refresh()` en el modal: lo pide la lista cuando termina de animar.** El modal se vuelve
 una confirmación (el círculo y el tilde se dibujan; cada comprobante con su saldo resultante) y solo al cerrarla
@@ -106,6 +102,8 @@ nombre que muestra el banco o Yape antes de confirmar. La franja de arriba queda
 los agregó la sesión de Proveedores (su ADR-0129, migración `20260919170000`, ya en producción) y se copiaron SUS tipos
 (`lib/proveedores.ts`, `packages/database`) idénticos para que la fusión sea limpia. **Numeración:** este ADR era el 0129;
 pasó a 0131 porque el 0129 y el 0130 (regla de movimiento de modales) son de esa rama.
+
+**D12 — Revisión general contra el spike (2026-09-19).** Antes de subir se renderizaron el spike y la pantalla real con los mismos datos y se compararon sección por sección, con 13 comprobantes y un saldo a favor de prueba. Se corrigió: **(1)** las filas de otros proveedores NO se atenuaban al marcar y el eco al apuntar una barra no se veía: al terminar la entrada la fila cambiaba a `anim-revelar`, cuya animación retiene `opacity: 1` y pisa el `opacity-40`/`opacity-50` (y además repetía 240 ms de animación en toda la tabla); ahora la animación de cada fila se fija al montarse y no retiene el estado final; **(2)** buscador del spike (lupa, sin etiqueta, «/» a la vista, ✕) y la línea de resumen «N comprobantes con saldo · S/ … por pagar» que faltaban; **(3)** la tarjeta «Deuda total» medía menos que las otras; **(4)** el cajón: botón corto, ícono en «Abrir comprobante» y la sección de pagos; **(5)** celular: la rejilla de una columna sin `minmax(0, 1fr)` y las etiquetas de «Salidas de caja» ensanchaban toda la pantalla, «Concentración» a ancho completo, «S/ 11,803.60» sin partirse, y la barra fija con los botones en su propia fila y las sugerencias en una fila deslizable. Verificado con medidas (opacidades calculadas, ancho de `main` = 375, cero elementos desbordados) y capturas. Filtros probados uno por uno: tramo, semana de caja, agrupar, búsqueda con resaltado, «Solo vencidas», panel de Filtros, chips, «Pagar con este saldo» (llega con lo marcado), «/», ↑ ↓, Espacio, Enter y Esc. **No verificable en este entorno:** abrir el modal desde `?pagar=` (en `main` tampoco abre en el panel de pruebas, así que no es una regresión).
 
 ## Lo que NO cambia
 

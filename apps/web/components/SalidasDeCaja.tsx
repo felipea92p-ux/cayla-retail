@@ -70,7 +70,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
   // Lo que se lleva vencido y por vencer hasta cada semana (el globo de cada barra lo dice).
   const acumulados = salidas.map((_, i) => Math.round(salidas.slice(0, i + 1).reduce((a, x) => a + x.monto, 0) * 100) / 100);
   return (
-    <div className="card-cayla anim-entra p-5" style={{ ["--i" as string]: indice }}>
+    <div className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[11px] text-tinta/65">Salidas de caja · próximos 30 días</p>
         {max > 0 && (
@@ -95,7 +95,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
         <p className="mt-4 text-sm text-tinta/65">No hay pagos que venzan en los próximos 30 días.</p>
       ) : (
         <>
-          <div className="mt-3 flex h-[158px] items-end gap-2.5 border-b border-tinta/10">
+          <div className="mt-3 flex h-[158px] items-end gap-1.5 border-b border-tinta/10 sm:gap-2.5">
             {salidas.map((s, i) => {
               const activa = filtroLocal?.clave === `caja:${s.orden}`;
               const cubierta = hayCaja ? cobertura.fracciones[i] : 0;
@@ -116,7 +116,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
                       coincide: (c) => enCubetaCaja(c, { desde: s.desde, hasta: s.hasta }),
                     })
                   }
-                  className={`group relative flex h-full flex-1 flex-col items-center justify-end gap-[5px] transition-opacity duration-200 ${hayFiltro && !activa ? "opacity-40" : ""}`}
+                  className={`group relative flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-[5px] transition-opacity duration-200 ${hayFiltro && !activa ? "opacity-40" : ""}`}
                 >
                   <span
                     role="tooltip"
@@ -127,7 +127,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
                     </b>
                     <span className="mt-1 block border-t border-crema/20 pt-1 tabular-nums">Acumulado {soles(acumulados[i])}</span>
                   </span>
-                  <span className="text-xs tabular-nums text-tinta/75">
+                  <span className="text-[10px] tabular-nums tracking-tight text-tinta/75 sm:text-xs sm:tracking-normal">
                     <CifraQueCuenta valor={s.monto} formato="monto" alMontar />
                   </span>
                   <span
@@ -143,9 +143,9 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
               );
             })}
           </div>
-          <div className="mt-3.5 flex gap-2.5">
+          <div className="mt-3.5 flex gap-1.5 sm:gap-2.5">
             {salidas.map((s) => (
-              <span key={s.orden} className="flex-1 text-center text-xs leading-tight text-tinta/65 sm:whitespace-nowrap">
+              <span key={s.orden} className="min-w-0 flex-1 text-center text-[10.5px] leading-tight text-tinta/65 sm:whitespace-nowrap sm:text-xs">
                 {s.etiqueta}
               </span>
             ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Banknote } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -94,12 +95,18 @@ export function BotonPagar({
   saldoFavor = 0,
   datos,
   onPagado,
+  etiqueta,
+  conIcono = false,
 }: {
   compra: CompraResumen;
   compacto?: boolean;
   saldoFavor?: number;
   datos?: DatosPagoProveedor;
   onPagado?: (r: ResultadoPago) => void;
+  /** El texto del botón (por defecto «Registrar pago · saldo S/ …»). El cajón de Por pagar usa uno corto: «Pagar S/ …». */
+  etiqueta?: string;
+  /** Un billete a la izquierda del texto (el botón del cajón, como en el spike). */
+  conIcono?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   if (compra.estado !== "vigente" || compra.saldo <= 0) return null;
@@ -111,7 +118,15 @@ export function BotonPagar({
         className={compacto ? "px-2.5 py-1.5 text-[11px]" : ""}
         onClick={() => setAbierto(true)}
       >
-        {compacto ? "Pagar" : `Registrar pago · saldo ${soles(compra.saldo)}`}
+        {compacto ? (
+          "Pagar"
+        ) : conIcono ? (
+          <span className="flex items-center gap-2">
+            <Banknote aria-hidden className="h-3.5 w-3.5" /> {etiqueta ?? `Registrar pago · saldo ${soles(compra.saldo)}`}
+          </span>
+        ) : (
+          (etiqueta ?? `Registrar pago · saldo ${soles(compra.saldo)}`)
+        )}
       </Boton>
       {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} onClose={() => setAbierto(false)} />}
     </>

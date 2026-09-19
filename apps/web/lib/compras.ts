@@ -403,6 +403,30 @@ export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {
   return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia }));
 }
 
+/**
+ * Los pagos de VARIOS comprobantes en una sola consulta (la vista rápida de Por pagar los muestra al abrir un comprobante, sin pedir uno
+ * por clic). Del más reciente al más antiguo. Si la consulta falla la lista se dibuja igual y el cajón simplemente no muestra el historial:
+ * se registra en el log del servidor en vez de tumbar la pantalla. Sin ids no pregunta nada.
+ */
+export async function getPagosDeCompras(compraIds: string[]): Promise<Record<string, PagoCompra[]>> {
+  const ids = [...new Set(compraIds)];
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("compra_pagos")
+    .select("id, compra_id, fecha, monto, metodo, referencia")
+    .in("compra_id", ids)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error || !data) {
+    console.error("Pagos de los comprobantes de Por pagar:", error?.message ?? "la consulta no devolvió datos");
+    return {};
+  }
+  const porCompra: Record<string, PagoCompra[]> = {};
+  for (const p of data) (porCompra[p.compra_id] ??= []).push({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia });
+  return porCompra;
+}
+
 /** Recepciones (lotes) que ingresaron mercadería de esta factura, agrupadas por guía. */
 export async function getRecepcionesCompra(compraId: string): Promise<RecepcionCompra[]> {
   const supabase = await createClient();

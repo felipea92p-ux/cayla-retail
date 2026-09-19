@@ -39,7 +39,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
   });
 
   return (
-    <div className="card-cayla anim-entra p-5" style={{ ["--i" as string]: indice }}>
+    <div className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
         Deuda por vencimiento
         {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/55">clic para filtrar la lista</span>}
