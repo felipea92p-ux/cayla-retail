@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import type { NotaPendiente } from "./nota-pendiente-reglas";
 
 // Indicadores de Compras para decidir (ADR-0111). Solo LEE. Cada función es una llamada
 // a una función SQL del contrato de `docs/adr/0111-…md` (sección «Lectura»); las cifras
@@ -115,6 +116,37 @@ export async function getPorPagarTramos(filtros: { proveedorId?: string; condici
     if (k in totales) totales[k] = { comprobantes: n(f.comprobantes), saldo: n(f.saldo) };
   }
   return totales;
+}
+
+// ---------------------------------------------------------------- «esperando nota» en las listas
+// El tipo vive en el módulo puro (`nota-pendiente-reglas`) para que un componente cliente lo importe sin
+// arrastrar `supabase/server`. Se re-exporta acá para quien ya importa de este archivo.
+export type { NotaPendiente } from "./nota-pendiente-reglas";
+
+/**
+ * De los comprobantes que la página tiene en pantalla, cuáles esperan su nota de crédito por faltante
+ * (cierres sin la nota registrada) y por cuánto: `compras_nota_pendiente`. Devuelve un objeto por id de
+ * comprobante; el que no está, no espera nada. Solo un líder recibe datos (un integrante recibe vacío,
+ * como el resto de las cifras de dinero).
+ *
+ * NO lanza si la consulta falla: es un AVISO junto al saldo, no un número. Si no llega (la base todavía
+ * sin la migración `20260918220000`, o una caída), la lista se dibuja igual con su saldo, que es correcto;
+ * el error queda en el log del servidor. Sin ids no pregunta nada.
+ */
+export async function getNotasPendientes(compraIds: string[]): Promise<Record<string, NotaPendiente>> {
+  const ids = [...new Set(compraIds)];
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("compras_nota_pendiente", { p_compra_ids: ids });
+  if (error || !data) {
+    console.error("Notas de crédito pendientes de las listas:", error?.message ?? "la consulta no devolvió datos");
+    return {};
+  }
+  const porCompra: Record<string, NotaPendiente> = {};
+  for (const f of data) {
+    porCompra[String(f.compra_id)] = { unidadesCerradas: n(f.unidades_cerradas), montoEsperado: n(f.monto_esperado), resuelto: Boolean(f.resuelto) };
+  }
+  return porCompra;
 }
 
 // ---------------------------------------------------------------- recepciones

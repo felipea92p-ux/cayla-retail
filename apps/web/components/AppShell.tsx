@@ -541,7 +541,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
+    catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
     // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
     compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],

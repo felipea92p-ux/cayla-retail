@@ -295,6 +295,21 @@
   "tablename": "lotes"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX marca_proveedores_pkey ON retail.marca_proveedores USING btree (marca_id, proveedor_id)",
+  "indexname": "marca_proveedores_pkey",
+  "tablename": "marca_proveedores"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX marcas_nombre_unico ON retail.marcas USING btree (retail.fn_clave_texto(nombre))",
+  "indexname": "marcas_nombre_unico",
+  "tablename": "marcas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX marcas_pkey ON retail.marcas USING btree (id)",
+  "indexname": "marcas_pkey",
+  "tablename": "marcas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX movimientos_pkey ON retail.movimientos USING btree (id)",
   "indexname": "movimientos_pkey",
   "tablename": "movimientos"
@@ -362,6 +377,11 @@
  {
   "indexdef": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)",
   "indexname": "productos_pkey",
+  "tablename": "productos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX productos_referencia_clave_unica ON retail.productos USING btree (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)",
+  "indexname": "productos_referencia_clave_unica",
   "tablename": "productos"
  },
  {

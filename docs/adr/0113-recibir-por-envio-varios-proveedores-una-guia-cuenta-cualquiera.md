@@ -1,11 +1,11 @@
 # ADR-0113 — Recibir mercadería por ENVÍO: varios proveedores, una guía, cuenta cualquier colaborador
 
 - **Fecha:** 2026-09-18
-- **Estado:** Aceptado. **Solo local**: las migraciones `20260919120000` y `20260919121000` NO están en
-  producción; se pegan con el prefijo `retail.` y ok explícito de Felipe (CLAUDE.md, «Cómo aplicar SQL a
-  producción»). **Verificado contra producción el 2026-09-19 (solo lectura):** las migraciones de Compras
-  (200000–218000) YA están aplicadas y cada función que llama `recibir_envio` existe con UNA sola firma;
-  `envios`, `envio_extras`, `envio_traslados` y `recibir_envio` todavía no.
+- **Estado:** Aceptado. **Migraciones aplicadas en producción por Felipe el 2026-09-19** (`20260919120000` y
+  `20260919121000`, pegadas a mano en ese orden). Verificado contra la base (solo lectura) esa misma mañana: las 3
+  tablas, `lotes.envio_id`, `recibir_envio` (una sola firma, 9 parámetros) y sus 3 políticas de RLS existen. Antes,
+  las de Compras (200000–218000) ya estaban aplicadas y cada función que llama `recibir_envio` existía con una sola
+  firma. Quedan sin registrar en `supabase_migrations.schema_migrations` (el `insert` de dos filas es opcional).
 - **Decide:** Felipe (envío con varios proveedores, guía única, origen de lo fuera de comprobante,
   «cualquier persona cuenta en la puerta», indicadores bajo «¿Qué llegó?»). Arquitectura: este documento.
 - **Diseño:** `docs/maquetas/recibir-envio-2026-09/` (adaptada del diseño que Felipe eligió, con la
@@ -91,11 +91,10 @@ Fuera de comprobante (D1 y D2 de ADR-0111 se conservan: «sin contar» ≠ «fal
 
 ## Consecuencias / pendiente
 
-- **Producción:** aplicar `20260919120000` y `20260919121000` (con `retail.` y ok de Felipe); el prerrequisito
-  —las 15 de Compras— ya está cumplido. Probar después con un envío real de prueba: toca stock y, con cierres, el
-  saldo. Ojo: mientras `20260918219000` (de Compras) no esté pegada, «Registrar comprobante» falla en producción
-  (`registrar_compra` quedó con dos firmas); `recibir_envio` no la llama, pero sin ella no hay comprobante de
-  prueba que recibir.
+- **Producción:** las migraciones ya están aplicadas (ver «Estado»); la pantalla llega con el merge a `main`. Probar
+  después con un envío real de prueba: toca stock y, con cierres, el saldo. Ojo: mientras `20260918219000` (de Compras)
+  no esté pegada, «Registrar comprobante» falla en producción (`registrar_compra` quedó con dos firmas);
+  `recibir_envio` no la llama, pero sin ella no hay comprobante de prueba que recibir.
 - **Verificado:** 29 pruebas contra el Postgres local (`pnpm pruebas:recibir-envio`, en transacciones con
   rollback: un lote por proveedor, idempotencia, atomicidad, quién cuenta, regalo sin costo, envío interno con y
   sin diferencia, RLS), 24 pruebas de las reglas de la pantalla (`envio-reglas.test.ts`) y un envío de punta
