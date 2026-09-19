@@ -318,8 +318,9 @@ export function PagoJuntosModal({
                 valor={modo}
                 onCambio={(v) => alElegirModo(v as Modo)}
                 opciones={[
-                  { clave: "vencida", etiqueta: "Cubrir primero la más vencida" },
-                  { clave: "mano", etiqueta: "Repartir a mano" },
+                  // En celular la etiqueta larga no cabe y el segmentado se cortaba: versión corta bajo `sm`.
+                  { clave: "vencida", etiqueta: (<><span className="hidden sm:inline">Cubrir primero la más vencida</span><span className="sm:hidden">Más vencida primero</span></>) },
+                  { clave: "mano", etiqueta: (<><span className="hidden sm:inline">Repartir a mano</span><span className="sm:hidden">A mano</span></>) },
                 ]}
                 className="h-9 [&_button]:py-0"
               />
