@@ -106,7 +106,7 @@ begin
 end;
 $$;
 
-revoke execute on function retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[], uuid[]) from public;
+revoke execute on function retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[], uuid[]) from public, anon;
 grant execute on function retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[], uuid[]) to authenticated;
 
 -- ---------- crear_producto_con_variantes: nombre único + exigencias de familia ----------
@@ -283,4 +283,5 @@ begin
 end;
 $$;
 
+revoke execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean) from public, anon;
 grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean) to authenticated;

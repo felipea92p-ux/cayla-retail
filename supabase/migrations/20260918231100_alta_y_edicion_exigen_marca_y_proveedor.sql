@@ -54,6 +54,8 @@ begin
 end;
 $$;
 
+revoke execute on function retail.fn_validar_marca_proveedor(uuid, uuid) from public, anon;
+
 comment on function retail.fn_validar_marca_proveedor(uuid, uuid) is
   'La regla única de "marca y proveedor": ambos presentes, activos, y una pareja registrada en marca_proveedores. La usan el alta, el censo y la edición. Hints estables: marca_obligatoria, proveedor_obligatorio, marca_invalida, proveedor_invalido, marca_proveedor_invalido.';
 
@@ -243,6 +245,7 @@ begin
 end;
 $$;
 
+revoke execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid) from public, anon;
 grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid) to authenticated;
 
 drop function if exists retail.censo_crear_variante(text, uuid, text, uuid, text, numeric, numeric);
@@ -258,12 +261,16 @@ create or replace function retail.censo_crear_variante(
   p_marca_id uuid default null,
   p_proveedor_id uuid default null
 )
-returns table (variante_id uuid, sku text, referencia text, talla text, color text, costo numeric, codigo_barras text)
+returns table (variante_id uuid, sku text, referencia text, talla text, color text, costo numeric, codigo_barras text, reutilizado boolean)
 language plpgsql
 security definer
 set search_path = retail, public, extensions
 as $$
 declare
+  v_reutilizado boolean := false;
+  v_precio numeric := p_precio;
+  v_costo numeric := p_costo;
+  v_hermana record;
   v_producto_id uuid;
   v_producto_cat uuid;
   v_ref text;
@@ -308,7 +315,9 @@ begin
       and pr.estado_alta <> 'rechazado';
 
   if found then
-    if v_producto_cat <> p_categoria_id then
+    v_reutilizado := true;
+    -- `is distinct from`: el producto «Cargo especial» no tiene categoría (null) y `null <> x` da null.
+    if v_producto_cat is distinct from p_categoria_id then
       raise exception 'Ya existe "%" en otra categoría — un nombre identifica a un solo producto. Búscalo en el catálogo o cambia el nombre.', v_ref;
     end if;
     -- ¿La variante ya existe (misma talla y color)? Es otro código de barras
@@ -317,13 +326,46 @@ begin
   else
     -- Solo cuando se CREA el producto: si el nombre ya existe, la variante se cuelga del que hay y su marca no se toca.
     perform fn_validar_marca_proveedor(p_marca_id, p_proveedor_id);
-    insert into productos (categoria_id, referencia, marca_id, proveedor_id)
-      values (p_categoria_id, trim(p_referencia), p_marca_id, p_proveedor_id)
-      returning id, productos.referencia into v_producto_id, v_ref;
+    begin
+      insert into productos (categoria_id, referencia, marca_id, proveedor_id)
+        values (p_categoria_id, trim(p_referencia), p_marca_id, p_proveedor_id)
+        returning id, productos.referencia into v_producto_id, v_ref;
+    exception when unique_violation then
+      -- Dos escaneos del mismo nombre nuevo casi a la vez: el segundo pierde la carrera contra el índice único.
+      -- No es un error de la persona: se cuelga del producto que el primero acaba de crear.
+      select pr.id, pr.categoria_id, pr.referencia into v_producto_id, v_producto_cat, v_ref
+        from productos pr
+        where retail.fn_clave_referencia(pr.referencia) = retail.fn_clave_referencia(p_referencia)
+          and pr.estado_alta <> 'rechazado';
+      if not found or v_producto_cat is distinct from p_categoria_id then
+        raise;
+      end if;
+      v_reutilizado := true;
+    end;
+  end if;
+
+  -- Una variante colgada de un producto que YA existe (y está aprobado) no pasa por la cola de revisión del
+  -- Líder: el aviso «pendiente de revisión» no aplica y nadie completaría un precio en 0 (revisión adversarial
+  -- del PR). Por eso: (1) quien no es Líder no fija precio ni costo de algo ya aprobado, (2) un 0 —el «déjalo
+  -- en 0 y lo completa el Líder» de la pantalla— no pisa un precio real. En ambos casos hereda el de una
+  -- variante hermana (la del mismo color primero, y la de mayor precio a igualdad). Un Líder que escribe
+  -- un precio a propósito lo conserva.
+  if v_reutilizado then
+    if not fn_es_lider() or coalesce(p_precio, 0) = 0 or coalesce(p_costo, 0) = 0 then
+      select v.precio, v.costo into v_hermana
+        from variantes v
+        where v.producto_id = v_producto_id and v.activo
+        order by (v.color_codigo is not distinct from p_color_codigo) desc, v.precio desc
+        limit 1;
+      if found then
+        if not fn_es_lider() or coalesce(p_precio, 0) = 0 then v_precio := v_hermana.precio; end if;
+        if not fn_es_lider() or coalesce(p_costo, 0) = 0 then v_costo := v_hermana.costo; end if;
+      end if;
+    end if;
   end if;
 
   insert into variantes (producto_id, talla_id, color_codigo, precio, costo)
-    values (v_producto_id, p_talla_id, p_color_codigo, p_precio, p_costo)
+    values (v_producto_id, p_talla_id, p_color_codigo, v_precio, v_costo)
     returning id into v_variante_id;
 
   perform fn_asignar_codigo_variante(v_variante_id);
@@ -332,7 +374,7 @@ begin
     values (v_codigo_barras, v_variante_id, 'fabrica');
 
   return query
-    select v.id, v.sku, v_ref, t.valor, c.nombre, v.costo, v_codigo_barras
+    select v.id, v.sku, v_ref, t.valor, c.nombre, v.costo, v_codigo_barras, v_reutilizado
     from variantes v
       left join tallas t on t.id = v.talla_id
       left join colores c on c.codigo = v.color_codigo
@@ -340,7 +382,7 @@ begin
 end;
 $$;
 
-revoke execute on function retail.censo_crear_variante(text, uuid, text, uuid, text, numeric, numeric, uuid, uuid) from public;
+revoke execute on function retail.censo_crear_variante(text, uuid, text, uuid, text, numeric, numeric, uuid, uuid) from public, anon;
 grant execute on function retail.censo_crear_variante(text, uuid, text, uuid, text, numeric, numeric, uuid, uuid) to authenticated;
 
 drop function if exists retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid);
@@ -375,6 +417,8 @@ declare
   v_ya_principal boolean := false;
   v_talla_id uuid;
   v_ref_actual text;
+  v_estado_actual text;
+  v_estado_alta_actual text;
   v_ref_nueva text;
   v_marca_actual uuid;
   v_proveedor_actual uuid;
@@ -391,7 +435,8 @@ begin
     raise exception 'El stock mínimo no puede ser negativo.';
   end if;
 
-  select referencia, marca_id, proveedor_id into v_ref_actual, v_marca_actual, v_proveedor_actual
+  select referencia, marca_id, proveedor_id, estado, estado_alta
+    into v_ref_actual, v_marca_actual, v_proveedor_actual, v_estado_actual, v_estado_alta_actual
     from productos where id = p_producto_id;
   if not found then
     raise exception 'El producto % no existe.', p_producto_id;
@@ -421,8 +466,17 @@ begin
 
   -- Marca y proveedor: sin mandar ninguno, no cambian. Mandando cualquiera, la pareja resultante
   -- tiene que ser válida (una sola regla, la misma que al crear).
-  if p_marca_id is not null or p_proveedor_id is not null then
+  -- También al REACTIVAR un producto descontinuado: si su marca o su proveedor se desactivaron mientras tanto,
+  -- volver a ponerlo activo saltaría el candado de desactivar (revisión adversarial del PR).
+  if p_marca_id is not null or p_proveedor_id is not null or (p_estado = 'activo' and v_estado_actual is distinct from 'activo') then
     perform fn_validar_marca_proveedor(coalesce(p_marca_id, v_marca_actual), coalesce(p_proveedor_id, v_proveedor_actual));
+  end if;
+
+  -- Una prenda rechazada en el censo no se reactiva (productos_rechazado_descontinuado_check): si fue un error,
+  -- se vuelve a crear con Nuevo producto, que pasa por el candado de nombre. Aquí se dice con palabras.
+  if p_estado = 'activo' and v_estado_alta_actual = 'rechazado' then
+    raise exception 'Esta prenda se rechazó al revisar un alta al vuelo y no se puede reactivar. Créala de nuevo con Nuevo producto.'
+      using hint = 'rechazado_no_reactivable';
   end if;
 
   -- Exigencias de la familia (Indumentaria: tejido y patrón). Solo para un producto ACTIVO: para
@@ -465,6 +519,12 @@ begin
         marca_id = coalesce(p_marca_id, marca_id),
         proveedor_id = coalesce(p_proveedor_id, proveedor_id)
     where id = p_producto_id;
+  -- Esta función es SECURITY INVOKER: si la RLS deniega el UPDATE, no falla, simplemente no toca nada. La versión
+  -- anterior lo notaba (chequeaba `found` DESPUÉS del update); al moverlo antes, un guardado sin permiso «salía bien»
+  -- sin cambiar nada (revisión adversarial del PR). Se vuelve a comprobar acá.
+  if not found then
+    raise exception 'No se pudo guardar el producto: no existe o no tienes permiso para editarlo.';
+  end if;
 
   for v_variante in select * from jsonb_array_elements(coalesce(p_variantes, '[]'::jsonb))
   loop
@@ -553,4 +613,5 @@ begin
 end;
 $$;
 
+revoke execute on function retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid, uuid, uuid, boolean) from public, anon;
 grant execute on function retail.catalogo_actualizar_producto(uuid, text, text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid, uuid, uuid, boolean) to authenticated;

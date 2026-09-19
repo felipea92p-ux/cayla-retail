@@ -78,7 +78,9 @@ declare
   v_conectores constant text[] :=
     array['de', 'del', 'la', 'las', 'el', 'los', 'con', 'y', 'e', 'o', 'en', 'al', 'para', 'por', 'sin'];
 begin
-  v_palabras := regexp_split_to_array(trim(coalesce(p, '')), '\s+');
+  -- [[:space:]] y no trim(): trim() solo quita el espacio, y un tab o un NBSP en el borde
+  -- dejaría una «palabra» vacía al partir (y la TS `.trim()` sí los recorta: espejo roto).
+  v_palabras := regexp_split_to_array(regexp_replace(coalesce(p, ''), '^[[:space:]]+|[[:space:]]+$', '', 'g'), '[[:space:]]+');
   foreach v_w in array v_palabras loop
     v_i := v_i + 1;
     -- translate() primero: en una base con locale C, lower/upper no tocan las tildes.
@@ -168,6 +170,21 @@ create unique index if not exists productos_referencia_clave_unica
   on retail.productos (retail.fn_clave_referencia(referencia))
   where estado_alta <> 'rechazado';
 
+-- ---------- «rechazado» es terminal: una prenda rechazada NO puede volver a estar activa ----------
+-- El índice de arriba (y buscar_productos_parecidos) dejan de mirar los productos
+-- con estado_alta = 'rechazado', para que una alta al vuelo mal escrita no bloquee
+-- volver a crearla bien. Eso solo es seguro si un rechazado NUNCA se vende: hoy
+-- `productos_estado_alta_biut` lo apaga (estado = 'descontinuado') al rechazarlo,
+-- pero nada impedía después reactivarlo por Editar → Estado → Activo, y quedaban dos
+-- productos activos con el mismo nombre, uno invisible para el candado (revisión
+-- adversarial del PR, hallazgo confirmado). Se cierra desde el esquema, no con una
+-- validación de pantalla. Si un Líder rechazó por error, lo correcto es volver a crear
+-- la prenda (Nuevo producto pasa por el candado de nombre).
+alter table retail.productos drop constraint if exists productos_rechazado_descontinuado_check;
+alter table retail.productos
+  add constraint productos_rechazado_descontinuado_check
+  check (estado_alta <> 'rechazado' or estado = 'descontinuado');
+
 -- ---------- el aviso en vivo: qué se parece a lo que estoy escribiendo ----------
 -- security INVOKER a propósito: solo ve lo que su RLS le deja ver de `productos`.
 -- `nivel` decide qué hace la pantalla: 'identico' bloquea del todo,
@@ -210,6 +227,7 @@ $$;
 comment on function retail.buscar_productos_parecidos(text, uuid) is
   'Hasta 5 productos cuyo nombre se parece al que se está escribiendo. nivel: identico (bloquea) | una_letra (bloquea salvo confirmación) | parecido (solo avisa, trigram >= 0.5).';
 
+revoke execute on function retail.buscar_productos_parecidos(text, uuid) from public, anon;
 grant execute on function retail.buscar_productos_parecidos(text, uuid) to authenticated;
 
 -- ---------- censo: si el nombre ya existe en la misma categoría, se suma la variante ----------
@@ -276,16 +294,30 @@ begin
       and pr.estado_alta <> 'rechazado';
 
   if found then
-    if v_producto_cat <> p_categoria_id then
+    -- `is distinct from` y no `<>`: el producto «Cargo especial» no tiene categoría (null) y `null <> x` da null,
+    -- lo que dejaba colgarle variantes reales al producto técnico de la caja.
+    if v_producto_cat is distinct from p_categoria_id then
       raise exception 'Ya existe "%" en otra categoría — un nombre identifica a un solo producto. Búscalo en el catálogo o cambia el nombre.', v_ref;
     end if;
     -- ¿La variante ya existe (misma talla y color)? Es otro código de barras
     -- para lo mismo: lo frena el índice variantes_producto_talla_color_unico,
     -- y error-escritura.ts lo traduce a frase humana (mismo commit).
   else
-    insert into productos (categoria_id, referencia)
-      values (p_categoria_id, trim(p_referencia))
-      returning id, productos.referencia into v_producto_id, v_ref;
+    begin
+      insert into productos (categoria_id, referencia)
+        values (p_categoria_id, trim(p_referencia))
+        returning id, productos.referencia into v_producto_id, v_ref;
+    exception when unique_violation then
+      -- Dos escaneos del mismo nombre nuevo casi a la vez: el segundo pierde la carrera contra el índice
+      -- único. No es un error de la persona: se cuelga del producto que el primero acaba de crear.
+      select pr.id, pr.categoria_id, pr.referencia into v_producto_id, v_producto_cat, v_ref
+        from productos pr
+        where retail.fn_clave_referencia(pr.referencia) = retail.fn_clave_referencia(p_referencia)
+          and pr.estado_alta <> 'rechazado';
+      if not found or v_producto_cat is distinct from p_categoria_id then
+        raise;
+      end if;
+    end;
   end if;
 
   insert into variantes (producto_id, talla_id, color_codigo, precio, costo)

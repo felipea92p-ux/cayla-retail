@@ -195,5 +195,52 @@ $$;
 comment on function retail.crear_marca(text, uuid) is
   'Crea la marca con su proveedor, o le suma ese proveedor si la marca ya existe. Devuelve el id de la marca. Solo Líder.';
 
-revoke execute on function retail.crear_marca(text, uuid) from public;
+revoke execute on function retail.crear_marca(text, uuid) from public, anon;
 grant execute on function retail.crear_marca(text, uuid) to authenticated;
+
+-- ---------- el cambio de marca o proveedor deja rastro, como categoría y estado ----------
+-- `fn_registrar_cambio_producto` audita categoria_id y estado (y precio/costo de las
+-- variantes). Cambiar de marca o de proveedor mueve a quién se le pide y qué se lista bajo
+-- cada marca: sin historial nadie sabría quién ni cuándo (revisión adversarial del PR).
+-- Mismo cuerpo que producción (2026-09-18) + dos bloques; se guarda el id, como categoria_id.
+create or replace function retail.fn_registrar_cambio_producto()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'retail', 'public', 'extensions'
+as $$
+declare
+  v_usuario_id uuid;
+begin
+  select id into v_usuario_id from public.personas where auth_user_id = auth.uid();
+
+  if TG_TABLE_NAME = 'productos' then
+    if new.categoria_id is distinct from old.categoria_id then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('producto', new.id, 'categoria_id', old.categoria_id::text, new.categoria_id::text, v_usuario_id);
+    end if;
+    if new.estado is distinct from old.estado then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('producto', new.id, 'estado', old.estado::text, new.estado::text, v_usuario_id);
+    end if;
+    if new.marca_id is distinct from old.marca_id then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('producto', new.id, 'marca_id', old.marca_id::text, new.marca_id::text, v_usuario_id);
+    end if;
+    if new.proveedor_id is distinct from old.proveedor_id then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('producto', new.id, 'proveedor_id', old.proveedor_id::text, new.proveedor_id::text, v_usuario_id);
+    end if;
+  elsif TG_TABLE_NAME = 'variantes' then
+    if new.precio is distinct from old.precio then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('variante', new.id, 'precio', old.precio::text, new.precio::text, v_usuario_id);
+    end if;
+    if new.costo is distinct from old.costo then
+      insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+      values ('variante', new.id, 'costo', old.costo::text, new.costo::text, v_usuario_id);
+    end if;
+  end if;
+  return new;
+end;
+$$;

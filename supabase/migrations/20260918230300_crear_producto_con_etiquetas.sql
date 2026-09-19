@@ -204,4 +204,5 @@ begin
 end;
 $$;
 
+revoke execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[]) from public, anon;
 grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[]) to authenticated;

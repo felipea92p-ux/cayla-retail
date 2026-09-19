@@ -301,5 +301,9 @@ begin
 end;
 $function$;
 
+-- Recrear una función borra sus grants: se restablece el cierre a anon/public que tenían las versiones anteriores
+-- (en producción lo tapa un privilegio por defecto, en una base nueva no).
+revoke execute on function retail.fn_productos(text, uuid, text, text, numeric, numeric, text, integer, integer, text, uuid, uuid) from public, anon;
+revoke execute on function retail.fn_productos_resumen(text, uuid, text, text, numeric, numeric, uuid, uuid) from public, anon;
 grant execute on function retail.fn_productos(text, uuid, text, text, numeric, numeric, text, integer, integer, text, uuid, uuid) to authenticated;
 grant execute on function retail.fn_productos_resumen(text, uuid, text, text, numeric, numeric, uuid, uuid) to authenticated;
