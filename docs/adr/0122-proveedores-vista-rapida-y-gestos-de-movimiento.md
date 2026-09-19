@@ -78,6 +78,19 @@ se ofrece deshacer de un deshacer.
 **D6 — El RUC repetido se dice al escribir.** `proveedorConRuc()` avisa con el nombre del proveedor con el que
 choca. El candado de verdad sigue siendo el índice `proveedores_ruc_unico`; esto solo adelanta el mensaje.
 
+**D7 — El formulario «Registrar / Editar proveedor» se rehízo con el diseño del spike.** La primera versión
+dejó el formulario viejo con retoques mínimos, por creer que «el real tiene campos que el spike no» (SUNAT,
+teléfono, banco, cuenta): un error de criterio, esos campos justificaban CONSERVARLOS, no no copiar el
+diseño. Ahora: carcasa del spike (rótulo «Compras · Proveedores», título serif de 24 px, pie con borde, hoja
+inferior en celular); RUC con contador «n/11», hilo verde y ✓ que se dibuja al ser válido, y el RUC repetido
+como mensaje rojo del propio campo (nunca «válido» y «repetido» a la vez); plazo de crédito con pulgar
+deslizante (Sin definir · 15 · 30 · 45 · 60 · Otro, que abre el campo de días); forma de pago y rubro como
+botones a la vista; y un botón que barre mientras guarda, confirma con un ✓ «Listo» y recién ahí cierra con
+la salida animada. La consulta a SUNAT sigue siendo el mismo `<ConsultaDocumento>` (una sola copia de la
+lógica del padrón); recibió tres props opcionales (`contador`, `problemaExterno`) que Vender y Facturación no
+usan. `Campo` ganó el tono `ok` y `Hilo` un modo verde. El orden queda RUC → razón social (no al revés, como en
+el spike) porque así se trabaja con SUNAT: el número trae el nombre.
+
 ## Qué se probó y qué no
 
 - 26 pruebas de reglas puras (`proveedores-reglas.test.ts`): serie de 12 meses (ceros, ventana, cambio de año),
