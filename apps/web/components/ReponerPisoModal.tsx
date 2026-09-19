@@ -7,7 +7,17 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
-import type { FilaStock } from "@/lib/inventario-v2";
+/** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
+ *  como a la de Resumen, que no comparten el resto de sus campos. */
+export type FilaParaReponer = {
+  varianteId: string;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  sku: string;
+  piso: number | null;
+  almacen: number | null;
+};
 
 // Llama a `retail.mover_interno` (20260914210000_inventario_piso_almacen.sql):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
@@ -20,17 +30,21 @@ export function ReponerPisoModal({
   ubicacionId,
   sububicacionPisoId,
   sububicacionAlmacenId,
+  cantidadInicial,
   onClose,
 }: {
-  fila: FilaStock;
+  fila: FilaParaReponer;
   ubicacionId: string;
   sububicacionPisoId: string;
   sububicacionAlmacenId: string;
+  /** Prellenado que sugiere Resumen. La persona lo confirma o lo cambia: el modal
+   *  nunca mueve nada hasta que aprieta «Confirmar». */
+  cantidadInicial?: number;
   onClose: () => void;
 }) {
   const router = useRouter();
   const disponible = fila.almacen ?? 0;
-  const [cantidad, setCantidad] = useState("");
+  const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, fila.almacen ?? cantidadInicial)) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

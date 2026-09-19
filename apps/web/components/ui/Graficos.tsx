@@ -79,3 +79,98 @@ export function TendenciaCierres({ dias }: { dias: DiaCierre[] }) {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------
+   Resumen de Inventario v2 (2026-09-19) — dos formas más, mismas reglas:
+   SVG/HTML puro, decorativo (`aria-hidden`) y siempre junto a texto real.
+   ------------------------------------------------------------------ */
+
+export type BarraH = { clave: string; etiqueta: string; detalle?: string | null; valor: number; texto: string; onClick?: () => void };
+
+/** Barras horizontales ordenadas de mayor a menor: la longitud es `valor` sobre el máximo. */
+export function BarrasHorizontales({ barras }: { barras: BarraH[] }) {
+  const max = Math.max(...barras.map((b) => b.valor), 0);
+  return (
+    <ul className="space-y-2.5">
+      {barras.map((b) => {
+        const contenido = (
+          <>
+            <span className="w-[8.5rem] shrink-0 truncate text-sm text-tinta" title={b.detalle ? `${b.etiqueta} · ${b.detalle}` : b.etiqueta}>
+              {b.etiqueta}
+              {b.detalle && <span className="text-tinta/60"> · {b.detalle}</span>}
+            </span>
+            <span aria-hidden className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-sand/70">
+              <span className="block h-full rounded-full bg-taupe/75" style={{ width: `${max > 0 ? Math.max((b.valor / max) * 100, 3) : 0}%` }} />
+            </span>
+            <span className="w-9 shrink-0 text-right text-sm tabular-nums text-tinta">{b.texto}</span>
+          </>
+        );
+        return (
+          <li key={b.clave}>
+            {b.onClick ? (
+              <button type="button" onClick={b.onClick} className="flex w-full items-center gap-3 rounded-sm text-left transition-colors hover:bg-tinta/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-tinta/40">
+                {contenido}
+              </button>
+            ) : (
+              <span className="flex items-center gap-3">{contenido}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export type SegmentoDistribucion = { clave: string; valor: number; color: string };
+
+/** Dona de una distribución, con la cifra total al centro. Los segmentos pueden
+ *  tocarse (atajo del mouse); la leyenda al lado es el camino accesible. */
+export function DonaDistribucion({
+  segmentos,
+  centro,
+  onSegmento,
+}: {
+  segmentos: SegmentoDistribucion[];
+  centro: { valor: string; etiqueta: string };
+  onSegmento?: (clave: string) => void;
+}) {
+  const RADIO = 15.9;
+  const CIRCUNFERENCIA = 2 * Math.PI * RADIO;
+  const visibles = segmentos.filter((s) => s.valor > 0);
+  const suma = visibles.reduce((a, s) => a + s.valor, 0);
+  let acumulado = 0;
+  return (
+    <svg width="148" height="148" viewBox="0 0 42 42" className="shrink-0" aria-hidden>
+      <circle cx="21" cy="21" r={RADIO} fill="transparent" stroke="var(--color-sand)" strokeWidth="6" />
+      {suma > 0 &&
+        visibles.map((s) => {
+          const frac = s.valor / suma;
+          const largo = frac * CIRCUNFERENCIA;
+          const offset = -acumulado * CIRCUNFERENCIA;
+          acumulado += frac;
+          return (
+            <circle
+              key={s.clave}
+              cx="21"
+              cy="21"
+              r={RADIO}
+              fill="transparent"
+              stroke={s.color}
+              strokeWidth="6"
+              strokeDasharray={`${Math.max(largo - 0.35, 0.01)} ${CIRCUNFERENCIA - Math.max(largo - 0.35, 0.01)}`}
+              strokeDashoffset={offset}
+              transform="rotate(-90 21 21)"
+              className={onSegmento ? "cursor-pointer" : undefined}
+              onClick={onSegmento ? () => onSegmento(s.clave) : undefined}
+            />
+          );
+        })}
+      <text x="21" y="21.5" textAnchor="middle" fontSize="7.5" fontWeight="600" fill="var(--color-tinta)">
+        {centro.valor}
+      </text>
+      <text x="21" y="26.5" textAnchor="middle" fontSize="3.3" fill="var(--color-tinta-60)">
+        {centro.etiqueta}
+      </text>
+    </svg>
+  );
+}
