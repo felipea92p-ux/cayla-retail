@@ -94,6 +94,14 @@ jobs:
         if: ${{ always() }}
         run: node scripts/datos/aviario.mjs --verificar
 
+      # Versiones de migración únicas: Supabase usa el prefijo numérico como llave del
+      # historial, y dos archivos con el mismo prefijo rompen `supabase start` y `db reset`
+      # (2026-09-17 x2, 2026-09-18). Solo lee nombres de archivo; no necesita node_modules.
+      # Corre también en `pull_request`: el choque entre dos ramas se ve en la segunda.
+      - name: Versiones de migración
+        if: ${{ always() }}
+        run: node scripts/migraciones/versiones.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres (piloto, no bloquea)
     runs-on: ubuntu-latest
