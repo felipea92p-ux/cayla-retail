@@ -41,7 +41,9 @@ tiene de verdad — detalle y descartes en ADR-0121.
       cuarentena de Devoluciones recibe también lo de Cambios); `registrar_cambio` rechaza
       ventas anuladas (antes duplicaba stock). Aplicada en local; `pruebas:registrar-cambio`
       18/18 (13 viejas con la firma de antes + 5 nuevas).
-- [ ] **Aplicar la migración en producción — ANTES de fusionar el front.** La firma nueva
+- [x] **Migración aplicada en producción el 2026-09-19 (pegada por Felipe; verificada: una sola
+      `registrar_cambio` de 8 parámetros, `{postgres, authenticated}`, columnas, candados e índice
+      único) — el front ya puede fusionarse.** Lo que sigue es lo que se hizo ANTES de fusionar el front: La firma nueva
       acepta las llamadas viejas (defaults), la pantalla nueva no funciona contra la firma
       vieja. Pegar el archivo tal cual (ya trae `retail.`), confirmar en `pg_proc` UNA
       sola `registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text)`, y recién

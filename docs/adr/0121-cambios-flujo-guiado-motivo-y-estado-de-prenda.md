@@ -2,9 +2,10 @@
 
 **Fecha:** 2026-09-18
 **Estado:** Aplicado en local (rama `claude/interface-recommendations-8ce365`).
-**Migración `20260919000100_cambios_motivo_y_estado_de_prenda.sql`: NO aplicada en
-producción.** Orden obligatorio al desplegar: primero la migración, después el front
-(ver "Consecuencias").
+**Migración `20260919000100_cambios_motivo_y_estado_de_prenda.sql`: APLICADA en producción el
+2026-09-19** (la pegó Felipe; se verificó en `pg_proc` y `information_schema`: una sola
+`registrar_cambio` de 8 parámetros, permisos `{postgres, authenticated}`, columnas, cuatro candados
+e índice único). El front puede fusionarse ya (ver "Consecuencias").
 **Afecta:** `retail.cambios`, `retail.prendas_danadas`, `retail.registrar_cambio`
 (firma nueva: drop + create), `/cambios` completo, `/devoluciones` (`?item=`),
 `ui/Chip.tsx` y `ui/PrendaCelda.tsx` (props aditivas), `--color-papel` (todo el sistema).
