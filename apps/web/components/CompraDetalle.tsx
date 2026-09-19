@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { nombresDeDestinos } from "@/lib/reparto-reglas";
+import { etiquetaDeLinea, filasDeLinea, nombresDeDestinos, tiendasConPendiente } from "@/lib/reparto-reglas";
+import { getRepartoDeCompra, type RepartoDeCompra } from "@/lib/compras-reparto";
+import { RepartoPorTienda } from "@/components/RepartoPorTienda";
 import {
   getCompra,
   getLineasCompra,
@@ -65,8 +67,12 @@ export type DetalleCompra = {
   /** Notas de crédito del proveedor y líneas cerradas por faltante (D2, ADR-0111). */
   notasCredito: NotaCreditoCompra[];
   cierres: CierreLinea[];
-  /** Nombre de la ubicación destino, o "—" si ya no existe. */
+  /** Las tiendas a las que va la mercadería, con nombre («Tienda Trujillo · Taller»), o "—" si ya no existen. */
   destino: string;
+  /** Reparto entre tiendas (ADR-0132): lo que le toca, recibió y cerró cada tienda de cada línea, y las reasignaciones. */
+  reparto: RepartoDeCompra;
+  /** Las tiendas activas, en el orden de la app (para nombrar y para elegir «a dónde va» al reasignar). */
+  ubicaciones: { id: string; nombre: string }[];
   /** Cómo se le paga al proveedor (cuenta, CCI, Yape/Plin, titular, saldo a favor) para el modal de pago. Solo si el comprobante se puede pagar y la lectura salió bien. */
   datosPago?: DatosPagoProveedor;
 };
@@ -86,7 +92,7 @@ async function cargarDatosPago(compra: CompraResumen): Promise<DatosPagoProveedo
 export async function cargarDetalleCompra(compraId: string): Promise<DetalleCompra | null> {
   const compra = await getCompra(compraId);
   if (!compra) return null;
-  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago] = await Promise.all([
+  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago, reparto] = await Promise.all([
     getLineasCompra([compra.id]),
     getPagosCompra(compra.id),
     getRecepcionesCompra(compra.id),
@@ -95,6 +101,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     getNotasCreditoCompra(compra.id),
     getCierresCompra(compra.id),
     cargarDatosPago(compra),
+    getRepartoDeCompra(compra.id),
   ]);
   return {
     compra,
@@ -107,6 +114,8 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     // ADR-0132: una factura puede repartirse entre tiendas; se muestran todas (la sección «Reparto por tienda» del detalle
     // dice cuánto le toca a cada una).
     destino: nombresDeDestinos(compra.ubicacionesDestino, Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]))) || "—",
+    reparto,
+    ubicaciones: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre })),
     datosPago,
   };
 }
@@ -154,7 +163,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -263,7 +272,17 @@ export function CompraDetalle({
                       {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
                       {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
                       {!anulada && l.pendiente > 0 && (
-                        <BotonCerrarFaltante compra={compra} linea={l} producto={`${l.referencia}${l.varianteId && (l.talla || l.color) ? ` · ${[l.talla, l.color].filter(Boolean).join(" / ")}` : ""}`} />
+                        <BotonCerrarFaltante
+                          compra={compra}
+                          linea={l}
+                          producto={etiquetaDeLinea(l)}
+                          // Repartida entre tiendas el faltante es de UNA: cuáles aún tienen algo pendiente y cuánto (ADR-0132).
+                          tiendas={tiendasConPendiente(filasDeLinea(reparto.filas, l.id, ubicaciones.map((u) => u.id))).map((f) => ({
+                            ubicacionId: f.ubicacionId,
+                            nombre: ubicaciones.find((u) => u.id === f.ubicacionId)?.nombre ?? "Tienda inactiva",
+                            pendiente: f.pendiente,
+                          }))}
+                        />
                       )}
                     </span>
                     <span className={celda("der", "text-xs tabular-nums text-tinta/65")}>
@@ -287,6 +306,9 @@ export function CompraDetalle({
               <Totales subtotal={compra.subtotal} igv={compra.igv} total={compra.total} />
             </Tabla>
           </section>
+
+          {/* ---------- reparto por tienda (ADR-0132): solo si hay algo que decir o que mover ---------- */}
+          <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} />
 
           {/* ---------- recepciones ---------- */}
           <section className="space-y-2">

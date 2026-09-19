@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { CerrarFaltanteModal } from "@/components/CerrarFaltanteModal";
+import { CerrarFaltanteModal, type TiendaConFaltante } from "@/components/CerrarFaltanteModal";
 import { ETIQUETA_MOTIVO_NOTA, soles, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -19,14 +19,14 @@ import { estadoNotaFaltante, MARGEN_NOTA, montoDeCierres, reparteNota, tasaIgv, 
 // que ya tiene cantidades pendientes, y registrar la nota de crédito que el proveedor emite. El detalle es solo de
 // líder (el layout de Compras lo exige), así que estas acciones asumen líder; la base lo vuelve a exigir.
 
-export function BotonCerrarFaltante({ compra, linea, producto }: { compra: CompraResumen; linea: LineaCompra; producto: string }) {
+export function BotonCerrarFaltante({ compra, linea, producto, tiendas }: { compra: CompraResumen; linea: LineaCompra; producto: string; tiendas?: TiendaConFaltante[] }) {
   const [abierto, setAbierto] = useState(false);
   return (
     <>
       <button type="button" onClick={() => setAbierto(true)} className="label-cayla mt-1 block text-left text-[10px] text-rojo hover:underline">
         Cerrar con faltante
       </button>
-      {abierto && <CerrarFaltanteModal compra={compra} linea={linea} producto={producto} onClose={() => setAbierto(false)} />}
+      {abierto && <CerrarFaltanteModal compra={compra} linea={linea} producto={producto} tiendas={tiendas} onClose={() => setAbierto(false)} />}
     </>
   );
 }

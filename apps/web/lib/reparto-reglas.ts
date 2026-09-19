@@ -171,3 +171,141 @@ export function textoDeLaParte(l: Pick<LineaCompra, "asignadoAqui" | "cantidadFa
   const otras = textoOtrasTiendas(l.otrasTiendas);
   return `Te toca ${l.asignadoAqui} de ${l.cantidadFacturada} del comprobante${otras ? ` · ${otras}` : ""}`;
 }
+
+// ---------- Registrar: en qué tiendas se reparte y cuántas unidades le tocan a cada una ----------
+
+/** Cuántas unidades del comprobante le tocan a cada tienda (suma de sus líneas). Para el resumen de «Dónde cae». */
+export function unidadesPorTienda(lineas: readonly { cantidad: number; reparto: RepartoLinea }[]): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const l of lineas) {
+    for (const [id, n] of Object.entries(l.reparto)) {
+      const u = entero(n);
+      if (u > 0) total[id] = (total[id] ?? 0) + u;
+    }
+  }
+  return total;
+}
+
+/** El reparto de una línea sin las tiendas que ya no participan (se desmarcó su casilla): sus unidades vuelven a «faltan». */
+export function repartoSoloDe(reparto: RepartoLinea, ubicacionIds: readonly string[]): RepartoLinea {
+  const permitidas = new Set(ubicacionIds);
+  return Object.fromEntries(Object.entries(reparto).filter(([id]) => permitidas.has(id)));
+}
+
+// ---------- El detalle del comprobante (líder): cómo va cada tienda y reasignar ----------
+
+/** Una casilla del reparto: UNA línea × UNA tienda, con lo que le tocó, lo que ya recibió y lo que cerró como faltante. */
+export type FilaReparto = {
+  compraItemId: string;
+  ubicacionId: string;
+  asignado: number;
+  recibido: number;
+  cerrado: number;
+  pendiente: number;
+};
+
+/** Por qué un líder mueve mercadería de una tienda a otra (queda en `compra_reasignaciones`). */
+export type MotivoReasignacion = "llego_de_mas" | "error_de_tienda" | "otro";
+
+export const ETIQUETA_MOTIVO_REASIGNACION: Record<MotivoReasignacion, string> = {
+  llego_de_mas: "Llegó de más a la otra tienda",
+  error_de_tienda: "Se repartió a la tienda equivocada",
+  otro: "Otro motivo",
+};
+
+export const MOTIVOS_REASIGNACION = Object.keys(ETIQUETA_MOTIVO_REASIGNACION) as MotivoReasignacion[];
+
+/** Una vez que ocurrió: quién movió cuánto de dónde a dónde y por qué. */
+export type ReasignacionCompra = {
+  id: string;
+  compraItemId: string;
+  desdeId: string;
+  haciaId: string;
+  cantidad: number;
+  motivo: MotivoReasignacion;
+  nota: string | null;
+  personaNombre: string | null;
+  creadoEn: string;
+};
+
+/** Las casillas de UNA línea. Con `ordenarPor` de `ubicaciones` se respeta el orden canónico de tiendas de la app. */
+export function filasDeLinea(filas: readonly FilaReparto[], compraItemId: string, ordenUbicaciones: readonly string[] = []): FilaReparto[] {
+  const pos = (id: string) => {
+    const i = ordenUbicaciones.indexOf(id);
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  return filas.filter((f) => f.compraItemId === compraItemId).sort((a, b) => pos(a.ubicacionId) - pos(b.ubicacionId) || a.ubicacionId.localeCompare(b.ubicacionId));
+}
+
+/** Las tiendas a las que aún les falta algo de una línea: de ahí puede salir una reasignación o cerrarse un faltante. */
+export function tiendasConPendiente(filasDeLaLinea: readonly FilaReparto[]): FilaReparto[] {
+  return filasDeLaLinea.filter((f) => f.pendiente > 0);
+}
+
+/** Las tiendas distintas del reparto de un comprobante, en el orden dado (las que no están en el orden, al final). */
+export function tiendasDelReparto(filas: readonly FilaReparto[], ordenUbicaciones: readonly string[] = []): string[] {
+  const vistas = new Set(filas.map((f) => f.ubicacionId));
+  const conocidas = ordenUbicaciones.filter((id) => vistas.has(id));
+  const resto = [...vistas].filter((id) => !ordenUbicaciones.includes(id)).sort();
+  return [...conocidas, ...resto];
+}
+
+/** ¿El comprobante trae mercadería para más de una tienda? Si no, la sección de reparto no tiene nada que comparar. */
+export function estaRepartido(filas: readonly FilaReparto[]): boolean {
+  return new Set(filas.map((f) => f.ubicacionId)).size > 1;
+}
+
+/** Cifras de UNA tienda en todo el comprobante (suma de sus líneas). Es lo que responde «¿cómo va Trujillo?». */
+export type ResumenDeTienda = { ubicacionId: string; asignado: number; recibido: number; cerrado: number; pendiente: number };
+
+export function resumenPorTienda(filas: readonly FilaReparto[], ordenUbicaciones: readonly string[] = []): ResumenDeTienda[] {
+  const por = new Map<string, ResumenDeTienda>();
+  for (const f of filas) {
+    const r = por.get(f.ubicacionId) ?? { ubicacionId: f.ubicacionId, asignado: 0, recibido: 0, cerrado: 0, pendiente: 0 };
+    r.asignado += f.asignado;
+    r.recibido += f.recibido;
+    r.cerrado += f.cerrado;
+    r.pendiente += Math.max(0, f.pendiente);
+    por.set(f.ubicacionId, r);
+  }
+  return tiendasDelReparto(filas, ordenUbicaciones).map((id) => por.get(id)!);
+}
+
+/**
+ * Lo que valida el formulario de «Reasignar» antes de llamar a `reasignar_reparto_compra`: el primer motivo por el que la
+ * RPC lo rechazaría, dicho en llano y con la cifra que sirve (`null` si se puede enviar). La base vuelve a exigir todo.
+ */
+export function errorDeReasignacion(o: {
+  desdeId: string;
+  haciaId: string;
+  cantidad: number;
+  pendienteDesde: number;
+  nombreDesde: string;
+  motivo: MotivoReasignacion | "";
+  nota: string;
+}): string | null {
+  if (!o.desdeId || !o.haciaId) return "Elige de qué tienda sale la mercadería y a cuál va.";
+  if (o.desdeId === o.haciaId) return "Tienen que ser dos tiendas distintas.";
+  if (!Number.isInteger(o.cantidad) || o.cantidad < 1 || o.cantidad > o.pendienteDesde) {
+    return `La cantidad tiene que ser un entero entre 1 y ${o.pendienteDesde}: es lo que aún le falta recibir a ${o.nombreDesde}.`;
+  }
+  if (!o.motivo) return "Elige por qué se mueve.";
+  if (o.motivo === "otro" && o.nota.trim() === "") return "Cuenta el motivo en la nota: así queda claro para quien lo revise después.";
+  return null;
+}
+
+/** «Felipe movió 2 unidades de Taller a Tienda Trujillo» (el motivo va aparte, con su etiqueta). */
+export function textoDeReasignacion(r: Pick<ReasignacionCompra, "cantidad" | "desdeId" | "haciaId" | "personaNombre">, nombreDe: (ubicacionId: string) => string): string {
+  return `${r.personaNombre ?? "Alguien"} movió ${r.cantidad} ${r.cantidad === 1 ? "unidad" : "unidades"} de ${nombreDe(r.desdeId)} a ${nombreDe(r.haciaId)}`;
+}
+
+/** `compra_reasignaciones.motivo` llega como texto: solo se aceptan los tres que la base permite. */
+export function motivoDeReasignacion(x: unknown): MotivoReasignacion {
+  return x === "llego_de_mas" || x === "error_de_tienda" ? x : "otro";
+}
+
+/** «Blusa Emma · Arena / M» (o solo «Blusa Emma» si la línea no detalla talla y color): cómo se nombra una línea en el reparto. */
+export function etiquetaDeLinea(l: Pick<LineaCompra, "referencia" | "varianteId" | "talla" | "color">): string {
+  const variante = l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") : "";
+  return variante ? `${l.referencia} · ${variante}` : l.referencia;
+}

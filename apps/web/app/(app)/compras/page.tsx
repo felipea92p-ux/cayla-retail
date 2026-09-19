@@ -7,6 +7,8 @@ import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indica
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
+import { nombresDeDestinos } from "@/lib/reparto-reglas";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
@@ -59,12 +61,15 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
     listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
+    getUbicaciones(),
   ]);
+  // Para decir a qué tiendas va un comprobante repartido (ADR-0132).
+  const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
 
   const ahora = new Date();
   const hoy = hoyLima();
@@ -271,6 +276,10 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   <span className={celda("izq", "overflow-visible whitespace-normal")}>
                     <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
                     <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
+                    {/* Repartido entre varias tiendas (ADR-0132): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
+                    {c.ubicacionesDestino.length > 1 && (
+                      <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                    )}
                     {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                     <AvanceFino pct={recepcion.pct} />
                   </span>
