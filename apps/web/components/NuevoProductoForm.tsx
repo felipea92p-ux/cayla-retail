@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,13 +10,14 @@ import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { botonCancelar } from "@/components/ui/Modal";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
-import { AvisoParecidos, type Parecido } from "@/components/alta-producto/AvisoParecidos";
+import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { AvisoInline, Bloque, ChipOpcion } from "@/components/alta-producto/piezas";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { useParecidos } from "@/lib/use-parecidos";
 import { compararTallas } from "@/lib/tallas";
 import {
   codigoBasePrevisto,
@@ -60,13 +61,9 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
 
-type Resultado = { clave: string; items: Parecido[]; fallo: boolean };
-const SIN_RESULTADO: Resultado = { clave: "", items: [], fallo: false };
-
 export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
-  const peticion = useRef(0);
 
   // Copias locales: configurar una categoría o proponer un valor las modifica sin recargar la página.
   const [ejes, setEjes] = useState<EjesPorCategoria>(contexto.ejes);
@@ -78,9 +75,6 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const [marcaNombre, setMarcaNombre] = useState("");
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [resultado, setResultado] = useState<Resultado>(SIN_RESULTADO);
-  const [reintento, setReintento] = useState(0);
-  const [confirmoPara, setConfirmoPara] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
   const [patronId, setPatronId] = useState("");
@@ -112,34 +106,11 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const nombreFinal = tituloReferencia(referencia);
 
   // ---------- ¿ya existe algo así? (aviso en vivo, con espera de 350 ms al tipear) ----------
-  useEffect(() => {
-    if (!categoriaId || !nombreFinal) return;
-    const id = ++peticion.current;
-    const espera = setTimeout(async () => {
-      // 6 s de tope: una red colgada no debe dejar el formulario esperando para siempre (principio 9).
-      const { data, error } = await createClient()
-        .rpc("buscar_productos_parecidos", { p_referencia: nombreFinal })
-        .abortSignal(AbortSignal.timeout(6000));
-      if (id !== peticion.current) return; // llegó tarde: ya se escribió otra cosa
-      if (error || !data) {
-        setResultado({ clave: nombreFinal, items: [], fallo: true });
-        return;
-      }
-      setResultado({
-        clave: nombreFinal,
-        fallo: false,
-        items: data.map((p) => ({ id: p.id, referencia: p.referencia, categoria: p.categoria, nivel: p.nivel as Parecido["nivel"] })),
-      });
-    }, 350);
-    return () => clearTimeout(espera);
-  }, [nombreFinal, categoriaId, reintento]);
-
-  // Un resultado solo vale para el nombre con el que se pidió: si se siguió escribiendo, no se muestra uno viejo.
-  const vigente = resultado.clave === nombreFinal ? resultado : SIN_RESULTADO;
-  const comprobandoNombre = Boolean(categoriaId) && nombreFinal !== "" && resultado.clave !== nombreFinal;
-  const hayIdentico = vigente.items.some((p) => p.nivel === "identico");
-  const hayUnaLetra = vigente.items.some((p) => p.nivel === "una_letra");
-  const confirmo = confirmoPara === nombreFinal;
+  const parecidos = useParecidos({ nombre: nombreFinal, activo: Boolean(categoriaId) });
+  const comprobandoNombre = Boolean(categoriaId) && parecidos.comprobando;
+  const hayIdentico = parecidos.hayIdentico;
+  const hayUnaLetra = parecidos.hayUnaLetra;
+  const confirmo = parecidos.confirmo;
 
   // ---------- elegir / cambiar categoría ----------
   function elegirCategoria(id: string) {
@@ -287,7 +258,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
         // Otra persona creó el mismo nombre mientras esta llenaba el formulario: se muestra en el bloque 2, no solo en un aviso.
-        setReintento((n) => n + 1);
+        parecidos.reintentar();
         avisar.error(lectura.mensaje, { enfocar: "nombre-producto" });
         return;
       }
@@ -316,8 +287,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setCreado(null);
     setReferencia("");
     setDescripcion("");
-    setResultado(SIN_RESULTADO);
-    setConfirmoPara("");
+    parecidos.reiniciar();
     setColoresElegidos([]);
     setExcluidas(new Set());
     setOverridePrecio({});
@@ -408,12 +378,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
                 ) : undefined
               }
             />
-            <AvisoParecidos
-              parecidos={vigente.items}
-              confirmo={confirmo}
-              onConfirmo={(v) => setConfirmoPara(v ? nombreFinal : "")}
-              noSePudoComprobar={vigente.fallo}
-            />
+            <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
             <CampoTexto
               etiqueta="Descripción"
               pie="Opcional"
