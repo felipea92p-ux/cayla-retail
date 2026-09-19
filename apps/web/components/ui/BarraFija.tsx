@@ -37,8 +37,13 @@ export function BarraFija({
     <div
       aria-hidden={animada && !visible ? true : undefined}
       inert={animada && !visible ? true : undefined}
+      // `left` también se anima (menú lateral plegable, ADR-0130): sin `sm:transition-[left]` la barra
+      // saltaría al plegar mientras el contenido se desliza. Con `animada` comparte la transición del
+      // `transform` (`sm:transition-[left,transform]`): dos utilidades `transition-*` no se suman solas.
       className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-sand bg-crema/95 backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:bottom-0 sm:left-lateral ${
-        animada ? (visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida") : ""
+        animada
+          ? `sm:transition-[left,transform] ${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
+          : "sm:transition-[left] sm:duration-300 sm:ease-cayla"
       } ${className}`}
     >
       {medidor}

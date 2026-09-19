@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (El menú lateral se pliega a una columna de íconos — ADR-0130)
+Se aplicó el spike `docs/maquetas/menu-lateral-spike-2026-09/`: botón en la cabecera o tecla `[`, 17rem → 4.75rem con los íconos quietos, cajón flotante por grupo, etiqueta al pasar el mouse, insignia sobre el ícono y hijas que se despliegan por `grid-template-rows`. El ancho lo cambia UN token (`--spacing-lateral` bajo `[data-lateral]`) que ya leían aside, cabecera, main y barras fijas.
+La preferencia vive en una cookie que lee el layout del servidor (con localStorage la página pintaría 17rem y saltaría a 4.75rem al cargar). Verificado en el navegador como líder: plegar/expandir, cookie, recarga sin salto, cajón, teclado (Enter, flechas, End, Escape devuelve el foco) y celular sin lateral.
+Queda: «Asomar al pasar el mouse» del spike NO se construyó (falta dónde encenderlo); mirar el pie del Punto de Venta y las barras de Recibir/Pagar juntos con el menú plegado; y verlo como colaborador.
+
 ## 2026-09-19 (Recibir: el diseño se iguala al spike, pantalla por pantalla — ADR-0129, ampliación)
 Felipe revisó lo publicado y «no estaba igual». Se comparó spike y app 1:1: la fila de conteo pasó a ser una sola pieza (tarjeta o tabla según el ancho del panel, mismo paso − / +, miniatura en ambas), la tarjeta del envío ganó camión, avatares apilados y anillo de 70 px, la barra pone el aviso arriba y sube desde el borde, y «Recibidas» estrenó sus dos segmentados (periodo y resultado). Lo que se había dejado sin portar (salidas animadas, lista plegable en celular) ahora está.
 Lección: un «lo verifiqué» a ancho de escritorio no vale para celular ni para ancho intermedio; solo al abrir la app a ancho de celular real aparecieron el botón que no llenaba la barra y la cabecera que apretaba el nombre. Y comparar contra el spike a UN ancho equivalente (no a ojo) fue lo que mostró qué difería.
