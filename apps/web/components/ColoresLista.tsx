@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { parsearColor, rgbDeHex } from "@/lib/color-entrada";
 
 /**
@@ -165,18 +166,26 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
+  // Mientras nadie toque el código, sigue al nombre. Si la persona lo escribe,
+  // deja de pisarlo; si lo borra por completo, vuelve a seguir al nombre.
+  const [codigoTocado, setCodigoTocado] = useState(false);
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
   const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
 
   const activos = colores.filter((c) => c.activo);
   const desactivados = colores.filter((c) => !c.activo);
+  // Incluye los desactivados: el código es la clave primaria y sigue ocupado
+  // aunque el color ya no se elija (cada SKU apunta a él).
+  const codigosUsados = new Set(colores.map((c) => c.codigo));
+  const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
   const rechazandoColor = colores.find((c) => c.codigo === rechazandoAbierto) ?? null;
 
   function abrir() {
     setAgregando(true);
     setNombre("");
     setCodigo("");
+    setCodigoTocado(false);
     setFamiliaColor("neutro");
     setHex(null);
     setNotas("");
@@ -381,13 +390,27 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               {/* Mismo agrupado que el modal de edición: cada campo ya reserva su línea de pie. */}
               <div className="space-y-1">
                 <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-                  <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
+                  <CampoTexto
+                    etiqueta="Nombre"
+                    value={nombre}
+                    onChange={(e) => {
+                      setNombre(e.target.value);
+                      if (!codigoTocado) setCodigo(sugerirCodigoColor(e.target.value, codigosUsados));
+                    }}
+                    placeholder="Ej. Verde botella"
+                  />
                   <CampoTexto
                     etiqueta="Código (3 letras)"
                     mono
                     value={codigo}
                     maxLength={3}
-                    onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      const valor = normalizarCodigo(e.target.value);
+                      setCodigo(valor);
+                      setCodigoTocado(valor !== "");
+                    }}
+                    tono={dueñoDelCodigo ? "error" : undefined}
+                    pie={dueñoDelCodigo ? `Ya lo usa «${dueñoDelCodigo.nombre}».` : codigo.length === 3 && !codigoTocado ? "Sugerido del nombre" : undefined}
                     placeholder="VEB"
                   />
                 </div>
@@ -406,7 +429,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !hex}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex}
                 >
                   Guardar color
                 </Boton>

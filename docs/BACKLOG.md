@@ -392,8 +392,10 @@ verde.
       `activo=false`, 0 variantes, 0 fotos), así que NO hace falta migración de datos. Lo que queda es
       que el selector de familia todavía deja archivar un color nuevo ahí, aunque el estampado vive
       en Patrones (ADR-0106).
-- [ ] **Colores: sugerir el código de 3 letras desde el nombre** y avisar en vivo si ya existe
-      (hoy se inventa a mano y el choque solo se ve al guardar).
+- [x] **Colores: el código de 3 letras se sugiere desde el nombre (2026-09-18).** `lib/color-codigo.ts`
+      (regla sacada de los 35 códigos reales: 1 palabra = 3 letras, 2 palabras = 2+1), con 7 pruebas.
+      Deja de seguir al nombre si la persona lo escribe; avisa en vivo «Ya lo usa «X»» (cuenta también
+      los desactivados) y bloquea el guardado. Verificado en navegador.
 - [ ] **Colores: el campo «Orden» ya no significa nada claro** desde que la grilla agrupa por familia
       (todo color nuevo entra con 200). Decidir: quitarlo (orden por nombre) o subir/bajar.
 - [ ] **Colores: cuántas prendas usa cada color** (12 de 31 activos no tienen ninguna) y quién
