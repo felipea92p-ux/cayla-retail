@@ -1,4 +1,4 @@
-# ADR-0112 — Ventas y devoluciones solo se escriben por RPC
+# ADR-0119 — Ventas y devoluciones solo se escriben por RPC
 
 **Fecha:** 2026-09-18
 **Estado:** Escrita y probada en local con ROLLBACK (16/16, `pnpm pruebas:candado-ventas`,

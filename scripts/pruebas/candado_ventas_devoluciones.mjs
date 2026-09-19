@@ -4,7 +4,7 @@
  *
  * EL PROBLEMA QUE PRUEBA. `supabase/migrations/20260918190000_ventas_devoluciones_solo_rpc.sql`
  * le quita a `authenticated` el permiso de escribir directo en ventas, venta_items,
- * devoluciones, devolucion_items y venta_anulacion_items (ADR-0112). Dos cosas tienen que ser
+ * devoluciones, devolucion_items y venta_anulacion_items (ADR-0119). Dos cosas tienen que ser
  * ciertas a la vez, y cada una sola no sirve:
  *
  *   1. El ataque deja de funcionar: una colaboradora con la consola del navegador abierta

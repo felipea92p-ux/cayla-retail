@@ -29,7 +29,7 @@ política de RLS mostró 10 tablas expuestas, no 4 (también `transferencias`, `
 `clientes`, `venta_anulacion_items`), y que la auditoría se equivocó con `comprobantes`: `0010`
 otorga SELECT pero no revoca lo que `0005` ya había dado. Se escribió la migración solo para 5
 tablas (las rastreadas) con 16 pruebas en ROLLBACK, dos de ellas de control que demuestran que el
-ataque SÍ funcionaba sin la migración. ADR-0112. Pendiente: que Felipe corra el archivo de
+ataque SÍ funcionaba sin la migración. ADR-0119. Pendiente: que Felipe corra el archivo de
 verificación en producción y dé el ok puntual antes de pegar; las otras 5 tablas y el cambio de
 `alter default privileges` quedan como trabajo aparte.
 

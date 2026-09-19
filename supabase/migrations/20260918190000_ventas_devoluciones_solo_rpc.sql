@@ -63,7 +63,7 @@
 -- salta todo esto). También se rompería si en producción existiera una función que escriba
 -- aquí y NO sea security definer — la consulta del punto 1 dice que no.
 --
--- LO QUE ESTA MIGRACIÓN NO CIERRA (a propósito, ver ADR-0112): transferencias,
+-- LO QUE ESTA MIGRACIÓN NO CIERRA (a propósito, ver ADR-0119): transferencias,
 -- transferencia_items, conteos, lotes y clientes tienen el mismo patrón y NO se rastreó quién
 -- escribe en ellas. Y `0005_grants.sql` sigue dando escritura por defecto a toda tabla nueva.
 -- ============================================================================
