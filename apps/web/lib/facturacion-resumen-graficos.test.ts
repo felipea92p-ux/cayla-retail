@@ -107,6 +107,16 @@ describe("barrasDeTicket", () => {
     expect(alturas[alturas.length - 1]).toBe(100);
   });
 
+  it("la línea es el promedio de TODAS las ventas, no solo de las barras que se ven (cuatro de 1000 y dieciséis de 100 = 280)", () => {
+    const totales = [...Array(4).fill(1000), ...Array(MAX_BARRAS).fill(100)];
+    const { alturas, promedio } = barrasDeTicket(totales);
+    expect(alturas).toHaveLength(MAX_BARRAS);
+    // el promedio real (280) supera a la barra más alta visible (100): la escala sube para que la línea entre
+    expect(promedio).toBe(100);
+    expect(alturas.every((a) => a < 100)).toBe(true);
+    expect(alturas[0]).toBeCloseTo((100 / 280) * 100, 5);
+  });
+
   it("sin ventas no hay barras ni línea", () => {
     expect(barrasDeTicket([])).toEqual({ alturas: [], promedio: 0 });
   });

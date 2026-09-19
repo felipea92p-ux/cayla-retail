@@ -44,12 +44,14 @@ export function trazoDeSerie(puntos: { x: number; acumulado: number }[], maximo:
 /** Cuántas ventas caben como barras: con más, se dibujan las últimas. */
 export const MAX_BARRAS = 16;
 
-/** Las barras del ticket: cada una es una venta, la más alta mide 100 % y la línea punteada
- *  marca el promedio de las que se ven. Una venta chica nunca baja de 4 %: no desaparece. */
+/** Las barras del ticket: cada una es una venta (las últimas `MAX_BARRAS`), la más alta mide 100 % y la
+ *  línea punteada marca el promedio de TODAS las ventas del día —el mismo de la cifra de la tarjeta—,
+ *  no solo el de las que se ven. Si ese promedio supera a la barra más alta (hubo ventas grandes antes
+ *  de las últimas), la escala sube para que la línea entre. Una venta chica nunca baja de 4 %. */
 export function barrasDeTicket(totales: number[]): { alturas: number[]; promedio: number } {
   const visibles = totales.slice(-MAX_BARRAS);
-  const maximo = Math.max(0, ...visibles);
+  const promedioReal = totales.length > 0 ? totales.reduce((suma, t) => suma + t, 0) / totales.length : 0;
+  const maximo = Math.max(0, promedioReal, ...visibles);
   if (visibles.length === 0 || maximo <= 0) return { alturas: visibles.map(() => 0), promedio: 0 };
-  const promedio = visibles.reduce((suma, t) => suma + t, 0) / visibles.length;
-  return { alturas: visibles.map((t) => (t > 0 ? Math.max(4, (t / maximo) * 100) : 0)), promedio: (promedio / maximo) * 100 };
+  return { alturas: visibles.map((t) => (t > 0 ? Math.max(4, (t / maximo) * 100) : 0)), promedio: (promedioReal / maximo) * 100 };
 }

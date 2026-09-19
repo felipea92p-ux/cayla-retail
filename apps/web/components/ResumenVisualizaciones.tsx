@@ -64,7 +64,7 @@ export function BarrasDeTicket({ totales }: { totales: number[] }) {
       {alturas.map((altura, i) => (
         <i key={i} style={{ height: `${altura}%` }} />
       ))}
-      <u style={{ bottom: `${promedio}%` }} />
+      {alturas.length > 0 && <u style={{ bottom: `${promedio}%` }} />}
     </div>
   );
 }

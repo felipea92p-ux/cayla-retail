@@ -1,4 +1,5 @@
 import { exigirLider } from "@/lib/persona-actual";
+import { opcional } from "@/lib/resultado";
 import { getComprobantesMes, getResumenPorEnviar, getVentasDeHoy } from "@/lib/comprobantes";
 import { getVentasDeReferencia } from "@/lib/ventas-comparativo";
 import { ventanaDelDiaLima } from "@/lib/facturacion-resumen-reglas";
@@ -15,7 +16,7 @@ export default async function ResumenPage() {
 
   // Las ventas y los comprobantes de hoy son plata: sin ellos la pantalla no se dibuja
   // (`exigir`, dentro de cada lectura). La cola de SUNAT y la referencia de la semana pasada son
-  // secundarias: si fallan llegan `null` y su tarjeta lo dice, nunca una cifra inventada.
+  // secundarias: si fallan (o lanzan, `opcional`) llegan `null` y su tarjeta lo dice, nunca una cifra inventada.
   //
   // Sin ubicación: un líder ve las ventas de todas las tiendas del día, que es justo lo que
   // pidió ("todo lo que se vendió hoy") — un integrante vería solo la suya igual, aunque acá
@@ -23,8 +24,8 @@ export default async function ResumenPage() {
   const [ventasHoy, comprobantesHoy, porEnviar, referencia] = await Promise.all([
     getVentasDeHoy(),
     getComprobantesMes(hoy.desde, hoy.hasta),
-    getResumenPorEnviar(),
-    getVentasDeReferencia(ahora),
+    opcional(getResumenPorEnviar(), "la cola de SUNAT (Resumen)"),
+    opcional(getVentasDeReferencia(ahora), "las ventas de la semana pasada (Resumen)"),
   ]);
 
   return (

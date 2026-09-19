@@ -28,6 +28,19 @@ export function ventanaHastaEstaHora(ahora: Date, diasAtras: number): VentanaISO
   return { desde: ventanaDelDiaLima(hasta).desde, hasta: hasta.toISOString() };
 }
 
+/** «13:09» → 13.15: la hora de reloj de Lima con decimales, la unidad de los gráficos. */
+export function horaDeReloj(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h + (m || 0) / 60;
+}
+
+/** Una fila por venta. `fn_ventas_del_dia` hace `left join comprobantes` y `comprobantes.venta_id` no es
+ *  único: una venta con dos comprobantes (un anulado y su reemplazo) sale dos veces, con el mismo total.
+ *  Para sumar y contar ventas se toma la primera de cada una; la lista de actividad sí muestra cada par. */
+export function ventasUnicas<T extends { venta_id: string }>(filas: T[]): T[] {
+  return [...new Map(filas.map((f) => [f.venta_id, f])).values()];
+}
+
 /** La hora de reloj de Lima de un instante, con decimales: 13:09 → 13.15. */
 export function horaDeLima(iso: string): number {
   const lima = new Date(Date.parse(iso) - LIMA_MS);
@@ -57,12 +70,11 @@ function conSigno(n: number, sufijo: string): Comparativo {
 }
 
 /** «+12%» / «−8%» de hoy sobre la referencia; `null` si no hay referencia con la que comparar
- *  (nula o cero: sin ventas a esta hora la semana pasada no hay porcentaje). Un `−0` (una
- *  diferencia diminuta por debajo) se escribe «+0%». */
+ *  (nula o cero: sin ventas a esta hora la semana pasada no hay porcentaje). Una
+ *  diferencia diminuta por debajo (`−0`) se escribe «+0%»: `-0 >= 0`. */
 export function comparativoEnPorcentaje(hoy: number, referencia: number | null): Comparativo | null {
   if (referencia === null || referencia <= 0) return null;
-  const pct = Math.round(((hoy - referencia) / referencia) * 100);
-  return conSigno(pct === 0 ? 0 : pct, "%");
+  return conSigno(Math.round(((hoy - referencia) / referencia) * 100), "%");
 }
 
 /** «+1» / «−2» ventas de diferencia. Contra una semana sin ventas (0) sí se puede comparar en

@@ -4,11 +4,13 @@ import {
   comparativoEnCantidad,
   comparativoEnPorcentaje,
   horaDeLima,
+  horaDeReloj,
   progresoDeEnvio,
   tonoPorEnviar,
   tonoVendidoHoy,
   ventanaDelDiaLima,
   ventanaHastaEstaHora,
+  ventasUnicas,
 } from "./facturacion-resumen-reglas";
 
 describe("ventanaDelDiaLima", () => {
@@ -56,6 +58,29 @@ describe("horaDeLima", () => {
 
   it("a las 7:30 pm de Lima (UTC del día siguiente) sigue siendo 19.5", () => {
     expect(horaDeLima("2026-09-19T00:30:00Z")).toBe(19.5);
+  });
+});
+
+describe("horaDeReloj", () => {
+  it("«13:09» son 13.15 y «10:00» son 10", () => {
+    expect(horaDeReloj("13:09")).toBeCloseTo(13.15, 5);
+    expect(horaDeReloj("10:00")).toBe(10);
+  });
+
+  it("sin minutos legibles no es NaN: cuenta como la hora en punto", () => {
+    expect(horaDeReloj("13")).toBe(13);
+  });
+});
+
+describe("ventasUnicas", () => {
+  it("una venta con dos comprobantes (dos filas del left join) cuenta una sola vez", () => {
+    const filas = [{ venta_id: "a", total: 100 }, { venta_id: "a", total: 100 }, { venta_id: "b", total: 50 }];
+    expect(ventasUnicas(filas)).toEqual([{ venta_id: "a", total: 100 }, { venta_id: "b", total: 50 }]);
+  });
+
+  it("conserva el orden y no toca lo que ya es único", () => {
+    const filas = [{ venta_id: "z" }, { venta_id: "y" }];
+    expect(ventasUnicas(filas)).toEqual(filas);
   });
 });
 

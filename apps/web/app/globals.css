@@ -954,6 +954,8 @@ body {
 
   .kpi-vidrio {
     position: relative;
+    /* Las cajas de una fila miden lo mismo: la envoltura es la que se estira en el grid. */
+    height: 100%;
     overflow: hidden;
     padding: 18px 18px 16px;
     border-radius: 16px;
@@ -985,9 +987,11 @@ body {
     transition: opacity 350ms;
     background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.85), transparent 68%);
   }
-  /* El contenido por encima del tinte y de la luz. */
+  /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
+     árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
   .kpi-vidrio > * {
     position: relative;
+    z-index: 1;
   }
   .kpi-vidrio__icono {
     display: inline-flex;
@@ -1091,7 +1095,8 @@ body {
   .kpi-barras {
     display: flex;
     align-items: flex-end;
-    gap: 7px;
+    /* En porcentaje: con 16 barras y un hueco fijo de 7 px, en una tarjeta angosta cada barra quedaba en una raya. */
+    gap: 3%;
   }
   .kpi-barras i {
     flex: 1;
@@ -1112,13 +1117,13 @@ body {
      movimiento reducido ni siquiera existen: se ve el resultado, no el viaje. */
   @media (prefers-reduced-motion: no-preference) {
     .kpi-spark__hoy {
-      animation: kpi-trazo 1s var(--ease-cayla) 450ms backwards;
+      animation: kpi-trazo 800ms var(--ease-cayla) 200ms backwards;
     }
     .kpi-progreso b {
-      animation: kpi-llena 700ms var(--ease-cayla) 400ms backwards;
+      animation: kpi-llena 600ms var(--ease-cayla) 200ms backwards;
     }
     .kpi-barras i {
-      animation: kpi-crece 600ms var(--ease-cayla) 400ms backwards;
+      animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards;
     }
   }
 }

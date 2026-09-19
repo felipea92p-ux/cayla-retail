@@ -7,12 +7,14 @@ import {
   comparativoEnCantidad,
   comparativoEnPorcentaje,
   horaDeLima,
+  horaDeReloj,
   progresoDeEnvio,
   tonoPorEnviar,
   tonoVendidoHoy,
+  ventasUnicas,
   type TonoKpi,
 } from "@/lib/facturacion-resumen-reglas";
-import type { VentaEnHora } from "@/lib/facturacion-resumen-graficos";
+import { MAX_BARRAS, type VentaEnHora } from "@/lib/facturacion-resumen-graficos";
 import type { VentasDeReferencia } from "@/lib/ventas-comparativo";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaKpiVidrio } from "@/components/ui/TarjetaKpiVidrio";
@@ -27,16 +29,11 @@ import { BarraDeEnvio, BarrasDeTicket, EjeDeVentas, SparklineAcumulado } from "@
 // referencia de la semana pasada, o la cola de SUNAT, esa tarjeta lo dice y las demás siguen.
 
 const REFERENCIA = "vs. mismo día de la semana pasada a esta hora";
+const SIN_REFERENCIA = "No se pudo leer la semana pasada.";
 
 /** «+12%» en verde si va bien y en rojo si va mal; nunca solo el color: lleva el signo. */
 function Delta({ texto, positivo }: { texto: string; positivo: boolean }) {
   return <span className={`font-semibold ${positivo ? "text-verde" : "text-rojo-profundo"}`}>{texto}</span>;
-}
-
-/** «13:09» → 13.15 (la hora de reloj de Lima con decimales, la unidad de los gráficos). */
-function horaDecimal(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h + (m || 0) / 60;
 }
 
 export function ResumenTarjetas({
@@ -56,11 +53,13 @@ export function ResumenTarjetas({
   referencia: VentasDeReferencia | null;
   ahora: Date;
 }) {
-  const cantidad = ventas.length;
-  const total = Math.round(ventas.reduce((suma, v) => suma + Number(v.total), 0) * 100) / 100;
-  // `fn_ventas_del_dia` las devuelve de la más nueva a la más vieja; los gráficos leen de izquierda a derecha.
-  const cronologicas = [...ventas].reverse();
-  const enHora: VentaEnHora[] = cronologicas.map((v) => ({ hora: horaDecimal(v.hora), monto: Number(v.total) }));
+  // Una fila por venta: `fn_ventas_del_dia` repite la venta que tiene dos comprobantes (un anulado y su reemplazo).
+  const unicas = ventasUnicas(ventas);
+  const cantidad = unicas.length;
+  const total = Math.round(unicas.reduce((suma, v) => suma + Number(v.total), 0) * 100) / 100;
+  // La RPC las devuelve de la más nueva a la más vieja; los gráficos leen de izquierda a derecha.
+  const cronologicas = [...unicas].reverse();
+  const enHora: VentaEnHora[] = cronologicas.map((v) => ({ hora: horaDeReloj(v.hora), monto: Number(v.total) }));
   const horaAhora = horaDeLima(ahora.toISOString());
 
   const tonoVendido: TonoKpi = tonoVendidoHoy(total, referencia ? referencia.total : null);
@@ -79,13 +78,15 @@ export function ResumenTarjetas({
         indice={0}
         valor={<CifraAnimada valor={total} formato="soles" />}
         contexto={
-          enPorcentaje ? (
+          !referencia ? (
+            SIN_REFERENCIA
+          ) : enPorcentaje ? (
             <>
-              <Delta {...enPorcentaje} /> {REFERENCIA} ({soles(referencia!.total)})
+              <Delta {...enPorcentaje} /> {REFERENCIA} ({soles(referencia.total)})
             </>
-          ) : referencia ? (
+          ) : (
             "Sin ventas a esta hora la semana pasada."
-          ) : undefined
+          )
         }
       >
         <SparklineAcumulado hoy={enHora} semanaPasada={referencia ? referencia.ventas : null} horaAhora={horaAhora} />
@@ -98,13 +99,13 @@ export function ResumenTarjetas({
         indice={1}
         valor={<CifraAnimada valor={cantidad} />}
         contexto={
-          enCantidad ? (
+          !referencia || !enCantidad ? (
+            cantidad === 0 ? "Todavía no hay ventas hoy." : SIN_REFERENCIA
+          ) : (
             <>
-              <Delta {...enCantidad} /> {REFERENCIA} ({referencia!.ventas.length})
+              <Delta {...enCantidad} /> {REFERENCIA} ({referencia.ventas.length} {referencia.ventas.length === 1 ? "venta" : "ventas"})
             </>
-          ) : cantidad === 0 ? (
-            "Todavía no hay ventas hoy."
-          ) : undefined
+          )
         }
       >
         <EjeDeVentas horas={enHora.map((v) => v.hora)} />
@@ -156,7 +157,13 @@ export function ResumenTarjetas({
         icono={<Receipt size={15} strokeWidth={1.75} />}
         indice={3}
         valor={cantidad > 0 ? <CifraAnimada valor={total / cantidad} formato="soles" /> : "—"}
-        contexto={cantidad > 0 ? `Total ÷ ${cantidad} venta${cantidad === 1 ? "" : "s"}. La línea punteada es el promedio.` : "Sin ventas todavía."}
+        contexto={
+          cantidad === 0
+            ? "Sin ventas todavía."
+            : `Total ÷ ${cantidad} venta${cantidad === 1 ? "" : "s"}. ${
+                cantidad > MAX_BARRAS ? `Barras: las últimas ${MAX_BARRAS}. ` : ""
+              }La línea punteada es el promedio${cantidad > MAX_BARRAS ? " de todas" : ""}.`
+        }
       >
         <BarrasDeTicket totales={cronologicas.map((v) => Number(v.total))} />
       </TarjetaKpiVidrio>

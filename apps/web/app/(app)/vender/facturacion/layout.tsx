@@ -3,6 +3,7 @@ import { exigirLider } from "@/lib/persona-actual";
 import { getResumenPorEnviar, getSeriesComprobantes } from "@/lib/comprobantes";
 import { getResumenProformas } from "@/lib/proformas";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { opcional } from "@/lib/resultado";
 import { conteosDePestanas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { FacturacionShell } from "@/components/FacturacionShell";
 
@@ -18,20 +19,14 @@ import { FacturacionShell } from "@/components/FacturacionShell";
 // cuando falla una vista. Por eso lo que lee acá (series, tiendas, contadores) es del marco:
 // si falla, se oculta (`null`) y se registra en el log, no se propaga. Las vistas, que sí
 // muestran plata, leen con `exigir` y sí revientan hacia `error.tsx`.
-const opcional = <T,>(lectura: Promise<T>): Promise<T | null> =>
-  lectura.catch((error) => {
-    console.error("Facturación: no se pudo leer un dato del marco:", error);
-    return null;
-  });
-
 export default async function FacturacionLayout({ children }: { children: ReactNode }) {
   const persona = await exigirLider();
 
   const [ubicaciones, series, porEnviar, proformas] = await Promise.all([
-    opcional(getUbicaciones()),
-    opcional(getSeriesComprobantes()),
-    opcional(getResumenPorEnviar()), // ya devuelven `null` si la consulta falla (`tolerar`);
-    opcional(getResumenProformas()), // `opcional` cubre además lo que `tolerar` no ve (`createClient()`)
+    opcional(getUbicaciones(), "las ubicaciones (marco de Facturación)"),
+    opcional(getSeriesComprobantes(), "las series (marco de Facturación)"),
+    opcional(getResumenPorEnviar(), "la cola de SUNAT (marco de Facturación)"), // ya devuelven `null` si la consulta falla (`tolerar`);
+    opcional(getResumenProformas(), "las proformas vigentes (marco de Facturación)"), // `opcional` cubre además lo que `tolerar` no ve (`createClient()`)
   ]);
 
   const tiendas = ubicaciones ? tiendasOperativas(ubicaciones) : null;
