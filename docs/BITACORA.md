@@ -9,6 +9,12 @@ La pantalla fijaba 8 columnas de tarjetas; a ciertos anchos la tarjeta quedaba m
 
 "Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918160000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
 
+## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
+
+Las ilustraciones de Etiquetas se veían más grandes y "fuera de línea" al saltar de una pestaña de Atributos a otra. La causa no era un dibujo mal puesto sino tres medidas distintas: 4 columnas en vez de 5, margen interno de 10 px en vez de 16 px, y una imagen 2:1 (alta) en vez de 3:1. Ahora las cuatro pestañas miden igual — verificado en el navegador: imagen de 229×76 px y tarjeta de 263 px en Etiquetas y en Patrones, 5 columnas en ambas. El chip de temporada (Vigente / En N días / Fuera de temporada) salió de encima del dibujo y va junto a las fechas, debajo del nombre: sobre una imagen más baja tapaba el ícono. Sin cambios de esquema.
+
+Lo que Felipe se lleva: cuando dos pantallas del mismo sistema "se sienten" distintas, casi siempre es una medida compartida (columnas, margen, proporción) que se redefinió por separado en cada archivo. El BACKLOG ya tiene el paso de fondo: una `TarjetaAtributo` única para que esto no vuelva a divergir.
+
 ## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
 
 La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.
@@ -22,6 +28,37 @@ Pendiente a propósito: Patrones/Tejidos/Colores siguen con la tarjeta anterior 
 Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo mecanismo que `patron-visual.ts` + `MuestraPatron`: `lib/tejido-visual.ts` traduce el nombre a una de 17 texturas y `components/MuestraTejido.tsx` la dibuja en SVG (sarga del denim, canalé de la pana, panal del piqué, fibra de la alpaca…). Sin cambios de esquema y sin migración: el nombre es lo único estable del vocabulario, así que un tejido nuevo como "Full Lycra" o "Interlock" (que las notas del seed dicen cubrir) cae solo en la textura de Licra/Jersey. Un nombre que no reconoce dice «Sin muestra» en vez de dibujar una tela equivocada.
 
 Lo que Felipe se lleva: aquí el color de la muestra ES la información (el denim tiene que ser azul), así que no usa la paleta de marca como Etiquetas — pero sí respeta lo sagrado: nada de rojo, sin degradados. Y el orden de las reglas importa: «Rib licrado» debe ser canalé, no licra, y «Algodón pima» su propia fibra, no algodón — está fijado en `tejido-visual.test.ts`.
+
+## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, en PR)
+
+Felipe pidió rediseñar Inventario → Traslados sobre una referencia visual. **Qué se cerró:** franja «Atención
+hoy» (solo si algo le toca a quien mira), cuatro indicadores que filtran, buscador, tabla con estado y acción
+de formas distintas, y un número «por atender» junto a «Traslados» en el menú. Todo sale de una sola regla
+(`situacionTraslado`, con 61 pruebas) y de datos que la base ya guardaba: **cero migraciones, cero cambios en
+stock/recepción/cierre.** **Qué aprendió Felipe:** (1) «en tránsito» mezclaba el bulto que ya está en la puerta
+de la tienda con el que sigue en la carretera; separarlos con la hora estimada convierte el contador en algo
+que se puede accionar. (2) Una revisión con cinco lectores y dos escépticos por hallazgo encontró un error que
+las pruebas no veían — el orden de «Revisar ahora» contaba cuándo salió el envío, no cuánto lleva esperando —
+porque las pruebas usaban una hora estimada anterior a la salida, algo imposible en la práctica. (3) El diseño
+de referencia no cabía con las mayúsculas de la marca: el chip y el botón miden 187 y 184 px, se midió en el
+navegador y se ajustaron las columnas en vez de recortar el texto.
+
+**Al probar con sesión de líder apareció otra cosa, ajena al rediseño:** la base local llevaba 4 migraciones atrás
+del repo (las que llegaron con el merge del día) y el layout del líder lee `ubicaciones.meta_venta_diaria`
+(`20260918100000`): `AppLayout` reventaba con `column ubicaciones.meta_venta_diaria does not exist` en cualquier
+pantalla. `supabase start` solo aplica migraciones al CREAR la base; las que llegan después no se aplican solas.
+Se puso al día con `npx supabase migration up --local` (sin reset; 112 → 116). Un worktree nuevo tampoco trae
+`0000_local_stub_dynamic.sql` (gitignorado): sin copiarlo del checkout principal, la CLI ve el historial desalineado.
+
+**Hallazgos que NO se tocaron (no eran de este cambio):** `authenticated` puede hacer UPDATE directo sobre
+`transferencias` **en la base local y en las migraciones del repo** — producción NO: allí solo tiene SELECT (el
+`REVOKE` vive solo en producción; verificado en solo lectura), o sea drift repo ≠ producción, no un hueco abierto; una
+prenda distinta congela todas las de su traslado fuera del stock hasta que un líder cierra; quien envía escribe la
+hora estimada a mano, al minuto y sin poder corregirla después. Los tres quedan en BACKLOG. **Producción: nada que
+desplegar** — comprobado que ya tiene todo lo que la pantalla lee, y que las tres migraciones que la base local
+llevaba atrasadas (`emitir_comprobante` idempotente, contacto bancario de proveedores, atraso de recepción de compras)
+ya están en producción. Datos de prueba: 31 traslados nuevos en la base local con `[prueba UI]` en la nota (sin borrar ni
+modificar los 4 que había).
 
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
@@ -7586,3 +7623,20 @@ Al fusionar con `main`, el PR #129 ya había tomado el ADR-0103 (familias): gan�
 número y el del aviario pasó a 0104. Y `retail.familias`, ya en producción pero no en el
 volcado del 17-sep, entró al aviario bajo Loro. El límite que el propio ADR anotaba —la
 alarma es tan fresca como el volcado— se cumplió el mismo día.
+
+### 2026-09-18 — Colores: sin Tipo ni foto; se acepta HTML o RGB
+Producción mostró que `colores.tipo` no se usaba (35 de 35 en «sólido») y que duplicaba lo que
+ya dicen Tejidos y Patrones, así que salió del modal, la API y la tarjeta (ADR-0106). Las
+columnas y las 3 fotos quedan en la base sin tocar. Al crear o editar un color ahora se puede
+pegar `#c9b79c` o `rgb(201, 183, 156)`; la base sigue guardando solo el hex.
+Decidido con Felipe pero NO construido: descuento automático por etiqueta de campaña (ver
+BACKLOG, pasos 2 y 3).
+
+### 2026-09-18 — Etiquetas: se configura la campaña (descuento, fechas, categorías)
+Etiquetas no tenía modal de edición: las fechas solo se cambiaban por SQL. Ahora un Líder abre
+«Configurar campaña» y guarda un % de descuento, las fechas y, si quiere, las categorías donde
+rige, todo en un solo RPC. Por decisión de Felipe: un solo descuento por prenda (el mayor);
+sin categorías, solo las prendas etiquetadas a mano (ADR-0107).
+Solo el modelo: Vender NO lo cobra todavía, y la tarjeta lo dice. Falta pegar la migración en
+producción antes de desplegar. Al probar salió un error real: `2026-13-01` hacía lanzar la API
+en vez de decir «fecha no válida».

@@ -30,7 +30,7 @@ const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
   neutral: { fondo: "#EFE8DA", acento: TINTA },
 };
 
-const ANCHO = 120;
+const ANCHO = 180; // 3:1, como las muestras de Patrones y Tejidos
 const ALTO = 60;
 
 // Cada ícono se dibuja centrado en (0,0) dentro de ±14 unidades. `a` es el
@@ -253,7 +253,7 @@ const MOV = "transition-transform duration-500 ease-cayla [transform-box:fill-bo
 export function MuestraEtiqueta({
   nombre,
   estilo,
-  className = "aspect-[2/1] w-full",
+  className = "aspect-[3/1] w-full",
 }: {
   nombre: string;
   estilo: Estilo;
@@ -267,13 +267,13 @@ export function MuestraEtiqueta({
     <div className={`${className} overflow-hidden rounded-lg`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
       <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" aria-hidden>
         {/* Ecos tenues a los lados: llenan el ancho sin competir con el ícono. */}
-        <g transform="translate(20 38) rotate(-14) scale(0.85)" opacity={0.18}>
+        <g transform="translate(34 38) rotate(-14) scale(0.85)" opacity={0.18}>
           <g className={`${MOV} group-hover/etq:-translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(100 24) rotate(12) scale(0.85)" opacity={0.18}>
+        <g transform="translate(146 22) rotate(12) scale(0.85)" opacity={0.18}>
           <g className={`${MOV} group-hover/etq:translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(60 30) scale(1.7)">
+        <g transform="translate(90 30) scale(1.6)">
           <g className={`${MOV} group-hover/etq:-translate-y-0.5 group-hover/etq:scale-[1.06]`}>{dibujo(acento)}</g>
         </g>
       </svg>

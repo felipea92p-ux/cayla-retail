@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 /* ====================================================================
@@ -15,6 +16,13 @@ import type { ReactNode } from "react";
    `valor` acepta texto: un "—" o "98.4%" es tan válido como un número.
    `accion` dibuja el enlace rojo al pie ("Ver detalle →") — el único
    rojo permitido en una tarjeta que pide algo.
+
+   `compacta` + `icono` (2026-09-18, Traslados): la misma tarjeta en una
+   fila baja — ícono a la izquierda, cifra más chica, contexto en una línea
+   y una flecha si se puede tocar. Para pantallas donde la fila de tarjetas
+   es una franja de estado y no puede comerse la altura que le toca a la
+   lista. Sin esas dos props la tarjeta se dibuja exactamente igual que
+   antes.
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
@@ -29,6 +37,8 @@ export function TarjetaCifra({
   href,
   onClick,
   accion,
+  icono,
+  compacta = false,
   children,
 }: {
   etiqueta: string;
@@ -42,13 +52,30 @@ export function TarjetaCifra({
   href?: string;
   onClick?: () => void;
   accion?: Accion;
+  /** Solo con `compacta`: el ícono (ya con su disco y colores) a la izquierda. */
+  icono?: ReactNode;
+  /** Fila baja, con ícono y flecha (ver arriba). */
+  compacta?: boolean;
   children?: ReactNode;
 }) {
-  const clase = `card-cayla block p-5 text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+  const clase = `card-cayla block ${compacta ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
     onClick || href ? "hover:bg-sand/30" : ""
   } ${activa ? "bg-sand/40" : ""}`;
 
-  const contenido = (
+  const contenido = compacta ? (
+    <span className="flex items-center gap-3">
+      {icono}
+      <span className="min-w-0 flex-1">
+        <span className="label-cayla block text-[11px] text-tinta/65">{etiqueta}</span>
+        <span className="mt-0.5 flex items-baseline gap-1.5">
+          <span className={`font-display text-2xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+          {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
+        </span>
+        {children && <span className="mt-0.5 block text-xs text-tinta/65">{children}</span>}
+      </span>
+      {(onClick || href) && <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/40" />}
+    </span>
+  ) : (
     <>
       <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
       <p className="mt-1 flex items-baseline gap-2">

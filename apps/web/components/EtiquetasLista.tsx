@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
+import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { normalizarNombre } from "@/lib/patron-visual";
 
@@ -27,6 +28,13 @@ import { normalizarNombre } from "@/lib/patron-visual";
  * Aplicar/quitar una etiqueta de una VARIANTE puntual no vive acá — es
  * edición normal de producto (`variantes_write_lider`, ya conectado en
  * ProductoForm.tsx — ese selector solo ofrece las que están vigentes hoy).
+ *
+ * Configurar campaña (2026-09-18): un Líder le pone a una etiqueta un % de
+ * descuento, fechas y, si quiere, las categorías donde rige. SIN categorías
+ * la etiqueta solo alcanza a las prendas que alguien etiquetó a mano; CON
+ * categorías, a todas las de esas categorías. Esta pantalla solo GUARDA la
+ * configuración: que Vender la aplique sola es un paso aparte (todavía no lo
+ * hace). Ver 20260918160000_etiquetas_descuento_y_categorias.sql.
  *
  * `estilo` agrupa visualmente en 3 familias + "General" — paleta cerrada
  * a propósito (Felipe: "colores suaves dentro de nuestra paleta", nunca
@@ -65,13 +73,29 @@ type Etiqueta = {
   estilo: Estilo;
   vigenteDesde: string | null;
   vigenteHasta: string | null;
+  descuentoPct: number | null;
+  categoriaIds: string[];
 };
+
+type CategoriaOpcion = { id: string; nombre: string; familia: string };
+
+// Se pone en `true` el día que `registrar_venta` lea `etiquetas.descuento_pct`
+// (BACKLOG, "Etiquetas de campaña con descuento automático", paso 3). Mientras
+// sea `false`, la pantalla avisa que el descuento se guarda pero no se cobra,
+// para que nadie en caja lo dé por hecho.
+const DESCUENTO_YA_SE_APLICA = false;
+
+/** 20 → "20", 12.5 → "12.5": sin ceros de más (el decimal peruano es el punto). */
+const textoPct = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2 });
 
 function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-const GRILLA = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4";
+// Misma grilla y misma tarjeta (p-4, imagen 3:1) que Colores, Tejidos y Patrones:
+// las cinco pestañas de Atributos comparten medidas, así que al cambiar de una a
+// otra la ilustración no crece ni se corre.
+const GRILLA = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
 
 function BotonFiltro({
   activo,
@@ -102,8 +126,8 @@ function BotonFiltro({
   );
 }
 
-/** Lo que dice la etiqueta sobre su temporada: un chip sobre la ilustración
- *  (se lee sin abrir nada) y el rango de fechas debajo del nombre. */
+/** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
+ *  y el rango de fechas, juntos debajo del nombre. */
 function chipDeVigencia(v: Vigencia | null) {
   if (!v) return null;
   if (v.estado === "vigente") return <Chip tono="verde">Vigente</Chip>;
@@ -125,15 +149,12 @@ function TarjetaEtiqueta({
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
   return (
     <div
-      className={`group/etq card-cayla flex flex-col gap-3 p-2.5 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
     >
-      <div className="relative">
-        <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
-        {vigencia && <span className="absolute right-2 top-2 rounded-full bg-papel">{chipDeVigencia(vigencia)}</span>}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 px-1">
+      <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
+      <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <p className="text-[15px] font-medium leading-snug text-tinta">
             {e.nombre}
@@ -146,14 +167,37 @@ function TarjetaEtiqueta({
             <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazada</span>
           )}
         </div>
-        {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+        {(vigencia || rango) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {chipDeVigencia(vigencia)}
+            {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+          </div>
+        )}
+        {e.descuentoPct !== null && (
+          <p className="text-[11px] text-tinta/75">
+            <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
+            {" · "}
+            {e.categoriaIds.length === 0
+              ? "prendas etiquetadas a mano"
+              : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
+          </p>
+        )}
+        {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
       </div>
       {children}
     </div>
   );
 }
 
-export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasIniciales: Etiqueta[]; puedeEditar: boolean }) {
+export function EtiquetasLista({
+  etiquetasIniciales,
+  categorias,
+  puedeEditar,
+}: {
+  etiquetasIniciales: Etiqueta[];
+  categorias: CategoriaOpcion[];
+  puedeEditar: boolean;
+}) {
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -163,6 +207,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  const [configurando, setConfigurando] = useState<Etiqueta | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [grupo, setGrupo] = useState<Estilo | "todas">("todas");
@@ -219,6 +264,8 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
             estilo: "neutral",
             vigenteDesde: null,
             vigenteHasta: null,
+            descuentoPct: null,
+            categoriaIds: [],
           },
         ])
       );
@@ -420,7 +467,7 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)}>
                     {puedeEditar &&
                       (e.estado === "pendiente" ? (
-                        <div className="flex gap-2 px-1 pb-1">
+                        <div className="flex gap-2">
                           <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => aprobar(e)}>
                             Aprobar
                           </Boton>
@@ -440,12 +487,19 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
                         // mouse o al enfocar con teclado, y en pantallas táctiles (sin
                         // hover) se ve siempre. Reserva su espacio para que la tarjeta
                         // no salte de alto.
-                        <div className="flex justify-end px-1 pb-0.5 opacity-0 transition-opacity duration-200 group-hover/etq:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setConfigurando(e)}
+                            className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
+                          >
+                            Configurar campaña
+                          </button>
                           <button
                             type="button"
                             disabled={cambiandoId === e.id}
                             onClick={() => desactivar(e)}
-                            className="label-cayla text-[10px] text-tinta/55 underline-offset-4 transition-colors hover:text-tinta hover:underline disabled:opacity-50"
+                            className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
                           >
                             {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
                           </button>
@@ -499,6 +553,18 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
         </Modal>
       )}
 
+      {configurando && (
+        <CampanaModal
+          etiqueta={configurando}
+          categorias={categorias}
+          onClose={() => setConfigurando(null)}
+          onGuardado={(cambios) => {
+            setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === configurando.id ? { ...x, ...cambios } : x))));
+            setConfigurando(null);
+          }}
+        />
+      )}
+
       {rechazandoEtiqueta && (
         <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
@@ -522,5 +588,165 @@ export function EtiquetasLista({ etiquetasIniciales, puedeEditar }: { etiquetasI
         </Modal>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Configurar campaña: descuento, fechas y categorías, guardados juntos por el
+// RPC `actualizar_campana_etiqueta` (todo o nada). Las categorías son
+// opcionales a propósito: sin ninguna, la etiqueta rige solo en las prendas
+// que alguien etiquetó a mano. Si hay varias etiquetas con descuento en una
+// misma prenda, Vender aplicará solo el mayor (paso aparte, aún sin construir).
+// ---------------------------------------------------------------------------
+function CampanaModal({
+  etiqueta,
+  categorias,
+  onClose,
+  onGuardado,
+}: {
+  etiqueta: Etiqueta;
+  categorias: CategoriaOpcion[];
+  onClose: () => void;
+  onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
+}) {
+  const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null ? "" : String(etiqueta.descuentoPct));
+  const [desde, setDesde] = useState(etiqueta.vigenteDesde ?? "");
+  const [hasta, setHasta] = useState(etiqueta.vigenteHasta ?? "");
+  const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
+  const [guardando, setGuardando] = useState(false);
+
+  const pct = parsearDescuento(descuento);
+  const fDesde = parsearFecha(desde);
+  const fHasta = parsearFecha(hasta);
+  const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
+  const valido = pct.ok && fDesde.ok && fHasta.ok && !objecion;
+
+  const porFamilia = new Map<string, CategoriaOpcion[]>();
+  for (const c of categorias) porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
+
+  const alternar = (id: string) =>
+    setElegidas((actual) => {
+      const nuevo = new Set(actual);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+
+  async function guardar() {
+    if (!pct.ok || !fDesde.ok || !fHasta.ok) return;
+    setGuardando(true);
+    try {
+      const categoriaIds = [...elegidas];
+      const res = await fetch("/api/productos/etiquetas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: etiqueta.id,
+          campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+        }),
+      });
+      const datos = await res.json();
+      if (!res.ok) {
+        avisar.error(datos.error ?? "No se pudo guardar la campaña.");
+        return;
+      }
+      avisar.exito(`${etiqueta.nombre} actualizada`);
+      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Modal titulo={`Campaña «${etiqueta.nombre}»`} ancho="max-w-md" onClose={onClose}>
+      {(cerrar) => (
+        <div className="mt-5 space-y-5">
+          <CampoTexto
+            etiqueta="Descuento (%)"
+            mono
+            inputMode="decimal"
+            value={descuento}
+            onChange={(e) => setDescuento(e.target.value)}
+            placeholder="Ej. 20"
+            tono={pct.ok ? undefined : "error"}
+            pie={pct.ok ? "Vacío = solo informativa, sin descuento." : pct.error}
+            autoComplete="off"
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoTexto etiqueta="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} tono={fDesde.ok ? undefined : "error"} />
+            <CampoTexto
+              etiqueta="Hasta"
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              tono={fHasta.ok && !objecion ? undefined : "error"}
+              pie={objecion ?? undefined}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="label-cayla text-[11px] text-tinta/65">
+                Categorías <span className="font-normal normal-case text-tinta/45">· opcional</span>
+              </p>
+              {elegidas.size > 0 && (
+                <button type="button" onClick={() => setElegidas(new Set())} className="text-xs text-rojo hover:underline">
+                  Quitar todas
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-tinta/55">
+              {elegidas.size === 0
+                ? "Sin categorías, la campaña solo alcanza a las prendas que etiquetes a mano."
+                : `Alcanza a todas las prendas de ${elegidas.size} categoría${elegidas.size === 1 ? "" : "s"}, además de las etiquetadas a mano.`}
+            </p>
+            <div className="mt-3 max-h-56 space-y-3 overflow-y-auto pr-1">
+              {[...porFamilia.entries()].map(([familia, lista]) => (
+                <div key={familia}>
+                  <p className="text-[11px] text-tinta/55">{familia}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {lista.map((c) => {
+                      const activa = elegidas.has(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          aria-pressed={activa}
+                          onClick={() => alternar(c.id)}
+                          className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
+                            activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/70 hover:border-tinta/30 hover:text-tinta"
+                          }`}
+                        >
+                          {c.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {!DESCUENTO_YA_SE_APLICA && (
+            <p className="rounded-md bg-tinta/[0.04] px-3 py-2 text-xs text-tinta/65">
+              Esto guarda la configuración. Todavía no cambia el precio en Vender. Cuando lo haga, si una prenda tiene varias etiquetas con
+              descuento, se aplicará solo el mayor.
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido}>
+              Guardar
+            </Boton>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
