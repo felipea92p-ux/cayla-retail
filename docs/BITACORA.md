@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Candado: el CI ahora rechaza dos migraciones con la misma versión)
+
+Ya pasó tres veces en dos días (`20260917100000`, `20260917140000` y `20260918170000`) y siempre se descubrió cuando alguien no podía levantar su base local. Nada lo veía: `migraciones:verificar` compara lo que cada archivo promete contra la base, no los nombres entre sí, y producción no lo delata porque el SQL se pega a mano. Nuevo `scripts/migraciones/versiones.mjs` (`pnpm migraciones:versiones`) + paso «Versiones de migración» en el CI, que corre también en `pull_request`: solo lee nombres de archivo, sin base de datos ni `node_modules`. Probado contra `main` (verde), contra el duplicado original del PR #150 y contra `origin/claude/panel-comercial`, que aún lo trae (ambos rojos).
+
+Lo que Felipe se lleva: el choque entre dos ramas no se ve en ninguna de las dos por separado; se ve en la segunda cuando `main` ya tiene la primera. Por eso el candado importa en el PR, no en la rama. Límite: no ve ramas que aún no son PR, y no sabe cuál de las dos ya está en producción — eso sigue siendo decisión humana (renombrar solo la que no se pegó).
+
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
