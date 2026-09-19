@@ -1636,7 +1636,7 @@ exito(
     `${BASE}${nuevoProv("pa", { nombre: "ZZ Prueba A" })}${nuevoProv("pb", { nombre: "ZZ Prueba B", activo: false })}${nuevoProv("pc", { nombre: "ZZ Prueba C" })}
 select bool_and(not (coalesce(l.activo_ant, true) = false and l.activo)) and bool_and(l.activo_ant is distinct from l.activo or l.nombre_ant is null or l.nombre >= l.nombre_ant)
 from (select f.activo, f.nombre, lag(f.activo) over (order by f.ord) as activo_ant, lag(f.nombre) over (order by f.ord) as nombre_ant
-  from retail.fn_proveedores() with ordinality as f(id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, facturas, total_facturado, saldo, ultima_compra, facturas_vencidas, facturas_recibidas_completas, facturas_con_recepcion_pendiente, facturas_atrasadas, rubro, plazo_credito_dias, forma_pago_preferida, facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir, saldo_favor, ord)) l;
+  from retail.fn_proveedores() with ordinality as f(id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, facturas, total_facturado, saldo, ultima_compra, facturas_vencidas, facturas_recibidas_completas, facturas_con_recepcion_pendiente, facturas_atrasadas, rubro, plazo_credito_dias, forma_pago_preferida, facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir, saldo_favor, cci, celular_billetera, billeteras, titular_cuenta, ord)) l;
 rollback;
 `
   ),

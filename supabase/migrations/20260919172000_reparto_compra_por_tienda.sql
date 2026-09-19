@@ -37,8 +37,12 @@
 -- cuerpos: en producción se pega a mano en cualquier orden y copiar pisaría a otra sesión).
 -- Cada parche verifica que su ancla exista y aborta con un error claro si alguien la cambió.
 --
--- RE-PEGABLE: todo lo que se puede repetir sin error (`if not exists`, `drop … if exists`, parches
--- que se saltan solos si ya están puestos).
+-- RE-PEGABLE justo después de sí misma: todo lo que se puede repetir sin error (`if not exists`,
+-- `drop … if exists`, parches que se saltan solos si ya están puestos). El par 172000 → 173000 va EN
+-- ORDEN y una vez cada una: NO se re-pega ésta DESPUÉS de la 173000, porque esa elimina la columna
+-- `compras.ubicacion_destino_id` que el relleno de aquí lee (falla y revierte entera, sin dejar nada
+-- a medias). Con las de Comprobantes (180000/181000, que parchan `registrar_compra` por anclas) convive
+-- en cualquier orden.
 --
 -- ORDEN EN PRODUCCIÓN: después de las migraciones de Compras de ADR-0111/0113/0126, y ANTES de
 -- desplegar la web nueva. Se pega sin prefijo `retail.` (lleva `set search_path`).

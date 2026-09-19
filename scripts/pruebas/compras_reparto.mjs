@@ -775,7 +775,20 @@ function main() {
     process.exit(1);
   }
 
-  if (EN_SECO) console.log("Modo --en-seco: las migraciones del reparto se cargan dentro de cada escenario (no se aplican a la base).\n");
+  if (EN_SECO) {
+    // Las dos migraciones van EN ORDEN y la 173000 elimina la columna que la 172000 rellena: con el reparto ya aplicado,
+    // cargar la 172000 otra vez falla (y revierte, sin daño). `--en-seco` solo sirve ANTES de aplicarlas.
+    const aplicado = correr(
+      "select to_regclass('retail.compra_item_destinos') is not null and not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id');"
+    );
+    if (aplicado.ok && aplicado.salida.trim() === "t") {
+      console.error(
+        "El reparto por tienda YA está aplicado en esta base (compras ya no tiene ubicacion_destino_id): --en-seco solo sirve antes de aplicarlo.\nCorre la suite sin el flag:  pnpm pruebas:compras-reparto"
+      );
+      process.exit(2);
+    }
+    console.log("Modo --en-seco: las migraciones del reparto se cargan dentro de cada escenario (no se aplican a la base).\n");
+  }
 
   let fallos = 0;
   for (const caso of CASOS) {

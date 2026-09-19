@@ -81,6 +81,22 @@ const ANCLAS = [...PARCHE.matchAll(/\$a\$([\s\S]*?)\$a\$/g)].map((m) => m[1]);
 /** El `DO` del parche como una sola sentencia (para ejecutarlo con `execute` dentro de un bloque con manejo de errores). */
 const DO_PARCHE = PARCHE.match(/do \$parche\$[\s\S]*?\$parche\$;/)[0].replace(/;$/, "");
 
+/**
+ * Tras el reparto por tienda (ADR-0132, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. La
+ * función CRUDA de producción de hoy (REGISTRAR_COMPRA_CRUDA) todavía la escribe: un escenario que la instala y LA LLAMA
+ * necesita la columna, así que se le devuelve DENTRO de su transacción (que termina en ROLLBACK), como estaba en
+ * producción antes del reparto. No toca la base compartida.
+ *
+ * `--en-seco` NO sirve en una base que ya tiene el reparto: la función cruda no escribe el reparto por tienda y
+ * `recibir_compras` (ya con el tope por tienda) lo exige. Con el reparto aplicado se corre el modo normal.
+ */
+const CABECERA_DE_ANTES = `do $c$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id') then
+    alter table retail.compras add column ubicacion_destino_id uuid;
+  end if;
+end $c$;
+`;
+
 const PRELUDIO = EN_SECO ? `${REGISTRAR_COMPRA_CRUDA}${MIGRACION}\n${PARCHE}\n` : "";
 
 const FIRMA_RC = "'retail.registrar_compra(uuid,text,text,text,uuid,jsonb,text,date,date,numeric,jsonb,text,numeric,uuid,date)'::regprocedure";
@@ -591,7 +607,7 @@ const CUATRO = `('registrar_compra', 'registrar_pagos_compra', 'registrar_pago_c
 exito(
   "migraciones · pegar las dos (parte 1 y parche) dos veces deja UNA firma de cada función, sin perder nada, y siguen andando",
   `begin;
-${REGISTRAR_COMPRA_CRUDA}${AMBAS}${AMBAS}
+${CABECERA_DE_ANTES}${REGISTRAR_COMPRA_CRUDA}${AMBAS}${AMBAS}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${BASE}${compra("c1")}select gen_random_uuid() as tok \\gset
 select ${pagar("c1", 100, { token: ":'tok'" })} as ids1 \\gset
