@@ -353,14 +353,15 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
       login y yo no ingreso contraseñas. Con sesión iniciada en `localhost:3000`, comparar cada
       pantalla con su PNG de `docs/maquetas/compras-2026-09/` y corregir desvíos.
-- [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» ya usa las dos pastillas en línea de la
-      maqueta 06 (`FiltrosRecibidas`, PR #174, sin migración); (b) «Completar costo» (ingreso sin
+- [ ] **Desvíos y huecos conocidos:** (a) ~~pestaña «Recibidas» usa el popover de `FiltrosCompras`~~
+      **cerrado** (`FiltrosRecibidas` + `recibidas-filtros-reglas.ts`, rama `feat/recibidas-pastillas`;
+      falta solo la comparación visual con el PNG de la maqueta 06); (b) «Completar costo» (ingreso sin
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
       `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
       (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
-      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
-      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
-      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
+      145 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 1
+      hallazgo abierto, H4 (siguiente ítem; H1, H2, H3 y H5 ya están corregidos); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
       `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
       (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
