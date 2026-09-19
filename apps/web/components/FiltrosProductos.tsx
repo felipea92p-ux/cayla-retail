@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt } from "lucide-react";
+import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
 import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -32,10 +32,15 @@ const PRECIO_MAX = 999;
 export function FiltrosProductos({
   categorias,
   colores,
+  marcas,
+  proveedores,
   compacto = false,
 }: {
   categorias: Opcion[];
   colores: OpcionColor[];
+  /** Marcas y proveedores activos (ADR-0109): filtrar el catálogo por de quién es y quién lo trae. */
+  marcas: Opcion[];
+  proveedores: Opcion[];
   compacto?: boolean;
 }) {
   const router = useRouter();
@@ -78,6 +83,8 @@ export function FiltrosProductos({
   }, [busqueda, precioMin, precioMax]);
 
   const cat = params.get("cat");
+  const marca = params.get("marca");
+  const proveedor = params.get("proveedor");
   const color = params.get("color");
   const estado = params.get("estado");
   const stock = params.get("stock");
@@ -88,6 +95,8 @@ export function FiltrosProductos({
   if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
   if (orden) chips.push({ texto: orden === "precio_asc" ? "Precio: menor a mayor" : "Precio: mayor a menor", quitar: { orden: "" } });
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
+  if (marca) chips.push({ texto: marcas.find((m) => m.id === marca)?.nombre ?? "Marca", quitar: { marca: "" } });
+  if (proveedor) chips.push({ texto: proveedores.find((p) => p.id === proveedor)?.nombre ?? "Proveedor", quitar: { proveedor: "" } });
   if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
   if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
   if (stock) {
@@ -145,7 +154,7 @@ export function FiltrosProductos({
   );
 
   if (compacto) {
-    const activos = [cat, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
+    const activos = [cat, marca, proveedor, color, estado, stock, orden, precioMin || precioMax ? "precio" : ""].filter(Boolean).length;
     return (
       <div className="space-y-2">
         <div className="flex items-start gap-2">
@@ -178,6 +187,24 @@ export function FiltrosProductos({
               {categorias.map((c) => (
                 <ItemDesplegable key={c.id} value={c.id}>
                   {c.nombre}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+
+            <DesplegablePildora icono={Tag} etiqueta="Marca" valor={marca ?? TODOS} onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
+              {marcas.map((m) => (
+                <ItemDesplegable key={m.id} value={m.id}>
+                  {m.nombre}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+
+            <DesplegablePildora icono={Truck} etiqueta="Proveedor" valor={proveedor ?? TODOS} onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
+              {proveedores.map((p) => (
+                <ItemDesplegable key={p.id} value={p.id}>
+                  {p.nombre}
                 </ItemDesplegable>
               ))}
             </DesplegablePildora>
@@ -239,6 +266,22 @@ export function FiltrosProductos({
           {categorias.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre}
+            </option>
+          ))}
+        </CampoSelectNativo>
+        <CampoSelectNativo etiqueta="Marca" value={marca ?? ""} onChange={(e) => aplicar({ marca: e.target.value })}>
+          <option value="">Todas</option>
+          {marcas.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.nombre}
+            </option>
+          ))}
+        </CampoSelectNativo>
+        <CampoSelectNativo etiqueta="Proveedor" value={proveedor ?? ""} onChange={(e) => aplicar({ proveedor: e.target.value })}>
+          <option value="">Todos</option>
+          {proveedores.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}
             </option>
           ))}
         </CampoSelectNativo>

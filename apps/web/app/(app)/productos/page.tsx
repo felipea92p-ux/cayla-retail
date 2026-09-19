@@ -63,11 +63,14 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return qs ? `/productos?${qs}` : "/productos";
   }
 
-  const [resultado, resumen, categorias, colores, sububicaciones, pendientesAlta] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    // Marcas y proveedores activos, para los filtros (ADR-0109).
+    supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
     persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
@@ -133,7 +136,13 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
-      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} />
+      <FiltrosProductos
+        categorias={categoriasOpciones}
+        colores={coloresOpciones}
+        marcas={exigir(resMarcas, "las marcas")}
+        proveedores={exigir(resProveedores, "los proveedores")}
+        compacto={vista === "grilla"}
+      />
 
       {vista === "grilla" ? (
         <ProductosGrilla

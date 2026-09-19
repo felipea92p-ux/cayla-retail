@@ -85,6 +85,9 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
 export type FiltrosProductos = {
   busqueda?: string;
   categoriaId?: string;
+  /** De qué marca y/o qué proveedor lo trae (20260918210300). Los dos se pueden combinar: la base solo deja parejas válidas. */
+  marcaId?: string;
+  proveedorId?: string;
   colorCodigo?: string;
   estado?: "activo" | "descontinuado";
   precioMin?: number;
@@ -103,6 +106,8 @@ export type FiltrosProductos = {
 export type ParamsProductosListado = {
   q?: string;
   cat?: string;
+  marca?: string;
+  proveedor?: string;
   color?: string;
   estado?: string;
   precioMin?: string;
@@ -124,6 +129,8 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
   return {
     busqueda: p.q?.trim() || undefined,
     categoriaId: esUuid(p.cat) ? p.cat : undefined,
+    marcaId: esUuid(p.marca) ? p.marca : undefined,
+    proveedorId: esUuid(p.proveedor) ? p.proveedor : undefined,
     colorCodigo: p.color?.trim() || undefined,
     estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
     precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
@@ -145,6 +152,9 @@ export type ProductoListado = {
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
+  /** De quién es y quién lo trae (20260918210000). */
+  marca: string;
+  proveedor: string;
   estado: string;
   stockMinimo: number | null;
   stockTotal: number;
@@ -183,6 +193,8 @@ function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden
   return {
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
+    ...(filtros.marcaId ? { p_marca_id: filtros.marcaId } : {}),
+    ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
     ...(filtros.colorCodigo ? { p_color_codigo: filtros.colorCodigo } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
@@ -216,6 +228,8 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
         codigo: f.codigo,
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
+        marca: f.marca_nombre,
+        proveedor: f.proveedor_nombre,
         estado: f.estado,
         stockMinimo: f.stock_minimo,
         stockTotal: f.stock_total,

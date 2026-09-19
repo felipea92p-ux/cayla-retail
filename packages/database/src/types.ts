@@ -3874,11 +3874,13 @@ export type Database = {
           p_categoria_id?: string
           p_color_codigo?: string
           p_estado?: string
+          p_marca_id?: string
           p_orden?: string
           p_pagina?: number
           p_por_pagina?: number
           p_precio_max?: number
           p_precio_min?: number
+          p_proveedor_id?: string
           p_stock?: string
         }
         Returns: {
@@ -3895,8 +3897,12 @@ export type Database = {
           estado: string
           foto_url: string
           lead_time_dias: number
+          marca_id: string
+          marca_nombre: string
           precio: number
           producto_id: string
+          proveedor_id: string
+          proveedor_nombre: string
           punto_reorden: number
           referencia: string
           reponer_de_proveedor: boolean
@@ -3916,8 +3922,10 @@ export type Database = {
           p_categoria_id?: string
           p_color_codigo?: string
           p_estado?: string
+          p_marca_id?: string
           p_precio_max?: number
           p_precio_min?: number
+          p_proveedor_id?: string
         }
         Returns: {
           reponer_de_proveedor: number
