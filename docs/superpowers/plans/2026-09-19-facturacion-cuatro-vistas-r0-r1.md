@@ -998,8 +998,8 @@ export type VarianteBotonCompacto = "primario" | "vidrio" | "fila" | "fila-alert
 
 const BASE =
   "relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-medium outline-none " +
-  "transition-[transform,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
+  "transition-[translate,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
+  "focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
 const VARIANTE: Record<VarianteBotonCompacto, string> = {
@@ -1760,7 +1760,7 @@ export function FacturacionPestanas({ conteos }: { conteos: ConteosPestanas }) {
             key={p.clave}
             href={hrefPestana(p, mes)}
             aria-current={esActiva ? "page" : undefined}
-            className={`relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 ${
+            className={`relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 ${
               esActiva ? "font-semibold text-crema" : "font-normal text-tinta"
             }`}
           >
