@@ -403,12 +403,17 @@ Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y l
 - [x] **Etiquetas de campaña y el formulario nuevo**: las que ya rigen sobre la categoría se muestran «ya aplica por
       campaña» y no se eligen a mano (ni se envían).
 - [ ] **Revisión adversarial del PR #164 — pendientes que quedaron a propósito** (detalle en ADR-0109, tercera parte):
-      (a) **Editar exige tejido y patrón en Indumentaria**: una prenda del censo (nace sin ellos) no se puede
-      guardar hasta llenarlos, y si su categoría no los tiene habilitados hay que habilitarlos antes; la pantalla lo dice,
-      pero decidir si aprobar una prenda del censo debería poder saltárselo; (b) el reintento por `unique_violation`
+      (a) **Completar tejido y patrón de los 38 productos activos de Indumentaria que no los tienen** (ADR-0109, quinta
+      parte): Editar ya no lo exige si el producto no los tenía (regla «no empeora»), así que se completan cuando alguien
+      edite cada prenda, o de una vez si Felipe pasa la lista; mientras tanto, cualquier reporte por tejido debe tolerar
+      nulos; (b) el reintento por `unique_violation`
       del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
       (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
       que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
+- [ ] **Las pruebas SQL de este PR no están en el repo.** Las ~45 pruebas (nombre único, censo, marcas, edición, permisos,
+      regresión de `fn_productos` contra la copia de producción) se escribieron y corrieron en un Postgres desechable con un
+      esquema mínimo, y viven solo en la carpeta temporal de la sesión. Pasarlas a `scripts/pruebas/` contra el `seed.sql`
+      real (como `etiquetar_variantes.sql`) para que el piloto de CI las corra siempre; hoy solo corre el encadenado y la venta.
 - [ ] **Candado de «sentencias independientes» para las migraciones.** El mapa (`230200`) falló al pegarlo en producción
       por depender de tablas temporales entre sentencias (ADR-0109, cuarta parte). Un script de `scripts/migraciones/`
       que rechace `create temp table`, `set_config`, `set local` y `set session` fuera de un bloque `do`/función, y que

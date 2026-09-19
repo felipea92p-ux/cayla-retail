@@ -219,7 +219,12 @@ export function ProductoForm({
   const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id });
   const parejaCambio = !!producto && (marcaId !== producto.marcaId || proveedorId !== producto.proveedorId);
   const categoriaActual = categorias.find((c) => c.id === categoriaId);
-  const exigeTejidoPatron = !!categoriaActual?.exigeTejidoPatron && estado === "activo";
+  // Al EDITAR la regla es «no empeora» (ADR-0109, cuarta parte; Felipe, 2026-09-19): en Indumentaria un producto activo que
+  // YA tenía tejido o patrón no puede quedarse sin él; uno que nunca los tuvo se guarda igual. Hoy son 38 de los 39 activos: nacieron
+  // cuando ninguna categoría tenía tejidos habilitados, y exigirlos habría impedido hasta cambiar un precio. Nuevo producto sí los exige.
+  const familiaExigente = !!categoriaActual?.exigeTejidoPatron && estado === "activo";
+  const exigeTejido = familiaExigente && !!producto?.tejidoId;
+  const exigePatron = familiaExigente && !!producto?.patronId;
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
@@ -291,8 +296,8 @@ export function ProductoForm({
     if (nombreCambio && parecidos.hayUnaLetra && !parecidos.confirmo) {
       return void avisar.error("Ese nombre se escribe casi igual que otro producto: confirma que es distinto, o déjalo como estaba.", { enfocar: "producto-referencia" });
     }
-    if (exigeTejidoPatron && !tejidoId) return void avisar.error(`En ${categoriaActual?.nombre ?? "esta categoría"} el tejido es obligatorio.`);
-    if (exigeTejidoPatron && !patronId) return void avisar.error("El patrón es obligatorio (si no tiene diseño, elige Liso).");
+    if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
+    if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
@@ -433,7 +438,7 @@ export function ProductoForm({
               </Campo>
             </div>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
-            <Campo etiqueta={exigeTejidoPatron ? "Tejido" : "Tejido (opcional)"}>
+            <Campo etiqueta={exigeTejido ? "Tejido" : "Tejido (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Tejido"
                 valor={tejidoId}
@@ -441,13 +446,16 @@ export function ProductoForm({
                 opciones={opcionesTejido}
                 marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
               />
-              {exigeTejidoPatron && opcionesTejido.length === 0 && (
+              {exigeTejido && opcionesTejido.length === 0 && (
                 <p className="mt-1 text-xs text-ambar-profundo">
-                  {categoriaActual?.nombre} exige tejido pero no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                  Esta prenda ya tenía tejido y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
                 </p>
               )}
+              {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
+                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
+              )}
             </Campo>
-            <Campo etiqueta={exigeTejidoPatron ? "Patrón" : "Patrón (opcional)"}>
+            <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Patrón"
                 valor={patronId}
@@ -455,10 +463,13 @@ export function ProductoForm({
                 opciones={opcionesPatron}
                 marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
               />
-              {exigeTejidoPatron && opcionesPatron.length === 0 && (
+              {exigePatron && opcionesPatron.length === 0 && (
                 <p className="mt-1 text-xs text-ambar-profundo">
-                  {categoriaActual?.nombre} exige patrón pero no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                  Esta prenda ya tenía patrón y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
                 </p>
+              )}
+              {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
+                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
               {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
             </Campo>

@@ -362,9 +362,7 @@ estos son los que cambian lo que hay que saber. Cada uno se corrigió o se docum
 
 ## Decisiones que se mantienen (con su costo dicho)
 
-- **Editar exige tejido y patrón en Indumentaria** (Felipe: «las mismas reglas»). Consecuencia real: una
-  prenda del censo, que nace sin tejido ni patrón, **no se puede editar ni aprobar-y-corregir** hasta llenarlos,
-  y si su categoría no los tiene habilitados hay que habilitarlos primero. Ahora la pantalla lo dice donde ocurre.
+- ~~Editar exige tejido y patrón en Indumentaria~~ — **decisión cambiada el 2026-09-19, ver la quinta parte.**
 - `fn_productos_buscar` busca por subcadena en marca y proveedor (como ya hacía con nombre y código).
 - Volver a correr el mapa de categorías (`230200`) reinicia la curva habitual de tallas a la de la migración.
 
@@ -403,3 +401,30 @@ archivo nuevo en una base desechable, en los dos modos (una conexión, y una con
 
 **Y el resto.** Las otras 7 migraciones se volvieron a correr sentencia por sentencia, cada una en su propia
 conexión (95 + 9 sentencias, 0 errores) con las mismas suites SQL de antes: nada más depende de estado de sesión.
+
+# Quinta parte — Editar: la regla «no empeora» (2026-09-19)
+
+Antes de pegar el SQL 6 en producción medí lo que su regla de edición significaba con los datos reales
+(consulta de solo lectura): de los 39 productos activos, **38 son de Indumentaria y ninguno tiene tejido ni
+patrón**, porque hasta el SQL 3 ninguna categoría tenía tejidos habilitados y nadie podía asignarlos. La regla
+que Felipe había pedido («darle a Editar las mismas reglas que a Nuevo producto») habría hecho que **cambiar solo
+el precio de esas 38 prendas exigiera antes elegir tejido y patrón**, desde el momento de pegar el SQL, también en la
+pantalla actual. Se había pensado para prendas nuevas, no para todo el catálogo existente.
+
+```
+DECIDÍ: al EDITAR, un producto activo de Indumentaria que YA tenía tejido o patrón no puede quedarse sin él; uno que
+  nunca los tuvo se guarda igual. Nuevo producto sigue exigiéndolos SIEMPRE. (Felipe eligió esta opción, 2026-09-19.)
+DESCARTÉ: (a) exigirlos siempre al editar: la base se limpia con el uso, pero mientras tanto un cambio de precio
+  exige elegir tejido y patrón en 38 prendas; (b) exigirlos siempre, pero cargar antes los 38: obliga a decidir el tejido
+  y el patrón de cada uno (no se inventan) y detiene el despliegue.
+SE ROMPE SI: se espera que «Indumentaria siempre tiene tejido» sea verdad en toda la tabla. No lo es: los 38 viejos siguen
+  sin dato hasta que alguien los complete (la pantalla de Editar lo sugiere, no lo obliga) — cualquier reporte que
+  agrupe por tejido debe tolerar nulos.
+```
+
+Implementación: `catalogo_actualizar_producto` lee el tejido y el patrón actuales y solo rechaza dejarlos en blanco si
+ya existían (mismos `hint`, `tejido_obligatorio` / `patron_obligatorio`); `ProductoForm` calcula `exigeTejido` /
+`exigePatron` con la misma regla y, si faltan, muestra una sugerencia. Probado con una suite de 8 escenarios en un Postgres
+desechable, con **control negativo**: contra la versión anterior de la función la prueba de «cambiar el precio sin tejido»
+falla con «En Indumentaria el tejido es obligatorio».
+

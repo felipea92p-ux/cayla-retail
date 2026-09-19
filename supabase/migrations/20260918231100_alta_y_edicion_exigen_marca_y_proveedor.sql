@@ -20,8 +20,13 @@
 -- Indumentaria. Se agrega, con dos matices deliberados:
 --   · el nombre solo se compara si cambia de VERDAD (otra clave): pasar de
 --     "blusa aurora" a "Blusa Aurora" no es un nombre nuevo;
---   · tejido/patrón solo se exigen a un producto ACTIVO: para descontinuar una
---     prenda vieja no se le pide un dato que nunca tuvo.
+--   · tejido/patrón, al EDITAR, la regla es «no empeora», no «llénalo ya»: solo se
+--     exigen a un producto ACTIVO y solo si el producto YA los tenía (no se pueden
+--     dejar en blanco). Nuevo producto sí los exige siempre. Motivo (Felipe,
+--     2026-09-19, comprobado en producción): 38 de los 39 productos activos nacieron
+--     cuando NINGUNA categoría tenía tejidos habilitados y no los tienen; exigirlos
+--     al editar habría impedido cambiar un precio en esas 38 prendas sin elegir
+--     antes tejido y patrón.
 --
 -- COMPATIBILIDAD: los parámetros nuevos van al final con default, y se borra
 -- cada firma vieja antes de crear la nueva (dos sobrecargas ya rompieron
@@ -422,6 +427,8 @@ declare
   v_ref_nueva text;
   v_marca_actual uuid;
   v_proveedor_actual uuid;
+  v_tejido_actual uuid;
+  v_patron_actual uuid;
   v_par_id uuid;
   v_par_ref text;
   v_par_nivel text;
@@ -435,8 +442,8 @@ begin
     raise exception 'El stock mínimo no puede ser negativo.';
   end if;
 
-  select referencia, marca_id, proveedor_id, estado, estado_alta
-    into v_ref_actual, v_marca_actual, v_proveedor_actual, v_estado_actual, v_estado_alta_actual
+  select referencia, marca_id, proveedor_id, estado, estado_alta, tejido_id, patron_id
+    into v_ref_actual, v_marca_actual, v_proveedor_actual, v_estado_actual, v_estado_alta_actual, v_tejido_actual, v_patron_actual
     from productos where id = p_producto_id;
   if not found then
     raise exception 'El producto % no existe.', p_producto_id;
@@ -479,18 +486,20 @@ begin
       using hint = 'rechazado_no_reactivable';
   end if;
 
-  -- Exigencias de la familia (Indumentaria: tejido y patrón). Solo para un producto ACTIVO: para
-  -- descontinuar una prenda vieja no se le debe pedir un dato que nunca tuvo.
+  -- Exigencias de la familia (Indumentaria: tejido y patrón). Al EDITAR la regla es «no empeora»: un producto ACTIVO
+  -- que YA tenía tejido o patrón no puede quedarse sin él; uno que nunca lo tuvo se guarda igual (ver la cabecera:
+  -- 38 de los 39 productos activos no los tienen, y exigirlos habría impedido hasta cambiar un precio). Para
+  -- descontinuar una prenda no se pide nada. Nuevo producto (crear_producto_con_variantes) sí los exige siempre.
   if p_estado = 'activo' then
     select f.exige_tejido_patron, f.nombre into v_exige, v_familia_nombre
       from categorias c left join familias f on f.codigo = c.familia
       where c.id = p_categoria_id;
     if coalesce(v_exige, false) then
-      if p_tejido_id is null then
-        raise exception 'En % el tejido es obligatorio.', v_familia_nombre using hint = 'tejido_obligatorio';
+      if p_tejido_id is null and v_tejido_actual is not null then
+        raise exception 'En % esta prenda ya tenía tejido y no se puede dejar sin él. Elige uno.', v_familia_nombre using hint = 'tejido_obligatorio';
       end if;
-      if p_patron_id is null then
-        raise exception 'En % el patrón es obligatorio (si es sin diseño, elige Liso).', v_familia_nombre using hint = 'patron_obligatorio';
+      if p_patron_id is null and v_patron_actual is not null then
+        raise exception 'En % esta prenda ya tenía patrón y no se puede dejar sin él (si es sin diseño, elige Liso).', v_familia_nombre using hint = 'patron_obligatorio';
       end if;
     end if;
   end if;

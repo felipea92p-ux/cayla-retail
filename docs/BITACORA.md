@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Antes de pegar el SQL 6: 38 de los 39 productos activos no tienen tejido ni patrón, y la regla de Editar los habría bloqueado)
+
+Al pegar los SQL en producción, antes del 6 medí en solo lectura qué significaba su regla de edición con los datos reales: **38 de 39 productos activos son de Indumentaria y ninguno tiene tejido ni patrón**, porque hasta el SQL 3 ninguna categoría los tenía habilitados. La regla pedida («las mismas reglas que Nuevo producto») habría hecho que cambiar solo un precio exigiera elegir tejido y patrón, desde el momento de pegar, también en la pantalla actual. Felipe eligió la regla «no empeora»: al editar solo se exigen si el producto ya los tenía; Nuevo producto los exige siempre.
+
+Lo que Felipe se lleva: una regla de calidad de datos que suena obvia («Indumentaria siempre lleva tejido») hay que medirla contra los datos que ya existen antes de ponerla en la base; si no, se le cobra a quien edita un precio el olvido de quien cargó la prenda hace meses. Probado con 8 escenarios y con control negativo (contra la versión anterior falla con el mensaje que habría visto Felipe).
+
+Pendiente: completar tejido y patrón de esos 38 (se hace al editar cada uno, o de una vez si pasa la lista); los reportes por tejido deben tolerar nulos.
+
 ## 2026-09-19 (Etiquetar prendas más fácil — puerta 1: desde la etiqueta, con vista previa antes de tocar precios)
 
 Hoy 0 de 127 variantes activas tenían etiqueta: la única forma era «Editar producto», una variante a la vez, y esa función reemplaza el conjunto completo de etiquetas (dos Líderes a la vez se pisarían). Se construyó `etiquetar_variantes`, un RPC incremental (agrega o quita UNA etiqueta a muchas variantes sin tocar las demás, todo o nada, idempotente) y el botón «Prendas» en cada tarjeta de Etiquetas: lista de productos con casilla (una marca todas sus tallas), excepciones por talla, filtro por categoría y «Marcar visibles». Si la etiqueta lleva descuento, antes de guardar dice el efecto real: «Black Friday baja el precio 30 % a 3 prendas · empieza el 9 nov: hasta entonces no cambia ningún precio · 2 prendas quedarían bajo su costo».
