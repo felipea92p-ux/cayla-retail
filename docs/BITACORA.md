@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Recibir mercadería responde: resumen previo, faltantes en un toque y escáner sin callejón — ADR-0129)
+Se aplicó a `/recibir` el spike visual (`docs/maquetas/recibir-spike-2026-09/`): «Marcar las atrasadas», decisión de faltante con píldoras, escáner que ofrece agregar el comprobante que no marcaste (y «Deshacer»), resumen «Confirma lo que entra» antes de escribir movimientos, «Envío recibido» con los movimientos colgando de un hilo, y en «Recibidas» un cajón con ↑ ↓. Sin migración: `recibir_envio` no cambió.
+Verificado en el navegador como líder contra la base local (un envío real de 76 u., de la cuenta al cajón). El borrador guardado en el equipo se construyó y Felipe pidió quitarlo ese mismo día: no queda guardado en el navegador. Lección 1: una clase de la maqueta (`.mv`, el modal) chocó con otra del medidor y tapó todo de verde; solo se vio en el navegador. Lección 2: con el menú lateral, una ventana de 1440 px deja ~700 px al panel; el diseño se decide por el ancho del PANEL (container queries), no de la ventana, igual que en Proveedores.
+Queda: verlo como colaborador (Micaela) y las animaciones de SALIDA (chips y filas fuera de comprobante solo entran). El resumen previo es una decisión de producto: si se prefiere el envío directo, se quita sin tocar lo demás.
+
 ## 2026-09-19 (Producción como módulo padre: dos spikes y un plan por fases — ADR-0130, propuesto)
 **Qué se cerró.** Se diseñó (sin tocar el ERP) un módulo Producción que agrupa Decidir/Abastecer/Fabricar/Medir, con el ciclo factura de tela → lote → orden → costo real → stock funcionando en un spike (`docs/maquetas/produccion-modulo-2026-09/`), y un plan de 8 fases con sus decisiones y su definición de terminado (`docs/PLAN-PRODUCCION.md`).
 **Qué se aprendió.** Revisar antes de diseñar cambió el plan: el destino Taller/Tiendas ya existía (`ubicacion_destino_id`), el motor de reposición ya existía (`fn_resumen_variantes`), Proveedores y Recibir ya tenían rediseño en `main`, y el spike incumplía el tope de rojo por pantalla y dejaba a la interfaz —no a la base— la tarea de ocultar costos al colaborador.

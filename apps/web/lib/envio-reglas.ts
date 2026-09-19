@@ -248,11 +248,115 @@ export function resolverEscaneo(texto: string, variantes: VarianteEscaneable[], 
   return { tipo: "fuera", varianteId: v.varianteId, productoId: v.productoId, referencia: v.referencia, detalle: detalleDe(v) };
 }
 
+/** Lo emite `KpisRecibir` (que no comparte estado con la pantalla) para marcar un comprobante; lo escucha `RecepcionEnvio`. `detail` = id del comprobante. */
+export const EVENTO_MARCAR = "recibir:marcar";
+
 /** Suma UNA unidad de `varianteId` a una línea. Una línea agrupada (sin variante) reparte lo que llega entre las variantes del producto. */
 export function sumarUnidad(reparto: Reparto, linea: LineaCompra, varianteId: string): Reparto {
   const propias = { ...(reparto[linea.id] ?? {}) };
   propias[varianteId] = (propias[varianteId] ?? 0) + 1;
   return { ...reparto, [linea.id]: propias };
+}
+
+/** Resta UNA unidad (el «Deshacer» de la última lectura). Nunca baja de 0 y, si la línea queda en 0 sin haber estado contada antes, sigue contada en 0: lo desanotado por completo lo hace `vaciar`. */
+export function restarUnidad(reparto: Reparto, linea: LineaCompra, varianteId: string): Reparto {
+  const propias = { ...(reparto[linea.id] ?? {}) };
+  const actual = propias[varianteId] ?? 0;
+  if (actual <= 1) delete propias[varianteId];
+  else propias[varianteId] = actual - 1;
+  const copia = { ...reparto };
+  if (Object.keys(propias).length === 0) delete copia[linea.id];
+  else copia[linea.id] = propias;
+  return copia;
+}
+
+// ---------------------------------------------------------------------------
+// Ayudas de conteo (spike de Recibir, 2026-09-19): la guía, el escáner que no se queda en un callejón
+// ---------------------------------------------------------------------------
+
+/**
+ * ¿La guía tiene el formato de una guía de remisión (`T001-000123`: una letra, tres dígitos, guion, el número)?
+ * Es solo una AYUDA al teclear —el tilde del campo—: no bloquea recibir, porque la guía puede anotarse después
+ * y cada transportista escribe la suya de una manera.
+ */
+export function guiaConFormato(guia: string): boolean {
+  return /^[A-Z]\d{3}-\d{3,8}$/.test(guia.trim().toUpperCase());
+}
+
+/**
+ * Los comprobantes pendientes que NO están marcados y que traen esta prenda (por variante, o por producto si la
+ * línea vino agrupada). Sirve al escáner: si la pistola lee algo que ningún comprobante del envío trae pero otro
+ * comprobante pendiente sí, lo primero que se ofrece es agregar ese comprobante al envío, no anotarlo como
+ * «fuera de comprobante». En el orden en que llegan `compras` (por urgencia).
+ */
+export function comprobantesQueTraen(varianteId: string, productoId: string, compras: CompraResumen[], lineas: LineaCompra[], marcados: string[]): CompraResumen[] {
+  const yaMarcados = new Set(marcados);
+  return compras.filter(
+    (c) => !yaMarcados.has(c.id) && lineas.some((l) => l.compraId === c.id && l.pendiente > 0 && (l.varianteId === varianteId || (l.varianteId === null && l.productoId === productoId))),
+  );
+}
+
+/** Lo que entra por cada comprobante en este envío, para el resumen previo: solo las líneas ya contadas. */
+export type FilaResumenComprobante = { compraId: string; proveedorNombre: string; documento: string; llegan: number; faltan: number; lineasCortas: string[] };
+
+export function resumenPorComprobante(bloques: BloqueEnvio[], reparto: Reparto): FilaResumenComprobante[] {
+  const filas: FilaResumenComprobante[] = [];
+  for (const { compra, lineas } of bloques) {
+    let llegan = 0;
+    let faltan = 0;
+    const lineasCortas: string[] = [];
+    for (const l of lineas) {
+      const llego = llegoLinea(l, reparto);
+      if (llego === null) continue;
+      llegan += llego;
+      if (llego < l.pendiente) {
+        faltan += l.pendiente - llego;
+        lineasCortas.push(l.id);
+      }
+    }
+    if (llegan > 0 || faltan > 0) filas.push({ compraId: compra.id, proveedorNombre: compra.proveedorNombre, documento: compra.documento, llegan, faltan, lineasCortas });
+  }
+  return filas;
+}
+
+/** Un movimiento que dejará el envío en el stock: la unidad de prensa de la pantalla de «Envío recibido». */
+export type MovimientoDelEnvio = { cantidad: number; referencia: string; detalle: string; origen: string };
+
+/**
+ * Los movimientos de entrada que deja el envío, en el orden en que se ven en pantalla: primero lo que trae cada
+ * comprobante, luego lo fuera de comprobante y por último lo de otra sede. `dePrenda` resuelve la variante para
+ * las líneas agrupadas, las prendas fuera de comprobante y los traslados. Lo que quedó en 0 no es un movimiento.
+ */
+export function movimientosDelEnvio(p: {
+  bloques: BloqueEnvio[];
+  reparto: Reparto;
+  extras: ExtraEnvio[];
+  traslados: { numero: number; lineas: { varianteId: string; referencia: string; talla: string | null; color: string | null }[]; conteo: ConteoTraslado }[];
+  dePrenda: (varianteId: string) => { referencia: string; detalle: string } | null;
+}): MovimientoDelEnvio[] {
+  const salida: MovimientoDelEnvio[] = [];
+  for (const { compra, lineas } of p.bloques) {
+    for (const l of lineas) {
+      const anotado = p.reparto[l.id];
+      if (!anotado) continue;
+      for (const [varianteId, n] of Object.entries(anotado)) {
+        if (n <= 0) continue;
+        const v = l.varianteId === varianteId ? { referencia: l.referencia, detalle: detalleDe({ talla: l.talla, color: l.color, sku: l.sku ?? "" }) } : p.dePrenda(varianteId);
+        salida.push({ cantidad: n, referencia: v?.referencia ?? l.referencia, detalle: v?.detalle ?? "", origen: compra.documento });
+      }
+    }
+  }
+  for (const e of p.extras.filter(extraCompleto)) {
+    const v = p.dePrenda(e.varianteId);
+    salida.push({ cantidad: e.cantidad, referencia: v?.referencia ?? "Prenda", detalle: [v?.detalle, e.esRegalo ? "regalo" : null].filter(Boolean).join(" · "), origen: "fuera de comprobante" });
+  }
+  for (const t of p.traslados) {
+    for (const l of t.lineas) {
+      const n = t.conteo[l.varianteId] ?? 0;
+      if (n > 0) salida.push({ cantidad: n, referencia: l.referencia, detalle: detalleDe({ talla: l.talla, color: l.color, sku: "" }), origen: `traslado ${t.numero}` });
+    }
+  }
+  return salida;
 }
 
 // ---------------------------------------------------------------------------
