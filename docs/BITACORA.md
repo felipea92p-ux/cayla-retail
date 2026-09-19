@@ -7452,7 +7452,7 @@ Felipe pidió rediseñar Caja con una maqueta HTML de referencia. Antes de tocar
 maqueta traía modo oscuro persistente y una paleta terracota que no es la de CAYLA — choca
 de punta a punta con `globals.css:130` ("sin modo oscuro, una sola paleta") y el brandbook
 v3.0. Se le presentaron 3 opciones (adaptar a la paleta existente / isla visual solo para
-Caja+POS / nuevo estándar para toda la app); eligió adaptar. Detalle completo en ADR-0102
+Caja+POS / nuevo estándar para toda la app); eligió adaptar. Detalle completo en ADR-0113
 (renumerado desde 0101: al sincronizar con `main` esa numeración ya la había tomado la
 sesión de "Resumen de Inventario", fusionada mientras esta rama seguía sin pushear).
 
@@ -7584,7 +7584,7 @@ bisel de 100 marcas que es una escala de porcentaje real, arcos con degradado y 
 una aguja que barre y descubre el anillo al entrar— y al apuntar un método (en el arco o en
 la leyenda) se adelanta el arco, se apagan los otros, se encienden sus marcas y el centro
 cambia a su % y su monto. Es una excepción declarada, solo de esta dona, a "sin gradiente" y a
-"nada se anima solo al entrar" (adenda en ADR-0102); se mantienen "sin rebote" y
+"nada se anima solo al entrar" (adenda en ADR-0113); se mantienen "sin rebote" y
 `prefers-reduced-motion`. Geometría pura en `lib/dona-geometria.ts`, con 7 pruebas.
 
 Verificado en navegador contra una página temporal con datos de mentira (ya borrada; no se usó
@@ -7608,7 +7608,7 @@ Hecho: `RelojDeCaja` (dígitos que ruedan solo cuando cambian, aguja de segundos
 el segundo real, "abierta desde… · lleva 2 h 08 min" con la regla pura `duracionAbierta`) y
 `EstadoSync` (onda suave, visto que se traza, re-asentado al cambiar; el ícono distinto
 mantiene el estado legible sin depender del color). Dona centrada en las dos direcciones
-dentro de su tarjeta. Excepción declarada en la adenda de ADR-0102: aquí hay movimiento continuo
+dentro de su tarjeta. Excepción declarada en la adenda de ADR-0113: aquí hay movimiento continuo
 (aguja y onda), no solo de entrada.
 
 Sobre las tarjetas, se miraron los 40+ worktrees antes de tocar nada: la sesión de Cambios
@@ -7825,3 +7825,13 @@ y solo después configurar una campaña.
 Hallazgo: en este mismo momento la base (UTC) marca 19-sep mientras Lima marca 18-sep — el
 defecto de `current_date` es real, no teórico. Y `registrar_venta` usaba `current_date` también
 para la vigencia de `codigos_descuento`: queda corregido en el mismo SQL.
+
+## 2026-09-18 (ADR de Caja renumerado: 0102 → 0113)
+Al sincronizar con `main` se vio que `docs/adr/` tenía dos `0102-*.md`: el de comprobantes
+(`emitir_comprobante` idempotente, que conserva el 0102) y el de rediseño visual de Caja. Se renumeró
+el de Caja a **ADR-0113** (`git mv` y solo las referencias a ese ADR: `CajaAbiertaPanel.tsx`, BACKLOG,
+BITACORA y ADR-0018; las menciones al 0102 de comprobantes no se tocaron). Se tomó 0113 y no 0112 porque
+el 0112 ya lo reclaman dos ramas en vuelo —`claude/hola-baee84` (`ventas-y-devoluciones-solo-se-escriben-por-rpc`)
+y el worktree `buscar-entry-point` (`pos-comprobante-termico-y-ajustes-de-vender`)—, que chocarán entre sí
+al fusionarse: a quien fusione segundo le tocará renumerar. Ningún hook impide un número de ADR repetido;
+antes de tomar el siguiente hay que mirar las ramas remotas y los demás worktrees, no solo `main`.

@@ -185,13 +185,13 @@ propuesta de piso de venta.
 
 ---
 
-## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0113)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
 extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
 maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
 antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
-ADR-0102).
+ADR-0113).
 
 - [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
       reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
@@ -217,7 +217,7 @@ ADR-0102).
       método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
       se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
       navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
-- [x] **Caja, 2ª tanda (2026-09-18, adenda de ADR-0102)** — "+ Ingreso / egreso" y "Cerrar
+- [x] **Caja, 2ª tanda (2026-09-18, adenda de ADR-0113)** — "+ Ingreso / egreso" y "Cerrar
       caja" pasan de la barra fija de abajo al encabezado (a la derecha; el chip de
       sincronización queda junto al título); fuera el botón "Cambios" (sigue en el menú
       lateral, Ventas → Cambios). Dona rehecha como `DonaMetodos.tsx` (SVG puro, sin
@@ -230,7 +230,7 @@ ADR-0102).
 - [ ] **Dona de Caja: falta verla con la caja real y en pantalla táctil** — no se probó con
       datos de producción (para no cruzar la cookie de Supabase entre dos `next dev`) ni con un
       dedo real: el toque alterna el método apuntado, pero está razonado, no ejercitado.
-- [x] **Caja, 3ª tanda (2026-09-18, adenda de ADR-0102)** — fuera el avatar del encabezado
+- [x] **Caja, 3ª tanda (2026-09-18, adenda de ADR-0113)** — fuera el avatar del encabezado
       (las iniciales no informaban; el nombre ya está al lado) y `iniciales()` de
       `caja-panel-reglas.ts` con él. Lo que se conserva gana vida: `RelojDeCaja` (dígitos que
       ruedan al cambiar, aguja de segundos alineada al segundo real, "Abierta desde… · lleva

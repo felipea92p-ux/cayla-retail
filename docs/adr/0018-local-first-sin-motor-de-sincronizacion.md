@@ -108,6 +108,6 @@ sea rápida, no para adelantarla.
 **Actualización 2026-09-18 — mientras tanto, la Caja se actualiza por sondeo.** Realtime sigue sin activarse
 (0 tablas en la publicación). El tablero de Caja necesitaba verse en vivo para quien lo mira desde admin, y
 en vez de adelantar el DDL de esta Fase 2 usa `useCajaEnVivo` (sondeo cada 5 s con dos conteos y
-`router.refresh()` solo si cambian; ver ADR-0102, sexta parte). Es un puente, no un sustituto: cuando Felipe
+`router.refresh()` solo si cambian; ver ADR-0113, sexta parte). Es un puente, no un sustituto: cuando Felipe
 autorice `alter publication supabase_realtime add table retail.ventas, retail.caja_movimientos`, ese hook se
 cambia por una suscripción (Realtime aplica el mismo RLS) y quien consume los datos no cambia.
