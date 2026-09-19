@@ -3,6 +3,7 @@ import { exigir } from "@/lib/resultado";
 import { getEjesPorCategoria, type EjesPorCategoria, type ValorVocabulario } from "@/lib/catalogo-v2";
 import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import type { ColorAlta } from "@/lib/alta-producto";
+import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 
 // Todo lo que "Nuevo producto" necesita leer, en una sola pasada (ADR-0109).
 //
@@ -23,7 +24,7 @@ export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: b
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
 export type EtiquetaAlta = { id: string; nombre: string; estilo: string };
 
-export type ContextoAlta = {
+export type ContextoAlta = CatalogoMarcas & {
   familias: FamiliaAlta[];
   categorias: CategoriaAlta[];
   colores: ColorAlta[];
@@ -43,7 +44,7 @@ const VENTANA_VARIANTES = 2000;
 
 export async function getContextoAlta(): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -64,6 +65,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       getEjesPorCategoria(),
+      getCatalogoMarcas(),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -94,6 +96,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
     .map((e) => ({ id: e.id, nombre: e.nombre, estilo: e.estilo }));
 
   return {
+    ...catalogoMarcas,
     familias: exigir(resFamilias, "las familias del catálogo").map((f) => ({
       codigo: f.codigo,
       nombre: f.nombre,

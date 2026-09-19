@@ -114,6 +114,9 @@ export function ordenarColores(
 
 export type EstadoAlta = {
   categoriaId: string;
+  /** De quién es: marca y proveedor (ADR-0109), obligatorios. */
+  marcaId: string;
+  proveedorId: string;
   referencia: string;
   /** Se está comprobando el nombre contra el catálogo: hasta que conteste, no se sabe si es duplicado. */
   comprobandoNombre: boolean;
@@ -134,11 +137,12 @@ export type EstadoAlta = {
   costoBase: string;
 };
 
-export type Problema = { bloque: "categoria" | "nombre" | "atributos" | "precio"; texto: string };
+export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "precio"; texto: string };
 
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
+  if (!e.marcaId || !e.proveedorId) p.push({ bloque: "marca", texto: "Elige la marca y el proveedor." });
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
   else if (e.nombreBloqueado) p.push({ bloque: "nombre", texto: "Ya existe un producto con ese nombre." });
   else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro producto, o abre el que ya existe." });
@@ -161,11 +165,13 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   return p;
 }
 
-export type Desbloqueos = { nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
+export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
 
 /** Cada bloque se abre al resolver el anterior; los cerrados se ven atenuados, no ocultos (la persona ve el camino completo). */
 export function desbloqueos(e: EstadoAlta): Desbloqueos {
-  const nombre = Boolean(e.categoriaId);
+  const marca = Boolean(e.categoriaId);
+  // Primero de quién es (el proveedor manda: una marca cuelga de él), después cómo se llama.
+  const nombre = marca && Boolean(e.marcaId) && Boolean(e.proveedorId);
   const nombreResuelto = nombre && e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const atributos = nombreResuelto;
   const atributosResueltos =
@@ -173,7 +179,7 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
     !e.categoriaSinTallas &&
     e.tallasElegidas > 0 &&
     (!e.exigeTejidoPatron || (e.hayTejidosEnCategoria && e.hayPatronesEnCategoria && Boolean(e.tejidoId) && Boolean(e.patronId)));
-  return { nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
+  return { marca, nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
 }
 
 // ---------------------------------------------------------------------------

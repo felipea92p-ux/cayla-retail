@@ -108,7 +108,7 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
             <p className="label-cayla text-[11px] text-tinta/70">Otra prenda de la colección</p>
             <h3 className="text-base font-medium text-tinta">Crear otro parecido</h3>
             <p className="text-sm text-tinta/70">
-              Empiezas con la misma categoría, tallas, tejido, patrón, precio, costo y etiquetas. Solo cambias el nombre y los colores.
+              Empiezas con la misma categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y etiquetas. Solo cambias el nombre y los colores.
             </p>
           </div>
           <button

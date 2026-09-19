@@ -18,6 +18,8 @@ import { FAMILIAS_COLOR } from "./colores-familias";
 
 const base: EstadoAlta = {
   categoriaId: "cat",
+  marcaId: "m",
+  proveedorId: "p",
   referencia: "Blusa Camila",
   comprobandoNombre: false,
   nombreBloqueado: false,
@@ -161,10 +163,15 @@ describe("problemasAlta — qué falta, en frases de la persona", () => {
 
 describe("desbloqueos — cada bloque se abre al resolver el anterior", () => {
   it("sin categoría no hay nada abierto", () => {
-    expect(desbloqueos({ ...base, categoriaId: "" })).toEqual({ nombre: false, atributos: false, colores: false, precio: false });
+    expect(desbloqueos({ ...base, categoriaId: "" })).toEqual({ marca: false, nombre: false, atributos: false, colores: false, precio: false });
   });
-  it("con categoría se abre el nombre; sin nombre no se abren los atributos", () => {
-    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ nombre: true, atributos: false, colores: false, precio: false });
+  it("con categoría se abre la marca; sin marca y proveedor el nombre sigue cerrado", () => {
+    expect(desbloqueos({ ...base, marcaId: "" })).toEqual({ marca: true, nombre: false, atributos: false, colores: false, precio: false });
+    expect(desbloqueos({ ...base, proveedorId: "" }).nombre).toBe(false);
+    expect(problemasAlta({ ...base, marcaId: "" })[0]).toEqual({ bloque: "marca", texto: "Elige la marca y el proveedor." });
+  });
+  it("con marca se abre el nombre; sin nombre no se abren los atributos", () => {
+    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ marca: true, nombre: true, atributos: false, colores: false, precio: false });
   });
   it("mientras se comprueba el nombre, los atributos siguen cerrados y el resumen lo dice", () => {
     expect(desbloqueos({ ...base, comprobandoNombre: true }).atributos).toBe(false);
@@ -175,8 +182,8 @@ describe("desbloqueos — cada bloque se abre al resolver el anterior", () => {
     expect(desbloqueos({ ...base, nombreSinConfirmar: true }).atributos).toBe(false);
   });
   it("colores y precio se abren cuando tallas y (si se exige) tejido/patrón están resueltos", () => {
-    expect(desbloqueos(base)).toEqual({ nombre: true, atributos: true, colores: true, precio: true });
-    expect(desbloqueos({ ...base, tejidoId: "" })).toEqual({ nombre: true, atributos: true, colores: false, precio: false });
+    expect(desbloqueos(base)).toEqual({ marca: true, nombre: true, atributos: true, colores: true, precio: true });
+    expect(desbloqueos({ ...base, tejidoId: "" })).toEqual({ marca: true, nombre: true, atributos: true, colores: false, precio: false });
     expect(desbloqueos({ ...base, tallasElegidas: 0 }).colores).toBe(false);
   });
 });

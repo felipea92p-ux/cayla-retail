@@ -11,6 +11,7 @@ import { botonCancelar } from "@/components/ui/Modal";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos, type Parecido } from "@/components/alta-producto/AvisoParecidos";
+import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
@@ -35,8 +36,8 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
 // "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0109): una sola página donde
 // cada bloque se abre al resolver el anterior — 1 Qué es (familia → categoría)
-// · 2 Nombre · 3 Talla, tejido y patrón · 4 Colores · 5 Precio y variantes ·
-// 6 Etiquetas — y un resumen fijo que dice, en frases, qué falta para guardar.
+// · 2 Marca y proveedor · 3 Nombre · 4 Talla, tejido y patrón · 5 Colores ·
+// 6 Precio y variantes · 7 Etiquetas — y un resumen fijo que dice, en frases, qué falta para guardar.
 //
 // Diseñado para que equivocarse sea difícil, no para avisar después:
 //   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos);
@@ -52,7 +53,7 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 //
 // Al guardar NO se vuelve a la lista: aparece una pantalla de éxito (paso 4) con
 // tres salidas — agregar fotos, crear otro parecido, ir a productos. «Otro
-// parecido» conserva categoría, tallas, tejido, patrón, precio, costo y
+// parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y
 // etiquetas y limpia nombre, descripción y colores: una colección son 10
 // prendas casi iguales y empezar de cero cada vez era el trabajo que sobraba.
 //
@@ -72,6 +73,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const [universo, setUniverso] = useState(contexto.universo);
 
   const [categoriaId, setCategoriaId] = useState("");
+  const [marcaId, setMarcaId] = useState("");
+  const [proveedorId, setProveedorId] = useState("");
+  const [marcaNombre, setMarcaNombre] = useState("");
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [resultado, setResultado] = useState<Resultado>(SIN_RESULTADO);
@@ -205,6 +209,8 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   // ---------- qué falta / qué está abierto ----------
   const estado: EstadoAlta = {
     categoriaId,
+    marcaId,
+    proveedorId,
     referencia,
     comprobandoNombre,
     nombreBloqueado: hayIdentico,
@@ -272,6 +278,8 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       p_patron_id: patronId || undefined,
       p_confirmo_distinto: confirmo,
       p_etiqueta_ids: etiquetasElegidas.length > 0 ? etiquetasElegidas : undefined,
+      p_marca_id: marcaId,
+      p_proveedor_id: proveedorId,
     });
     setCargando(false);
 
@@ -328,8 +336,8 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       <div className="space-y-4">
         {copiadoDe && (
           <AvisoInline tono="neutro">
-            Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, las tallas, el tejido, el patrón, el precio, el costo y las
-            etiquetas. Cambia lo que sea distinto.
+            Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el
+            costo y las etiquetas. Cambia lo que sea distinto.
           </AvisoInline>
         )}
 
@@ -344,12 +352,43 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           />
         </Bloque>
 
-        {/* 2 · NOMBRE */}
+        {/* 2 · DE QUIÉN ES */}
         <Bloque
           numero={2}
+          titulo="Marca y proveedor"
+          bloqueado={!abierto.marca}
+          bloqueadoTexto="Elige primero qué producto es."
+          listo={Boolean(marcaId && proveedorId)}
+          ayuda="De quién es la prenda y quién la trae. Una marca puede llegar por más de un proveedor."
+        >
+          <ElegirMarcaProveedor
+            marcas={contexto.marcas}
+            proveedores={contexto.proveedores}
+            vinculos={contexto.vinculos}
+            usosCategoria={contexto.parejasPorCategoria[categoriaId] ?? []}
+            categoriaNombre={categoria?.nombre}
+            marcaId={marcaId}
+            proveedorId={proveedorId}
+            onElegir={(m, p, nombres) => {
+              setMarcaId(m);
+              setProveedorId(p);
+              setMarcaNombre(nombres.marca);
+            }}
+            onLimpiar={() => {
+              setMarcaId("");
+              setProveedorId("");
+              setMarcaNombre("");
+            }}
+            puedeCrear
+          />
+        </Bloque>
+
+        {/* 3 · NOMBRE */}
+        <Bloque
+          numero={3}
           titulo="Nombre"
           bloqueado={!abierto.nombre}
-          bloqueadoTexto="Elige primero qué producto es."
+          bloqueadoTexto={abierto.marca ? "Elige primero la marca y el proveedor." : "Elige primero qué producto es."}
           listo={abierto.atributos}
           ayuda="Escríbelo como quieras: se guarda siempre con el mismo formato."
         >
@@ -385,12 +424,12 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           </div>
         </Bloque>
 
-        {/* 3 · TALLA, TEJIDO, PATRÓN */}
+        {/* 4 · TALLA, TEJIDO, PATRÓN */}
         <Bloque
-          numero={3}
+          numero={4}
           titulo="Talla, tejido y patrón"
           bloqueado={!abierto.atributos}
-          bloqueadoTexto={abierto.nombre ? "Escribe un nombre que no exista todavía." : "Elige primero qué producto es."}
+          bloqueadoTexto={!abierto.marca ? "Elige primero qué producto es." : !abierto.nombre ? "Elige primero la marca y el proveedor." : "Escribe un nombre que no exista todavía."}
           listo={abierto.colores}
           ayuda={exige ? `${familia?.nombre} exige tejido y patrón.` : undefined}
         >
@@ -520,9 +559,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           </div>
         </Bloque>
 
-        {/* 4 · COLORES */}
+        {/* 5 · COLORES */}
         <Bloque
-          numero={4}
+          numero={5}
           titulo="Colores"
           bloqueado={!abierto.colores}
           bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
@@ -569,9 +608,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           </div>
         </Bloque>
 
-        {/* 5 · PRECIO Y VARIANTES */}
+        {/* 6 · PRECIO Y VARIANTES */}
         <Bloque
-          numero={5}
+          numero={6}
           titulo="Precio y variantes"
           bloqueado={!abierto.precio}
           bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
@@ -657,9 +696,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           </div>
         </Bloque>
 
-        {/* 6 · ETIQUETAS */}
+        {/* 7 · ETIQUETAS */}
         <Bloque
-          numero={6}
+          numero={7}
           titulo="Etiquetas (opcional)"
           bloqueado={!abierto.precio}
           bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
@@ -688,6 +727,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
         <p className="label-cayla text-[11px] text-tinta/70">Resumen</p>
         <dl className="space-y-2 text-sm">
           <Fila etiqueta="Producto" valor={nombreFinal || "—"} />
+          <Fila etiqueta="Marca" valor={marcaId ? marcaNombre || "—" : "—"} />
           <Fila etiqueta="Categoría" valor={categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "—"} />
           <Fila etiqueta="Variantes" valor={categoria ? String(celdasIncluidas.length) : "—"} />
           <Fila etiqueta="Precio" valor={Number(precioBase) > 0 ? `S/ ${Number(precioBase).toFixed(2)}` : "—"} />
