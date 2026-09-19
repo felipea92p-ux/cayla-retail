@@ -6,16 +6,18 @@ import Link from "next/link";
 import { Copy, MessageCircle, Pencil, Plus } from "lucide-react";
 import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
 import { avisar } from "@/components/ui/Avisos";
-import { urlWhatsApp } from "@/lib/proveedores-reglas";
+import { formatoCci, urlWhatsApp } from "@/lib/proveedores-reglas";
 import type { ProveedorFicha } from "@/lib/proveedores";
 
 // Las acciones de la ficha (maqueta 09): escribirle por WhatsApp desde el teléfono guardado, copiar el
 // CCI para la transferencia, editar sin volver a la lista y registrar un comprobante con este
-// proveedor ya elegido. Hasta hoy la ficha era solo lectura: para hacer cualquiera de estas cosas había
-// que ir a otra pantalla.
+// proveedor ya elegido.
 //
 // Cada acción aparece solo si hay con qué hacerla: sin teléfono (o con uno que no es un móvil) no hay
-// botón de WhatsApp — mejor sin botón que uno que abre un chat equivocado; sin cuenta, no hay «Copiar».
+// botón de WhatsApp — mejor sin botón que uno que abre un chat equivocado; sin CCI, no hay «Copiar CCI».
+// Desde ADR-0134 «Copiar CCI» copia `cci` (20 dígitos, solo números, listos para pegar en la app del banco);
+// antes copiaba `cuenta_bancaria` rotulada como CCI, que es otro dato. La cuenta y el Yape/Plin se copian desde
+// la tarjeta «Datos para pagar», que tiene un «Copiar» por cada dato.
 
 const BOTON = "label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 
@@ -24,13 +26,13 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
   const [editando, setEditando] = useState(false);
   const whatsapp = urlWhatsApp(proveedor.telefono);
 
-  async function copiarCuenta() {
-    if (!proveedor.cuenta_bancaria) return;
+  async function copiarCci() {
+    if (!proveedor.cci) return;
     try {
-      await navigator.clipboard.writeText(proveedor.cuenta_bancaria);
-      avisar.exito("Cuenta copiada", { detalle: proveedor.banco ? `${proveedor.banco} · ${proveedor.cuenta_bancaria}` : proveedor.cuenta_bancaria });
+      await navigator.clipboard.writeText(proveedor.cci);
+      avisar.exito("CCI copiado", { detalle: proveedor.banco ? `${proveedor.banco} · ${formatoCci(proveedor.cci)}` : formatoCci(proveedor.cci) });
     } catch {
-      avisar.error("No se pudo copiar la cuenta", { detalle: "Selecciónala y cópiala a mano." });
+      avisar.error("No se pudo copiar el CCI", { detalle: "Ábrelo con «Ver completos» en Datos para pagar y cópialo a mano." });
     }
   }
 
@@ -42,8 +44,8 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
             <MessageCircle aria-hidden className="h-3.5 w-3.5" /> WhatsApp
           </a>
         )}
-        {proveedor.cuenta_bancaria && (
-          <button type="button" onClick={copiarCuenta} className={BOTON}>
+        {proveedor.cci && (
+          <button type="button" onClick={copiarCci} className={BOTON}>
             <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar CCI
           </button>
         )}

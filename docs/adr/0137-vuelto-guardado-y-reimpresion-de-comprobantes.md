@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-19
 **Estado:** Aplicado en local (rama `claude/caja-cabecera-atelier`).
-**Migración `20260919160000_venta_pagos_recibido.sql`: PENDIENTE en producción.** La pega
+**Migración `20260919210000_venta_pagos_recibido.sql`: PENDIENTE en producción.** La pega
 Felipe en el SQL Editor de cayla-dynamic (ya lleva `retail.` y su `search_path`). **Va ANTES de
 fusionar el front**: el detalle de venta lee `venta_pagos.recibido` y, sin la columna, esa lectura falla.
 **Afecta:** `retail.venta_pagos` (columna nueva), `retail.registrar_venta` (misma firma de 11
@@ -58,6 +58,9 @@ Al mirarlo aparecieron tres huecos:
 - **Orden de despliegue: la migración primero.** Vercel despliega cada push a `main`; si el front
   llega antes, el detalle de venta de Caja falla al leer `venta_pagos.recibido`. Cruzar también los
   `.rpc(` del front contra `pg_proc` de producción (una sola sobrecarga de `registrar_venta`).
+- **La migración se renombró** de `20260919160000_…` a `20260919210000_…` al fusionar `main`: `main` trajo
+  `20260919160000_dinero_de_compras_lectura_operativa.sql` con la misma versión, y dos migraciones con el
+  mismo número rompen `migration up`. `210000` estaba libre en todas las ramas y carpetas de trabajo.
 - **Al aplicarla en producción** hay que refrescar el volcado de `docs/datos/generado/` y correr
   `pnpm datos:generar:produccion` (regla de oro de `docs/datos/`). **No** `pnpm datos:generar` a secas.
 - **Lo que solo se probó en el motor de Chrome:** el A4 se verificó generando el PDF real

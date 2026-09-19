@@ -34,6 +34,64 @@ propio reloj sin bifurcarla. Al verificar sin sesión, una ruta temporal bajo `/
 mentira mostró el panel completo. Pendiente: Punto de venta (`/vender`), que hoy solo dice «Cargando
 caja…», y probar con una caja real abierta.
 
+## 2026-09-19 (Diccionario de producción al día tras Pagar juntos con varios medios)
+Se refrescó la foto de producción por diferencias (hash por tabla, solo se bajó lo que cambió): entran `registrar_pago_compras_medios`, `fn_validar_fecha_pago_compra`, `fn_proveedores_serie_12m` y la firma de 4 parámetros de `registrar_pagos_compra` (178 funciones); `cambios` gana `motivo`/`condicion` y `prendas_danadas` gana `cambio_id` (con su UNIQUE y 4 candados), 693 columnas. `datos:comparar` pasa de 1 «roto en producción» (`fn_proveedores_serie_12m`, aún no aplicada) a 0.
+Las llamadas a `registrar_pago_compras*` quedan «no analizadas» porque el objeto se arma con `...`; no es un fallo, pero el comparador no las vigila.
+
+## 2026-09-19 (Pagar juntos con varios medios — ADR-0132)
+«Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
+cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada
+con 27 casos locales y un pago real en el navegador. La `20260919190000` ya está en producción; **falta `20260919200000_pago_por_lote_medios_endurece.sql`** (token antes del saldo a favor y fecha validada, como ADR-0135).
+
+## 2026-09-19 (Auditoría del pago a proveedores: destino por medio y endurecimiento — ADR-0135)
+Al elegir un medio de pago ahora se ve UNA línea con a dónde va la plata (transferencia/depósito: cuenta y CCI; Yape o Plin: solo ese celular; efectivo: nada), en vez del bloque grande «Paga por» que mostraba también el Yape al pagar por transferencia (`lib/destino-de-pago.ts`, `DestinoDelMedio.tsx`). La auditoría encontró huecos reales en la base: con «el precio incluye IGV» y 5 unidades o más `registrar_compra` rechazaba comprobantes correctos (el redondeo por unidad se multiplica por la cantidad), el pago desde el detalle no tenía token y un reintento lo duplicaba, el reintento de un lote con saldo a favor fallaba aunque ya se había pagado, las fechas de pago no se validaban y los montos con más de 2 decimales se redondeaban en silencio.
+Se cerraron en la migración `20260919180000` (ADR-0135), **pegada en producción por Felipe el 2026-09-19 junto con la `20260919181000` (parche de `registrar_compra`), verificada contra la base el mismo día**; en pantalla ya no se acepta fecha de pago futura o anterior a la emisión, una línea «Saldo a favor» huérfana pasa a efectivo si se cambia de proveedor y, ante un corte de conexión, el mensaje ya no afirma «no se guardó nada» (puede haberse guardado). Falta enviar `p_token` desde el detalle: solo después de aplicar la migración, o el pago del detalle falla.
+Felipe se lleva: un candado que rechaza por redondeo es tan dañino como uno que no existe; hay que probarlo con cantidades reales, no con 1 unidad. Sin resolver: qué hace por defecto el saldo a favor en las tres formas de pagar (M6), y en el Postgres local `por_pagar_tramos` está sin el candado de dinero del ADR-0126 (deriva local, no de esta migración).
+
+## 2026-09-19 (Comprobantes con el movimiento del prototipo + regla de movimiento de los modales — ADR-0136)
+Se corrigió un error que ya venía en `main`: abrir cualquier factura tumbaba la pantalla porque un componente de servidor llamaba a `estadoNotaFaltante`, definida en un archivo `"use client"` (ahora vive en `lib/recepciones-reglas.ts`, con pruebas). Se escribió la regla de los modales: el `<Modal>` central hace ahora velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada → salida corta, y los 49 modales del sistema la heredan; queda en `CLAUDE.md`, en `globals.css` y en el ADR-0136 para que una sesión nueva sepa qué animación tomar. Se trajo a las pantallas reales lo que el prototipo hacía en la lista de Comprobantes (cifras que cuentan, barras de reparto, indicador que se desliza, avance en la celda, filas que se reacomodan), en el detalle (línea de tiempo Registrado → Mercadería → Pago, historial de pagos, pago desde el detalle con confirmación) y en el registro (tramos que se marcan, lista de pendientes, cifras que cuentan).
+Felipe se lleva: (1) `tsc`, `eslint`, las 1275 pruebas y `next build` pasan, pero **el movimiento no se pudo ver funcionando** (el panel del navegador de las sesiones queda oculto y allí React no revela el contenido transmitido) — falta su recorrido visual; (2) una prueba que ya existía (`globals-capas`) detectó que mi primera versión de la regla dejaba una clase fuera de `@layer`, donde le gana a las utilidades de Tailwind: por eso esa prueba existe; (3) revisar «que esté igual al diseño» exige comparar imagen contra imagen, no requisitos: en una segunda pasada aparecieron diferencias reales en el registro y en el detalle de factura (ver ADR-0136); (4) `localhost:3000` puede estar sirviendo OTRA rama (`pnpm dev` de otro worktree): si lo que ves no cambia, `lsof` dice de qué carpeta es cada servidor; (5) un servidor de desarrollo puede quedarse con un módulo en caché tras un cambio grande y mostrar «Cargando…» para siempre — reiniciarlo lo arregla, no es un error del código.
+
+## 2026-09-19 (Proveedores guardan CCI, Yape/Plin y titular — ADR-0134)
+Se cerró la base: 4 columnas en `retail.proveedores` (`cci`, `celular_billetera`, `billeteras`, `titular_cuenta`) con 5 candados, la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 columnas, **ya aplicadas en producción** (`20260919173940`, verificadas: una sola firma, nada en `public`); la web (tarjeta «Paga por», «Cómo pagarle», chip «Sin datos de pago») va en el PR de la rama. Antes, `PagoJuntosModal` rotulaba el WhatsApp como «Yape / Plin» y la ficha rotulaba «CCI» a un texto libre: plata que no se revierte.
+Decisiones de Felipe: efectivo como pago preferido no cuenta como «sin datos de pago», el N.° de operación sigue opcional, y quién ve estas 5 columnas de pago se decide **al final del proyecto** (se cierran juntas o ninguna).
+Felipe se lleva: sin bitácora de cambios de cuenta, un líder o una sesión comprometida puede cambiar un CCI antes de un pago sin dejar rastro; la tabla `proveedor_cuentas_historial` es lo siguiente, antes de que haya volumen de pagos.
+
+## 2026-09-19 (El menú lateral se pliega a una columna de íconos — ADR-0130)
+Se aplicó el spike `docs/maquetas/menu-lateral-spike-2026-09/`: botón en la cabecera o tecla `[`, 17rem → 4.75rem con los íconos quietos, cajón flotante por grupo, etiqueta al pasar el mouse, insignia sobre el ícono y hijas que se despliegan por `grid-template-rows`. El ancho lo cambia UN token (`--spacing-lateral` bajo `[data-lateral]`) que ya leían aside, cabecera, main y barras fijas.
+La preferencia vive en una cookie que lee el layout del servidor (con localStorage la página pintaría 17rem y saltaría a 4.75rem al cargar). Verificado en el navegador como líder: plegar/expandir, cookie, recarga sin salto, cajón, teclado (Enter, flechas, End, Escape devuelve el foco) y celular sin lateral.
+Queda: «Asomar al pasar el mouse» del spike NO se construyó (falta dónde encenderlo); mirar el pie del Punto de Venta y las barras de Recibir/Pagar juntos con el menú plegado; y verlo como colaborador.
+
+## 2026-09-19 (Recibir: el diseño se iguala al spike, pantalla por pantalla — ADR-0129, ampliación)
+Felipe revisó lo publicado y «no estaba igual». Se comparó spike y app 1:1: la fila de conteo pasó a ser una sola pieza (tarjeta o tabla según el ancho del panel, mismo paso − / +, miniatura en ambas), la tarjeta del envío ganó camión, avatares apilados y anillo de 70 px, la barra pone el aviso arriba y sube desde el borde, y «Recibidas» estrenó sus dos segmentados (periodo y resultado). Lo que se había dejado sin portar (salidas animadas, lista plegable en celular) ahora está.
+Lección: un «lo verifiqué» a ancho de escritorio no vale para celular ni para ancho intermedio; solo al abrir la app a ancho de celular real aparecieron el botón que no llenaba la barra y la cabecera que apretaba el nombre. Y comparar contra el spike a UN ancho equivalente (no a ojo) fue lo que mostró qué difería.
+
+## 2026-09-19 (Por pagar responde: el spike aplicado al ERP — ADR-0131)
+Se aplicó el spike visual de Por pagar (`docs/maquetas/por-pagar-spike-2026-09/`): la pantalla llega escalonada con cifras que cuentan; deuda por vencimiento, salidas de caja y la barra de concentración se encienden entre sí y filtran la lista; «¿alcanza la caja?»; tocar una fila abre una vista rápida con línea de vida y siguiente paso; la barra de «Pagar juntos» sube y ofrece «＋ agregar» lo demás del proveedor; el modal muestra la cascada del pago y, al registrar, la pantalla reacciona (sello «Pagada» → la fila se pliega → las cifras cuentan). Sin migración ni RPC nuevo.
+Decisiones: el filtro por tramo/semana es local a la página cargada y lo dice (`listar_compras` filtra por emisión; tocar la función en producción no valía la pena); la vista rápida no trae el historial de pagos (`CompraResumen` no lo tiene); sin «Deshacer» un pago (es plata que salió). Verificado en navegador con pago real (uno completo y uno parcial, cifras cuadradas al céntimo); los comprobantes de prueba `TSTPP-…` se anularon, no se borraron.
+Lección: el panel del navegador estaba oculto y el navegador congela animaciones y `requestAnimationFrame` así; los conteos y el pliegue se midieron en el DOM, no se vieron. Antes de dar por cerrado lo visual, Felipe debe mirarlo en vivo. Aparte: en celular la fila del buscador ya se desbordaba ~35 px por «Filtros» en `main` (no es de este cambio).
+Después de la primera entrega Felipe corrigió dos veces el modal de pago: el «Pagar» de cada fila abría el modal de siempre, y el rediseño aún no era el del spike. Se comparó con CAPTURAS (spike vs real, renderizadas con Chrome sin pantalla) y quedó igual, con una diferencia a propósito: el spike permite UN medio de pago y el ERP permite varios, así que se diseñó «＋ Dividir en otro medio» con el mismo lenguaje (verificado con 3,000 transferencia + 1,720 efectivo). Además, al elegir el medio se muestran los datos de ESE medio (cuenta, CCI, titular; celular de Yape/Plin; copiables). Pendiente: «Pagar juntos» sigue con un solo medio (la RPC recibe uno; varios exigiría una función nueva en producción). ADR-0131 (el 0129 y el 0130 son de otras ramas).
+Revisión general antes de subir (mismo día): se renderizaron el spike y la pantalla con los mismos datos y se compararon sección por sección; salió un fallo real (las filas de otros proveedores no se atenuaban ni se veía el eco: una animación retenía `opacity: 1`), el buscador y la línea de resumen del spike que faltaban, el cajón sin sus pagos y varios desbordes en celular. Lección: comparar por CAPTURAS y por medidas (opacidad calculada, ancho, desborde), no por «el DOM tiene la clase»: la clase estaba y no hacía nada. Detalle en ADR-0131, D12.
+
+## 2026-09-19 (Recibir mercadería responde: resumen previo, faltantes en un toque y escáner sin callejón — ADR-0129)
+Se aplicó a `/recibir` el spike visual (`docs/maquetas/recibir-spike-2026-09/`): «Marcar las atrasadas», decisión de faltante con píldoras, escáner que ofrece agregar el comprobante que no marcaste (y «Deshacer»), resumen «Confirma lo que entra» antes de escribir movimientos, «Envío recibido» con los movimientos colgando de un hilo, y en «Recibidas» un cajón con ↑ ↓. Sin migración: `recibir_envio` no cambió.
+Verificado en el navegador como líder contra la base local (un envío real de 76 u., de la cuenta al cajón). El borrador guardado en el equipo se construyó y Felipe pidió quitarlo ese mismo día: no queda guardado en el navegador. Lección 1: una clase de la maqueta (`.mv`, el modal) chocó con otra del medidor y tapó todo de verde; solo se vio en el navegador. Lección 2: con el menú lateral, una ventana de 1440 px deja ~700 px al panel; el diseño se decide por el ancho del PANEL (container queries), no de la ventana, igual que en Proveedores.
+Queda: verlo como colaborador (Micaela) y las animaciones de SALIDA (chips y filas fuera de comprobante solo entran). El resumen previo es una decisión de producto: si se prefiere el envío directo, se quita sin tocar lo demás.
+
+## 2026-09-19 (Producción como módulo padre: dos spikes y un plan por fases — ADR-0133, propuesto)
+**Qué se cerró.** Se diseñó (sin tocar el ERP) un módulo Producción que agrupa Decidir/Abastecer/Fabricar/Medir, con el ciclo factura de tela → lote → orden → costo real → stock funcionando en un spike (`docs/maquetas/produccion-modulo-2026-09/`), y un plan de 8 fases con sus decisiones y su definición de terminado (`docs/PLAN-PRODUCCION.md`).
+**Qué se aprendió.** Revisar antes de diseñar cambió el plan: el destino Taller/Tiendas ya existía (`ubicacion_destino_id`), el motor de reposición ya existía (`fn_resumen_variantes`), Proveedores y Recibir ya tenían rediseño en `main`, y el spike incumplía el tope de rojo por pantalla y dejaba a la interfaz —no a la base— la tarea de ocultar costos al colaborador.
+**Pendiente.** El ok de Felipe en D-C, D-E, D-F y D-G (D-A lo dio al pedir F1).
+**Colisión de numeración:** el menú lateral plegable se fusionó a `main` con el mismo ADR-0130; el de Producción pasó al **0133**. Los dos menús convivieron sin conflicto de código (`AppShell.tsx` se fusionó solo) y se probó el cajón flotante del grupo con el menú plegado. Un `.next` viejo servía el CSS sin la regla del token y el menú se veía roto: no era un bug, era caché.
+**F0 y F1 hechas el mismo día:** el lateral ahora agrupa Compras y Órdenes bajo «Producción» (mismas URLs), y el líder la ve desde cualquier ubicación. Lo que no estaba en el spike y salió al implementar: el riel del menú mide por filas de alto fijo, así que los rótulos «Abastecer»/«Fabricar» no caben; el orden de las filas cuenta el recorrido.
+
+## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0128)
+Se aplicó al ERP el spike visual de Proveedores (`docs/maquetas/proveedores-spike-2026-09/`): tocar una fila abre una vista rápida (↑ ↓ entre proveedores) en vez de saltar a la ficha; ordenar y filtrar deslizan las filas (FLIP); el filtro de rubro tiene un pulgar que viaja; la barra de concentración enciende la fila del proveedor al que apuntas; desactivar se puede deshacer 7 s; el RUC repetido se avisa al escribir.
+Decisión de Felipe: la primera versión respetó la regla «nada se anima solo al entrar» y quedó quieta al abrir; Felipe la vio, esperaba el spike y pidió cambiar la regla. Ahora la llegada a una pantalla con varias piezas también se anima (entrada escalonada, cifras y trazos que se arman una vez, siempre con límites: sin bucle, sin rebote, sin re-animar lo que ya se usa, movimiento reducido = instante). Regla reescrita en `globals.css` y ADR-0128; Proveedores es la primera pantalla, no es obligatoria en las demás.
+Corrección de criterio (misma sesión): el formulario «Registrar proveedor» se había quedado con el diseño viejo, con la excusa de que el real tiene campos que el spike no (SUNAT, teléfono, banco); Felipe lo notó. Se rehízo con la carcasa y las piezas del spike conservando todos los campos reales (ADR-0128, D7). Regla para la próxima: «copia el diseño» incluye TODAS las piezas del diseño, y lo que el real tenga de más se viste igual, no se usa de pretexto.
+Lección: dos fallos solo se vieron en el navegador con sesión de líder (no en tsc, lint ni las 1061 pruebas): la tabla decidía sus columnas por el ancho de la VENTANA y con el menú lateral el nombre quedaba en «C…» (ahora container queries), y un hook de conteo quedaba en 0 porque React repite los efectos en desarrollo.
+Un dato nuevo (facturado por mes) → función aparte `fn_proveedores_serie_12m` (migración `20260919150000`, solo lectura), no una columna más en `fn_proveedores`. La lista degrada sin ella: si producción todavía no la tiene, se ve igual, sin tendencias. Falta pegarla en producción.
+
 ## 2026-09-19 (Atelier: el diseño visual de Cambios y Devoluciones — ADR-0123)
 
 **Qué se cerró.** Felipe pidió ver el rediseño «más estético, con más animaciones» antes de
@@ -45,6 +103,26 @@ y caja visible desde el paso 3. Afecta a Cambios y Devoluciones a la vez (piezas
 **Qué se aprendió.** Mostrar tres direcciones con los mismos datos hizo la decisión en minutos y
 sin tocar el código. Y aterrizar una maqueta es ajustar su escala a la app (el título de 66 px
 desentonaba), no copiarla. Pendiente: probar con clic real y datos reales.
+
+## 2026-09-19 (Movimientos: qué cambió en el stock y qué proceso lo originó — ADR-0127)
+
+**Qué se cerró.** `/inventario/movimientos` dice directo qué cambió en el stock de la sede y qué
+proceso lo originó: columna «Referencia» (`Traslado 26` y `Conteo 12` con enlace a su detalle,
+`Boleta B001-000184`, `Factura F001-000210`), el proceso en lenguaje claro («Transferencia ·
+llegada», «Reposición interna»), un buscador que entiende «Traslado 24» y «B001-000184», y a la
+vista solo Tipo, Sububicación y Período (el proceso específico va en «Más filtros»). Se quitaron el
+filtro Persona y la columna Responsable de esta pantalla; la autoría sigue guardada y en el detalle.
+Traslados entiende las mismas formas de escribir un número. La migración `20260919155000` se
+**aplicó en producción antes de fusionar el front** (PR #179): se ensayó entera en una transacción
+revertida contra datos reales, se aplicó con el texto exacto del archivo y se verificó (una sola firma,
+permisos idénticos, `md5` de los cuatro cuerpos igual al del archivo).
+
+**Qué se aprendió.** Tres de los cinco ejemplos del pedido (Venta 184, Recepción 31, Devolución 7)
+no existen como número: solo traslados y conteos tienen número corrido; lo demás se identifica por
+comprobante, factura o guía. Comprobarlo en producción antes de dibujar la columna evitó mostrar
+números inventados — y dejó una decisión de negocio para Felipe (¿numerar ventas y recepciones por
+sede?). Y una tabla que se ve bien a 1440 px puede cortar justo la palabra que importa a 1024
+(«Transferencia · lleg…»): se mira en los tres anchos, no en uno.
 
 ## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0122)
 
@@ -8222,3 +8300,23 @@ sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen 
 (`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
 candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
 de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
+
+## 2026-09-19 (El dinero de Compras es solo del líder — ADR-0126)
+Un integrante leía los montos de su sede por tres puertas aunque las pantallas se los taparan: cinco funciones con solo el
+candado de sede, las tablas de Compras y el bucket de escaneos (hallazgo H4 de las pruebas de Compras; cerrar solo las
+funciones no habría servido). Ahora `fn_puede_ver_dinero_de_compras()` es la regla única (hoy: el líder), el integrante
+recibe por `listar_compras_operativo`/`lineas_compra_operativo` (lista de permitidos, sin una columna de dinero) y las
+tablas y el bucket pasan a solo-líder en dos migraciones que pega Felipe (A, luego B). El candado se inyecta leyendo la
+definición vigente (`fn_aplicar_candado_de_dinero`) porque otra migración en vuelo recrea `por_pagar_tramos` con otra
+firma y en producción se pegan a mano en el orden que toque. De paso, «Recibidas» sale agrupada por envío y el
+diccionario incorpora `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id` (los 0 lotes de producción confirman
+que aún no hay nada que agrupar). El ADR quedó como 0126: el 0121 lo tomó el Resumen v2 mientras se trabajaba.
+
+## 2026-09-19 (Dinero de Compras: las dos migraciones ya están en producción — ADR-0126)
+Felipe pegó A y B y se verificó contra la base real (solo lectura): las 5 funciones de dinero con candado y sin
+sobrecargas, las 5 políticas y el bucket con la regla nueva, y —con una líder y una colaboradora reales en una
+transacción que no guarda nada— a la colaboradora las cinco le responden `42501` mientras las de recibir le responden.
+Producción no tiene ninguna factura registrada todavía, así que el cierre quedó puesto antes de la primera. Primer
+intento de pegar A falló por un `_` suelto al inicio del texto (error de pegado; no se ejecutó nada). El volcado y el
+diccionario quedan en 174 funciones. `datos:comparar` marca ahora `fn_proveedores_serie_12m`: es la migración
+`20260919150000_proveedores_serie_mensual.sql` de otra sesión, que está en `main` y aún no en producción.

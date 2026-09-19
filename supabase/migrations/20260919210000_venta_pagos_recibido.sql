@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260919160000 — El vuelto se guarda: venta_pagos.recibido
+-- 20260919210000 — El vuelto se guarda: venta_pagos.recibido
 --
 -- QUÉ HACE
 --   Agrega `venta_pagos.recibido` (lo que la clienta entregó en efectivo) y hace que

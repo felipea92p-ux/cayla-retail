@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { costoBase, costoParaTipear, totalesCompra } from "./compras-reglas";
+import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa } from "./compras-reglas";
 
 // El costo unitario que se guarda alimenta el costo de la variante y el
 // margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
@@ -52,5 +52,96 @@ describe("totalesCompra", () => {
 
   it("líneas vacías o basura no aportan", () => {
     expect(totalesCompra([{ cantidad: 1, costoTipeado: NaN }], 18, true)).toEqual({ subtotal: 0, igv: 0, total: 0 });
+  });
+});
+
+// ADR-0126: quien no es líder lee los comprobantes de `listar_compras_operativo`, que no trae un solo monto. La
+// pantalla de Recibir espera la forma de siempre (`CompraResumen`): si el mapeo inventara un monto, un integrante
+// vería dinero que la base le negó; si perdiera el atraso o las cantidades, «Atrasadas» y «Sin contar» mentirían.
+
+describe("comprobanteDeFilaOperativa", () => {
+  const fila: FilaOperativa = {
+    id: "c-1",
+    proveedor_id: "p-1",
+    proveedor_nombre: "Textiles Andina SAC",
+    proveedor_ruc: "20123456789",
+    tipo: "factura",
+    documento: "F001-000123",
+    fecha_emision: "2026-09-10",
+    ubicacion_destino_id: "u-trujillo",
+    estado: "vigente",
+    nota: "Llega con la caja azul",
+    created_at: "2026-09-10T15:00:00Z",
+    facturado_cantidad: 24,
+    recibido_cantidad: 10,
+    estado_recepcion: "parcial",
+    fecha_estimada_llegada: "2026-09-15",
+    recepcion_atrasada: true,
+    cerrado_cantidad: 4,
+  };
+
+  it("lleva lo que hace falta para recibir, tal cual: quién, qué documento, cuánto, cuánto llegó y si viene atrasado", () => {
+    const c = comprobanteDeFilaOperativa(fila);
+    expect(c).toMatchObject({
+      id: "c-1",
+      proveedorId: "p-1",
+      proveedorNombre: "Textiles Andina SAC",
+      documento: "F001-000123",
+      tipo: "factura",
+      ubicacionDestinoId: "u-trujillo",
+      estado: "vigente",
+      facturadoCantidad: 24,
+      recibidoCantidad: 10,
+      cerradoCantidad: 4,
+      estadoRecepcion: "parcial",
+      recepcionAtrasada: true,
+      fechaEstimadaLlegada: "2026-09-15",
+      nota: "Llega con la caja azul",
+      creadoEn: "2026-09-10T15:00:00Z",
+    });
+  });
+
+  it("no trae un solo monto: subtotal, IGV, total, pagado, saldo y notas de crédito van en 0", () => {
+    const c = comprobanteDeFilaOperativa(fila);
+    expect([c.subtotal, c.igv, c.total, c.pagado, c.saldo, c.notasCredito]).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("los datos de pago van neutros (la función no los devuelve) y no marcan el comprobante como vencido", () => {
+    const c = comprobanteDeFilaOperativa(fila);
+    expect(c.vencida).toBe(false);
+    expect(c.fechaVencimiento).toBeNull();
+  });
+
+  it("respeta lo que la fila NO tiene: sin fecha estimada, sin RUC y sin nota", () => {
+    const c = comprobanteDeFilaOperativa({ ...fila, fecha_estimada_llegada: null, proveedor_ruc: null, nota: null, recepcion_atrasada: false });
+    expect(c.fechaEstimadaLlegada).toBeNull();
+    expect(c.proveedorRuc).toBeNull();
+    expect(c.nota).toBeNull();
+    expect(c.recepcionAtrasada).toBe(false);
+  });
+});
+
+// Si la app se despliega ANTES de pegar la migración que crea las dos funciones operativas, Recibir tiene que seguir
+// con el camino de antes. Pero solo ante «la función no existe»: un error de permiso o de red NO se disfraza de eso —
+// caer al camino viejo por cualquier error escondería justo los fallos que hay que ver.
+describe("esFuncionAusente", () => {
+  it("reconoce que PostgREST no encuentra la función en su schema cache (PGRST202)", () => {
+    expect(esFuncionAusente({ code: "PGRST202" })).toBe(true);
+  });
+
+  it("reconoce el undefined_function de Postgres (42883)", () => {
+    expect(esFuncionAusente({ code: "42883" })).toBe(true);
+  });
+
+  it("no confunde otros errores con «la función no existe»", () => {
+    expect(esFuncionAusente({ code: "42501" })).toBe(false); // permiso: «Solo un líder puede ver …»
+    expect(esFuncionAusente({ code: "PGRST301" })).toBe(false);
+    expect(esFuncionAusente({ code: "" })).toBe(false);
+    expect(esFuncionAusente({})).toBe(false);
+  });
+
+  it("sin error no hay nada que reconocer", () => {
+    expect(esFuncionAusente(null)).toBe(false);
+    expect(esFuncionAusente(undefined)).toBe(false);
   });
 });

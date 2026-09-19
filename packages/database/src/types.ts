@@ -2766,6 +2766,9 @@ export type Database = {
         Row: {
           activo: boolean
           banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
           contacto: string | null
           created_at: string
           cuenta_bancaria: string | null
@@ -2776,10 +2779,14 @@ export type Database = {
           rubro: string | null
           ruc: string | null
           telefono: string | null
+          titular_cuenta: string | null
         }
         Insert: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2790,10 +2797,14 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
         }
         Update: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2804,6 +2815,7 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
         }
         Relationships: []
       }
@@ -4062,6 +4074,7 @@ export type Database = {
         Returns: string
       }
       etiquetar_variantes: { Args: { p_cambios: Json }; Returns: Json }
+      fn_aplicar_candado_de_dinero: { Args: never; Returns: string[] }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -4167,6 +4180,10 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_exige_dinero_de_compras: {
+        Args: { p_que?: string }
+        Returns: undefined
+      }
       fn_historial_producto_cambios: {
         Args: { p_producto_id: string }
         Returns: {
@@ -4244,6 +4261,7 @@ export type Database = {
           conteo_cantidad_contada: number
           conteo_cantidad_sistema: number
           conteo_id: string
+          conteo_numero: number
           created_at: string
           delta: number
           devolucion_estado: string
@@ -4272,6 +4290,7 @@ export type Database = {
           transferencia_estado: string
           transferencia_id: string
           transferencia_nota: string
+          transferencia_numero: number
           ubicacion_destino_id: string
           ubicacion_destino_nombre: string
           ubicacion_id: string
@@ -4282,6 +4301,17 @@ export type Database = {
           venta_id: string
           venta_nota: string
         }[]
+      }
+      fn_movimientos_busqueda: {
+        Args: { p_busqueda: string }
+        Returns: {
+          movimiento_ids: string[]
+          variante_ids: string[]
+        }[]
+      }
+      fn_movimientos_de_comprobante: {
+        Args: { p_numero: number; p_serie: string; p_tipos: string[] }
+        Returns: string[]
       }
       fn_movimientos_resumen: {
         Args: {
@@ -4468,6 +4498,9 @@ export type Database = {
         Returns: {
           activo: boolean
           banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
           contacto: string
           cuenta_bancaria: string
           dias_desde_ultima_compra: number
@@ -4488,6 +4521,7 @@ export type Database = {
           saldo_favor: number
           saldo_vencido: number
           telefono: string
+          titular_cuenta: string
           total_facturado: number
           ultima_compra: string
         }[]
@@ -4509,11 +4543,20 @@ export type Database = {
           top3_pct: number
         }[]
       }
+      fn_proveedores_serie_12m: {
+        Args: never
+        Returns: {
+          mes: string
+          monto: number
+          proveedor_id: string
+        }[]
+      }
       fn_puede_operar_ubicacion: {
         Args: { p_ubicacion_id: string }
         Returns: boolean
       }
       fn_puede_registrar_compras: { Args: never; Returns: boolean }
+      fn_puede_ver_dinero_de_compras: { Args: never; Returns: boolean }
       fn_recalcular_costo_variante: {
         Args: {
           p_cantidad_nueva: number
@@ -4624,6 +4667,10 @@ export type Database = {
         }[]
       }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_validar_fecha_pago_compra: {
+        Args: { p_documento: string; p_fecha: string; p_fecha_emision: string }
+        Returns: undefined
+      }
       fn_validar_marca_proveedor: {
         Args: { p_marca_id: string; p_proveedor_id: string }
         Returns: undefined
@@ -4649,6 +4696,16 @@ export type Database = {
           venta_id: string
         }[]
       }
+      guardar_cuentas_proveedor: {
+        Args: {
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_proveedor_id: string
+          p_titular_cuenta?: string
+        }
+        Returns: undefined
+      }
       iniciar_traslado: {
         Args: {
           p_fecha_estimada_llegada: string
@@ -4658,6 +4715,20 @@ export type Database = {
           p_ubicacion_origen_id: string
         }
         Returns: string
+      }
+      lineas_compra_operativo: {
+        Args: { p_compra_ids: string[] }
+        Returns: {
+          cantidad: number
+          cerrado: number
+          compra_id: string
+          descripcion: string
+          id: string
+          pendiente: number
+          producto_id: string
+          recibido: number
+          variante_id: string
+        }[]
       }
       liquidar_prenda_danada: {
         Args: {
@@ -4728,6 +4799,40 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      listar_compras_operativo: {
+        Args: {
+          p_busqueda?: string
+          p_cursor_creado_en?: string
+          p_cursor_fecha?: string
+          p_cursor_id?: string
+          p_desde?: string
+          p_estado_recepcion?: string
+          p_hasta?: string
+          p_limite?: number
+          p_por_recibir?: boolean
+          p_proveedor_id?: string
+          p_tipo?: string
+        }
+        Returns: {
+          cerrado_cantidad: number
+          created_at: string
+          documento: string
+          estado: string
+          estado_recepcion: string
+          facturado_cantidad: number
+          fecha_emision: string
+          fecha_estimada_llegada: string
+          id: string
+          nota: string
+          proveedor_id: string
+          proveedor_nombre: string
+          proveedor_ruc: string
+          recepcion_atrasada: boolean
+          recibido_cantidad: number
+          tipo: string
+          ubicacion_destino_id: string
+        }[]
       }
       listar_recepciones_compras: {
         Args: {
@@ -4995,8 +5100,24 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_pago_compras_medios: {
+        Args: {
+          p_aplicaciones: Json
+          p_credito?: number
+          p_fecha?: string
+          p_medios?: Json
+          p_proveedor_id: string
+          p_token?: string
+        }
+        Returns: string
+      }
       registrar_pagos_compra: {
-        Args: { p_compra_id: string; p_fecha?: string; p_pagos: Json }
+        Args: {
+          p_compra_id: string
+          p_fecha?: string
+          p_pagos: Json
+          p_token?: string
+        }
         Returns: string[]
       }
       registrar_proveedor: {

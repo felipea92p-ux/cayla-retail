@@ -1,6 +1,9 @@
 @import "tailwindcss";
 /* Entradas/salidas propias de los componentes shadcn/ui (ADR-0045, adenda). */
 @import "tw-animate-css";
+@import "./estilos/comprobantes-lista.css";
+@import "./estilos/comprobantes-detalle.css";
+@import "./estilos/comprobantes-registro.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -123,6 +126,15 @@
   --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
   --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
   --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
+}
+
+/* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
+   <aside>, la cabecera, el <main> y las barras fijas (`BarraFija`, el pie del Punto de Venta) leen
+   ese token, así que plegar el menú es redefinirlo aquí y ninguno se entera. 4.75rem = 76 px =
+   12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
+   se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
+[data-lateral="plegado"] {
+  --spacing-lateral: 4.75rem;
 }
 
 /* ==================================================================
@@ -482,8 +494,17 @@ body {
                        sin rebote (rebote = juguete, no instrumento).
      3. "asentar"    — una cifra que cambió se re-asienta, para que el
                        ojo note que cambió sin tener que releerla.
-   Regla: el movimiento RESPONDE a una acción de la persona. Nada se
-   anima solo al entrar a la pantalla.
+   Regla (revisada el 2026-09-19 por decisión de Felipe, ADR-0128; antes
+   decía «nada se anima solo al entrar a la pantalla»): el movimiento
+   RESPONDE a una acción de la persona O ACOMPAÑA LA LLEGADA a una
+   pantalla con varias piezas, donde el ojo necesita un orden de lectura.
+   Al llegar, lo que aparece entra ESCALONADO (`anim-entra`: cada pieza
+   sube 8 px y se asienta, ≤ 450 ms, con ≤ 40 ms de desfase entre una y
+   otra) y las cifras y trazos se «arman» UNA vez. Límites que no cambian:
+   nunca en bucle, nunca decorativo, nunca sobre algo que la persona ya
+   está usando (buscar o filtrar no re-anima toda la tabla), sin rebote, y
+   con movimiento reducido todo colapsa a un instante. No es obligatoria en
+   cada pantalla: se usa donde ayuda a leer (Proveedores fue la primera).
    ================================================================== */
 @theme {
   --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1); /* entradas: arranca suave y frena largo */
@@ -503,6 +524,12 @@ body {
 /* En móvil el modal es una hoja que sube desde el borde: escalarla se ve mal. */
 @keyframes cayla-hoja {
   from { opacity: 0; transform: translate3d(0, 24px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Cajón de un grupo del lateral plegado (2026-09-19): sale desde el lateral, no desde arriba. */
+@keyframes cayla-flota {
+  from { opacity: 0; transform: translate3d(-6px, 0, 0) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
 
@@ -675,9 +702,29 @@ body {
 }
 
 @layer components {
+  /* Hijas de un grupo del lateral: se despliegan por `grid-template-rows: 0fr → 1fr` (sin medir
+     alturas — una medición tardía es un salto) y cada fila aparece con 30 ms de escalón, el mismo
+     de `MenuNuevo` y del desplegable de campos.tsx. Cerradas siguen montadas, con alto 0 y `inert`. */
+  .lateral-hijos {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms var(--ease-cayla);
+  }
+  .lateral-hijos[data-abierto="true"] { grid-template-rows: 1fr; }
+  .lateral-hijos > div { min-height: 0; overflow: hidden; }
+  .lateral-hijo { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
+  .lateral-hijos[data-abierto="true"] .lateral-hijo {
+    opacity: 1;
+    transition-delay: calc(var(--i, 0) * 30ms + 60ms);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lateral-hijos[data-abierto="true"] .lateral-hijo { transition-delay: 0ms; }
+  }
+
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
   .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+  .anim-flota { animation: cayla-flota 220ms var(--ease-cayla) both; }
   .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
   .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
@@ -688,6 +735,63 @@ body {
   @media (min-width: 640px) {
     .anim-entrada { animation-name: cayla-entrada; }
   }
+}
+
+/* ---- REGLA DE MODALES (ADR-0136) ------------------------------------------------------------
+   Todo modal del retail se dibuja con `<Modal>` (components/ui/Modal.tsx) y hereda ESTE movimiento
+   sin hacer nada; un modal nuevo NO define su propia animación. El efecto, en orden:
+     1. el velo aparece con desenfoque leve (`anim-velo`, 220 ms);
+     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, 420 ms, --ease-cayla); en móvil es
+        una hoja que sube desde el borde (sin escala: escalarla se ve mal);
+     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 55 ms de desfase
+        entre una y otra, empezando 120 ms después de la hoja. Cuenta como pieza el título, la bajada y los
+        hijos directos del modal; si el modal es un único <form>, cuentan los hijos del form.
+     4. al cerrar la hoja se va en 220 ms hacia abajo y el velo se apaga (`anim-modal-sale`).
+   Lo que un modal SÍ puede agregar por su cuenta (y nada más): una barra que se llena, una cifra que cuenta,
+   el «visto» que se dibuja al confirmar — respuestas a una acción, no adorno. Nunca en bucle, sin rebote.
+   `data-sin-cascada` en una pieza la saca de la cascada (p. ej. una lista larga que ya se anima sola).
+   Con movimiento reducido todo colapsa a un instante. Prototipo de referencia:
+   docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html (`.velo`, `.modal`, `.st`). ---- */
+@keyframes cayla-modal-entra {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-modal-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); }
+}
+@keyframes cayla-cascada {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+}
+@layer components {
+  /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+  @media (min-width: 640px) {
+    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
+    .anim-modal-sale { animation-name: cayla-modal-sale; }
+  }
+
+  /* La cascada del contenido. `backwards`, no `both`: terminada, la pieza vuelve a su estilo normal y su
+     hover/transición puede mover su `transform`. Un <form> hijo directo NO se anima entero (sus hijos sí):
+     animar el form y sus piezas a la vez multiplica la opacidad y se ve sucio. */
+  .cascada-modal > :not(form):not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 55ms + 120ms);
+  }
+  /* Las piezas de un <form> empiezan después del título y la bajada (2 pasos más). */
+  .cascada-modal > form > :not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+  }
+  .cascada-modal > :nth-child(1), .cascada-modal > form > :nth-child(1) { --k: 0; }
+  .cascada-modal > :nth-child(2), .cascada-modal > form > :nth-child(2) { --k: 1; }
+  .cascada-modal > :nth-child(3), .cascada-modal > form > :nth-child(3) { --k: 2; }
+  .cascada-modal > :nth-child(4), .cascada-modal > form > :nth-child(4) { --k: 3; }
+  .cascada-modal > :nth-child(5), .cascada-modal > form > :nth-child(5) { --k: 4; }
+  .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
+  .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
+  .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
 }
 
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
@@ -774,6 +878,162 @@ body {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
+/* ---- Proveedores (2026-09-19, ADR-0128): la entrada escalonada y los gestos que responden ----
+        · entra: la entrada escalonada de la regla de arriba. `backwards` (no `both`): al terminar no deja
+          un `transform` retenido que pisaría el deslizamiento de las filas (`useFlip`) ni el hover.
+          El desfase sale de `--i` (índice de la pieza) × 38 ms; las piezas de una lista se topan en 10.
+        · el cajón abre con un clic, el trazo corre al pasar el mouse, las barras crecen al abrirse el cajón
+          y al llegar a la pantalla, el destello marca la fila que la persona acaba de crear, reactivar o
+          desactivar. Los cambios de orden y de filtro se animan en JS (`useFlip`) y el pulgar de
+          `SegmentoDeslizante` con `transition` — sin keyframes.
+        Sin rebote y sin color nuevo, como el resto de la capa.
+        - cajón: entra desde el borde derecho (380 ms) y sale más corto (240 ms), como el modal.
+        - destello: la fila arranca teñida de rojo suave y se apaga sola en 2.6 s; `backwards` (no
+          `both`) para que al terminar no retenga un `background` que taparía el hover.
+        - trazo: `pathLength="1"` en el SVG, así el dasharray es 1 sin medir nada. En reposo la línea
+          está completa; al pasar el mouse por la fila (`.group`) se redibuja de cero.
+        - crece: barras que se llenan (`scaleX`, o `scaleY` las verticales) desde su base. ---- */
+@keyframes cayla-cajon-entra {
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-cajon-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(28px, 0, 0); }
+}
+@keyframes cayla-destello-fila {
+  from { background-color: color-mix(in srgb, var(--color-rojo) 13%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cayla-trazo {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+/* Igual que `cayla-trazo` pero con OTRO nombre a propósito: la línea se dibuja al llegar (`anim-trazo`) y se
+   vuelve a dibujar al pasar el mouse (`trazo-al-pasar`). Con el mismo nombre el navegador las tomaría por la
+   misma animación y el hover no la reiniciaría. */
+@keyframes cayla-trazo-entra {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cayla-crece-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes cayla-crece-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@layer components {
+  .anim-entra {
+    animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms);
+  }
+  .anim-cajon { animation: cayla-cajon-entra 380ms var(--ease-cayla) both; }
+  .anim-cajon-salida { animation: cayla-cajon-sale 240ms var(--ease-salida) both; }
+  .anim-destello-fila { animation: cayla-destello-fila 2600ms var(--ease-cayla) backwards; }
+  .trazo-linea { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .group:hover .trazo-al-pasar { animation: cayla-trazo 760ms var(--ease-cayla) both; }
+  .anim-trazo { animation: cayla-trazo-entra 900ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 38ms + 180ms); }
+  .anim-crece-x {
+    animation: cayla-crece-x 620ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms + 220ms);
+    transform-origin: left;
+  }
+  .anim-crece-y {
+    animation: cayla-crece-y 560ms var(--ease-cayla) backwards;
+    animation-delay: calc(140ms + var(--i, 0) * 34ms);
+    transform-origin: bottom;
+  }
+}
+
+/* ---- Por pagar (2026-09-19, spike `docs/maquetas/por-pagar-spike-2026-09/`, mismo modelo que Proveedores) ----
+        · destello-ok: la fila que acaba de RECIBIR un pago parcial se enciende en verde (la de Proveedores es
+          roja: aquella marca «lo que acabas de crear»; ésta, «plata que salió»). 2.4 s y se apaga sola;
+          `backwards` para no retener un `background` que taparía el hover.
+        · tilde: el check de una casilla se DIBUJA (`pathLength="1"` en el SVG). Más corto que `anim-trazo`
+          (320 ms, sin desfase): responde a un clic, no acompaña una llegada.
+        · pagada: la fila que se acaba de pagar por completo muestra su sello unos instantes antes de plegarse
+          (el pliegue en sí es JS: `PorPagarLista`, Web Animations sobre la altura).
+        Sin rebote, sin color nuevo. ---- */
+@keyframes cayla-destello-ok {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@layer components {
+  .anim-destello-ok { animation: cayla-destello-ok 2400ms var(--ease-cayla) backwards; }
+  .anim-tilde { animation: cayla-trazo-entra 320ms var(--ease-cayla) backwards; }
+}
+
+/* ---- Recibir mercadería (2026-09-19, spike de Recibir): lo que responde al contar ----
+        · lectura: cuando la pistola lee una etiqueta la fila se tiñe de verde suave y se apaga sola (1.5 s).
+          Es el mismo gesto que `anim-destello-fila`, en verde porque es una CONFIRMACIÓN («entró»), no un
+          aviso («esto acaba de pasar»). `backwards`: al terminar no retiene el fondo.
+        · camino: el estado vacío de «¿Qué llegó?» — un camión va y viene sobre un camino punteado que corre.
+          Es adorno, no información: con movimiento reducido se detiene del todo.
+        · sello / onda / hilo-libro: el «Envío recibido». El check se traza, dos ondas salen del sello y los
+          movimientos que quedaron escritos cuelgan de un hilo que crece hacia abajo (el hilo del Atelier). ---- */
+@keyframes cayla-destello-lectura {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cayla-camino {
+  to { background-position: -24px 0; }
+}
+@keyframes cayla-camion {
+  /* va a la derecha, da la vuelta (scaleX -1) y regresa mirando a la izquierda: nunca va de reversa */
+  0%, 4% { transform: translate3d(-90px, 0, 0) scaleX(1); }
+  46%, 50% { transform: translate3d(90px, 0, 0) scaleX(1); }
+  50.01%, 54% { transform: translate3d(90px, 0, 0) scaleX(-1); }
+  96%, 100% { transform: translate3d(-90px, 0, 0) scaleX(-1); }
+}
+@keyframes cayla-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.97); }
+}
+@keyframes cayla-barra {
+  from { transform: translate3d(0, 110%, 0); }
+  to { transform: none; }
+}
+@keyframes cayla-cinta {
+  from { transform: translate3d(-100%, 0, 0); opacity: 1; }
+  to { transform: translate3d(400%, 0, 0); opacity: 0; }
+}
+@keyframes cayla-onda {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes cayla-pulso {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@layer components {
+  /* punto «vivo»: late suave junto a lo que pide atención (Atrasadas). Adorno: se detiene con movimiento reducido. */
+  .punto-vivo { position: relative; }
+  .punto-vivo::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit; animation: cayla-pulso 2.2s var(--ease-cayla) infinite; }
+  /* la barra fija de totales sube desde el borde al aparecer el envío (420 ms) */
+  /* lo que se quita (un chip, una fila) se va en 200 ms antes de desmontarse; con movimiento reducido, al instante */
+  .anim-sale { animation: cayla-sale 200ms var(--ease-salida) both; }
+  .anim-barra { animation: cayla-barra 420ms var(--ease-cayla) backwards; }
+  .anim-cinta { animation: cayla-cinta 620ms var(--ease-cayla) both; }
+  .anim-destello-lectura { animation: cayla-destello-lectura 1500ms var(--ease-cayla) backwards; }
+  .recibir-camino {
+    /* rayas de un SVG, no un gradiente: el único gradiente del sistema es el barrido del botón */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='2'%3E%3Crect width='12' height='2' fill='%231a1a18' fill-opacity='.25'/%3E%3C/svg%3E");
+    background-size: 24px 2px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    animation: cayla-camino 1.4s linear infinite;
+  }
+  .recibir-camion { animation: cayla-camion 10s ease-in-out infinite; }
+  .anim-sello path { stroke-dasharray: 1; animation: cayla-trazo-entra 700ms var(--ease-cayla) backwards; }
+  .anim-sello path:last-child { animation-duration: 460ms; animation-delay: 560ms; }
+  .anim-onda { opacity: 0; animation: cayla-onda 1400ms var(--ease-cayla) 700ms backwards; }
+  .anim-onda-2 { animation-delay: 1000ms; }
+  .recibir-hilo { transform-origin: top; animation: cayla-crece-y 900ms var(--ease-cayla) 500ms backwards; }
+  .anim-movimiento { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(700ms + var(--i, 0) * 70ms); }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
@@ -781,7 +1041,10 @@ body {
   @media (prefers-reduced-motion: reduce) {
     .anim-velo,
     .anim-entrada,
+    .anim-modal-entra,
+    .anim-modal-sale,
     .anim-revelar,
+    .anim-flota,
     .anim-revelar-salida,
     .anim-asentar,
     .anim-globo,
@@ -797,7 +1060,23 @@ body {
     .anim-vivo-destello,
     .anim-vivo-delta,
     .anim-vivo-onda,
-    .anim-vivo-fila {
+    .anim-entra,
+    .anim-cajon,
+    .anim-cajon-salida,
+    .anim-destello-fila,
+    .anim-trazo,
+    .anim-crece-x,
+    .anim-crece-y,
+    .group:hover .trazo-al-pasar,
+    .anim-vivo-fila,
+    .anim-destello-lectura,
+    .anim-cinta,
+    .anim-barra,
+    .anim-sale,
+    .anim-sello path,
+    .anim-onda,
+    .recibir-hilo,
+    .anim-movimiento {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
@@ -816,7 +1095,10 @@ body {
        detiene del todo; el resto se acorta a un instante. */
     .hilo-corre,
     .gira-lento,
-    .aguja-hilo { animation: none; }
+    .aguja-hilo,
+    .recibir-camino,
+    .recibir-camion,
+    .punto-vivo::after { animation: none; }
     .anim-sube,
     .hilo-dibuja,
     .hilo-vertical,
@@ -869,5 +1151,14 @@ body {
     page: a4;
     color: #000;
     background: #fff;
+  }
+}
+
+/* La cascada de contenido de los modales (ADR-0136): sin movimiento, las piezas ya están donde van.
+   Dentro de `@layer components` (ADR-0105): una regla de clase sin capa le gana a toda utilidad de Tailwind. */
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .cascada-modal > :not(form):not([data-sin-cascada]),
+    .cascada-modal > form > :not([data-sin-cascada]) { animation: none; }
   }
 }

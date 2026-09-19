@@ -605,6 +605,24 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "motivo",
+          "orden": 12,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "condicion",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": "'vendible'::text",
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -619,6 +637,16 @@
           "definicion": "CHECK ((cantidad > 0))"
         },
         {
+          "nombre": "cambios_condicion_check",
+          "clase": "regla",
+          "definicion": "CHECK ((condicion = ANY (ARRAY['vendible'::text, 'no_vendible'::text])))"
+        },
+        {
+          "nombre": "cambios_defecto_no_vuelve_al_piso",
+          "clase": "regla",
+          "definicion": "CHECK (((motivo IS DISTINCT FROM 'defecto'::text) OR (condicion = 'no_vendible'::text)))"
+        },
+        {
           "nombre": "cambios_diferencia_liquidada",
           "clase": "regla",
           "definicion": "CHECK (((diferencia = (0)::numeric) OR (metodo_pago_diferencia IS NOT NULL)))"
@@ -627,6 +655,11 @@
           "nombre": "cambios_metodo_pago_diferencia_check",
           "clase": "regla",
           "definicion": "CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))"
+        },
+        {
+          "nombre": "cambios_motivo_check",
+          "clase": "regla",
+          "definicion": "CHECK ((motivo = ANY (ARRAY['talla_chica'::text, 'talla_grande'::text, 'otro_color'::text, 'defecto'::text, 'otro'::text])))"
         },
         {
           "nombre": "cambios_pkey",
@@ -1917,7 +1950,7 @@
         {
           "nombre": "compra_adjuntos_select",
           "operacion": "SELECT",
-          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+          "condicion": "retail.fn_puede_ver_dinero_de_compras()",
           "condicion_escritura": null
         }
       ],
@@ -2163,7 +2196,7 @@
         {
           "nombre": "compra_items_select",
           "operacion": "SELECT",
-          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+          "condicion": "retail.fn_puede_ver_dinero_de_compras()",
           "condicion_escritura": null
         }
       ],
@@ -2490,7 +2523,7 @@
         {
           "nombre": "compra_notas_credito_select",
           "operacion": "SELECT",
-          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+          "condicion": "retail.fn_puede_ver_dinero_de_compras()",
           "condicion_escritura": null
         }
       ],
@@ -2624,7 +2657,7 @@
         {
           "nombre": "compra_pagos_select",
           "operacion": "SELECT",
-          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+          "condicion": "retail.fn_puede_ver_dinero_de_compras()",
           "condicion_escritura": null
         }
       ],
@@ -3017,7 +3050,7 @@
         {
           "nombre": "compras_select",
           "operacion": "SELECT",
-          "condicion": "retail.fn_puede_operar_ubicacion(ubicacion_destino_id)",
+          "condicion": "retail.fn_puede_ver_dinero_de_compras()",
           "condicion_escritura": null
         }
       ],
@@ -4691,6 +4724,270 @@
     },
     {
       "esquema": "retail",
+      "tabla": "envio_extras",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "movimiento_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "envio_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "proveedor_id",
+          "orden": 3,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "es_regalo",
+          "orden": 4,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "false",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nota",
+          "orden": 5,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "envio_extras_envio_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)"
+        },
+        {
+          "nombre": "envio_extras_movimiento_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (movimiento_id) REFERENCES retail.movimientos(id)"
+        },
+        {
+          "nombre": "envio_extras_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (movimiento_id)"
+        },
+        {
+          "nombre": "envio_extras_proveedor_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "envio_extras_pkey",
+          "definicion": "CREATE UNIQUE INDEX envio_extras_pkey ON retail.envio_extras USING btree (movimiento_id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "envio_extras_select",
+          "operacion": "SELECT",
+          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "envio_traslados",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "envio_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "transferencia_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "envio_traslados_envio_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)"
+        },
+        {
+          "nombre": "envio_traslados_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (envio_id, transferencia_id)"
+        },
+        {
+          "nombre": "envio_traslados_transferencia_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (transferencia_id) REFERENCES retail.transferencias(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "envio_traslados_pkey",
+          "definicion": "CREATE UNIQUE INDEX envio_traslados_pkey ON retail.envio_traslados USING btree (envio_id, transferencia_id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "envio_traslados_select",
+          "operacion": "SELECT",
+          "condicion": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "envios",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ubicacion_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "numero_guia",
+          "orden": 3,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nota",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "recibido_por",
+          "orden": 5,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fecha_recepcion",
+          "orden": 6,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "token_cliente",
+          "orden": 7,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "envios_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "envios_recibido_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (recibido_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "envios_ubicacion_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "envios_pkey",
+          "definicion": "CREATE UNIQUE INDEX envios_pkey ON retail.envios USING btree (id)"
+        },
+        {
+          "nombre": "envios_token_cliente_key",
+          "definicion": "CREATE UNIQUE INDEX envios_token_cliente_key ON retail.envios USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "envios_select",
+          "operacion": "SELECT",
+          "condicion": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "etiqueta_categorias",
       "tipo": "tabla",
       "comentario": null,
@@ -5840,9 +6137,23 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "envio_id",
+          "orden": 9,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "lotes_envio_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)"
+        },
         {
           "nombre": "lotes_pkey",
           "clase": "llave primaria",
@@ -6768,7 +7079,7 @@
           "nombre": "devolucion_item_id",
           "orden": 5,
           "tipo": "uuid",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -6844,9 +7155,28 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "cambio_id",
+          "orden": 14,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "prendas_danadas_cambio_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)"
+        },
+        {
+          "nombre": "prendas_danadas_cambio_id_key",
+          "clase": "único",
+          "definicion": "UNIQUE (cambio_id)"
+        },
         {
           "nombre": "prendas_danadas_cantidad_check",
           "clase": "regla",
@@ -6908,12 +7238,21 @@
           "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)"
         },
         {
+          "nombre": "prendas_danadas_un_origen",
+          "clase": "regla",
+          "definicion": "CHECK ((num_nonnulls(devolucion_item_id, cambio_id) = 1))"
+        },
+        {
           "nombre": "prendas_danadas_variante_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)"
         }
       ],
       "indices": [
+        {
+          "nombre": "prendas_danadas_cambio_id_key",
+          "definicion": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)"
+        },
         {
           "nombre": "prendas_danadas_devolucion_item_id_key",
           "definicion": "CREATE UNIQUE INDEX prendas_danadas_devolucion_item_id_key ON retail.prendas_danadas USING btree (devolucion_item_id)"
@@ -8187,9 +8526,65 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "cci",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "celular_billetera",
+          "orden": 14,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "billeteras",
+          "orden": 15,
+          "tipo": "ARRAY",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "titular_cuenta",
+          "orden": 16,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "proveedores_billetera_coherente",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))"
+        },
+        {
+          "nombre": "proveedores_billeteras_validas",
+          "clase": "regla",
+          "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))"
+        },
+        {
+          "nombre": "proveedores_cci_formato",
+          "clase": "regla",
+          "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_celular_billetera_formato",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))"
+        },
         {
           "nombre": "proveedores_forma_pago_valida",
           "clase": "regla",
@@ -8209,6 +8604,11 @@
           "nombre": "proveedores_ruc_check",
           "clase": "regla",
           "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_titular_largo",
+          "clase": "regla",
+          "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))"
         }
       ],
       "indices": [

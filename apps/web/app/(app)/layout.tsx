@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { COOKIE_LATERAL, COOKIE_LATERAL_PLEGADO } from "@/lib/lateral-cookie";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
@@ -17,6 +19,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getTrasladosPorAtender(persona.ubicacionId, persona.rol === "lider"),
   ]);
 
+  // El lateral plegado (2026-09-19) se lee acá y no en el cliente: así la primera pintura ya sale
+  // con el ancho que la persona dejó, sin el salto de 17rem a 4.75rem que daría localStorage.
+  const lateralPlegado = (await cookies()).get(COOKIE_LATERAL)?.value === COOKIE_LATERAL_PLEGADO;
+
   return (
     <AppShell
       persona={{
@@ -29,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}
+      lateralPlegado={lateralPlegado}
     >
       {children}
     </AppShell>

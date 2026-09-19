@@ -29,7 +29,9 @@ export default async function RecibirLotePage() {
     listarRecepcionesSinComprobante({ limite: 20 }),
   ]);
   const proveedores = exigir(proveedoresRes, "el directorio de proveedores");
-  const costos = Object.fromEntries(conCosto.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }]));
+  // El costo promedio es dinero: la base ya se lo entrega NULL a quien no es líder (ADR-0126), así que para él la lista ni
+  // dibuja la columna de costo (llena de «—» no diría nada).
+  const costos = persona.rol === "lider" ? Object.fromEntries(conCosto.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }])) : undefined;
 
   const hoy = hoyLima();
   const ultima = resumen.ultimaRecepcion ? hoyLima(new Date(resumen.ultimaRecepcion)) : null;

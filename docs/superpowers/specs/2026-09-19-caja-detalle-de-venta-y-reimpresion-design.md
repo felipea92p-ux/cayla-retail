@@ -31,7 +31,7 @@ Desde la tarjeta «Movimientos recientes» de Caja:
 
 ### 1. Vuelto guardado (base + Vender)
 
-- Migración `supabase/migrations/20260919160000_venta_pagos_recibido.sql`:
+- Migración `supabase/migrations/20260919210000_venta_pagos_recibido.sql`:
   - `alter table venta_pagos add column if not exists recibido numeric(12,2)`.
   - Candado: `check (recibido is null or (metodo = 'efectivo' and recibido >= monto))`. El vuelto se calcula (`recibido − monto`), no se guarda: una sola cifra que no se desincroniza.
   - `registrar_venta`: `create or replace` con la **misma firma** (`p_pagos` sigue siendo `jsonb`; solo se lee `recibido` de cada elemento y se inserta). Sin sobrecargas nuevas.
@@ -96,7 +96,7 @@ La estructura de arriba es el piso legal; el aspecto se mejora así. Todo lo de 
 
 - **«Importe de venta» volvió** al bloque de importes (Felipe lo pidió al ver la maqueta): es el total con
   IGV, sobre la «Op. gravada». La dirección de diseño decía que se retiraba por repetir el TOTAL.
-- **No hay `pegar-en-produccion-….sql` aparte**: la migración `20260919160000_venta_pagos_recibido.sql` ya lleva
+- **No hay `pegar-en-produccion-….sql` aparte**: la migración `20260919210000_venta_pagos_recibido.sql` ya lleva
   `retail.` y su `search_path`, y se pega tal cual.
 - **La dirección de la clienta sigue sin guardarse.** El A4 la muestra solo en factura y en blanco; guardarla
   es un cambio aparte (columna en `comprobantes` y llevarla a Lucode).

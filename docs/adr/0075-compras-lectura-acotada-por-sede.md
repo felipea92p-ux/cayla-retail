@@ -74,3 +74,12 @@ Migración: `supabase/migrations/20260917173000_compras_candado_de_sede.sql`.
 - Sin verificar: si la misma auditoría de accesos del 2026-09-14 encontró el
   mismo patrón débil en tablas de Catálogo (no solo Compras), sigue sin
   tocar — esta sesión solo cubrió Compras.
+
+## Actualización (2026-09-19) — ADR-0126
+
+La lectura sigue acotada por sede, pero **ya no incluye montos**. Este ADR dejó a un integrante leer las compras de su
+sede *con* sus montos (lo necesitaba para recibir) y nunca decidió si debía verlos; las pruebas SQL de Compras lo
+marcaron como decisión pendiente (H4) y Felipe decidió cerrarlo. ADR-0126 pasa `compras`, `compra_items`,
+`compra_pagos`, `compra_adjuntos`, `compra_notas_credito` y el bucket de escaneos a solo-líder, y le da al integrante dos
+funciones operativas sin dinero. La regla de arriba sobre las RPC que leen `compras` directo (repetir el chequeo a
+mano) sigue valiendo, ahora con `fn_puede_ver_dinero_de_compras()` para lo que sea dinero.
