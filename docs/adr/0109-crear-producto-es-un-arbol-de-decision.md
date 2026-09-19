@@ -274,6 +274,21 @@ sin los filtros nuevos devuelven lo mismo que hoy. Pantallas en el navegador con
 selector (sugerencias, búsqueda, marca con dos proveedores, crear marca y proveedor), edición,
 censo, Marcas y Nuevo producto.
 
-**No verificado:** `db reset` completo (Docker caído; `seed.sql` se adaptó a ciegas), RLS reales,
-las funciones contra la base real, sesión de Líder real, Productos con `fn_productos` real (solo
-contra el esquema mínimo), y lector de pantalla.
+**Verificado por el CI (piloto «Pruebas de RPC contra Postgres», después de corregir un defecto
+propio, ver abajo):** la cadena COMPLETA de migraciones sobre una base nueva —las 8 de este ADR
+incluidas—, la carga de `seed.sql` ya adaptado a marca y proveedor obligatorios, y los scripts de
+venta y caja (`registrar_venta`, caja, cambios…) como regresión.
+
+**Defecto que encontró el CI y que mi propia prueba no podía ver:** el mapa de categorías
+(`230200`) abortaba en una base nueva porque el vocabulario de patrones todavía no existe ahí (las
+semillas locales corren DESPUÉS de las migraciones), y con él caían las migraciones que vienen
+detrás. Mi verificación «aborta todo si un nombre no existe» protegía a producción de un typo pero
+rompía cualquier `db reset`. Ahora distingue: un eje con el vocabulario **completamente vacío** se
+salta con un aviso («todavía no hay datos»); con vocabulario presente, un nombre que no calce
+**sigue abortando todo** («los datos no son los que creíamos»). Probado en cuatro escenarios
+(producción, patrones vacíos, typo, todo vacío). Lección: un candado que aborta es correcto solo
+si distingue «aún no hay datos» de «los datos están mal».
+
+**No verificado:** RLS reales, las funciones contra la base real de producción, sesión de Líder
+real, Productos con `fn_productos` real (solo contra el esquema mínimo y la copia exacta de
+producción), y lector de pantalla.
