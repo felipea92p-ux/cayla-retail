@@ -241,3 +241,12 @@ método apuntado; está razonado, no ejercitado).
   (el sondeo fallaría en silencio y el panel quedaría como antes, sin en vivo).
 - **Falta** activar Realtime (necesita el ok de Felipe para el DDL) y ver el bucle completo con una
   sesión real: las piezas se verificaron por separado, no de punta a punta.
+- **Capas de CSS (fusión con #153, ADR-0105).** Las clases de animación nuevas de Caja
+  (`.anim-dona-*`, `.anim-rueda`, `.anim-caja-*`, `.anim-ritmo-*`, `.anim-vivo-*`) viven en
+  `@layer components`, como exige ADR-0105 (`globals-capas.test.ts` rechaza una clase suelta), y sus
+  reglas de movimiento reducido van en el bloque con capa; los `@keyframes` quedan fuera. Consecuencia:
+  una utilidad de Tailwind sobre el mismo elemento ahora las pisa (antes ganaba la clase) — hoy ningún
+  uso combina utilidades que toquen `animation`, `opacity`, `transform-origin` ni `display`. Y
+  `label-cayla` / `font-display` no llevan utilidades de peso: se borraron 3 en el panel (`font-bold` del
+  chip de sincronización y del enlace "Ver historial completo", `font-semibold` del valor de `TarjetaKpi`),
+  como manda la tabla de ADR-0105. No se repitió la revisión visual tras la fusión.
