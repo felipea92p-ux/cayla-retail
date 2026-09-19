@@ -23,7 +23,7 @@
  *
  * USO
  *   pnpm pruebas:pago-por-lote-medios   → necesita el stack local (`npx supabase start`) con la migración
- *                                          `20260919190000_pago_por_lote_varios_medios.sql` aplicada
+ *                                          `20260919190000_pago_por_lote_varios_medios.sql` y `20260919200000_pago_por_lote_medios_endurece.sql` aplicadas
  */
 
 import { execFileSync } from "node:child_process";
@@ -165,6 +165,8 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}${compra("c2")}
+-- ADR-0135 M2: la fecha no puede ser anterior a la emisión; c1 se emitió hace 5 días para poder pagarla «ayer».
+update retail.compras set fecha_emision = retail.fn_hoy_lima() - 5 where id = :'c1';
 select retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c1", "100.00")}),
   jsonb_build_array(${medio("efectivo", "100.00")}), retail.fn_hoy_lima() - 1) as g1 \\gset
 select retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c2", "100.00")}),
@@ -396,6 +398,33 @@ rollback;
 `
   ),
   ["t", "t", "2", "1416.00"]
+);
+
+exito(
+  "reintento con saldo a favor: el pago dejó el saldo a favor en 0 y repetir el mismo token devuelve el mismo grupo (ADR-0135 M1)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}
+select gen_random_uuid() as tk \\gset
+select retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c2", "1416.00")}), jsonb_build_array(${medio("transferencia", "1180.00")}), null, :'tk', 236.00) as g1 \\gset
+select retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c2", "1416.00")}), jsonb_build_array(${medio("transferencia", "1180.00")}), null, :'tk', 236.00) as g2 \\gset
+select (:'g1' = :'g2'), (select count(*) from retail.compra_pagos where compra_id = :'c2');
+rollback;
+`
+  ),
+  ["t", "2"]
+);
+
+error(
+  "una fecha de pago futura se rechaza (ADR-0135 M2)",
+  comoPersona(FELIPE, `${BASE}${compra("c1")}\nselect retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c1", "100")}), jsonb_build_array(${medio("efectivo", "100.00")}), retail.fn_hoy_lima() + 30);`),
+  "no puede ser futura"
+);
+
+error(
+  "una fecha de pago anterior a la emisión del comprobante se rechaza (ADR-0135 M2)",
+  comoPersona(FELIPE, `${BASE}${compra("c1")}\nselect retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c1", "100")}), jsonb_build_array(${medio("efectivo", "100.00")}), retail.fn_hoy_lima() - 400);`),
+  "es anterior a la emisión"
 );
 
 error(

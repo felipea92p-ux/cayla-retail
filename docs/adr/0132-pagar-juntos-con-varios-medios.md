@@ -1,9 +1,11 @@
 # ADR-0132 — Pagar juntos con varios medios: `registrar_pago_compras_medios`
 
 - **Fecha:** 2026-09-19
-- **Estado:** Aceptado. **Producción:** requiere UNA migración —
-  `supabase/migrations/20260919190000_pago_por_lote_varios_medios.sql`— que Felipe pega en el SQL Editor (con el
-  prefijo `retail.`). Es solo una función nueva: no toca tablas, no toca datos, no modifica ninguna función existente.
+- **Estado:** Aceptado. **Producción:** dos migraciones que Felipe pega en el SQL Editor, en orden:
+  `20260919190000_pago_por_lote_varios_medios.sql` (ya pegada) y
+  `20260919200000_pago_por_lote_medios_endurece.sql` (alinea la función con el endurecimiento de ADR-0135: token antes
+  del saldo a favor y fecha de pago validada; requiere `fn_validar_fecha_pago_compra`, que verificado el 2026-09-19 ya
+  existe en producción). Es solo una función nueva: no toca tablas, no toca datos, no modifica ninguna función existente.
   Hasta que se aplique, el modal sigue pagando con UN medio (la ruta de siempre) y solo falla si alguien divide el pago
   en dos medios.
 - **Decide:** Felipe («procede con la función de pagar juntos»). Arquitectura: este documento.
@@ -33,6 +35,13 @@ el lote resuelve: un solo pago, un solo `pago_grupo_id`, conciliable contra el b
 5. **La pantalla elige la ruta:** con un medio (o todo con saldo a favor) llama a `registrar_pago_compras`, sin cambios;
    con dos o más, a la nueva. Por eso desplegar la pantalla antes que la migración no rompe el pago simple.
 
+## Endurecimiento (ADR-0135)
+
+La función se escribió sobre la definición de producción cuando el endurecimiento de los pagos aún no estaba en `main`, y
+heredó dos huecos que esa migración cierra en las otras rutas: (M1) el saldo a favor disponible se miraba antes del token,
+así que el reintento de un pago que usó saldo a favor fallaba en vez de devolver el éxito original; (M2) la fecha del pago
+no se validaba. La segunda migración los corrige con la misma firma (`create or replace`, sin sobrecarga).
+
 ## Pantalla
 
 `PagoJuntosModal` usa `MediosDePago` en modo `exacto`: con un medio es el diseño del spike (píldoras + referencia +
@@ -43,7 +52,7 @@ mientras los medios no sumen lo que hay que cubrir.
 
 ## Verificación
 
-`pnpm pruebas:pago-por-lote-medios` — 24 casos contra el Postgres local, cada uno en su transacción con ROLLBACK
+`pnpm pruebas:pago-por-lote-medios` — 27 casos contra el Postgres local, cada uno en su transacción con ROLLBACK
 (cascada, parcial, paridad con la función vieja, saldo a favor, cada rechazo, 8 medios, todo o nada, idempotencia,
 permiso). Y un pago real de dos comprobantes con dos medios desde el navegador: 1,416 + 584 transferencia y 832 efectivo,
 mismo `pago_grupo_id`.
