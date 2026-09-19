@@ -2680,6 +2680,9 @@ export type Database = {
         Row: {
           activo: boolean
           banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
           contacto: string | null
           created_at: string
           cuenta_bancaria: string | null
@@ -2690,10 +2693,14 @@ export type Database = {
           rubro: string | null
           ruc: string | null
           telefono: string | null
+          titular_cuenta: string | null
         }
         Insert: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2704,10 +2711,14 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
         }
         Update: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2718,6 +2729,7 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
         }
         Relationships: []
       }
@@ -4376,6 +4388,9 @@ export type Database = {
         Returns: {
           activo: boolean
           banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
           contacto: string
           cuenta_bancaria: string
           dias_desde_ultima_compra: number
@@ -4396,6 +4411,7 @@ export type Database = {
           saldo_favor: number
           saldo_vencido: number
           telefono: string
+          titular_cuenta: string
           total_facturado: number
           ultima_compra: string
         }[]
@@ -4559,6 +4575,16 @@ export type Database = {
           vendedor: string
           venta_id: string
         }[]
+      }
+      guardar_cuentas_proveedor: {
+        Args: {
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_proveedor_id: string
+          p_titular_cuenta?: string
+        }
+        Returns: undefined
       }
       iniciar_traslado: {
         Args: {

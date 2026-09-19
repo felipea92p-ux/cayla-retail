@@ -854,6 +854,24 @@ body {
   }
 }
 
+/* ---- Por pagar (2026-09-19, spike `docs/maquetas/por-pagar-spike-2026-09/`, mismo modelo que Proveedores) ----
+        · destello-ok: la fila que acaba de RECIBIR un pago parcial se enciende en verde (la de Proveedores es
+          roja: aquella marca «lo que acabas de crear»; ésta, «plata que salió»). 2.4 s y se apaga sola;
+          `backwards` para no retener un `background` que taparía el hover.
+        · tilde: el check de una casilla se DIBUJA (`pathLength="1"` en el SVG). Más corto que `anim-trazo`
+          (320 ms, sin desfase): responde a un clic, no acompaña una llegada.
+        · pagada: la fila que se acaba de pagar por completo muestra su sello unos instantes antes de plegarse
+          (el pliegue en sí es JS: `PorPagarLista`, Web Animations sobre la altura).
+        Sin rebote, sin color nuevo. ---- */
+@keyframes cayla-destello-ok {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@layer components {
+  .anim-destello-ok { animation: cayla-destello-ok 2400ms var(--ease-cayla) backwards; }
+  .anim-tilde { animation: cayla-trazo-entra 320ms var(--ease-cayla) backwards; }
+}
+
 /* ---- Recibir mercadería (2026-09-19, spike de Recibir): lo que responde al contar ----
         · lectura: cuando la pistola lee una etiqueta la fila se tiñe de verde suave y se apaga sola (1.5 s).
           Es el mismo gesto que `anim-destello-fila`, en verde porque es una CONFIRMACIÓN («entró»), no un
