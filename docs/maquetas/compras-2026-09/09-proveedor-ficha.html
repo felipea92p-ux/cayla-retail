@@ -1,0 +1,204 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ficha de proveedor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+--taupe:#a47865;--taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+--t75:rgba(26,26,24,.75);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t45:rgba(26,26,24,.45);
+--t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#e6dfd0;-webkit-font-smoothing:antialiased;font-size:14px}
+.disp{font-family:'EB Garamond',Georgia,serif}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+.ic{flex:none;vertical-align:middle}
+.rel{position:relative}
+.muted{color:var(--t65)}.m55{color:var(--t55)}.m45{color:var(--t45)}
+.xs{font-size:12px}.sm{font-size:13px}
+.r{text-align:right}.c{text-align:center}
+.rojo{color:var(--rojo)}.ambar{color:var(--ambar-p)}.verde{color:var(--verde-p)}
+
+/* lienzo de la imagen (fuera de la app) */
+.lienzo{width:1520px;padding:28px 40px 40px;background:#e6dfd0}
+.rot{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.rot .n{width:34px;height:34px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:19px}
+.rot h1{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.rot .sub{color:var(--t65);font-size:14px}
+.rot .tag{margin-left:auto;border:1px dashed var(--t25);padding:5px 12px;border-radius:999px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+
+/* la app */
+.app{position:relative;width:1440px;background:var(--crema);border-radius:14px;overflow:hidden;display:flex;
+box-shadow:0 18px 44px -14px rgba(26,26,24,.16);border:1px solid rgba(26,26,24,.12)}
+.side{width:272px;flex:none;border-right:1px solid var(--t10);display:flex;flex-direction:column;background:var(--crema);min-height:100%}
+.logo{display:flex;align-items:center;gap:12px;padding:28px 28px 22px}
+.logo img{height:32px}.logo span{font-size:14px;letter-spacing:.26em;font-weight:600}
+.nuevo{margin:0 12px 26px}
+.nav{padding:0 12px;flex:1}
+.it{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;color:var(--t75);font-size:14px;position:relative;margin-bottom:2px}
+.it .chev{margin-left:auto;color:var(--t45)}
+.it.ch{padding-left:40px}
+.it.on{background:rgba(232,224,208,.65);color:var(--tinta);font-weight:500}
+.it.on:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:var(--tinta)}
+.sig{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe-p);padding:22px 28px 18px}
+.yo{border-top:1px solid var(--t10);padding:18px 28px;display:flex;gap:12px;align-items:center}
+.yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px}
+.main{flex:1;min-width:0;position:relative}
+.top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;padding:0 32px;background:rgba(245,240,232,.85)}
+.cont{padding:30px 40px 56px}
+.eyebrow{color:var(--t65)}
+h1.t{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:4px;line-height:1.15}
+p.bajada{color:var(--t65);margin-top:5px;font-size:14px;max-width:760px}
+
+/* piezas */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:12px 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.fan{border:1px solid var(--t25)}
+.btn.dis{border:1px solid rgba(26,26,24,.2);color:var(--t75)}
+.btn.s{padding:7px 11px}
+.btn.off{background:rgba(26,26,24,.3);color:var(--crema)}
+.chip{display:inline-block;white-space:nowrap;border-radius:999px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.neutro{border-color:var(--t15);background:var(--t04);color:var(--t75)}
+.chip.ambar{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.verde{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.chip.rojo{border-color:rgba(184,65,45,.3);background:rgba(184,65,45,.10);color:var(--rojo-p)}
+.chip.apagado{border-color:var(--t10);color:var(--t45)}
+.grid{display:grid;gap:12px}
+.kpi{padding:16px;position:relative}
+.kpi .row{display:flex;align-items:center;gap:7px}
+.kpi .dot{width:6px;height:6px;border-radius:50%;background:var(--t25);flex:none}
+.kpi .dot.ambar{background:var(--ambar)}.kpi .dot.verde{background:var(--verde)}.kpi .dot.rojo{background:var(--rojo)}
+.kpi .lbl{color:var(--t65)}
+.kpi .n{font-family:'EB Garamond',serif;font-size:29px;line-height:1.15;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .n small{font-size:15px;color:var(--t55);font-family:'DM Sans',sans-serif;margin-left:4px}
+.kpi .d{font-size:12px;margin-top:3px;color:var(--t65)}
+.kpi.rojo .n,.kpi.rojo .d{color:var(--rojo)}
+.kpi.ambar .n,.kpi.ambar .d{color:var(--ambar-p)}
+.kpi.verde .n{color:var(--verde-p)}
+.kpi .d.rojo{color:var(--rojo)}.kpi .d.ambar{color:var(--ambar-p)}.kpi .d.verde{color:var(--verde-p)}
+.kpi.acento{border-left:2px solid var(--rojo)}
+.kpi.vacio{border-style:dashed;background:transparent}
+.kpi.vacio .n{color:var(--t45)}
+/* tabla */
+.tbl{overflow:hidden}
+.th,.tr{display:grid;column-gap:16px;padding:12px 20px;align-items:center}
+.th{padding:9px 20px;border-bottom:1px solid var(--t10)}
+.th span{white-space:nowrap;color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.tr{border-top:1px solid var(--t10)}
+.th+.tr,.tr:first-child{border-top:0}
+.tr .a{font-size:14px}.tr .b{font-size:12px;color:var(--t55);margin-top:1px}
+.tr .n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tr.dim{opacity:.4}
+.tr.sel{background:rgba(184,65,45,.045)}
+.band{display:flex;justify-content:space-between;align-items:baseline;padding:8px 20px;border-top:1px solid var(--t10)}
+.band.rojo{background:rgba(184,65,45,.06);color:var(--rojo)}
+.band.ambar{background:rgba(140,99,31,.08);color:var(--ambar-p)}
+.band.neutro{background:var(--t04);color:var(--t65)}
+.band b{font-weight:400;font-size:14px;font-variant-numeric:tabular-nums}
+/* pestañas / segmentado / campos */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--t10)}
+.tabs .tb{padding:4px 14px 11px;color:var(--t65);margin-bottom:-1px;border-bottom:2px solid transparent}
+.tabs .tb.on{color:var(--tinta);border-bottom-color:var(--rojo)}
+.tabs .tb i{font-style:normal;font-weight:500;color:var(--t45);margin-left:6px;letter-spacing:0}
+.seg{display:inline-flex;border:1px solid var(--t15);border-radius:8px;overflow:hidden}
+.seg span{padding:8px 13px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.seg span.on{background:var(--tinta);color:var(--crema)}
+.campo .l{color:var(--t65);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.campo .v{border-bottom:1px solid var(--t25);padding:7px 2px 6px;margin-top:4px;font-size:14px;min-height:31px;display:flex;align-items:center;gap:8px}
+.campo .v.mono{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.campo .h{font-size:11.5px;color:var(--t55);margin-top:5px;line-height:1.35}
+.busca{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--t25);padding:7px 2px;color:var(--t45);flex:1;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--t15);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.chk{width:17px;height:17px;border:1.5px solid var(--t45);border-radius:4px;display:inline-grid;place-items:center;flex:none;background:var(--papel)}
+.chk.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.prog{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px}
+/* marcadores y leyenda */
+.m{position:absolute;top:-14px;left:-14px;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);
+display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;box-shadow:0 0 0 3px var(--crema);z-index:5;letter-spacing:0}
+.m.der{left:auto;right:-14px}.m.ab{top:auto;bottom:-14px}.m.izq{left:-36px;top:2px}.m.val{left:auto;right:-14px;top:26px}.m.arr{left:auto;right:4px;top:-24px}.m.st{position:static;display:inline-grid;margin:0 8px 0 0;box-shadow:none;width:20px;height:20px;font-size:11px;vertical-align:middle}.m.fin{left:auto;right:-36px;top:8px}
+.ley{margin-top:22px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 28px 14px}
+.ley h3{color:var(--t65);margin-bottom:10px}
+.ley .g{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
+.ley .li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--t10)}
+.ley .li .m2{width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;margin-top:1px}
+.ley .li b{font-weight:600;font-size:14px}
+.ley .li p{color:var(--t65);font-size:13px;line-height:1.45;margin-top:2px}
+.dec{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:var(--sand);font-size:10px;letter-spacing:.13em;font-weight:700;color:var(--t75);vertical-align:1px}
+/* modal */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(2.5px);display:flex;align-items:center;justify-content:center;z-index:20;padding:40px}
+.modal{background:var(--papel);border-radius:16px;box-shadow:0 30px 64px -22px rgba(26,26,24,.20);border:1px solid var(--sand);position:relative}
+.modal .hd{padding:22px 26px 16px}
+.modal .bd{padding:0 26px 22px}
+.modal .ft{padding:16px 26px;border-top:1px solid var(--t10);display:flex;gap:10px;align-items:center}
+.sticky{position:absolute;left:272px;right:0;bottom:0;border-top:1px solid var(--sand);background:rgba(245,240,232,.94);backdrop-filter:blur(8px);z-index:10;padding:12px 40px;display:flex;align-items:center;gap:24px;justify-content:space-between}
+/* celular */
+.phones{display:flex;gap:44px;justify-content:center;padding:6px 0 4px}
+.phone{width:398px;border:9px solid var(--tinta);border-radius:46px;background:var(--crema);position:relative;overflow:hidden}
+.phone .pt{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--t10)}
+.phone .pt img{height:24px}
+.phone .pc{padding:16px 16px 150px}
+.phone .nav5{position:absolute;left:0;right:0;bottom:0;border-top:1px solid var(--t10);background:rgba(245,240,232,.95);display:grid;grid-template-columns:repeat(5,1fr);padding:9px 0 20px;text-align:center;font-size:10px;color:var(--t65)}
+.phone .nav5 div.on{color:var(--tinta);font-weight:700}
+.phone .bar{position:absolute;left:0;right:0;bottom:66px;border-top:1px solid var(--sand);background:rgba(245,240,232,.96);padding:10px 16px;z-index:5}
+.step{display:flex;align-items:center;border:1px solid var(--t25);border-radius:10px;overflow:hidden}
+.step b{width:40px;height:40px;display:grid;place-items:center;font-size:20px;font-weight:400;color:var(--t65)}
+.step span{width:46px;text-align:center;font-family:'EB Garamond',serif;font-size:22px;border-left:1px solid var(--t15);border-right:1px solid var(--t15);height:40px;line-height:40px}
+
+.num{display:inline-block;width:64px;text-align:center;border-bottom:1px solid var(--t25);padding:5px 0;font-variant-numeric:tabular-nums;font-size:15px;border-radius:6px 6px 0 0}
+.num.ok{border-bottom:2px solid var(--verde);background:rgba(85,110,73,.09);color:var(--verde-p)}
+.num.par{border-bottom:2px solid var(--ambar);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.num.cero{color:var(--t45)}
+.tog{width:40px;height:23px;border-radius:99px;background:var(--tinta);position:relative;display:inline-block;flex:none}
+.tog:after{content:"";position:absolute;right:3px;top:3px;width:17px;height:17px;border-radius:50%;background:var(--crema)}
+.stat{border:1px solid var(--sand);border-radius:12px;padding:12px 16px;background:var(--papel)}
+.stat .n{font-family:'EB Garamond',serif;font-size:28px;line-height:1.1;margin-top:3px}
+.lk{color:var(--rojo);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.li2{display:flex;gap:12px;align-items:center;border-left:2px solid transparent;padding:10px 16px}
+.li2.on{border-left-color:var(--rojo);background:rgba(184,65,45,.045)}
+.grp{padding:12px 16px 4px}
+</style></head><body>
+<div class="lienzo" style="width:1520px"><div class="rot"><div class="n">9</div><div><h1>Ficha de proveedor</h1><div class="sub">Ruta /compras/proveedores/[id] — confiabilidad, costo y acciones</div></div>
+<span class="tag">Maqueta propuesta · datos de ejemplo</span></div>
+<div class="app"><aside class="side">
+<div class="logo"><img src="cayla-isotipo.png"><span class="lbl">CAYLA</span></div>
+<div class="nuevo"><span class="btn pri w"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nuevo</span></div>
+<nav class="nav">
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Inicio</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Colaboradores</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Catálogo</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Compras</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it on ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg><span>Proveedores</span></div><div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg><span>Comprobantes</span></div>
+<div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Recibir mercadería</span></div><div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg><span>Por pagar</span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Ventas</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Inventario</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+</nav>
+<div class="sig">Donde el estilo transforma.</div>
+<div class="yo"><div class="av">FA</div><div><div class="sm">Felipe Alvarez</div><div class="lbl" style="font-size:10px;color:var(--t65);margin-top:2px">Líder · Taller · Lima</div></div></div>
+</aside><div class="main">
+<div class="top"><span class="lbl" style="color:var(--t65)">Taller · Lima</span><span style="margin-left:6px;color:var(--t45)"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="cont"><div><div class="xs muted">← Volver a Proveedores</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-top:8px"><div><h1 class="t">Tejidos Rímac SAC</h1>
+<p class="bajada" style="margin-top:4px">RUC 20•••••••76 · Jorge Ramos · Tela</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="chip neutro">Crédito a 30 días</span><span class="chip neutro">Paga por transferencia</span><span class="chip neutro">BCP · CCI 002-193-••••-45</span><span class="chip neutro">+51 9•• ••• 123</span></div></div>
+<div class="rel" style="display:flex;gap:10px"><i class="m der">1</i><span class="btn fan "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>WhatsApp</span><span class="btn fan "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copiar CCI</span><span class="btn fan "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar</span><span class="btn pri "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Registrar comprobante</span></div></div></div><div class="lbl muted" style="margin:26px 0 10px">Prendas terminadas · últimos 12 meses</div>
+<div class="grid rel" style="grid-template-columns:repeat(3,1fr)"><i class="m der">2</i>
+<div class="card kpi neutro "><div class="row"><span class="dot "></span><span class="lbl">Total facturado</span></div><div class="n">S/ 13,829.60</div><div class="d ">3 comprobantes vigentes</div></div>
+<div class="card kpi neutro "><div class="row"><span class="dot ambar"></span><span class="lbl">Saldo pendiente</span></div><div class="n">S/ 11,829.60</div><div class="d rojo">Vencido: S/ 4,720.00 (1 comprobante)</div></div>
+<div class="card kpi ambar "><div class="row"><span class="dot ambar"></span><span class="lbl">Entregas atrasadas</span></div><div class="n">2</div><div class="d ">de 3 comprobantes · ver cuáles →</div></div>
+<div class="card kpi neutro "><div class="row"><span class="dot "></span><span class="lbl">Entregado completo</span></div><div class="n">33 %</div><div class="d ">1 de 3 comprobantes llegó completo</div></div>
+<div class="card kpi neutro "><i class="m ">3</i><div class="row"><span class="dot "></span><span class="lbl">Tiempo de entrega</span></div><div class="n">11 días</div><div class="d ">emisión → llegada · <b style="font-weight:600">basado en 1 comprobante</b></div></div>
+<div class="card kpi neutro vacio"><div class="row"><span class="lbl">Plazo de pago real</span></div><div class="n">—</div><div class="d ">Pactado: 30 días. Se calcula con 2 o más comprobantes pagados</div></div>
+</div><div class="grid" style="grid-template-columns:1fr 1fr;margin-top:12px"><div class="card rel" style="padding:18px 20px"><i class="m ">4</i><div class="lbl muted">Evolución del costo · Blusa Emma</div>
+<div style="display:flex;align-items:baseline;gap:12px;margin-top:8px"><span class="disp ambar" style="font-size:30px">+8.7 %</span><span class="xs muted">en 3 compras · 4 semanas</span></div>
+<div style="margin-top:6px"><svg width="100%" height="120" viewBox="0 0 420 120" preserveAspectRatio="none">
+<line x1="20" y1="100" x2="400" y2="100" stroke="rgba(26,26,24,.12)"/>
+<polyline points="30,84 210,48 390,16" fill="none" stroke="#734f15" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="30" cy="84" r="5" fill="#734f15"/><circle cx="210" cy="48" r="5" fill="#734f15"/><circle cx="390" cy="16" r="5" fill="#734f15"/></svg></div>
+<div style="display:flex;justify-content:space-between;margin-top:2px" class="xs"><span><b style="font-weight:600">S/ 46.00</b><br><span class="m55">05/08</span></span><span class="c"><b style="font-weight:600">S/ 48.00</b><br><span class="m55">20/08</span></span><span class="r"><b style="font-weight:600">S/ 50.00</b><br><span class="m55">02/09</span></span></div>
+<div class="xs muted" style="margin-top:10px;border-top:1px solid var(--t10);padding-top:10px">Sube en cada compra: el dato para pactar el precio del próximo pedido.</div></div><div class="card rel"><i class="m ">5</i><div style="padding:16px 20px 10px" class="lbl muted">Últimos comprobantes</div>
+<div class="tr" style="grid-template-columns:104px 1fr 132px"><div><div class="a tab sm">F001-000482</div><div class="b">02/09</div></div><div><span class="chip ambar">Atrasada 9 días</span><div class="b">Faltan S/ 3,923.60</div></div><div class="n a">S/ 5,923.60</div></div>
+<div class="tr" style="grid-template-columns:104px 1fr 132px"><div><div class="a tab sm">F001-000455</div><div class="b">20/08</div></div><div><span class="chip ambar">Atrasada 8 días</span><div class="b">Vence mañana</div></div><div class="n a">S/ 3,186.00</div></div>
+<div class="tr" style="grid-template-columns:104px 1fr 132px"><div><div class="a tab sm">F001-000412</div><div class="b">05/08</div></div><div><span class="chip rojo">Vencida</span><div class="b">Recibida el 16/08</div></div><div class="n a">S/ 4,720.00</div></div>
+<div style="padding:12px 20px;border-top:1px solid var(--t10)" class="lk">Ver todos sus comprobantes →</div></div></div><div class="grid rel" style="grid-template-columns:1fr 1fr;margin-top:12px"><i class="m ">6</i>
+<div class="card" style="padding:18px 20px;border-style:dashed;background:transparent"><div class="lbl muted">Devoluciones y dañados a este proveedor</div><div class="disp m45" style="font-size:26px;margin-top:6px">0 unidades</div><div class="xs muted" style="margin-top:4px">Se llena cuando una prenda se devuelve al proveedor desde cuarentena, con su nota de crédito.</div></div>
+<div class="card" style="padding:18px 20px;border-style:dashed;background:transparent"><div class="lbl muted">Insumos del Taller</div><div class="disp m45" style="font-size:26px;margin-top:6px">Sin lotes todavía</div><div class="xs muted" style="margin-top:4px">Cuando se reciba tela o avíos de este proveedor aparecerán acá, separados de las prendas terminadas.</div></div></div></div></div></div>
+<div class="ley"><h3 class="lbl">Qué cambia en esta pantalla</h3><div class="g"><div><div class="li"><div class="m2">1</div><div><b>Una ficha con acciones</b><p>Hoy es solo lectura. Ahora: registrar un comprobante con este proveedor ya elegido, escribirle por WhatsApp desde el teléfono guardado, copiar el CCI y editar sin volver a la lista.</p></div></div><div class="li"><div class="m2">2</div><div><b>Seis indicadores de caja y confiabilidad</b><p>Facturado y saldo, entregas atrasadas (ya calculadas, nunca mostradas), % entregado completo, tiempo de entrega y plazo de pago real frente al pactado. Responden «¿me conviene y me cumple?».</p></div></div><div class="li"><div class="m2">3</div><div><b>Honestidad con pocos datos</b><p>«Basado en 1 comprobante» junto al promedio, y el plazo real aparece solo con 2 o más pagados. Un promedio con una muestra tan chica no se presenta como si fuera una tendencia.</p></div></div></div><div><div class="li"><div class="m2">4</div><div><b>Evolución del costo por prenda</b><p>Sale de `costo_historial`: cuánto cambia el costo unitario en cada compra. Es el argumento para pedir mantener el precio en el siguiente pedido.</p></div></div><div class="li"><div class="m2">5</div><div><b>Últimos comprobantes en la ficha</b><p>Los tres más recientes con su estado, sin saltar a otra lista. El enlace lleva a todos, ya filtrados por este proveedor.</p></div></div><div class="li"><div class="m2">6</div><div><b>Dos negocios, nunca sumados</b><p>Devoluciones/dañados e insumos del Taller siguen en tarjetas separadas de las prendas terminadas (regla de ADR-0094). Sus estados vacíos explican cuándo se llenan.</p></div></div></div></div></div>
+</div></body></html>

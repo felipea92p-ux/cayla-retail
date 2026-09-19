@@ -28,6 +28,69 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
+
+Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
+local; sin push)**: tipos, tests, lint y las 99 pruebas SQL en verde, y las 135 migraciones del repo se
+reprodujeron limpias desde cero en un Postgres nuevo. Falta el PR contra `main`. Las 11 pantallas de `docs/maquetas/compras-2026-09/` están
+implementadas en código (Por pagar, Recibir mercadería, Comprobantes, Registrar, Proveedores +
+ficha, Ingreso sin comprobante). D1 (cantidades arrancan en 0), D2 (cerrar línea con faltante +
+nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor de una vez).
+El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 15 migraciones
+van en la banda `20260918200000`–`20260918218000` (main trae su propia `20260918160000`, y otras dos ramas usan
+`20260918170000`: una versión repetida rompe `supabase migration up`).
+
+- [ ] **Pegar en producción las 15 migraciones, en este orden** (Felipe, con su ok). Verificado
+      2026-09-18 contra la base de producción (`vovjyyiafkxteijimpuy`): ninguna está aplicada; todo
+      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro últimas (12–15) llegaron el mismo día,
+      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
+      que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
+      trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
+      1. `20260918200000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC). **Producción ya
+         tiene esta función** (la creó otra rama con el mismo cuerpo): este paso es `create or replace` y solo le
+         agrega sus permisos; no falla.
+      2. `20260918201000_compras_libro_cierres_y_notas_credito` — tablas `compra_item_cierres` y
+         `compra_notas_credito` (append-only) + `compra_pagos.pago_grupo_id` + columnas snapshot.
+      3. `20260918202000_compras_saldo_y_recepcion_con_cierres_y_notas` — `saldo = total − pagado −
+         notas` y `pendiente = cantidad − recibido − cerrado`; triggers de foto, candados
+         `compras_no_sobrepagada`/`compras_no_sobrerecibida` y vistas `compras_resumen`/`compra_items_resumen`.
+      4. `20260918203000_registrar_pago_compras_por_lote` — pago de varios comprobantes juntos.
+      5. `20260918204000_compras_cerrar_linea_y_nota_credito` — `cerrar_linea_compra`,
+         `registrar_nota_credito_compra`.
+      6. `20260918205000_compras_recibir_anular_y_listar_con_cierres` — `recibir_compras`,
+         `anular_compra`, `listar_compras` conscientes de cierres y notas.
+      7. `20260918210000_compras_resumen_hoy_lima_y_extra` — `resumen_compras`, `resumen_compras_extra`.
+      8. `20260918211000_compras_deuda_tramos_y_salidas_de_caja` — `deuda_por_vencimiento`,
+         `salidas_caja_30d`, `por_pagar_tramos`.
+      9. `20260918212000_compras_recepciones_indicadores` — `resumen_recepciones`,
+         `listar_recepciones_compras`.
+      10. `20260918213000_compras_sin_comprobante_indicadores` — `resumen_sin_comprobante`,
+          `recepciones_sin_comprobante`.
+      11. `20260918214000_proveedores_indicadores` — `fn_proveedores` (+4 columnas),
+          `fn_proveedores_resumen`, `fn_proveedor_metricas_compras` (+7), `fn_proveedor_costo_evolucion`,
+          `fn_proveedor_devoluciones`.
+      12. `20260918215000_compras_nota_credito_estricta_y_saldo_a_favor` — `compra_notas_credito.aplicado`,
+          libro `proveedor_creditos`, reglas de la nota por faltante, `cerrar_linea_compra` sin nota.
+      13. `20260918216000_recibir_y_cerrar_compras_atomico` — recibir + cerrar + nota en una transacción.
+      14. `20260918217000_saldo_a_favor_como_medio_de_pago_y_reembolso` — medio `saldo_a_favor` en los tres
+          pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
+      15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
+          `fn_proveedor_creditos`.
+      **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
+      migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
+- [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
+      login y yo no ingreso contraseñas. Con sesión iniciada en `localhost:3000`, comparar cada
+      pantalla con su PNG de `docs/maquetas/compras-2026-09/` y corregir desvíos.
+- [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
+      vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
+      comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
+      `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
+      (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
+      la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
+      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas).
+
+---
+
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 
 Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sola regla
@@ -80,11 +143,57 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 - [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
       `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
       los documentos del porqué, todavía no.
-- [ ] **Refrescar el volcado de producción** (`generado/COMO-REFRESCAR.md`):
-      `retail.familias` ya existe allá desde el PR #129 y el volcado del 17-sep no la
-      tiene. Hasta refrescarlo, la alarma del aviario no ve las tablas nacidas después.
+- [x] **Volcado de producción refrescado (2026-09-18)** (`generado/COMO-REFRESCAR.md`):
+      `retail.familias` entró; el aviario ve 61 tablas y ninguna «no en el volcado».
+      Sale de aquí una alarma más fresca, no permanente: se vuelve a quedar vieja con
+      cada tanda de migraciones pegadas en producción.
+- [ ] **Producción va por delante de `main` en dos columnas:** `retail.patrones.imagen_muestra_url`
+      y `retail.tejidos.imagen_muestra_url` existen en producción, pero su SQL solo está en
+      ramas sin fusionar (PR #131, migración `20260918140000_patrones_muestra_visual.sql`, y
+      la rama `claude/muestra-foto-tejidos-patrones`, migración
+      `20260918160000_tejidos_patrones_imagen_muestra.sql`, sin PR). Ojo: `main` ya tiene un
+      `20260918140000_tejidos_seed.sql`; el PR #131 traería un segundo archivo con la misma
+      versión y `supabase db reset` local se quejaría. Renumerar antes de fusionar.
+- [ ] **Registro de migraciones incompleto en producción (refuerza el pendiente de Gorrión de
+      arriba):** con efecto vivo en producción (verificado por sus columnas/funciones) pero sin fila en
+      `supabase_migrations.schema_migrations` están, al menos siete: `devolver_proveedor_entra_a_cuarentena`,
+      las tres de Proveedores (`…071000`, `…073000`, `…120000`),
+      `compras_atraso_recepcion`, `etiquetas_estilo_visual`, `emitir_comprobante_idempotente_y_valida_igv`.
+      No hay SQL desconocido (cada columna nueva del volcado tiene su archivo en el repo, salvo lo
+      de arriba): lo que falta es el rastro.
 
 ---
+
+## 🎯 El acento rojo de las tarjetas por fin se ve: `.card-cayla` sale de la sombra (2026-09-18, ADR-0105)
+
+`.card-cayla` (y `.label-cayla`, `.font-display`, `.alza-cayla`, `.scroll-cayla`, `.anim-*`) estaban
+en `globals.css` fuera de toda `@layer`, y lo que no tiene capa le gana a toda utilidad de Tailwind:
+`card-cayla border-l-2 border-l-rojo` pintaba el borde sand de 1px. El acento de "esta tarjeta pide
+algo" no se veía en Resumen, Existencias, Conteo, Traslados, Productos ni en el banner de altas
+pendientes; tampoco existían el fondo de "filtro seleccionado" ni el foco de teclado de las tarjetas
+de `/compras`. Todo pasó a `@layer components` y hay un test (`lib/globals-capas.test.ts`) que falla
+si alguien vuelve a escribir una clase suelta. Detalle, tabla de utilidades muertas y qué se decidió
+con cada una: ADR-0105.
+
+- [x] **Hecho y verificado en navegador** con 752 `className` reales del código: mover la capa
+      cambia exactamente lo que el análisis predijo, y nada más. `tsc`, `eslint`, 419 tests en verde.
+      **No verificado con datos reales:** el Docker local estaba caído y no se reinició (tumbaría los
+      Supabase de otras sesiones). Falta que alguien con la base local arriba mire, como líder:
+      Inventario → Resumen (borde rojo en "Necesita reposición ahora"; el filtro elegido queda
+      sombreado), Traslados (borde en "Por confirmar en mi sede"), Conteo con un conteo abierto,
+      Productos con una prenda dada de alta en un conteo, y Compras con Tab (borde rojo al enfocar).
+- [x] **`MAX_ROJO_POR_PANTALLA` — decidido por Felipe el 2026-09-18 (opción A).** Los enlaces de
+      acción de las tarjetas ("Ver detalle →"…) y los del banner de altas pendientes de Productos
+      pasaron a tinta subrayado; el rojo de una tarjeta es su borde. Resumen bajó de 5 a 2 rojos
+      (medido en navegador); Traslados, Conteo y Productos quedan en ≤2. Verificar con datos reales
+      junto con lo de arriba.
+- [x] **`/compras/por-pagar`, tarjeta "Vencido": de 4 rojos a 2** (2026-09-18, aprobado por Felipe).
+      Tenía punto, cifra, línea de detalle y —desde ADR-0105— el borde `acento`. Quedan borde + cifra;
+      el punto pasa a neutro y el detalle a su color normal. La tarjeta "Vence esta semana" sigue en ámbar.
+- [ ] **`ComercialPanel.tsx`** (sesión `comercial-command-leaders-bb5771`, sin commitear, no está en
+      `main`): usa `border-l-2! border-l-rojo!` como parche. Con este cambio el `!` sobra y hay que
+      quitarlo. Aviso dejado en `SESIONES-ACTIVAS.md`. Ojo: su tarjeta destacada suma borde rojo +
+      el resto de la pantalla; medir contra `MAX_ROJO_POR_PANTALLA` antes de dar por bueno.
 
 ## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
 
@@ -401,9 +510,38 @@ verde.
 - [x] **Etiquetas: pantalla rediseñada (2026-09-18).** Ilustración protagonista, chip de
       temporada (Vigente / En N días / Fuera de temporada), filtros con conteo, búsqueda sin
       tildes, "Desactivar" solo al pasar el mouse. Arregló de paso "hoy" en UTC → hora de Lima.
-- [ ] **Unificar la tarjeta de Patrones/Tejidos/Colores con la de Etiquetas.** Hoy Etiquetas
-      tiene el diseño nuevo y las otras tres el anterior: mismo sistema, dos lenguajes. Extraer
-      una `TarjetaAtributo` compartida cuando se decida cuál es el estándar.
+- [x] **Colores: sin Tipo ni foto de la tela (2026-09-18, ADR-0106).** Textura = Tejidos,
+      estampado = Patrones. Se puede escribir el código HTML o RGB al crear/editar un color.
+      Las columnas `tipo` e `imagen_muestra_url` quedan sin uso en la base (no se borran).
+- [x] **Etiquetas de campaña — paso 2, modelo y pantalla (2026-09-18, ADR-0107).** Modal
+      «Configurar campaña» (% de descuento, fechas, categorías opcionales) y tarjeta con el
+      descuento. Guarda todo con un RPC atómico. **Sin efecto en caja.**
+- [x] **Pegada en producción y verificada (2026-09-18, solo lectura): `supabase/migrations/20260918160000_etiquetas_descuento_y_categorias.sql`.** Ya lleva `retail.`, es idempotente. Sin ella, la pestaña
+      Etiquetas de `/productos/atributos` cae en vivo (las otras cuatro no). Después:
+      `pnpm datos:generar:produccion` con el volcado refrescado (entra `etiqueta_categorias`).
+- [x] **Etiquetas de campaña — paso 3, la venta lo aplica (2026-09-18, ADR-0108).** Construido y
+      probado (25 escenarios SQL en un Postgres de prueba; 579 pruebas; caja y modal verificados
+      en navegador). Un descuento por prenda: el mayor. Sin código para la campaña. Fecha en
+      hora de Lima. Aviso rojo «por debajo del costo» en el modal de campaña.
+- [x] **Pegada en producción y verificada (2026-09-18, solo lectura): `supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql`
+      — cambia `registrar_venta`.** `registrar_venta` ya lleva la lógica de campaña y existen
+      `campanas_vigentes()`, `fn_campanas_por_variante()` y `fn_hoy_lima()`; producción tiene 0
+      campañas configuradas. **Volcado refrescado el mismo día** (entran `venta_items.descuento_etiqueta_id`
+      y esas tres funciones).
+- [ ] **Probar UNA campaña real en caja** (aún no se ha hecho): etiqueta de prueba sin categorías,
+      una sola variante, venta de prueba anulada después. Casos: dos etiquetas (20 % y 40 % → 40 %,
+      no 60 %), manual que solo reemplaza si es mayor, y campaña que termina hoy después de las 7 pm.
+- [ ] **Campañas: lo que no cubre.** `registrar_cambio` y `liquidar_prenda_danada` no aplican
+      campañas. Un ticket armado ANTES de que empiece una campaña se rechaza al cobrar («recarga
+      Vender»): hoy no se re-evalúa solo en pantalla. La tolerancia de 3 días para la venta sin red
+      (`c_tolerancia_campana`) se puede cambiar por mandar la fecha de la venta (firma nueva).
+      Decidir si «Jeans» cubre a «Jeans niño» el día que existan subcategorías (hoy 0).
+- [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
+      lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
+      refrescarlo.
+- [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
+      2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
+      archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.
 - [ ] **Mostrar cuántas variantes usan cada etiqueta** (en la tarjeta y antes de desactivar).
       Requiere contar `variante_etiquetas` por `etiqueta_id`; no hay dato en pantalla todavía.
 

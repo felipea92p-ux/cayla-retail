@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt } from "lucide-react";
 import { Popover } from "radix-ui";
@@ -48,7 +48,22 @@ const PARAMS: Record<FiltroVisible, string[]> = {
   vencidas: ["vencidas"],
 };
 
-export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveedor[]; visibles: FiltroVisible[] }) {
+// `accionesAntes` / `accionesDespues` (ADR-0111): controles propios de cada pantalla que
+// van en la misma fila del buscador —«Orden: Emisión | Vencimiento» en Comprobantes,
+// «Por urgencia | Por proveedor» en Por pagar—, antes o después del botón «Filtros».
+// Cada uno lleva el mismo espaciador de etiqueta que el botón para quedar a la altura
+// del campo, no de toda la columna.
+export function FiltrosCompras({
+  proveedores,
+  visibles,
+  accionesAntes,
+  accionesDespues,
+}: {
+  proveedores: Proveedor[];
+  visibles: FiltroVisible[];
+  accionesAntes?: ReactNode;
+  accionesDespues?: ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -118,8 +133,8 @@ export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveed
 
   return (
     <div className="space-y-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
           <CampoTexto
             etiqueta="Buscar"
             value={busqueda}
@@ -131,12 +146,21 @@ export function FiltrosCompras({ proveedores, visibles }: { proveedores: Proveed
         </div>
         {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
             que el botón quede a la altura del input, no de toda la columna. */}
-        <div className="shrink-0">
-          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-            {" "}
-          </span>
-          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
-        </div>
+        {[
+          accionesAntes,
+          <BotonFiltros key="filtros" abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />,
+          accionesDespues,
+        ].map(
+          (control, i) =>
+            control && (
+              <div key={i} className="shrink-0">
+                <span aria-hidden className="label-cayla block text-[11px] text-transparent">
+                  {" "}
+                </span>
+                {control}
+              </div>
+            ),
+        )}
       </div>
 
       {panelAbierto && (

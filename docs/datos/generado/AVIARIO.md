@@ -4,21 +4,21 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 60 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 65 · **Sin pájaro:** 0
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | `colaboradores` · `ubicaciones` |
-| 02 | **Loro** | Catálogo y vocabulario | `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiquetas` · `historial_producto_cambios` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
+| 02 | **Loro** | Catálogo y vocabulario | `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `costo_historial` · `lotes` · `movimientos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
 | 07 | **Colibrí** | Ventas y caja | `caja_movimientos` · `cajas` · `cambios` · `clientes` · `codigos_descuento` · `devolucion_items` · `devoluciones` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobantes` · `configuracion_empresa` · `proformas` · `series_comprobantes` · `ubicacion_datos_fiscales` |
-| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_items` · `compra_items_resumen` · `compra_pagos` · `compras` · `compras_resumen` · `proveedores` |
+| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compras` · `compras_resumen` · `proveedor_creditos` · `proveedores` |
 | 10 | **Gallito** | Producción del Taller | `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_lineas` · `producciones` · `v_insumo_saldos` |
 | 11 | **Garza** | Finanzas operativas | `gastos` |
 | 12 | **Urraca** | Contabilidad | `activos_fijos` |
@@ -46,8 +46,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `colaboradores` | 01 · Ganso |
 | `colores` | 02 · Loro |
 | `compra_adjuntos` | 09 · Pelícano |
+| `compra_item_cierres` | 09 · Pelícano |
 | `compra_items` | 09 · Pelícano |
 | `compra_items_resumen` | 09 · Pelícano |
+| `compra_notas_credito` | 09 · Pelícano |
 | `compra_pagos` | 09 · Pelícano |
 | `compras` | 09 · Pelícano |
 | `compras_resumen` | 09 · Pelícano |
@@ -58,7 +60,9 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `costo_historial` | 05 · Halcón |
 | `devolucion_items` | 07 · Colibrí |
 | `devoluciones` | 07 · Colibrí |
+| `etiqueta_categorias` | 02 · Loro |
 | `etiquetas` | 02 · Loro |
+| `familias` | 02 · Loro |
 | `gastos` | 11 · Garza |
 | `historial_producto_cambios` | 02 · Loro |
 | `insumo_lotes` | 10 · Gallito |
@@ -73,6 +77,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `producto_fotos` | 02 · Loro |
 | `productos` | 02 · Loro |
 | `proformas` | 08 · Cuervo |
+| `proveedor_creditos` | 09 · Pelícano |
 | `proveedores` | 09 · Pelícano |
 | `series_comprobantes` | 08 · Cuervo |
 | `stock` | 05 · Halcón |
@@ -91,10 +96,3 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `venta_items` | 07 · Colibrí |
 | `venta_pagos` | 07 · Colibrí |
 | `ventas` | 07 · Colibrí |
-
-## En el aviario, pero no en el volcado de producción
-
-Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
-`COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
-
-- `familias`
