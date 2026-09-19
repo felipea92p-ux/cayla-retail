@@ -28,6 +28,231 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
+
+Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
+verificado en navegador con datos de mentira (ruta temporal, borrada). **Falta la primera venta real.**
+
+- [x] **Comprobante impreso (80 mm) + modal «Venta registrada» útil**: vuelto a entregar, número y estado,
+      subtotal/IGV, pagos, cliente, líneas; botón «Imprimir comprobante» (no cierra el modal). Recibo con
+      «SON: …», QR de SUNAT, fecha de Lima. `VentaRegistradaModal.tsx`, `ReciboTermico.tsx`,
+      `lib/recibo-reglas.ts`, CSS de impresión en `globals.css`. También imprime con Ctrl+P.
+- [x] **Datos del emisor** en `lib/emisor.ts` (CAYLA S.A.C., RUC 20605964550, dirección, teléfono, correo,
+      web, régimen, lema — dados por Felipe): el ticket sale completo sin configurar nada. Override opcional
+      con `NEXT_PUBLIC_EMISOR_*`. Rediseño del ticket sobre el modelo de Alegra (logo en negro, TOTAL enmarcado).
+- [ ] **⚠️ Numeración al cambiar de PSE**: el último ticket de Alegra fue `B001-00005806`. Si la serie de
+      boletas de este sistema también es `B001` y arranca en 1, SUNAT rechaza duplicados: continuar el
+      correlativo o usar serie nueva ANTES de emitir en producción (`series_comprobantes`).
+- [ ] **Resolución de autorización del PSE** (`NEXT_PUBLIC_EMISOR_RESOLUCION`): el ticket de Alegra imprime la
+      de Alegra; la de Lucode la tiene Felipe. Vacía = no se imprime.
+- [x] **«Imprimir y nueva venta»** (Enter): un toque en vez de tres tras confirmar; «Solo imprimir» y «Sin
+      imprimir» como salidas raras. Falta activarlo en cada PC de caja con Chrome `--kiosk-printing`
+      (`docs/OPERACION-IMPRESORA-TERMICA.md`).
+- [x] **Atajos F1–F5** (#3 de la simulación): F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5 transferencia; en
+      «cobrar» agregan/quitan el medio, en «armar» con prendas pagan todo con ese medio y saltan al cobro.
+      Pista «F1»–«F5» en cada chip. Verificado con teclado real.
+- [ ] **Siguientes de la simulación de venta** (medida real: 8 toques, <0.5 s de sistema): elegir el método
+      desde «armar» (**probado el 2026-09-18 como fila «Cobrar con» sobre «Cobrar» y Felipe la descartó por
+      poco estética** — si se retoma, otro diseño); un atajo para CONFIRMAR el cobro (Enter no sirve: el foco vive en el escáner); «Pendiente de enviar» → texto
+      claro para la cajera; mostrar «Recibido» en el modal; reimprimir desde «Ventas de hoy».
+- [ ] **Probar con la térmica real**: papel «80 mm rollo», márgenes ninguno, escala 100 %; para cero diálogos
+      Chrome con `--kiosk-printing` en la PC de caja. Y **escanear el QR** con un lector.
+- [ ] **«Nota de venta»**: no existe como opción de Vender (`boleta | factura`). Es un documento sin valor
+      tributario (ADR-0007): decisión de negocio y de esquema de Felipe.
+- [ ] **Reimprimir desde «Ventas de hoy»**: hoy solo se imprime al cobrar. Reconstruir el recibo desde
+      `venta_items` + `venta_pagos` + `comprobantes` (el vuelto no se guarda).
+- [ ] **Dirección por tienda** (`ubicaciones` no la tiene; hoy se imprime el domicilio fiscal) y, a futuro,
+      «reimprimir el oficial» con el `pdf.ticket` de Lucode cuando la transmisión sea automática.
+- [x] Ajustes del POS pedidos en la sesión: «Solo con stock» como interruptor **activo por defecto** con
+      contador de agotadas; tarjeta tocable → modal de talla (**una sola talla vendible se agrega directo**);
+      avisos de tope por `avisar` + resaltado rojo de la tarjeta (`anim-tope`); un color por método de pago;
+      tocar de nuevo un método lo quita y **traspasa su monto al siguiente**; subtotal e IGV en el pie.
+- [ ] **Revisar `/caja`**: los tokens `--color-metodo-*` son compartidos con la dona de Caja y cambiaron
+      (efectivo azul→cobrizo, tarjeta ámbar→plomo, «Yape / Plin» verde→morado). Decidir si esa dona separa Yape y Plin.
+- [ ] **Sincronizar con `main` antes de pushear**: la sesión `ventas-visual-redesign-240e2b` también toca
+      `globals.css` (tokens) y dice que «Punto de Venta sigue» en su rama.
+## 🎯 Anulación de ventas: el repo se pone al día con producción (2026-09-18)
+
+Se buscaba cerrar «devolver una venta ya anulada vuelve a meter la prenda al stock» (ítem
+«CONFIRMADO 2026-09-18» de la rama de Cambios, cuyo ADR provisional es el 0104 y ya choca con
+el del aviario de `main`: se renumera al fusionar), confirmado contra `pg_proc` del
+Postgres local. **En producción ese hueco no existe:** `20260916214500_anular_venta_sin_huecos`
+está aplicada allá desde el 2026-09-16 (triggers `devolucion_items_venta_no_anulada` y
+`cambios_venta_no_anulada`, `anular_venta` endurecida, `venta_anulacion_items_una_vez_por_linea`
+y un `cerrar_caja` que no cuenta el efectivo de ventas anuladas), pero **nunca se subió al
+repo**: no está en `main`, ni en ningún worktree, ni en el historial de git de ninguna rama.
+El repo y el local iban atrás; el hueco solo era real ahí. Verificado el 2026-09-18 contra
+`cayla-dynamic` (solo lectura): 0 ventas anuladas y 0 devoluciones, pendientes o aprobadas,
+sobre una venta anulada — no hay nada que limpiar.
+
+- [x] **`20260916214500_anular_venta_sin_huecos.sql`** — reconstruida desde `pg_proc` y
+      `pg_constraint` de producción. **No es el original**: si el archivo real tocaba algo que
+      no se ve desde afuera, no lo sé. El cuerpo de `anular_venta`, `cerrar_caja` y
+      `fn_linea_de_venta_no_anulada` coincide por huella md5 con el de producción; una sola
+      sobrecarga de cada una; permisos intactos. Idempotente: pegarla en producción no cambia
+      nada. Probada en local: `pnpm pruebas:aprobar-devolucion-caja` 5/5 (los 3 nuevos se
+      vieron en rojo antes: crear una devolución sobre una venta anulada prosperaba, y el
+      arqueo daba 179.90 en vez de 100 por el efectivo de la venta anulada), más
+      `registrar_cambio` 13/13, `fn_aplicar_movimiento` 11/11 y `registrar_venta` 22/22.
+      Una migración anterior de esta sesión (guards dentro de `crear_devolucion` y
+      `aprobar_devolucion`) se descartó: era redundante con el trigger.
+- [ ] **En producción no hay nada que pegar.** El archivo solo alinea el repo con lo que ya
+      corre. Otras sesiones con el Postgres local ya migrado necesitan
+      `npx supabase migration up --local --include-all` (su timestamp es anterior a otras
+      ya aplicadas).
+- [ ] **Hueco chico que sí queda:** `aprobar_devolucion` no mira `ventas.estado`. En
+      producción el estado no se alcanza (el trigger impide crear la devolución y
+      `anular_venta` se niega si hay una pendiente), así que no se le agregó guard: sería la
+      sexta redefinición de esa función por un caso inalcanzable.
+- [ ] **Al fusionar con la rama de Cambios (su ADR provisional 0104 choca con el del aviario;
+      hay que renumerarlo):** su ítem «Devoluciones tiene el mismo
+      hueco de venta anulada» no aplica a producción → cerrarlo apuntando a esta entrada. Su
+      guard «Esa venta está anulada» dentro de `registrar_cambio` queda redundante con el
+      trigger `cambios_venta_no_anulada` (inofensivo, el trigger es el candado real), y su
+      motivo («volvía a meter al stock una prenda que la anulación ya devolvió») es cierto
+      solo del repo.
+- [ ] **Comparación completa `retail`: producción vs Postgres local, por huella md5
+      (2026-09-18).** Se compararon funciones (cuerpo sin comentarios + firma + `security definer`
+      + volatilidad + `search_path`), triggers, restricciones, índices, políticas RLS, columnas,
+      tablas (con su RLS) y vistas. **Sin comparar:** los datos (filas, seeds), secuencias,
+      extensiones, buckets de Storage, el schema `public` (Dynamic), jobs y publicaciones
+      realtime. Resultado: 51 de 61 tablas y 119 de 128 funciones son idénticas; las vistas (3),
+      también. Las diferencias son de cuatro clases:
+      - **A. Solo en producción, sin archivo en el repo (deriva real, hay que reconstruirla).**
+        1. `anular_venta_sin_huecos` — ya traída al repo (primer commit de esta rama).
+        2. `registrar_movimiento_una_sola_firma`: producción tiene UNA `registrar_movimiento`
+           (7 parámetros con defaults); el repo y el local, DOS (la de `0003`, de 6, y la de
+           `20260914230000`, de 7: un `create or replace` con otra firma crea otra sobrecarga,
+           el hueco de ADR-0009/0004). La lógica de la de 7 es idéntica (md5 sin comentarios).
+           En el local, llamarla sin `p_sububicacion_id` da «is not unique» (probado), y
+           `AjustarInventarioModal` lo omite en ubicaciones sin piso/almacén: ajustar
+           inventario ahí falla en el local y anda en producción.
+        3. `catalogo_actualizar_producto`: mismo hueco. Producción tiene una sola firma (12
+           parámetros, con `p_tejido_id`/`p_patron_id`); el local conserva además la de 10.
+        4. `historial_producto_estado_restaurado`: `fn_registrar_cambio_producto` de
+           producción registra el cambio de `estado` del producto; la del repo no.
+           `20260915223000_historial_producto_estado` lo agrega y
+           `20260916090000_costo_promedio_ponderado` redefine la función sin ese bloque y lo
+           pisa. Efecto: descontinuar o reactivar un producto no deja fila en el historial en
+           el local ni tras un `db reset`.
+        5. `historial_candado_completo`: producción tiene `fn_historial_sin_truncate` y el
+           trigger `movimientos_sin_truncate` (`BEFORE TRUNCATE` sobre `movimientos`); el repo
+           no. En el local, `TRUNCATE ... CASCADE` sobre `movimientos` vaciaba el libro
+           append-only sin quejarse (principio 4); un `TRUNCATE` a secas ya lo frenaban las
+           llaves foráneas. El repo no usa `truncate` en ningún seed, script ni
+           migración: traerlo no rompe nada. `costo_historial` e `historial_producto_cambios`
+           tampoco están protegidas contra `TRUNCATE` en producción.
+        6. `compras.token_cliente`, índice `compras_token_cliente_key` y
+           `registrar_compra(..., p_token)`: candado de idempotencia sin archivo (ya lo dice la
+           cabecera de `pegar-en-produccion-compras-atraso-recepcion.sql`). El local no lo
+           tiene, y `20260918130000_compras_atraso_recepcion` (numerada) tampoco lo preserva.
+        7. `gastos` (tabla, índices, restricciones, política) y `registrar_gasto`: solo en
+           producción. En el repo hay únicamente archivos para pegar (`SQL-PENDIENTE-
+           PRODUCCION.sql`, `supabase/unificacion/05_operacion.sql`), ninguna migración
+           numerada.
+        8. `tejidos.imagen_muestra_url` y `patrones.imagen_muestra_url`: columnas solo en
+           producción (el repo la agrega solo a `colores`).
+        9. Índice `variante_etiquetas_etiqueta_idx`: solo en producción.
+        **Estado de la clase A (2026-09-18): 1 a 5 ya están en el repo.** Las cuatro nuevas
+        (2 a 5) son migraciones reconstruidas e idempotentes, con la versión con que quedaron
+        registradas en producción, salvo la del candado: `20260916200001`, porque
+        `20260916200000` ya es de `numeracion_traslados_conteos` y una versión repetida rompe
+        `migration up`. `pnpm pruebas:deriva-produccion` 6/6 (0/6 antes de las migraciones);
+        `registrar_venta` 22/22, `registrar_cambio` 13/13, `fn_aplicar_movimiento` 11/11 y
+        `aprobar_devolucion_caja` 5/5 sin regresión. Las huellas de
+        `fn_registrar_cambio_producto` y `fn_historial_sin_truncate` son idénticas a las de
+        producción. **En producción no hay nada que pegar.** Ya están aplicadas al Postgres
+        local compartido (dos de ellas borran sobrecargas). No se corrió un `db reset`
+        completo porque esa base la usan ~27 worktrees: el orden se verificó por análisis
+        (ninguna migración posterior toca esas firmas). **8 y 9 también
+        traídas** (`20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`,
+        reconstruida desde el estado vivo porque no hay SQL original; el front solo usa
+        `imagen_muestra_url` de `colores`, así que no rompía nada). `pnpm
+        pruebas:deriva-produccion` pasa a 8/8. De las 10 tablas que diferían de producción,
+        4 quedan idénticas (`movimientos`, `patrones`, `tejidos`, `variante_etiquetas`); las 6
+        restantes son las de otras clases: `compras` (6) y `gastos` (7), `cambios` y
+        `prendas_danadas` (B, rama de Cambios), `categorias` y `familias` (C, atraso del
+        local). **Falta:** 7 (`gastos`), que necesita decisión de Felipe (el 6 ya está, ver abajo). **Ojo con los originales:**
+        de las 5 migraciones de producción reconstruidas, 4 están registradas allá SIN SQL
+        (`schema_migrations.statements` vacío: se pegaron a mano y se marcaron aplicadas), así
+        que no hay original que recuperar; solo la de `catalogo_actualizar_producto` guarda su
+        SQL, y es idéntica a la reconstruida.
+        **Compras (6), reconciliada:** `20260918180000_compras_token_cliente_idempotencia`
+        (columna `token_cliente`, índice único `compras_token_cliente_key` y `registrar_compra`
+        de 15 parámetros). Es una migración numerada nueva, posterior a
+        `20260918130000_compras_atraso_recepcion`, en vez de editar una ya aplicada: esa crea
+        la firma de 14 y la nueva la borra. Huellas de la tabla `compras` y de
+        `registrar_compra` idénticas a producción; `pnpm pruebas:deriva-produccion` 12/12. De
+        las 10 tablas que diferían quedan 5 idénticas; restan `gastos` (7), `cambios` y
+        `prendas_danadas` (B) y `categorias` y `familias` (C). **El front ahora manda `p_token`**
+        (`CompraFormV2.tsx`, 2026-09-18): antes el candado estaba dormido y un reintento
+        terminaba en «ya está registrada». Mismo patrón que Cambios y Ventas: el token se
+        genera una vez por formulario y se renueva solo tras un éxito. Verificado en el
+        navegador con la petición real (interceptada, sin escribir nada): sale con un UUID v4 y
+        un reintento manda el MISMO token. `tsc`, `eslint` y 391 tests en verde.
+        `packages/database/src/types.ts` ganó `p_token` a mano; los tipos siguen sin
+        `p_fecha_estimada_llegada` ni `compras.token_cliente` y se arreglan al regenerarlos.
+        `pegar-en-produccion-compras-atraso-recepcion.sql` queda gastado (producción ya tiene
+        su resultado); no se borra.
+        **Compras: producción tiene DOS `registrar_compra` (hallazgo 2026-09-18, al fusionar
+        `main`).** Alguien pegó allá las migraciones de Compras de ADR-0111 (existen
+        `proveedor_creditos` y `fn_consumir_saldo_favor`) sin registrarlas, y `20260918217000`
+        redefine `registrar_compra` con 14 parámetros y sin `p_token`, al lado de la de 15. Hoy hay
+        una de 14 (con saldo a favor, sin token) y una de 15 (con token, sin saldo a favor). Una
+        llamada sin `p_token` —la del front desplegado— coincide con las dos y falla por ambigua:
+        es muy probable que «Nueva compra» esté fallando en producción (no se comprobó llamando a
+        la API). Una llamada con `p_token` iría a la de 15 y perdería el saldo a favor. Arreglo:
+        `20260918219000_registrar_compra_una_sola_firma_con_token.sql`, una sola función de 15
+        parámetros con las dos cosas, y borra la de 14; su cuerpo difiere del de ADR-0111 solo en lo
+        del token. Probada en una transacción revertida sobre la sobrecarga que deja `217000`
+        (`pnpm pruebas:deriva-produccion` 13/13). **Ya está aplicada en producción**
+        (alguien la pegó sin registrarla en el historial de migraciones; verificado en solo lectura
+        después: una sola firma, la consulta del pie da `1 | true | true | true` y el md5 del cuerpo es
+        idéntico al de esta migración; no se escribió nada desde esta rama). En el Postgres local compartido NO se
+        aplicó a propósito: tiene que entrar después de `217000`; si entrara antes, `migration up` la
+        daría por aplicada y quedarían dos sobrecargas. Es la tercera vez en esta sesión que un
+        `create or replace` con otra lista de parámetros crea una función nueva en vez de
+        reemplazar (`registrar_movimiento`, `catalogo_actualizar_producto`, y esta): una prueba de CI
+        de «una sola firma por función» atraparía toda la clase.
+      - **B. En el repo, pero producción va atrás (pendiente de pegar, necesita el ok de
+        Felipe).** `20260917120000_reactivar_rechazado_retira_rechazo`: la
+        `fn_tallas_estado_trigger` de producción es la versión vieja (solo aprueba desde
+        `pendiente`; no reactiva una talla rechazada ni pone `activo = true`), así que
+        reactivar una talla rechazada no funciona en producción. Y lo de la rama de Cambios
+        (`20260918150000_cambios_motivo_y_estado_de_prenda`, sin fusionar): `cambios.motivo`
+        y `condicion`, `prendas_danadas.cambio_id`, `registrar_cambio` de 8 parámetros.
+        **Estado de B (2026-09-18) — APLICADA en
+        producción, solo la de tallas.** Se pidió pegar `20260917120000`. Al compararla con lo que
+        ya corre allá, **el archivo entero no se puede pegar**: redefine cinco funciones y
+        producción ya tenía la versión FINAL de cuatro (colores, tejidos, patrones y etiquetas
+        coinciden por huella con el repo final). La de etiquetas de ese archivo es anterior a
+        `20260917230000_etiquetas_vigencia_y_comentario_obligatorio`: pegarlo entero habría hecho
+        RETROCEDER etiquetas. Solo `fn_tallas_estado_trigger` estaba atrás, y se aplicó esa
+        función sola (`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-18.sql`) con `apply_migration`,
+        registrada como `20260919003414_fn_tallas_estado_trigger_reactivar_rechazado` (UTC), con
+        su SQL guardado. Antes se probó en el local, revertido: con la función nueva una rechazada
+        se reactiva y la base exige el comentario; con la de producción fallaba («Solo se puede
+        aprobar una talla que todavía está pendiente»). Verificado en producción: mismo md5 de
+        cuerpo que el repo final (`994940f7…`), una sola firma, un solo trigger
+        (`tallas_estado_biut`), permisos intactos, las otras cuatro funciones con su huella de
+        antes, y las 25 tallas siguen `aprobado`: ninguna fila cambió, solo se habilita reactivar
+        una talla que se rechace en adelante. El primer intento lo denegó el clasificador de
+        permisos y no se rodeó; se reintentó con la autorización explícita de Felipe. La
+        migración vieja lleva una advertencia de «no pegar entera». **De B falta solo lo de la
+        rama de Cambios**, que va con su propio PR.
+      - **C. Atraso del local, no deriva** (el repo y producción coinciden, el local no las
+        aplicó): `familias_tabla_propia` (tabla `familias`, 2 funciones y
+        `categorias_familia_fk` en vez del CHECK) y `compras_filtro_tipo_documento`
+        (`listar_compras(p_tipo)`). Se arreglan con `migration up --local --include-all`.
+      - **D. Permisos.** En producción 0 de 128 funciones son ejecutables por `public` ni
+        `anon`; en el local, 96 de 126. Un `db reset` es más permisivo que producción y no
+        puede atrapar un error de permisos. No es un riesgo de producción, es una prueba
+        que no prueba.
+      - `fn_resumen_variantes`: la huella distinta de antes era solo de comentarios; sin
+        comentarios coincide.
+      - De las ~25 migraciones «huérfanas por nombre» que salieron antes, casi todas son
+        ruido; la deriva real son las de la clase A.
+
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
@@ -77,7 +302,7 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
       15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
-      16. `20260918219000_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — **CORRECCIÓN URGENTE**:
+      16. `20260918219100_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — (renombrada desde `20260918219000` el 2026-09-19: chocaba de versión con `..._con_token`, de otra sesión; las dos son idempotentes, ya corrieron en producción y dejan la misma firma de 15 parámetros; esta va última porque además revoca a `anon`. La producción no lee nombres de archivo.) **CORRECCIÓN URGENTE**:
           al pegar la 217000 en producción, `registrar_compra` quedó con DOS firmas (14 y 15 parámetros) y
           Registrar comprobante falla con «function is not unique». Esta suelta la de 14 y deja UNA de 15
           (la de producción, con `p_token`) más el medio «Saldo a favor». Verificado en producción el
@@ -95,8 +320,11 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
 - [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
       vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
-      `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
-      (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
+      `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
+      (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
+      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
+      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
       `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
       (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
@@ -104,6 +332,24 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       y las de `nota-pendiente-reglas`). Pendiente de ver con sesión: el chip en la celda Pago de Comprobantes
       (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
       proveedor. Aún no sale en Proveedores ni en el Inicio.
+- [ ] **Hallazgos de `compras_indicadores.mjs` (sin arreglar; cada uno es una prueba `[HALLAZGO Hn]` que
+      pasa sola cuando se corrige, y todos piden una migración nueva):** **H1** `fn_proveedor_metricas_compras`
+      calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, así que un proveedor que
+      entregó 20 de 24 y cuyo faltante se cerró sale con 100 % (la ficha) y con 50 % en Recibir
+      mercadería (`resumen_recepciones` usa `recibido_cantidad >= facturado_cantidad`, que es lo que
+      dice su propia definición). **H2** `fn_proveedor_devoluciones.ultima` toma `created_at` (el día
+      que la prenda entró a cuarentena) en vez de `resuelto_en` (el día que se devolvió). **H3**
+      `por_pagar_tramos` no acepta `p_tipo` ni fechas de emisión aunque promete «los mismos filtros que
+      `listar_compras`» (baja gravedad: la pantalla no expone esos filtros, pero `?tipo=` en la URL
+      desalinea subtotal y filas). **H4 (decisión de Felipe)** los indicadores de dinero que solo tienen
+      candado de sede (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
+      `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un integrante los montos de los comprobantes
+      de SU sede (ADR-0075), mientras `fn_proveedores*` y las fichas sí son solo-líder; no hay fuga hacia
+      otras sedes (probado), pero choca con «lo financiero es solo de líder». **H5** `registrar_pago_compra`,
+      `registrar_pagos_compra` y el pago inicial de `registrar_compra` fechan con `current_date` (UTC)
+      cuando no reciben fecha: entre las 7 pm y medianoche de Lima el pago queda de «mañana» y
+      `dias_pago_real_promedio` cuenta un día de más (la app manda su fecha, así que hoy solo afecta a
+      quien llame sin ella).
 
 ---
 
@@ -135,6 +381,87 @@ las cantidades vienen precargadas pero «Confirmar recepción» sigue apagado ha
 recepción «a medias» accidental cuenta como «requiere acción»); las fotos se suben sin redimensionar y hay cuatro
 criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
 diferencia.
+
+## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0109)
+
+Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y la revisión adversarial del PR #164
+(ADR-0109, tercera parte) escritos y probados en un Postgres desechable. **Los 8 SQL están pegados en producción desde
+el 2026-09-19 y verificados; falta desplegar el código** (mergear el PR #164): hasta entonces, Nuevo producto y el alta al
+vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
+
+- [x] **Los 8 SQL pegados en producción, en orden, y verificados (2026-09-19).** `230000` → `230100` → `230200` (falló la
+      primera vez por tablas temporales entre sentencias; corregido a un solo bloque, ADR-0109 cuarta parte) → `230300` →
+      `231000` → `231100` (con la regla «no empeora» de Editar, quinta parte) → `231200` → `231300`. Comprobado en solo
+      lectura tras cada uno; al final: 0 productos con pareja marca-proveedor inválida, 0 nombres duplicados, RLS y
+      políticas de las tablas nuevas, `anon` sin `EXECUTE` en ninguna de las 17 funciones tocadas, Productos filtra y busca
+      por marca y proveedor (44 visibles = contador), «Top Lili» avisa contra «Top Lily». Volcado refrescado
+      (`pnpm datos:generar:produccion`: 67 tablas) y **`pnpm datos:comparar` sin alarmas**. El comparador sigue sin ver
+      `fn_productos`, `fn_productos_resumen` ni `catalogo_actualizar_producto` (parámetros armados con `...`): esas tres
+      las cubre la regresión y lo comprobado en producción.
+- [ ] **Desplegar el código (mergear el PR #164) — es lo que falta y es urgente:** desde el SQL 5, crear productos con la
+      pantalla actual falla. Después, abrir Productos (filtro por marca) y Editar un producto con una sesión de Líder real.
+- [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
+      marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
+      El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
+      `db reset`, que no se pudo correr en local (Docker caído).
+- [ ] **Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
+      que en local Nuevo producto de Indumentaria —que exige patrón— pide un «Liso» que no existe. El mapa de categorías
+      se salta ese eje con un aviso (`230200`). Sembrar los 7 patrones en `seed.sql` (o en una migración, como se hizo con
+      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.
+- [ ] **Inventario → Existencias no filtra por proveedor todavía.** «A quién pedirle» vive en Productos (donde está la
+      señal «Pedir a proveedor»). Filtrar Existencias por proveedor pide cambiar `fn_stock_por_sede` y su pantalla.
+- [ ] **Compras no valida que el proveedor de una compra traiga la marca de lo que se compra.** Hoy `compras.proveedor_id`
+      y `productos.proveedor_id` son datos independientes (el proveedor REAL de cada entrega vive en compras/lotes; el del
+      producto es «a quién se le pide»). Decidir si un desvío debe avisar.
+- [ ] **Marcas sin fila propia en el menú** (Felipe: «con 3 está bien»): se llega desde Categorías y desde el selector.
+      Si molesta, es una fila en `AppShell.tsx` (`RUTAS_POR_GRUPO` ya la contempla).
+- [ ] **Verificar con `db reset` local** cuando Docker vuelva (hoy se probó contra un Postgres 17 suelto con el
+      esquema mínimo, sin RLS ni el resto de la historia de migraciones).
+- [x] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx` + `components/alta-producto/*`): árbol familia →
+      categoría con búsqueda, aviso de parecidos en vivo, curva habitual marcada, tejido/patrón obligatorios en
+      Indumentaria, configurar categoría y «+ Nueva talla/tejido/patrón» sin salir, colores con «más usados»,
+      margen, código previsto, etiquetas todo-o-nada y resumen que dice qué falta. Probado en el navegador con
+      datos y red simuladas; typecheck, lint y 540 pruebas en verde. **Falta verificarlo con sesión de Líder real
+      contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
+- [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
+      tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
+- [x] **Paso 4 — pantalla de éxito** (`ProductoCreado.tsx`): Agregar fotos (lleva a `/productos/{id}/editar#fotos`,
+      con los colores que faltan) · Crear otro parecido (conserva categoría, tallas, tejido, patrón, precio, costo y
+      etiquetas; limpia nombre, descripción y colores; token nuevo) · Ir a productos. Probado en navegador con red
+      simulada, escritorio y celular. Las fotos NO se suben desde ahí (el archivo sube al elegirlo y quedaría huérfano);
+      la galería de la edición ya asigna cada foto a su color.
+- [x] **Etiquetas de campaña y el formulario nuevo**: las que ya rigen sobre la categoría se muestran «ya aplica por
+      campaña» y no se eligen a mano (ni se envían).
+- [ ] **Revisión adversarial del PR #164 — pendientes que quedaron a propósito** (detalle en ADR-0109, tercera parte):
+      (a) **Completar tejido y patrón de los 38 productos activos de Indumentaria que no los tienen** (ADR-0109, quinta
+      parte): Editar ya no lo exige si el producto no los tenía (regla «no empeora»), así que se completan cuando alguien
+      edite cada prenda, o de una vez si Felipe pasa la lista; mientras tanto, cualquier reporte por tejido debe tolerar
+      nulos; (b) el reintento por `unique_violation`
+      del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
+      (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
+      que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
+- [ ] **Las pruebas SQL de este PR no están en el repo.** Las ~45 pruebas (nombre único, censo, marcas, edición, permisos,
+      regresión de `fn_productos` contra la copia de producción) se escribieron y corrieron en un Postgres desechable con un
+      esquema mínimo, y viven solo en la carpeta temporal de la sesión. Pasarlas a `scripts/pruebas/` contra el `seed.sql`
+      real (como `etiquetar_variantes.sql`) para que el piloto de CI las corra siempre; hoy solo corre el encadenado y la venta.
+- [ ] **Endurecimiento opcional (avisos de Supabase, 2026-09-19):** 20 funciones de `retail` figuran con «search_path mutable»;
+      5 son de este cambio (`fn_clave_referencia`, `fn_titulo_referencia`, `fn_dentro_de_una_edicion`,
+      `fn_marcas_desactivar_candado`, `fn_productos_referencia_trigger`) y las otras 15 ya estaban. Todas usan nombres
+      calificados con `retail.`, así que no es un hueco; fijar `set search_path` en las 20 con una sola migración. Y 121
+      funciones `security definer` ejecutables por `authenticated` (el diseño: cada RPC revisa `fn_es_lider` adentro).
+- [ ] **Candado de «sentencias independientes» para las migraciones.** El mapa (`230200`) falló al pegarlo en producción
+      por depender de tablas temporales entre sentencias (ADR-0109, cuarta parte). Un script de `scripts/migraciones/`
+      que rechace `create temp table`, `set_config`, `set local` y `set session` fuera de un bloque `do`/función, y que
+      corra junto a `migraciones:versiones`. Además, el piloto de CI podría correr cada migración sentencia por sentencia
+      (una conexión cada una): `psql -f` no imita al SQL Editor.
+- [ ] **Decisión a reconsiderar (ya existía; la tomó `20260918120000` a propósito: «ficha, no agregado — quedan
+      abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
+      bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
+      a una tabla aparte. Este PR no lo toca.
+- [x] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla; manda `p_talla_habitual_ids`.
+- [x] **`catalogo_crear_producto`** retirado del uso (`231200`: sin permiso de ejecución; la función queda, no se borra).
+- [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son
+      códigos puestos como nombre; «Cargo especial (sin código)» es un producto técnico.
 
 ## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0104)
 
@@ -247,19 +574,20 @@ propuesta de piso de venta.
 
 ---
 
-## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0116)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
 extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
 maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
 antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
-ADR-0102).
+ADR-0116).
 
 - [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
       reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
       tiene una configurada), 5 KPIs con sparkline, dona de métodos de pago (+ tabla
       accesible), barras de ventas por hora, timeline de movimientos+ventas, tendencia
-      de 7 cierres, barra de acciones fija. `CajaAbiertaPanel.tsx` reescrito,
+      de 7 cierres, barra de acciones fija (luego movida al encabezado: ver 2ª tanda,
+      abajo). `CajaAbiertaPanel.tsx` reescrito,
       `Graficos.tsx`/`useCountUp.ts` nuevos, `lib/caja.ts` gana `getSeriesVentasCaja()`
       y `MovimientoCaja.registradoPorNombre`. Verificado en navegador con la caja real
       de Tienda Lima (`felipe@cayla.local`).
@@ -278,6 +606,81 @@ ADR-0102).
       método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
       se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
       navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
+- [x] **Caja, 2ª tanda (2026-09-18, adenda de ADR-0116)** — "+ Ingreso / egreso" y "Cerrar
+      caja" pasan de la barra fija de abajo al encabezado (a la derecha; el chip de
+      sincronización queda junto al título); fuera el botón "Cambios" (sigue en el menú
+      lateral, Ventas → Cambios). Dona rehecha como `DonaMetodos.tsx` (SVG puro, sin
+      librería): degradado, resplandor, bisel de 100 marcas (1 % cada una), barrido al entrar a
+      la vista (se repite al volver a verla) y respuesta al mouse (arco que se adelanta,
+      marcas que se encienden, centro que cambia, leyenda sincronizada). Geometría en
+      `lib/dona-geometria.ts`, 7 pruebas. Excepción declarada —solo esta dona— a "sin
+      gradiente" y a "nada se anima solo al entrar". Verificada en navegador con datos de
+      mentira (2, 3 y 1 método; escritorio, tablet, móvil).
+- [ ] **Dona de Caja: falta verla con la caja real y en pantalla táctil** — no se probó con
+      datos de producción (para no cruzar la cookie de Supabase entre dos `next dev`) ni con un
+      dedo real: el toque alterna el método apuntado, pero está razonado, no ejercitado.
+- [x] **Caja, 3ª tanda (2026-09-18, adenda de ADR-0116)** — fuera el avatar del encabezado
+      (las iniciales no informaban; el nombre ya está al lado) y `iniciales()` de
+      `caja-panel-reglas.ts` con él. Lo que se conserva gana vida: `RelojDeCaja` (dígitos que
+      ruedan al cambiar, aguja de segundos alineada al segundo real, "Abierta desde… · lleva
+      2 h 08 min" con `duracionAbierta()`, 3 pruebas) y `EstadoSync` (onda suave detrás del
+      ícono, visto que se traza, re-asentado al cambiar de estado, `role="status"`). Dona
+      centrada en su tarjeta en las dos direcciones. Verificado en navegador con datos de
+      mentira, incluido el estado "N ventas sin sincronizar" y la paleta nueva del POS.
+- [x] **Ventas por hora → "Ritmo del día"** — el gráfico de barras no se entendía ("no lo
+      entiendo y no sé si sirve"): sin cifras, la barra mayor siempre llenaba la caja y la rayita
+      roja de la hora sin ventas parecía dato. Felipe eligió entre tres caminos (aclararlo /
+      cambiarlo / quitarlo) el segundo. `RitmoDelDia` (en `CajaAbiertaPanel.tsx`): ventas, ticket
+      promedio y "desde la última venta", y una línea de tiempo de la apertura a ahora con una
+      venta por punto (tamaño = monto, color = método, pago mixto = punto partido, las que caen
+      juntas se apilan). Sin consultas nuevas: sale de `ventasHoy`. Lógica pura y probada en
+      `caja-panel-reglas.ts` (`ritmoDelDia`, `metodosDe`, `formatoDuracion`; 26 pruebas del
+      módulo). `BarrasHorarias` sale de `Graficos.tsx`; `useEnVista` pasa a `lib/` porque ahora
+      lo comparten la dona y esta tarjeta. Las cifras se ajustan al ancho de la tarjeta (a 340 px
+      se pisaban). Si la caja quedó abierta de ayer, el eje dice "Desde medianoche".
+- [x] **Caja a todo el ancho (2026-09-18)** — pedido de Felipe: "hay mucho espacio a los lados
+      y no se aprovecha", como el Punto de Venta. `/caja` entra en `SIN_TOPE_DE_ANCHO`
+      (`AppShell.tsx`, la misma lista de Vender/Compras/Productos/Inventario): el tablero pasa de
+      ~1023 px a ~1526 px a 1878. Para *aprovecharlo* y no solo estirarlo: la fila de abajo
+      queda en dos columnas iguales alineadas con la de arriba (`2xl`), y la dona (y su texto y
+      leyenda) crece con el ancho de SU tarjeta (container queries, 176 → 224 px). Lo que cuelga
+      de `/caja` y no es tablero conserva `max-w-5xl` por su cuenta: el formulario de abrir
+      caja (un campo, sin tope propio) y el historial de cierres (una columna flexible que
+      separaría la sede de sus cifras). Verificado a 1878, 1366 y 1024 px con datos de mentira.
+- [x] **Caja: rediseño para usar bien el ancho + actualización en vivo (2026-09-18)** — pedido de
+      Felipe: "que se ocupe de manera óptima el espacio" y "que se actualice en tiempo real, con una
+      animación cuando hay una venta, para ver cómo va el ritmo".
+      *Disposición:* decide por el ancho del PROPIO tablero (`@container`), no de la ventana (la barra
+      lateral se come ~350 px). Encabezado en tres zonas con la hora del turno al centro (≥ 1400 px),
+      dos zonas (≥ 720) o apilado; KPI en 2/3/5 columnas; cuerpo en una columna, dos (≥ 900: dona y ritmo,
+      y debajo historial y movimientos a ancho completo, estos en dos columnas) o tres (≥ 1400:
+      "Movimientos" como riel alto a la derecha, cuyo alto natural coincide con las dos filas de la
+      izquierda). El historial muestra hasta 14 días con día y monto cuando cabe. Una fila de dos
+      columnas con una tarjeta mucho más alta que su vecina la estira y la deja medio vacía: por eso el
+      rango medio no es 2×2. Los modales quedan FUERA del contenedor (`container-type` aplica contención
+      de layout y ataría su `fixed` al tablero).
+      *En vivo:* `useCajaEnVivo` sondea cada 5 s con dos conteos (ventas y movimientos de la caja) y solo
+      si el número cambia hace `router.refresh()`; no sondea con la pestaña oculta ni sin red, y retrocede
+      hasta 1 min si falla. Al llegar datos nuevos: aviso "Nueva venta" (`avisar`), la tarjeta que subió
+      con velo de color e insignia "+S/…", la dona señala sola el método que creció (2,8 s, el ratón
+      manda), el punto nuevo del ritmo entra con una onda y se deslizan los demás al crecer el eje, y la
+      fila nueva de movimientos se resalta. Lo "nuevo" caduca a los 8 s; lo que ya estaba al abrir no
+      cuenta. Lógica pura y probada en `caja-en-vivo.ts` (7 pruebas).
+      *Verificado:* 7 anchos (1878 → 390 px) con datos de mentira y un simulador de ventas (venta,
+      venta mixta, egreso); las consultas de conteo contra el Postgres LOCAL, solo lectura, como el líder
+      del seed (cuenta = filas, RLS lo permite, sin sesión da 401); el overlay del modal cubre la ventana.
+- [ ] **Actualización en vivo con Supabase Realtime en vez de sondeo** — hoy llega en ~5–6 s. Realtime
+      la haría instantánea, pero exige `alter publication supabase_realtime add table …` en el proyecto
+      COMPARTIDO con Dynamic (hoy la publicación tiene 0 tablas, ADR-0018): parar y confirmar con Felipe
+      antes de correrlo. Cuando se autorice, `useCajaEnVivo` se cambia por una suscripción y nadie más se toca.
+- [ ] **Probar el en vivo de punta a punta con sesión real** — no se pudo (exige entrar): falta ver, con la
+      caja abierta en un navegador, una venta hecha desde otro dispositivo y cómo llega. Las piezas están
+      verificadas por separado (consultas reales, detección y animaciones con simulador), no el bucle completo.
+- [ ] **Tarjetas KPI de Caja vs `TarjetaEstadistica` de Cambios** — hoy son dos familias
+      (Caja: borde de color + sparkline; Cambios: ícono en cuadro rojo suave). Unificar cruza
+      más de un módulo: esperar a que se fusionen las ramas del POS (paleta de métodos + recibo
+      térmico, toca `globals.css`) y de Cambios/Devoluciones, y decidirlo en un cambio corto
+      aparte. Ninguna otra sesión toca `CajaAbiertaPanel.tsx` hoy.
 - [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
       maqueta, NO construido: no existe ningún rollup histórico de egresos por día
       (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes
@@ -511,11 +914,48 @@ verde.
 - [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
       lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
       refrescarlo.
+- [x] **Colores: modal legible y color nuevo sin beige por defecto (2026-09-18).** Muestra única con
+      hex, confirmación al desactivar, el color nace sin elegir y la API lo exige.
+- [ ] **Colores: decidir si la familia «Estampado» sale de `FAMILIAS_COLOR`** (pantalla y API).
+      `EST`, `MUL` y `ANI` ya están desactivados en producción (verificado 2026-09-18, solo lectura:
+      `activo=false`, 0 variantes, 0 fotos), así que NO hace falta migración de datos. Lo que queda es
+      que el selector de familia todavía deja archivar un color nuevo ahí, aunque el estampado vive
+      en Patrones (ADR-0106).
+- [x] **Colores: el código de 3 letras se sugiere desde el nombre (2026-09-18).** `lib/color-codigo.ts`
+      (regla sacada de los 35 códigos reales: 1 palabra = 3 letras, 2 palabras = 2+1), con 7 pruebas.
+      Deja de seguir al nombre si la persona lo escribe; avisa en vivo «Ya lo usa «X»» (cuenta también
+      los desactivados) y bloquea el guardado. Verificado en navegador.
+- [ ] **Colores: el campo «Orden» ya no significa nada claro** desde que la grilla agrupa por familia
+      (todo color nuevo entra con 200). Decidir: quitarlo (orden por nombre) o subir/bajar.
+- [ ] **Colores: cuántas prendas usa cada color** (12 de 31 activos no tienen ninguna) y quién
+      propuso un pendiente (`propuesto_por` existe, la pantalla no lo lee). Junto con `TarjetaAtributo`.
+- [ ] **Colores: sin pruebas** de la API (`/api/productos/colores`) ni de la pantalla; solo
+      `color-entrada.test.ts`.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.
-- [ ] **Mostrar cuántas variantes usan cada etiqueta** (en la tarjeta y antes de desactivar).
-      Requiere contar `variante_etiquetas` por `etiqueta_id`; no hay dato en pantalla todavía.
+- [x] **Mostrar cuántas variantes usan cada etiqueta (2026-09-19).** La tarjeta dice «N prendas etiquetadas
+      a mano» (solo Líder). «Antes de desactivar» ya lo bloquea el servidor con el conteo exacto.
+- [x] **Etiquetar prendas más fácil — puerta 1: desde la etiqueta (2026-09-19, ADR-0112).** Botón «Prendas»
+      en cada tarjeta: lista de productos con casillas (una marca todas las tallas), excepciones por talla,
+      filtro por categoría, «Marcar/Soltar visibles», y **vista previa antes de aplicar** si la etiqueta
+      lleva descuento (cuántas prendas, cuánto baja, desde cuándo, cuáles quedan bajo su costo).
+- [x] **Pegada en producción y verificada (2026-09-19, solo lectura): `supabase/migrations/20260919010000_etiquetar_variantes.sql`.**
+      `retail.etiquetar_variantes(p_cambios jsonb) -> jsonb`: security definer, `search_path=retail, public`, ejecutable
+      por `authenticated` y NO por `anon`, con los candados del archivo (Líder, «aprobada y activa», `for share`,
+      `on conflict do nothing`, tope por etiqueta). `variante_etiquetas` sigue en 0 filas y `registrar_venta` intacta.
+      Su firma ya está en `funciones-produccion.txt` y `datos:comparar` no marca nada roto.
+- [ ] **Volcado de producción desactualizado por otras migraciones (hallado 2026-09-19).** Producción tiene 162 funciones
+      y el volcado 158: 7 funciones nuevas o con firma distinta (`buscar_productos_parecidos`, `crear_producto_con_variantes`,
+      `actualizar_categoria_ejes`, `fn_clave_referencia`, `fn_dentro_de_una_edicion`, `fn_productos_referencia_trigger`,
+      `fn_titulo_referencia`) y 3 que ya no existen. Falta refrescar el resto del volcado con el método por firma md5
+      (bitácora del 2026-09-18); en este PR solo se añadió la firma de `etiquetar_variantes`.
+- [ ] **Etiquetar prendas más fácil — puerta 2: en lote desde `/productos`.** Marcar filas → «Etiquetar…» con
+      el mismo RPC y la misma vista previa. Ya decidido con Felipe (2026-09-19): las dos puertas.
+- [ ] **Etiquetas de rotación automáticas (Nuevo / Últimas unidades / Top ventas).** Se calculan de alta, stock
+      y ventas en vez de etiquetarse a mano (decidido 2026-09-19). Fijar umbrales con Felipe: ¿«Nuevo» = 30 días?
+      ¿«Últimas» = 2 unidades en total o por sede? ¿«Top ventas» = las N más vendidas de los últimos 30 días?
+      Ojo: hoy las 164 variantes tienen <30 días, «Nuevo» marcaría todo.
 
 - [x] **Pegada en producción (2026-09-17, tarde-noche) — la mitad que faltaba, después
       de que #75 se fusionara a `main` sin su migración.** El "Production Deploy" del

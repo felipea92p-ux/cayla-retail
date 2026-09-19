@@ -53,13 +53,18 @@
      color de DATO, para que un mismo método se lea con el mismo color en la dona
      de Caja y en el selector de Vender. Elegidos para no pisar ningún tono ya
      usado (rojo/rojo-profundo = marca y "negativo"; verde/ámbar = semáforo de
-     estado) y medidos igual que el resto: los tres pasan AA (≥4.5:1) como texto
-     plano sobre crema/papel — efectivo 5.92:1, tarjeta 5.18:1, yape/plin 4.59:1.
-     Yape y Plin comparten color: ambos son "billetera digital" en la misma fila
-     de la dona ("Yape / Plin"), no dos categorías separadas. */
-  --color-metodo-efectivo: #2f5f8a;
-  --color-metodo-tarjeta: #96541a;
-  --color-metodo-yape: #1f7a68;
+     estado) y medidos igual que el resto: los cinco pasan AA (≥4.5:1) como texto
+     plano sobre crema/papel Y sobre su propio fondo de "elegido" (16 % del color
+     sobre papel, el chip del selector de Vender) — el peor es plin, 4.76:1.
+     2026-09-18 (Felipe): cada método con su color — efectivo cobrizo, tarjeta
+     plomo, yape morado, plin verde, transferencia hazel (avellana). Antes eran
+     tres (efectivo azul, tarjeta ámbar, yape/plin verde compartido). La dona de
+     Caja agrupa "Yape / Plin" en un solo segmento y usa el token de yape. */
+  --color-metodo-efectivo: #8f4a1e;
+  --color-metodo-tarjeta: #525a64;
+  --color-metodo-yape: #6d3fa3;
+  --color-metodo-plin: #1c6b56;
+  --color-metodo-transferencia: #6b5a1a;
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
@@ -262,6 +267,209 @@ body {
 
 
 /* ==================================================================
+   Comprobante de venta en la térmica de 80 mm (ADR-0114).
+   `#comprobante-print` lo monta el modal «Venta registrada» pegado a <body>; en pantalla no se
+   ve. Al imprimir (botón o Ctrl+P con el modal abierto) desaparece TODO lo demás con
+   `display:none` — no `visibility:hidden`: lo oculto seguiría ocupando alto y la térmica
+   sacaría metros de papel en blanco. Solo negro sobre blanco (una térmica no tiene grises).
+   Sin `size` en @page a propósito: `80mm auto` no es válido y `80mm` solo parte el ticket en
+   cuadrados; el largo lo da el driver con el papel «80 mm rollo» y el ancho lo da el contenido.
+   ================================================================== */
+#comprobante-print {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 0;
+  }
+  body:has(#comprobante-print) > *:not(#comprobante-print) {
+    display: none !important;
+  }
+  html:has(#comprobante-print),
+  body:has(#comprobante-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #comprobante-print {
+    display: block;
+    width: 72mm;
+    box-sizing: border-box;
+    padding: 4mm 4mm 10mm; /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel */
+    color: #000;
+    background: #fff;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  #comprobante-print p,
+  #comprobante-print dl,
+  #comprobante-print dd {
+    margin: 0;
+  }
+  #comprobante-print .rt-centro {
+    text-align: center;
+  }
+  /* Con 64 mm útiles una línea larga (la dirección) se parte: que sea en dos mitades parejas. */
+  #comprobante-print .rt-centro p {
+    text-wrap: balance;
+  }
+  #comprobante-print .rt-negrita {
+    font-weight: 700;
+  }
+  /* Cabecera: logo en negro (el PNG es terracota; una térmica solo tiene un tono). */
+  #comprobante-print .rt-logo {
+    display: block;
+    width: 21mm;
+    height: auto;
+    margin: 0 auto 1.5mm;
+    filter: brightness(0);
+  }
+  #comprobante-print .rt-marca {
+    font-size: 17pt;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
+    margin-bottom: 1mm;
+  }
+  #comprobante-print .rt-tienda {
+    margin-top: 1.5mm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  /* Documento: dos reglas dobles enmarcan «BOLETA … B001-000002». */
+  #comprobante-print .rt-doble {
+    border-top: 3px double #000;
+    margin: 2.5mm 0;
+  }
+  #comprobante-print .rt-titulo {
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  #comprobante-print .rt-numero {
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+  #comprobante-print .rt-linea {
+    border-top: 1px dashed #000;
+    margin: 2.5mm 0;
+  }
+  /* Fecha / cliente: etiqueta chica a la izquierda, dato a la derecha. */
+  #comprobante-print .rt-datos {
+    display: grid;
+    grid-template-columns: 14mm 1fr;
+    gap: 0.6mm 2mm;
+    margin-bottom: 2.5mm;
+  }
+  #comprobante-print .rt-datos dt {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 0.4mm;
+  }
+  #comprobante-print .rt-datos dd {
+    overflow-wrap: anywhere;
+  }
+  /* Ítems: cantidad · descripción · importe, con el código y el P.U. debajo. */
+  #comprobante-print .rt-tabla-cab,
+  #comprobante-print .rt-item {
+    display: grid;
+    grid-template-columns: 9mm 1fr auto;
+    column-gap: 2mm;
+  }
+  #comprobante-print .rt-tabla-cab {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1.5px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 0.8mm 0;
+  }
+  #comprobante-print .rt-tabla-cab span:last-child,
+  #comprobante-print .rt-imp {
+    text-align: right;
+  }
+  #comprobante-print .rt-item {
+    padding: 1.4mm 0;
+    border-bottom: 1px dotted #000;
+    break-inside: avoid;
+  }
+  #comprobante-print .rt-cant {
+    font-weight: 700;
+  }
+  #comprobante-print .rt-desc {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  #comprobante-print .rt-imp {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #comprobante-print .rt-detalle {
+    display: block;
+    font-size: 8pt;
+    font-weight: 400;
+  }
+  div.rt-fila.rt-detalle {
+    display: flex;
+  }
+  /* Totales: el TOTAL enmarcado entre dos reglas gruesas — lo más grande del ticket. */
+  #comprobante-print .rt-fila {
+    display: flex;
+    justify-content: space-between;
+    gap: 3mm;
+  }
+  #comprobante-print .rt-fila > span:last-child {
+    white-space: nowrap;
+  }
+  #comprobante-print .rt-total {
+    margin-top: 2mm;
+    padding: 1.6mm 0;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    font-size: 15pt;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  #comprobante-print .rt-son {
+    margin-top: 1.5mm;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+  #comprobante-print .rt-subtitulo {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.8mm;
+  }
+  #comprobante-print .rt-qr {
+    margin-top: 3.5mm;
+  }
+  #comprobante-print .rt-pie {
+    font-size: 8pt;
+    line-height: 1.35;
+  }
+  #comprobante-print .rt-pie p + p {
+    margin-top: 1mm;
+  }
+  #comprobante-print .rt-lema {
+    font-size: 9.5pt;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    margin-top: 2mm;
+  }
+}
+
+/* ==================================================================
    Capa de movimiento · v3.1 (2026-09-08)
    El brandbook prohíbe sombra, gradiente y redondeo — así que la
    profundidad de esta app no puede venir del espacio, viene del TIEMPO.
@@ -393,6 +601,18 @@ body {
   to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
 }
 
+/* Tope de stock en la grilla de Vender: la tarjeta se tiñe de rojo suave con dos "respiros"
+   y se apaga sola (~2.6 s). Solo opacidad — sin movimiento propio — y el barrido de luz
+   reutiliza `cayla-brillo`. Termina en opacidad 0 (`both`), así no hace falta ningún
+   temporizador que lo desmonte: se re-monta con `key` cada vez que vuelve a pasar. */
+@keyframes cayla-tope {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  38% { opacity: 0.45; }
+  56% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @layer components {
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
@@ -400,9 +620,99 @@ body {
   .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
   .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
+  /* Tope de stock en Vender: la tarjeta respira en rojo suave y se apaga sola (keyframes arriba). */
+  .anim-tope { animation: cayla-tope 2600ms var(--ease-cayla) both; }
+  .anim-tope-barrido { animation: cayla-brillo 1100ms var(--ease-cayla) 80ms both; }
+
   @media (min-width: 640px) {
     .anim-entrada { animation-name: cayla-entrada; }
   }
+}
+
+/* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
+        Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
+        El barrido y la aguja llevan la MISMA curva y duración a propósito: la
+        aguja marca hasta dónde llegó el barrido. `--dona-c` (la circunferencia)
+        viene del componente, para que el CSS no repita el número. Filas y barras
+        usan `backwards` y no `both`: una vez dentro, su opacidad tiene que poder
+        cambiar con el hover, y un relleno `forwards` la dejaría fija. ---- */
+@keyframes dona-barrer {
+  from { stroke-dashoffset: var(--dona-c); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes dona-gira { to { transform: rotate(360deg); } }
+@keyframes dona-apaga { to { opacity: 0; } }
+@keyframes dona-barra { from { transform: scaleX(0); } }
+
+@layer components {
+  .anim-dona-barrido { animation: dona-barrer 1300ms var(--ease-cayla) both; }
+  .anim-dona-mano {
+    transform-origin: 100px 100px;
+    animation: dona-gira 1300ms var(--ease-cayla) both, dona-apaga 350ms linear 1000ms both;
+  }
+  .anim-dona-fila {
+    animation: cayla-revelar 420ms var(--ease-cayla) backwards;
+    animation-delay: calc(260ms + var(--i, 0) * 110ms);
+  }
+  .anim-dona-barra {
+    animation: dona-barra 900ms var(--ease-cayla) backwards;
+    animation-delay: calc(380ms + var(--i, 0) * 110ms);
+  }
+}
+
+/* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
+        tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
+        el dígito rueda cuando cambia, la aguja da la vuelta cada 60 s y las ondas de
+        "sincronizado" respiran. `caja-ping` parte de `opacity: 0` (base) para que sin
+        animación —movimiento reducido— la onda no quede como un disco sólido detrás del
+        ícono. ---- */
+@keyframes caja-rueda { from { opacity: 0; transform: translateY(0.35em); } }
+@keyframes caja-aguja { to { transform: rotate(360deg); } }
+@keyframes caja-ping {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes caja-trazo { from { stroke-dashoffset: 14; } }
+
+@layer components {
+  .anim-rueda { animation: caja-rueda 320ms var(--ease-cayla) both; }
+  .anim-caja-aguja { transform-origin: 10px 10px; animation: caja-aguja 60s linear infinite; }
+  .anim-caja-ping { opacity: 0; animation: caja-ping 2.8s var(--ease-cayla) infinite; }
+  .anim-caja-check path { stroke-dasharray: 14; animation: caja-trazo 520ms var(--ease-cayla) 120ms backwards; }
+}
+
+/* ---- Ritmo del día (2026-09-18, 3ª tanda): el eje se traza de la apertura a ahora y los puntos
+        entran en orden, de izquierda a derecha. `backwards`, no `both`: una vez dentro, un punto
+        vuelve a ser un punto normal (el globo del hover no queda bajo una opacidad fija). ---- */
+@keyframes ritmo-linea { from { transform: scaleX(0); } }
+@keyframes ritmo-punto { from { opacity: 0; transform: scale(0.4); } }
+@layer components {
+  .anim-ritmo-linea { animation: ritmo-linea 800ms var(--ease-cayla) backwards; }
+  .anim-ritmo-punto {
+    animation: ritmo-punto 480ms var(--ease-cayla) backwards;
+    animation-delay: calc(350ms + var(--i, 0) * 110ms);
+  }
+}
+
+/* ---- En vivo (2026-09-18): cuando entra una venta, lo que la muestra lo dice. Cada una es una capa
+        aparte (velo, insignia, onda, resaltado de fila) porque `animation` no se combina entre clases.
+        Todas TERMINAN invisibles (`both` hasta un estado final transparente): con movimiento reducido
+        —1 ms— no queda nada pintado, y quien informa es el aviso de "nueva venta". ---- */
+@keyframes vivo-destello { to { opacity: 0; } }
+@keyframes vivo-delta {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  14%, 78% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes vivo-onda {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0; transform: scale(3.6); }
+}
+@layer components {
+  .anim-vivo-destello { animation: vivo-destello 1500ms var(--ease-cayla) both; }
+  .anim-vivo-delta { animation: vivo-delta 2800ms var(--ease-cayla) both; }
+  .anim-vivo-onda { animation: vivo-onda 1500ms var(--ease-cayla) 2 both; }
+  .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
@@ -420,8 +730,30 @@ body {
     .anim-velo-salida {
       animation-duration: 1ms;
     }
+    .anim-dona-barrido,
+    .anim-dona-fila,
+    .anim-dona-barra,
+    .anim-ritmo-linea,
+    .anim-ritmo-punto,
+    .anim-vivo-destello,
+    .anim-vivo-delta,
+    .anim-vivo-onda,
+    .anim-vivo-fila {
+      animation-duration: 1ms;
+      animation-delay: 0ms;
+    }
+    .anim-dona-mano { display: none; }
+    .anim-rueda,
+    .anim-caja-check path {
+      animation-duration: 1ms;
+      animation-delay: 0ms;
+    }
+    .anim-caja-aguja,
+    .anim-caja-ping { animation: none; }
     .alza-cayla:hover { transform: none; }
     .hilo-trabajando::after { animation: none; }
+    /* El respiro rojo es solo opacidad y se queda; el barrido de luz sí se mueve: fuera. */
+    .anim-tope-barrido { display: none; }
   }
 }
 /* Fuera de capa a propósito: el `!important` de movimiento reducido tiene que ganarle

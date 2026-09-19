@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   comparativoSemanaAnterior,
+  duracionAbierta,
   egresosElevados,
-  iniciales,
+  formatoDuracion,
+  metodosDe,
   rangoHorasCaja,
+  ritmoDelDia,
   senalCaja,
   tendenciaCierres7Dias,
   ventasPorHora,
@@ -13,12 +16,93 @@ function lima(anio: number, mes: number, dia: number, hora = 0, min = 0): Date {
   return new Date(Date.UTC(anio, mes - 1, dia, hora + 5, min));
 }
 
-describe("iniciales", () => {
-  it("toma la primera letra de las dos primeras palabras", () => {
-    expect(iniciales("Felipe Alvarez")).toBe("FA");
+describe("duracionAbierta", () => {
+  const abierta = lima(2026, 9, 18, 11, 48).toISOString();
+  it("con horas: minutos siempre a dos dígitos", () => {
+    expect(duracionAbierta(abierta, lima(2026, 9, 18, 13, 56).getTime())).toBe("2 h 08 min");
+    expect(duracionAbierta(abierta, lima(2026, 9, 18, 12, 48).getTime())).toBe("1 h 00 min");
   });
-  it("un solo nombre da una sola letra", () => {
-    expect(iniciales("Sofía")).toBe("S");
+  it("antes de la primera hora: solo minutos", () => {
+    expect(duracionAbierta(abierta, lima(2026, 9, 18, 12, 36).getTime())).toBe("48 min");
+  });
+  it("un reloj adelantado no da negativos", () => {
+    expect(duracionAbierta(abierta, lima(2026, 9, 18, 11, 40).getTime())).toBe("0 min");
+  });
+  it("formatoDuracion: 64 minutos son 1 h 04 min", () => {
+    expect(formatoDuracion(64)).toBe("1 h 04 min");
+    expect(formatoDuracion(9)).toBe("9 min");
+  });
+});
+
+describe("metodosDe", () => {
+  it("separa un pago mixto y no repite", () => {
+    expect(metodosDe("efectivo + yape")).toEqual(["efectivo", "yape"]);
+    expect(metodosDe("yape + plin")).toEqual(["yape"]); // Yape y Plin son una sola fila, como en la dona
+  });
+  it("sin dato no inventa un método", () => {
+    expect(metodosDe(null)).toEqual([]);
+    expect(metodosDe("")).toEqual([]);
+  });
+  it("lo que no reconoce cae en 'otro', no se pierde", () => {
+    expect(metodosDe("cheque")).toEqual(["otro"]);
+  });
+});
+
+describe("ritmoDelDia", () => {
+  // El caso real de las capturas: abre 12:03, ahora 14:13 → eje de 130 min.
+  const abierta = lima(2026, 9, 18, 12, 3).toISOString();
+  const ahora = lima(2026, 9, 18, 14, 13).getTime();
+  const v = (ventaId: string, hora: string, total: number, metodosPago: string | null) => ({ ventaId, hora, total, metodosPago });
+  const dia = [v("a", "12:48", 75, "efectivo"), v("b", "13:09", 338, "efectivo"), v("c", "13:09", 537, "yape")];
+
+  it("cuenta, promedia y mide cuánto hace de la última", () => {
+    const r = ritmoDelDia(dia, abierta, ahora);
+    expect(r.cantidad).toBe(3);
+    expect(r.total).toBe(950);
+    expect(r.ticketPromedio).toBeCloseTo(316.67, 2);
+    expect(r.minutosDesdeUltima).toBe(64);
+    expect(r.metodos).toEqual(["efectivo", "yape"]);
+  });
+
+  it("ubica cada venta en el eje y apila las que caen juntas en vez de taparlas", () => {
+    const [a, b, c] = ritmoDelDia(dia, abierta, ahora).puntos;
+    expect(a!.pos).toBeCloseTo(45 / 130, 6);
+    expect(b!.pos).toBeCloseTo(66 / 130, 6);
+    expect(c!.pos).toBeCloseTo(66 / 130, 6);
+    expect([a!.fila, b!.fila, c!.fila]).toEqual([0, 0, 1]); // 13:09 dos veces: la segunda sube
+    expect(ritmoDelDia(dia, abierta, ahora).filas).toBe(2);
+  });
+
+  it("el área del punto sigue al monto: la venta mayor pesa 1 y las demás su raíz", () => {
+    const [a, b, c] = ritmoDelDia(dia, abierta, ahora).puntos;
+    expect(c!.peso).toBe(1);
+    expect(b!.peso).toBeCloseTo(Math.sqrt(338 / 537), 6);
+    expect(a!.peso).toBeLessThan(b!.peso);
+  });
+
+  it("las ventas de una caja anterior del mismo día no cuentan", () => {
+    const r = ritmoDelDia([v("x", "09:30", 120, "efectivo"), ...dia], abierta, ahora);
+    expect(r.cantidad).toBe(3);
+    expect(r.total).toBe(950);
+  });
+
+  it("una caja que quedó abierta de ayer arranca el eje a medianoche", () => {
+    const ayer = lima(2026, 9, 17, 18, 0).toISOString();
+    const r = ritmoDelDia([v("m", "08:00", 50, "efectivo")], ayer, ahora);
+    expect(r.puntos[0]!.pos).toBeCloseTo(480 / 853, 6); // 08:00 sobre 00:00 → 14:13
+    expect(r.abrioHoy).toBe(false); // para que la etiqueta diga "desde medianoche" y no una hora de ayer
+    expect(ritmoDelDia(dia, abierta, ahora).abrioHoy).toBe(true);
+  });
+
+  it("sin ventas: ceros, sin 'desde la última' y sin inventar puntos", () => {
+    const r = ritmoDelDia([], abierta, ahora);
+    expect(r).toMatchObject({ cantidad: 0, ticketPromedio: 0, minutosDesdeUltima: null, puntos: [], filas: 0, metodos: [] });
+  });
+
+  it("un reloj atrasado no deja puntos fuera del eje", () => {
+    const r = ritmoDelDia([v("z", "14:20", 10, "efectivo")], abierta, ahora); // "del futuro"
+    expect(r.puntos[0]!.pos).toBe(1);
+    expect(r.minutosDesdeUltima).toBe(0);
   });
 });
 

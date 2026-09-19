@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
+import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { normalizarNombre } from "@/lib/patron-visual";
@@ -112,11 +113,14 @@ function TarjetaEtiqueta({
   e,
   vigencia,
   apagada = false,
+  prendas = null,
   children,
 }: {
   e: Etiqueta;
   vigencia: Vigencia | null;
   apagada?: boolean;
+  /** Prendas etiquetadas a mano con ella (solo un Líder lo sabe); `null` = no mostrar. */
+  prendas?: number | null;
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
@@ -151,8 +155,13 @@ function TarjetaEtiqueta({
             <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
             {" · "}
             {e.categoriaIds.length === 0
-              ? "prendas etiquetadas a mano"
+              ? "solo en las prendas etiquetadas"
               : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
+          </p>
+        )}
+        {prendas !== null && (
+          <p className="text-[11px] tabular-nums text-tinta/60">
+            {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
           </p>
         )}
         {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
@@ -187,6 +196,11 @@ export function EtiquetasLista({
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
   const [configurando, setConfigurando] = useState<Etiqueta | null>(null);
+  const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
+  // Copia local de `variantesManuales`: al etiquetar desde el modal de prendas se
+  // actualiza aquí (contador de la tarjeta y aviso de costo del modal de campaña) sin
+  // recargar la página.
+  const [manuales, setManuales] = useState(variantesManuales);
   const [busqueda, setBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [grupo, setGrupo] = useState<Estilo | "todas">("todas");
@@ -443,7 +457,7 @@ export function EtiquetasLista({
               </p>
               <div className={GRILLA}>
                 {delGrupo.map((e) => (
-                  <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)}>
+                  <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
                     {puedeEditar &&
                       (e.estado === "pendiente" ? (
                         <div className="flex gap-2">
@@ -466,14 +480,23 @@ export function EtiquetasLista({
                         // mouse o al enfocar con teclado, y en pantallas táctiles (sin
                         // hover) se ve siempre. Reserva su espacio para que la tarjeta
                         // no salte de alto.
-                        <div className="flex items-center justify-between">
-                          <button
-                            type="button"
-                            onClick={() => setConfigurando(e)}
-                            className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-                          >
-                            Configurar campaña
-                          </button>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex flex-wrap gap-x-3 gap-y-1">
+                            <button
+                              type="button"
+                              onClick={() => setEtiquetando(e)}
+                              className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
+                            >
+                              Prendas
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfigurando(e)}
+                              className="label-cayla text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
+                            >
+                              Configurar campaña
+                            </button>
+                          </span>
                           <button
                             type="button"
                             disabled={cambiandoId === e.id}
@@ -532,12 +555,24 @@ export function EtiquetasLista({
         </Modal>
       )}
 
+      {etiquetando && (
+        <PrendasDeEtiquetaModal
+          etiqueta={etiquetando}
+          prendasConCosto={prendasConCosto}
+          onClose={() => setEtiquetando(null)}
+          onAplicado={(finales) => {
+            setManuales((actual) => ({ ...actual, [etiquetando.id]: finales }));
+            setEtiquetando(null);
+          }}
+        />
+      )}
+
       {configurando && (
         <CampanaModal
           etiqueta={configurando}
           categorias={categorias}
           prendasConCosto={prendasConCosto}
-          variantesManuales={variantesManuales[configurando.id] ?? []}
+          variantesManuales={manuales[configurando.id] ?? []}
           onClose={() => setConfigurando(null)}
           onGuardado={(cambios) => {
             setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === configurando.id ? { ...x, ...cambios } : x))));
