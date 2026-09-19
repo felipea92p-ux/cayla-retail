@@ -14,10 +14,11 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
-  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "etiquetas"] as const;
-  const tipo = TIPOS.find((t) => t === tipoParam) ?? "colores";
+  // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
+  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales] = await Promise.all([
     supabase
       .from("colores")
       .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado")
@@ -41,6 +42,14 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
       : Promise.resolve({ data: [], error: null }),
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
+    // Costos y precios SOLO para un Líder, y solo para avisarle al configurar una campaña
+    // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
+    tipo === "etiquetas" && persona.rol === "lider"
+      ? supabase.from("variantes").select("id, sku, precio, costo, producto:productos ( referencia, categoria_id )").eq("activo", true)
+      : Promise.resolve({ data: [], error: null }),
+    tipo === "etiquetas" && persona.rol === "lider"
+      ? supabase.from("variante_etiquetas").select("etiqueta_id, variante_id")
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -90,6 +99,17 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     descuentoPct: e.descuento_pct,
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
+  const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => ({
+    id: v.id,
+    categoriaId: v.producto?.categoria_id ?? null,
+    precio: Number(v.precio),
+    costo: Number(v.costo ?? 0),
+    nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
+  }));
+  const variantesManuales: Record<string, string[]> = {};
+  for (const f of exigir(resManuales, "las prendas etiquetadas a mano")) {
+    (variantesManuales[f.etiqueta_id] ??= []).push(f.variante_id);
+  }
   const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
   const categorias = exigir(resCategorias, "las categorías").map((c) => ({
     id: c.id,
@@ -119,6 +139,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         patrones={patrones}
         etiquetas={etiquetas}
         categorias={categorias}
+        prendasConCosto={prendasConCosto}
+        variantesManuales={variantesManuales}
         puedeEditar={persona.rol === "lider"}
       />
     </div>

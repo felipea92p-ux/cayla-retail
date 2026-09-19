@@ -2915,6 +2915,7 @@ export type Database = {
           argumento_descuento: string | null
           cantidad: number
           costo_unitario: number
+          descuento_etiqueta_id: string | null
           descuento_unitario: number
           id: string
           motivo_descuento: string | null
@@ -2928,6 +2929,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad: number
           costo_unitario: number
+          descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
           motivo_descuento?: string | null
@@ -2941,6 +2943,7 @@ export type Database = {
           argumento_descuento?: string | null
           cantidad?: number
           costo_unitario?: number
+          descuento_etiqueta_id?: string | null
           descuento_unitario?: number
           id?: string
           motivo_descuento?: string | null
@@ -2963,6 +2966,13 @@ export type Database = {
             columns: ["venta_id"]
             isOneToOne: false
             referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venta_items_descuento_etiqueta_id_fkey"
+            columns: ["descuento_etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
             referencedColumns: ["id"]
           },
         ]
@@ -3416,6 +3426,15 @@ export type Database = {
           referencia: string
           sku: string
           talla: string
+          variante_id: string
+        }[]
+      }
+      campanas_vigentes: {
+        Args: never
+        Returns: {
+          descuento_pct: number
+          etiqueta_id: string
+          etiqueta_nombre: string
           variante_id: string
         }[]
       }
@@ -3938,6 +3957,16 @@ export type Database = {
         }[]
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      fn_campanas_por_variante: {
+        Args: { p_hoy: string; p_tolerancia_dias?: number; p_variante_ids?: string[] }
+        Returns: {
+          descuento_pct: number
+          etiqueta_id: string
+          etiqueta_nombre: string
+          variante_id: string
+        }[]
+      }
+      fn_hoy_lima: { Args: never; Returns: string }
       fn_stock_por_sede: {
         Args: never
         Returns: {

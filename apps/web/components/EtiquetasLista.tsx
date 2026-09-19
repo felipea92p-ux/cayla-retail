@@ -4,11 +4,12 @@ import { useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
-import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
+import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { normalizarNombre } from "@/lib/patron-visual";
 
@@ -32,9 +33,10 @@ import { normalizarNombre } from "@/lib/patron-visual";
  * Configurar campaña (2026-09-18): un Líder le pone a una etiqueta un % de
  * descuento, fechas y, si quiere, las categorías donde rige. SIN categorías
  * la etiqueta solo alcanza a las prendas que alguien etiquetó a mano; CON
- * categorías, a todas las de esas categorías. Esta pantalla solo GUARDA la
- * configuración: que Vender la aplique sola es un paso aparte (todavía no lo
- * hace). Ver 20260918160000_etiquetas_descuento_y_categorias.sql.
+ * categorías, a todas las de esas categorías. Esta pantalla GUARDA la
+ * configuración y Vender la aplica sola (una prenda con varias campañas recibe
+ * solo el mayor). Ver 20260918160000_etiquetas_descuento_y_categorias.sql y
+ * 20260918170000_venta_aplica_descuento_de_campana.sql.
  *
  * `estilo` agrupa visualmente en 3 familias + "General" — paleta cerrada
  * a propósito (Felipe: "colores suaves dentro de nuestra paleta", nunca
@@ -79,11 +81,11 @@ type Etiqueta = {
 
 type CategoriaOpcion = { id: string; nombre: string; familia: string };
 
-// Se pone en `true` el día que `registrar_venta` lea `etiquetas.descuento_pct`
-// (BACKLOG, "Etiquetas de campaña con descuento automático", paso 3). Mientras
-// sea `false`, la pantalla avisa que el descuento se guarda pero no se cobra,
-// para que nadie en caja lo dé por hecho.
-const DESCUENTO_YA_SE_APLICA = false;
+// `true` desde que `registrar_venta` lee `etiquetas.descuento_pct`
+// (20260918170000_venta_aplica_descuento_de_campana.sql, paso 3 de ADR-0107). Vuelve a
+// `false` solo si ese SQL no está en producción: sin él, la pantalla prometería un
+// descuento que la caja no cobra. Con `false` avisa que se guarda pero no se cobra.
+const DESCUENTO_YA_SE_APLICA = true;
 
 /** 20 → "20", 12.5 → "12.5": sin ceros de más (el decimal peruano es el punto). */
 const textoPct = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2 });
@@ -96,35 +98,6 @@ function ordenar(lista: Etiqueta[]) {
 // las cinco pestañas de Atributos comparten medidas, así que al cambiar de una a
 // otra la ilustración no crece ni se corre.
 const GRILLA = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
-
-function BotonFiltro({
-  activo,
-  onClick,
-  cuenta,
-  punto,
-  children,
-}: {
-  activo: boolean;
-  onClick: () => void;
-  cuenta: number;
-  punto?: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      onClick={onClick}
-      className={`label-cayla inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10.5px] transition-colors ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/65 hover:border-tinta/30 hover:text-tinta"
-      }`}
-    >
-      {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
-      {children}
-      <span className={`font-normal tabular-nums ${activo ? "text-crema/60" : "text-tinta/40"}`}>{cuenta}</span>
-    </button>
-  );
-}
 
 /** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
  *  y el rango de fechas, juntos debajo del nombre. */
@@ -192,10 +165,16 @@ function TarjetaEtiqueta({
 export function EtiquetasLista({
   etiquetasIniciales,
   categorias,
+  prendasConCosto,
+  variantesManuales,
   puedeEditar,
 }: {
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
+  /** Solo para un Líder (el costo no viaja a otros roles): avisa qué prendas quedarían bajo su costo. */
+  prendasConCosto: PrendaConCosto[];
+  /** etiqueta_id → variantes etiquetadas a mano con ella. */
+  variantesManuales: Record<string, string[]>;
   puedeEditar: boolean;
 }) {
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
@@ -557,6 +536,8 @@ export function EtiquetasLista({
         <CampanaModal
           etiqueta={configurando}
           categorias={categorias}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={variantesManuales[configurando.id] ?? []}
           onClose={() => setConfigurando(null)}
           onGuardado={(cambios) => {
             setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === configurando.id ? { ...x, ...cambios } : x))));
@@ -601,11 +582,15 @@ export function EtiquetasLista({
 function CampanaModal({
   etiqueta,
   categorias,
+  prendasConCosto,
+  variantesManuales,
   onClose,
   onGuardado,
 }: {
   etiqueta: Etiqueta;
   categorias: CategoriaOpcion[];
+  prendasConCosto: PrendaConCosto[];
+  variantesManuales: string[];
   onClose: () => void;
   onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
 }) {
@@ -620,6 +605,9 @@ function CampanaModal({
   const fHasta = parsearFecha(hasta);
   const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
   const valido = pct.ok && fDesde.ok && fHasta.ok && !objecion;
+  // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
+  // pero quien la configura se entera: número en rojo y cuántas prendas serían.
+  const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
 
   const porFamilia = new Map<string, CategoriaOpcion[]>();
   for (const c of categorias) porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
@@ -670,8 +658,18 @@ function CampanaModal({
             value={descuento}
             onChange={(e) => setDescuento(e.target.value)}
             placeholder="Ej. 20"
-            tono={pct.ok ? undefined : "error"}
-            pie={pct.ok ? "Vacío = solo informativa, sin descuento." : pct.error}
+            tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
+            className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
+            pie={
+              !pct.ok
+                ? pct.error
+                : bajoCosto.length > 0
+                  ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
+                      .slice(0, 2)
+                      .map((p) => p.nombre)
+                      .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
+                  : "Vacío = solo informativa, sin descuento."
+            }
             autoComplete="off"
           />
 
@@ -730,12 +728,11 @@ function CampanaModal({
             </div>
           </div>
 
-          {!DESCUENTO_YA_SE_APLICA && (
-            <p className="rounded-md bg-tinta/[0.04] px-3 py-2 text-xs text-tinta/65">
-              Esto guarda la configuración. Todavía no cambia el precio en Vender. Cuando lo haga, si una prenda tiene varias etiquetas con
-              descuento, se aplicará solo el mayor.
-            </p>
-          )}
+          <p className="rounded-md bg-tinta/[0.04] px-3 py-2 text-xs text-tinta/65">
+            {DESCUENTO_YA_SE_APLICA
+              ? "En Vender, las prendas con esta etiqueta llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento."
+              : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
+          </p>
 
           <div className="flex gap-2 pt-1">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>

@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 20260918200300 — Crear producto con etiquetas, todo o nada
 --
--- El formulario nuevo (ADR-0108) tiene un bloque opcional de etiquetas de
+-- El formulario nuevo (ADR-0109) tiene un bloque opcional de etiquetas de
 -- catálogo al final. Hoy las etiquetas se aplican por variante en una llamada
 -- aparte (`actualizar_variantes_etiquetas`): si el alta sale bien y esa
 -- segunda llamada falla, queda un producto creado SIN sus etiquetas y quien lo

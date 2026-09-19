@@ -1,4 +1,4 @@
-// Reglas puras del formulario "Nuevo producto" (ADR-0108) — sin React ni red,
+// Reglas puras del formulario "Nuevo producto" (ADR-0109) — sin React ni red,
 // para que lo delicado (cómo se escribe un nombre, qué falta para guardar,
 // cuánto margen queda) se pruebe sin abrir la pantalla.
 //

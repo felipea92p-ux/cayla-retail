@@ -50,7 +50,12 @@ sigan cargando; la pestaña Etiquetas sí caería. (2) Alguien lee el «20 % de 
 tarjeta como cobrado: por eso, mientras `DESCUENTO_YA_SE_APLICA` sea `false`, la tarjeta y el
 modal dicen que aún no se aplica en Vender.
 
-## Pendiente (paso de la venta)
+## Paso de la venta
+Construido en ADR-0108 (la caja calcula, la base verifica). Una precisión sobre lo de arriba:
+allí se descartó «que el navegador calcule el % y lo mande» — lo que se descartó de verdad es
+que la base *confíe* en él; la base verifica cada línea contra la regla.
+
+## Nota original del paso de la venta
 Ver BACKLOG. Punto de cuidado ya identificado: la vigencia de las etiquetas se calcula hoy con
 `current_date` (UTC) en SQL; pasadas las 7 pm en Lima una campaña que termina hoy dejaría de
 aplicarse mientras la tienda sigue abierta (en pantalla ya se corrigió: `hoyLima()`). El

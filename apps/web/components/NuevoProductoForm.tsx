@@ -33,7 +33,7 @@ import {
 import type { ContextoAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
-// "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0108): una sola página donde
+// "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0109): una sola página donde
 // cada bloque se abre al resolver el anterior — 1 Qué es (familia → categoría)
 // · 2 Nombre · 3 Talla, tejido y patrón · 4 Colores · 5 Precio y variantes ·
 // 6 Etiquetas — y un resumen fijo que dice, en frases, qué falta para guardar.

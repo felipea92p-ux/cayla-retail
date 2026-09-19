@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { objecionVigencia, parsearDescuento, parsearFecha } from "./etiqueta-campana";
+import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
 
 describe("parsearDescuento", () => {
   it.each([
@@ -39,5 +39,29 @@ describe("objecionVigencia", () => {
     expect(objecionVigencia("2026-11-01", "2026-11-01")).toBeNull();
     expect(objecionVigencia(null, "2026-11-01")).toBeNull();
     expect(objecionVigencia("2026-11-01", null)).toBeNull();
+  });
+});
+
+describe("prendasBajoCosto — el aviso al configurar una campaña", () => {
+  const prenda = (id: string, categoriaId: string | null, precio: number, costo: number): PrendaConCosto => ({ id, categoriaId, precio, costo, nombre: id });
+  const prendas = [prenda("jean", "c-jeans", 100, 40), prenda("polo", "c-polos", 50, 45), prenda("collar", "c-collares", 30, 10)];
+
+  it("sin descuento no hay nada que avisar", () => {
+    expect(prendasBajoCosto(null, prendas, new Set(["c-jeans", "c-polos"]), new Set())).toEqual([]);
+  });
+  it("un 20 % en jeans y polos deja el polo (50 → 40) por debajo de su costo (45)", () => {
+    expect(prendasBajoCosto(20, prendas, new Set(["c-jeans", "c-polos"]), new Set()).map((p) => p.id)).toEqual(["polo"]);
+  });
+  it("solo cuenta lo que la campaña alcanza: el collar no está en las categorías", () => {
+    expect(prendasBajoCosto(90, prendas, new Set(["c-polos"]), new Set()).map((p) => p.id)).toEqual(["polo"]);
+  });
+  it("las prendas etiquetadas a mano cuentan aunque su categoría no esté elegida", () => {
+    expect(prendasBajoCosto(90, prendas, new Set(), new Set(["collar"])).map((p) => p.id)).toEqual(["collar"]);
+  });
+  it("quedar EXACTO en el costo no es estar por debajo", () => {
+    expect(prendasBajoCosto(10, [prenda("x", "c", 100, 90)], new Set(["c"]), new Set())).toEqual([]);
+  });
+  it("sin categorías ni prendas a mano, el alcance es vacío", () => {
+    expect(prendasBajoCosto(99, prendas, new Set(), new Set())).toEqual([]);
   });
 });

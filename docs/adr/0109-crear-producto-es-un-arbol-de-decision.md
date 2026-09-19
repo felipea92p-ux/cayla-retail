@@ -1,4 +1,4 @@
-# ADR-0108 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
+# ADR-0109 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
 
 **Fecha:** 2026-09-18
 **Estado:** Pasos 1-4 construidos (mapa de datos, esquema, formulario nuevo, pantalla de éxito). Las

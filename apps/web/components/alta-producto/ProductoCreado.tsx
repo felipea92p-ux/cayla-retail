@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-// La pantalla de éxito de "Nuevo producto" (ADR-0108, paso 4). Crear un
+// La pantalla de éxito de "Nuevo producto" (ADR-0109, paso 4). Crear un
 // producto casi nunca es la última tarea: falta la foto de cada color, y una
 // colección son 10 prendas parecidas. Volver a la lista dejaba a la persona a
 // empezar de cero en cada una y sin nadie que le recordara las fotos.

@@ -224,6 +224,21 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
   });
 });
 
+describe("descuento de campaña (paso 3 de ADR-0107)", () => {
+  it.each([
+    ["venta_campana_omitida", "campaña vigente"],
+    ["venta_campana_no_vigente", "ya no está vigente"],
+    ["venta_campana_monto_no_coincide", "cambió"],
+    ["venta_campana_sin_etiqueta", "incompleto"],
+    ["venta_descuento_no_supera_campana", "igual o más descuento"],
+  ])("%s se lee como una frase con la prenda y sin el nombre técnico", (marca, pista) => {
+    const salida = traducirError({ message: marca, details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" }, "registrar la venta");
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain(pista);
+    expect(salida).not.toContain(marca);
+  });
+});
+
 describe("la nota del ticket", () => {
   it("el check de largo se vuelve una frase con el tope", () => {
     const salida = traducirError(
