@@ -5,9 +5,11 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, soles, type ParamsCompras } from "@/lib/compras";
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
+import { hoyLima } from "@/lib/fechas-lima";
+import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas } from "@/lib/recibidas-filtros-reglas";
 import { RecepcionCompraFormV2 } from "@/components/RecepcionCompraFormV2";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
-import { FiltrosCompras } from "@/components/FiltrosCompras";
+import { FiltrosRecibidas } from "@/components/FiltrosRecibidas";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -26,7 +28,10 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // lista de pendientes del componente, que filtra en memoria la página.
 //
 // `?vista=recibidas`: una factura ya recibida por completo desaparecía sin dejar rastro. La
-// pestaña muestra lo recibido contra comprobante, con su resultado y su demora.
+// pestaña muestra lo recibido contra comprobante, con su resultado y su demora. Sus filtros
+// (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
+// (`FiltrosRecibidas`), no el botón «Filtros» de `FiltrosCompras`; el servidor los limpia con
+// `filtrosRecibidasDesdeParams` antes de llamar a la base.
 export default async function RecibirComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras & { compra?: string; vista?: string }> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
@@ -63,18 +68,17 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
 
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
-    const busqueda = params.q?.trim() || undefined;
-    const proveedorId = params.prov && /^[0-9a-f-]{36}$/i.test(params.prov) ? params.prov : undefined;
+    const filtrosRecibidas = filtrosRecibidasDesdeParams(params);
     const [resumen, recepciones, recientes, proveedores] = await Promise.all([
       getResumenRecepciones(),
-      listarRecepcionesCompras({ busqueda, proveedorId, desde: params.desde, hasta: params.hasta, limite: 30 }),
+      listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: 30 }),
       getRecepcionesRecientes({ conFactura: true, limite: 40 }),
       getProveedoresActivos(),
     ]);
     // Detalle prenda por prenda y quién recibió, por guía (de la misma lectura que ya resuelve los nombres).
     const detalles = Object.fromEntries(recientes.map((r) => [r.loteId, r.detalle]));
     const nombres = Object.fromEntries(recientes.flatMap((r) => (r.recibidoPor ? [[r.loteId, r.recibidoPor] as const] : [])));
-    const hayFiltros = !!(busqueda || proveedorId || params.desde || params.hasta);
+    const hayFiltros = hayFiltrosRecibidas(filtrosRecibidas);
     const pctCompletas = resumen.comprobantesRecibidos > 0 ? Math.round((resumen.entregasCompletas / resumen.comprobantesRecibidos) * 100) : null;
 
     return (
@@ -119,14 +123,16 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
           </TarjetaCifra>
         </div>
 
-        <FiltrosCompras proveedores={proveedores} visibles={["proveedor", "fechas"]} />
-
-        <RecepcionesCompraLista
-          recepciones={recepciones}
-          detalles={detalles}
-          nombres={nombres}
-          vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
-        />
+        {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}
+        <div className="space-y-3.5">
+          <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} />
+          <RecepcionesCompraLista
+            recepciones={recepciones}
+            detalles={detalles}
+            nombres={nombres}
+            vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
+          />
+        </div>
       </div>
     );
   }
