@@ -389,6 +389,30 @@ export type Database = {
           },
         ]
       }
+      categorias_gasto: {
+        Row: {
+          activo: boolean
+          codigo: string
+          cuenta_pcge: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          cuenta_pcge: string
+          nombre: string
+          orden: number
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          cuenta_pcge?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           created_at: string
@@ -1442,6 +1466,44 @@ export type Database = {
           },
         ]
       }
+      egresos_no_gasto: {
+        Row: {
+          caja_movimiento_id: string
+          id: string
+          motivo: string
+          revertido_en: string | null
+          revertido_por: string | null
+          revisado_en: string
+          revisado_por: string | null
+        }
+        Insert: {
+          caja_movimiento_id: string
+          id?: string
+          motivo: string
+          revertido_en?: string | null
+          revertido_por?: string | null
+          revisado_en?: string
+          revisado_por?: string | null
+        }
+        Update: {
+          caja_movimiento_id?: string
+          id?: string
+          motivo?: string
+          revertido_en?: string | null
+          revertido_por?: string | null
+          revisado_en?: string
+          revisado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egresos_no_gasto_caja_movimiento_id_fkey"
+            columns: ["caja_movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "caja_movimientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiqueta_categorias: {
         Row: {
           categoria_id: string
@@ -1552,6 +1614,101 @@ export type Database = {
           orden?: number
         }
         Relationships: []
+      }
+      gastos: {
+        Row: {
+          anulado_en: string | null
+          anulado_por: string | null
+          caja_movimiento_id: string | null
+          categoria: string
+          comprobante_numero: string | null
+          comprobante_tipo: string
+          created_at: string
+          descripcion: string
+          estado: string
+          fecha: string
+          id: string
+          igv: number
+          medio_pago: string
+          monto_total: number
+          motivo_anulacion: string | null
+          proveedor_id: string | null
+          registrado_por: string | null
+          token_cliente: string | null
+          ubicacion_id: string | null
+        }
+        Insert: {
+          anulado_en?: string | null
+          anulado_por?: string | null
+          caja_movimiento_id?: string | null
+          categoria: string
+          comprobante_numero?: string | null
+          comprobante_tipo: string
+          created_at?: string
+          descripcion: string
+          estado?: string
+          fecha: string
+          id?: string
+          igv?: number
+          medio_pago: string
+          monto_total: number
+          motivo_anulacion?: string | null
+          proveedor_id?: string | null
+          registrado_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string | null
+        }
+        Update: {
+          anulado_en?: string | null
+          anulado_por?: string | null
+          caja_movimiento_id?: string | null
+          categoria?: string
+          comprobante_numero?: string | null
+          comprobante_tipo?: string
+          created_at?: string
+          descripcion?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          igv?: number
+          medio_pago?: string
+          monto_total?: number
+          motivo_anulacion?: string | null
+          proveedor_id?: string | null
+          registrado_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_caja_movimiento_id_fkey"
+            columns: ["caja_movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "caja_movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_categoria_fkey"
+            columns: ["categoria"]
+            isOneToOne: false
+            referencedRelation: "categorias_gasto"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "gastos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historial_producto_cambios: {
         Row: {
@@ -3639,6 +3796,13 @@ export type Database = {
         Returns: undefined
       }
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
+      anular_gasto: {
+        Args: {
+          p_gasto_id: string
+          p_motivo: string
+        }
+        Returns: undefined
+      }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -3999,7 +4163,83 @@ export type Database = {
           sede: string
         }[]
       }
+      fn_egresos_no_gasto_lista: {
+        Args: { p_limite?: number }
+        Returns: {
+          caja_movimiento_id: string
+          id: string
+          monto: number
+          motivo: string
+          motivo_egreso: string
+          revisado_en: string
+          revisado_por: string
+          total: number
+          ubicacion_nombre: string
+        }[]
+      }
+      fn_egresos_resumen: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          igv: number
+          n_gastos: number
+          nombre: string
+          por_categoria: Json
+          total: number
+          ubicacion_id: string
+        }[]
+      }
+      fn_egresos_sin_clasificar: {
+        Args: {
+          p_limite?: number
+        }
+        Returns: {
+          caja_id: string
+          creado_en: string
+          es_ajuste: boolean
+          id: string
+          monto: number
+          motivo: string
+          nota: string
+          registrado_por: string
+          total: number
+          ubicacion_id: string
+          ubicacion_nombre: string
+        }[]
+      }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_gastos_lista: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_limite?: number
+          p_solo_empresa?: boolean
+          p_ubicacion_id?: string
+        }
+        Returns: {
+          caja_movimiento_id: string
+          categoria: string
+          categoria_nombre: string
+          comprobante_numero: string
+          comprobante_tipo: string
+          creado_en: string
+          descripcion: string
+          estado: string
+          fecha: string
+          id: string
+          igv: number
+          medio_pago: string
+          monto_total: number
+          motivo_anulacion: string
+          proveedor_id: string
+          proveedor_nombre: string
+          registrado_por: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+        }[]
+      }
       fn_historial_producto_cambios: {
         Args: { p_producto_id: string }
         Returns: {
@@ -4563,6 +4803,13 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_egreso_no_gasto: {
+        Args: {
+          p_caja_movimiento_id: string
+          p_motivo: string
+        }
+        Returns: string
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -4749,6 +4996,24 @@ export type Database = {
             }
             Returns: string
           }
+      registrar_gasto: {
+        Args: {
+          p_caja_id?: string
+          p_caja_movimiento_id?: string
+          p_categoria: string
+          p_comprobante_numero?: string
+          p_comprobante_tipo: string
+          p_descripcion: string
+          p_fecha: string
+          p_igv?: number
+          p_medio_pago: string
+          p_monto_total: number
+          p_proveedor_id?: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       registrar_movimiento_caja: {
         Args: {
           p_caja_id: string
@@ -4917,6 +5182,12 @@ export type Database = {
           unidades_mes: number
           unidades_sin_costo_mes: number
         }[]
+      }
+      revertir_egreso_no_gasto: {
+        Args: {
+          p_id: string
+        }
+        Returns: undefined
       }
       revertir_produccion: {
         Args: { p_produccion_id: string }

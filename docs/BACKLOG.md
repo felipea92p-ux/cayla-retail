@@ -28,6 +28,30 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Gastos generales (2026-09-19, ADR-0117 — APROBADO y CONSTRUIDO; falta aplicar en producción)
+
+- [x] **Modelo aprobado por Felipe (2026-09-18) y construido (2026-09-19):** `gastos` como única fuente; un egreso de
+      caja solo es gasto si un gasto vigente lo señala. Migración `20260918193000_gastos.sql`, pantalla
+      `/finanzas/egresos`, grupo «Finanzas» del menú (solo líder). 94 verificaciones SQL + concurrencia con dos sesiones +
+      10 mutantes detectados + 19 pruebas de reglas. Detalle y diferencias con la propuesta: ADR-0117.
+- [ ] **Aplicar `20260918193000_gastos.sql` en producción** (ya lleva `retail.`; requiere ok explícito de Felipe) y
+      refrescar volcado + diccionario (`docs/datos/generado/COMO-REFRESCAR.md`). Hasta entonces `pnpm datos:comparar`
+      marcará estas funciones como «rotas en producción»: es el recordatorio, no un falso positivo.
+- [ ] **Las siete categorías y sus cuentas PCGE pasan por el contador.** Están sembradas como PROVISIONALES; corregir una
+      es un `update` en una migración nueva y no toca ningún gasto ya registrado. «Otros» quedó fuera a propósito (su
+      cuenta natural, 659, es la de las mermas y distorsionaría el margen bruto).
+- [ ] **Abrir `/finanzas/egresos` como líder y como colaboradora con la base local levantada** (Docker caído: la pantalla
+      solo se vio con datos de ejemplo). Regenerar `packages/database/src/types.ts` y confirmar que el diff es nulo.
+- [ ] **Bloqueo por período** cuando exista el cierre de mes (tarea 8): `registrar_gasto` y `anular_gasto` deben rechazar
+      fechas de un mes cerrado. Hoy no lo hacen (está marcado en el código).
+- [ ] **Historial:** los egresos de caja anteriores aparecen todos «sin clasificar» y se clasifican uno por uno (decisión
+      por defecto). Si son cientos, evaluar el marcado en bloque por fecha.
+- [ ] **Efectivo fuera de una caja** (caja fuerte, plata de oficina) no tiene camino; preguntar a Felipe si ocurre.
+- [ ] **Desbloquea el Estado de Resultados** (tarea 4): ya hay de dónde leer los gastos (`gastos` vigentes por categoría →
+      cuenta PCGE, IGV de facturas, medio de pago).
+
+---
+
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
