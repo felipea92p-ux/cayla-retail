@@ -279,16 +279,19 @@ export type Database = {
         Row: {
           categoria_id: string
           created_at: string
+          habitual: boolean
           talla_id: string
         }
         Insert: {
           categoria_id: string
           created_at?: string
+          habitual?: boolean
           talla_id: string
         }
         Update: {
           categoria_id?: string
           created_at?: string
+          habitual?: boolean
           talla_id?: string
         }
         Relationships: [
@@ -1359,6 +1362,7 @@ export type Database = {
           activo: boolean
           codigo: string
           created_at: string
+          exige_tejido_patron: boolean
           nombre: string
           orden: number
         }
@@ -1366,6 +1370,7 @@ export type Database = {
           activo?: boolean
           codigo: string
           created_at?: string
+          exige_tejido_patron?: boolean
           nombre: string
           orden?: number
         }
@@ -1373,6 +1378,7 @@ export type Database = {
           activo?: boolean
           codigo?: string
           created_at?: string
+          exige_tejido_patron?: boolean
           nombre?: string
           orden?: number
         }
@@ -3201,6 +3207,7 @@ export type Database = {
         Args: {
           p_categoria_id: string
           p_patron_ids: string[]
+          p_talla_habitual_ids?: string[]
           p_talla_ids: string[]
           p_tejido_ids: string[]
         }
@@ -3286,6 +3293,17 @@ export type Database = {
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
         Returns: undefined
+      }
+      buscar_productos_parecidos: {
+        Args: { p_excluir_id?: string; p_referencia: string }
+        Returns: {
+          categoria: string
+          categoria_id: string
+          id: string
+          nivel: string
+          referencia: string
+          similitud: number
+        }[]
       }
       catalogo_actualizar_producto:
         | {
@@ -3427,6 +3445,7 @@ export type Database = {
       crear_producto_con_variantes: {
         Args: {
           p_categoria_id: string
+          p_confirmo_distinto?: boolean
           p_descripcion?: string
           p_patron_id?: string
           p_referencia: string
