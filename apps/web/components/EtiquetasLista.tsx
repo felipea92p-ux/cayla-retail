@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
+import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
@@ -97,35 +98,6 @@ function ordenar(lista: Etiqueta[]) {
 // las cinco pestañas de Atributos comparten medidas, así que al cambiar de una a
 // otra la ilustración no crece ni se corre.
 const GRILLA = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
-
-function BotonFiltro({
-  activo,
-  onClick,
-  cuenta,
-  punto,
-  children,
-}: {
-  activo: boolean;
-  onClick: () => void;
-  cuenta: number;
-  punto?: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      onClick={onClick}
-      className={`label-cayla inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10.5px] transition-colors ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/65 hover:border-tinta/30 hover:text-tinta"
-      }`}
-    >
-      {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
-      {children}
-      <span className={`font-normal tabular-nums ${activo ? "text-crema/60" : "text-tinta/40"}`}>{cuenta}</span>
-    </button>
-  );
-}
 
 /** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
  *  y el rango de fechas, juntos debajo del nombre. */
