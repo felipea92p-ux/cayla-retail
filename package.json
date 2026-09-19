@@ -14,6 +14,7 @@
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
+    "pruebas:fn-resumen-variantes": "node scripts/pruebas/fn_resumen_variantes.mjs",
     "pruebas:deriva-produccion": "node scripts/pruebas/deriva_produccion.mjs",
     "pruebas:registrar-venta": "node scripts/pruebas/registrar_venta.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
