@@ -48,6 +48,8 @@ export type ItemRegistrarVenta = {
   motivo_descuento?: string;
   motivo_descuento_detalle?: string;
   argumento_descuento?: string;
+  /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
+  descuento_etiqueta_id?: string;
 };
 
 /** El payload completo de `registrar_venta` (11 parámetros, hoy). Se guarda entero en la
