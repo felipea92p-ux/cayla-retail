@@ -172,11 +172,9 @@ con cada una: ADR-0105.
       pasaron a tinta subrayado; el rojo de una tarjeta es su borde. Resumen bajó de 5 a 2 rojos
       (medido en navegador); Traslados, Conteo y Productos quedan en ≤2. Verificar con datos reales
       junto con lo de arriba.
-- [ ] **`/compras/por-pagar`, tarjeta "Vencido": 4 rojos en una sola tarjeta** (punto, cifra, línea de
-      detalle y —desde ADR-0105— el borde `acento`). Llegó de `main` (ADR-0111) mientras esta rama
-      estaba abierta; ya eran 3 antes de que el borde se dibujara. Es una decisión de marca sobre un
-      diseño ajeno y recién fusionado, así que no se tocó. Propuesta: dejar borde + cifra y quitar
-      punto y color del detalle (una tarjeta que pide algo ya se ve).
+- [x] **`/compras/por-pagar`, tarjeta "Vencido": de 4 rojos a 2** (2026-09-18, aprobado por Felipe).
+      Tenía punto, cifra, línea de detalle y —desde ADR-0105— el borde `acento`. Quedan borde + cifra;
+      el punto pasa a neutro y el detalle a su color normal. La tarjeta "Vence esta semana" sigue en ámbar.
 - [ ] **`ComercialPanel.tsx`** (sesión `comercial-command-leaders-bb5771`, sin commitear, no está en
       `main`): usa `border-l-2! border-l-rojo!` como parche. Con este cambio el `!` sobra y hay que
       quitarlo. Aviso dejado en `SESIONES-ACTIVAS.md`. Ojo: su tarjeta destacada suma borde rojo +
