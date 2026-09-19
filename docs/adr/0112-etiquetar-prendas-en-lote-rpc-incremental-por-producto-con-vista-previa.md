@@ -3,8 +3,9 @@
 **Fecha:** 2026-09-19
 **Estado:** Construido y probado (21 comprobaciones SQL en un Postgres efímero, 28 pruebas de la
 lógica de pantalla, pantalla verificada en navegador contra un servidor simulado).
-**NO en producción**: falta pegar `20260919010000_etiquetar_variantes.sql`. Hasta entonces
-`datos:comparar` marca la función como «rota en producción» — es la alarma correcta, no un falso positivo.
+**En producción desde el 2026-09-19** (pegada por Felipe; verificada en solo lectura: security definer,
+ejecutable por `authenticated` y no por `anon`, con los candados del archivo). Antes de pegarla,
+`datos:comparar` la marcaba «rota en producción» — la alarma correcta, no un falso positivo.
 **Afecta:** `retail.etiquetar_variantes` (función nueva; sin cambios de tablas), `EtiquetasLista.tsx`,
 `PrendasDeEtiquetaModal.tsx`, `lib/etiquetar-prendas.ts`. Continúa ADR-0107/0108.
 

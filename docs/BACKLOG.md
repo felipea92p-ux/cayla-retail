@@ -811,11 +811,16 @@ verde.
       en cada tarjeta: lista de productos con casillas (una marca todas las tallas), excepciones por talla,
       filtro por categoría, «Marcar/Soltar visibles», y **vista previa antes de aplicar** si la etiqueta
       lleva descuento (cuántas prendas, cuánto baja, desde cuándo, cuáles quedan bajo su costo).
-- [ ] **⚠ Pegar en producción `supabase/migrations/20260919010000_etiquetar_variantes.sql` ANTES de fusionar/desplegar.**
-      Función nueva `retail.etiquetar_variantes` (sin cambios de tablas; ya lleva `retail.`, es `create or replace`).
-      Sin ella, «Aplicar» en el modal de prendas falla. Después: refrescar el volcado (`generado/COMO-REFRESCAR.md`,
-      método por firma md5 de la bitácora del 2026-09-18) y `pnpm datos:generar:produccion`; `datos:comparar`
-      deja de marcar la función como rota.
+- [x] **Pegada en producción y verificada (2026-09-19, solo lectura): `supabase/migrations/20260919010000_etiquetar_variantes.sql`.**
+      `retail.etiquetar_variantes(p_cambios jsonb) -> jsonb`: security definer, `search_path=retail, public`, ejecutable
+      por `authenticated` y NO por `anon`, con los candados del archivo (Líder, «aprobada y activa», `for share`,
+      `on conflict do nothing`, tope por etiqueta). `variante_etiquetas` sigue en 0 filas y `registrar_venta` intacta.
+      Su firma ya está en `funciones-produccion.txt` y `datos:comparar` no marca nada roto.
+- [ ] **Volcado de producción desactualizado por otras migraciones (hallado 2026-09-19).** Producción tiene 162 funciones
+      y el volcado 158: 7 funciones nuevas o con firma distinta (`buscar_productos_parecidos`, `crear_producto_con_variantes`,
+      `actualizar_categoria_ejes`, `fn_clave_referencia`, `fn_dentro_de_una_edicion`, `fn_productos_referencia_trigger`,
+      `fn_titulo_referencia`) y 3 que ya no existen. Falta refrescar el resto del volcado con el método por firma md5
+      (bitácora del 2026-09-18); en este PR solo se añadió la firma de `etiquetar_variantes`.
 - [ ] **Etiquetar prendas más fácil — puerta 2: en lote desde `/productos`.** Marcar filas → «Etiquetar…» con
       el mismo RPC y la misma vista previa. Ya decidido con Felipe (2026-09-19): las dos puertas.
 - [ ] **Etiquetas de rotación automáticas (Nuevo / Últimas unidades / Top ventas).** Se calculan de alta, stock

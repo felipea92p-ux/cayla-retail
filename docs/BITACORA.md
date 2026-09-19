@@ -13,6 +13,8 @@ Decisión de fondo que salió del análisis: «Nuevo», «Últimas unidades» y 
 
 Lo que Felipe se lleva: una etiqueta que cambia precios necesita que el sistema le diga a quien la aplica qué va a pasar, no solo pedirle confirmación; y `datos:comparar` marcando «rota en producción» una función que aún no se pegó no es un falso positivo: es el recordatorio de pegar el SQL antes de desplegar. Pendiente: la puerta 2 (etiquetar en lote desde `/productos`) y las etiquetas automáticas.
 
+**Actualización (2026-09-19, noche): migración pegada y verificada.** Se comprobó en solo lectura que `etiquetar_variantes` existe con la firma correcta, es security definer, la ejecuta `authenticated` y no `anon`, y el código coincide con el del archivo; `variante_etiquetas` sigue en 0 filas y `registrar_venta` no cambió. De paso salió a la luz un desvío ajeno: producción ya tenía 7 funciones nuevas o cambiadas y 3 desaparecidas respecto al volcado (referencias de productos, `crear_producto_con_variantes`…), pegadas por otra sesión sin refrescar el diccionario. Aquí solo se agregó la firma propia; el resto queda en BACKLOG.
+
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
