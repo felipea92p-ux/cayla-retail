@@ -191,7 +191,7 @@ function Tarjeta({
         // la misma página (#contar) — el <Link> de Next no siempre dispara
         // el scroll nativo del navegador para un href de solo-hash en la
         // misma ruta, y con <a> no hay ambigüedad posible.
-        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
           {accion.texto} →
         </a>
       )}

@@ -235,11 +235,29 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "compra_item_cierres_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM (retail.compra_items ci\n     JOIN retail.compras c ON ((c.id = ci.compra_id)))\n  WHERE ((ci.id = compra_item_cierres.compra_item_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_item_cierres",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "compra_items_select",
   "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "compra_notas_credito_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_notas_credito",
   "with_check": null
  },
  {
@@ -351,13 +369,31 @@
   "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
  },
  {
+  "cmd": "SELECT",
+  "policyname": "etiqueta_categorias_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "etiqueta_categorias",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "etiqueta_categorias_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "etiqueta_categorias",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
   "cmd": "INSERT",
   "policyname": "etiquetas_insert_autenticado",
   "qual": null,
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR retail.fn_es_lider()))"
  },
  {
   "cmd": "SELECT",
@@ -375,6 +411,24 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "familias_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "familias_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
   "with_check": "retail.fn_es_lider()"
  },
  {
@@ -564,6 +618,15 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proformas",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "proveedor_creditos_select",
+  "qual": "retail.fn_puede_registrar_compras()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "proveedor_creditos",
   "with_check": null
  },
  {
