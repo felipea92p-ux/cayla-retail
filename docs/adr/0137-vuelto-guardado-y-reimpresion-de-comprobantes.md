@@ -1,10 +1,13 @@
 # ADR-0137 — El vuelto se guarda y los comprobantes se reimprimen desde Caja (ticket y A4)
 
 **Fecha:** 2026-09-19
-**Estado:** Aplicado en local (rama `claude/caja-cabecera-atelier`).
-**Migración `20260919210000_venta_pagos_recibido.sql`: PENDIENTE en producción.** La pega
-Felipe en el SQL Editor de cayla-dynamic (ya lleva `retail.` y su `search_path`). **Va ANTES de
-fusionar el front**: el detalle de venta lee `venta_pagos.recibido` y, sin la columna, esa lectura falla.
+**Estado:** Aplicado. Fusionado en `main` el 2026-09-19 (PR #195 y #196).
+**Migración `20260919210000_venta_pagos_recibido.sql`: APLICADA en producción antes de la
+fusión** (la pegó Felipe). Verificado el 2026-09-19 en el catálogo, solo lectura: columna
+`venta_pagos.recibido` y candado `venta_pagos_recibido_coherente` presentes; **una sola**
+`registrar_venta` de 11 parámetros, con el cuerpo **idéntico** al del repo (comparado sin
+comentarios ni espacios) y `EXECUTE` solo para `authenticated` y `postgres`. Al verificarlo no
+había ningún pago con `recibido` todavía (ninguna venta desde entonces).
 **Afecta:** `retail.venta_pagos` (columna nueva), `retail.registrar_venta` (misma firma de 11
 parámetros), Vender (`PuntoDeVenta`, cola offline), Caja (`CajaAbiertaPanel` y tres componentes
 nuevos), `BoletaA4`, `globals.css` (página de impresión `a4`).
