@@ -8,6 +8,30 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("un nombre de producto repetido dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "productos_referencia_clave_unica"',
+        code: "23505",
+      },
+      "crear el producto"
+    );
+    expect(salida).not.toContain("productos_referencia_clave_unica");
+    expect(salida).toContain("Ya existe un producto con ese nombre");
+  });
+
+  it("una talla y color repetidos en un producto se explican, no se citan", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "variantes_producto_talla_color_unico"',
+        code: "23505",
+      },
+      "dar de alta esta prenda"
+    );
+    expect(salida).not.toContain("variantes_producto_talla_color_unico");
+    expect(salida).toContain("ya tiene esa talla y ese color");
+  });
+
   it("el check de stock negativo se vuelve una instrucción, no una restricción", () => {
     const salida = traducirError(
       {

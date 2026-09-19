@@ -54,6 +54,18 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
+    // 20260918200000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
+    // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
+    marca: "productos_referencia_clave_unica",
+    frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
+  },
+  {
+    // Índice único de variantes: una talla y un color van una sola vez por producto. En el censo
+    // aparece cuando el código de barras escaneado es nuevo pero la talla+color ya existía.
+    marca: "variantes_producto_talla_color_unico",
+    frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
+  },
+  {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
     // navegador. El detalle es «referencia (sku)».
