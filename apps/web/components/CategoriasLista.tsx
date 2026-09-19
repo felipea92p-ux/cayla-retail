@@ -213,6 +213,8 @@ export function CategoriasLista({
         }
         setEjesPorCategoria((actual) => ({
           tallas: { ...actual.tallas, [guardada.id]: universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)) },
+          // La base conserva la curva habitual de las tallas que siguen ofrecidas (actualizar_categoria_ejes).
+          habituales: { ...actual.habituales, [guardada.id]: (actual.habituales[guardada.id] ?? []).filter((id) => ejesDraft.tallaIds.includes(id)) },
           tejidos: { ...actual.tejidos, [guardada.id]: universo.tejidos.filter((v) => ejesDraft.tejidoIds.includes(v.id)) },
           patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
         }));

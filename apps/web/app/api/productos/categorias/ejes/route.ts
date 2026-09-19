@@ -25,6 +25,9 @@ export async function PUT(request: Request) {
     p_talla_ids: idsValidos(cuerpo?.tallaIds),
     p_tejido_ids: idsValidos(cuerpo?.tejidoIds),
     p_patron_ids: idsValidos(cuerpo?.patronIds),
+    // Sin `tallaHabitualIds` la base conserva la curva que ya tenía (20260918200100).
+    // Con él, esa es la curva nueva: las tallas elegidas que vienen marcadas de antemano.
+    p_talla_habitual_ids: Array.isArray(cuerpo?.tallaHabitualIds) ? idsValidos(cuerpo.tallaHabitualIds) : undefined,
   });
 
   if (error) {

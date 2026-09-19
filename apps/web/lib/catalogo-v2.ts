@@ -398,6 +398,9 @@ export type ValorVocabulario = { id: string; texto: string };
  *  exacta, así que agrupar por `categoria_id` ya respeta eso solo. */
 export type EjesPorCategoria = {
   tallas: Record<string, ValorVocabulario[]>;
+  /** Ids de talla que vienen MARCADAS al elegir la categoría (la curva habitual,
+   *  `categoria_tallas.habitual`, 20260918200100). Siempre un subconjunto de `tallas`. */
+  habituales: Record<string, string[]>;
   tejidos: Record<string, ValorVocabulario[]>;
   patrones: Record<string, ValorVocabulario[]>;
 };
@@ -416,7 +419,7 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
   const supabase = await createClient();
   const [tallas, tejidos, patrones] = await Promise.all([
     exigir(
-      await supabase.from("categoria_tallas").select("categoria_id, talla:tallas!inner ( id, valor )").eq("tallas.activo", true).eq("tallas.estado", "aprobado"),
+      await supabase.from("categoria_tallas").select("categoria_id, habitual, talla:tallas!inner ( id, valor )").eq("tallas.activo", true).eq("tallas.estado", "aprobado"),
       "las tallas por categoría"
     ),
     exigir(
@@ -429,8 +432,12 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
     ),
   ]);
 
+  const habituales: Record<string, string[]> = {};
+  for (const f of tallas) if (f.habitual) (habituales[f.categoria_id] ??= []).push(f.talla.id);
+
   return {
     tallas: agrupar(tallas.map((f) => ({ categoria_id: f.categoria_id, id: f.talla.id, texto: f.talla.valor }))),
+    habituales,
     tejidos: agrupar(tejidos.map((f) => ({ categoria_id: f.categoria_id, id: f.tejido.id, texto: f.tejido.nombre }))),
     patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
