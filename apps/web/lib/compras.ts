@@ -172,7 +172,7 @@ export async function listarCompras(
   // él): lee `listar_compras_operativo`, que devuelve solo lo que hace falta para recibir. Solo tiene el orden por
   // emisión y NINGÚN filtro de pago (filtrar por una columna de dinero es una forma de enterarse del dinero).
   //
-  // ADR-0132: con una tienda de por medio (`ubicacionId`) la lista también sale de esa función: solo trae los
+  // ADR-0138: con una tienda de por medio (`ubicacionId`) la lista también sale de esa función: solo trae los
   // comprobantes con reparto para ESA tienda y las cifras de ella («lo que me toca»). Un líder no pierde el dinero:
   // los montos se le suman después, desde `compras_resumen`.
   let operativas: FilaOperativa[] | null = null;
@@ -238,7 +238,7 @@ export function listarPorPagar(filtros: FiltrosCompras = {}, cursor: Cursor | nu
 
 /**
  * Facturas vigentes con mercadería pendiente de recibir (índice parcial `compras_por_recibir_idx`). Con
- * `ubicacionId` (ADR-0132) solo las que aún le faltan a ESA tienda, con las cifras de ella.
+ * `ubicacionId` (ADR-0138) solo las que aún le faltan a ESA tienda, con las cifras de ella.
  */
 export function listarPorRecibir(
   filtros: FiltrosCompras = {},
@@ -344,7 +344,7 @@ type FilaLinea = {
   recibido: number | null;
   cerrado: number | null;
   pendiente: number | null;
-  // Reparto por tienda (ADR-0132): solo vienen de `lineas_compra_operativo` cuando se pide con una tienda.
+  // Reparto por tienda (ADR-0138): solo vienen de `lineas_compra_operativo` cuando se pide con una tienda.
   asignado_aqui?: number | null;
   recibido_aqui?: number | null;
   cerrado_aqui?: number | null;
@@ -356,7 +356,7 @@ type FilaLinea = {
  * de `lineas_compra_operativo`, que no trae costo ni subtotal; el resto del armado es el mismo, así que en la
  * pantalla esos dos campos quedan en 0. Si la función todavía no existe en esa base, sigue por la vista de antes.
  *
- * ADR-0132 — con una tienda de por medio (`ubicacionId`; un colaborador siempre mira la suya) las cifras de cada línea
+ * ADR-0138 — con una tienda de por medio (`ubicacionId`; un colaborador siempre mira la suya) las cifras de cada línea
  * (`cantidad`, `recibido`, `cerrado`, `pendiente`) pasan a ser las de ESA tienda: así los topes, «Todo llegó» y los
  * totales de la pantalla de recibir funcionan por tienda sin cambiar una línea. Un líder no pierde el costo.
  */
@@ -422,7 +422,7 @@ export async function getLineasCompra(compraIds: string[], opciones: { sinMontos
       cerrado: Number(f.cerrado ?? 0),
       pendiente: Number(f.pendiente ?? 0),
     };
-    // Con números de tienda (ADR-0132) las cifras de la línea pasan a ser las de ESA tienda.
+    // Con números de tienda (ADR-0138) las cifras de la línea pasan a ser las de ESA tienda.
     return f.asignado_aqui == null
       ? base
       : lineaEnMiTienda(base, {

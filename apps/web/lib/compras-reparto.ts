@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { motivoDeReasignacion, type FilaReparto, type ReasignacionCompra } from "@/lib/reparto-reglas";
 
-// Lectura del reparto de UN comprobante entre tiendas (ADR-0132) para el detalle: cuánto le tocó a cada tienda de cada
+// Lectura del reparto de UN comprobante entre tiendas (ADR-0138) para el detalle: cuánto le tocó a cada tienda de cada
 // línea, cuánto recibió y cuánto cerró como faltante, y la bitácora de reasignaciones. Las dos son de solo lectura
 // (RLS) y las escrituras pasan por `reasignar_reparto_compra` y `cerrar_linea_compra` desde los componentes cliente.
 //

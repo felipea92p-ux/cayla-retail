@@ -1,21 +1,16 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 102 llamadas de `apps/web` contra 175 funciones del schema `retail` en producción.
+> Comparadas 102 llamadas de `apps/web` contra 178 funciones del schema `retail` en producción.
 
 ---
 
-## Roto en producción — 1
+## Roto en producción — 0
 
 ## Sobrecargas — 0
 
 Ninguna. Cada función tiene una sola firma en producción.
-### `fn_proveedores_serie_12m` — no existe
-
-**Dónde:** `apps/web/lib/proveedores.ts:92`
-**Qué pasa:** la función `fn_proveedores_serie_12m` no existe en producción
-**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.
-
+Nada. Todas las llamadas encajan con la firma real.
 ## Avisos — 14
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:72` — no manda `p_motivo` (normal si tienen valor por defecto)
@@ -33,21 +28,22 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_proveedor_costo_evolucion` · `apps/web/lib/proveedores.ts:242` — no manda `p_limite` (normal si tienen valor por defecto)
 - `fn_resumen_variantes` · `apps/web/lib/resumen-inventario.ts:41` — no manda `p_ventana_dias` (normal si tienen valor por defecto)
 
-## No analizadas — 24
+## No analizadas — 25
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 
 - `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:185` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:304` — el objeto se arma con «...», no se puede leer entero
-- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:153` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:168` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:176` — el objeto se arma con «...», no se puede leer entero
 - `catalogo_actualizar_producto` · `apps/web/components/ProductoForm.tsx:323` — el objeto se arma con «...», no se puede leer entero
 - `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:261` — el objeto se arma con «...», no se puede leer entero
 - `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:265` — los parámetros no van escritos ahí mismo
 - `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:276` — los parámetros no van escritos ahí mismo
 - `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:360` — los parámetros no van escritos ahí mismo
 - `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:782` — los parámetros no van escritos ahí mismo
-- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:629` — los parámetros no van escritos ahí mismo
+- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:664` — los parámetros no van escritos ahí mismo
 - `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:70` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:49` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:223` — el objeto se arma con «...», no se puede leer entero
@@ -63,7 +59,7 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:207` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:226` — los parámetros no van escritos ahí mismo
 
-## Funciones que nadie llama — 30
+## Funciones que nadie llama — 31
 
 Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:
 una pantalla que falta construir, o una función que sobra y habría que retirar.
@@ -96,5 +92,6 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `registrar_movimiento`
 - `registrar_pago_compra`
 - `registrar_pago_compras`
+- `registrar_pago_compras_medios`
 - `registrar_reembolso_proveedor`
 - `registrar_venta`

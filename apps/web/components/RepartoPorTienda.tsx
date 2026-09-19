@@ -6,7 +6,7 @@ import type { RepartoDeCompra } from "@/lib/compras-reparto";
 import { hoyLima } from "@/lib/fechas-lima";
 import { estaRepartido, ETIQUETA_MOTIVO_REASIGNACION, etiquetaDeLinea, filasDeLinea, resumenPorTienda, textoDeReasignacion, tiendasDelReparto } from "@/lib/reparto-reglas";
 
-// «Reparto por tienda» en el detalle de un comprobante (ADR-0132): cuánto le toca a cada tienda de cada línea y cuánto ya
+// «Reparto por tienda» en el detalle de un comprobante (ADR-0138): cuánto le toca a cada tienda de cada línea y cuánto ya
 // recibió, para saber de un vistazo qué tienda va atrasada; y desde aquí un líder puede reasignar lo que aún no llegó.
 //
 // Server Component: las cifras salen de `getRepartoDeCompra` (la vista `compra_item_reparto_resumen`, derivada de

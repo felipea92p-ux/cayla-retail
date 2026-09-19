@@ -7,7 +7,7 @@ import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { repartirEnPartesIguales, textoDelReparto, type RepartoLinea } from "@/lib/reparto-reglas";
 
-// Repartir un comprobante entre tiendas al REGISTRARLO (ADR-0132). Un mismo comprobante puede traer mercadería para
+// Repartir un comprobante entre tiendas al REGISTRARLO (ADR-0138). Un mismo comprobante puede traer mercadería para
 // varias tiendas y cada una recibe lo suyo; aquí se dice cuánto le toca a cada una, línea por línea.
 //
 // Dos piezas, sin estado propio (todo vive en `CompraFormV2`, que es quien envía):

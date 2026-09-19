@@ -18,7 +18,7 @@ import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type Moti
 
 const MOTIVOS = Object.entries(ETIQUETA_MOTIVO_CIERRE) as [MotivoCierre, string][];
 
-// Repartido entre tiendas (ADR-0132) el faltante es de UNA tienda: las que aún tienen algo pendiente de esta línea, con lo que
+// Repartido entre tiendas (ADR-0138) el faltante es de UNA tienda: las que aún tienen algo pendiente de esta línea, con lo que
 // les falta. Sin ellas (una base sin reparto) el cierre va sin tienda, como siempre, y la base infiere la única que hay.
 export type TiendaConFaltante = { ubicacionId: string; nombre: string; pendiente: number };
 

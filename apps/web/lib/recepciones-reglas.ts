@@ -81,7 +81,7 @@ export function ordenarPorUrgencia<T extends Esperable>(compras: T[], ahora: Dat
 /**
  * Valor S/ de lo que falta llegar de un comprobante, proporcional a lo pendiente (el total incluye IGV).
  *
- * ADR-0132 — vista desde una tienda, `facturadoCantidad` es lo que le TOCA a ella pero `total` es el de TODO el
+ * ADR-0138 — vista desde una tienda, `facturadoCantidad` es lo que le TOCA a ella pero `total` es el de TODO el
  * comprobante: el prorrateo se hace contra las unidades del comprobante entero (`facturadoTotal`), si no, a una tienda
  * con 18 de 36 unidades le saldría el total completo como «por llegar».
  */

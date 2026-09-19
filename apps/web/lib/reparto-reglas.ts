@@ -1,4 +1,4 @@
-// Reparto de un comprobante entre tiendas (ADR-0132) — lo que NO toca la base: armar, validar y explicar un
+// Reparto de un comprobante entre tiendas (ADR-0138) — lo que NO toca la base: armar, validar y explicar un
 // reparto. La base es la que lo hace cumplir (candado diferido en `compra_item_destinos`, tope por tienda en
 // `recibir_compras`); acá solo se evita mandarle algo que ya se sabe que va a rechazar y se le pone palabras a
 // cada cifra para quien opera. Vive aparte de `compras.ts` por la misma razón que `compras-reglas.ts`: los

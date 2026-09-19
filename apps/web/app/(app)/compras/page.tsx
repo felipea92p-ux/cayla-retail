@@ -68,7 +68,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
     getProveedoresActivos(),
     getUbicaciones(),
   ]);
-  // Para decir a qué tiendas va un comprobante repartido (ADR-0132).
+  // Para decir a qué tiendas va un comprobante repartido (ADR-0138).
   const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
 
   const ahora = new Date();
@@ -276,7 +276,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   <span className={celda("izq", "overflow-visible whitespace-normal")}>
                     <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
                     <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
-                    {/* Repartido entre varias tiendas (ADR-0132): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
+                    {/* Repartido entre varias tiendas (ADR-0138): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                     {c.ubicacionesDestino.length > 1 && (
                       <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                     )}

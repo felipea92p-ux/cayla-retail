@@ -43,7 +43,7 @@ const EN_SECO = process.argv.includes("--en-seco");
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8");
 const SQL_A = leer("20260919160000_dinero_de_compras_lectura_operativa.sql");
 const SQL_B = leer("20260919161000_dinero_de_compras_tablas_solo_lider.sql");
-// A ENTERA ya no se puede re-pegar encima del reparto por tienda (ADR-0132): su sección 4 recrea las funciones
+// A ENTERA ya no se puede re-pegar encima del reparto por tienda (ADR-0138): su sección 4 recrea las funciones
 // operativas de antes, que leían el destino de la factura, y ese destino ya no existe. Las secciones 1-3 (la
 // regla, el candado y el costo enmascarado) no dependen de él y siguen siendo re-pegables.
 const SQL_A_HASTA_LA_SECCION_3 = SQL_A.slice(0, SQL_A.indexOf("-- 4. Lo que un integrante necesita para RECIBIR"));
@@ -615,7 +615,7 @@ function main() {
 
   if (EN_SECO) console.log("Modo --en-seco: las dos migraciones se cargan dentro de cada escenario (no se aplican a la base).\n");
 
-  // Tras el reparto (ADR-0132), A y B son historia ya aplicada: no se re-pegan encima (A recrea funciones que el
+  // Tras el reparto (ADR-0138), A y B son historia ya aplicada: no se re-pegan encima (A recrea funciones que el
   // reparto reemplazó y B exige la firma vieja de `lineas_compra_operativo`). Sus pruebas de orden y de re-pegado
   // solo tienen sentido en una base anterior al reparto.
   const HAY_REPARTO = psql("select to_regclass('retail.compra_item_destinos') is not null;").trim() === "t";

@@ -740,7 +740,7 @@ export function RecepcionEnvio({
                   {[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}
                   <span className="@[46rem]:hidden"> · pendiente {l.pendiente}</span>
                 </span>
-                {/* ADR-0132: una línea repartida entre tiendas dice cuánto le toca a ESTA (y, al líder, dónde más falta). */}
+                {/* ADR-0138: una línea repartida entre tiendas dice cuánto le toca a ESTA (y, al líder, dónde más falta). */}
                 {textoDeLaParte(l) && <span className="block text-[11px] leading-snug text-ambar-profundo">{textoDeLaParte(l)}</span>}
               </span>
             </span>
@@ -937,7 +937,7 @@ export function RecepcionEnvio({
           {visibles.map((c) => {
             const marcada = seleccionadas.includes(c.id);
             const llegada = chipLlegada(c, ahora);
-            // ADR-0132: si el comprobante trae más para otras tiendas, el monto es el de la PARTE de esta (no el total entero).
+            // ADR-0138: si el comprobante trae más para otras tiendas, el monto es el de la PARTE de esta (no el total entero).
             const esParte = c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad;
             const enMedio = c.recibidoCantidad > 0 || esParte;
             return (

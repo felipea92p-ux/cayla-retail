@@ -20,7 +20,7 @@ export type LineaParaProgreso = {
   productoId: string;
   cantidad: number;
   costoUnitario: string;
-  /** Solo si el comprobante se reparte entre tiendas (ADR-0132): tienda → unidades. Debe sumar la cantidad de la línea. */
+  /** Solo si el comprobante se reparte entre tiendas (ADR-0138): tienda → unidades. Debe sumar la cantidad de la línea. */
   reparto?: Record<string, number>;
 };
 
@@ -83,7 +83,7 @@ export function requisitosDeCompra(e: EntradaRequisitos): Requisito[] {
   // una con producto pero sin costo bloquea: «costo 0» es válido, «costo sin escribir» no.
   const validas = e.lineas.filter((l) => l.productoId && l.cantidad > 0);
   const sinCosto = e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || Number(l.costoUnitario) < 0));
-  // Repartido entre tiendas (ADR-0132): la base exige que lo repartido de cada línea sume lo facturado (candado diferido
+  // Repartido entre tiendas (ADR-0138): la base exige que lo repartido de cada línea sume lo facturado (candado diferido
   // en `compra_item_destinos`); acá se dice QUÉ línea y CUÁNTO falta o sobra antes de que la RPC lo rechace.
   const sinReparto = e.repartir ? e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && !estadoDelReparto(l.cantidad, l.reparto ?? {}).cuadra) : -1;
   const textoReparto = sinReparto >= 0 ? textoDelReparto(e.lineas[sinReparto].cantidad, e.lineas[sinReparto].reparto ?? {}).texto : "";

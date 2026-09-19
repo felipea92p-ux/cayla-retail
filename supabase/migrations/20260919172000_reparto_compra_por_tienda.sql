@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260919172000_reparto_compra_por_tienda.sql — CAYLA V2 · ADR-0132 (parte 1 de 2)
+-- 20260919172000_reparto_compra_por_tienda.sql — CAYLA V2 · ADR-0138 (parte 1 de 2)
 --
 -- Un comprobante de proveedor puede traer mercadería para varias tiendas y cada tienda
 -- recibe lo suyo. Hasta hoy la factura tenía UN destino (`compras.ubicacion_destino_id`) y
@@ -71,11 +71,11 @@ begin
   end if;
   if v_def not like '%compra_item_destinos%'
      and (v_def not like '%fn_consumir_saldo_favor%' or v_def not like '%token_cliente%' or v_def not like '%fecha_estimada_llegada%') then
-    raise exception 'registrar_compra cambió desde que se escribió esta migración (ADR-0132): reescríbela sobre la definición viva';
+    raise exception 'registrar_compra cambió desde que se escribió esta migración (ADR-0138): reescríbela sobre la definición viva';
   end if;
   if (select count(*) from information_schema.columns where table_schema = 'retail' and table_name = 'compras_resumen')
      not in (32, 33) then
-    raise exception 'compras_resumen cambió de forma desde que se escribió esta migración (ADR-0132): revisa sus columnas';
+    raise exception 'compras_resumen cambió de forma desde que se escribió esta migración (ADR-0138): revisa sus columnas';
   end if;
 end $$;
 
@@ -138,13 +138,13 @@ create trigger compra_reasignaciones_inmutables
   before update or delete on compra_reasignaciones
   for each row execute function fn_compra_reasignaciones_inmutable();
 
-comment on table compra_item_destinos is 'ADR-0132: el reparto de una línea de comprobante entre tiendas (cuánto de la línea le toca a cada una). La suma por línea es igual a la cantidad facturada; solo lo escriben las RPC.';
+comment on table compra_item_destinos is 'ADR-0138: el reparto de una línea de comprobante entre tiendas (cuánto de la línea le toca a cada una). La suma por línea es igual a la cantidad facturada; solo lo escriben las RPC.';
 comment on column compra_item_destinos.cantidad is 'Unidades de la línea que le tocan a esa tienda. Lo recibido y lo cerrado allí nunca supera esto.';
-comment on table compra_reasignaciones is 'ADR-0132: bitácora append-only de lo que un líder movió, sin recibir aún, de una tienda a otra dentro de una línea de comprobante.';
+comment on table compra_reasignaciones is 'ADR-0138: bitácora append-only de lo que un líder movió, sin recibir aún, de una tienda a otra dentro de una línea de comprobante.';
 
 -- ==================== 2. El faltante es de una tienda ====================
 alter table compra_item_cierres add column if not exists ubicacion_id uuid references ubicaciones (id);
-comment on column compra_item_cierres.ubicacion_id is 'ADR-0132: de qué tienda es lo que faltó (la parte de la línea que le tocaba a esa tienda).';
+comment on column compra_item_cierres.ubicacion_id is 'ADR-0138: de qué tienda es lo que faltó (la parte de la línea que le tocaba a esa tienda).';
 
 -- La cabecera deja de ser la fuente del destino; la parte 2 la elimina.
 alter table compras alter column ubicacion_destino_id drop not null;
@@ -244,7 +244,7 @@ as $$
 $$;
 revoke all on function fn_puede_ver_compra(uuid) from public, anon;
 grant execute on function fn_puede_ver_compra(uuid) to authenticated;
-comment on function fn_puede_ver_compra(uuid) is 'ADR-0132: ¿el comprobante tiene algo repartido a mi tienda (o soy líder)? Reemplaza al candado por el destino único de la factura.';
+comment on function fn_puede_ver_compra(uuid) is 'ADR-0138: ¿el comprobante tiene algo repartido a mi tienda (o soy líder)? Reemplaza al candado por el destino único de la factura.';
 
 -- ==================== 5. Candados diferidos: el reparto siempre cuadra ====================
 -- (a) la suma de lo asignado a una línea es igual a lo que trae la línea;
@@ -321,7 +321,7 @@ cross join lateral (
   from compra_item_cierres k where k.compra_item_id = d.compra_item_id and k.ubicacion_id = d.ubicacion_id
 ) ci;
 grant select on compra_item_reparto_resumen to authenticated;
-comment on view compra_item_reparto_resumen is 'ADR-0132: por línea de comprobante y tienda — asignado, recibido, cerrado y pendiente. Lo recibido sale de movimientos.';
+comment on view compra_item_reparto_resumen is 'ADR-0138: por línea de comprobante y tienda — asignado, recibido, cerrado y pendiente. Lo recibido sale de movimientos.';
 
 -- compras_resumen: mismas columnas de hoy y, al final, las tiendas del reparto.
 create or replace view compras_resumen with (security_invoker = true) as
@@ -383,12 +383,12 @@ begin
   if v_def like '%compra_item_destinos%' then return; end if;  -- ya parchada: re-pegable
 
   v_declaraciones := $b$v_constraint text;
-  -- reparto por tienda (ADR-0132)
+  -- reparto por tienda (ADR-0138)
   v_n integer := 0; v_n2 integer := 0; v_item_id uuid;
   v_destinos jsonb; v_dest jsonb; v_suma_dest integer; v_vistos uuid[];
   v_repartos jsonb[] := '{}';$b$;
 
-  v_validacion := $b$-- Reparto por tienda (ADR-0132): sin `destinos`, la línea va entera a `p_ubicacion_destino_id`.
+  v_validacion := $b$-- Reparto por tienda (ADR-0138): sin `destinos`, la línea va entera a `p_ubicacion_destino_id`.
     v_n := v_n + 1;
     v_destinos := case
       when jsonb_typeof(v_item -> 'destinos') = 'array' and jsonb_array_length(v_item -> 'destinos') > 0
@@ -433,7 +433,7 @@ begin
   -- (a) las variables del reparto, junto a la última que ya declara
   v_nuevo := replace(v_def, 'v_constraint text;', v_declaraciones);
   if v_nuevo = v_def or (length(v_def) - length(replace(v_def, 'v_constraint text;', ''))) / length('v_constraint text;') <> 1 then
-    raise exception 'registrar_compra: no encontré (o no es única) la declaración de v_constraint (ADR-0132)';
+    raise exception 'registrar_compra: no encontré (o no es única) la declaración de v_constraint (ADR-0138)';
   end if;
   v_def := v_nuevo;
 
@@ -445,31 +445,31 @@ begin
       'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;',
       v_validacion || 'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;');
   else
-    raise exception 'registrar_compra: no encontré (o no es única) la línea que acumula el subtotal (ADR-0132)';
+    raise exception 'registrar_compra: no encontré (o no es única) la línea que acumula el subtotal (ADR-0138)';
   end if;
   v_def := v_nuevo;
 
   -- (c) la cabecera ya no lleva destino
   v_nuevo := replace(v_def, 'ubicacion_destino_id, subtotal, igv, total, nota, usuario_id, token_cliente, fecha_estimada_llegada',
                             'subtotal, igv, total, nota, usuario_id, token_cliente, fecha_estimada_llegada');
-  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré la lista de columnas del insert en compras (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré la lista de columnas del insert en compras (ADR-0138)'; end if;
   v_def := v_nuevo;
   v_nuevo := replace(v_def, 'p_ubicacion_destino_id, v_subtotal, v_igv, v_total, p_nota, v_persona, p_token, p_fecha_estimada_llegada',
                             'v_subtotal, v_igv, v_total, p_nota, v_persona, p_token, p_fecha_estimada_llegada');
-  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré los valores del insert en compras (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré los valores del insert en compras (ADR-0138)'; end if;
   v_def := v_nuevo;
 
   -- (d) cada línea guarda su reparto
   v_nuevo := replace(v_def,
     'insert into compra_items (compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)',
     'v_n2 := v_n2 + 1;' || E'\n    ' || 'insert into compra_items (compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)');
-  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré el insert en compra_items (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré el insert en compra_items (ADR-0138)'; end if;
   v_def := v_nuevo;
   select count(*) into v_n from regexp_matches(v_def, '\(v_item ->> ''costo_unitario''\)::numeric\s*\)\s*;', 'g');
-  if v_n <> 1 then raise exception 'registrar_compra: esperaba UN cierre del insert en compra_items y encontré % (ADR-0132)', v_n; end if;
+  if v_n <> 1 then raise exception 'registrar_compra: esperaba UN cierre del insert en compra_items y encontré % (ADR-0138)', v_n; end if;
   v_nuevo := regexp_replace(v_def, '\(v_item ->> ''costo_unitario''\)::numeric\s*\)\s*;',
                             replace('(v_item ->> ''costo_unitario'')::numeric', '\', '\\') || v_reparto);
-  if v_nuevo = v_def then raise exception 'registrar_compra: no pude cerrar el insert en compra_items con el reparto (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'registrar_compra: no pude cerrar el insert en compra_items con el reparto (ADR-0138)'; end if;
 
   execute v_nuevo;
 end $do$;
@@ -488,12 +488,12 @@ begin
   v_nuevo := replace(v_def,
     'v_agregado jsonb; v_con_factura boolean := false;',
     'v_agregado jsonb; v_con_factura boolean := false;' || E'\n  v_asignado integer; v_recibido_aqui bigint; v_cerrado_aqui bigint; v_tienda text;');
-  if v_nuevo = v_def then raise exception 'recibir_compras: no encontré dónde declarar las variables del reparto (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'recibir_compras: no encontré dónde declarar las variables del reparto (ADR-0138)'; end if;
   v_def := v_nuevo;
 
   v_nuevo := replace(v_def,
     'if v_recibido + v_cerrado + v_cantidad > v_linea.cantidad then',
-    E'-- Reparto por tienda (ADR-0132): cada tienda recibe lo suyo. Además del tope de la línea, esta\n'
+    E'-- Reparto por tienda (ADR-0138): cada tienda recibe lo suyo. Además del tope de la línea, esta\n'
     || E'    -- tienda no recibe más de lo que le tocó menos lo que ya recibió y lo que ya cerró como faltante.\n'
     || E'    v_asignado := coalesce((select d.cantidad from compra_item_destinos d where d.compra_item_id = v_linea.id and d.ubicacion_id = p_ubicacion_id), 0);\n'
     || E'    v_recibido_aqui := (select coalesce(sum(m.cantidad), 0) from movimientos m where m.compra_item_id = v_linea.id and m.ubicacion_id = p_ubicacion_id);\n'
@@ -506,7 +506,7 @@ begin
     || E'      raise exception ''Factura %-%: a % le tocan % de esta línea, ya recibió % y cerró %; se intenta recibir % más'', v_compra.serie, v_compra.numero, v_tienda, v_asignado, v_recibido_aqui, v_cerrado_aqui, v_cantidad;\n'
     || E'    end if;\n'
     || E'    if v_recibido + v_cerrado + v_cantidad > v_linea.cantidad then');
-  if v_nuevo = v_def then raise exception 'recibir_compras: no encontré dónde poner el tope por tienda (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'recibir_compras: no encontré dónde poner el tope por tienda (ADR-0138)'; end if;
 
   execute v_nuevo;
 end $$;
@@ -607,17 +607,17 @@ begin
   v_nuevo := replace(v_def,
     'where c.ubicacion_destino_id is distinct from p_ubicacion_id',
     'where not exists (select 1 from compra_item_destinos d where d.compra_item_id = ci.id and d.ubicacion_id = p_ubicacion_id)');
-  if v_nuevo = v_def then raise exception 'recibir_envio: no encontré la validación por destino de la cabecera (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'recibir_envio: no encontré la validación por destino de la cabecera (ADR-0138)'; end if;
   v_def := v_nuevo;
   v_nuevo := replace(v_def,
     'Ese comprobante está destinado a otra sede: solo un líder puede recibirlo aquí',
     'Esa línea no tiene mercadería asignada a esta sede: solo un líder puede recibirla aquí (o pide que la reasignen)');
-  if v_nuevo = v_def then raise exception 'recibir_envio: no encontré el mensaje de la validación por destino (ADR-0132)'; end if;
+  if v_nuevo = v_def then raise exception 'recibir_envio: no encontré el mensaje de la validación por destino (ADR-0138)'; end if;
   v_def := v_nuevo;
 
   -- (b) cada cierre queda a nombre de la tienda que recibe
   if (length(v_def) - length(replace(v_def, 'v_cierre ->> ''nota''', ''))) / length('v_cierre ->> ''nota''') <> 1 then
-    raise exception 'recibir_envio: esperaba UNA llamada a cerrar_linea_compra con v_cierre ->> nota (ADR-0132)';
+    raise exception 'recibir_envio: esperaba UNA llamada a cerrar_linea_compra con v_cierre ->> nota (ADR-0138)';
   end if;
   v_nuevo := replace(v_def, 'v_cierre ->> ''nota''', 'v_cierre ->> ''nota'',' || E'\n      p_ubicacion_id');
   execute v_nuevo;
@@ -695,7 +695,7 @@ end;
 $$;
 revoke all on function reasignar_reparto_compra(uuid, uuid, uuid, integer, text, text) from public, anon;
 grant execute on function reasignar_reparto_compra(uuid, uuid, uuid, integer, text, text) to authenticated;
-comment on function reasignar_reparto_compra(uuid, uuid, uuid, integer, text, text) is 'ADR-0132: mueve, de una tienda a otra, lo que aún no recibió ni cerró dentro de una línea de comprobante. Solo líder; deja rastro en compra_reasignaciones.';
+comment on function reasignar_reparto_compra(uuid, uuid, uuid, integer, text, text) is 'ADR-0138: mueve, de una tienda a otra, lo que aún no recibió ni cerró dentro de una línea de comprobante. Solo líder; deja rastro en compra_reasignaciones.';
 
 -- ==================== 12. Lo que lee un integrante: «lo que le toca a mi tienda» (sin dinero) ====================
 drop function if exists lineas_compra_operativo(uuid[]);
@@ -738,7 +738,7 @@ AS $function$
 $function$;
 revoke all on function lineas_compra_operativo(uuid[], uuid) from public, anon;
 grant execute on function lineas_compra_operativo(uuid[], uuid) to authenticated;
-comment on function lineas_compra_operativo(uuid[], uuid) is 'ADR-0132: líneas de comprobante SIN dinero. cantidad/recibido/cerrado/pendiente son de toda la línea; *_aqui, de la tienda indicada (o la de la persona). Un colaborador solo recibe las líneas con reparto para su tienda; un líder recibe todas y, en otras_tiendas, cómo va el resto.';
+comment on function lineas_compra_operativo(uuid[], uuid) is 'ADR-0138: líneas de comprobante SIN dinero. cantidad/recibido/cerrado/pendiente son de toda la línea; *_aqui, de la tienda indicada (o la de la persona). Un colaborador solo recibe las líneas con reparto para su tienda; un líder recibe todas y, en otras_tiendas, cómo va el resto.';
 
 drop function if exists listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text);
 create or replace function listar_compras_operativo(
@@ -816,7 +816,7 @@ end;
 $function$;
 revoke all on function listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text, uuid) from public, anon;
 grant execute on function listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text, uuid) to authenticated;
-comment on function listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text, uuid) is 'ADR-0132: lista de comprobantes SIN dinero, vista desde una tienda. Con p_ubicacion_id (o la del colaborador) solo trae los que tienen reparto para ella y suma su asignado/recibido/cerrado/pendiente; con p_por_recibir, los que aún le faltan.';
+comment on function listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text, uuid) is 'ADR-0138: lista de comprobantes SIN dinero, vista desde una tienda. Con p_ubicacion_id (o la del colaborador) solo trae los que tienen reparto para ella y suma su asignado/recibido/cerrado/pendiente; con p_por_recibir, los que aún le faltan.';
 
 -- ==================== 13. Autoverificación ====================
 do $$

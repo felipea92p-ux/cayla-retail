@@ -69,7 +69,7 @@ export type DetalleCompra = {
   cierres: CierreLinea[];
   /** Las tiendas a las que va la mercadería, con nombre («Tienda Trujillo · Taller»), o "—" si ya no existen. */
   destino: string;
-  /** Reparto entre tiendas (ADR-0132): lo que le toca, recibió y cerró cada tienda de cada línea, y las reasignaciones. */
+  /** Reparto entre tiendas (ADR-0138): lo que le toca, recibió y cerró cada tienda de cada línea, y las reasignaciones. */
   reparto: RepartoDeCompra;
   /** Las tiendas activas, en el orden de la app (para nombrar y para elegir «a dónde va» al reasignar). */
   ubicaciones: { id: string; nombre: string }[];
@@ -111,7 +111,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     adjuntos,
     notasCredito,
     cierres,
-    // ADR-0132: una factura puede repartirse entre tiendas; se muestran todas (la sección «Reparto por tienda» del detalle
+    // ADR-0138: una factura puede repartirse entre tiendas; se muestran todas (la sección «Reparto por tienda» del detalle
     // dice cuánto le toca a cada una).
     destino: nombresDeDestinos(compra.ubicacionesDestino, Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]))) || "—",
     reparto,
@@ -276,7 +276,7 @@ export function CompraDetalle({
                           compra={compra}
                           linea={l}
                           producto={etiquetaDeLinea(l)}
-                          // Repartida entre tiendas el faltante es de UNA: cuáles aún tienen algo pendiente y cuánto (ADR-0132).
+                          // Repartida entre tiendas el faltante es de UNA: cuáles aún tienen algo pendiente y cuánto (ADR-0138).
                           tiendas={tiendasConPendiente(filasDeLinea(reparto.filas, l.id, ubicaciones.map((u) => u.id))).map((f) => ({
                             ubicacionId: f.ubicacionId,
                             nombre: ubicaciones.find((u) => u.id === f.ubicacionId)?.nombre ?? "Tienda inactiva",
@@ -307,7 +307,7 @@ export function CompraDetalle({
             </Tabla>
           </section>
 
-          {/* ---------- reparto por tienda (ADR-0132): solo si hay algo que decir o que mover ---------- */}
+          {/* ---------- reparto por tienda (ADR-0138): solo si hay algo que decir o que mover ---------- */}
           <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} />
 
           {/* ---------- recepciones ---------- */}

@@ -1,7 +1,7 @@
 # ADR-0135 — Endurecimiento de los pagos de Compras (token, fechas, decimales y redondeo del IGV)
 
 - **Fecha:** 2026-09-19
-- **Estado:** Aceptado en el Postgres **local**; **PENDIENTE de aplicar en producción (requiere confirmación de Felipe)**.
+- **Estado:** Aceptado. Aplicado en el Postgres local y **pegado en producción por Felipe el 2026-09-19** (180000 y luego 181000). **Verificado contra la base de producción por Claude el 2026-09-19** (lectura autorizada por Felipe): una sola firma de cada función, `registrar_pagos_compra(uuid,jsonb,date,uuid)`, md5 idéntico al del local (`registrar_compra` a281f31f…, `registrar_pagos_compra` 7887f463…, `registrar_pago_compras` 156af6f5…, `fn_validar_fecha_pago_compra` 1b5ebb89…) y `anon` sin EXECUTE en las cuatro. Volcado de funciones refrescado.
   Toca tres funciones de dinero y cambia la firma de una: regla de CLAUDE.md, se detiene y se confirma antes.
 - **Migraciones (DOS, en este orden):**
   1. `supabase/migrations/20260919180000_pagos_compras_endurecimiento.sql` — `registrar_pagos_compra` (A2, M2, M3),
@@ -67,7 +67,7 @@ cualquier chequeo.
 ## Por qué dos migraciones (y por qué `registrar_compra` se parcha en vez de recrearse)
 
 La primera versión de esta migración recreaba `registrar_compra` entera con `create or replace`, copiada de la definición de
-producción. Pero la rama de **reparto por tienda** (ADR-0132) también reescribe `registrar_compra`: guarda `destinos` por
+producción. Pero la rama de **reparto por tienda** (ADR-0138) también reescribe `registrar_compra`: guarda `destinos` por
 línea en `compra_item_destinos`, deja de escribir `compras.ubicacion_destino_id` y elimina esa columna. Como ninguna de las dos
 está aún en producción ni se sabe cuál se fusiona primero, un `create or replace` completo desde aquí, si corriera DESPUÉS,
 **pisaría la de reparto** y `registrar_compra` fallaría con «column ubicacion_destino_id does not exist» (y si corriera antes, la

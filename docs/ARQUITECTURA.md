@@ -230,8 +230,15 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
 
+**Producción (módulo padre, ADR-0133 — F1 aplicada 2026-09-19)**
+- El lateral agrupa bajo «Producción» las 4 pantallas de Compras (`/compras/proveedores`,
+  `/compras`, `/recibir`, `/compras/por-pagar`, **URLs sin cambio**) y `/produccion/ordenes`;
+  el grupo «Compras» ya no existe. Qué ve cada perfil: `lib/produccion-menu.ts`
+  (`hijosMenuProduccion`, puro, con tests). `/produccion` redirige a `/produccion/ordenes`
+  hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
+
 **Producción (Taller)**
-- `/produccion` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
+- `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
   (puro: etapas, semáforo de margen, costo unitario) → `OrdenesProduccionV2.tsx`
   (en proceso / terminadas / anuladas; RPC `set_etapa_produccion`,
@@ -350,7 +357,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
-- **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0132; migraciones `20260919172000`
+- **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0138; migraciones `20260919172000`
   + `20260919173000`, **aún sin pegar en producción**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
   suma por línea = la cantidad lo exige un constraint trigger diferido). Lo recibido por tienda no se guarda: sale de
@@ -481,7 +488,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
 | `registrar_venta` | Venta + N movimientos de salida |
-| `reasignar_reparto_compra` / `cerrar_linea_compra` (con `p_ubicacion_id`) (2026-09-19, ADR-0132; **sin pegar en producción**) | Reparto de un comprobante entre tiendas: solo un líder mueve, de una tienda a otra, lo que ésta aún no recibió ni cerró (con motivo y rastro en `compra_reasignaciones`); el faltante de una línea repartida se cierra en una tienda concreta. Ambas con `for update` sobre la línea, el mismo orden de candados que `recibir_compras` |
+| `reasignar_reparto_compra` / `cerrar_linea_compra` (con `p_ubicacion_id`) (2026-09-19, ADR-0138; **sin pegar en producción**) | Reparto de un comprobante entre tiendas: solo un líder mueve, de una tienda a otra, lo que ésta aún no recibió ni cerró (con motivo y rastro en `compra_reasignaciones`); el faltante de una línea repartida se cierra en una tienda concreta. Ambas con `for update` sobre la línea, el mismo orden de candados que `recibir_compras` |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
@@ -518,7 +525,7 @@ Integrante solo su sede (o su almacén asociado).
 - `produccion_lineas`: `unique(produccion_id, variante_id)` +
   `producciones.inventariado_at` — idempotencia contra doble conteo de
   stock si alguien hace doble clic en "cerrar producción".
-- `compra_item_destinos` (ADR-0132): la suma de lo repartido a las tiendas de una línea es igual a su cantidad — constraint
+- `compra_item_destinos` (ADR-0138): la suma de lo repartido a las tiendas de una línea es igual a su cantidad — constraint
   trigger *deferred* en la línea y en su reparto —; una tienda no recibe más de lo que le tocó (dentro de `recibir_compras`, con
   el `for update` sobre la línea) ni se le reasigna lo que ya recibió. Sin políticas de escritura: solo RPC.
 - `comprobantes`: `check(tipo <> 'factura' or (cliente_tipo_doc = 'ruc' and

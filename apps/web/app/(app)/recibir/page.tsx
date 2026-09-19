@@ -46,7 +46,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const params = await searchParams;
   const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
 
-  // ADR-0132: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
+  // ADR-0138: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
   // se mira desde la tienda donde estás parado, y un líder puede mirar otra con `?ubicacion=` (el selector «Recibiendo
   // en»). Cada tienda ve lo que le toca de cada comprobante y solo eso; lo de las otras lo recibe cada una.
   const ubicaciones = await getUbicaciones();
@@ -183,7 +183,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const [{ filas: comprasCompletas, siguiente }, catalogo, proveedores] = await Promise.all([
     // ADR-0126: quien no es líder lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
     // tablas de dinero quedan cerradas para él en la base). El líder lee `listar_compras`, como siempre.
-    // ADR-0132: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
+    // ADR-0138: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
     listarPorRecibir(filtros, cursor, { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
     getCatalogo(),
     getProveedoresActivos(),
@@ -195,7 +195,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
   // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
-  // ADR-0132: se recibe en la tienda desde la que se mira (un líder cambia de tienda con «Recibiendo en»): los topes y
+  // ADR-0138: se recibe en la tienda desde la que se mira (un líder cambia de tienda con «Recibiendo en»): los topes y
   // las cifras de cada línea son de ELLA, así que el formulario no ofrece recibir en otra.
   const ubicacionesPermitidas = [{ id: ubicacionMirada, nombre: nombreMirada }];
 

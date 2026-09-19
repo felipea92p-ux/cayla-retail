@@ -1,4 +1,4 @@
-# ADR-0132 — Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo
+# ADR-0138 — Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo
 
 **Fecha:** 2026-09-18 (diseño) · 2026-09-19 (implementación y verificación en local)
 **Estado:** Aceptado e **implementado** en la rama `claude/modulos-por-tienda-ca0f59`. Verificado con SQL contra Postgres real,
@@ -9,7 +9,9 @@ propia recepción). Arquitectura: este documento.
 **Afecta:** `compras` (pierde `ubicacion_destino_id`), `compra_items`, `compra_item_cierres` (gana `ubicacion_id`), dos tablas
 nuevas (`compra_item_destinos`, `compra_reasignaciones`), una vista nueva y una reescrita, y 19 funciones (lista en «Alcance»);
 las pantallas Registrar, Recibir, detalle y lista de Compras.
-**Reemplaza al borrador del 2026-09-18** (mismo número, antes 0107): cambian tres cosas que se anotan en «Qué cambió respecto del
+**Historia del número:** el borrador del 2026-09-18 se llamó 0107 (chocaba con el de la etiqueta de campaña); se renumeró a 0132 y,
+por choque con «Pagar juntos» (0132, ya en `main`), quedó en **0138**.
+**Reemplaza al borrador del 2026-09-18**: cambian tres cosas que se anotan en «Qué cambió respecto del
 diseño».
 
 ## Contexto (verificado contra `main` y contra producción, solo lectura)

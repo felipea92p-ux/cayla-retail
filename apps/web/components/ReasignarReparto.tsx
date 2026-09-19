@@ -19,7 +19,7 @@ import {
   type MotivoReasignacion,
 } from "@/lib/reparto-reglas";
 
-// Mover mercadería de una tienda a otra DENTRO de un comprobante ya registrado (ADR-0132). Solo un líder, y solo lo que
+// Mover mercadería de una tienda a otra DENTRO de un comprobante ya registrado (ADR-0138). Solo un líder, y solo lo que
 // aún no se recibió ni se cerró como faltante: lo que ya entró al stock de una tienda no se mueve por aquí (para eso
 // están los traslados). Queda un rastro en `compra_reasignaciones` (quién, cuánto, de dónde a dónde, por qué).
 //

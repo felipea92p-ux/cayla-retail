@@ -50,7 +50,7 @@ type Ubicacion = { id: string; nombre: string };
 
 // `id` es la identidad estable de la línea (no se muestra): con ella React sabe CUÁL línea entró o salió, y así se
 // anima esa y no otra. Antes la clave era la posición, y quitar la línea 1 «movía» los datos a la 0.
-// `reparto` (ADR-0132) solo se usa cuando el comprobante se reparte entre tiendas: tienda → unidades de ESTA línea.
+// `reparto` (ADR-0138) solo se usa cuando el comprobante se reparte entre tiendas: tienda → unidades de ESTA línea.
 type Linea = { id: string; productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string; reparto: RepartoLinea };
 let secuenciaLineas = 0;
 
@@ -154,7 +154,7 @@ export function CompraFormV2({
   // Llegada estimada: arranca en la sugerida (emisión + 7 días) y la acompaña si cambia la emisión; solo se «fija» si la persona la edita.
   const [llegadaEditada, setLlegadaEditada] = useState<string | null>(null);
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
-  // Repartir el comprobante entre tiendas (ADR-0132): cada una recibe lo suyo. Sin repartir, todo va a `ubicacionId` como
+  // Repartir el comprobante entre tiendas (ADR-0138): cada una recibe lo suyo. Sin repartir, todo va a `ubicacionId` como
   // siempre y la RPC no recibe `destinos`. Las tiendas que participan se marcan una vez y cada línea las reparte.
   const [repartir, setRepartir] = useState(false);
   const [tiendasReparto, setTiendasReparto] = useState<string[]>([]);
@@ -687,7 +687,7 @@ export function CompraFormV2({
                       </button>
                     )}
                   </span>
-                  {/* Repartido entre tiendas (ADR-0132): bajo la línea, a todo su ancho. Dentro de `cr-linea-fila` a propósito:
+                  {/* Repartido entre tiendas (ADR-0138): bajo la línea, a todo su ancho. Dentro de `cr-linea-fila` a propósito:
                       `.cr-linea` colapsa con UN solo hijo. Una línea sin producto todavía no se reparte. */}
                   {repartir && l.productoId && (
                     <RepartoDeLinea
