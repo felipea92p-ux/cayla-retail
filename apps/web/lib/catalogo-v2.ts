@@ -1,3 +1,4 @@
+import { contarProductosPorProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 
@@ -268,6 +269,27 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     totalPaginas: Math.max(1, Math.ceil(totalProductos / PRODUCTOS_POR_PAGINA)),
     pagina,
   };
+}
+
+/** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
+ *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos`
+ *  con `stock = reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
+ *  definición de "hay que reponer". Trae hasta 300 productos (3 páginas de 100): el catálogo activo
+ *  es de decenas, no de miles; si algún día pasara de eso, los números serían un piso y no se
+ *  pretende otra cosa. */
+export async function getReposicionPorProveedor(): Promise<ReposicionProveedor[]> {
+  const supabase = await createClient();
+  const filas: FilaReposicion[] = [];
+  for (let pagina = 1; pagina <= 3; pagina++) {
+    const pag = exigir(
+      await supabase.rpc("fn_productos", { p_stock: "reponer", p_estado: "activo", p_pagina: pagina, p_por_pagina: 100 }),
+      "los productos por reponer"
+    );
+    if (pag.length === 0) break;
+    filas.push(...pag);
+    if (Number(pag[0].total_productos) <= pagina * 100) break;
+  }
+  return contarProductosPorProveedor(filas);
 }
 
 /** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`

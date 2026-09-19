@@ -126,3 +126,20 @@ export function contarParejasPorCategoria(
   for (const [cat, m] of conteo) out[cat] = [...m.values()];
   return out;
 }
+
+export type FilaReposicion = { producto_id: string; proveedor_id: string; proveedor_nombre: string };
+export type ReposicionProveedor = { proveedorId: string; proveedor: string; productos: number };
+
+/** «A quién pedirle»: cuenta PRODUCTOS (no variantes) por proveedor, de más a menos. `fn_productos` devuelve una fila por variante, así que un producto con 6 tallas llega 6 veces y cuenta una. */
+export function contarProductosPorProveedor(filas: FilaReposicion[]): ReposicionProveedor[] {
+  const vistos = new Set<string>();
+  const porProveedor = new Map<string, ReposicionProveedor>();
+  for (const f of filas) {
+    if (vistos.has(f.producto_id)) continue;
+    vistos.add(f.producto_id);
+    const actual = porProveedor.get(f.proveedor_id) ?? { proveedorId: f.proveedor_id, proveedor: f.proveedor_nombre, productos: 0 };
+    actual.productos += 1;
+    porProveedor.set(f.proveedor_id, actual);
+  }
+  return [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
+}

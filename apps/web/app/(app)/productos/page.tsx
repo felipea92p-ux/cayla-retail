@@ -9,6 +9,7 @@ import {
   listarProductos,
   getResumenProductos,
   getProductosPendientesAlta,
+  getReposicionPorProveedor,
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
@@ -75,6 +76,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
 
+  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
+  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor() : [];
+
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
 
@@ -135,6 +139,33 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       )}
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
+
+      {reposicion.length > 0 && (
+        <div className="card-cayla p-4">
+          <p className="label-cayla text-[11px] text-tinta/65">A quién pedirle</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {reposicion.map((r) => {
+              const activo = params.proveedor === r.proveedorId && params.stock === "reponer";
+              return (
+                <li key={r.proveedorId}>
+                  <Link
+                    href={`/productos?stock=reponer&proveedor=${r.proveedorId}`}
+                    aria-current={activo ? "true" : undefined}
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      activo ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/80 hover:border-tinta/40"
+                    }`}
+                  >
+                    {r.proveedor}
+                    <span className="tabular-nums text-ambar-profundo">
+                      {r.productos} {r.productos === 1 ? "producto" : "productos"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <FiltrosProductos
         categorias={categoriasOpciones}
