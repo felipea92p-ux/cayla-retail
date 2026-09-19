@@ -20,10 +20,15 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export type VarianteBotonCompacto = "primario" | "vidrio" | "fila" | "fila-alerta";
 
+// Dos detalles de Tailwind 4 que no se ven a simple vista (ambos comprobados en el CSS compilado):
+// - `outline-none` fija `--tw-outline-style: none` y `focus-visible:outline*` lo lee: sin
+//   `focus-visible:outline-solid` el anillo de foco (`outline-rojo/60`) nunca se dibuja.
+// - `hover:-translate-y-px` usa la propiedad `translate`, no `transform`: por eso la transición
+//   lista `translate`; con `transform` el alzado de 1 px saltaría en seco mientras la sombra sí entra suave.
 const BASE =
   "relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-medium outline-none " +
-  "transition-[transform,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
+  "transition-[translate,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
+  "focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
 const VARIANTE: Record<VarianteBotonCompacto, string> = {
