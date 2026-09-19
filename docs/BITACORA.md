@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Candado: el CI ahora rechaza dos migraciones con la misma versión)
+
+Ya pasó tres veces en dos días (`20260917100000`, `20260917140000` y `20260918170000`) y siempre se descubrió cuando alguien no podía levantar su base local. Nada lo veía: `migraciones:verificar` compara lo que cada archivo promete contra la base, no los nombres entre sí, y producción no lo delata porque el SQL se pega a mano. Nuevo `scripts/migraciones/versiones.mjs` (`pnpm migraciones:versiones`) + paso «Versiones de migración» en el CI, que corre también en `pull_request`: solo lee nombres de archivo, sin base de datos ni `node_modules`. Probado contra `main` (verde), contra el duplicado original del PR #150 y contra `origin/claude/panel-comercial`, que aún lo trae (ambos rojos).
+
+Lo que Felipe se lleva: el choque entre dos ramas no se ve en ninguna de las dos por separado; se ve en la segunda cuando `main` ya tiene la primera. Por eso el candado importa en el PR, no en la rama. Límite: no ve ramas que aún no son PR, y no sabe cuál de las dos ya está en producción — eso sigue siendo decisión humana (renombrar solo la que no se pegó).
+
 ## 2026-09-18 (El acento rojo de las tarjetas no se veía: una clase fuera de capa le ganaba a Tailwind)
 
 Se cerró: `.card-cayla` y sus hermanas (`label-cayla`, `font-display`, `alza-cayla`, `scroll-cayla`,
@@ -7874,3 +7880,10 @@ quien tenga que moverse del 0113. Ningún hook impide un número de ADR repetido
 `SESIONES-ACTIVAS.md` y el escaneo a mano—: antes de tomar el siguiente hay que mirar las ramas
 remotas y los demás worktrees, no solo `main`, y subir la rama cuanto antes para que el número quede
 reclamado a la vista.
+
+## 2026-09-19 (Compras: `registrar_compra` con dos firmas en producción — corrección)
+
+Al refrescar el diccionario de datos apareció una función repetida en producción: `registrar_compra` tenía DOS firmas (14 y 15 parámetros). Causa: producción llevaba la versión con `p_token` (idempotencia por `compras.token_cliente`, de `pegar-en-produccion-compras-atraso-recepcion.sql`), que el repo nunca tuvo; mi migración `217000` reescribió la de 14 parámetros con el medio «saldo a favor» y, al pegarla, `create or replace` con otra lista de parámetros creó una SOBRECARGA (la trampa de ADR-0009). Como la pantalla no manda `p_token`, la llamada quedó ambigua: confirmado en producción con `explain select retail.registrar_compra(...)` → «is not unique» (sin ejecutar nada). Registrar comprobante fallaba.
+Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
+
+Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (la primera versión falló con «relation already exists» porque `compras_token_cliente_key` es allá un índice único y no una restricción; no dejó nada aplicado). Verificado después: `registrar_compra` con una sola firma de 15 parámetros que acepta `saldo_a_favor`, 0 funciones sobrecargadas en `retail`, y el volcado de funciones coincide con producción (156 firmas, mismo checksum).

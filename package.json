@@ -9,6 +9,7 @@
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
+    "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
