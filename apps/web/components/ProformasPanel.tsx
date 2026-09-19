@@ -9,8 +9,9 @@ import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { NuevaProformaModal } from "@/components/NuevaProformaModal";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { Boton, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
@@ -62,12 +63,6 @@ export function ProformasPanel({
   const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Formulario de creación
-  const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
-  const [total, setTotal] = useState(0);
-  const [clienteNombre, setClienteNombre] = useState("");
-  const [venceEnDias, setVenceEnDias] = useState(7);
-
   // Formulario de conversión
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
@@ -88,45 +83,9 @@ export function ProformasPanel({
 
   function cerrarModal() {
     setModal(null);
-    setTotal(0);
-    setClienteNombre("");
-    setVenceEnDias(7);
     setClienteNumDoc("");
     setConvertirNombre("");
     setTipo("boleta");
-  }
-
-  async function onCrear(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const supabase = createClient();
-    const igv = Math.round((total - total / 1.18) * 100) / 100;
-    const subtotal = Math.round((total - igv) * 100) / 100;
-    const venceAt = new Date(Date.now() + venceEnDias * 24 * 3600 * 1000).toISOString();
-    const { error } = await supabase.rpc("crear_proforma", {
-      p_ubicacion_id: ubicacionId,
-      // Sin catálogo de ítems en esta pantalla todavía (mismo nivel de detalle
-      // que "Emitir comprobante" hoy: un total, no líneas) — se guarda como un
-      // solo ítem para no inventar una estructura que nadie lee todavía.
-      // `precio_unitario`, no `precio`: es la forma que espera emitir_comprobante()
-      // cuando convertir_proforma_a_comprobante() reenvía estos items (0010) — con
-      // el nombre viejo, Lucode recibía un precio undefined en cada línea.
-      p_items: [{ descripcion: "Venta", cantidad: 1, precio_unitario: total }],
-      p_subtotal: subtotal,
-      p_igv: igv,
-      p_total: total,
-      p_cliente_nombre: clienteNombre || undefined,
-      p_vence_at: venceAt,
-    });
-    if (error) {
-      avisar.error(traducirError(error, "crear la proforma"));
-      setLoading(false);
-      return;
-    }
-    setLoading(false);
-    avisar.exito(`Proforma de S/ ${total.toFixed(2)} creada`, { detalle: `Vence en ${venceEnDias} ${venceEnDias === 1 ? "día" : "días"}.` });
-    cerrarModal();
-    router.refresh();
   }
 
   async function onConvertir(e: React.FormEvent, proforma: Proforma) {
@@ -274,55 +233,12 @@ export function ProformasPanel({
         )}
       </div>
 
-      {/* ==================== Modal: crear proforma ==================== */}
-      {modal === "crear" && (
-        <Modal titulo="Nueva proforma" onClose={cerrarModal}>
-          <form onSubmit={onCrear} className="mt-5 space-y-2">
-            <CampoSelect
-              etiqueta="Ubicación"
-              valor={ubicacionId}
-              onValor={setUbicacionId}
-              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
-            />
-
-            <CampoTexto
-              etiqueta="Cliente (opcional)"
-              value={clienteNombre}
-              onChange={(e) => setClienteNombre(e.target.value)}
-              placeholder="Nombre de la clienta"
-            />
-
-            <CampoMonto
-              etiqueta="Total (incluye IGV)"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              placeholder="0.00"
-              value={total || ""}
-              onChange={(e) => setTotal(Number(e.target.value))}
-            />
-
-            <CampoTexto
-              etiqueta="Vigente por (días)"
-              type="number"
-              min="1"
-              required
-              value={venceEnDias}
-              onChange={(e) => setVenceEnDias(Number(e.target.value))}
-            />
-
-            <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
-                Cancelar
-              </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
-                {loading ? "Guardando…" : "Guardar proforma"}
-              </Boton>
-            </div>
-          </form>
-        </Modal>
-      )}
+      <NuevaProformaModal
+        abierto={modal === "crear"}
+        onCerrar={() => setModal(null)}
+        ubicaciones={ubicaciones}
+        ubicacionActualId={ubicacionActualId}
+      />
 
       {/* ==================== Modal: convertir a comprobante ==================== */}
       {modal && typeof modal === "object" && (
