@@ -3,13 +3,13 @@
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Tabla, fila, celda } from "@/components/ui/Tabla";
 import { RecepcionVistaRapida } from "@/components/RecepcionVistaRapida";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { useFlip } from "@/lib/useFlip";
 import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
+import type { ResultadoRecibidas } from "@/lib/recibidas-filtros-reglas";
 import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/envio-reglas";
 
 // Pestaña «Recibidas recientemente» (maqueta 06): qué llegó contra cada comprobante, con su
@@ -34,8 +34,6 @@ import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/en
 const PLANTILLA = "sm:grid-cols-[5rem_1fr_8.5rem_6rem_5.5rem] @5xl:grid-cols-[6rem_1fr_9.5rem_5.75rem_7.5rem_6.25rem_1rem]";
 const SOLO_ANCHA = "hidden max-sm:block @5xl:block";
 
-type Resultado = "todas" | "completas" | "faltante";
-
 export function RecepcionesCompraLista({
   recepciones,
   detalles,
@@ -45,6 +43,7 @@ export function RecepcionesCompraLista({
   envios,
   limite,
   destacarNueva = false,
+  resultado = "todas",
 }: {
   recepciones: RecepcionDeCompra[];
   /** Prenda por prenda de cada guía, por `loteId` (puede faltar para las más antiguas). */
@@ -60,9 +59,10 @@ export function RecepcionesCompraLista({
   limite?: number;
   /** Se llegó desde «Ver recibidas» tras recibir: la recepción más reciente se tiñe un momento (`anim-destello-fila`). */
   destacarNueva?: boolean;
+  /** `?res=`: solo completas / solo con faltante (se filtra acá, en el navegador). */
+  resultado?: ResultadoRecibidas;
 }) {
   const [abierta, setAbierta] = useState<RecepcionDeCompra | null>(null);
-  const [resultado, setResultado] = useState<Resultado>("todas");
   // Los envíos plegados por quien mira (por defecto todos abiertos).
   const [plegados, setPlegados] = useState<Record<string, boolean>>({});
 
@@ -165,18 +165,6 @@ export function RecepcionesCompraLista({
   let n = 0;
   return (
     <>
-      <div className="flex justify-end">
-        <SegmentoDeslizante
-          etiqueta="Filtrar por resultado"
-          valor={resultado}
-          onCambio={(v) => setResultado(v as Resultado)}
-          opciones={[
-            { clave: "todas", etiqueta: "Todas" },
-            { clave: "completas", etiqueta: "Completas" },
-            { clave: "faltante", etiqueta: "Con faltante" },
-          ]}
-        />
-      </div>
       <Tabla className="@container">
         <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
           {[
@@ -196,9 +184,7 @@ export function RecepcionesCompraLista({
         {filtradas.length === 0 && (
           <div className="px-5 py-8 text-center">
             <p className="font-display text-[17px] italic text-tinta/65">Ninguna recepción {resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista.</p>
-            <button type="button" onClick={() => setResultado("todas")} className="mt-2 text-[13px] text-rojo hover:underline">
-              Ver todas
-            </button>
+            <p className="mt-1 text-xs text-tinta/55">Cambia «Con faltante / Completas» arriba para ver el resto.</p>
           </div>
         )}
         {grupos.map((g) =>

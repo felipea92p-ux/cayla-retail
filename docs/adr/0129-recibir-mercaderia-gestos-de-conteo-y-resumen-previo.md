@@ -46,17 +46,36 @@ angosto (< 56 rem): cada línea es una tarjeta con − / +; ancho: la tabla de s
 **D4 — Reglas puras con pruebas** (`lib/envio-reglas.ts`, 51 pruebas): `guiaConFormato` (ayuda, no exigencia: la guía
 puede anotarse después), `restarUnidad`, `comprobantesQueTraen`, `resumenPorComprobante` y `movimientosDelEnvio`.
 
+## Ampliación (2026-09-19, «el diseño no está igual»): revisión pantalla por pantalla contra el spike
+
+Felipe revisó lo publicado y no era igual. Se comparó el spike y la app lado a lado (mismo ancho de contenido, 1:1) y se
+corrigió lo que difería:
+
+- **La fila de conteo es UNA pieza** con dos formas por el ancho del panel (antes eran dos bloques distintos): tarjeta
+  (< 46 rem: miniatura + nombre arriba, paso − / + y estado abajo) y tabla (≥ 46 rem: sin SKU; ≥ 60 rem: con SKU). El paso
+  − / + es el mismo en las dos (el número en 15 px, no el de 22 px que sobraba), la miniatura con el color real sale en las dos.
+- **Tarjeta del envío:** ícono de camión, avatares de proveedores apilados y anillo de 70 px; 3 columnas desde 44 rem.
+- **Barra de totales:** el aviso va ARRIBA de las cifras, la barra sube desde el borde al aparecer, y en celular las cifras
+  van en una fila con el botón a todo el ancho. El título «Totales del envío» aparece solo cuando cabe junto al menú lateral.
+- **Lista:** la barra roja de la fila se anima (crece desde el centro) y hay fondo al pasar el mouse.
+- **Decisión de faltante:** el texto es el del spike («¿Qué pasó con las 4 que faltan?» / «Aún no llegan: los espero»).
+- **Modal de resumen:** con su rótulo «Antes de recibir». **Paso −/+ al leer:** el campo «hace pop».
+- **Lo que antes se dejó sin portar y ahora sí está:** salidas animadas (chips y filas fuera de comprobante, 200 ms) y la
+  lista de pendientes plegable en celular («Cambiar / Ocultar»).
+- **«Recibidas»:** los dos segmentados del spike en la misma fila de filtros —periodo (Este mes · 30 días · 90 días, mismas
+  claves de la pastilla «Fechas») y resultado (`?res=`, se filtra en el navegador)—. La pastilla «Fechas» sigue para rangos a mano.
+
 ## Lo que no se portó del spike (a propósito o pendiente)
 
 - **Borrador guardado en el equipo:** se construyó y Felipe pidió quitarlo el mismo día. No hay guardado en el navegador:
   un `router.refresh()` o una pestaña cerrada vuelve a empezar la cuenta (como antes de ADR-0129).
-- **Animaciones de SALIDA** (chips de comprobante, filas fuera de comprobante): solo entran; quitar es instantáneo.
 - **Subrayado deslizante de «Pendientes / Recibidas»**: son enlaces (la vista vive en la URL) y la página se vuelve a
   pintar en el servidor; ahí el subrayado cambia de color, no viaja.
-- **Lista de pendientes plegable en celular** («Cambiar / Ocultar»): se conserva lo de antes (al marcar, la pantalla
-  baja al panel).
 - **Ícono de cámara** del escáner (en la maqueta era decorativo; un botón que no hace nada engaña).
-- **Filtro de periodo de Recibidas:** ya lo cubre la pastilla «Fechas» (`?desde=&hasta=`).
+- **Ícono por tipo de prenda** en la miniatura: sin foto usa siempre la prenda genérica sobre el color real.
+
+La miniatura de cada línea muestra la **foto de la prenda en ese color** (`producto_fotos`, vía `fotoUrl` del catálogo) cuando existe;
+sin foto, el color real con la prenda genérica. No verificado con una foto real: los datos del Postgres local no tienen fotos.
 
 ## Consecuencias
 
