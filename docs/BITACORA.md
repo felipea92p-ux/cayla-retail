@@ -3,6 +3,17 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Gastos — el riesgo no es crear la tabla, es contar el mismo gasto dos veces)
+Tarea 5 del plan de finanzas: propuesta del modelo de gastos generales (ADR-0117, sin código). Hallazgo que manda: la caja
+ya ofrece "Compra de insumos" y "Otro" como motivos de egreso en texto libre, así que parte de los gastos pequeños YA
+entra por ahí, y otros egresos de caja (depósito, retiro, ajuste) no son gastos. Sumar `gastos` más egresos de caja
+contaría doble y trataría un depósito bancario como gasto. Regla central: `gastos` es la única fuente de los gastos, y un
+egreso de caja solo es un gasto si un gasto lo señala con un vínculo único, imposible de duplicar. Tres caminos de
+entrada (sin caja, efectivo desde caja abierta, clasificar un egreso ya registrado), todos por RPC y solo para líder. No se
+toca `caja_movimientos`. Felipe decidió: solo líder registra, gastos "de la empresa" sin tienda, se registra al pagar,
+categorías en lista cerrada. Se descartó a propósito una categoría "Otros": su cuenta natural (659) es la de las mermas y
+distorsionaría el margen bruto. Espera su aprobación para construir.
+
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción

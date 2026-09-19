@@ -28,6 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Gastos generales (2026-09-18, ADR-0117 — PROPUESTO)
+
+- [ ] **Aprobar ADR-0117** (`gastos` como única fuente de gastos; un egreso de caja solo es gasto si un gasto lo señala).
+      Bloquea construir la tarea 5 y alimenta el Estado de Resultados (ADR-0109, regla 9). Felipe ya decidió: solo líder
+      registra, gastos "de la empresa" sin tienda, se registra al pagar, categorías en lista cerrada.
+- [ ] **Las siete categorías y sus cuentas PCGE pasan por el contador** antes de sembrarse. "Otros" quedó fuera a
+      propósito (su cuenta natural, 659, es la de las mermas y distorsionaría el margen bruto).
+- [ ] **Decidir el menú:** `/finanzas/egresos` y no existe entrada "Finanzas". **Y el historial:** ¿se clasifican los
+      egresos de caja anteriores o se marcan "no es gasto" en bloque por fecha?
+
+---
+
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
