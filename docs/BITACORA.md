@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Atributos → Tallas: mismo nivel que Etiquetas, Patrones y Tejidos, y "Único" pasa a "Única")
+
+Tallas era la pestaña que se había quedado atrás: 8 columnas fijas de cajitas con un botón "DESACTIVAR" a todo ancho que se cortaba. Ahora tiene el mismo lenguaje que Etiquetas: filtros con conteo (Letras 6 · Numeración 17 · Única y estándar 2), búsqueda que ignora tildes, secciones por tipo de talla, tarjeta con ilustración 3:1 (el valor en serif con ecos a los lados, `MuestraTalla`), "Desactivar" solo al pasar el mouse (siempre visible en táctil) y la misma grilla de 5 columnas que las otras cuatro pestañas. La talla se ordena como se lee (XS·S·M·L, 6·9·26·42), no alfabético: "26" iba antes que "9". Sin cambios de esquema ni de rutas; aprobar con comentario obligatorio, rechazar y reactivar funcionan igual.
+
+Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras) sale de `tipoDeTalla` en `lib/tallas.ts`, que usa el mismo `rango` que ordena la curva, así que "en qué grupo está" y "en qué orden va" no pueden contradecirse; está fijado en `tallas.test.ts`. `BotonFiltro` salió de Etiquetas a `ui/` para que las dos pestañas filtren con el mismo gesto. Y un hallazgo: `Boton` trae `px-4` y un `px-2` pasado por `className` no lo pisa — hay que forzarlo con `px-2!`; el mismo síntoma puede estar en otras listas de Atributos.
+
+"Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918170000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
+
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
 Las ilustraciones de Etiquetas se veían más grandes y "fuera de línea" al saltar de una pestaña de Atributos a otra. La causa no era un dibujo mal puesto sino tres medidas distintas: 4 columnas en vez de 5, margen interno de 10 px en vez de 16 px, y una imagen 2:1 (alta) en vez de 3:1. Ahora las cuatro pestañas miden igual — verificado en el navegador: imagen de 229×76 px y tarjeta de 263 px en Etiquetas y en Patrones, 5 columnas en ambas. El chip de temporada (Vigente / En N días / Fuera de temporada) salió de encima del dibujo y va junto a las fechas, debajo del nombre: sobre una imagen más baja tapaba el ícono. Sin cambios de esquema.
