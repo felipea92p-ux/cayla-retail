@@ -14,8 +14,9 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
-  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "etiquetas"] as const;
-  const tipo = TIPOS.find((t) => t === tipoParam) ?? "colores";
+  // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
+  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
 
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias] = await Promise.all([
     supabase
