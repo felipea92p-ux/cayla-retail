@@ -7690,3 +7690,8 @@ y solo después configurar una campaña.
 Hallazgo: en este mismo momento la base (UTC) marca 19-sep mientras Lima marca 18-sep — el
 defecto de `current_date` es real, no teórico. Y `registrar_venta` usaba `current_date` también
 para la vigencia de `codigos_descuento`: queda corregido en el mismo SQL.
+
+## 2026-09-19 (Compras: `registrar_compra` con dos firmas en producción — corrección)
+
+Al refrescar el diccionario de datos apareció una función repetida en producción: `registrar_compra` tenía DOS firmas (14 y 15 parámetros). Causa: producción llevaba la versión con `p_token` (idempotencia por `compras.token_cliente`, de `pegar-en-produccion-compras-atraso-recepcion.sql`), que el repo nunca tuvo; mi migración `217000` reescribió la de 14 parámetros con el medio «saldo a favor» y, al pegarla, `create or replace` con otra lista de parámetros creó una SOBRECARGA (la trampa de ADR-0009). Como la pantalla no manda `p_token`, la llamada quedó ambigua: confirmado en producción con `explain select retail.registrar_compra(...)` → «is not unique» (sin ejecutar nada). Registrar comprobante fallaba.
+Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
