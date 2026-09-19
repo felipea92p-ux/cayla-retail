@@ -183,7 +183,7 @@ export function CajaAbiertaPanel({
         {/* ---------- Encabezado ---------- */}
         {/* La misma cabecera de Cambios y Devoluciones (`EncabezadoPagina`, Atelier): dónde y cuándo arriba con el
             hilo, el título grande, y a la derecha la pieza viva de la pantalla — aquí el reloj del turno. Las acciones
-            (ingreso/egreso y cerrar) y el estado de la cola offline van bajo la frase. La hora corre en el reloj, así
+            (ingreso/egreso y cerrar) van bajo la frase; el estado de la cola offline, sobre el reloj. La hora corre en el reloj, así
             que la línea de arriba dice solo el día. Sin avatar: las iniciales no aportaban nada. */}
         <div className="pb-3">
           <EncabezadoPagina
@@ -199,11 +199,16 @@ export function CajaAbiertaPanel({
                 <Boton peso="primario" onClick={() => setModal("cerrar")}>
                   Cerrar caja
                 </Boton>
-                <EstadoSync pendientes={cola.length} />
               </>
             }
           >
-            <RelojDeCaja abiertaEn={caja.abiertaEn} />
+            {/* El estado de la cola offline vive sobre el reloj: las dos piezas «en vivo» juntas, y en la
+                izquierda quedan solo las acciones. Entre las dos miden lo mismo que la columna de la izquierda
+                (~170 px), así que la cabecera no crece. */}
+            <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
+              <EstadoSync pendientes={cola.length} />
+              <RelojDeCaja abiertaEn={caja.abiertaEn} />
+            </div>
           </EncabezadoPagina>
         </div>
 
