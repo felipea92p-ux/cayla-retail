@@ -36,3 +36,29 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
   if (desde && hasta && desde > hasta) return "La fecha de inicio no puede ser posterior a la de fin.";
   return null;
 }
+
+// ---- Aviso «por debajo del costo» --------------------------------------------------
+// La campaña NO se bloquea aunque baje del costo (una liquidación puede ser justo eso;
+// decidido con Felipe, 2026-09-18). Pero quien la configura tiene que ENTERARSE: un 60 %
+// escrito por error se cobra tal cual en el mostrador. El costo es un dato del Líder, así
+// que el aviso vive acá y no en la caja.
+
+export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string };
+
+const redondear2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
+ *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las
+ *  categorías elegidas. El monto se redondea a centavos igual que `registrar_venta`. */
+export function prendasBajoCosto(
+  pct: number | null,
+  prendas: readonly PrendaConCosto[],
+  categoriaIds: ReadonlySet<string>,
+  varianteIdsManuales: ReadonlySet<string>,
+): PrendaConCosto[] {
+  if (pct === null || pct <= 0) return [];
+  return prendas.filter((p) => {
+    const alcanzada = varianteIdsManuales.has(p.id) || (p.categoriaId !== null && categoriaIds.has(p.categoriaId));
+    return alcanzada && p.precio - redondear2((p.precio * pct) / 100) < p.costo;
+  });
+}

@@ -7634,3 +7634,15 @@ sin categorías, solo las prendas etiquetadas a mano (ADR-0107).
 Solo el modelo: Vender NO lo cobra todavía, y la tarjeta lo dice. Falta pegar la migración en
 producción antes de desplegar. Al probar salió un error real: `2026-13-01` hacía lanzar la API
 en vez de decir «fecha no válida».
+
+### 2026-09-18 — La venta aplica el descuento de campaña (paso 3)
+Una prenda con campaña vigente se cobra con su descuento sola: la caja lo calcula y
+`registrar_venta` lo verifica (ADR-0108). Un solo descuento por prenda, el mayor; un descuento
+manual solo vale si lo supera; la campaña no pide código; la fecha es la de Lima. El modal de la
+campaña marca en rojo «por debajo del costo» (no bloquea). Probado en un Postgres de prueba con
+25 escenarios (incluye venta sin red con campaña terminada hace 2 y 10 días) y en navegador.
+Falta pegar el SQL en producción — es el que cambia `registrar_venta`. Orden: SQL, despliegue,
+y solo después configurar una campaña.
+Hallazgo: en este mismo momento la base (UTC) marca 19-sep mientras Lima marca 18-sep — el
+defecto de `current_date` es real, no teórico. Y `registrar_venta` usaba `current_date` también
+para la vigencia de `codigos_descuento`: queda corregido en el mismo SQL.

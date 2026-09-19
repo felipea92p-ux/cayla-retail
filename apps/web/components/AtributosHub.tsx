@@ -77,6 +77,8 @@ export function AtributosHub({
   patrones,
   etiquetas,
   categorias,
+  prendasConCosto,
+  variantesManuales,
   puedeEditar,
 }: {
   tipo: Tipo;
@@ -86,6 +88,8 @@ export function AtributosHub({
   patrones: ComponentProps<typeof PatronesLista>["patronesIniciales"];
   etiquetas: ComponentProps<typeof EtiquetasLista>["etiquetasIniciales"];
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
+  prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
+  variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
   puedeEditar: boolean;
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
@@ -120,7 +124,13 @@ export function AtributosHub({
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
       {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} />}
       {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} />}
-      {tipo === "etiquetas" && <EtiquetasLista etiquetasIniciales={etiquetas} categorias={categorias} puedeEditar={puedeEditar} />}
+      {tipo === "etiquetas" && <EtiquetasLista
+          etiquetasIniciales={etiquetas}
+          categorias={categorias}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={variantesManuales}
+          puedeEditar={puedeEditar}
+        />}
     </div>
   );
 }
