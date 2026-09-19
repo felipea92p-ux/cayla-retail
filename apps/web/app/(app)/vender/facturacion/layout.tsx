@@ -30,8 +30,8 @@ export default async function FacturacionLayout({ children }: { children: ReactN
   const [ubicaciones, series, porEnviar, proformas] = await Promise.all([
     opcional(getUbicaciones()),
     opcional(getSeriesComprobantes()),
-    getResumenPorEnviar(), // ya devuelven `null` si fallan (`tolerar`)
-    getResumenProformas(),
+    opcional(getResumenPorEnviar()), // ya devuelven `null` si la consulta falla (`tolerar`);
+    opcional(getResumenProformas()), // `opcional` cubre además lo que `tolerar` no ve (`createClient()`)
   ]);
 
   const tiendas = ubicaciones ? tiendasOperativas(ubicaciones) : null;

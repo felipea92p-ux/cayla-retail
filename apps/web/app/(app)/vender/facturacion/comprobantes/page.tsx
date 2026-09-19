@@ -13,8 +13,9 @@ export default async function ComprobantesPage({ searchParams }: { searchParams:
   const mes = mesDeParametro(m, actual);
   const { desde, hasta } = mesLimaUTC(mes.anio, mes.mes);
 
-  // `getSeriesComprobantes` y `getUbicaciones` van con `cache`: el layout ya las pidió en
-  // esta misma petición y acá no se leen otra vez.
+  // `getSeriesComprobantes` y `getUbicaciones` van con `cache`: en una carga completa (o tras
+  // `router.refresh()`) el layout ya las pidió en esta misma petición y acá no se leen otra
+  // vez; al navegar entre vistas el layout no se vuelve a ejecutar y se leen aquí.
   const [comprobantes, series, ubicaciones] = await Promise.all([getComprobantesMes(desde, hasta), getSeriesComprobantes(), getUbicaciones()]);
   const tiendas = tiendasOperativas(ubicaciones);
 

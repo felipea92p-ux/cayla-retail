@@ -28,7 +28,10 @@ export function FacturacionPestanas({ conteos }: { conteos: ConteosPestanas }) {
   // La píldora se coloca midiendo el DOM y escribiendo la posición en variables CSS del
   // propio <nav>. Se escribe directo en el estilo y no en estado (mismo patrón que
   // `Ayuda.tsx`): en `useLayoutEffect` el primer cuadro ya sale bien puesto, sin parpadeo
-  // ni re-render, y no dispara `react-hooks/set-state-in-effect`.
+  // ni re-render, y no dispara `react-hooks/set-state-in-effect`. Se vuelve a medir cuando
+  // cambia la pestaña activa o un contador (cambia el ancho de la etiqueta tras un
+  // `router.refresh()`): por eso `activa` y `conteos` están en las dependencias aunque el
+  // cuerpo no los lea — no los quites por «no usados».
   useLayoutEffect(() => {
     const el = nav.current;
     if (!el) return;

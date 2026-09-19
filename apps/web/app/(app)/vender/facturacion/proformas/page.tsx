@@ -6,7 +6,8 @@ import { ProformasPanel } from "@/components/ProformasPanel";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 
 // El modal de «Nueva proforma» ya no vive en el panel sino en el shell (que ya tiene las
-// tiendas): esta vista solo lee las proformas del mes.
+// tiendas): esta vista solo lee las proformas del mes (`getProformasMes` suma además todas
+// las vigentes, sin filtro de mes, porque son una cola de trabajo).
 export default async function ProformasPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   await exigirLider();
   const { m } = await searchParams;
