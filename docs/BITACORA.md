@@ -3,6 +3,58 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Cobro guiado en Vender: qué toca ahora, ola de luz y billetes)
+
+**Qué se cerró.** Un colaborador que probó Vender no sabía dónde tocar. Ahora el cobro dice qué toca:
+barra de tres tramos (medio → recibido → comprobante; lo hecho en negro y lo que toca en terracota, el
+rojo del sistema) con una línea de texto y una pastilla «Siguiente paso»/«Opcional». El resalte es
+discreto: nada de contornos alrededor de bloques; se tiñe el borde del campo «Recibido» y las líneas de
+los campos de texto del comprobante (variable `--hilo` de `Hilo`). «Confirmar cobro» respira cuando ya
+se puede. Mientras no hay medio, una sola franja de luz recorre la fila de izquierda a derecha y vuelve (efectivo
+~1.2 s, luego el barrido): nunca se apaga ni tiene bordes, solo cambia de color según el medio que cruza
+(un degradado fijo con el color de cada medio y una ventana `mask` que se desliza con `--pos`; solo CSS),
+y se detiene al elegir. Los montos rápidos son billetes idénticos en verde salvia muy suave, distintos
+solo en la cifra. Efectivo pasa a
+dorado y transferencia a azul, globalmente (dona de Caja incluida). Además: el campo de monto se puede
+vaciar (`CampoMonto`) y con dos medios el otro toma el restante (`pagosTrasEditarMonto`).
+
+**Qué se aprendió.** Un dorado no llega a AA como texto: se usa de relleno y borde, y el texto sobre él
+lleva una tinta oscura (`--color-metodo-efectivo-tinta`). Animar UN número registrado (`@property --pos`) y deslizar una
+ventana `mask` sobre un degradado fijo da la luz continua sin cinco versiones del efecto. Un error mío: la
+primera versión encendía cada medio con su borde (lo que él NO pidió); lo que pedía era una sola luz. El test
+`globals-capas` obliga a que hasta la regla de movimiento reducido viva dentro de `@layer`.
+
+## 2026-09-19 (Caja: «Ver todo» y detalle de venta con reimpresión del ticket)
+
+**Qué se cerró.** «Movimientos recientes» tiene un «Ver todo (N)» arriba a la derecha que abre todos los
+movimientos en un modal con scroll propio (la tarjeta sigue mostrando 8). Cada venta es un botón que abre su
+detalle: prendas con talla, color y código, pagos con lo recibido y el vuelto, IGV, comprobante y su estado.
+«Imprimir ticket» reutiliza `ReciboTermico`, ahora CON vuelto porque la venta lo guarda
+(`venta_pagos.recibido`); una venta anterior a esa columna sale sin línea de vuelto. Los modales se apilan
+(Esc cierra el de arriba) y el detalle tiene «No pudimos cargar esta venta» con «Reintentar». Además,
+«Imprimir boleta A4» (o factura): armada desde nuestra fila `comprobantes` con el diseño de CAYLA, verificada
+con el PDF real de Chrome (1 hoja A4; 3 con 45 líneas). ADR-0137.
+
+**Qué se aprendió.** Con sesión iniciada, una vista temporal bajo `/login/...` te manda a Inicio: para
+verificar hay que ponerla bajo una ruta de la app (p. ej. `/caja/vista-previa`). El caché `.next` se corrompe
+al cambiar de rama con el servidor corriendo («Cannot find module … turbopack_runtime»): parar, borrar `.next`
+y relevantar. Chrome NO imprime nada en el margen de la hoja: un texto lateral que se veía en pantalla desaparecía en el
+PDF (ahora va en un canal dentro del área imprimible). Pendiente: aplicar la migración del vuelto en producción
+ANTES de fusionar, y probar con la impresora de Felipe.
+
+## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
+
+**Qué se cerró.** Caja usa la cabecera de Cambios (`EncabezadoPagina`: sede y día con el hilo, título
+de 46 px) y entra con `anim-sube` escalonado en vez de un solo fundido. El reloj se rehízo tras ver
+tres maquetas (A anillo, B cinta, C cristal) y Felipe eligió la B: la hora con segundos y, debajo, el
+turno como un hilo que avanza desde la apertura. Nueva regla `escalaTurno` con prueba; la escala de
+8 h es solo visual, la caja no tiene hora de cierre prevista.
+
+**Qué se aprendió.** Una cabecera compartida con un `sinHora` y un `pie` sirvió a una pantalla con su
+propio reloj sin bifurcarla. Al verificar sin sesión, una ruta temporal bajo `/login` con datos de
+mentira mostró el panel completo. Pendiente: Punto de venta (`/vender`), que hoy solo dice «Cargando
+caja…», y probar con una caja real abierta.
+
 ## 2026-09-19 (Pagar juntos con varios medios: verificado en celular)
 Con 3 comprobantes y 3 medios en un celular de 375 px la cascada quedó correcta y sin desborde, pero salieron dos detalles de diseño que a escritorio no se veían: el segmentado «Si pagas menos» se cortaba y la ✕ de cada medio quedaba al pie de su tarjeta. Corregidos (`PagoJuntosModal.tsx`, `PagoPiezas.tsx`). Quedan sin probar en pantalla el saldo a favor encendido junto con varios medios y «Solo lo vencido» tras dividir (ver BACKLOG).
 

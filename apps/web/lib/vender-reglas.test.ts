@@ -14,6 +14,9 @@ import {
   hayDescuentoManual,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
+  pagosParaRpc,
+  pagosTrasEditarMonto,
+  pasoDelCobro,
   porcentajeDeLinea,
   quitarPagoTraspasando,
   restanteDePagos,
@@ -21,6 +24,7 @@ import {
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
+  type PagoAplicado,
 } from "./vender-reglas";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
@@ -485,5 +489,121 @@ describe("hayDescuentoManual — solo el manual pide código a una colaboradora"
   it("esDescuentoDeCampana exige monto > 0 además del motivo", () => {
     expect(esDescuentoDeCampana({ descuentoUnitario: 0, razonDescuento: "campana" })).toBe(false);
     expect(esDescuentoDeCampana({ descuentoUnitario: 8, razonDescuento: "campana" })).toBe(true);
+  });
+});
+
+describe("pagosParaRpc — lo que viaja a registrar_venta", () => {
+  it("el efectivo con recibido suficiente lo manda (para reimprimir el vuelto)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 150 }])).toEqual([
+      { metodo: "efectivo", monto: 100, recibido: 150 },
+    ]);
+  });
+
+  it("sin recibido no inventa la clave", () => {
+    const [p] = pagosParaRpc([{ metodo: "efectivo", monto: 100 }]);
+    expect(p).toEqual({ metodo: "efectivo", monto: 100 });
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("un recibido menor que lo que cubre no viaja: el candado de la base rechazaría toda la venta", () => {
+    const [p] = pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 80 }]);
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("un recibido exacto viaja (vuelto cero)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 100 }])[0]).toHaveProperty("recibido", 100);
+  });
+
+  it("solo el efectivo lleva recibido", () => {
+    const [p] = pagosParaRpc([{ metodo: "yape", monto: 50, recibido: 60 }]);
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("descarta los pagos en 0 (venta_pagos exige monto > 0)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 0, recibido: 10 }, { metodo: "yape", monto: 30 }])).toEqual([
+      { metodo: "yape", monto: 30 },
+    ]);
+  });
+});
+
+describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", () => {
+  const plinYEfectivo: PagoAplicado[] = [
+    { metodo: "plin", monto: 80 },
+    { metodo: "efectivo", monto: 0 },
+  ];
+
+  it("total 80: Plin baja a 40 y el efectivo se llena con los 40 que faltan", () => {
+    expect(pagosTrasEditarMonto(plinYEfectivo, 0, 40, 80)).toEqual([
+      { metodo: "plin", monto: 40 },
+      { metodo: "efectivo", monto: 40 },
+    ]);
+  });
+
+  it("también al revés: editar el segundo ajusta el primero", () => {
+    expect(pagosTrasEditarMonto(plinYEfectivo, 1, 30, 80)).toEqual([
+      { metodo: "plin", monto: 50 },
+      { metodo: "efectivo", monto: 30 },
+    ]);
+  });
+
+  it("si lo escrito supera el total, el otro queda en 0 y el bloqueo de cobro avisa que se pasa", () => {
+    const r = pagosTrasEditarMonto(plinYEfectivo, 0, 100, 80);
+    expect(r.map((p) => p.monto)).toEqual([100, 0]);
+    expect(restanteDePagos(80, r)).toBe(-20);
+  });
+
+  it("redondea a centavos y el reparto suma el total", () => {
+    const r = pagosTrasEditarMonto(plinYEfectivo, 0, 33.333, 80);
+    expect(r.map((p) => p.monto)).toEqual([33.33, 46.67]);
+    expect(restanteDePagos(80, r)).toBe(0);
+  });
+
+  it("un campo vaciado (o roto) cuenta como 0 y el otro se lleva todo", () => {
+    expect(pagosTrasEditarMonto(plinYEfectivo, 0, Number.NaN, 80).map((p) => p.monto)).toEqual([0, 80]);
+  });
+
+  it("no toca el recibido del efectivo", () => {
+    const r = pagosTrasEditarMonto([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0, recibido: 50 }], 0, 40, 80);
+    expect(r[1]).toEqual({ metodo: "efectivo", monto: 40, recibido: 50 });
+  });
+
+  it("con un solo medio o con tres, solo cambia el editado (no hay a quién repartirle)", () => {
+    expect(pagosTrasEditarMonto([{ metodo: "efectivo", monto: 80 }], 0, 50, 80)).toEqual([{ metodo: "efectivo", monto: 50 }]);
+    const tres: PagoAplicado[] = [{ metodo: "plin", monto: 40 }, { metodo: "yape", monto: 20 }, { metodo: "efectivo", monto: 20 }];
+    expect(pagosTrasEditarMonto(tres, 1, 10, 80).map((p) => p.monto)).toEqual([40, 10, 20]);
+  });
+
+  it("un índice que no existe no rompe nada", () => {
+    expect(pagosTrasEditarMonto(plinYEfectivo, 5, 40, 80)).toEqual(plinYEfectivo);
+  });
+});
+
+describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", () => {
+  it("sin ningún medio, o sin cubrir el total, o pasándose: falta elegir el medio", () => {
+    expect(pasoDelCobro([], 80)).toBe("medio");
+    expect(pasoDelCobro([{ metodo: "yape", monto: 50 }], 80)).toBe("medio");
+    expect(pasoDelCobro([{ metodo: "yape", monto: 90 }], 80)).toBe("medio");
+  });
+
+  it("cubierto con un medio que no es efectivo: no hay 'recibido', sigue el comprobante", () => {
+    expect(pasoDelCobro([{ metodo: "yape", monto: 80 }], 80)).toBe("comprobante");
+  });
+
+  it("efectivo cubierto pero sin anotar lo recibido: toca el recibido", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80 }], 80)).toBe("recibido");
+  });
+
+  it("recibido menor que lo que cubre sigue siendo el paso del recibido", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 50 }], 80)).toBe("recibido");
+  });
+
+  it("recibido suficiente (o exacto): sigue el comprobante", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 100 }], 80)).toBe("comprobante");
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 80 }], 80)).toBe("comprobante");
+  });
+
+  it("con pago mixto el recibido se pide solo si el efectivo cubre algo", () => {
+    expect(pasoDelCobro([{ metodo: "plin", monto: 40 }, { metodo: "efectivo", monto: 40 }], 80)).toBe("recibido");
+    expect(pasoDelCobro([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0 }], 80)).toBe("comprobante");
   });
 });

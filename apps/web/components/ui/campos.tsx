@@ -30,7 +30,9 @@ import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type Reac
 export function Hilo({ activo, trabajando = false, valido = false }: { activo: boolean; trabajando?: boolean; /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */ valido?: boolean }) {
   return (
     <>
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />
+      {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
+          el paso del comprobante); sin definirla es el mismo gris de siempre. */}
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
       <span
         aria-hidden
         className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-center rounded-full bg-rojo transition-transform duration-300 ease-cayla ${
