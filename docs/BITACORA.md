@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (El acento rojo de las tarjetas no se veía: una clase fuera de capa le ganaba a Tailwind)
+
+Se cerró: `.card-cayla` y sus hermanas (`label-cayla`, `font-display`, `alza-cayla`, `scroll-cayla`,
+`anim-*`) pasaron a `@layer components` (ADR-0105), y un test hace fallar el build si vuelve a
+aparecer una clase suelta. Medido con 752 `className` reales: mover la capa cambió exactamente los
+31 elementos predichos; tras decidir cada utilidad muerta (se quedan las que expresan diseño, se
+borran 21 que contradecían el sistema), cambian 10, todos intencionales.
+
+Lo que Felipe se lleva: una utilidad de Tailwind que "no hace nada" no es inocua — era una
+pantalla que nadie vio como se diseñó. Salieron a la luz tres cosas que no eran el bug pedido: el
+filtro seleccionado en Resumen/Existencias no se distinguía (solo lo decía `aria-pressed`), las
+tarjetas de `/compras` y `campoSelect` no tenían indicador de foco de teclado, y `MAX_ROJO_POR_PANTALLA`
+ya estaba roto en Resumen (5 rojos) sin que nada avisara. Felipe eligió la opción A: los enlaces de acción de las tarjetas pasan a tinta subrayado y el rojo queda para el borde, con lo que Resumen baja de 5 a 2 rojos.
+Límite honesto: el Docker local estaba caído, así que se verificó con el componente real y el corpus,
+no con las pantallas con datos.
+
 ## 2026-09-18 (Diccionario de datos al día con producción: 62 tablas, 157 funciones — parchando sobre #138 en vez de rehacerlo)
 
 El PR #138 refrescaba el volcado de producción pero quedó con conflictos y, para cuando se pudo retomar, producción ya tenía cuatro tablas más (`compra_item_cierres`, `compra_notas_credito`, `proveedor_creditos`, `etiqueta_categorias`), columnas nuevas (`etiquetas.descuento_pct`, `venta_items.descuento_etiqueta_id`, cinco columnas de `compras`) y 31 funciones nuevas o con firma distinta (entre ellas `campanas_vigentes`, `fn_hoy_lima`). En vez de volver a bajar ~230 KB de JSON, se tomó #138 como base y se parchó solo lo que difería: se calculó una firma md5 por tabla (columnas, restricciones, políticas, índices únicos) y por función, se le mandó a la base solo un prefijo de 6 caracteres por firma y ella devolvió únicamente lo distinto.
