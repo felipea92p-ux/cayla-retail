@@ -162,8 +162,10 @@ sobre una venta anulada — no hay nada que limpiar.
         `20260918219000_registrar_compra_una_sola_firma_con_token.sql`, una sola función de 15
         parámetros con las dos cosas, y borra la de 14; su cuerpo difiere del de ADR-0111 solo en lo
         del token. Probada en una transacción revertida sobre la sobrecarga que deja `217000`
-        (`pnpm pruebas:deriva-produccion` 13/13). **Falta pegarla en producción (necesita el ok de
-        Felipe); es lo que restablece «Nueva compra» allá.** En el Postgres local compartido NO se
+        (`pnpm pruebas:deriva-produccion` 13/13). **Ya está aplicada en producción**
+        (alguien la pegó sin registrarla en el historial de migraciones; verificado en solo lectura
+        después: una sola firma, la consulta del pie da `1 | true | true | true` y el md5 del cuerpo es
+        idéntico al de esta migración; no se escribió nada desde esta rama). En el Postgres local compartido NO se
         aplicó a propósito: tiene que entrar después de `217000`; si entrara antes, `migration up` la
         daría por aplicada y quedarían dos sobrecargas. Es la tercera vez en esta sesión que un
         `create or replace` con otra lista de parámetros crea una función nueva en vez de
