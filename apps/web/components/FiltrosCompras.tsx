@@ -33,6 +33,8 @@ import {
 // control para CAMBIARLO. Los filtros en sí siguen siendo los de Compras
 // (proveedor/pago/recepción/condición/fechas/vencidas), no los de
 // Productos — lo que se comparte es el molde, no el vocabulario.
+const ID_BUSCADOR = "buscador-compras";
+
 export type FiltroVisible = "proveedor" | "pago" | "recepcion" | "condicion" | "tipo" | "fechas" | "vencidas";
 
 type Proveedor = { id: string; nombre: string };
@@ -58,11 +60,14 @@ export function FiltrosCompras({
   visibles,
   accionesAntes,
   accionesDespues,
+  atajoBuscar = false,
 }: {
   proveedores: Proveedor[];
   visibles: FiltroVisible[];
   accionesAntes?: ReactNode;
   accionesDespues?: ReactNode;
+  /** «/» enfoca el buscador desde cualquier parte de la pantalla (Por pagar, 2026-09-19); el campo lo anuncia con una tecla. */
+  atajoBuscar?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,6 +75,19 @@ export function FiltrosCompras({
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
   const primera = useRef(true);
+
+  useEffect(() => {
+    if (!atajoBuscar) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = document.activeElement;
+      if (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || (el as HTMLElement).isContentEditable)) return;
+      e.preventDefault();
+      document.getElementById(ID_BUSCADOR)?.focus();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [atajoBuscar]);
 
   function ver(f: FiltroVisible) {
     return visibles.includes(f);
@@ -134,8 +152,18 @@ export function FiltrosCompras({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
+        <div className="group relative min-w-0 flex-1">
+          {atajoBuscar && (
+            // La tecla que abre el buscador se ve mientras no se usa y se va al enfocar o al escribir.
+            <kbd
+              aria-hidden
+              className={`pointer-events-none absolute bottom-2 right-1 rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity duration-200 group-focus-within:opacity-0 ${busqueda ? "opacity-0" : ""}`}
+            >
+              /
+            </kbd>
+          )}
           <CampoTexto
+            id={atajoBuscar ? ID_BUSCADOR : undefined}
             etiqueta="Buscar"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -238,7 +266,7 @@ export function FiltrosCompras({
                 if ("q" in c.quitar) setBusqueda("");
                 aplicar(c.quitar);
               }}
-              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+              className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
               aria-label={`Quitar filtro ${c.texto}`}
             >
               {c.texto}
