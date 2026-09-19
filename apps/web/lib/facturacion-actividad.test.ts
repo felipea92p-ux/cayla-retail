@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante, VentaDelDia } from "./comprobantes-reglas";
-import { accionDeLaFila, chipDeLaFila, detalleDeLaFila, enlazarVentasConComprobantes, estadoDeLaFila, etapasDelHilo, textoDelNumero } from "./facturacion-actividad";
+import { accionDeLaFila, chipDeLaFila, chipDelComprobante, detalleDeLaFila, enlazarVentasConComprobantes, estadoDeLaFila, etapasDelHilo, textoDelNumero } from "./facturacion-actividad";
 
 const AHORA = new Date("2026-09-18T20:00:00Z");
 
@@ -165,6 +165,21 @@ describe("chipDeLaFila", () => {
 
   it("sin el comprobante completo se usa lo que trae la venta", () => {
     expect(chipDeLaFila(venta({ comprobante_estado: "aceptado" }), null)).toEqual({ tono: "verde", texto: "Aceptado", punteado: false });
+  });
+});
+
+describe("chipDelComprobante (el mismo chip en el Resumen y en la vista Comprobantes)", () => {
+  it("cualquier comprobante transmitido al sandbox lleva «prueba» y borde punteado, no solo el aceptado", () => {
+    expect(chipDelComprobante(comprobante({ estado: "enviado", entorno_transmision: "sandbox" }))).toEqual({ tono: "neutro", texto: "Enviado a SUNAT · prueba", punteado: true });
+    expect(chipDelComprobante(comprobante({ estado: "rechazado", entorno_transmision: "sandbox" }))).toEqual({ tono: "neutro", texto: "Rechazado · prueba", punteado: true });
+  });
+
+  it("una baja en trámite de un comprobante de prueba también lo dice", () => {
+    expect(chipDelComprobante(comprobante({ estado: "aceptado", entorno_transmision: "sandbox", anulacion_solicitada_at: "2026-09-18T18:00:00Z" }))).toEqual({ tono: "neutro", texto: "Anulación en trámite · prueba", punteado: true });
+  });
+
+  it("uno pendiente (nunca se transmitió) no es de prueba", () => {
+    expect(chipDelComprobante(comprobante({ estado: "pendiente", entorno_transmision: null }))).toEqual({ tono: "ambar", texto: "Pendiente de enviar", punteado: false });
   });
 });
 

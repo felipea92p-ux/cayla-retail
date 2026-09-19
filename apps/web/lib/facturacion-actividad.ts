@@ -84,17 +84,24 @@ const TONO_DEL_ESTADO: Record<EstadoComprobante, ChipDeFila["tono"]> = {
   no_emitido: "apagado",
 };
 
-/** El chip de estado de la fila. Un «aceptado» de prueba lleva la palabra «prueba» y borde
- *  punteado (el color solo no lo distingue, ADR-0015); una baja pedida y aún sin confirmar por
- *  SUNAT sigue siendo ámbar sobre el hilo del aceptado. Las etiquetas son las de siempre
+/** El chip de estado de un comprobante, el mismo en el Resumen y en la vista Comprobantes. Uno
+ *  transmitido al sandbox lleva la palabra «prueba» y borde punteado en el estado que esté (el
+ *  color solo no lo distingue, ADR-0015: SUNAT nunca lo vio); una baja pedida y aún sin confirmar
+ *  por SUNAT es «Anulación en trámite» en ámbar. Las etiquetas son las de siempre
  *  (`ESTADO_ETIQUETA`). */
+export function chipDelComprobante(c: Comprobante): ChipDeFila {
+  const enTramite = c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
+  const texto = enTramite ? "Anulación en trámite" : ESTADO_ETIQUETA[c.estado];
+  if (c.entorno_transmision === "sandbox") return { tono: "neutro", texto: `${texto} · prueba`, punteado: true };
+  return { tono: enTramite ? "ambar" : TONO_DEL_ESTADO[c.estado], texto, punteado: false };
+}
+
+/** El chip de la fila del Resumen: el del comprobante si ya se conoce completo; si no, lo que trae
+ *  la venta (`comprobante_estado`); y sin comprobante, «Sin comprobante» en ámbar. */
 export function chipDeLaFila(venta: VentaDelDia, comprobante: Comprobante | null): ChipDeFila {
-  const estado: EstadoDeFila = comprobante?.estado ?? venta.comprobante_estado ?? "sin_comprobante";
+  if (comprobante) return chipDelComprobante(comprobante);
+  const estado: EstadoDeFila = venta.comprobante_estado ?? "sin_comprobante";
   if (estado === "sin_comprobante") return { tono: "ambar", texto: "Sin comprobante", punteado: false };
-  if (estado === "aceptado" && comprobante) {
-    if (comprobante.anulacion_solicitada_at !== null) return { tono: "ambar", texto: "Anulación en trámite", punteado: false };
-    if (comprobante.entorno_transmision === "sandbox") return { tono: "neutro", texto: `${ESTADO_ETIQUETA.aceptado} · prueba`, punteado: true };
-  }
   return { tono: TONO_DEL_ESTADO[estado], texto: ESTADO_ETIQUETA[estado], punteado: false };
 }
 
