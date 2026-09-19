@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPanelComercial } from "@/lib/comercial";
@@ -28,6 +29,11 @@ export default async function ComercialPage() {
         <p className="mt-1 text-sm text-tinta/65">
           Lo vendido hoy, esta semana y este mes por tienda, contra su meta, con las horas fuertes y las ventas por
           colaboradora.
+        </p>
+        <p className="mt-2 text-sm">
+          <Link href="/comercial/calidad" className="text-tinta underline underline-offset-4 hover:text-rojo">
+            Calidad: qué se devuelve y por qué →
+          </Link>
         </p>
       </div>
 

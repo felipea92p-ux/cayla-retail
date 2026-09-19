@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Calidad — una tasa con pocas ventas no es una tasa, y una fila no puede medirse contra sí misma)
+Tarea 15 del plan: `/comercial/calidad` (solo líder) responde "¿qué talla, qué proveedor o qué producto genera
+devoluciones?". Tres decisiones pesan más que el código. (1) La cohorte es madura: solo entran ventas que ya cumplieron
+su plazo de cambio de 15 días, porque una prenda vendida hace 3 días no tuvo tiempo de ser devuelta y contarla como "vendida
+y no devuelta" haría parecer que todo va mejor. (2) Una fila con menos de 10 ventas es "muestra chica" y va al final: una
+talla con 2 ventas y 1 devolución "tiene 50%" y no dice nada. (3) Cada fila se compara contra el RESTO y no contra el
+total; esto lo destapó la prueba visual, no el diseño: con el promedio general la talla L (17,5% frente a 9,2%) salía
+"dentro de lo normal" siendo el problema, porque ella misma subía la vara. Felipe decidió la atribución: al proveedor de
+la compra más reciente anterior a la venta, con el Taller como otro origen posible.
+
+En V2 el producto no guarda su proveedor (era del modelo V1) y `variantes.talla` ya no existe (vive en `tallas.valor`): un
+SQL escrito contra el esquema viejo habría fallado al ejecutarse. Probado sin Docker con un Postgres desechable: la prueba
+cazó un defecto real (un total con NULL en una ventana sin ventas) y cinco mutaciones del SQL la hacen fallar. También se
+descubrió que el compilador de JSX se come el espacio entre un número y su palabra ("15días"): se arregló con un espacio
+explícito y se verificó en el DOM. No se probó contra el esquema real. ADR-0113.
+
 ## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
 Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
 tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
