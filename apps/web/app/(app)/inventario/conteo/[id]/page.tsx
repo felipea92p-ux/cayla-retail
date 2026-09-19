@@ -113,11 +113,11 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
                 {l.sistema}
               </span>
               <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
-                <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Físico</span>
+                <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Físico</span>
                 {l.contado}
               </span>
               <span className={celda("centro", `text-sm font-semibold tabular-nums ${l.diferencia < 0 ? "text-rojo-profundo" : l.diferencia > 0 ? "text-verde-profundo" : "text-tinta/45"}`)}>
-                <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Diferencia</span>
+                <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Diferencia</span>
                 {l.diferencia === 0 ? "=" : `${l.diferencia > 0 ? "+" : ""}${l.diferencia}`}
               </span>
             </div>

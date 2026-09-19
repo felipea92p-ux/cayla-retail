@@ -282,7 +282,7 @@ export function CajaAbiertaPanel({
                 };
               })}
             />
-            <Link href="/caja/historial" className="label-cayla mt-auto inline-flex items-center gap-1.5 pt-1 text-[11px] font-bold text-rojo hover:text-rojo-profundo">
+            <Link href="/caja/historial" className="label-cayla mt-auto inline-flex items-center gap-1.5 pt-1 text-[11px] text-rojo hover:text-rojo-profundo">
               <History size={12} aria-hidden /> Ver historial completo
             </Link>
           </div>
@@ -440,7 +440,7 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
     <span role="status" className="shrink-0">
       <span
         key={ok ? "ok" : "pendiente"}
-        className={`anim-asentar label-cayla inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold ${
+        className={`anim-asentar label-cayla inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] ${
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
@@ -639,7 +639,7 @@ function TarjetaKpi({
         <span className="label-cayla text-[10.5px] text-tinta/55">{etiqueta}</span>
         <span style={{ color: colorBorde }}>{icono}</span>
       </div>
-      <p className="font-display text-xl font-semibold text-tinta">{money(animado)}</p>
+      <p className="font-display text-xl text-tinta">{money(animado)}</p>
       <div className="mt-2">{sparkline && sparkline.length > 1 && <Sparkline puntos={sparkline} color={colorBorde} />}</div>
     </div>
   );
