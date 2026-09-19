@@ -36,9 +36,9 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
 }
 
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
- *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
- *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que
- *  cubre, `registrar_venta` lo rechazaría por no cuadrar con los ítems. */
+ *  para el efectivo: lo que entregó, para calcular el vuelto. `monto` es lo que el medio
+ *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
+ *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
 export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -89,6 +89,20 @@ export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: nu
 export function vueltoDe(pago: PagoAplicado): number {
   if (pago.metodo !== "efectivo" || pago.recibido === undefined) return 0;
   return Math.max(0, redondear2(pago.recibido - pago.monto));
+}
+
+/** Cambia el monto de un medio y, con DOS medios, el otro toma lo que falta para llegar al total:
+ *  la cajera parte el cobro (Plin 40) y el efectivo se llena solo con los 40 restantes; después
+ *  puede editar cualquiera y el otro se reajusta. Con uno o con tres o más medios solo cambia el
+ *  editado: no hay un «otro» evidente a quién repartirle. Un campo vaciado o roto cuenta como 0.
+ *  Lo escrito por encima del total deja al otro en 0 y `motivoBloqueoCobro` avisa que se pasa. */
+export function pagosTrasEditarMonto(pagos: readonly PagoAplicado[], indice: number, monto: number, total: number): PagoAplicado[] {
+  if (!pagos[indice]) return [...pagos];
+  const limpio = Math.max(0, redondear2(monto || 0));
+  const editados = pagos.map((p, i) => (i === indice ? { ...p, monto: limpio } : p));
+  if (pagos.length !== 2) return editados;
+  const otro = indice === 0 ? 1 : 0;
+  return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - limpio)) } : p));
 }
 
 /** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El

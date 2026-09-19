@@ -22,6 +22,7 @@ import {
   metodoDeAtajo,
   motivoBloqueoCobro,
   pagosParaRpc,
+  pagosTrasEditarMonto,
   quitarPagoTraspasando,
   RAZON_CAMPANA,
   restanteDePagos,
@@ -693,9 +694,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     if (pagos.some((p) => p.metodo === metodo)) return;
     setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
   }
+  // Con dos medios, al editar uno el otro toma lo que falta (`pagosTrasEditarMonto`).
   function cambiarMontoPago(indice: number, monto: number) {
-    const limpio = Math.max(0, Math.round((monto || 0) * 100) / 100);
-    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, monto: limpio } : p)));
+    setPagos((actual) => pagosTrasEditarMonto(actual, indice, monto, total));
   }
   // Quitar un medio (el basurero o tocarlo otra vez arriba) pasa su monto al siguiente: si no,
   // quitar el que llevaba el total dejaba al resto en 0 y la cajera lo reescribía.
