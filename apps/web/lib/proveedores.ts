@@ -45,6 +45,8 @@ export type Proveedor = {
   dias_desde_ultima_compra: number | null;
   /** Comprobantes vigentes con mercadería aún por llegar. */
   entregas_por_recibir: number | null;
+  /** Lo que el proveedor le debe a CAYLA (nota de crédito que superó su deuda); se descuenta al pagar. `null` si no es líder. */
+  saldo_favor: number | null;
 };
 
 export async function getProveedores(): Promise<Proveedor[]> {
@@ -62,6 +64,7 @@ export async function getProveedores(): Promise<Proveedor[]> {
     saldo_vencido: num(p.saldo_vencido),
     dias_desde_ultima_compra: num(p.dias_desde_ultima_compra),
     entregas_por_recibir: num(p.entregas_por_recibir),
+    saldo_favor: num(p.saldo_favor),
   }));
 }
 
@@ -79,6 +82,9 @@ export type ResumenProveedores = {
   topPct: number | null;
   top3Pct: number | null;
   sinCompras90d: number | null;
+  /** Suma del saldo a favor de todos los proveedores y a cuántos les corresponde. */
+  saldoFavorTotal: number | null;
+  conSaldoFavor: number | null;
 };
 
 export async function getProveedoresResumen(): Promise<ResumenProveedores> {
@@ -98,6 +104,8 @@ export async function getProveedoresResumen(): Promise<ResumenProveedores> {
     topPct: num(r.top_pct),
     top3Pct: num(r.top3_pct),
     sinCompras90d: num(r.sin_compras_90d),
+    saldoFavorTotal: num(r.saldo_favor_total),
+    conSaldoFavor: num(r.con_saldo_favor),
   };
 }
 

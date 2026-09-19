@@ -4,6 +4,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, soles, type ParamsCompras } from "@/lib/compras";
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
+import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { RecepcionCompraFormV2 } from "@/components/RecepcionCompraFormV2";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
@@ -144,7 +145,11 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
     getResumenComprasExtra(),
   ]);
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
-  const lineas = await getLineasCompra(compras.map((c) => c.id));
+  const [lineas, comprasConNotaFaltante, saldoFavorPorProveedor] = await Promise.all([
+    getLineasCompra(compras.map((c) => c.id)),
+    getComprasConNotaFaltante(compras.map((c) => c.id)),
+    getSaldosFavor(compras.map((c) => c.proveedorId)),
+  ]);
   const ubicacionesPermitidas = persona.rol === "lider" ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
   const sinAtraso = resumen.porRecibirAtrasadas === 0;
 
@@ -224,6 +229,8 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
           esLider={persona.rol === "lider"}
           igvMes={extra.igvMes}
           porRecibirAtrasadas={resumen.porRecibirAtrasadas}
+          comprasConNotaFaltante={comprasConNotaFaltante}
+          saldoFavorPorProveedor={saldoFavorPorProveedor}
         />
       )}
 

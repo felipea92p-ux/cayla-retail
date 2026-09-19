@@ -337,8 +337,8 @@ select :'antes_estado', :'antes_atrasada',
   r.estado_recepcion, r.recepcion_atrasada, r.cerrado_cantidad, r.saldo,
   (select pendiente from retail.compra_items_resumen where id = :'c1_item'),
   (select cerrado from retail.compra_items_resumen where id = :'c1_item'),
-  (:'r'::jsonb ->> 'nota_credito_id') is null,
-  (:'r'::jsonb ->> 'cierre_id')::uuid = (select id from retail.compra_item_cierres where compra_item_id = :'c1_item')
+  (select count(*) = 0 from retail.compra_notas_credito where compra_id = :'c1'),
+  :'r'::uuid = (select id from retail.compra_item_cierres where compra_item_id = :'c1_item')
 from retail.compras_resumen r where r.id = :'c1';
 rollback;
 `
@@ -443,21 +443,22 @@ error(
 // ===========================================================================
 
 exito(
-  "cierre con nota: el saldo baja EXACTAMENTE el monto y el IGV queda desglosado (200 + 36)",
+  "cierre + nota por faltante: el saldo baja EXACTAMENTE el monto y el IGV queda desglosado (200 + 36)",
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}
-select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'fc01-000018', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)) as r \\gset
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as cierre \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'fc01-000018', retail.fn_hoy_lima(), 236.00, 'faltante', null, :'cierre') as nc \\gset
 select c.saldo, c.notas_credito, c.estado_pago, c.estado_recepcion,
-  n.subtotal, n.igv, n.monto, n.serie_numero, n.motivo,
-  n.cierre_id = (:'r'::jsonb ->> 'cierre_id')::uuid,
-  n.id = (:'r'::jsonb ->> 'nota_credito_id')::uuid
+  n.subtotal, n.igv, n.monto, n.aplicado, n.serie_numero, n.motivo,
+  n.cierre_id = :'cierre',
+  (select count(*) from retail.proveedor_creditos where proveedor_id = c.proveedor_id)
 from retail.compras c join retail.compra_notas_credito n on n.compra_id = c.id where c.id = :'c1';
 rollback;
 `
   ),
-  ["1180.00", "236.00", "pendiente", "sin_recibir", "200.00", "36.00", "236.00", "FC01-000018", "faltante", "t", "t"]
+  ["1180.00", "236.00", "pendiente", "recibida", "200.00", "36.00", "236.00", "236.00", "FC01-000018", "faltante", "t", "0"]
 );
 
 exito(
@@ -465,8 +466,9 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}
-select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'FC01-000019', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)) as _r \\gset
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _r \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-000019', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
 select (select notas_credito from retail.compras_resumen where id = :'c1'),
   (select cerrado_cantidad from retail.compras_resumen where id = :'c1'),
   (select notas_credito from retail.listar_compras(p_limite => 200) where id = :'c1'),
@@ -478,26 +480,29 @@ rollback;
 );
 
 error(
-  "nota de crédito mayor al saldo se rechaza",
+  "nota de crédito que sumaría más que el comprobante se rechaza (no se acredita más de lo facturado)",
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}
-select retail.registrar_nota_credito_compra(:'c1', 'FC01-1', retail.fn_hoy_lima(), 1416.01, 'faltante');
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-1', retail.fn_hoy_lima(), 1416.01, 'descuento');
 `
   ),
-  "supera el saldo pendiente del comprobante"
+  "más que el comprobante"
 );
 
-error(
-  "la nota se valida contra lo ya pagado: pagado 1000 + nota 416.01 no cabe",
+exito(
+  "una nota mayor al saldo NO se rechaza: baja la deuda hasta 0 y lo que sobra queda a favor (pagado 1000 + nota 416.01)",
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}
 select retail.registrar_pago_compra(:'c1', 1000.00, 'transferencia') as _p \\gset
-select retail.registrar_nota_credito_compra(:'c1', 'FC01-1', retail.fn_hoy_lima(), 416.01, 'faltante');
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-1', retail.fn_hoy_lima(), 416.01, 'descuento') as nc \\gset
+select c.saldo, c.notas_credito, n.aplicado, n.monto, retail.fn_saldo_favor_proveedor(c.proveedor_id)
+from retail.compras c join retail.compra_notas_credito n on n.id = :'nc' where c.id = :'c1';
+rollback;
 `
   ),
-  "supera el saldo pendiente del comprobante (S/ 416.00)"
+  ["0.00", "416.00", "416.00", "416.01", "0.01"]
 );
 
 exito(
@@ -547,7 +552,8 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}
-select (retail.cerrar_linea_compra(:'c1_item', 4, 'danada') ->> 'cierre_id')::uuid as cierre \\gset
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'danada') as cierre \\gset
 select retail.registrar_nota_credito_compra(:'c1', 'FC01-5', retail.fn_hoy_lima(), 236.00, 'faltante', null, :'cierre') as nc \\gset
 select (select cierre_id = :'cierre' from retail.compra_notas_credito where id = :'nc'), saldo from retail.compras where id = :'c1';
 rollback;
@@ -561,7 +567,7 @@ error(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1")}${compra("c2")}
-select (retail.cerrar_linea_compra(:'c2_item', 4, 'danada') ->> 'cierre_id')::uuid as cierre_otro \\gset
+select retail.cerrar_linea_compra(:'c2_item', 4, 'danada') as cierre_otro \\gset
 select retail.registrar_nota_credito_compra(:'c1', 'FC01-6', retail.fn_hoy_lima(), 100.00, 'faltante', null, :'cierre_otro');
 `
   ),
@@ -573,7 +579,7 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1", { tipo: "boleta", igv: 0 })}
-select retail.registrar_nota_credito_compra(:'c1', 'BC01-1', retail.fn_hoy_lima(), 100.00, 'faltante') as nc \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'BC01-1', retail.fn_hoy_lima(), 100.00, 'otro') as nc \\gset
 select subtotal, igv, monto from retail.compra_notas_credito where id = :'nc';
 rollback;
 `
@@ -674,19 +680,6 @@ rollback;
 `
   ),
   ["4", "0.00", "pagada"]
-);
-
-error(
-  "comprobante pagado por completo: cerrar CON nota se rechaza y no deja el cierre",
-  comoPersona(
-    FELIPE,
-    `${BASE}${compra("c1")}
-select retail.registrar_pago_compra(:'c1', 1416.00, 'transferencia') as _p \\gset
-select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'FC01-15', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00));
-`
-  ),
-  "supera el saldo pendiente del comprobante (S/ 0.00)"
 );
 
 // ===========================================================================
@@ -813,12 +806,11 @@ rollback;
 );
 
 error(
-  "integrante (Micaela) NO puede cerrar CON nota de crédito (dinero: solo líder), aunque sea su sede",
+  "integrante (Micaela) NO puede registrar una nota de crédito (dinero: solo líder), aunque sea su sede",
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1", { destino: "trujillo" })}
-${cambiaA(MICAELA)}select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'FC01-30', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00));
+${cambiaA(MICAELA)}select retail.registrar_nota_credito_compra(:'c1', 'FC01-30', retail.fn_hoy_lima(), 236.00, 'descuento');
 `
   ),
   "No tienes permiso para registrar notas de crédito de proveedores"
@@ -904,8 +896,9 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${compra("c1", { destino: "taller" })}
-select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'FC01-42', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)) as _r \\gset
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _r \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-42', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
 set local role authenticated;
 select count(*) as felipe_notas from retail.compra_notas_credito where compra_id = :'c1' \\gset
 select count(*) as felipe_cierres from retail.compra_item_cierres where compra_item_id = :'c1_item' \\gset
@@ -928,8 +921,9 @@ exito(
     FELIPE,
     `${BASE}${compra("c1")}
 select retail.registrar_pago_compra(:'c1', 300.00, 'yape') as _p \\gset
-select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego', null,
-  jsonb_build_object('serie_numero', 'FC01-50', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)) as _r \\gset
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _r \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-50', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
 select pagado as p0, notas_credito as n0, cerrado_cantidad as k0, saldo as s0 from retail.compras where id = :'c1' \\gset
 select retail.recalcular_compras();
 select (pagado = :'p0'), (notas_credito = :'n0'), (cerrado_cantidad = :'k0'), (saldo = :'s0'), saldo from retail.compras where id = :'c1';
@@ -1001,6 +995,454 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
+
+// ===========================================================================
+// NOTA POR FALTANTE ESTRICTA + SALDO A FAVOR + RECIBIR Y CERRAR ATÓMICO (ADR-0106, corrección 2026-09-18)
+// ===========================================================================
+
+/** Como `compra`, pero AL CONTADO y pagada por completo al registrarse (total 1,416.00 con los valores por defecto). */
+function compraContado(v, { prov = "prov1", destino = "taller", lineas = [24], costo = 50, pago = null } = {}) {
+  const items = lineas
+    .map((c) => `jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', ${c}, 'costo_unitario', ${costo})`)
+    .join(", ");
+  const total = lineas.reduce((a, c) => a + c, 0) * costo * 1.18;
+  return `
+select retail.registrar_compra(:'${prov}', 'TST', 'N' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), 'contado', :'${destino}',
+  jsonb_build_array(${items}),
+  p_fecha_emision => retail.fn_hoy_lima(),
+  p_pago => ${pago ?? `jsonb_build_array(jsonb_build_object('monto', ${total.toFixed(2)}, 'metodo', 'transferencia'))`}) as ${v} \\gset
+select (array_agg(id order by cantidad desc))[1] as ${v}_item from retail.compra_items where compra_id = :'${v}' \\gset
+`;
+}
+
+/** Comprobante a crédito con 20 recibidos y 4 cerrados (resuelto al 100 %, 236.00 sin llegar). Deja `:cierre`. */
+const resuelto = (v) => `${compra(v)}
+${recibe(`${v}_item`, 20)}
+select retail.cerrar_linea_compra(:'${v}_item', 4, 'no_llego') as cierre_${v} \\gset
+`;
+
+// ---------------------------------------------------------------- las reglas de la nota por faltante
+
+error(
+  "nota por faltante SIN ningún cierre se rechaza",
+  comoPersona(FELIPE, `${BASE}${compra("c1")}\nselect retail.registrar_nota_credito_compra(:'c1', 'FC01-60', retail.fn_hoy_lima(), 100.00, 'faltante');`),
+  "necesita al menos una línea cerrada por faltante"
+);
+
+error(
+  "nota por faltante con el comprobante todavía a medias (quedan 20 sin resolver) se rechaza",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-61', retail.fn_hoy_lima(), 236.00, 'faltante');
+`
+  ),
+  "todavía tiene 20 unidades sin resolver"
+);
+
+error(
+  "nota por faltante: una sola por comprobante (la segunda se rechaza aunque sea otra serie)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${resuelto("c1")}
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-62', retail.fn_hoy_lima(), 118.00, 'faltante') as _a \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-63', retail.fn_hoy_lima(), 118.00, 'faltante');
+`
+  ),
+  "ya tiene su nota de crédito por faltante: es una sola por comprobante"
+);
+
+error(
+  "nota por faltante que pasa de lo cerrado a su costo + IGV (236 + S/ 1 de margen) se rechaza",
+  comoPersona(FELIPE, `${BASE}${resuelto("c1")}\nselect retail.registrar_nota_credito_compra(:'c1', 'FC01-64', retail.fn_hoy_lima(), 237.01, 'faltante');`),
+  "supera lo que se cerró sin llegar"
+);
+
+exito(
+  "nota por faltante en el borde del margen (237.00) se acepta",
+  comoPersona(
+    FELIPE,
+    `${BASE}${resuelto("c1")}
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-65', retail.fn_hoy_lima(), 237.00, 'faltante') as nc \\gset
+select monto, aplicado from retail.compra_notas_credito where id = :'nc';
+rollback;
+`
+  ),
+  ["237.00", "237.00"]
+);
+
+exito(
+  "las notas de otro motivo (devolución, descuento) NO llevan las reglas del faltante: sin cierres y varias por comprobante",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-66', retail.fn_hoy_lima(), 100.00, 'devolucion') as _a \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-67', retail.fn_hoy_lima(), 50.00, 'descuento') as _b \\gset
+select count(*), sum(aplicado), (select saldo from retail.compras where id = :'c1') from retail.compra_notas_credito where compra_id = :'c1';
+rollback;
+`
+  ),
+  ["2", "150.00", "1266.00"]
+);
+
+// ---------------------------------------------------------------- de dónde sale el saldo a favor
+
+exito(
+  "factura AL CONTADO (ya pagada) con faltante: la nota no baja ninguna deuda y queda ENTERA como saldo a favor",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compraContado("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-70', retail.fn_hoy_lima(), 236.00, 'faltante') as nc \\gset
+select c.saldo, c.notas_credito, n.aplicado, n.monto,
+  retail.fn_saldo_favor_proveedor(c.proveedor_id),
+  (select count(*) from retail.proveedor_creditos where nota_credito_id = :'nc' and tipo = 'nota_credito' and monto = 236.00)
+from retail.compras c join retail.compra_notas_credito n on n.id = :'nc' where c.id = :'c1';
+rollback;
+`
+  ),
+  ["0.00", "0.00", "0.00", "236.00", "236.00", "1"]
+);
+
+exito(
+  "crédito con saldo menor a la nota (pagó 1300, debe 116; nota 236): baja la deuda a 0 y los otros 120 quedan a favor",
+  comoPersona(
+    FELIPE,
+    `${BASE}${resuelto("c1")}
+select retail.registrar_pago_compra(:'c1', 1300.00, 'transferencia') as _p \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-71', retail.fn_hoy_lima(), 236.00, 'faltante') as nc \\gset
+select c.saldo, c.estado_pago, n.aplicado, retail.fn_saldo_favor_proveedor(c.proveedor_id)
+from retail.compras c join retail.compra_notas_credito n on n.id = :'nc' where c.id = :'c1';
+rollback;
+`
+  ),
+  ["0.00", "pagada", "116.00", "120.00"]
+);
+
+exito(
+  "crédito sin pagar: la nota baja TODA la deuda y no deja saldo a favor",
+  comoPersona(
+    FELIPE,
+    `${BASE}${resuelto("c1")}
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-72', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
+select saldo, retail.fn_saldo_favor_proveedor(proveedor_id) from retail.compras where id = :'c1';
+rollback;
+`
+  ),
+  ["1180.00", "0.00"]
+);
+
+// ---------------------------------------------------------------- usar el saldo a favor al pagar
+
+/** Deja 236.00 de saldo a favor con `prov1` (`:c0` es la factura al contado que lo originó). */
+const CON_SALDO = `${compraContado("c0")}
+${recibe("c0_item", 20)}
+select retail.cerrar_linea_compra(:'c0_item', 4, 'no_llego') as _k0 \\gset
+select retail.registrar_nota_credito_compra(:'c0', 'FC01-80', retail.fn_hoy_lima(), 236.00, 'faltante') as _n0 \\gset
+`;
+
+exito(
+  "pago de UN comprobante con varios medios: 236 con saldo a favor + 1180 por transferencia = pagada, y el saldo a favor queda en 0",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}
+select retail.registrar_pagos_compra(:'c2', jsonb_build_array(
+  jsonb_build_object('monto', 236.00, 'metodo', 'saldo_a_favor'),
+  jsonb_build_object('monto', 1180.00, 'metodo', 'transferencia', 'referencia', 'OP-9'))) as _ids \\gset
+select c.saldo, c.estado_pago, retail.fn_saldo_favor_proveedor(c.proveedor_id),
+  (select count(*) from retail.proveedor_creditos where tipo = 'aplicacion' and compra_id = :'c2' and monto = 236.00 and compra_pago_id is not null),
+  (select count(*) from retail.compra_pagos where compra_id = :'c2' and metodo = 'saldo_a_favor')
+from retail.compras c where c.id = :'c2';
+rollback;
+`
+  ),
+  ["0.00", "pagada", "0.00", "1", "1"]
+);
+
+error(
+  "usar más saldo a favor del que hay (236 disponibles, se piden 300) se rechaza",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}
+select retail.registrar_pagos_compra(:'c2', jsonb_build_array(jsonb_build_object('monto', 300.00, 'metodo', 'saldo_a_favor')));
+`
+  ),
+  "El saldo a favor con este proveedor es S/ 236.00 y se intenta usar S/ 300.00"
+);
+
+error(
+  "el mismo saldo a favor no se gasta dos veces: tras usar 236, otro comprobante ya no lo encuentra",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}${compra("c3")}
+select retail.registrar_pagos_compra(:'c2', jsonb_build_array(jsonb_build_object('monto', 236.00, 'metodo', 'saldo_a_favor'))) as _a \\gset
+select retail.registrar_pagos_compra(:'c3', jsonb_build_array(jsonb_build_object('monto', 1.00, 'metodo', 'saldo_a_favor')));
+`
+  ),
+  "El saldo a favor con este proveedor es S/ 0.00"
+);
+
+error(
+  "el saldo a favor de un proveedor NO se usa para pagar un comprobante de OTRO proveedor",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2", { prov: "prov2" })}
+select retail.registrar_pagos_compra(:'c2', jsonb_build_array(jsonb_build_object('monto', 100.00, 'metodo', 'saldo_a_favor')));
+`
+  ),
+  "El saldo a favor con este proveedor es S/ 0.00"
+);
+
+error(
+  "pago individual que pasa el saldo NETO de notas se rechaza con mensaje claro (antes lo atajaba solo el CHECK de la tabla)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${resuelto("c1")}
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-73', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
+select retail.registrar_pago_compra(:'c1', 1200.00, 'transferencia');
+`
+  ),
+  "El pago (S/ 1200.00) supera el saldo pendiente (S/ 1180.00)"
+);
+
+exito(
+  "pago por lote con saldo a favor: 236 se aplican al primer comprobante, el resto por transferencia; ambos pagados, saldo a favor 0",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}${compra("c3")}
+select retail.registrar_pago_compras(:'prov1', 'transferencia',
+  jsonb_build_array(${aplic("c2", "1416.00")}, ${aplic("c3", "1416.00")}), 'OP-77', null, gen_random_uuid(), 236.00) as g \\gset
+select
+  (select count(*) from retail.compras where id in (:'c2', :'c3') and estado_pago = 'pagada' and saldo = 0),
+  retail.fn_saldo_favor_proveedor(:'prov1'),
+  (select monto from retail.compra_pagos where compra_id = :'c2' and metodo = 'saldo_a_favor'),
+  (select monto from retail.compra_pagos where compra_id = :'c2' and metodo = 'transferencia'),
+  (select count(*) from retail.compra_pagos where compra_id = :'c3' and metodo = 'saldo_a_favor'),
+  (select count(distinct pago_grupo_id) from retail.compra_pagos where pago_grupo_id = :'g');
+rollback;
+`
+  ),
+  ["2", "0.00", "236.00", "1180.00", "0", "1"]
+);
+
+exito(
+  "pago por lote cubierto ENTERO con saldo a favor: no necesita medio de pago",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2", { lineas: [4] })}
+select retail.registrar_pago_compras(:'prov1', null, jsonb_build_array(${aplic("c2", "236.00")}), null, null, gen_random_uuid(), 236.00) as g \\gset
+select saldo, estado_pago, retail.fn_saldo_favor_proveedor(:'prov1') from retail.compras where id = :'c2';
+rollback;
+`
+  ),
+  ["0.00", "pagada", "0.00"]
+);
+
+error(
+  "pago por lote: usar más saldo a favor del que hay se rechaza",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2")}
+select retail.registrar_pago_compras(:'prov1', 'transferencia', jsonb_build_array(${aplic("c2", "1416.00")}), null, null, null, 300.00);
+`
+  ),
+  "El saldo a favor con este proveedor es S/ 236.00 y se intenta usar S/ 300.00"
+);
+
+error(
+  "pago por lote: el saldo a favor a usar no puede pasar del total del pago",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compra("c2", { lineas: [4] })}
+select retail.registrar_pago_compras(:'prov1', 'transferencia', jsonb_build_array(${aplic("c2", "100.00")}), null, null, null, 236.00);
+`
+  ),
+  "supera el total del pago"
+);
+
+exito(
+  "pago al contado al registrar el comprobante, parte con saldo a favor (236) y parte en efectivo (1180)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}${compraContado("c2", {
+      pago: `jsonb_build_array(jsonb_build_object('monto', 236.00, 'metodo', 'saldo_a_favor'), jsonb_build_object('monto', 1180.00, 'metodo', 'efectivo'))`,
+    })}
+select saldo, estado_pago, retail.fn_saldo_favor_proveedor(:'prov1') from retail.compras where id = :'c2';
+rollback;
+`
+  ),
+  ["0.00", "pagada", "0.00"]
+);
+
+// ---------------------------------------------------------------- reembolso y el libro
+
+exito(
+  "reembolso del proveedor: baja el saldo a favor (236 - 100 = 136) y queda en el libro con su medio",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}
+select retail.registrar_reembolso_proveedor(:'prov1', 100.00, 'transferencia', 'OP-DEV-1', null, 'devolvió la diferencia') as _r \\gset
+select retail.fn_saldo_favor_proveedor(:'prov1'),
+  (select count(*) from retail.proveedor_creditos where proveedor_id = :'prov1' and tipo = 'reembolso' and monto = 100.00 and metodo = 'transferencia' and referencia = 'OP-DEV-1');
+rollback;
+`
+  ),
+  ["136.00", "1"]
+);
+
+error(
+  "reembolso mayor al saldo a favor se rechaza",
+  comoPersona(FELIPE, `${BASE}${CON_SALDO}\nselect retail.registrar_reembolso_proveedor(:'prov1', 236.01, 'transferencia');`),
+  "El saldo a favor con este proveedor es S/ 236.00 y el reembolso es de S/ 236.01"
+);
+
+error(
+  "integrante (Micaela) NO puede registrar un reembolso (dinero: solo líder)",
+  comoPersona(FELIPE, `${BASE}${CON_SALDO}\n${cambiaA(MICAELA)}select retail.registrar_reembolso_proveedor(:'prov1', 10.00, 'efectivo');`),
+  "No tienes permiso para registrar reembolsos de proveedores"
+);
+
+error(
+  "el libro del saldo a favor no se edita (ni por SQL directo)",
+  comoPersona(FELIPE, `${BASE}${CON_SALDO}\nupdate retail.proveedor_creditos set monto = 1 where proveedor_id = :'prov1';`),
+  "El libro del saldo a favor no se edita ni se borra"
+);
+
+exito(
+  "RLS: Felipe (líder) lee el saldo a favor y su historial; Micaela (integrante) lee 0 y ninguna fila",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}
+set local role authenticated;
+select retail.fn_saldo_favor_proveedor(:'prov1') as felipe_saldo \\gset
+select count(*) as felipe_hist from retail.fn_proveedor_creditos(:'prov1') \\gset
+${cambiaA(MICAELA)}select :'felipe_saldo', :'felipe_hist', retail.fn_saldo_favor_proveedor(:'prov1'), (select count(*) from retail.fn_proveedor_creditos(:'prov1'));
+rollback;
+`
+  ),
+  ["236.00", "1", "0.00", "0"]
+);
+
+exito(
+  "fn_proveedores trae el saldo a favor por proveedor y fn_proveedores_resumen el total",
+  comoPersona(
+    FELIPE,
+    `${BASE}${CON_SALDO}
+select (select saldo_favor from retail.fn_proveedores() where id = :'prov1'),
+  (select saldo_favor from retail.fn_proveedores() where id = :'prov2'),
+  (select saldo_favor_total from retail.fn_proveedores_resumen()),
+  (select con_saldo_favor from retail.fn_proveedores_resumen());
+rollback;
+`
+  ),
+  ["236.00", "0.00", "236.00", "1"]
+);
+
+// ---------------------------------------------------------------- recibir + cerrar + nota, en una sola transacción
+
+exito(
+  "recibir_y_cerrar_compras: recibe 20, cierra 4 y registra la nota (236) en una sola llamada",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.recibir_y_cerrar_compras(:'taller',
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 20)),
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 4, 'motivo', 'no_llego')),
+  jsonb_build_array(jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-90', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00))) as r \\gset
+select (:'r'::jsonb ->> 'cierres'), (:'r'::jsonb ->> 'notas_credito'), (:'r'::jsonb ->> 'lote_id') is not null,
+  estado_recepcion, saldo, recibido_cantidad, cerrado_cantidad
+from retail.compras where id = :'c1';
+rollback;
+`
+  ),
+  ["1", "1", "t", "recibida", "1180.00", "20", "4"]
+);
+
+exito(
+  "recibir_y_cerrar_compras sin nada recibido: la línea que llegó en 0 se cierra entera y el comprobante queda resuelto",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.recibir_y_cerrar_compras(:'taller', '[]'::jsonb,
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 24, 'motivo', 'no_llego')), '[]'::jsonb) as r \\gset
+select (:'r'::jsonb ->> 'lote_id') is null, estado_recepcion, recibido_cantidad, cerrado_cantidad from retail.compras where id = :'c1';
+rollback;
+`
+  ),
+  ["t", "recibida", "0", "24"]
+);
+
+exito(
+  "recibir_y_cerrar_compras es TODO O NADA: si la nota se rechaza, tampoco quedan el stock ni el cierre",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+savepoint s;
+\\set ON_ERROR_STOP off
+select retail.recibir_y_cerrar_compras(:'taller',
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 20)),
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 4, 'motivo', 'no_llego')),
+  jsonb_build_array(jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-91', 'fecha', retail.fn_hoy_lima(), 'monto', 999.00)));
+\\set ON_ERROR_STOP on
+rollback to savepoint s;
+select recibido_cantidad, cerrado_cantidad, notas_credito, estado_recepcion,
+  (select count(*) from retail.movimientos where compra_item_id = :'c1_item'),
+  (select count(*) from retail.lotes where id in (select lote_id from retail.movimientos where compra_item_id = :'c1_item'))
+from retail.compras where id = :'c1';
+rollback;
+`
+  ),
+  ["0", "0", "0.00", "sin_recibir", "0", "0"]
+);
+
+error(
+  "recibir_y_cerrar_compras: una nota por faltante sin cierres en la misma llamada se rechaza",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.recibir_y_cerrar_compras(:'taller',
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 20)), '[]'::jsonb,
+  jsonb_build_array(jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-92', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)));
+`
+  ),
+  "necesita que se cierre al menos una línea en esta misma guía"
+);
+
+error(
+  "recibir_y_cerrar_compras: sin ítems ni cierres no hay nada que registrar",
+  comoPersona(FELIPE, `${BASE}\nselect retail.recibir_y_cerrar_compras(:'taller');`),
+  "No hay nada que registrar"
+);
+
+error(
+  "recibir_y_cerrar_compras: cerrar más de lo pendiente tras la recepción se rechaza (la pantalla vio otra cosa)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+select retail.recibir_y_cerrar_compras(:'taller',
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 20)),
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 5, 'motivo', 'no_llego')));
+`
+  ),
+  "La línea tiene 4 unidades pendientes: no se pueden cerrar 5"
+);
+
+error(
+  "integrante (Micaela) puede recibir y cerrar en su sede, pero NO registrar la nota de crédito dentro de la misma llamada",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1", { destino: "trujillo" })}
+${cambiaA(MICAELA)}select retail.recibir_y_cerrar_compras(:'trujillo',
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 20)),
+  jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 4, 'motivo', 'no_llego')),
+  jsonb_build_array(jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-93', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)));
+`
+  ),
+  "No tienes permiso para registrar notas de crédito de proveedores"
+);
+
 
 function main() {
   try {

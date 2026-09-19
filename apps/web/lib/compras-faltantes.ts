@@ -16,6 +16,8 @@ export type NotaCreditoCompra = {
   serieNumero: string;
   fecha: string;
   monto: number;
+  /** Cuánto de la nota bajó lo que se debe de ESTE comprobante; `monto − aplicado` quedó a favor del proveedor. */
+  aplicado: number;
   igv: number;
   motivo: string;
   nota: string | null;
@@ -34,10 +36,10 @@ export type CierreLinea = {
 export async function getNotasCreditoCompra(compraId: string): Promise<NotaCreditoCompra[]> {
   const supabase = await createClient();
   const filas = exigir(
-    await supabase.from("compra_notas_credito").select("id, serie_numero, fecha, monto, igv, motivo, nota, cierre_id").eq("compra_id", compraId).order("fecha", { ascending: false }).order("created_at", { ascending: false }),
+    await supabase.from("compra_notas_credito").select("id, serie_numero, fecha, monto, aplicado, igv, motivo, nota, cierre_id").eq("compra_id", compraId).order("fecha", { ascending: false }).order("created_at", { ascending: false }),
     "las notas de crédito del comprobante"
   );
-  return filas.map((f) => ({ id: f.id, serieNumero: f.serie_numero, fecha: f.fecha, monto: Number(f.monto), igv: Number(f.igv), motivo: f.motivo, nota: f.nota, cierreId: f.cierre_id }));
+  return filas.map((f) => ({ id: f.id, serieNumero: f.serie_numero, fecha: f.fecha, monto: Number(f.monto), aplicado: Number(f.aplicado), igv: Number(f.igv), motivo: f.motivo, nota: f.nota, cierreId: f.cierre_id }));
 }
 
 /** Cierres de las líneas de un comprobante (la relación con la compra pasa por `compra_items`). */

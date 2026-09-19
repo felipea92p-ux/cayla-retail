@@ -292,7 +292,7 @@ export function CompraDetalle({
         </section>
       </div>
 
-      <NotasCreditoCompra compra={compra} notas={notasCredito} />
+      <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
       {/* Quién puede adjuntar lo decide `fn_puede_registrar_compras()` en la
           RPC (hoy: cualquier persona activa, 0012). Acá solo se esconde en

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, igvDeMonto, montoDeCierres, notaDelBloque, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -73,24 +73,82 @@ describe("cierres de faltante dentro de la guía", () => {
   });
 });
 
-describe("notaDelBloque: una nota por comprobante, con todo lo que se cierra en la guía", () => {
+describe("notaDelBloque: una nota por comprobante, con todo lo cerrado de él", () => {
   const cierres = [{ faltan: 3, costoUnitario: 20 }, { faltan: 4, costoUnitario: 10 }];
   const borrador = { activa: true, serie: "FC01-000018", fecha: "2026-09-18", montoTxt: null };
   it("sugiere la suma de lo cerrado con IGV y no tiene problema si trae serie", () => {
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: true, borrador })).toEqual({ activa: true, sugerido: 118, monto: 118, problema: null });
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador })).toEqual({ activa: true, sugerido: 118, monto: 118, tope: 119, problema: null });
   });
-  it("sin serie, o con un monto que pasa lo que se debe, marca el problema", () => {
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, serie: " " } }).problema).toBe("serie");
-    expect(notaDelBloque({ saldo: 100, tasa: 0.18, cierres, esLider: true, borrador }).problema).toBe("monto");
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "0" } }).problema).toBe("monto");
+  it("sin serie, o con un monto sobre lo cerrado + S/ 1 de margen, marca el problema", () => {
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, serie: " " } }).problema).toBe("serie");
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "119.01" } }).problema).toBe("monto");
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "119.00" } }).problema).toBe(null);
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "0" } }).problema).toBe("monto");
   });
-  it("respeta el monto que el líder ajustó", () => {
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "115.50" } }).monto).toBe(115.5);
+  it("respeta el monto que el líder ajustó dentro del margen", () => {
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, montoTxt: "115.50" } }).monto).toBe(115.5);
   });
-  it("no hay nota si no es líder, si está apagada, o si no se cierra nada", () => {
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: false, borrador }).activa).toBe(false);
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, activa: false } }).activa).toBe(false);
-    expect(notaDelBloque({ saldo: 500, tasa: 0.18, cierres: [], esLider: true, borrador }).activa).toBe(false);
+  it("no hay nota si no es líder, si está apagada, o si no se cerró nada", () => {
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: false, borrador }).activa).toBe(false);
+    expect(notaDelBloque({ tasa: 0.18, cierres, esLider: true, borrador: { ...borrador, activa: false } }).activa).toBe(false);
+    expect(notaDelBloque({ tasa: 0.18, cierres: [], esLider: true, borrador }).activa).toBe(false);
+  });
+});
+
+describe("decisiones por línea", () => {
+  const filas = [
+    { lineaId: "a", compraId: "c1", faltan: 3, costoUnitario: 20 },
+    { lineaId: "b", compraId: "c1", faltan: 4, costoUnitario: 10 },
+  ];
+  it("«lo espero» no cierra nada, pero cuenta como decidido", () => {
+    const d = { a: "espero", b: "no_llego" } as const;
+    expect(cierresElegidos(filas, d).map((c) => c.lineaId)).toEqual(["b"]);
+    expect(sinDecidir(filas, d)).toEqual([]);
+  });
+  it("una línea corta sin decisión bloquea el confirmar", () => {
+    expect(sinDecidir(filas, { a: "danada" }).map((f) => f.lineaId)).toEqual(["b"]);
+    expect(sinDecidir(filas, {}).length).toBe(2);
+  });
+});
+
+describe("disponibilidadNota: se anticipa lo que la base va a exigir", () => {
+  const base = { pendiente: 24, llegando: 20, cerrandoAhora: 4, cerradoAntes: 0, yaTieneNotaFaltante: false };
+  it("disponible cuando la guía deja el comprobante resuelto al 100 %", () => {
+    expect(disponibilidadNota(base)).toEqual({ estado: "disponible" });
+  });
+  it("bloqueada si después de la guía quedan unidades sin recibir ni cerrar (y dice cuántas)", () => {
+    expect(disponibilidadNota({ ...base, llegando: 10 })).toEqual({ estado: "bloqueada", quedan: 10 });
+    // `pendiente` ya descuenta lo cerrado antes: con 4 cerrados antes quedan 20 pendientes en las líneas.
+    expect(disponibilidadNota({ ...base, pendiente: 20, llegando: 10, cerrandoAhora: 0, cerradoAntes: 4 })).toEqual({ estado: "bloqueada", quedan: 10 });
+  });
+  it("sin ningún cierre (ni antes ni ahora) no hay nota por faltante", () => {
+    expect(disponibilidadNota({ ...base, cerrandoAhora: 0, llegando: 24 })).toEqual({ estado: "sin_cierres" });
+  });
+  it("los cierres de guías anteriores cuentan para poder registrar la nota", () => {
+    expect(disponibilidadNota({ ...base, pendiente: 20, cerrandoAhora: 0, cerradoAntes: 4, llegando: 20 })).toEqual({ estado: "disponible" });
+  });
+  it("si ya tiene su nota por faltante, no hay otra", () => {
+    expect(disponibilidadNota({ ...base, yaTieneNotaFaltante: true })).toEqual({ estado: "ya_registrada" });
+  });
+});
+
+describe("reparteNota: la nota baja la deuda y lo que sobra queda a favor", () => {
+  const dinero = (n: number) => `S/ ${n.toFixed(2)}`;
+  const p = { documento: "F001-000198", proveedor: "Textiles Andina", dinero };
+  it("a crédito sin pagar: baja la deuda, nada a favor", () => {
+    const r = reparteNota(236, 1180);
+    expect(r).toEqual({ baja: 236, aFavor: 0, deudaDespues: 944 });
+    expect(textoReparteNota(r, { ...p, saldo: 1180 })).toBe("La nota baja lo que se debe de F001-000198 de S/ 1180.00 a S/ 944.00.");
+  });
+  it("al contado (ya pagada): todo queda a favor", () => {
+    const r = reparteNota(236, 0);
+    expect(r).toEqual({ baja: 0, aFavor: 236, deudaDespues: 0 });
+    expect(textoReparteNota(r, { ...p, saldo: 0 })).toContain("ya está pagado: los S/ 236.00 de la nota quedan a tu favor con Textiles Andina");
+  });
+  it("debe menos que la nota: baja a 0 y el resto queda a favor", () => {
+    const r = reparteNota(236, 116);
+    expect(r).toEqual({ baja: 116, aFavor: 120, deudaDespues: 0 });
+    expect(textoReparteNota(r, { ...p, saldo: 116 })).toContain("los S/ 120.00 restantes quedan a tu favor");
   });
 });
 
@@ -160,5 +218,21 @@ describe("efectoCierre", () => {
   it("nunca deja el saldo en negativo", () => {
     const [fila] = efectoCierre({ documento: "X", saldo: 100, montoNota: 500, igvNota: 0, igvMes: null, recepcionAntes: "", cubreTodo: false, estabaAtrasada: false, atrasadasAntes: null, formato: f });
     expect(fila.despues).toBe("S/ 0.00");
+  });
+});
+
+describe("efectoCierre con saldo a favor", () => {
+  const dinero = (n: number) => `S/ ${n.toFixed(2)}`;
+  const base = { documento: "F001-1", saldo: 0, montoNota: 0, igvNota: 36, igvMes: 500, recepcionAntes: "Parcial", cubreTodo: true, estabaAtrasada: false, atrasadasAntes: null, formato: dinero, proveedor: "Andina" };
+  it("factura ya pagada: no toca la deuda, sube el saldo a favor y baja el crédito fiscal", () => {
+    const f = efectoCierre({ ...base, aFavor: 236, saldoFavorAntes: 0 });
+    expect(f.map((r) => r.etiqueta)).toEqual(["Saldo a favor con Andina", "Crédito fiscal (IGV) del mes", "Recepción del comprobante"]);
+    expect(f[0]).toMatchObject({ antes: "S/ 0.00", despues: "S/ 236.00" });
+    expect(f[1]).toMatchObject({ antes: "S/ 500.00", despues: "S/ 464.00" });
+  });
+  it("nota que solo baja deuda: no aparece la fila del saldo a favor", () => {
+    const f = efectoCierre({ ...base, saldo: 1180, montoNota: 236, aFavor: 0, saldoFavorAntes: 0 });
+    expect(f.map((r) => r.etiqueta)).toEqual(["Lo que se debe de F001-1", "Crédito fiscal (IGV) del mes", "Recepción del comprobante"]);
+    expect(f[0]).toMatchObject({ antes: "S/ 1180.00", despues: "S/ 944.00" });
   });
 });
