@@ -3,6 +3,30 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Recibir mercadería → Recibidas: los filtros pasan a las dos pastillas en línea de la maqueta 06)
+
+La pestaña «Recibidas recientemente» escondía sus dos filtros detrás del botón «Filtros» y su panel; la maqueta aprobada los pone a la vista: el buscador («Documento, proveedor o guía») y, en la misma línea, «Proveedor: Todos ⌄» y «Fechas». Nuevo `FiltrosRecibidas` (solo esa pestaña; Comprobantes y Por pagar siguen con `FiltrosCompras`) y las reglas en `lib/recibidas-filtros-reglas.ts` con 34 pruebas: períodos de un toque (este mes, mes pasado, últimos 30/90 días, contados desde el «hoy» de Lima y con la misma ventana que la cifra «Unidades recibidas»), el rótulo de cada pastilla y la limpieza de lo que llega por la URL. Los filtros siguen en `?q=&prov=&desde=&hasta=` y el servidor sigue siendo quien filtra.
+
+Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la guía (`lotes.fecha_recepcion`), no el de emisión del comprobante como decía el chip de `FiltrosCompras`; y el buscador ya cubría la guía en SQL pero el texto de ayuda no lo decía. Además una fecha imposible en la URL (`?desde=2026-02-31`) hacía fallar la función SQL en vez de devolver una lista vacía: ahora se ignora.
+
+Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
+
+## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
+
+Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
+
+Errores propios que la verificación cazó: dos veces un nombre de ADR/migración que otra rama ya usaba (0112 estaba tomado; se usó 0113), un chequeo de «solo líder cierra» en la RPC más estricto que la base sin que nadie lo hubiera decidido (se quitó: la decisión vive en la pantalla y es reversible sin migración), y la pantalla nueva perdió el ancho completo al salir de `/compras` (`SIN_TOPE_DE_ANCHO`). También cerré la sesión del navegador de Felipe para probar como Micaela y no pude volver a entrar: iniciar sesión pide una contraseña que no me toca escribir.
+
+Lo que Felipe se lleva: un envío no es un proveedor — es una llegada a la puerta, y modelarlo como el padre que agrupa lotes (uno por proveedor) dejó intactas las métricas y el costo de cada proveedor; y «que cuente cualquiera» no obliga a abrir Compras: se abre solo la puerta de recibir y los montos ni siquiera salen del servidor. Las 2 migraciones ya están en producción (las pegó Felipe el 2026-09-19); falta probar la pantalla como colaborador.
+
+## 2026-09-19 (Nace `/pantalla`: análisis por pantalla con 12 tareas — y su primera prueba cayó en una pantalla que `main` ya había rehecho)
+
+Se agregó el skill `/pantalla` (`.claude/skills/pantalla/`): con una captura y una ruta analiza estética, lógica, arquitectura, funciones, utilidad y conexión con el ERP, puntúa si la pantalla cumple su finalidad y su relevancia (gestión pesa el doble) y propone 12 tareas por importancia. Solo analiza, no toca código ni BACKLOG. Se probó en modo rápido sobre Nuevo producto; el modo completo (subagente, consulta SQL, referentes de ERP) no se probó de punta a punta.
+
+Lo que Felipe se lleva: el análisis de esa prueba quedó vencido en pocas horas — `main` rehízo el formulario (precio obligatorio, nombres parecidos, pantalla de éxito) — así que no se subió a `docs/`. Por eso todo análisis guarda el SHA analizado y un re-análisis primero comprueba si esos archivos cambiaron: un análisis sin versión es un doc viejo tomado por vigente.
+
+Pendiente: correr `/pantalla` completo sobre una pantalla de núcleo (Caja). Y una tarea raíz que salió de la prueba y sigue en `main`: `Number(x) || 0` convierte un monto vacío en 0 en 10 formularios, entre ellos `CerrarCajaModalV2.tsx:77` (`p_monto_real`) — sin verificar si hay una guarda previa ni si `cerrar_caja` rechaza 0.
+
 ## 2026-09-19 (Facturación: Felipe aprobó el spec y quedó el plan de implementación; ADR renumerado a 0121)
 
 Felipe aprobó el spec («Va»). Se fusionó `main` (105 commits; solo chocaron BACKLOG y BITÁCORA), se contrastó el diseño con el código real de `main` y el plan quedó en `docs/superpowers/plans/2026-09-19-facturacion-cuatro-vistas-r0-r1.md`: R0 y R1 al detalle; R2 a R4 se planean al cerrar R1, porque dependen de Atelier, que sigue sin estar en `main`. El ADR pasó de 0113 a 0121: otras dos ramas reclamaban el 0113, `main` ya tiene el 0114 y el 0116 y hay ramas con 0117 a 0120. Todavía no hay código.
@@ -8061,3 +8085,12 @@ Al refrescar el diccionario de datos apareció una función repetida en producci
 Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
 
 Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (la primera versión falló con «relation already exists» porque `compras_token_cliente_key` es allá un índice único y no una restricción; no dejó nada aplicado). Verificado después: `registrar_compra` con una sola firma de 15 parámetros que acepta `saldo_a_favor`, 0 funciones sobrecargadas en `retail`, y el volcado de funciones coincide con producción (156 firmas, mismo checksum).
+
+## 2026-09-18 (Candado de CI: números de ADR únicos)
+Cada sesión numera su ADR como «el siguiente» de su `main` y, con ramas paralelas, dos eligen el mismo número sin
+que nadie haga nada mal: `main` llegó a tener 0074, 0102 y 0105 repetidos (el 0102 se resolvió al renumerar el ADR de Caja, #162) y, en esa
+renumeración, el 0113 llegó a tener tres reclamantes. `scripts/adr/numeros.mjs` (paso «Números de ADR» del CI, y `pnpm adr:numeros`)
+sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen repetidos (0074 y 0105) se toleran en una lista
+(`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
+candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
+de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
