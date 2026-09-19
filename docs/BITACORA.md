@@ -7658,3 +7658,15 @@ en vez de decir «fecha no válida».
 Se fusionó `origin/main` (28 commits: Traslados, Etiquetas como campaña, Colores, el aviario en CI) en la rama de Compras, en local y sin push. Tres conflictos reales: `TarjetaCifra.tsx` (las dos ramas agregaron `compacta` con significados distintos: la de Compras es «p-4», la de Traslados una fila baja con ícono; se conservó la de Compras y la de Traslados pasó a llamarse `fila`, con sus 4 usos actualizados) y BACKLOG/BITÁCORA (se conservaron ambos lados). `types.ts` se regeneró contra Postgres local tras aplicar las migraciones de main (`familias`, `etiquetas_descuento_y_categorias`).
 Choques evitados: el ADR pasó de 0106 a 0111 (main ya usa 0104–0107 y otras ramas 0108–0110) y las 15 migraciones de Compras se movieron a `20260918200000`–`218000` porque main trae su propia `20260918160000` y otras dos ramas usan `20260918170000`. Las 3 tablas nuevas entraron al aviario (CI). Verificado: typecheck, 630 tests, lint, 99 pruebas SQL, aviario en verde y las 135 migraciones reproducidas desde cero en un Postgres limpio (misma imagen que Supabase local).
 Producción (consulta de solo lectura, 2026-09-19 01:14 UTC): lo que trajo main ya está aplicado allá (`etiquetas.descuento_pct`, `etiqueta_categorias`, `familias`); faltan exactamente las 14 migraciones de Compras `201000`–`218000` más la `200000` (`fn_hoy_lima`, que ya existe con el mismo cuerpo y se reaplica sin daño).
+
+### 2026-09-18 — La venta aplica el descuento de campaña (paso 3)
+Una prenda con campaña vigente se cobra con su descuento sola: la caja lo calcula y
+`registrar_venta` lo verifica (ADR-0108). Un solo descuento por prenda, el mayor; un descuento
+manual solo vale si lo supera; la campaña no pide código; la fecha es la de Lima. El modal de la
+campaña marca en rojo «por debajo del costo» (no bloquea). Probado en un Postgres de prueba con
+25 escenarios (incluye venta sin red con campaña terminada hace 2 y 10 días) y en navegador.
+Falta pegar el SQL en producción — es el que cambia `registrar_venta`. Orden: SQL, despliegue,
+y solo después configurar una campaña.
+Hallazgo: en este mismo momento la base (UTC) marca 19-sep mientras Lima marca 18-sep — el
+defecto de `current_date` es real, no teórico. Y `registrar_venta` usaba `current_date` también
+para la vigencia de `codigos_descuento`: queda corregido en el mismo SQL.

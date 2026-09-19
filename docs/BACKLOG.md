@@ -426,19 +426,28 @@ verde.
 - [x] **Etiquetas de campaña — paso 2, modelo y pantalla (2026-09-18, ADR-0107).** Modal
       «Configurar campaña» (% de descuento, fechas, categorías opcionales) y tarjeta con el
       descuento. Guarda todo con un RPC atómico. **Sin efecto en caja.**
-- [ ] **⚠ Pegar en producción `supabase/migrations/20260918160000_etiquetas_descuento_y_categorias.sql`
-      ANTES de fusionar/desplegar.** Ya lleva `retail.`, es idempotente. Sin ella, la pestaña
+- [x] **Pegada en producción y verificada (2026-09-18, solo lectura): `supabase/migrations/20260918160000_etiquetas_descuento_y_categorias.sql`.** Ya lleva `retail.`, es idempotente. Sin ella, la pestaña
       Etiquetas de `/productos/atributos` cae en vivo (las otras cuatro no). Después:
       `pnpm datos:generar:produccion` con el volcado refrescado (entra `etiqueta_categorias`).
-- [ ] **Etiquetas de campaña — paso 3, la venta lo aplica (dinero real: confirmar antes).**
-      `registrar_venta` calcula el descuento en la base: UNO por prenda, el mayor entre sus
-      etiquetas vigentes y aprobadas (por etiqueta manual `variante_etiquetas` o por categoría
-      `etiqueta_categorias`); un descuento manual reemplaza al de campaña solo si es mayor; la
-      campaña no exige código. Vigencia en hora de Lima, NO `current_date` (UTC) — revisar de
-      paso si `codigos_descuento` y la restricción de sedes tienen el mismo defecto. Al
-      terminar: `DESCUENTO_YA_SE_APLICA = true` en `EtiquetasLista.tsx` y retirar los avisos
-      «Aún no se aplica en Vender». Decidir entonces si «Jeans» cubre a «Jeans niño» (hoy hay
-      0 subcategorías). Probar antes que nada el caso de dos etiquetas (20 % y 40 % → 40 %, no 60 %).
+- [x] **Etiquetas de campaña — paso 3, la venta lo aplica (2026-09-18, ADR-0108).** Construido y
+      probado (25 escenarios SQL en un Postgres de prueba; 579 pruebas; caja y modal verificados
+      en navegador). Un descuento por prenda: el mayor. Sin código para la campaña. Fecha en
+      hora de Lima. Aviso rojo «por debajo del costo» en el modal de campaña.
+- [ ] **⚠ Pegar en producción `supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql`
+      — CAMBIA `registrar_venta` (dinero real).** Orden: 1) pegar el SQL, 2) desplegar la caja
+      nueva, 3) RECIÉN ENTONCES configurar una campaña. Ya lleva `retail.` y es idempotente.
+      Después: refrescar el volcado (`generado/COMO-REFRESCAR.md`) y `pnpm datos:generar:produccion`
+      (entran `campanas_vigentes`, `fn_campanas_por_variante`, `fn_hoy_lima` y
+      `venta_items.descuento_etiqueta_id`). Probar con UNA campaña real de una prenda y una
+      venta de prueba anulada.
+- [ ] **Campañas: lo que no cubre.** `registrar_cambio` y `liquidar_prenda_danada` no aplican
+      campañas. Un ticket armado ANTES de que empiece una campaña se rechaza al cobrar («recarga
+      Vender»): hoy no se re-evalúa solo en pantalla. La tolerancia de 3 días para la venta sin red
+      (`c_tolerancia_campana`) se puede cambiar por mandar la fecha de la venta (firma nueva).
+      Decidir si «Jeans» cubre a «Jeans niño» el día que existan subcategorías (hoy 0).
+- [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
+      lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
+      refrescarlo.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.
