@@ -350,6 +350,11 @@
   "tablename": "patrones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)",
+  "indexname": "prendas_danadas_cambio_id_key",
+  "tablename": "prendas_danadas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_devolucion_item_id_key ON retail.prendas_danadas USING btree (devolucion_item_id)",
   "indexname": "prendas_danadas_devolucion_item_id_key",
   "tablename": "prendas_danadas"

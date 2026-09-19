@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Diccionario de producción al día tras Pagar juntos con varios medios)
+Se refrescó la foto de producción por diferencias (hash por tabla, solo se bajó lo que cambió): entran `registrar_pago_compras_medios`, `fn_validar_fecha_pago_compra`, `fn_proveedores_serie_12m` y la firma de 4 parámetros de `registrar_pagos_compra` (178 funciones); `cambios` gana `motivo`/`condicion` y `prendas_danadas` gana `cambio_id` (con su UNIQUE y 4 candados), 693 columnas. `datos:comparar` pasa de 1 «roto en producción» (`fn_proveedores_serie_12m`, aún no aplicada) a 0.
+Las llamadas a `registrar_pago_compras*` quedan «no analizadas» porque el objeto se arma con `...`; no es un fallo, pero el comparador no las vigila.
+
 ## 2026-09-19 (Pagar juntos con varios medios — ADR-0132)
 «Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
 cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada

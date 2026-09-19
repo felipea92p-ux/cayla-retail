@@ -605,6 +605,24 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "motivo",
+          "orden": 12,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "condicion",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": "'vendible'::text",
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -619,6 +637,16 @@
           "definicion": "CHECK ((cantidad > 0))"
         },
         {
+          "nombre": "cambios_condicion_check",
+          "clase": "regla",
+          "definicion": "CHECK ((condicion = ANY (ARRAY['vendible'::text, 'no_vendible'::text])))"
+        },
+        {
+          "nombre": "cambios_defecto_no_vuelve_al_piso",
+          "clase": "regla",
+          "definicion": "CHECK (((motivo IS DISTINCT FROM 'defecto'::text) OR (condicion = 'no_vendible'::text)))"
+        },
+        {
           "nombre": "cambios_diferencia_liquidada",
           "clase": "regla",
           "definicion": "CHECK (((diferencia = (0)::numeric) OR (metodo_pago_diferencia IS NOT NULL)))"
@@ -627,6 +655,11 @@
           "nombre": "cambios_metodo_pago_diferencia_check",
           "clase": "regla",
           "definicion": "CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))"
+        },
+        {
+          "nombre": "cambios_motivo_check",
+          "clase": "regla",
+          "definicion": "CHECK ((motivo = ANY (ARRAY['talla_chica'::text, 'talla_grande'::text, 'otro_color'::text, 'defecto'::text, 'otro'::text])))"
         },
         {
           "nombre": "cambios_pkey",
@@ -7046,7 +7079,7 @@
           "nombre": "devolucion_item_id",
           "orden": 5,
           "tipo": "uuid",
-          "acepta_vacio": false,
+          "acepta_vacio": true,
           "por_defecto": null,
           "generada": false,
           "comentario": null
@@ -7122,9 +7155,28 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "cambio_id",
+          "orden": 14,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "prendas_danadas_cambio_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)"
+        },
+        {
+          "nombre": "prendas_danadas_cambio_id_key",
+          "clase": "único",
+          "definicion": "UNIQUE (cambio_id)"
+        },
         {
           "nombre": "prendas_danadas_cantidad_check",
           "clase": "regla",
@@ -7186,12 +7238,21 @@
           "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)"
         },
         {
+          "nombre": "prendas_danadas_un_origen",
+          "clase": "regla",
+          "definicion": "CHECK ((num_nonnulls(devolucion_item_id, cambio_id) = 1))"
+        },
+        {
           "nombre": "prendas_danadas_variante_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)"
         }
       ],
       "indices": [
+        {
+          "nombre": "prendas_danadas_cambio_id_key",
+          "definicion": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)"
+        },
         {
           "nombre": "prendas_danadas_devolucion_item_id_key",
           "definicion": "CREATE UNIQUE INDEX prendas_danadas_devolucion_item_id_key ON retail.prendas_danadas USING btree (devolucion_item_id)"
