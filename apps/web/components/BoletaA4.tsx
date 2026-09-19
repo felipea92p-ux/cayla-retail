@@ -7,6 +7,8 @@ import { fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUM
 const s = (n: number) => `S/ ${n.toFixed(2)}`;
 // Tinte suave para los encabezados: se imprime con `print-color-adjust: exact` pero, si la
 // impresora es en blanco y negro, el filete y el texto siguen diciendo todo.
+/** El texto chico y de bajo contraste del margen izquierdo, como el que ponía Alegra (allá, a la derecha). */
+const TEXTO_LATERAL = "Generado por Cayla POS - Contacto: info@cayla.pe";
 const cab = "border-y border-black/60 bg-[#f1ece4] px-2 py-1.5 text-[7.5pt] font-semibold uppercase tracking-wide [print-color-adjust:exact]";
 
 /**
@@ -37,7 +39,11 @@ export function BoletaA4({
   const nombreDoc = esFactura ? "factura" : "boleta de venta";
 
   return (
-    <div data-testid="boleta-a4" className="boleta-a4 mx-auto w-[186mm] bg-white font-sans text-[9pt] leading-snug text-black">
+    <div data-testid="boleta-a4" className="boleta-a4 relative mx-auto w-[186mm] bg-white font-sans text-[9pt] leading-snug text-black">
+      {/* Vertical, de abajo hacia arriba, dentro del margen de 12 mm de la hoja. */}
+      <p aria-hidden className="absolute top-1/2 -left-[8mm] rotate-180 -translate-y-1/2 whitespace-nowrap text-[6.5pt] text-black/40 [writing-mode:vertical-rl]">
+        {TEXTO_LATERAL}
+      </p>
       {/* ---------- Cabecera ---------- */}
       <header className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 items-center gap-4">
@@ -140,8 +146,12 @@ export function BoletaA4({
         <table className="h-fit w-full text-[8.5pt] tabular-nums">
           <tbody>
             <tr>
+              <td className="py-0.5 text-right">Importe de venta</td>
+              <td className="w-[26mm] py-0.5 text-right">{s(recibo.total)}</td>
+            </tr>
+            <tr>
               <td className="py-0.5 text-right">Op. gravada</td>
-              <td className="w-[26mm] py-0.5 text-right">{s(recibo.subtotal)}</td>
+              <td className="py-0.5 text-right">{s(recibo.subtotal)}</td>
             </tr>
             <tr>
               <td className="py-0.5 text-right">Op. inafecta</td>
