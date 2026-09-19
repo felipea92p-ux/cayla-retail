@@ -357,9 +357,9 @@ verde.
 - [x] **Etiquetas: pantalla rediseñada (2026-09-18).** Ilustración protagonista, chip de
       temporada (Vigente / En N días / Fuera de temporada), filtros con conteo, búsqueda sin
       tildes, "Desactivar" solo al pasar el mouse. Arregló de paso "hoy" en UTC → hora de Lima.
-- [ ] **Unificar la tarjeta de Patrones/Tejidos/Colores con la de Etiquetas.** Hoy Etiquetas
-      tiene el diseño nuevo y las otras tres el anterior: mismo sistema, dos lenguajes. Extraer
-      una `TarjetaAtributo` compartida cuando se decida cuál es el estándar.
+- [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
+      2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
+      archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.
 - [ ] **Mostrar cuántas variantes usan cada etiqueta** (en la tarjeta y antes de desactivar).
       Requiere contar `variante_etiquetas` por `etiqueta_id`; no hay dato en pantalla todavía.
 
