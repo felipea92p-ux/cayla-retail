@@ -22,6 +22,7 @@
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
+    "pruebas:pago-por-lote-medios": "node scripts/pruebas/pago_por_lote_medios.mjs",
     "pruebas:pagos-compras-endurecimiento": "node scripts/pruebas/pagos_compras_endurecimiento.mjs",
     "caja:verificar": "node scripts/caja/verificar.mjs",
     "datos:generar": "node scripts/datos/generar.mjs",

@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Pagar juntos con varios medios — ADR-0132)
+«Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
+cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada
+con 27 casos locales y un pago real en el navegador. La `20260919190000` ya está en producción; **falta `20260919200000_pago_por_lote_medios_endurece.sql`** (token antes del saldo a favor y fecha validada, como ADR-0135).
+
 ## 2026-09-19 (Auditoría del pago a proveedores: destino por medio y endurecimiento — ADR-0135)
 Al elegir un medio de pago ahora se ve UNA línea con a dónde va la plata (transferencia/depósito: cuenta y CCI; Yape o Plin: solo ese celular; efectivo: nada), en vez del bloque grande «Paga por» que mostraba también el Yape al pagar por transferencia (`lib/destino-de-pago.ts`, `DestinoDelMedio.tsx`). La auditoría encontró huecos reales en la base: con «el precio incluye IGV» y 5 unidades o más `registrar_compra` rechazaba comprobantes correctos (el redondeo por unidad se multiplica por la cantidad), el pago desde el detalle no tenía token y un reintento lo duplicaba, el reintento de un lote con saldo a favor fallaba aunque ya se había pagado, las fechas de pago no se validaban y los montos con más de 2 decimales se redondeaban en silencio.
 Se cerraron en la migración `20260919180000` (ADR-0135), **aplicada solo en local, PENDIENTE de producción con confirmación de Felipe**; en pantalla ya no se acepta fecha de pago futura o anterior a la emisión, una línea «Saldo a favor» huérfana pasa a efectivo si se cambia de proveedor y, ante un corte de conexión, el mensaje ya no afirma «no se guardó nada» (puede haberse guardado). Falta enviar `p_token` desde el detalle: solo después de aplicar la migración, o el pago del detalle falla.
