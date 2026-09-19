@@ -1309,12 +1309,46 @@ export type Database = {
           },
         ]
       }
+      etiqueta_categorias: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          etiqueta_id: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          etiqueta_id: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          etiqueta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiqueta_categorias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etiqueta_categorias_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiquetas: {
         Row: {
           activo: boolean
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descuento_pct: number | null
           estado: string
           estilo: string
           id: string
@@ -1330,6 +1364,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descuento_pct?: number | null
           estado?: string
           estilo?: string
           id?: string
@@ -1345,6 +1380,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descuento_pct?: number | null
           estado?: string
           estilo?: string
           id?: string
@@ -3192,6 +3228,16 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: string
+      }
+      actualizar_campana_etiqueta: {
+        Args: {
+          p_categoria_ids: string[]
+          p_descuento_pct: number
+          p_etiqueta_id: string
+          p_vigente_desde: string
+          p_vigente_hasta: string
+        }
+        Returns: undefined
       }
       actualizar_categoria: {
         Args: {
