@@ -30,7 +30,8 @@
 --
 -- SE ROMPE SI alguien renombra una categoría, talla o tejido antes de correr
 -- esto: el bloque de verificación de abajo aborta TODO en vez de cargar la
--- mitad, y dice cuál nombre no encontró.
+-- mitad, y dice cuál nombre no encontró. (En una base NUEVA, con un eje sin
+-- vocabulario, ese eje se salta: ver «una base NUEVA no tiene vocabulario».)
 -- ============================================================================
 
 drop table if exists _mapa_tallas;
@@ -112,6 +113,33 @@ from unnest(array['Abrigos','Blazers','Bodys','Camisas y Blusas','Casacas','Chal
                   'Tops','Vestidos','Pañuelos y Pañoletas']) as c,
      unnest(array['Liso','Rayas','Cuadros','Lunares','Floral','Estampado','Animal print']) as p;
 
+-- ---------- una base NUEVA no tiene vocabulario todavía: ese eje se salta ----------
+-- `supabase db reset` y el CI corren TODAS las migraciones sobre una base
+-- vacía, y hay vocabulario (patrones, en 2026-09-18) que en local solo existe
+-- porque alguien lo cargó a mano o por una semilla que corre DESPUÉS de las
+-- migraciones. Sin vocabulario no hay nada que mapear: abortar acá rompería
+-- el encadenado entero (y con él las migraciones que vienen detrás).
+--
+-- La distinción que importa: un eje con el vocabulario COMPLETAMENTE vacío se
+-- salta con un aviso (base nueva); un eje con vocabulario donde un nombre no
+-- calza SIGUE abortando todo, más abajo (producción, un typo). Lo primero es
+-- "todavía no hay datos"; lo segundo, "los datos no son los que creíamos".
+do $$
+begin
+  if not exists (select 1 from retail.tallas where activo and estado = 'aprobado') then
+    raise notice 'Mapa de categorías: no hay tallas aprobadas (base nueva) — se salta el eje de tallas.';
+    delete from _mapa_tallas;
+  end if;
+  if not exists (select 1 from retail.tejidos where activo and estado = 'aprobado') then
+    raise notice 'Mapa de categorías: no hay tejidos aprobados (base nueva) — se salta el eje de tejidos.';
+    delete from _mapa_tejidos;
+  end if;
+  if not exists (select 1 from retail.patrones where activo and estado = 'aprobado') then
+    raise notice 'Mapa de categorías: no hay patrones aprobados (base nueva) — se salta el eje de patrones.';
+    delete from _mapa_patrones;
+  end if;
+end $$;
+
 -- ---------- verificación: cada nombre del mapa tiene que existir, o se aborta todo ----------
 do $$
 declare
@@ -176,6 +204,14 @@ do $$
 declare
   v_mal text;
 begin
+  -- Sin alguno de los tres vocabularios (base nueva) no se puede exigir tejido y patrón a nadie: no hay de dónde elegir.
+  if not exists (select 1 from retail.tallas where activo and estado = 'aprobado')
+     or not exists (select 1 from retail.tejidos where activo and estado = 'aprobado')
+     or not exists (select 1 from retail.patrones where activo and estado = 'aprobado') then
+    raise notice 'Mapa de categorías: falta vocabulario (base nueva) — no se comprueba que cada categoría exigente tenga opciones.';
+    return;
+  end if;
+
   select string_agg(c.nombre, ', ') into v_mal
     from retail.categorias c
       join retail.familias f on f.codigo = c.familia and f.exige_tejido_patron
