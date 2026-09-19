@@ -142,3 +142,20 @@ Queda pendiente: la pantalla (siguiente paso), aplicar la migración a
 producción (requiere el `set search_path to retail, public;` de `CLAUDE.md`
 y el ok de Felipe), y decidir algún día qué hacer con los correlativos
 `pendiente` huérfanos — de cualquier origen, no solo el de `anular_venta`.
+
+## Actualización 2026-09-18 — la anulación que corre en producción es más estricta que la de este ADR
+
+`20260916214500_anular_venta_sin_huecos` (aplicada a producción el 2026-09-16; subida al repo
+el 2026-09-18 como reconstrucción desde `pg_proc`) endureció esta decisión sin que el ADR lo
+registrara:
+
+- **Una venta anulada no admite cambio ni devolución.** `fn_linea_de_venta_no_anulada` y un
+  trigger `before insert` en `cambios` y en `devolucion_items`, con `for share` sobre la venta
+  contra el `for update` de `anular_venta`. Cierra el sentido contrario de la decisión 5 (no se
+  anula una venta que ya tiene cambio o devolución), y lo hace en la tabla, no en cada RPC.
+- **Cada línea se anula una sola vez** (`venta_anulacion_items_una_vez_por_linea`).
+  `anular_venta` exige cada línea una vez y revierte con la salida real de stock de esa línea.
+- **`cerrar_caja` no espera el efectivo de una venta anulada**: ya volvió a la clienta.
+
+Sobre «Queda pendiente» de arriba: la migración original ya está en producción. Sigue
+pendiente lo de los correlativos `pendiente` huérfanos.

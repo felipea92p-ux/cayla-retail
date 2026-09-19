@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918170000 — La talla "Único" pasa a llamarse "Única"
+-- 20260918175000 — La talla "Único" pasa a llamarse "Única"
 --
 -- POR QUÉ
 --   "Talla" es femenino: se dice "talla única", no "talla único". "Único"
@@ -26,9 +26,11 @@
 -- Idempotente: si ya se llama "Única", no hace nada.
 --
 -- NOTA DE NUMERACIÓN: nació como 20260918160000, pero ese número ya lo usaba
--- 20260918160000_etiquetas_descuento_y_categorias.sql (llegó de main) y dos
--- migraciones con la misma versión rompen `supabase start` (llave duplicada en
--- schema_migrations). Producción no se ve afectada: esta se pegó a mano en el
+-- 20260918160000_etiquetas_descuento_y_categorias.sql; se movió a 20260918170000
+-- y ahí chocó con 20260918170000_venta_aplica_descuento_de_campana.sql (la de la
+-- caja, ya en producción y citada en el ADR-0108, así que ella no se mueve).
+-- Dos migraciones con la misma versión rompen `supabase start` (llave duplicada
+-- en schema_migrations). Producción no se ve afectada: esta se pegó a mano en el
 -- SQL Editor y no quedó registrada con ninguna versión.
 -- ============================================================================
 

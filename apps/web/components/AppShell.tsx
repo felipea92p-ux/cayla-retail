@@ -361,11 +361,21 @@ function GrupoLateral({
 // adapte (Fase 2/3/4) — ofrecerlas antes sería un enlace que compila y
 // revienta contra un esquema que ya no existe. "Nueva venta" exige caja
 // abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
-function MenuNuevo({ onClose }: { onClose: () => void }) {
+//
+// ADR-0111: UNA sola puerta para recibir según quién eres. Compras es solo de líder (su layout devuelve al
+// Inicio a cualquier colaborador), así que el líder ve «Recibir mercadería» contra el comprobante del
+// proveedor y el colaborador —que no puede entrar a Compras— conserva su camino: «Ingreso sin
+// comprobante». Antes este menú mostraba a todos las entradas de Compras y, al colaborador, cada una lo
+// devolvía al Inicio: un enlace que no lleva a ningún lado.
+function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
-    { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
+    ...(esLider
+      ? [
+          { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
+          { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Contra el comprobante del proveedor" },
+        ]
+      : [{ href: "/inventario/recibir", etiqueta: "Ingreso sin comprobante", detalle: "Ingresar un lote a esta ubicación" }]),
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
@@ -496,7 +506,11 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
 // en 64rem sin recortar la prenda.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario"];
+// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
+// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
+// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
+// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/caja"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
   const pathname = usePathname();
@@ -850,7 +864,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
         </div>
       </nav>
 
-      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} />}
+      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} esLider={esLider} />}
     </div>
   );
 }
