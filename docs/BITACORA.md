@@ -8049,3 +8049,12 @@ Al refrescar el diccionario de datos apareció una función repetida en producci
 Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
 
 Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (la primera versión falló con «relation already exists» porque `compras_token_cliente_key` es allá un índice único y no una restricción; no dejó nada aplicado). Verificado después: `registrar_compra` con una sola firma de 15 parámetros que acepta `saldo_a_favor`, 0 funciones sobrecargadas en `retail`, y el volcado de funciones coincide con producción (156 firmas, mismo checksum).
+
+## 2026-09-18 (Candado de CI: números de ADR únicos)
+Cada sesión numera su ADR como «el siguiente» de su `main` y, con ramas paralelas, dos eligen el mismo número sin
+que nadie haga nada mal: `main` llegó a tener 0074, 0102 y 0105 repetidos (el 0102 se resolvió al renumerar el ADR de Caja, #162) y, en esa
+renumeración, el 0113 llegó a tener tres reclamantes. `scripts/adr/numeros.mjs` (paso «Números de ADR» del CI, y `pnpm adr:numeros`)
+sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen repetidos (0074 y 0105) se toleran en una lista
+(`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
+candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
+de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
