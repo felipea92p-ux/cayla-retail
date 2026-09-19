@@ -102,7 +102,7 @@ export function CambiosLista({
         <div className="space-y-6">
           {grupos.map((grupo) => (
             <div key={grupo.etiqueta}>
-              <p className="label-cayla mb-2.5 text-[11px] font-bold text-tinta/60">{grupo.etiqueta}</p>
+              <p className="label-cayla mb-2.5 text-[11px] text-tinta/60">{grupo.etiqueta}</p>
               <div className="space-y-2.5">
                 {grupo.lineas.map((l) => (
                   <TarjetaCambio
@@ -157,7 +157,7 @@ function TarjetaCambio({
   const fueraDePlazo = estado === "fuera_de_plazo";
 
   return (
-    <div className={`card-cayla p-4 transition-shadow ${!fueraDePlazo ? "alza-cayla" : ""}`}>
+    <div className={`card-cayla p-4 ${!fueraDePlazo ? "alza-cayla" : ""}`}>
       <div className="flex items-center gap-3.5">
         <span
           className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"

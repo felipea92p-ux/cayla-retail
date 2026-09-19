@@ -56,8 +56,10 @@ export async function POST(request: Request) {
   if (!FAMILIAS_COLOR.includes(familiaColor as (typeof FAMILIAS_COLOR)[number])) {
     return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
   }
-  if (hex && !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-    return Response.json({ error: "El color tiene que ser un hex válido (#RRGGBB)." }, { status: 400 });
+  // Un color nuevo sin hex se veía como el beige de relleno: obligarlo acá
+  // (y no solo en la pantalla) deja la puerta cerrada para cualquier otro cliente.
+  if (!hex || !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+    return Response.json({ error: "Elige el color (hex válido, #RRGGBB)." }, { status: 400 });
   }
 
   const supabase = await createClient();

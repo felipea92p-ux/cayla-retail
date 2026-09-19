@@ -7,6 +7,7 @@ import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { ConteoPanel } from "@/components/ConteoPanel";
+import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ConteosLista } from "@/components/ConteosLista";
 
 function soles(n: number) {
@@ -28,7 +29,7 @@ function soles(n: number) {
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes] = await Promise.all([
+  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosResumen(persona.ubicacionId),
     getCatalogo(),
@@ -37,6 +38,7 @@ export default async function ConteoPage() {
     getPrioridadConteo(persona.ubicacionId),
     supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
     getEjesPorCategoria(),
+    getCatalogoMarcas(),
   ]);
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }));
@@ -134,6 +136,7 @@ export default async function ConteoPage() {
           prioridad={prioridad}
           colores={coloresOpciones}
           tallasPorCategoria={ejes.tallas}
+          marcas={catalogoMarcas}
           catalogo={catalogo
             .filter((v) => v.activo)
             .map((v) => ({
@@ -191,7 +194,7 @@ function Tarjeta({
         // la misma página (#contar) — el <Link> de Next no siempre dispara
         // el scroll nativo del navegador para un href de solo-hash en la
         // misma ruta, y con <a> no hay ambigüedad posible.
-        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
           {accion.texto} →
         </a>
       )}
