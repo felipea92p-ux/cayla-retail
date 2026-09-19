@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, tolerar } from "@/lib/resultado";
 import { marcarPorVencer, type ProformaFila } from "@/lib/proformas-reglas";
+import { resumenProformas, type ResumenProformas } from "@/lib/facturacion-reglas";
 
 export type { EstadoProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
 export { marcarPorVencer } from "@/lib/proformas-reglas";
@@ -39,4 +40,14 @@ export async function getProformasMes(desde: string, hasta: string) {
   for (const p of vigentes) porId.set(p.id, p);
 
   return marcarPorVencer([...porId.values()]);
+}
+
+/** Las proformas vigentes de hoy, sin filtro de mes (son una cola de trabajo, no un
+ *  historial — ver `getProformasMes`), resumidas para el contador de la pestaña. `null` si
+ *  la consulta falla (`tolerar`: sin contador, nunca uno inventado). */
+export async function getResumenProformas(): Promise<ResumenProformas | null> {
+  const supabase = await createClient();
+  const res = await supabase.from("proformas").select(COLUMNAS_PROFORMA).eq("estado", "vigente");
+  const { datos } = tolerar(res, "las proformas vigentes");
+  return datos ? resumenProformas(datos as ProformaFila[]) : null;
 }
