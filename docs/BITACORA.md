@@ -191,6 +191,12 @@ Salieron 5 hallazgos que NO se arreglaron (cada uno queda como prueba `[HALLAZGO
 
 Lo que Felipe se lleva: una prueba que espera «la deuda vencida es 0» se rompe apenas alguien registra una factura; la que mide antes y después sobrevive al seed, a otras sesiones y a la hora del día. Y para probar una regla de reloj hay que poder cambiar el reloj: sin eso, el borde de las 7 pm solo se ve de noche.
 
+## 2026-09-18 (Compras: «Esperando nota» sale en las listas de Comprobantes y Por pagar — ADR-0111)
+
+Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito por lo cerrado; el detalle ya lo decía, pero en Por pagar el líder veía el saldo completo y podía pagar de más. Ahora las dos listas muestran junto al saldo un chip ámbar «Esperando nota S/ X» (y «Ya puedes registrarla» cuando el comprobante ya está al 100 %). Lo calcula una función de lectura nueva, `compras_nota_pendiente(uuid[])` (migración `20260918220000`), que NO toca `listar_compras` ni `compras_resumen`: cambiar el retorno de una función viva es lo que ya rompió producción (ADR-0009), una función nueva no puede.
+La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
+Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
+
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.

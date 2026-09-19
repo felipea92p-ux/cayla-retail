@@ -3783,6 +3783,15 @@ export type Database = {
           unidades_recibidas: number
         }[]
       }
+      compras_nota_pendiente: {
+        Args: { p_compra_ids: string[] }
+        Returns: {
+          compra_id: string
+          monto_esperado: number
+          resuelto: boolean
+          unidades_cerradas: number
+        }[]
+      }
       confirmar_traslado: {
         Args: { p_transferencia_id: string }
         Returns: {
