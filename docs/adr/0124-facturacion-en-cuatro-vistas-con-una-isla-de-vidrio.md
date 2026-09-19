@@ -1,9 +1,9 @@
-# ADR-0121 — Facturación en cuatro vistas, con una «isla» de vidrio
+# ADR-0124 — Facturación en cuatro vistas, con una «isla» de vidrio
 
 **Fecha:** 2026-09-18 · **Estado:** aceptado (Felipe aprobó el look entre maquetas interactivas y el spec completo el 2026-09-19); la construcción está pendiente
 **Alcance:** presentación y organización de `/vender/facturacion`. Ninguna regla de negocio, RPC ni tabla cambia.
 **Spec:** `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md`
-**Numeración:** nació como 0113 y se renumeró a 0121 el 2026-09-19: otras dos ramas (`claude/panel-calidad` y `claude/inventory-view-ux-analysis-ca30fa`) ya reclamaban el 0113, `main` tiene el 0114 y el 0116, hay ramas con 0117 a 0120, y el 0115 lo dejó libre la sesión de Caja para quien tenga que moverse. Ninguna rama usaba el 0121 ese día. Re-verificar antes de cualquier push.
+**Numeración:** nació como 0113 y se renumeró dos veces el 2026-09-19. Primero a 0121: otras dos ramas (`claude/panel-calidad` y `claude/inventory-view-ux-analysis-ca30fa`) ya reclamaban el 0113, `main` tiene el 0114 y el 0116, hay ramas con 0117 a 0120, y el 0115 lo dejó libre la sesión de Caja para quien tenga que moverse. Después a 0124: al sincronizar `main` para empezar la construcción apareció la rama local `claude/interface-recommendations-8ce365` (Cambios, Devoluciones y Atelier) con el 0121, el 0122 y el 0123, y ninguna rama ni worktree usaba el 0124 ni el 0125. Re-verificar antes de cualquier push.
 **Reabre parcialmente:** ADR-0011 (movimiento) y ADR-0012 (radios y sombras), solo dentro de Facturación.
 
 ## Contexto

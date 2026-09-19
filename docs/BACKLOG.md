@@ -28,11 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0121)
+## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0124)
 
 Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-09-19: `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md`. Plan: `docs/superpowers/plans/2026-09-19-facturacion-cuatro-vistas-r0-r1.md` (R0 y R1 al detalle; R2 a R4 se planean al cerrar R1, con Atelier a la vista). **Sin código todavía.** Atelier (ADR-0106) sigue sin estar en `main` (verificado el 2026-09-19): R2 espera.
 
 - [ ] **R0 — Preparación:** verificar contra producción (solo lectura) que `retail.ventas.estado` existe y la definición viva de `fn_ventas_del_dia` (¿excluye anuladas?); confirmar el estado de Atelier (ADR-0106) y de `panel-comercial` (ADR-0110).
+  - 2026-09-19: `main` fusionada (solo chocaron BACKLOG y BITÁCORA); el ADR pasó del 0121 al **0124** porque `claude/interface-recommendations-8ce365` (Cambios, Devoluciones y Atelier) ocupa del 0121 al 0123; Atelier no está en `main` ni en GitHub (solo en esa rama local, donde su ADR es el 0123); `panel-comercial` no está en `main` (PR #151 abierto, ADR-0110); línea base de la suite web: 916 pruebas en verde.
 - [ ] **R1 — Estructura** (sin depender de Atelier): layout + cuatro rutas + pestañas + cabecera + los dos modales extraídos + redirect de `/vender/descuentos` + `BotonCompacto`.
 - [ ] **R2 — Resumen** (cuando Atelier entre a `main`): tarjetas de vidrio, «Actividad de hoy» con el hilo del comprobante y *Transmitir* en la fila, comparativo «mismo día de la semana pasada, a esta hora».
 - [ ] **R3 — Comprobantes y Proformas:** «Monto facturado» = aceptados en producción, `vencida` derivada, franja de series que faltan (hoy: `nota_credito`), chips y botones compactos.
