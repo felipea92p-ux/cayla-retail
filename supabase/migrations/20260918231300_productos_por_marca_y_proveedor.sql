@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918210300 — Productos se filtra y se busca por marca y proveedor
+-- 20260918231300 — Productos se filtra y se busca por marca y proveedor
 --
 -- Felipe (2026-09-18): la marca tiene que verse y usarse en Productos ("filtro
 -- y tarjeta"), y poder buscarse. Tres funciones de lectura cambian:

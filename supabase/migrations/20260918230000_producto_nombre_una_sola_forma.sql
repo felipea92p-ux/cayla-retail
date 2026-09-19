@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918200000 — El nombre de un producto se escribe de UNA sola forma
+-- 20260918230000 — El nombre de un producto se escribe de UNA sola forma
 --
 -- EL PROBLEMA (verificado en producción, 2026-09-18)
 --   `productos.referencia` no tiene ningún candado: solo `codigo` es único.
@@ -40,7 +40,7 @@
 -- SE ROMPE SI
 --   * Dos prendas legítimas se llaman igual salvo una letra (Top Lily / Top
 --     Lili): el aviso bloquea, y por eso `crear_producto_con_variantes`
---     (20260918200100) trae la salida deliberada `p_confirmo_distinto`.
+--     (20260918230100) trae la salida deliberada `p_confirmo_distinto`.
 --   * Se agrega un cuarto camino de creación que inserte en `productos`
 --     sin pasar por el trigger: imposible, el trigger está en la tabla.
 --

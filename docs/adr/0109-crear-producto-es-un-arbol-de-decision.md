@@ -1,17 +1,17 @@
-# ADR-0109 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
+# ADR-0109 — Crear un producto es un árbol de decisión (familia → categoría → marca → atributos), y sus reglas viven en la base
 
 **Fecha:** 2026-09-18
-**Estado:** Pasos 1-4 construidos (mapa de datos, esquema, formulario nuevo, pantalla de éxito). Las
+**Estado:** Construido: mapa de datos, esquema, formulario nuevo, pantalla de éxito, y —segunda parte— marca y proveedor en todo el ciclo del producto. Las
 migraciones se probaron contra un Postgres 17 desechable con el esquema mínimo y el
 formulario en el navegador con datos y red simulados. **NO probados** con `db reset`
 (Docker caído ese día) ni contra la base real, y **NO aplicados en producción**: Felipe
-pega los 4 SQL. **El formulario no se puede desplegar antes que el SQL** (ver
+pega los 8 SQL. **El código no se puede desplegar antes que el SQL** (ver
 "Orden de despliegue").
 **Afecta:** `productos` (trigger + índice único nuevos), `categoria_tallas.habitual`,
 `familias.exige_tejido_patron`, `crear_producto_con_variantes`,
 `actualizar_categoria_ejes`, `censo_crear_variante`, función nueva
 `buscar_productos_parecidos`, `lib/error-escritura.ts`, tipos de `packages/database`.
-Migraciones `20260918200000`, `200100`, `200200` y `200300`; `NuevoProductoForm.tsx`,
+Migraciones `20260918230000`, `230100`, `230200` y `230300` (catálogo) y `231000`, `231100`, `231200` y `231300` (marca y proveedor); `NuevoProductoForm.tsx`,
 `components/alta-producto/*`, `lib/alta-producto*.ts`, `/productos/nuevo`.
 
 ## El problema
@@ -99,7 +99,7 @@ tejido o sin patrón (con frase clara), y un nombre repetido también; antes se 
 llama a `buscar_productos_parecidos` (no existe) y manda `p_confirmo_distinto` y
 `p_etiqueta_ids` a `crear_producto_con_variantes` (no los acepta). Si el código se
 despliega primero, "Nuevo producto" falla siempre. Por eso: **1) pegar los 4 SQL en orden
-(`200000` → `200100` → `200200` → `200300`), 2) recién ahí mergear/desplegar.** Al revés
+(`230000` → `230100` → `230200` → `230300`, y los de marca: `231000` → `231100` → `231200` → `231300`), 2) recién ahí mergear/desplegar.** Al revés
 no pasa nada: la pantalla vieja sigue funcionando contra el SQL nuevo (parámetros
 opcionales al final). Al cerrar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`
 deben terminar sin esas dos alarmas.
@@ -140,7 +140,7 @@ token distinto y con los datos copiados.
 - Dos prendas legítimas difieren en una sola letra (Top Lily / Top Lili): el aviso
   bloquea; por eso existe `p_confirmo_distinto`.
 - Alguien renombra una categoría, talla o tejido antes de correr el mapa
-  (`20260918200200`): el bloque de verificación aborta TODO en vez de cargar la mitad y
+  (`20260918230200`): el bloque de verificación aborta TODO en vez de cargar la mitad y
   dice qué nombre no encontró.
 - Se agrega un cuarto camino de creación: imposible saltarse el trigger, pero **no**
   el aviso de "una letra" (vive en la RPC). Si el camino nuevo no llama
@@ -168,3 +168,112 @@ payload exacto a la RPC, celular sin desborde horizontal.
 (solo contra el esquema mínimo), aviso de parecidos con `pg_trgm` de producción,
 sesión de Líder real, y accesibilidad con lector de pantalla (solo `aria-pressed`,
 `role=alert` y `inert`, sin probar con uno).
+
+
+---
+
+# Segunda parte — Marca y proveedor (2026-09-18)
+
+## El pedido
+
+Felipe notó que `productos` no dice de quién es la prenda ni quién la trae: sin eso no se
+puede filtrar por marca, ni buscar «adidas» en la caja, ni saber a quién pedirle lo que se
+acaba. Verificado en producción: `productos` tenía 13 columnas y ninguna de esas dos; hay
+un solo proveedor cargado y ninguno se llama «CAYLA SAC».
+
+## Lo que se decidió (Felipe, AskUserQuestion)
+
+| Tema | Decisión |
+|---|---|
+| Qué es la marca | Vocabulario cerrado, lo administra un Líder (sin proponer/aprobar, como Familias) |
+| Relación | «Primero debe existir el proveedor»: un proveedor tiene varias marcas. Una misma marca puede llegar por más de un proveedor (raro, pero pasa con accesorios y chompas importadas) |
+| Obligatoriedad | Marca **y** proveedor obligatorios, también en el censo |
+| Los 44 existentes | De prueba/demo: marca CAYLA, proveedor CAYLA SAC |
+| Proveedor nuevo desde el formulario | Solo nombre y RUC opcional; lo demás se completa en Compras |
+| Dónde se usa | Filtro y tarjeta en Productos, buscador de la caja, e «Inventario y reposición» — todo en esta rama |
+| `catalogo_crear_producto` | Se retira (sin permiso de ejecución), como último SQL |
+
+## DECIDÍ
+
+`marcas` (vocabulario global) + `marca_proveedores` (qué proveedores traen cada marca, N:N) y el
+producto guarda `marca_id` **y** `proveedor_id`, atados por **llave compuesta** a una pareja
+registrada: un proveedor que no trae esa marca es un estado que la base no deja guardar.
+Una sola regla (`fn_validar_marca_proveedor`) la usan el alta, el censo y la edición.
+
+## DESCARTÉ
+
+`marcas.proveedor_id` (una marca, un proveedor; duplicar la marca si llega por dos). Felipe
+preguntó cuál convenía y dijo que la otra «tiene sus virtudes»: es más simple y afecta pocas
+marcas. Se descartó por dos motivos de fondo: (1) **cambiar de proveedor pasaría a ser cambiar
+de marca** —una chompa Adidas que cambia de distribuidor «cambiaría de marca» aunque Adidas
+siga siendo Adidas—; (2) **la marca se fragmenta sin que la base lo impida**: un «Adidass» bajo
+el otro distribuidor nace como marca distinta, y solo una validación de pantalla lo frena. Con
+la marca única globalmente y el vínculo aparte, la base lo rechaza (`crear_marca` reutiliza la
+marca existente y solo le suma el proveedor).
+
+## SE ROMPE SI
+
+- Una marca deja de tener sentido sin proveedor (hoy CAYLA cuelga de «CAYLA SAC»).
+- Registrar el vínculo marca↔proveedor de cada compra nueva estorbara al catalogar: con 3
+  tiendas y un taller, poco probable; el formulario lo hace en un toque.
+- **El censo frena el conteo**: pedir marca y proveedor en cada alta al vuelo (300-900 prendas)
+  es fricción real. Se compensa recordando la última pareja de la tanda y sugiriendo las más
+  usadas de la categoría; si aun así estorba, la salida es permitir el alta «pendiente de marca»
+  y exigirla al aprobar (descartada por Felipe hoy).
+
+## Qué se construyó
+
+- **Base** (`231000`–`231300`): tablas y RLS; `productos.marca_id/proveedor_id` NOT NULL con llave
+  compuesta **y** llaves simples (para poder traer los nombres desde PostgREST); rellenado de
+  los existentes; `crear_marca`; tres RPC reescritas; `fn_productos`, `fn_productos_resumen` y
+  `fn_productos_buscar` (filtros, columnas de tarjeta y búsqueda por marca y proveedor).
+- **Nuevo producto**: bloque 2 «Marca y proveedor», antes del nombre.
+- **Selector** (`ElegirMarcaProveedor`): parejas más usadas en la categoría (un toque), una
+  caja que busca en marcas y proveedores a la vez, elección automática si hay un solo proveedor,
+  y «+ Nueva marca» / «+ Otro proveedor» sin salir (`NuevaMarcaForm`, compartido con la pantalla
+  de Marcas). Lo usan Nuevo producto, el censo y Editar.
+- **Editar**: marca y proveedor solo se envían si **cambiaron** (si no, un proveedor desactivado
+  más tarde impediría guardar hasta un cambio de precio); hereda las reglas de nombre y de familia.
+- **Catálogo → Marcas** (`/productos/marcas`): marcas con sus proveedores, sumar otro proveedor,
+  renombrar, desactivar (la base lo impide si hay productos activos).
+- **Productos**: filtros de marca y proveedor, marca en la tarjeta y en la fila, y «A quién
+  pedirle» (los productos por reponer agrupados por proveedor).
+- **Caja**: escribir la marca encuentra sus prendas. Solo suma un campo al texto buscable; no
+  toca precios, stock ni cobro.
+- **Categorías**: la curva habitual se marca y se ve.
+
+## Lo que se decidió sin preguntar (objétalo si no te gusta)
+
+- **Marcas no tiene fila propia en el menú lateral**: Felipe pidió «con 3 está bien» para
+  Catálogo. Se llega desde Categorías, desde el selector («Administrar marcas») y el grupo
+  Catálogo se abre al estar en ella.
+- **«Inventario y reposición»** se resolvió donde ya vive la señal de reposición: Productos
+  («Pedir a proveedor»), agrupada por proveedor. **Inventario → Existencias no filtra por
+  proveedor todavía**: pide cambiar `fn_stock_por_sede` y su pantalla; está en el backlog.
+- Etiquetas de campaña que ya rigen sobre la categoría se muestran «ya aplica por campaña» y no
+  se eligen a mano.
+
+## Orden de despliegue (ampliado)
+
+Los 8 SQL, en orden, y recién después el código: `230000` → `230100` → `230200` → `230300` →
+`231000` → `231100` → `231200` → `231300`. Los cuatro de marca dejan una ventana en la que
+Nuevo producto y el censo (los VIEJOS) fallan hasta que se despliegue el código nuevo:
+`231000` deja `marca_id` NOT NULL antes de que `231100` reescriba las RPC. **Pegar los cuatro
+seguidos y desplegar enseguida.** Las migraciones viven en `2309…` a propósito: la sesión de
+Compras reclamó toda la banda `20260918200000`–`20260918219999` (ADR-0111).
+
+## Cómo se verificó y qué NO
+
+Postgres 17 desechable: rellenado de los existentes, `NOT NULL`, llave compuesta (un insert
+directo con pareja inválida falla), `crear_marca` (reutiliza la marca, es idempotente, rechaza
+un proveedor inactivo), candado de desactivar, alta, censo (crear pide marca; reutilizar no),
+edición (sin marca no cambia; cambiar de proveedor dentro de la marca; pareja inválida;
+renombrar solo el formato; idéntico; una letra; tejido/patrón solo si está activo), y una **prueba
+de regresión de las tres funciones de listado sobre la copia exacta de producción**: 10 escenarios
+sin los filtros nuevos devuelven lo mismo que hoy. Pantallas en el navegador con red simulada:
+selector (sugerencias, búsqueda, marca con dos proveedores, crear marca y proveedor), edición,
+censo, Marcas y Nuevo producto.
+
+**No verificado:** `db reset` completo (Docker caído; `seed.sql` se adaptó a ciegas), RLS reales,
+las funciones contra la base real, sesión de Líder real, Productos con `fn_productos` real (solo
+contra el esquema mínimo), y lector de pantalla.

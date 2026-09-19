@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Parecido } from "@/components/alta-producto/AvisoParecidos";
 
 // El aviso en vivo de "¿ya existe algo así?" (buscar_productos_parecidos,
-// 20260918200000), compartido por Nuevo producto y Editar producto: UNA sola
+// 20260918230000), compartido por Nuevo producto y Editar producto: UNA sola
 // forma de comprobar un nombre (integridad conceptual), no dos copias.
 //
 // CONTRATO

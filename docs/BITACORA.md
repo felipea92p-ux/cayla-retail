@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Marca y proveedor: un producto ahora dice de quién es y quién lo trae — y una marca puede llegar por dos proveedores)
+
+`productos` no tenía marca ni proveedor, así que no se podía filtrar por marca, buscar «adidas» en la caja, ni saber a quién pedirle lo que se acaba. Se agregó `marcas` + `marca_proveedores` y el producto guarda las dos cosas, atadas por una llave compuesta: la base no deja guardar un proveedor que no trae esa marca. Felipe dijo que una marca «rara vez pero sí» llega por dos proveedores (accesorios, chompas importadas), y eso decidió el modelo: la alternativa simple (un proveedor por marca, duplicando) habría convertido «cambiar de proveedor» en «cambiar de marca» y dejaba escribir «Adidass» sin que la base se enterara.
+
+Tres cosas que no estaban en el pedido: (1) `catalogo_actualizar_producto` no validaba nada de lo construido antes (ni nombre al renombrar ni tejido/patrón), y ponía en `null` el tejido si no se lo mandaban — la edición ahora hereda las reglas; (2) hay que **desplegar el SQL antes que el código**, y entre `231000` y `231100` el alta vieja falla: los cuatro SQL de marca se pegan seguidos; (3) la sesión de Compras había reclamado toda la banda `2009…`–`2199…` de migraciones, así que las mías viven en `2309…`.
+
+Lo más delicado fue reescribir `fn_productos` y sus dos hermanas: se hizo sobre la copia exacta de producción y se probó que, sin los filtros nuevos, devuelven lo mismo que hoy en 10 escenarios. Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; Inventario → Existencias aún no filtra por proveedor.
+
 ## 2026-09-18 (Crear producto: el formulario no estaba roto, estaba desconectado — y la base dejaba duplicar nombres)
 
 "Sin tejidos habilitados" en toda categoría no era un bug de pantalla: en producción los 17 tejidos y 7 patrones existen pero ninguna de las 40 categorías los tenía asignados, y 15 categorías no tenían tallas. Se armó el mapa (categoría → tallas con su curva habitual, tejidos, patrones) y se probó contra un Postgres desechable. Aprendizaje: un vocabulario cargado no sirve hasta que se conecta a las categorías; el diagnóstico salió de preguntarle a la base, no de mirar el formulario.

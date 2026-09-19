@@ -83,7 +83,7 @@ const borradorVacio = (familias: FamiliaOpcion[]): Borrador => ({
   categoriaPadreId: null,
 });
 
-/** `tallaHabitualIds`: la curva habitual (20260918200100) — las tallas que vienen MARCADAS al crear un producto. Siempre un subconjunto de `tallaIds`. */
+/** `tallaHabitualIds`: la curva habitual (20260918230100) — las tallas que vienen MARCADAS al crear un producto. Siempre un subconjunto de `tallaIds`. */
 type EjesDraft = { tallaIds: string[]; tallaHabitualIds: string[]; tejidoIds: string[]; patronIds: string[] };
 const EJES_VACIO: EjesDraft = { tallaIds: [], tallaHabitualIds: [], tejidoIds: [], patronIds: [] };
 

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918210000 — Todo producto tiene marca y proveedor (el terreno)
+-- 20260918231000 — Todo producto tiene marca y proveedor (el terreno)
 --
 -- EL PROBLEMA (verificado en producción, 2026-09-18)
 --   `productos` tiene 13 columnas y ninguna dice de quién es la prenda ni quién
@@ -35,7 +35,7 @@
 -- tiendas y un taller, poco probable; el formulario lo hace en un toque).
 --
 -- ORDEN: esta migración deja `marca_id` y `proveedor_id` NOT NULL. Las RPC que
--- crean productos se actualizan en 20260918210100: pegar las tres seguidas.
+-- crean productos se actualizan en 20260918231100: pegar las tres seguidas.
 -- ============================================================================
 
 -- ---------- marcas: vocabulario global, un Líder la edita ----------

@@ -1,7 +1,7 @@
 -- ============================================================================
--- 20260918210100 — Alta y edición de productos exigen marca y proveedor
+-- 20260918231100 — Alta y edición de productos exigen marca y proveedor
 --
--- Sigue a 20260918210000 (que dejó marca_id/proveedor_id NOT NULL). Las tres
+-- Sigue a 20260918231000 (que dejó marca_id/proveedor_id NOT NULL). Las tres
 -- puertas por las que entra o se cambia un producto hablan ahora de marca y
 -- proveedor, con UNA sola regla ("el proveedor trae esa marca") en
 -- `fn_validar_marca_proveedor` — no tres copias que se desincronicen:
@@ -16,7 +16,7 @@
 --                                     familia (Felipe: "darle las mismas reglas").
 --
 -- LO QUE ESTA FUNCIÓN DE EDICIÓN NO VALIDABA NADA de lo construido en
--- 20260918200000-200300: ni el nombre al renombrar, ni tejido/patrón en
+-- 20260918230000-230300: ni el nombre al renombrar, ni tejido/patrón en
 -- Indumentaria. Se agrega, con dos matices deliberados:
 --   · el nombre solo se compara si cambia de VERDAD (otra clave): pasar de
 --     "blusa aurora" a "Blusa Aurora" no es un nombre nuevo;

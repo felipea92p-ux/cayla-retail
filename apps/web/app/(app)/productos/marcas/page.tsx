@@ -4,7 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { MarcasLista, type MarcaFila } from "@/components/MarcasLista";
 
-// Marcas del catálogo y qué proveedores las traen (ADR-0109, 20260918210000).
+// Marcas del catálogo y qué proveedores las traen (ADR-0109, 20260918231000).
 // Sin proponer/aprobar, como Familias y Categorías: quien cataloga elige entre
 // las que existen, y solo un Líder las agrega, renombra o desactiva. Una marca
 // puede llegar por más de un proveedor (raro, pero pasa con accesorios y

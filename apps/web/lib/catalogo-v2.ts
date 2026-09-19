@@ -89,7 +89,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
 export type FiltrosProductos = {
   busqueda?: string;
   categoriaId?: string;
-  /** De qué marca y/o qué proveedor lo trae (20260918210300). Los dos se pueden combinar: la base solo deja parejas válidas. */
+  /** De qué marca y/o qué proveedor lo trae (20260918231300). Los dos se pueden combinar: la base solo deja parejas válidas. */
   marcaId?: string;
   proveedorId?: string;
   colorCodigo?: string;
@@ -156,7 +156,7 @@ export type ProductoListado = {
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
-  /** De quién es y quién lo trae (20260918210000). */
+  /** De quién es y quién lo trae (20260918231000). */
   marca: string;
   proveedor: string;
   estado: string;
@@ -366,7 +366,7 @@ export type ProductoDetalle = {
   tejido: string | null;
   patronId: string | null;
   patron: string | null;
-  /** De quién es y quién lo trae (20260918210000): obligatorios, siempre una pareja registrada. */
+  /** De quién es y quién lo trae (20260918231000): obligatorios, siempre una pareja registrada. */
   marcaId: string;
   marcaNombre: string;
   proveedorId: string;
@@ -448,7 +448,7 @@ export type ValorVocabulario = { id: string; texto: string };
 export type EjesPorCategoria = {
   tallas: Record<string, ValorVocabulario[]>;
   /** Ids de talla que vienen MARCADAS al elegir la categoría (la curva habitual,
-   *  `categoria_tallas.habitual`, 20260918200100). Siempre un subconjunto de `tallas`. */
+   *  `categoria_tallas.habitual`, 20260918230100). Siempre un subconjunto de `tallas`. */
   habituales: Record<string, string[]>;
   tejidos: Record<string, ValorVocabulario[]>;
   patrones: Record<string, ValorVocabulario[]>;

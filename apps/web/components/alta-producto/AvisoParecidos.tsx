@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AvisoInline } from "@/components/alta-producto/piezas";
 
 // El aviso en vivo de "¿ya existe algo así?" (buscar_productos_parecidos,
-// 20260918200000). Tres niveles con tres consecuencias distintas — y la
+// 20260918230000). Tres niveles con tres consecuencias distintas — y la
 // consecuencia se ve, no solo se lee:
 //   identico  → bloquea. No hay salida: un nombre identifica a un solo producto.
 //   una_letra → bloquea SALVO que la Líder confirme que es otro ("Top Lily" /

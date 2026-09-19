@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918200200 — Qué talla, tejido y patrón ofrece cada categoría (el mapa)
+-- 20260918230200 — Qué talla, tejido y patrón ofrece cada categoría (el mapa)
 --
 -- EL PROBLEMA (verificado en producción, 2026-09-18)
 --   El vocabulario existe —25 tallas, 17 tejidos, 7 patrones, todos

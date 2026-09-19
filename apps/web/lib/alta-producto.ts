@@ -200,7 +200,7 @@ export type ErrorAlta =
   | { tipo: "nombre_casi_igual"; existenteId: string | null; mensaje: string }
   | { tipo: "otro" };
 
-/** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918200100). Cualquier otro error va por `traducirError`. */
+/** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */
 export function leerErrorAlta(error: { message: string; hint?: string | null; details?: string | null } | null): ErrorAlta {
   if (!error) return { tipo: "otro" };
   if (error.hint === "nombre_duplicado" || error.hint === "nombre_casi_igual") {

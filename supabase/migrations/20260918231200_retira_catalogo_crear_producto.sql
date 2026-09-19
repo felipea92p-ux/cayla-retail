@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918210200 — `catalogo_crear_producto` deja de ser un camino de alta
+-- 20260918231200 — `catalogo_crear_producto` deja de ser un camino de alta
 --
 -- Era el cuarto camino que creaba productos (junto con crear_producto_con_
 -- variantes, censo_crear_variante y la vieja pantalla de alta). Felipe
@@ -18,4 +18,4 @@
 revoke execute on function retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid) from public, anon, authenticated;
 
 comment on function retail.catalogo_crear_producto(text, jsonb, uuid, text, integer, text, boolean, jsonb, uuid, uuid) is
-  'RETIRADA (20260918210200): ya no se ejecuta. Un producto nuevo entra solo por crear_producto_con_variantes o censo_crear_variante, ambas con marca y proveedor obligatorios.';
+  'RETIRADA (20260918231200): ya no se ejecuta. Un producto nuevo entra solo por crear_producto_con_variantes o censo_crear_variante, ambas con marca y proveedor obligatorios.';

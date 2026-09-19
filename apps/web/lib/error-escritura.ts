@@ -54,7 +54,7 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
-    // 20260918200000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
+    // 20260918230000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
     // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
     marca: "productos_referencia_clave_unica",
     frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",

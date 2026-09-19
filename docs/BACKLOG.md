@@ -131,13 +131,28 @@ diferencia.
 Diagnóstico y decisiones en el ADR. Estado: pasos 1-2 escritos y probados en un Postgres desechable; **nada
 aplicado en producción**.
 
-- [ ] **Felipe pega en producción, EN ORDEN, los 4 SQL** (ya traen el prefijo `retail.`, se pegan tal cual):
-      `20260918200000_producto_nombre_una_sola_forma.sql` → `20260918200100_producto_arbol_curva_y_exigencias.sql`
-      → `20260918200200_categoria_atributos_mapa.sql` → `20260918200300_crear_producto_con_etiquetas.sql`.
-      **NO desplegar el formulario nuevo antes:** `pnpm datos:comparar` lo marca roto (llama a una función que
-      producción no tiene). El SQL sí puede ir antes: la pantalla vieja sigue funcionando. Después:
-      `pnpm datos:generar:produccion` y `pnpm datos:comparar` (deben desaparecer `buscar_productos_parecidos` y
-      `crear_producto_con_variantes`; `emitir_comprobante p_token` es de otra sesión).
+- [ ] **Felipe pega en producción, EN ORDEN, los 8 SQL** (ya traen el prefijo `retail.`, se pegan tal cual), **y recién
+      después se despliega el código**:
+      catálogo — `20260918230000_producto_nombre_una_sola_forma` → `230100_producto_arbol_curva_y_exigencias` →
+      `230200_categoria_atributos_mapa` → `230300_crear_producto_con_etiquetas`;
+      marca y proveedor — `231000_marcas_y_proveedor_en_productos` → `231100_alta_y_edicion_exigen_marca_y_proveedor` →
+      `231200_retira_catalogo_crear_producto` → `231300_productos_por_marca_y_proveedor`.
+      **Los cuatro de marca, seguidos y desplegando enseguida:** `231000` deja `marca_id` NOT NULL y hasta `231100` el
+      alta y el censo VIEJOS fallan. **NO desplegar antes del SQL:** `pnpm datos:comparar` marca rotas las pantallas
+      que llaman a `buscar_productos_parecidos`, `crear_marca` y a las firmas nuevas. Vivien en `2309…` a propósito:
+      Compras reclamó la banda `20260918200000`–`20260918219999` (ADR-0111). Después: `pnpm datos:generar:produccion`
+      y `pnpm datos:comparar` (deben desaparecer esas alarmas; `emitir_comprobante p_token` es de otra sesión).
+- [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
+      marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
+      Ojo: `supabase/seed.sql` se adaptó a ciegas (las 10 inserciones de productos ahora llevan marca y proveedor de
+      CAYLA); confirmar con `db reset` cuando Docker vuelva.
+- [ ] **Inventario → Existencias no filtra por proveedor todavía.** «A quién pedirle» vive en Productos (donde está la
+      señal «Pedir a proveedor»). Filtrar Existencias por proveedor pide cambiar `fn_stock_por_sede` y su pantalla.
+- [ ] **Compras no valida que el proveedor de una compra traiga la marca de lo que se compra.** Hoy `compras.proveedor_id`
+      y `productos.proveedor_id` son datos independientes (el proveedor REAL de cada entrega vive en compras/lotes; el del
+      producto es «a quién se le pide»). Decidir si un desvío debe avisar.
+- [ ] **Marcas sin fila propia en el menú** (Felipe: «con 3 está bien»): se llega desde Categorías y desde el selector.
+      Si molesta, es una fila en `AppShell.tsx` (`RUTAS_POR_GRUPO` ya la contempla).
 - [ ] **Verificar con `db reset` local** cuando Docker vuelva (hoy se probó contra un Postgres 17 suelto con el
       esquema mínimo, sin RLS ni el resto de la historia de migraciones).
 - [x] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx` + `components/alta-producto/*`): árbol familia →

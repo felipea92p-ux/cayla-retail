@@ -1,27 +1,126 @@
 -- ============================================================================
--- 20260918200300 — Crear producto con etiquetas, todo o nada
+-- 20260918230100 — Árbol de creación de producto: curva habitual y exigencias
 --
--- El formulario nuevo (ADR-0109) tiene un bloque opcional de etiquetas de
--- catálogo al final. Hoy las etiquetas se aplican por variante en una llamada
--- aparte (`actualizar_variantes_etiquetas`): si el alta sale bien y esa
--- segunda llamada falla, queda un producto creado SIN sus etiquetas y quien lo
--- creó no se entera hasta que busca "Nueva colección" y no aparece.
+-- Tres piezas que el formulario nuevo necesita y que tienen que vivir en la
+-- base, no en la pantalla (principio 2: si la base deja un estado imposible,
+-- el diseño está mal):
 --
--- DECIDÍ: `crear_producto_con_variantes` recibe `p_etiqueta_ids` y las aplica
--- a todas las variantes en la misma transacción. Las etiquetas por variante
--- distinta siguen siendo cosa de `actualizar_variantes_etiquetas` desde el
--- detalle del producto.
--- DESCARTÉ: dos llamadas desde el navegador (alta + etiquetas): no hay
--- forma de hacerlas atómicas desde el cliente.
--- SE ROMPE SI alguien manda una etiqueta que fue desactivada o rechazada entre
--- que abrió el formulario y lo guardó: falla con frase clara y no crea nada.
+--   1. `categoria_tallas.habitual` — qué tallas vienen MARCADAS al elegir la
+--      categoría (la curva normal: Jeans 28-30-32 de las 26-34 posibles). No
+--      es un ajuste de pantalla: es la decisión de Felipe de cómo compra y
+--      fabrica Cayla, y tiene que ser la misma en Nuevo producto, en el censo
+--      y en la orden de producción.
+--   2. `familias.exige_tejido_patron` — en Indumentaria tejido y patrón son
+--      obligatorios (una blusa sin tejido no se guarda). Columna y no un
+--      `if familia = 'indumentaria'` en el código: mañana Calzado puede exigir
+--      material sin tocar una línea de TypeScript.
+--   3. `crear_producto_con_variantes` — la RPC hace cumplir (1 y 2) y el
+--      candado de nombre de 20260918230000, con frase humana y `hint` estable
+--      para que la pantalla sepa QUÉ mostrar (bloqueo, o "sí, es otro").
 --
--- Mismo patrón que 20260918200100: se borra la firma de 8 argumentos antes de
--- crear la de 9 (dos sobrecargas ya rompieron producción dos veces). Las
--- llamadas de 7 u 8 argumentos siguen resolviendo contra la nueva.
+-- Y una corrección que no estaba en el pedido y pesa más que las tres:
+-- `actualizar_categoria_ejes` BORRA y reinserta todas las tallas de la
+-- categoría en cada guardado. Sin tocarla, cada vez que un Líder editara una
+-- categoría se perdería la curva habitual en silencio. Ahora conserva la
+-- curva si quien llama no manda una nueva.
+--
+-- DESCARTÉ guardar la curva en una tabla aparte (`categoria_curva`): otra
+-- tabla para una sola marca booleana sobre una fila que ya existe; la curva
+-- es siempre un SUBCONJUNTO de las tallas de la categoría y una columna lo
+-- garantiza sin FK extra.
+--
+-- SE ROMPE SI un Líder marca como habitual una talla que la categoría ya no
+-- ofrece: `actualizar_categoria_ejes` lo rechaza (la habitual debe estar
+-- dentro de las tallas enviadas).
 -- ============================================================================
 
-drop function if exists retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean);
+alter table retail.categoria_tallas add column if not exists habitual boolean not null default false;
+comment on column retail.categoria_tallas.habitual is
+  'true = viene marcada de antemano al crear un producto de esta categoría (la curva normal). Siempre un subconjunto de las tallas que la categoría ofrece.';
+
+alter table retail.familias add column if not exists exige_tejido_patron boolean not null default false;
+comment on column retail.familias.exige_tejido_patron is
+  'true = crear un producto de esta familia exige elegir tejido y patrón (Indumentaria). Lo hace cumplir crear_producto_con_variantes.';
+
+update retail.familias set exige_tejido_patron = true where codigo = 'indumentaria';
+
+-- ---------- actualizar_categoria_ejes: conserva la curva habitual ----------
+-- p_talla_habitual_ids = null  -> se conserva lo que ya estaba marcado (quien
+--   llama con los 4 argumentos de antes no pierde nada).
+-- p_talla_habitual_ids = array -> esa es la curva nueva; debe estar dentro de
+--   p_talla_ids.
+drop function if exists retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[]);
+
+create or replace function retail.actualizar_categoria_ejes(
+  p_categoria_id uuid,
+  p_talla_ids uuid[],
+  p_tejido_ids uuid[],
+  p_patron_ids uuid[],
+  p_talla_habitual_ids uuid[] default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public
+as $$
+declare
+  v_habituales_previas uuid[];
+begin
+  if not retail.fn_es_lider() then
+    raise exception 'Solo un Líder puede editar qué tallas/tejidos/patrones ofrece una categoría.';
+  end if;
+
+  if not exists (select 1 from retail.categorias where id = p_categoria_id) then
+    raise exception 'Esa categoría ya no existe. Recarga la pantalla.';
+  end if;
+
+  if p_talla_habitual_ids is not null and exists (
+    select 1 from unnest(p_talla_habitual_ids) h
+    where h <> all (coalesce(p_talla_ids, '{}'::uuid[]))
+  ) then
+    raise exception 'Una talla marcada como habitual no está entre las tallas de la categoría.';
+  end if;
+
+  select coalesce(array_agg(talla_id), '{}'::uuid[]) into v_habituales_previas
+    from retail.categoria_tallas where categoria_id = p_categoria_id and habitual;
+
+  delete from retail.categoria_tallas where categoria_id = p_categoria_id;
+  if p_talla_ids is not null and array_length(p_talla_ids, 1) > 0 then
+    insert into retail.categoria_tallas (categoria_id, talla_id, habitual)
+      select p_categoria_id, t,
+             t = any (coalesce(p_talla_habitual_ids, v_habituales_previas))
+      from (select distinct unnest(p_talla_ids) as t) x;
+  end if;
+
+  delete from retail.categoria_tejidos where categoria_id = p_categoria_id;
+  if p_tejido_ids is not null and array_length(p_tejido_ids, 1) > 0 then
+    insert into retail.categoria_tejidos (categoria_id, tejido_id)
+      select distinct p_categoria_id, t from unnest(p_tejido_ids) as t;
+  end if;
+
+  delete from retail.categoria_patrones where categoria_id = p_categoria_id;
+  if p_patron_ids is not null and array_length(p_patron_ids, 1) > 0 then
+    insert into retail.categoria_patrones (categoria_id, patron_id)
+      select distinct p_categoria_id, t from unnest(p_patron_ids) as t;
+  end if;
+end;
+$$;
+
+revoke execute on function retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[], uuid[]) from public;
+grant execute on function retail.actualizar_categoria_ejes(uuid, uuid[], uuid[], uuid[], uuid[]) to authenticated;
+
+-- ---------- crear_producto_con_variantes: nombre único + exigencias de familia ----------
+-- Se BORRA la firma vieja antes de crear la nueva: dos sobrecargas con
+-- parámetros opcionales distintos ya rompieron producción dos veces en este
+-- repo (resolver_prenda_danada, aprobar_devolucion — ver SESIONES-ACTIVAS).
+--
+-- `p_confirmo_distinto`: la salida deliberada del Líder cuando el nombre
+-- difiere en UNA letra de otro producto ("Top Lily" / "Top Lili"). El
+-- IDÉNTICO nunca se salta. Errores con `hint` estable:
+--   nombre_duplicado    — idéntico a uno existente (detail = id del existente)
+--   nombre_casi_igual   — una letra de diferencia (detail = id del existente)
+--   tejido_obligatorio / patron_obligatorio / categoria_sin_tejidos / categoria_sin_patrones
+drop function if exists retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid);
 
 create or replace function retail.crear_producto_con_variantes(
   p_referencia text,
@@ -31,8 +130,7 @@ create or replace function retail.crear_producto_con_variantes(
   p_token uuid default null,
   p_tejido_id uuid default null,
   p_patron_id uuid default null,
-  p_confirmo_distinto boolean default false,
-  p_etiqueta_ids uuid[] default null
+  p_confirmo_distinto boolean default false
 )
 returns uuid
 language plpgsql
@@ -54,7 +152,6 @@ declare
   v_par_id uuid;
   v_par_ref text;
   v_par_nivel text;
-  v_etiquetas uuid[];
 begin
   if not fn_es_lider() then
     raise exception 'Solo un líder puede dar de alta un producto nuevo';
@@ -136,19 +233,6 @@ begin
     end if;
   end if;
 
-  -- Etiquetas de catálogo (opcionales): se aplican a TODAS las variantes del
-  -- producto nuevo, dentro de esta misma transacción. Sin esto, aplicarlas en
-  -- una segunda llamada dejaría, si esa falla, un producto sin sus etiquetas
-  -- y sin aviso. Solo etiquetas aprobadas y activas: una propuesta pendiente
-  -- todavía no es vocabulario.
-  select coalesce(array_agg(distinct e), '{}'::uuid[]) into v_etiquetas from unnest(coalesce(p_etiqueta_ids, '{}'::uuid[])) e;
-  if exists (
-    select 1 from unnest(v_etiquetas) e
-    where not exists (select 1 from etiquetas x where x.id = e and x.activo and x.estado = 'aprobado')
-  ) then
-    raise exception 'Una de las etiquetas elegidas ya no está disponible en el catálogo. Recarga la pantalla.';
-  end if;
-
   for v_item in select * from jsonb_array_elements(p_variantes) loop
     v_talla_id := nullif(v_item ->> 'talla_id', '')::uuid;
     v_color := nullif(trim(v_item ->> 'color_codigo'), '');
@@ -195,13 +279,8 @@ begin
     coalesce((item ->> 'costo')::numeric, 0)
   from jsonb_array_elements(p_variantes) as item;
 
-  if array_length(v_etiquetas, 1) > 0 then
-    insert into variante_etiquetas (variante_id, etiqueta_id)
-      select v.id, e from variantes v cross join unnest(v_etiquetas) e where v.producto_id = v_producto_id;
-  end if;
-
   return v_producto_id;
 end;
 $$;
 
-grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[]) to authenticated;
+grant execute on function retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean) to authenticated;
