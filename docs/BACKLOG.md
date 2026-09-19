@@ -28,6 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0113)
+
+Rama `claude/billing-design-analysis-ee464b`. Spec: `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md` (look, estructura y secuencia aprobados; pendiente la revisión escrita de Felipe). **Sin código todavía.**
+
+- [ ] **R0 — Preparación:** verificar contra producción (solo lectura) que `retail.ventas.estado` existe y la definición viva de `fn_ventas_del_dia` (¿excluye anuladas?); confirmar el estado de Atelier (ADR-0106) y de `panel-comercial` (ADR-0110).
+- [ ] **R1 — Estructura** (sin depender de Atelier): layout + cuatro rutas + pestañas + cabecera + los dos modales extraídos + redirect de `/vender/descuentos` + `BotonCompacto`.
+- [ ] **R2 — Resumen** (cuando Atelier entre a `main`): tarjetas de vidrio, «Actividad de hoy» con el hilo del comprobante y *Transmitir* en la fila, comparativo «mismo día de la semana pasada, a esta hora».
+- [ ] **R3 — Comprobantes y Proformas:** «Monto facturado» = aceptados en producción, `vencida` derivada, franja de series que faltan (hoy: `nota_credito`), chips y botones compactos.
+- [ ] **R4 — Códigos y cierre:** pestaña, responsive/accesibilidad/movimiento reducido, ARQUITECTURA (rutas nuevas y la línea vencida de Nubefact), BITÁCORA.
+
+Fuera de esta entrega, anotado: emitir desde la fila de una venta sin comprobante (pospuesto el 16-sep); columna «Productos» en proformas; contador de pendientes en el menú lateral; «en vivo» por polling; búsqueda de comprobantes sin límite de mes; consultar el estado de un comprobante `enviado` (no existe camino; integración con Lucode, confirmar antes); si producción incluye ventas anuladas en `fn_ventas_del_dia`, migración con OK de Felipe.
+
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,

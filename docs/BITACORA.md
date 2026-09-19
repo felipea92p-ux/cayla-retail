@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Facturación: ocho maquetas hasta que quedó; spec y ADR-0113 escritos, sin código)
+
+Felipe pidió analizar Facturación con un boceto suyo y hacerla más futurista y animada. No se tocó la app: se armaron ocho maquetas interactivas hasta que aprobó una (fondo plano, tarjetas de vidrio con un borde de 3 px y un color de estado que se difumina, pestañas de vidrio con píldora negra, botones compactos y «el hilo del comprobante», que muestra hasta dónde llegó cada venta hacia SUNAT). Quedaron el spec (`docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md`) y el ADR-0113; el código empieza por la estructura (cuatro vistas por ruta) y el Resumen espera a que «Atelier», la dirección de Cambios y Devoluciones, entre a `main`.
+
+Lo que Felipe se lleva: (1) medir la maqueta en el navegador sacó a la luz un error de CSS propio (`button{font:inherit}` pisaba el tamaño de los botones y salían a 15 px en versalitas) que ninguna lectura del código habría mostrado; (2) «vs. ayer» miente en una tienda —compara medio día con un día entero y un lunes con un domingo— y el comparativo honesto es «el mismo día de la semana pasada, hasta esta hora»; (3) ya hay tres cifras distintas de «lo vendido» en el repo (pagos, ítems y la RPC de Caja) y `panel-comercial` decidió que la suma viva en SQL: esta pantalla usará esa definición y cambiará de fuente cuando esa migración esté en producción.
+
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
