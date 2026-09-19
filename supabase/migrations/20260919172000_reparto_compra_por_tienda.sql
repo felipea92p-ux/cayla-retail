@@ -360,69 +360,32 @@ create or replace view compras_resumen with (security_invoker = true) as
    FROM retail.compras c
      JOIN retail.proveedores p ON p.id = c.proveedor_id;
 
--- ==================== 7. registrar_compra: cada línea puede traer su reparto ====================
--- Misma firma de 15 parámetros (una web vieja sigue funcionando). `p_ubicacion_destino_id` pasa a
--- significar «a qué tienda va lo que no traiga su propio reparto»; la cabecera ya no se escribe.
-create or replace function registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text DEFAULT 'factura'::text, p_fecha_emision date DEFAULT CURRENT_DATE, p_fecha_vencimiento date DEFAULT NULL::date, p_igv_porcentaje numeric DEFAULT 18, p_pago jsonb DEFAULT NULL::jsonb, p_nota text DEFAULT NULL::text, p_total numeric DEFAULT NULL::numeric, p_token uuid DEFAULT NULL::uuid, p_fecha_estimada_llegada date DEFAULT NULL::date)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'retail', 'public', 'extensions'
-AS $function$
+-- ==================== 7. registrar_compra: cada línea puede traer su reparto (parche sobre la definición viva) ====================
+-- Misma firma de 15 parámetros (una web vieja sigue funcionando). `p_ubicacion_destino_id` pasa a significar
+-- «a qué tienda va lo que no traiga su propio reparto»; la cabecera ya no se escribe.
+-- Es un PARCHE (no una copia del cuerpo): otra sesión endurece los pagos de esta misma función (ADR-0135) y en
+-- producción se pega a mano en cualquier orden; copiarla entera pisaría lo del otro. Cada ancla se verifica.
+do $do$
 declare
-  v_compra_id uuid; v_persona uuid; v_item jsonb;
-  v_subtotal numeric(12, 2) := 0; v_igv numeric(12, 2); v_total numeric(12, 2);
-  v_producto uuid; v_variante uuid;
-  v_tolerancia numeric(12, 2);
-  v_pago_id uuid;
-  v_pagos jsonb; v_pago jsonb; v_monto numeric(12, 2); v_pago_suma numeric(12, 2) := 0; v_pago_fecha date;
-  v_existente compras%rowtype;
-  v_constraint text;
+  v_oid oid := to_regprocedure('retail.registrar_compra(uuid,text,text,text,uuid,jsonb,text,date,date,numeric,jsonb,text,numeric,uuid,date)');
+  v_def text;
+  v_nuevo text;
+  v_n integer;
+  v_declaraciones text;
+  v_validacion text;
+  v_reparto text;
+begin
+  v_def := pg_get_functiondef(v_oid);
+  if v_def like '%compra_item_destinos%' then return; end if;  -- ya parchada: re-pegable
+
+  v_declaraciones := $b$v_constraint text;
   -- reparto por tienda (ADR-0132)
   v_n integer := 0; v_n2 integer := 0; v_item_id uuid;
   v_destinos jsonb; v_dest jsonb; v_suma_dest integer; v_vistos uuid[];
-  v_repartos jsonb[] := '{}';
-begin
-  if not fn_puede_registrar_compras() then
-    raise exception 'No tienes permiso para registrar compras';
-  end if;
-  if p_items is null or jsonb_array_length(p_items) = 0 then
-    raise exception 'Una factura necesita al menos una línea';
-  end if;
-  if p_condicion not in ('contado', 'credito') then
-    raise exception 'La condición debe ser contado o credito';
-  end if;
-  if p_condicion = 'credito' and p_fecha_vencimiento is null then
-    raise exception 'Una compra al crédito necesita fecha de vencimiento';
-  end if;
-  if p_condicion = 'contado' and p_pago is null then
-    raise exception 'Una compra al contado se registra con su pago';
-  end if;
+  v_repartos jsonb[] := '{}';$b$;
 
-  -- Reintento honesto: el primer envío sí llegó, solo se cortó la respuesta.
-  -- Se devuelve la compra que ya existe sin volver a escribir nada.
-  if p_token is not null then
-    select * into v_existente from compras where token_cliente = p_token;
-    if found then return v_existente.id; end if;
-  end if;
-
-  for v_item in select * from jsonb_array_elements(p_items) loop
+  v_validacion := $b$-- Reparto por tienda (ADR-0132): sin `destinos`, la línea va entera a `p_ubicacion_destino_id`.
     v_n := v_n + 1;
-    v_producto := (v_item ->> 'producto_id')::uuid;
-    v_variante := (v_item ->> 'variante_id')::uuid;
-    if v_producto is null then
-      raise exception 'Cada línea necesita producto_id';
-    end if;
-    if v_variante is not null and not exists (
-      select 1 from variantes where id = v_variante and producto_id = v_producto
-    ) then
-      raise exception 'La variante % no pertenece al producto %', v_variante, v_producto;
-    end if;
-    if coalesce((v_item ->> 'cantidad')::integer, 0) <= 0 then
-      raise exception 'Cada línea necesita cantidad mayor a cero';
-    end if;
-
-    -- Reparto por tienda (ADR-0132): sin `destinos`, la línea va entera a `p_ubicacion_destino_id`.
     v_destinos := case
       when jsonb_typeof(v_item -> 'destinos') = 'array' and jsonb_array_length(v_item -> 'destinos') > 0
         then v_item -> 'destinos'
@@ -452,115 +415,60 @@ begin
       raise exception 'La línea % trae % unidades pero el reparto entre tiendas suma %: tiene que sumar lo facturado', v_n, (v_item ->> 'cantidad')::integer, v_suma_dest;
     end if;
     v_repartos := array_append(v_repartos, v_destinos);
+    $b$;
 
-    v_subtotal := v_subtotal + (v_item ->> 'cantidad')::integer * (v_item ->> 'costo_unitario')::numeric;
-  end loop;
-
-  v_igv := round(v_subtotal * coalesce(p_igv_porcentaje, 0) / 100, 2);
-  v_total := v_subtotal + v_igv;
-
-  if p_total is not null then
-    if p_total < 0 then
-      raise exception 'El total no puede ser negativo';
-    end if;
-    if coalesce(p_igv_porcentaje, 0) = 0 and p_total <> v_subtotal then
-      raise exception 'Sin IGV el total tiene que ser igual a la suma de las líneas (S/ %), llegó S/ %', v_subtotal, p_total;
-    end if;
-    v_tolerancia := 0.01 * (jsonb_array_length(p_items) + 1);
-    if abs(p_total - v_total) > v_tolerancia then
-      raise exception 'El total del documento (S/ %) no cuadra con sus líneas (S/ %): revisa los costos', p_total, v_total;
-    end if;
-    v_total := p_total;
-    v_igv := p_total - v_subtotal;
-  end if;
-
-  if p_pago is not null then
-    if jsonb_typeof(p_pago) = 'object' then
-      v_pagos := jsonb_build_array(p_pago);
-    elsif jsonb_typeof(p_pago) = 'array' and jsonb_array_length(p_pago) > 0 then
-      v_pagos := p_pago;
-    else
-      raise exception 'El pago necesita al menos un medio con su monto';
-    end if;
-    v_pago_fecha := coalesce((v_pagos -> 0 ->> 'fecha')::date, fn_hoy_lima());
-    for v_pago in select * from jsonb_array_elements(v_pagos) loop
-      v_monto := (v_pago ->> 'monto')::numeric;
-      if v_monto is null or v_monto <= 0 then
-        raise exception 'Cada medio de pago necesita un monto mayor a cero';
-      end if;
-      if coalesce(v_pago ->> 'metodo', '') not in ('transferencia', 'yape', 'plin', 'efectivo', 'deposito', 'otro', 'saldo_a_favor') then
-        raise exception 'Medio de pago no reconocido: %', coalesce(v_pago ->> 'metodo', '(vacío)');
-      end if;
-      v_pago_suma := v_pago_suma + v_monto;
-    end loop;
-    if p_condicion = 'contado' and v_pago_suma <> v_total then
-      raise exception 'Al contado el pago debe ser el total de la factura (S/ %), se recibió S/ %', v_total, v_pago_suma;
-    end if;
-    if v_pago_suma > v_total then
-      raise exception 'El pago (S/ %) supera el total de la factura (S/ %)', v_pago_suma, v_total;
-    end if;
-  end if;
-
-  select id into v_persona from personas where auth_user_id = auth.uid();
-
-  insert into compras (
-    proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento,
-    subtotal, igv, total, nota, usuario_id, token_cliente, fecha_estimada_llegada
-  ) values (
-    p_proveedor_id, p_tipo, upper(trim(p_serie)), trim(p_numero), p_fecha_emision, p_condicion,
-    case when p_condicion = 'contado' then null else p_fecha_vencimiento end,
-    v_subtotal, v_igv, v_total, p_nota, v_persona, p_token, p_fecha_estimada_llegada
-  ) returning id into v_compra_id;
-
-  for v_item in select * from jsonb_array_elements(p_items) loop
-    v_n2 := v_n2 + 1;
-    insert into compra_items (compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)
-      values (
-        v_compra_id,
-        (v_item ->> 'producto_id')::uuid,
-        (v_item ->> 'variante_id')::uuid,
-        v_item ->> 'descripcion',
-        (v_item ->> 'cantidad')::integer,
-        (v_item ->> 'costo_unitario')::numeric
+  v_reparto := $b$
       )
       returning id into v_item_id;
 
     for v_dest in select * from jsonb_array_elements(v_repartos[v_n2]) loop
       insert into compra_item_destinos (compra_item_id, ubicacion_id, cantidad)
         values (v_item_id, (v_dest ->> 'ubicacion_id')::uuid, (v_dest ->> 'cantidad')::integer);
-    end loop;
-  end loop;
+    end loop;$b$;
 
-  if v_pagos is not null then
-    for v_pago in select * from jsonb_array_elements(v_pagos) loop
-      insert into compra_pagos (compra_id, fecha, monto, metodo, referencia, usuario_id)
-        values (
-          v_compra_id,
-          v_pago_fecha,
-          (v_pago ->> 'monto')::numeric,
-          v_pago ->> 'metodo',
-          nullif(trim(coalesce(v_pago ->> 'referencia', '')), ''),
-          v_persona
-        )
-        returning id into v_pago_id;
-      -- Saldo a favor del proveedor como medio de pago (ADR-0111): descuenta del libro, con candado por proveedor.
-      if v_pago ->> 'metodo' = 'saldo_a_favor' then
-        perform fn_consumir_saldo_favor(p_proveedor_id, (v_pago ->> 'monto')::numeric, v_compra_id, v_pago_id, v_pago_fecha, v_persona);
-      end if;
-    end loop;
+  -- (a) las variables del reparto, junto a la última que ya declara
+  v_nuevo := replace(v_def, 'v_constraint text;', v_declaraciones);
+  if v_nuevo = v_def or (length(v_def) - length(replace(v_def, 'v_constraint text;', ''))) / length('v_constraint text;') <> 1 then
+    raise exception 'registrar_compra: no encontré (o no es única) la declaración de v_constraint (ADR-0132)';
   end if;
+  v_def := v_nuevo;
 
-  return v_compra_id;
-exception
-  when unique_violation then
-    get stacked diagnostics v_constraint = constraint_name;
-    if v_constraint = 'compras_token_cliente_key' then
-      select * into v_existente from compras where token_cliente = p_token;
-      if found then return v_existente.id; end if;
-    end if;
-    raise exception 'La factura %-% de este proveedor ya está registrada', upper(trim(p_serie)), trim(p_numero);
-end;
-$function$;
+  -- (b) la validación del reparto, antes de acumular el subtotal de cada línea
+  if (length(v_def) - length(replace(v_def, 'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;', ''))) > 0
+     and (length(v_def) - length(replace(v_def, 'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;', '')))
+         / length('v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;') = 1 then
+    v_nuevo := replace(v_def,
+      'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;',
+      v_validacion || 'v_subtotal := v_subtotal + (v_item ->> ''cantidad'')::integer * (v_item ->> ''costo_unitario'')::numeric;');
+  else
+    raise exception 'registrar_compra: no encontré (o no es única) la línea que acumula el subtotal (ADR-0132)';
+  end if;
+  v_def := v_nuevo;
+
+  -- (c) la cabecera ya no lleva destino
+  v_nuevo := replace(v_def, 'ubicacion_destino_id, subtotal, igv, total, nota, usuario_id, token_cliente, fecha_estimada_llegada',
+                            'subtotal, igv, total, nota, usuario_id, token_cliente, fecha_estimada_llegada');
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré la lista de columnas del insert en compras (ADR-0132)'; end if;
+  v_def := v_nuevo;
+  v_nuevo := replace(v_def, 'p_ubicacion_destino_id, v_subtotal, v_igv, v_total, p_nota, v_persona, p_token, p_fecha_estimada_llegada',
+                            'v_subtotal, v_igv, v_total, p_nota, v_persona, p_token, p_fecha_estimada_llegada');
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré los valores del insert en compras (ADR-0132)'; end if;
+  v_def := v_nuevo;
+
+  -- (d) cada línea guarda su reparto
+  v_nuevo := replace(v_def,
+    'insert into compra_items (compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)',
+    'v_n2 := v_n2 + 1;' || E'\n    ' || 'insert into compra_items (compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)');
+  if v_nuevo = v_def then raise exception 'registrar_compra: no encontré el insert en compra_items (ADR-0132)'; end if;
+  v_def := v_nuevo;
+  select count(*) into v_n from regexp_matches(v_def, '\(v_item ->> ''costo_unitario''\)::numeric\s*\)\s*;', 'g');
+  if v_n <> 1 then raise exception 'registrar_compra: esperaba UN cierre del insert en compra_items y encontré % (ADR-0132)', v_n; end if;
+  v_nuevo := regexp_replace(v_def, '\(v_item ->> ''costo_unitario''\)::numeric\s*\)\s*;',
+                            replace('(v_item ->> ''costo_unitario'')::numeric', '\', '\\') || v_reparto);
+  if v_nuevo = v_def then raise exception 'registrar_compra: no pude cerrar el insert en compra_items con el reparto (ADR-0132)'; end if;
+
+  execute v_nuevo;
+end $do$;
 
 -- ==================== 8. recibir_compras: tope POR TIENDA (parche sobre la definición viva) ====================
 do $$
