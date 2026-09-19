@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Insignia } from "@/components/ui/Insignia";
 
 // Sub-navegación del mundo Inventario. Reescrita el 2026-09-15: la lista
 // original (Proveedores/Compras/Almacén/Etiquetas bajo /inventario/*) nunca se
@@ -35,23 +36,33 @@ const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
   { href: "/inventario/resumen", etiqueta: "Resumen", prefijos: ["/inventario/resumen"] },
 ];
 
-export function InventarioNav({ mostrarResumen = false }: { mostrarResumen?: boolean }) {
+// `contadores` (2026-09-18): cuántas cosas de cada pestaña piden acción a quien mira, por `href` —
+// hoy solo «Traslados». Genérico a propósito: la navegación no sabe qué es un traslado.
+export function InventarioNav({
+  mostrarResumen = false,
+  contadores = {},
+}: {
+  mostrarResumen?: boolean;
+  contadores?: Record<string, number | null | undefined>;
+}) {
   const pathname = usePathname();
   const secciones = mostrarResumen ? SECCIONES : SECCIONES.filter((s) => s.href !== "/inventario/resumen");
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-tinta/10">
+    <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-tinta/10">
       {secciones.map((s) => {
         const activo = pathname === s.href || s.prefijos.some((p) => pathname === p || pathname.startsWith(p + "/"));
+        const pendientes = contadores[s.href] ?? 0;
         return (
           <Link
             key={s.href}
             href={s.href}
             aria-current={activo ? "page" : undefined}
-            className={`label-cayla -mb-px shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+            className={`label-cayla -mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
               activo ? "border-rojo text-tinta" : "border-transparent text-tinta/65 hover:text-rojo"
             }`}
           >
             {s.etiqueta}
+            <Insignia n={pendientes} etiqueta="por atender" tamano="compacta" />
           </Link>
         );
       })}

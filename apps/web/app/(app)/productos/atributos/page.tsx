@@ -17,16 +17,30 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const TIPOS = ["colores", "tallas", "tejidos", "patrones", "etiquetas"] as const;
   const tipo = TIPOS.find((t) => t === tipoParam) ?? "colores";
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias] = await Promise.all([
     supabase
       .from("colores")
-      .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
+      .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado")
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado").order("nombre"),
     supabase.from("patrones").select("id, nombre, activo, notas, estado").order("nombre"),
-    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta").order("nombre"),
+    // Etiquetas (y lo que necesita su editor de campaña) solo se pide al abrir esa pestaña:
+    // así un despliegue que llegue antes que el SQL de producción no tumba Colores/Tallas/etc.
+    tipo === "etiquetas"
+      ? supabase
+          .from("etiquetas")
+          .select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct")
+          .order("nombre")
+      : Promise.resolve({ data: [], error: null }),
+    tipo === "etiquetas"
+      ? supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre")
+      : Promise.resolve({ data: [], error: null }),
+    tipo === "etiquetas"
+      ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
+      : Promise.resolve({ data: [], error: null }),
+    tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -36,8 +50,6 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     hex: c.hex,
     orden: c.orden,
     activo: c.activo,
-    tipo: c.tipo,
-    imagenMuestraUrl: c.imagen_muestra_url,
     notas: c.notas,
     estado: c.estado as "pendiente" | "aprobado",
   }));
@@ -62,6 +74,10 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     notas: p.notas,
     estado: p.estado as "pendiente" | "aprobado" | "rechazado",
   }));
+  const etiquetaCategorias = new Map<string, string[]>();
+  for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
+    etiquetaCategorias.set(f.etiqueta_id, [...(etiquetaCategorias.get(f.etiqueta_id) ?? []), f.categoria_id]);
+  }
   const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
     id: e.id,
     nombre: e.nombre,
@@ -71,6 +87,14 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
     vigenteDesde: e.vigente_desde,
     vigenteHasta: e.vigente_hasta,
+    descuentoPct: e.descuento_pct,
+    categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
+  }));
+  const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
+  const categorias = exigir(resCategorias, "las categorías").map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    familia: (c.familia && nombreFamilia.get(c.familia)) || "Sin familia",
   }));
 
   return (
@@ -94,6 +118,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         tejidos={tejidos}
         patrones={patrones}
         etiquetas={etiquetas}
+        categorias={categorias}
         puedeEditar={persona.rol === "lider"}
       />
     </div>

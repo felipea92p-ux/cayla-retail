@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 /* ====================================================================
@@ -27,6 +28,15 @@ import type { ReactNode } from "react";
    - `compacta`: p-4 en lugar de p-5, para las franjas de 4 indicadores.
    - `vacia`: borde punteado y número apagado — «todavía no hay datos», con
      la razón en `children`. Un dato que aún no existe se dice, no se inventa.
+
+   `fila` + `icono` (2026-09-18, Traslados): la misma tarjeta en una fila
+   baja — ícono a la izquierda, cifra más chica, contexto en una línea y una
+   flecha si se puede tocar. Para pantallas donde la fila de tarjetas es una
+   franja de estado y no puede comerse la altura que le toca a la lista. Sin
+   `fila` la tarjeta se dibuja exactamente igual que antes.
+   (En Traslados esta variante se llamó `compacta`; al unir las dos ramas se
+   renombró `fila`, porque `compacta` ya significaba «p-4» en las ~30
+   tarjetas de Compras.)
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
@@ -54,7 +64,9 @@ export function TarjetaCifra({
   accion,
   punto,
   detalleTono,
+  icono,
   compacta = false,
+  fila = false,
   vacia = false,
   children,
 }: {
@@ -73,17 +85,34 @@ export function TarjetaCifra({
   punto?: PuntoCifra;
   /** Clase de color de la línea de contexto (`text-rojo`, `text-ambar-profundo`, `text-verde-profundo`). */
   detalleTono?: string;
+  /** Solo con `fila`: el ícono (ya con su disco y colores) a la izquierda. */
+  icono?: ReactNode;
   /** p-4 en lugar de p-5: las franjas de 4 indicadores de Compras. */
   compacta?: boolean;
+  /** Fila baja, con ícono y flecha (ver arriba). */
+  fila?: boolean;
   /** Borde punteado y número apagado: «todavía no hay datos». */
   vacia?: boolean;
   children?: ReactNode;
 }) {
-  const clase = `card-cayla block ${compacta ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
     vacia ? "border-dashed !bg-transparent" : ""
   } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""}`;
 
-  const contenido = (
+  const contenido = fila ? (
+    <span className="flex items-center gap-3">
+      {icono}
+      <span className="min-w-0 flex-1">
+        <span className="label-cayla block text-[11px] text-tinta/65">{etiqueta}</span>
+        <span className="mt-0.5 flex items-baseline gap-1.5">
+          <span className={`font-display text-2xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+          {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
+        </span>
+        {children && <span className="mt-0.5 block text-xs text-tinta/65">{children}</span>}
+      </span>
+      {(onClick || href) && <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/40" />}
+    </span>
+  ) : (
     <>
       <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
         {punto && <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]}`} />}

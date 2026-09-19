@@ -3,6 +3,63 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
+
+Las ilustraciones de Etiquetas se veían más grandes y "fuera de línea" al saltar de una pestaña de Atributos a otra. La causa no era un dibujo mal puesto sino tres medidas distintas: 4 columnas en vez de 5, margen interno de 10 px en vez de 16 px, y una imagen 2:1 (alta) en vez de 3:1. Ahora las cuatro pestañas miden igual — verificado en el navegador: imagen de 229×76 px y tarjeta de 263 px en Etiquetas y en Patrones, 5 columnas en ambas. El chip de temporada (Vigente / En N días / Fuera de temporada) salió de encima del dibujo y va junto a las fechas, debajo del nombre: sobre una imagen más baja tapaba el ícono. Sin cambios de esquema.
+
+Lo que Felipe se lleva: cuando dos pantallas del mismo sistema "se sienten" distintas, casi siempre es una medida compartida (columnas, margen, proporción) que se redefinió por separado en cada archivo. El BACKLOG ya tiene el paso de fondo: una `TarjetaAtributo` única para que esto no vuelva a divergir.
+
+## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
+
+La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.
+
+Bug real que salió al tocar esto: "hoy" se calculaba con `toISOString()`, que es UTC. En Lima, después de las 7 pm ya es "mañana" allá, así que una campaña que termina hoy aparecía como fuera de temporada con la tienda todavía abierta. Ahora `lib/etiqueta-vigencia.ts` calcula "hoy" en hora de Lima, con prueba que fija el caso de las 8 pm.
+
+Pendiente a propósito: Patrones/Tejidos/Colores siguen con la tarjeta anterior — ver BACKLOG si se quiere unificar. Y falta saber cuántas variantes usan cada etiqueta antes de desactivarla (no hay dato en pantalla todavía).
+
+## 2026-09-18 (Tejidos con su imagen: la textura de cada tela en Atributos, como ya tenían Patrones y Etiquetas)
+
+Felipe pidió que cada tejido se vea con su imagen, igual que Patrones. Mismo mecanismo que `patron-visual.ts` + `MuestraPatron`: `lib/tejido-visual.ts` traduce el nombre a una de 17 texturas y `components/MuestraTejido.tsx` la dibuja en SVG (sarga del denim, canalé de la pana, panal del piqué, fibra de la alpaca…). Sin cambios de esquema y sin migración: el nombre es lo único estable del vocabulario, así que un tejido nuevo como "Full Lycra" o "Interlock" (que las notas del seed dicen cubrir) cae solo en la textura de Licra/Jersey. Un nombre que no reconoce dice «Sin muestra» en vez de dibujar una tela equivocada.
+
+Lo que Felipe se lleva: aquí el color de la muestra ES la información (el denim tiene que ser azul), así que no usa la paleta de marca como Etiquetas — pero sí respeta lo sagrado: nada de rojo, sin degradados. Y el orden de las reglas importa: «Rib licrado» debe ser canalé, no licra, y «Algodón pima» su propia fibra, no algodón — está fijado en `tejido-visual.test.ts`.
+
+## 2026-09-18 (Traslados: la pantalla deja de decir «en tránsito» y dice lo que te toca — ADR-0105, en PR)
+
+Felipe pidió rediseñar Inventario → Traslados sobre una referencia visual. **Qué se cerró:** franja «Atención
+hoy» (solo si algo le toca a quien mira), cuatro indicadores que filtran, buscador, tabla con estado y acción
+de formas distintas, y un número «por atender» junto a «Traslados» en el menú. Todo sale de una sola regla
+(`situacionTraslado`, con 61 pruebas) y de datos que la base ya guardaba: **cero migraciones, cero cambios en
+stock/recepción/cierre.** **Qué aprendió Felipe:** (1) «en tránsito» mezclaba el bulto que ya está en la puerta
+de la tienda con el que sigue en la carretera; separarlos con la hora estimada convierte el contador en algo
+que se puede accionar. (2) Una revisión con cinco lectores y dos escépticos por hallazgo encontró un error que
+las pruebas no veían — el orden de «Revisar ahora» contaba cuándo salió el envío, no cuánto lleva esperando —
+porque las pruebas usaban una hora estimada anterior a la salida, algo imposible en la práctica. (3) El diseño
+de referencia no cabía con las mayúsculas de la marca: el chip y el botón miden 187 y 184 px, se midió en el
+navegador y se ajustaron las columnas en vez de recortar el texto.
+
+**Al probar con sesión de líder apareció otra cosa, ajena al rediseño:** la base local llevaba 4 migraciones atrás
+del repo (las que llegaron con el merge del día) y el layout del líder lee `ubicaciones.meta_venta_diaria`
+(`20260918100000`): `AppLayout` reventaba con `column ubicaciones.meta_venta_diaria does not exist` en cualquier
+pantalla. `supabase start` solo aplica migraciones al CREAR la base; las que llegan después no se aplican solas.
+Se puso al día con `npx supabase migration up --local` (sin reset; 112 → 116). Un worktree nuevo tampoco trae
+`0000_local_stub_dynamic.sql` (gitignorado): sin copiarlo del checkout principal, la CLI ve el historial desalineado.
+
+**Hallazgos que NO se tocaron (no eran de este cambio):** `authenticated` puede hacer UPDATE directo sobre
+`transferencias` **en la base local y en las migraciones del repo** — producción NO: allí solo tiene SELECT (el
+`REVOKE` vive solo en producción; verificado en solo lectura), o sea drift repo ≠ producción, no un hueco abierto; una
+prenda distinta congela todas las de su traslado fuera del stock hasta que un líder cierra; quien envía escribe la
+hora estimada a mano, al minuto y sin poder corregirla después. Los tres quedan en BACKLOG. **Producción: nada que
+desplegar** — comprobado que ya tiene todo lo que la pantalla lee, y que las tres migraciones que la base local
+llevaba atrasadas (`emitir_comprobante` idempotente, contacto bancario de proveedores, atraso de recepción de compras)
+ya están en producción. Datos de prueba: 31 traslados nuevos en la base local con `[prueba UI]` en la nota (sin borrar ni
+modificar los 4 que había).
+
+## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
+
+Felipe mostró el PR #129 (familias como tabla + colores agrupados por familia) atascado: 7 conflictos con `main`, Vercel en rojo y auto-merge activado. Se resolvieron los 7 conservando ambos lados. Lo que manda: el `types.ts` regenerado del PR venía de un Postgres local viejo y **borraba** `gastos`, `registrar_gasto` y `token_cliente`; el merge automático lo habría aplicado en silencio, así que se tomó el de `main` y se reaplicaron solo `familias` y su FK. El PR además ya fallaba `tsc` por sí solo (reproducido exportando su commit sin merge): `codigo` lo rellena un trigger pero el tipo generado lo exige, y el generador no ve triggers — se manda `codigo: ""`, que es el contrato del trigger. Es la causa más probable del despliegue caído. También chocaban el ADR (era el tercer 0102, pasa a 0103) y la migración de colores (`20260918020000` ya ocupado por `censo_alta_al_vuelo`, que corre en producción; pasa a `20260918154730`).
+
+Lo que Felipe se lleva: con auto-merge activo y las migraciones sin pegar en producción, el PR se habría fusionado y desplegado esperando `retail.familias`, que no existe allá — la regla de este repo es base primero, pantalla después (2026-07-18). Verificado contra producción en solo lectura: `categorias_familia_check` existe con ese nombre, las 6 familias en uso caben en la semilla y las funciones que usa la migración existen; es seguro pegarla. Y una consecuencia del propio agrupado: `orden` ya no ordena la grilla entera, solo manda dentro de cada familia, y ahí hoy conviven dos criterios (ver BACKLOG).
+
 ## 2026-09-18 (Resumen a producción: PR #120 mergeado por Claude con ok explícito de Felipe, dos migraciones aplicadas)
 
 Con el ok puntual de Felipe ("sí, mergea tú y sí, aplica solo las dos migraciones de
@@ -24,6 +81,28 @@ las dos migraciones de Resumen"), y varias de las otras ya estaban confirmadas e
 producción por sesiones anteriores. Tampoco se pusheó directo a `main` para el ajuste
 del diccionario (PR #121): el clasificador de auto-modo lo bloqueó como "merge sin
 revisión" — correcto, ese permiso puntual era solo para PR #120.
+
+## 2026-09-18 (Familia deja de ser un CHECK fijo; Colores se agrupa por familia; una colisión real resuelta en vivo)
+
+Se cerró: `retail.familias` (tabla propia, sin proponer/aprobar — mismo patrón que
+Categorías, ADR-0103) reemplaza el `CHECK constraint` de 6 valores fijos; pantalla
+`/productos/familias` nueva. `/productos/colores` se agrupa por familia (antes una
+sola grilla ordenada por `orden` global, dejaba un color nuevo "colgando" al final);
+de paso, investigación real contra Zara/Ralph Lauren/LVMH/Platanitos sumó 4 colores
+(Cobalto, Gris antracita, Caqui, Tostado) que Zara usa y CAYLA no tenía.
+
+Lo que Felipe aprendió/decidió: esta sesión y `claude/fix-old-stuff-0192ff`
+construyeron "familia como tabla" en paralelo sin saberlo — el tablero
+`SESIONES-ACTIVAS.md` lo detectó, Felipe comparó las dos versiones en vivo y se
+quedó con la de acá (menor cambio estructural: no migra el tipo de `categorias.familia`
+de texto a uuid). Aviso dejado en `SESIONES-ACTIVAS.md` para que esa sesión descarte
+la suya.
+
+Docker/Supabase local se cayó/cerró varias veces por RAM durante la sesión — se
+avanzó con `git`/`node` (typecheck, lint, 297 tests, dos bugs reales encontrados así:
+`avisar.ok` inexistente y un `<a>` donde iba `<Link>`) sin bloquear el trabajo hasta
+que Docker volvió a estar disponible para la verificación final en navegador.
+
 ## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
 
 Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
@@ -7520,3 +7599,62 @@ Sin migraciones nuevas: usa las RPC ya existentes. Sigue sin merge a main y sin 
 Felipe pidió que el motivo del faltante se decida en la misma fila (selector + «Guardar», visible en la tabla) y que al final solo quede la nota de crédito, que es una por comprobante y solo con el comprobante resuelto al 100 %. De ahí salió que una factura al contado (nace pagada) no podía llevar nota alguna: se modeló el **saldo a favor del proveedor** como libro append-only `proveedor_creditos` (`compra_notas_credito.aplicado` = lo que bajó la deuda; el resto entra al libro). Se usa como medio de pago en los tres lugares donde se paga, hay reembolso, y se ve en Proveedores (columna y ficha), en Por pagar y en el modal de pago.
 Recepción, cierres y nota van en UNA transacción (`recibir_y_cerrar_compras`). Migraciones locales `20260918215000`–`178000` (no están en producción; el paso a paso quedó en BACKLOG, ahora 15 migraciones). Pruebas SQL 99/99 (32 casos nuevos: reglas de la nota, doble uso del saldo, lote con saldo, reembolso, RLS, todo-o-nada). Verificado en navegador: fila con «¿qué pasó?», nota al final con su explicación, columna y ficha de saldo a favor con datos de demostración (ya borrados de la base local), y el pago con «Usar saldo a favor» enviando `saldo_a_favor` + transferencia.
 Pendiente: la etiqueta «esperando nota» en las listas (solo está en el detalle) y probar el modal de «Pagar juntos» con saldo en pantalla (su lógica se probó en SQL; el navegador integrado no llegó a hidratar esa pantalla con el panel oculto).
+
+## 2026-09-18 (Atributos → Etiquetas: cada etiqueta con su ilustración)
+Felipe pidió lo mismo que en Patrones para Etiquetas: una imagen simple y bonita por tarjeta.
+`components/MuestraEtiqueta.tsx` dibuja un ícono por concepto (corazón, gato, huella de perro,
+reloj de arena, calabaza, arbolito, bandera…) elegido por nombre en `lib/etiqueta-visual.ts`, así
+"Para liquidar — Tienda AQP" comparte dibujo con "Para liquidar". Decisión de color: NINGÚN rojo
+(es el acento sagrado, máx. 2 por pantalla y esta grilla tiene 21 tarjetas); cada dibujo usa el
+tono de su grupo — ámbar/verde/taupe — sobre un tinte suave del mismo tono. A diferencia de
+patrones, una etiqueta desconocida cae en un ícono genérico de etiqueta, no en "Sin muestra":
+es un concepto, no una tela. Sin cambio de esquema. Pendiente: foto propia por etiqueta
+(mismo mecanismo que tejidos/patrones, aún sin publicar) si algún día hace falta.
+
+## 2026-09-18 (El aviario vuelve a cerrar: 60 de 60 tablas con pájaro — ADR-0104)
+
+Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). La sesión había
+nacido de un `main` local del 5-sep, 668 commits atrás y sin `docs/datos/`; Felipe puso su
+`main` al día con `git reset --keep origin/main`. Al cruzar el aviario con producción (en
+vivo, solo lectura) salió que su índice tabla→pájaro describía V1 —26 de 47 tablas ya no
+existen, 39 de las 60 reales sin pájaro— y que el generador llevaba otra lista distinta.
+
+Ahora hay una sola lista (`scripts/datos/aviario.mjs`), un índice generado
+(`generado/AVIARIO.md`) y un paso de CI que falla si una tabla nace sin pájaro. 21 tablas
+reciben pájaro por primera vez y 3 cambian (`proformas` y `ubicacion_datos_fiscales` →
+Cuervo, `sububicaciones` → Halcón). Felipe aprobó las 24 tal cual y se abrió el PR.
+
+De paso: `retail.migraciones_aplicadas`, el registro que describe GOBIERNO §4, no existe en
+producción; el que sí se llena es `supabase_migrations.schema_migrations` (114 filas, la
+última de hoy), pero lo pegado a mano en el SQL Editor no deja fila ahí. Además, `main`
+tiene dos ADR-0074 y dos ADR-0102; y `work-finanzas-sugerencia`
+y `claude/facturacion-modal-shared-state-186f2d` tienen trabajo sin fusionar sobre la base
+V1 (la segunda con un ADR-0011 que choca con el existente).
+
+Al fusionar con `main`, el PR #129 ya había tomado el ADR-0103 (familias): ganó el
+número y el del aviario pasó a 0104. Y `retail.familias`, ya en producción pero no en el
+volcado del 17-sep, entró al aviario bajo Loro. El límite que el propio ADR anotaba —la
+alarma es tan fresca como el volcado— se cumplió el mismo día.
+
+### 2026-09-18 — Colores: sin Tipo ni foto; se acepta HTML o RGB
+Producción mostró que `colores.tipo` no se usaba (35 de 35 en «sólido») y que duplicaba lo que
+ya dicen Tejidos y Patrones, así que salió del modal, la API y la tarjeta (ADR-0106). Las
+columnas y las 3 fotos quedan en la base sin tocar. Al crear o editar un color ahora se puede
+pegar `#c9b79c` o `rgb(201, 183, 156)`; la base sigue guardando solo el hex.
+Decidido con Felipe pero NO construido: descuento automático por etiqueta de campaña (ver
+BACKLOG, pasos 2 y 3).
+
+### 2026-09-18 — Etiquetas: se configura la campaña (descuento, fechas, categorías)
+Etiquetas no tenía modal de edición: las fechas solo se cambiaban por SQL. Ahora un Líder abre
+«Configurar campaña» y guarda un % de descuento, las fechas y, si quiere, las categorías donde
+rige, todo en un solo RPC. Por decisión de Felipe: un solo descuento por prenda (el mayor);
+sin categorías, solo las prendas etiquetadas a mano (ADR-0107).
+Solo el modelo: Vender NO lo cobra todavía, y la tarjeta lo dice. Falta pegar la migración en
+producción antes de desplegar. Al probar salió un error real: `2026-13-01` hacía lanzar la API
+en vez de decir «fecha no válida».
+
+## 2026-09-18 (Compras: fusión con main — ADR-0111)
+
+Se fusionó `origin/main` (28 commits: Traslados, Etiquetas como campaña, Colores, el aviario en CI) en la rama de Compras, en local y sin push. Tres conflictos reales: `TarjetaCifra.tsx` (las dos ramas agregaron `compacta` con significados distintos: la de Compras es «p-4», la de Traslados una fila baja con ícono; se conservó la de Compras y la de Traslados pasó a llamarse `fila`, con sus 4 usos actualizados) y BACKLOG/BITÁCORA (se conservaron ambos lados). `types.ts` se regeneró contra Postgres local tras aplicar las migraciones de main (`familias`, `etiquetas_descuento_y_categorias`).
+Choques evitados: el ADR pasó de 0106 a 0111 (main ya usa 0104–0107 y otras ramas 0108–0110) y las 15 migraciones de Compras se movieron a `20260918200000`–`218000` porque main trae su propia `20260918160000` y otras dos ramas usan `20260918170000`. Las 3 tablas nuevas entraron al aviario (CI). Verificado: typecheck, 630 tests, lint, 99 pruebas SQL, aviario en verde y las 135 migraciones reproducidas desde cero en un Postgres limpio (misma imagen que Supabase local).
+Producción (consulta de solo lectura, 2026-09-19 01:14 UTC): lo que trajo main ya está aplicado allá (`etiquetas.descuento_pct`, `etiqueta_categorias`, `familias`); faltan exactamente las 14 migraciones de Compras `201000`–`218000` más la `200000` (`fn_hoy_lima`, que ya existe con el mismo cuerpo y se reaplica sin daño).

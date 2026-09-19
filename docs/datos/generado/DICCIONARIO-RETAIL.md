@@ -8,13 +8,14 @@
 > **Leído el:** volcado de producci
 > **Tablas y vistas encontradas:** 60
 >
-> El orden sigue los 14 módulos de `docs/datos/00-MAPA.md`. Para entender **por qué**
+> El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
+> pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
 > existe cada tabla, abre el archivo del módulo en `docs/datos/modulos/`; este archivo
 > solo dice **qué hay**.
 ---
 
 
-## 01 · Identidad y acceso
+## 01 · Ganso — Identidad y acceso
 
 ### `colaboradores`
 
@@ -69,90 +70,8 @@
 | `ubicaciones_write_lider` | ALL | `retail.fn_es_lider()` |
 
 
-### `sububicaciones`
 
-*5 columnas · ~6 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `nombre` | text | **no** | — | — |
-| `tipo` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `sububicaciones_id_ubicacion_unique` — `UNIQUE (id, ubicacion_id)`
-- `sububicaciones_ubicacion_id_nombre_key` — `UNIQUE (ubicacion_id, nombre)`
-- `sububicaciones_tipo_unico_por_ubicacion` *(único parcial)* — `ON retail.sububicaciones (ubicacion_id, tipo) WHERE (tipo = ANY (ARRAY['piso_venta'::text, 'almacen_tienda'::text, 'cuarentena'::text]))`
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `sububicaciones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `sububicaciones_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-### `ubicacion_datos_fiscales`
-
-*8 columnas · ~1 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `ubicacion_id` | uuid | **no** | — | — |
-| `direccion` | text | sí | — | — |
-| `ubigeo` | text | sí | — | — |
-| `departamento` | text | sí | — | — |
-| `provincia` | text | sí | — | — |
-| `distrito` | text | sí | — | — |
-| `telefono` | text | sí | — | — |
-| `updated_at` | timestamp with time zone | **no** | `now()` | — |
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `ubicacion_datos_fiscales_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-
-
-
-## 02 · Catálogo y vocabulario
-
-### `categorias`
-
-*7 columnas · ~38 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | la categoría del catálogo a la que apuntan los productos |
-| `nombre` | text | **no** | — | cómo se llama la categoría ("Blusas"): es lo que se elige en el desplegable |
-| `activo` | boolean | **no** | `true` | — |
-| `familia` | text | sí | — | el gran rubro: indumentaria, calzado, accesorios, bisuteria, belleza o papeleria — una séptima exige migración |
-| `prefijo` | text | sí | — | las tres letras con las que empieza el código de la prenda (BLU); obligatorio y único |
-| `categoria_padre_id` | uuid | sí | — | — |
-| `notas` | text | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `categorias_familia_check` — `CHECK ((familia = ANY (ARRAY['indumentaria'::text, 'calzado'::text, 'accesorios'::text, 'bisuteria'::text, 'belleza'::text, 'papeleria'::text])))`
-- `categorias_prefijo_formato` — `CHECK ((prefijo ~ '^[A-Z]{3}$'::text))`
-- `categorias_prefijo_unico` *(único parcial)* — `retail.categorias (prefijo) WHERE (prefijo IS NOT NULL)`
-
-**De qué depende:** `(categoria_padre_id) REFERENCES retail.categorias(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `categorias_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `categorias_write_lider` | ALL | `retail.fn_es_lider()` |
-
+## 02 · Loro — Catálogo y vocabulario
 
 ### `productos`
 
@@ -224,43 +143,84 @@
 | `variantes_write_lider` | ALL | `retail.fn_es_lider()` |
 
 
-### `colores`
+### `categorias`
 
-*13 columnas · ~31 filas · permisos por fila **activos***
+*7 columnas · ~38 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `codigo` | text | **no** | — | las tres letras del color (AZM): es el segmento de color del código de la prenda |
-| `nombre` | text | **no** | — | cómo se dice el color ("Azul marino"); la base rechaza otra escritura del mismo nombre |
-| `hex` | text | sí | — | el chip de color que se ve en pantalla; para Estampado, Multicolor y Animal print queda vacío |
-| `activo` | boolean | **no** | `true` | si el color todavía aparece en el selector; un color no se borra, se apaga |
-| `familia_color` | text | sí | — | en qué grupo entra: neutro, azul, rojo, amarillo, verde, morado, tierra, metalico o estampado |
-| `orden` | integer | **no** | `100` | en qué posición sale en el selector; los 30 de CAYLA van del 10 al 92, los importados en 200 |
-| `tipo` | text | **no** | `'solido'::text` | — |
-| `imagen_muestra_url` | text | sí | — | — |
+| `id` | uuid | **no** | `gen_random_uuid()` | la categoría del catálogo a la que apuntan los productos |
+| `nombre` | text | **no** | — | cómo se llama la categoría ("Blusas"): es lo que se elige en el desplegable |
+| `activo` | boolean | **no** | `true` | — |
+| `familia` | text | sí | — | el gran rubro: indumentaria, calzado, accesorios, bisuteria, belleza o papeleria — una séptima exige migración |
+| `prefijo` | text | sí | — | las tres letras con las que empieza el código de la prenda (BLU); obligatorio y único |
+| `categoria_padre_id` | uuid | sí | — | — |
 | `notas` | text | sí | — | — |
-| `estado` | text | **no** | `'aprobado'::text` | — |
-| `propuesto_por` | uuid | sí | — | — |
-| `aprobado_por` | uuid | sí | — | — |
-| `aprobado_en` | timestamp with time zone | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `colores_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `colores_familia_color_check` — `CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'azul'::text, 'rojo'::text, 'amarillo'::text, 'verde'::text, 'morado'::text, 'tierra'::text, 'metalico'::text, 'estampado'::text])))`
-- `colores_hex_check` — `CHECK (((hex IS NULL) OR (hex ~ '^#[0-9A-Fa-f]{6}$'::text)))`
-- `colores_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
-- `colores_tipo_check` — `CHECK ((tipo = ANY (ARRAY['solido'::text, 'textura'::text, 'estampado'::text])))`
+- `categorias_familia_check` — `CHECK ((familia = ANY (ARRAY['indumentaria'::text, 'calzado'::text, 'accesorios'::text, 'bisuteria'::text, 'belleza'::text, 'papeleria'::text])))`
+- `categorias_prefijo_formato` — `CHECK ((prefijo ~ '^[A-Z]{3}$'::text))`
+- `categorias_prefijo_unico` *(único parcial)* — `retail.categorias (prefijo) WHERE (prefijo IS NOT NULL)`
 
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+**De qué depende:** `(categoria_padre_id) REFERENCES retail.categorias(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `colores_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
-| `colores_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `colores_update_lider` | UPDATE | `retail.fn_es_lider()` |
+| `categorias_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `categorias_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `producto_fotos`
+
+*7 columnas · ~20 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `producto_id` | uuid | **no** | — | — |
+| `url` | text | **no** | — | — |
+| `orden` | integer | **no** | `0` | — |
+| `es_principal` | boolean | **no** | `false` | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `color_codigo` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `producto_fotos_principal_unico` *(único parcial)* — `retail.producto_fotos (producto_id) WHERE es_principal`
+
+**De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(producto_id) REFERENCES retail.productos(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `producto_fotos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `producto_fotos_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `historial_producto_cambios`
+
+*8 columnas · ~1 filas · ⚠️ **sin permisos por fila***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `entidad` | text | **no** | — | — |
+| `entidad_id` | uuid | **no** | — | — |
+| `campo` | text | **no** | — | — |
+| `valor_anterior` | text | sí | — | — |
+| `valor_nuevo` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `historial_producto_cambios_entidad_check` — `CHECK ((entidad = ANY (ARRAY['producto'::text, 'variante'::text])))`
+
+**De qué depende:** `(usuario_id) REFERENCES personas(id)`
 
 
 ### `codigos_barras`
@@ -311,8 +271,256 @@
 | `codigos_correlativos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
 
 
+### `colores`
 
-## 05 · Inventario y movimientos
+*13 columnas · ~31 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `codigo` | text | **no** | — | las tres letras del color (AZM): es el segmento de color del código de la prenda |
+| `nombre` | text | **no** | — | cómo se dice el color ("Azul marino"); la base rechaza otra escritura del mismo nombre |
+| `hex` | text | sí | — | el chip de color que se ve en pantalla; para Estampado, Multicolor y Animal print queda vacío |
+| `activo` | boolean | **no** | `true` | si el color todavía aparece en el selector; un color no se borra, se apaga |
+| `familia_color` | text | sí | — | en qué grupo entra: neutro, azul, rojo, amarillo, verde, morado, tierra, metalico o estampado |
+| `orden` | integer | **no** | `100` | en qué posición sale en el selector; los 30 de CAYLA van del 10 al 92, los importados en 200 |
+| `tipo` | text | **no** | `'solido'::text` | — |
+| `imagen_muestra_url` | text | sí | — | — |
+| `notas` | text | sí | — | — |
+| `estado` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `colores_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `colores_familia_color_check` — `CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'azul'::text, 'rojo'::text, 'amarillo'::text, 'verde'::text, 'morado'::text, 'tierra'::text, 'metalico'::text, 'estampado'::text])))`
+- `colores_hex_check` — `CHECK (((hex IS NULL) OR (hex ~ '^#[0-9A-Fa-f]{6}$'::text)))`
+- `colores_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+- `colores_tipo_check` — `CHECK ((tipo = ANY (ARRAY['solido'::text, 'textura'::text, 'estampado'::text])))`
+
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `colores_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `colores_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `colores_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `tallas`
+
+*9 columnas · ~25 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `valor` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `estado` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `notas` | text | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `tallas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `tallas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `tallas_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `tallas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `tallas_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `categoria_tallas`
+
+*3 columnas · ~173 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `categoria_id` | uuid | **no** | — | — |
+| `talla_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(talla_id) REFERENCES retail.tallas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `categoria_tallas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `categoria_tallas_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `tejidos`
+
+*9 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `estado` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `notas` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `tejidos_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `tejidos_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `tejidos_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `tejidos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `tejidos_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `categoria_tejidos`
+
+*3 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `categoria_id` | uuid | **no** | — | — |
+| `tejido_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(tejido_id) REFERENCES retail.tejidos(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `categoria_tejidos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `categoria_tejidos_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `patrones`
+
+*9 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `estado` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `notas` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `patrones_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `patrones_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `patrones_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `patrones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `patrones_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `categoria_patrones`
+
+*3 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `categoria_id` | uuid | **no** | — | — |
+| `patron_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(patron_id) REFERENCES retail.patrones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `categoria_patrones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `categoria_patrones_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `etiquetas`
+
+*10 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `sedes_permitidas` | ARRAY | sí | — | — |
+| `estado` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `notas` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `etiquetas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `etiquetas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `etiquetas_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `etiquetas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `etiquetas_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `variante_etiquetas`
+
+*3 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `variante_id` | uuid | **no** | — | — |
+| `etiqueta_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(etiqueta_id) REFERENCES retail.etiquetas(id)` · `(variante_id) REFERENCES retail.variantes(id) ON DELETE CASCADE`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `variante_etiquetas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `variante_etiquetas_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+
+## 05 · Halcón — Inventario y movimientos
 
 ### `movimientos`
 
@@ -408,6 +616,106 @@
 | `lotes_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
 
 
+### `sububicaciones`
+
+*5 columnas · ~6 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `tipo` | text | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `sububicaciones_id_ubicacion_unique` — `UNIQUE (id, ubicacion_id)`
+- `sububicaciones_ubicacion_id_nombre_key` — `UNIQUE (ubicacion_id, nombre)`
+- `sububicaciones_tipo_unico_por_ubicacion` *(único parcial)* — `ON retail.sububicaciones (ubicacion_id, tipo) WHERE (tipo = ANY (ARRAY['piso_venta'::text, 'almacen_tienda'::text, 'cuarentena'::text]))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `sububicaciones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `sububicaciones_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `costo_historial`
+
+*11 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `variante_id` | uuid | **no** | — | — |
+| `stock_previo` | integer | **no** | — | — |
+| `costo_anterior` | numeric | **no** | — | — |
+| `cantidad_nueva` | integer | **no** | — | — |
+| `costo_unitario_nuevo` | numeric | **no** | — | — |
+| `costo_resultante` | numeric | **no** | — | — |
+| `origen` | text | **no** | — | — |
+| `movimiento_id` | uuid | **no** | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `costo_historial_cantidad_nueva_check` — `CHECK ((cantidad_nueva > 0))`
+- `costo_historial_costo_anterior_check` — `CHECK ((costo_anterior >= (0)::numeric))`
+- `costo_historial_costo_resultante_check` — `CHECK ((costo_resultante >= (0)::numeric))`
+- `costo_historial_costo_unitario_nuevo_check` — `CHECK ((costo_unitario_nuevo >= (0)::numeric))`
+- `costo_historial_movimiento_id_key` — `UNIQUE (movimiento_id)`
+- `costo_historial_origen_check` — `CHECK ((origen = ANY (ARRAY['compra'::text, 'produccion'::text])))`
+- `costo_historial_stock_previo_check` — `CHECK ((stock_previo >= 0))`
+
+**De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)` · `(usuario_id) REFERENCES personas(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `costo_historial_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.movimientos m   WHERE ((m.id = costo_historial.movimiento_id) AND retail.fn_puede_operar_ubicacion(m.ubicacion_id))))` |
+
+
+### `prendas_danadas`
+
+*12 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `variante_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `cantidad` | integer | **no** | — | — |
+| `devolucion_item_id` | uuid | **no** | — | — |
+| `movimiento_entrada_id` | uuid | **no** | — | — |
+| `estado` | text | **no** | `'en_cuarentena'::text` | — |
+| `movimiento_salida_id` | uuid | sí | — | — |
+| `resuelto_por` | uuid | sí | — | — |
+| `resuelto_en` | timestamp with time zone | sí | — | — |
+| `nota` | text | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `prendas_danadas_cantidad_check` — `CHECK ((cantidad > 0))`
+- `prendas_danadas_devolucion_item_id_key` — `UNIQUE (devolucion_item_id)`
+- `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text])))`
+- `prendas_danadas_resolucion_coherente` — `CHECK ((((estado = 'en_cuarentena'::text) AND (movimiento_salida_id IS NULL) AND (resuelto_en IS NULL)) OR ((estado <> 'en_cuarentena'::text) AND (movimiento_salida_id IS NOT NULL) AND (resuelto_en IS NOT NULL))))`
+
+**De qué depende:** `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `prendas_danadas_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
 ### `transferencias`
 
 *14 columnas · ~4 filas · permisos por fila **activos***
@@ -473,8 +781,36 @@
 | `transferencia_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_items.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
 
 
+### `transferencia_recepciones`
 
-## 06 · Conteo y censo físico
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `transferencia_id` | uuid | **no** | — | — |
+| `variante_id` | uuid | **no** | — | — |
+| `cantidad_recibida` | integer | **no** | — | — |
+| `movimiento_id` | uuid | sí | — | — |
+| `registrado_por` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `transferencia_recepciones_cantidad_recibida_check` — `CHECK ((cantidad_recibida >= 0))`
+- `transferencia_recepciones_transferencia_id_variante_id_key` — `UNIQUE (transferencia_id, variante_id)`
+
+**De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)` · `(registrado_por) REFERENCES personas(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `transferencia_recepciones_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
+
+
+
+## 06 · Lechuza — Conteo y censo físico
 
 ### `conteos`
 
@@ -541,71 +877,7 @@
 
 
 
-## 07 · Ventas y caja
-
-### `cajas`
-
-*12 columnas · ~7 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | El turno de caja de una sede: cada venta apunta acá para que el cierre sume solo lo suyo |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `estado` | text | **no** | `'abierta'::text` | 'abierta' o 'cerrada', nada más; un índice parcial impide dos cajas abiertas en la misma sede |
-| `monto_apertura` | numeric | **no** | — | Con cuánto efectivo arrancó el cajón, declarado a mano; la base acepta hasta un monto negativo |
-| `abierta_por` | uuid | sí | — | Qué colaborador abrió el turno; puede venir vacío y no es necesariamente quien cierra |
-| `abierta_en` | timestamp with time zone | **no** | `now()` | Cuándo se abrió el cajón; con esto la bandeja avisa de cajas de días anteriores sin cerrar |
-| `monto_cierre_sistema` | numeric | sí | — | — |
-| `monto_cierre_real` | numeric | sí | — | — |
-| `diferencia` | numeric | sí | — | Contado menos esperado: positivo sobra, negativo falta, y es el número por el que se pregunta al día siguiente |
-| `cerrada_por` | uuid | sí | — | Qué colaborador contó el cajón y cerró el turno; puede ser distinto de quien abrió |
-| `cerrada_en` | timestamp with time zone | sí | — | Cuándo se contó el efectivo y se cerró el turno; vacío mientras la caja siga abierta |
-| `nota` | text | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `cajas_estado_check` — `CHECK ((estado = ANY (ARRAY['abierta'::text, 'cerrada'::text])))`
-- `cajas_monto_apertura_check` — `CHECK ((monto_apertura >= (0)::numeric))`
-- `cajas_ubicacion_abierta_unica` *(único parcial)* — `retail.cajas (ubicacion_id) WHERE (estado = 'abierta'::text)`
-
-**De qué depende:** `(abierta_por) REFERENCES personas(id)` · `(cerrada_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `cajas_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
-
-
-### `caja_movimientos`
-
-*9 columnas · ~3 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `caja_id` | uuid | **no** | — | — |
-| `tipo` | text | **no** | — | — |
-| `monto` | numeric | **no** | — | — |
-| `motivo` | text | **no** | — | — |
-| `usuario_id` | uuid | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `nota` | text | sí | — | — |
-| `es_ajuste` | boolean | **no** | `false` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `caja_movimientos_monto_check` — `CHECK ((monto > (0)::numeric))`
-- `caja_movimientos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['ingreso'::text, 'egreso'::text])))`
-
-**De qué depende:** `(caja_id) REFERENCES retail.cajas(id)` · `(usuario_id) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `caja_movimientos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.cajas c   WHERE ((c.id = caja_movimientos.caja_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))` |
-
+## 07 · Colibrí — Ventas y caja
 
 ### `ventas`
 
@@ -705,6 +977,98 @@
 | Política | Operación | Condición |
 |---|---|---|
 | `venta_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.ventas v   WHERE ((v.id = venta_pagos.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))` |
+
+
+### `venta_anulacion_items`
+
+*6 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `venta_id` | uuid | **no** | — | — |
+| `venta_item_id` | uuid | **no** | — | — |
+| `condicion` | text | **no** | — | — |
+| `movimiento_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `venta_anulacion_items_condicion_check` — `CHECK ((condicion = ANY (ARRAY['vendible'::text, 'danada_reparacion'::text, 'danada_donar'::text, 'devolver_proveedor'::text])))`
+- `venta_anulacion_items_una_vez_por_linea` — `UNIQUE (venta_item_id)`
+
+**De qué depende:** `(venta_id) REFERENCES retail.ventas(id)` · `(venta_item_id) REFERENCES retail.venta_items(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `venta_anulacion_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.ventas v   WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))` |
+| `venta_anulacion_items_write` | ALL | `(EXISTS ( SELECT 1    FROM retail.ventas v   WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))` |
+
+
+### `cajas`
+
+*12 columnas · ~7 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | El turno de caja de una sede: cada venta apunta acá para que el cierre sume solo lo suyo |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `estado` | text | **no** | `'abierta'::text` | 'abierta' o 'cerrada', nada más; un índice parcial impide dos cajas abiertas en la misma sede |
+| `monto_apertura` | numeric | **no** | — | Con cuánto efectivo arrancó el cajón, declarado a mano; la base acepta hasta un monto negativo |
+| `abierta_por` | uuid | sí | — | Qué colaborador abrió el turno; puede venir vacío y no es necesariamente quien cierra |
+| `abierta_en` | timestamp with time zone | **no** | `now()` | Cuándo se abrió el cajón; con esto la bandeja avisa de cajas de días anteriores sin cerrar |
+| `monto_cierre_sistema` | numeric | sí | — | — |
+| `monto_cierre_real` | numeric | sí | — | — |
+| `diferencia` | numeric | sí | — | Contado menos esperado: positivo sobra, negativo falta, y es el número por el que se pregunta al día siguiente |
+| `cerrada_por` | uuid | sí | — | Qué colaborador contó el cajón y cerró el turno; puede ser distinto de quien abrió |
+| `cerrada_en` | timestamp with time zone | sí | — | Cuándo se contó el efectivo y se cerró el turno; vacío mientras la caja siga abierta |
+| `nota` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `cajas_estado_check` — `CHECK ((estado = ANY (ARRAY['abierta'::text, 'cerrada'::text])))`
+- `cajas_monto_apertura_check` — `CHECK ((monto_apertura >= (0)::numeric))`
+- `cajas_ubicacion_abierta_unica` *(único parcial)* — `retail.cajas (ubicacion_id) WHERE (estado = 'abierta'::text)`
+
+**De qué depende:** `(abierta_por) REFERENCES personas(id)` · `(cerrada_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `cajas_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `caja_movimientos`
+
+*9 columnas · ~3 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `caja_id` | uuid | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `monto` | numeric | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `nota` | text | sí | — | — |
+| `es_ajuste` | boolean | **no** | `false` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `caja_movimientos_monto_check` — `CHECK ((monto > (0)::numeric))`
+- `caja_movimientos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['ingreso'::text, 'egreso'::text])))`
+
+**De qué depende:** `(caja_id) REFERENCES retail.cajas(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `caja_movimientos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.cajas c   WHERE ((c.id = caja_movimientos.caja_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))` |
 
 
 ### `clientes`
@@ -864,34 +1228,7 @@
 
 
 
-## 08 · Facturación SUNAT
-
-### `series_comprobantes`
-
-*5 columnas · ~4 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | el contador vivo de una sede para un tipo de documento |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `tipo` | text | **no** | — | boleta, factura, nota_credito o nota_debito — cada tipo lleva su propio contador |
-| `serie` | text | **no** | — | el prefijo que define CAYLA, no SUNAT (B004, F001); se guarda siempre en mayúsculas |
-| `siguiente_numero` | integer | **no** | `1` | el correlativo que se entregará en la próxima emisión; puede saltar adelante, nunca retroceder |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `series_comprobantes_siguiente_numero_check` — `CHECK ((siguiente_numero > 0))`
-- `series_comprobantes_tipo_check` — `CHECK ((tipo = ANY (ARRAY['boleta'::text, 'factura'::text, 'nota_credito'::text, 'nota_debito'::text])))`
-- `series_comprobantes_ubicacion_id_tipo_key` — `UNIQUE (ubicacion_id, tipo)`
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `series_comprobantes_select` | SELECT | `(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))` |
-
+## 08 · Cuervo — Facturación SUNAT
 
 ### `comprobantes`
 
@@ -952,6 +1289,33 @@
 | Política | Operación | Condición |
 |---|---|---|
 | `comprobantes_select` | SELECT | `(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))` |
+
+
+### `series_comprobantes`
+
+*5 columnas · ~4 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | el contador vivo de una sede para un tipo de documento |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `tipo` | text | **no** | — | boleta, factura, nota_credito o nota_debito — cada tipo lleva su propio contador |
+| `serie` | text | **no** | — | el prefijo que define CAYLA, no SUNAT (B004, F001); se guarda siempre en mayúsculas |
+| `siguiente_numero` | integer | **no** | `1` | el correlativo que se entregará en la próxima emisión; puede saltar adelante, nunca retroceder |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `series_comprobantes_siguiente_numero_check` — `CHECK ((siguiente_numero > 0))`
+- `series_comprobantes_tipo_check` — `CHECK ((tipo = ANY (ARRAY['boleta'::text, 'factura'::text, 'nota_credito'::text, 'nota_debito'::text])))`
+- `series_comprobantes_ubicacion_id_tipo_key` — `UNIQUE (ubicacion_id, tipo)`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `series_comprobantes_select` | SELECT | `(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))` |
 
 
 ### `proformas`
@@ -1015,8 +1379,32 @@
 | `configuracion_empresa_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
 
 
+### `ubicacion_datos_fiscales`
 
-## 09 · Compras y proveedores
+*8 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `ubicacion_id` | uuid | **no** | — | — |
+| `direccion` | text | sí | — | — |
+| `ubigeo` | text | sí | — | — |
+| `departamento` | text | sí | — | — |
+| `provincia` | text | sí | — | — |
+| `distrito` | text | sí | — | — |
+| `telefono` | text | sí | — | — |
+| `updated_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `ubicacion_datos_fiscales_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+
+
+
+## 09 · Pelícano — Compras y proveedores
 
 ### `proveedores`
 
@@ -1245,449 +1633,7 @@
 
 
 
-## 12 · Contabilidad
-
-### `activos_fijos`
-
-*16 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | el bien concreto: esa máquina, ese mostrador, ese equipo de cómputo |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `nombre` | text | **no** | — | cómo se le dice al bien en la boutique o el taller: 'Remalladora Siruba' |
-| `serie` | text | sí | — | número de serie del fabricante; sin él un robo no se le prueba al seguro |
-| `descripcion` | text | sí | — | detalle libre del bien; se puede llenar pero hoy ninguna pantalla lo muestra |
-| `cuenta_codigo` | text | sí | — | a qué cuenta del plan va: 333 maquinaria, 336 cómputo, 335 muebles; hoy apunta a cuentas que no existen |
-| `costo` | numeric | **no** | — | lo que costó el bien el día que se compró, en soles |
-| `valor_residual` | numeric | **no** | `0` | lo que valdría al terminar su vida útil, 10% máquinas y muebles, 5% cómputo; nadie lo lee |
-| `vida_util_meses` | integer | **no** | — | cuántos meses dura el bien: 120 máquinas y muebles, 48 cómputo; ningún cálculo lo usa |
-| `tasa_anual` | numeric | **no** | — | tasa SUNAT de depreciación anual, 0.1000 es 10%; existe y hoy nadie la lee |
-| `fecha_adquisicion` | date | **no** | — | desde cuándo se deprecia el bien; sale como 'Desde' en la pantalla de Activos |
-| `depreciacion_apertura` | numeric | **no** | `0` | desgaste ya acumulado al cargar la ficha; número congelado a mano que no crece nunca |
-| `estado` | text | **no** | `'activo'::text` | activo, baja o vendido; la pantalla solo lista 'activo' y producción no tiene ese candado |
-| `nota` | text | sí | — | comentario libre sobre el bien; ninguna pantalla lo muestra todavía |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo entró la ficha al sistema, no cuándo se compró el bien |
-| `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se editó la ficha por última vez; lo pisa solo el trigger |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `activos_fijos_estado_check` — `CHECK ((estado = ANY (ARRAY['activo'::text, 'baja'::text, 'vendido'::text])))`
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `activos_fijos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `activos_fijos_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-
-## Sin módulo asignado
-
-> Estas tablas existen en la base y **no están en ningún módulo** de `00-MAPA.md`.
-> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una
-> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.
-
-### `categoria_patrones`
-
-*3 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `categoria_id` | uuid | **no** | — | — |
-| `patron_id` | uuid | **no** | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(patron_id) REFERENCES retail.patrones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `categoria_patrones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `categoria_patrones_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-### `categoria_tallas`
-
-*3 columnas · ~173 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `categoria_id` | uuid | **no** | — | — |
-| `talla_id` | uuid | **no** | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(talla_id) REFERENCES retail.tallas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `categoria_tallas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `categoria_tallas_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-### `categoria_tejidos`
-
-*3 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `categoria_id` | uuid | **no** | — | — |
-| `tejido_id` | uuid | **no** | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(tejido_id) REFERENCES retail.tejidos(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `categoria_tejidos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `categoria_tejidos_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-### `costo_historial`
-
-*11 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `variante_id` | uuid | **no** | — | — |
-| `stock_previo` | integer | **no** | — | — |
-| `costo_anterior` | numeric | **no** | — | — |
-| `cantidad_nueva` | integer | **no** | — | — |
-| `costo_unitario_nuevo` | numeric | **no** | — | — |
-| `costo_resultante` | numeric | **no** | — | — |
-| `origen` | text | **no** | — | — |
-| `movimiento_id` | uuid | **no** | — | — |
-| `usuario_id` | uuid | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `costo_historial_cantidad_nueva_check` — `CHECK ((cantidad_nueva > 0))`
-- `costo_historial_costo_anterior_check` — `CHECK ((costo_anterior >= (0)::numeric))`
-- `costo_historial_costo_resultante_check` — `CHECK ((costo_resultante >= (0)::numeric))`
-- `costo_historial_costo_unitario_nuevo_check` — `CHECK ((costo_unitario_nuevo >= (0)::numeric))`
-- `costo_historial_movimiento_id_key` — `UNIQUE (movimiento_id)`
-- `costo_historial_origen_check` — `CHECK ((origen = ANY (ARRAY['compra'::text, 'produccion'::text])))`
-- `costo_historial_stock_previo_check` — `CHECK ((stock_previo >= 0))`
-
-**De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)` · `(usuario_id) REFERENCES personas(id)` · `(variante_id) REFERENCES retail.variantes(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `costo_historial_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.movimientos m   WHERE ((m.id = costo_historial.movimiento_id) AND retail.fn_puede_operar_ubicacion(m.ubicacion_id))))` |
-
-
-### `etiquetas`
-
-*10 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `nombre` | text | **no** | — | — |
-| `activo` | boolean | **no** | `true` | — |
-| `sedes_permitidas` | ARRAY | sí | — | — |
-| `estado` | text | **no** | `'aprobado'::text` | — |
-| `propuesto_por` | uuid | sí | — | — |
-| `aprobado_por` | uuid | sí | — | — |
-| `aprobado_en` | timestamp with time zone | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `notas` | text | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `etiquetas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `etiquetas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
-
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `etiquetas_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
-| `etiquetas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `etiquetas_update_lider` | UPDATE | `retail.fn_es_lider()` |
-
-
-### `gastos`
-
-*15 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | cada salida de plata que solo el Líder de equipo registra; nada impide anotarla dos veces |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `categoria` | text | **no** | — | en qué se gastó: la pantalla ofrece ocho (alquiler, servicios, planilla…), la base acepta cualquier texto |
-| `proveedor_id` | uuid | sí | — | — |
-| `documento_tipo` | text | **no** | `'sin_documento'::text` | — |
-| `documento_serie` | text | sí | — | — |
-| `documento_numero` | text | sí | — | — |
-| `subtotal` | numeric | **no** | `0` | el monto sin IGV, calculado al revés desde el total; ningún reporte lo suma |
-| `igv` | numeric | **no** | `0` | el IGV del comprobante, guardado esperando el crédito fiscal que todavía nadie usa |
-| `total` | numeric | **no** | — | lo que realmente salió del bolsillo; es el único de los tres que suman los reportes |
-| `metodo_pago` | text | **no** | — | con qué se pagó; solo 'efectivo' exacto baja el cuadre, y en producción viene siempre vacía |
-| `especificacion` | text | sí | — | la frase que escribe quien registra ('Alquiler julio', 'luz'), lo único que permite reconocer el gasto después |
-| `usuario_id` | uuid | sí | — | qué colaborador lo registró; lo llena la RPC desde la sesión, nunca la pantalla |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se anotó y a qué mes se carga: uno de junio anotado en julio cae en julio |
-| `token_cliente` | uuid | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `gastos_documento_tipo_check` — `CHECK ((documento_tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'sin_documento'::text])))`
-- `gastos_igv_check` — `CHECK ((igv >= (0)::numeric))`
-- `gastos_igv_requiere_factura` — `CHECK (((documento_tipo = 'factura'::text) OR (igv = (0)::numeric)))`
-- `gastos_metodo_pago_check` — `CHECK ((metodo_pago = ANY (ARRAY['efectivo'::text, 'transferencia'::text, 'yape'::text, 'plin'::text, 'deposito'::text, 'tarjeta'::text, 'otro'::text])))`
-- `gastos_subtotal_check` — `CHECK ((subtotal >= (0)::numeric))`
-- `gastos_total_check` — `CHECK ((total > (0)::numeric))`
-- `gastos_total_cuadra` — `CHECK ((total = (subtotal + igv)))`
-
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `gastos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-
-
-### `historial_producto_cambios`
-
-*8 columnas · ~1 filas · ⚠️ **sin permisos por fila***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `entidad` | text | **no** | — | — |
-| `entidad_id` | uuid | **no** | — | — |
-| `campo` | text | **no** | — | — |
-| `valor_anterior` | text | sí | — | — |
-| `valor_nuevo` | text | sí | — | — |
-| `usuario_id` | uuid | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `historial_producto_cambios_entidad_check` — `CHECK ((entidad = ANY (ARRAY['producto'::text, 'variante'::text])))`
-
-**De qué depende:** `(usuario_id) REFERENCES personas(id)`
-
-
-### `insumo_lotes`
-
-*12 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `insumo_id` | uuid | **no** | — | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `codigo_lote` | text | sí | — | — |
-| `proveedor_id` | uuid | sí | — | — |
-| `cantidad_ingresada` | numeric | **no** | — | — |
-| `costo_unitario` | numeric | **no** | — | — |
-| `documento` | text | sí | — | — |
-| `fecha_ingreso` | date | **no** | `CURRENT_DATE` | — |
-| `origen` | text | **no** | `'compra'::text` | — |
-| `nota` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `insumo_lotes_cantidad_ingresada_check` — `CHECK ((cantidad_ingresada > (0)::numeric))`
-- `insumo_lotes_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
-- `insumo_lotes_origen_check` — `CHECK ((origen = ANY (ARRAY['compra'::text, 'saldo_inicial'::text])))`
-- `insumo_lotes_codigo_unico` *(único parcial)* — `retail.insumo_lotes (insumo_id, codigo_lote) WHERE (codigo_lote IS NOT NULL)`
-
-**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `insumo_lotes_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
-
-
-### `insumos`
-
-*12 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `codigo` | text | **no** | — | — |
-| `nombre` | text | **no** | — | — |
-| `tipo` | text | **no** | — | — |
-| `unidad_medida` | text | **no** | — | — |
-| `proveedor_id` | uuid | sí | — | — |
-| `merma_pct` | numeric | **no** | `0` | — |
-| `stock_minimo` | numeric | sí | — | — |
-| `archivado_at` | timestamp with time zone | sí | — | — |
-| `nota` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `updated_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `insumos_codigo_key` — `UNIQUE (codigo)`
-- `insumos_merma_pct_check` — `CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))`
-- `insumos_stock_minimo_check` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= (0)::numeric)))`
-- `insumos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))`
-- `insumos_unidad_medida_check` — `CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
-
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `insumos_insert_lider` | INSERT | `retail.fn_es_lider()` |
-| `insumos_select_autenticado` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `insumos_update_lider` | UPDATE | `retail.fn_es_lider()` |
-
-
-### `movimientos_insumo`
-
-*12 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `insumo_id` | uuid | **no** | — | — |
-| `insumo_lote_id` | uuid | sí | — | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `tipo` | text | **no** | — | — |
-| `cantidad` | numeric | **no** | — | — |
-| `costo_unitario` | numeric | **no** | `0` | — |
-| `produccion_id` | uuid | sí | — | — |
-| `usuario_id` | uuid | sí | — | — |
-| `motivo` | text | sí | — | — |
-| `nota` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `movimientos_insumo_ajuste_con_motivo` — `CHECK (((tipo <> 'ajuste'::text) OR ((motivo IS NOT NULL) AND (length(TRIM(BOTH FROM motivo)) > 0))))`
-- `movimientos_insumo_cantidad_segun_tipo` — `CHECK ((((tipo = 'ajuste'::text) AND (cantidad <> (0)::numeric)) OR ((tipo <> 'ajuste'::text) AND (cantidad > (0)::numeric))))`
-- `movimientos_insumo_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
-- `movimientos_insumo_lote_obligatorio` — `CHECK (((tipo = 'ajuste'::text) OR (insumo_lote_id IS NOT NULL)))`
-- `movimientos_insumo_produccion_segun_tipo` — `CHECK ((((tipo = ANY (ARRAY['consumo'::text, 'devolucion'::text])) AND (produccion_id IS NOT NULL)) OR ((tipo = ANY (ARRAY['compra'::text, 'merma'::text, 'ajuste'::text])) AND (produccion_id IS NULL))))`
-- `movimientos_insumo_tipo_check` — `CHECK ((tipo = ANY (ARRAY['compra'::text, 'consumo'::text, 'devolucion'::text, 'merma'::text, 'ajuste'::text])))`
-
-**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(insumo_lote_id) REFERENCES retail.insumo_lotes(id)` · `(produccion_id) REFERENCES retail.producciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `movimientos_insumo_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
-
-
-### `patrones`
-
-*9 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `nombre` | text | **no** | — | — |
-| `activo` | boolean | **no** | `true` | — |
-| `estado` | text | **no** | `'aprobado'::text` | — |
-| `propuesto_por` | uuid | sí | — | — |
-| `aprobado_por` | uuid | sí | — | — |
-| `aprobado_en` | timestamp with time zone | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `notas` | text | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `patrones_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `patrones_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
-
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `patrones_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
-| `patrones_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `patrones_update_lider` | UPDATE | `retail.fn_es_lider()` |
-
-
-### `prendas_danadas`
-
-*12 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `variante_id` | uuid | **no** | — | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `cantidad` | integer | **no** | — | — |
-| `devolucion_item_id` | uuid | **no** | — | — |
-| `movimiento_entrada_id` | uuid | **no** | — | — |
-| `estado` | text | **no** | `'en_cuarentena'::text` | — |
-| `movimiento_salida_id` | uuid | sí | — | — |
-| `resuelto_por` | uuid | sí | — | — |
-| `resuelto_en` | timestamp with time zone | sí | — | — |
-| `nota` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `prendas_danadas_cantidad_check` — `CHECK ((cantidad > 0))`
-- `prendas_danadas_devolucion_item_id_key` — `UNIQUE (devolucion_item_id)`
-- `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text])))`
-- `prendas_danadas_resolucion_coherente` — `CHECK ((((estado = 'en_cuarentena'::text) AND (movimiento_salida_id IS NULL) AND (resuelto_en IS NULL)) OR ((estado <> 'en_cuarentena'::text) AND (movimiento_salida_id IS NOT NULL) AND (resuelto_en IS NOT NULL))))`
-
-**De qué depende:** `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `prendas_danadas_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
-
-
-### `produccion_lineas`
-
-*6 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | la línea de desglose de una corrida: una talla-color con su cantidad |
-| `produccion_id` | uuid | **no** | — | de qué corrida del Taller viene; borrar la corrida se lleva sus líneas en cascada |
-| `variante_id` | uuid | **no** | — | qué prenda exacta, talla y color, recibe la entrada de stock al cerrar la corrida |
-| `cantidad_plan` | integer | **no** | — | — |
-| `cantidad_buenas` | integer | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se agregó esa talla-color al desglose de la corrida |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `produccion_lineas_cantidad_buenas_check` — `CHECK (((cantidad_buenas IS NULL) OR (cantidad_buenas >= 0)))`
-- `produccion_lineas_cantidad_plan_check` — `CHECK ((cantidad_plan > 0))`
-- `produccion_lineas_produccion_id_variante_id_key` — `UNIQUE (produccion_id, variante_id)`
-
-**De qué depende:** `(produccion_id) REFERENCES retail.producciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `produccion_lineas_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.producciones p   WHERE ((p.id = produccion_lineas.produccion_id) AND retail.fn_puede_operar_ubicacion(p.ubicacion_id))))` |
-
+## 10 · Gallito — Producción del Taller
 
 ### `producciones`
 
@@ -1734,124 +1680,142 @@
 | `producciones_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
 
 
-### `producto_fotos`
+### `produccion_lineas`
 
-*7 columnas · ~20 filas · permisos por fila **activos***
+*6 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `producto_id` | uuid | **no** | — | — |
-| `url` | text | **no** | — | — |
-| `orden` | integer | **no** | `0` | — |
-| `es_principal` | boolean | **no** | `false` | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `color_codigo` | text | sí | — | — |
+| `id` | uuid | **no** | `gen_random_uuid()` | la línea de desglose de una corrida: una talla-color con su cantidad |
+| `produccion_id` | uuid | **no** | — | de qué corrida del Taller viene; borrar la corrida se lleva sus líneas en cascada |
+| `variante_id` | uuid | **no** | — | qué prenda exacta, talla y color, recibe la entrada de stock al cerrar la corrida |
+| `cantidad_plan` | integer | **no** | — | — |
+| `cantidad_buenas` | integer | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se agregó esa talla-color al desglose de la corrida |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `producto_fotos_principal_unico` *(único parcial)* — `retail.producto_fotos (producto_id) WHERE es_principal`
+- `produccion_lineas_cantidad_buenas_check` — `CHECK (((cantidad_buenas IS NULL) OR (cantidad_buenas >= 0)))`
+- `produccion_lineas_cantidad_plan_check` — `CHECK ((cantidad_plan > 0))`
+- `produccion_lineas_produccion_id_variante_id_key` — `UNIQUE (produccion_id, variante_id)`
 
-**De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(producto_id) REFERENCES retail.productos(id)`
+**De qué depende:** `(produccion_id) REFERENCES retail.producciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `producto_fotos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `producto_fotos_write_lider` | ALL | `retail.fn_es_lider()` |
+| `produccion_lineas_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.producciones p   WHERE ((p.id = produccion_lineas.produccion_id) AND retail.fn_puede_operar_ubicacion(p.ubicacion_id))))` |
 
 
-### `tallas`
+### `insumos`
 
-*9 columnas · ~25 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `valor` | text | **no** | — | — |
-| `activo` | boolean | **no** | `true` | — |
-| `estado` | text | **no** | `'aprobado'::text` | — |
-| `propuesto_por` | uuid | sí | — | — |
-| `aprobado_por` | uuid | sí | — | — |
-| `aprobado_en` | timestamp with time zone | sí | — | — |
-| `notas` | text | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `tallas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `tallas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
-
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `tallas_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
-| `tallas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `tallas_update_lider` | UPDATE | `retail.fn_es_lider()` |
-
-
-### `tejidos`
-
-*9 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `codigo` | text | **no** | — | — |
 | `nombre` | text | **no** | — | — |
-| `activo` | boolean | **no** | `true` | — |
-| `estado` | text | **no** | `'aprobado'::text` | — |
-| `propuesto_por` | uuid | sí | — | — |
-| `aprobado_por` | uuid | sí | — | — |
-| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `tipo` | text | **no** | — | — |
+| `unidad_medida` | text | **no** | — | — |
+| `proveedor_id` | uuid | sí | — | — |
+| `merma_pct` | numeric | **no** | `0` | — |
+| `stock_minimo` | numeric | sí | — | — |
+| `archivado_at` | timestamp with time zone | sí | — | — |
+| `nota` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
-| `notas` | text | sí | — | — |
+| `updated_at` | timestamp with time zone | **no** | `now()` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `tejidos_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `tejidos_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+- `insumos_codigo_key` — `UNIQUE (codigo)`
+- `insumos_merma_pct_check` — `CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))`
+- `insumos_stock_minimo_check` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= (0)::numeric)))`
+- `insumos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))`
+- `insumos_unidad_medida_check` — `CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
 
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
+**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `tejidos_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
-| `tejidos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `tejidos_update_lider` | UPDATE | `retail.fn_es_lider()` |
+| `insumos_insert_lider` | INSERT | `retail.fn_es_lider()` |
+| `insumos_select_autenticado` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `insumos_update_lider` | UPDATE | `retail.fn_es_lider()` |
 
 
-### `transferencia_recepciones`
+### `insumo_lotes`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `transferencia_id` | uuid | **no** | — | — |
-| `variante_id` | uuid | **no** | — | — |
-| `cantidad_recibida` | integer | **no** | — | — |
-| `movimiento_id` | uuid | sí | — | — |
-| `registrado_por` | uuid | sí | — | — |
+| `insumo_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `codigo_lote` | text | sí | — | — |
+| `proveedor_id` | uuid | sí | — | — |
+| `cantidad_ingresada` | numeric | **no** | — | — |
+| `costo_unitario` | numeric | **no** | — | — |
+| `documento` | text | sí | — | — |
+| `fecha_ingreso` | date | **no** | `CURRENT_DATE` | — |
+| `origen` | text | **no** | `'compra'::text` | — |
+| `nota` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `transferencia_recepciones_cantidad_recibida_check` — `CHECK ((cantidad_recibida >= 0))`
-- `transferencia_recepciones_transferencia_id_variante_id_key` — `UNIQUE (transferencia_id, variante_id)`
+- `insumo_lotes_cantidad_ingresada_check` — `CHECK ((cantidad_ingresada > (0)::numeric))`
+- `insumo_lotes_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
+- `insumo_lotes_origen_check` — `CHECK ((origen = ANY (ARRAY['compra'::text, 'saldo_inicial'::text])))`
+- `insumo_lotes_codigo_unico` *(único parcial)* — `retail.insumo_lotes (insumo_id, codigo_lote) WHERE (codigo_lote IS NOT NULL)`
 
-**De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)` · `(registrado_por) REFERENCES personas(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `transferencia_recepciones_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
+| `insumo_lotes_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `movimientos_insumo`
+
+*12 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `insumo_id` | uuid | **no** | — | — |
+| `insumo_lote_id` | uuid | sí | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `cantidad` | numeric | **no** | — | — |
+| `costo_unitario` | numeric | **no** | `0` | — |
+| `produccion_id` | uuid | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `motivo` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `movimientos_insumo_ajuste_con_motivo` — `CHECK (((tipo <> 'ajuste'::text) OR ((motivo IS NOT NULL) AND (length(TRIM(BOTH FROM motivo)) > 0))))`
+- `movimientos_insumo_cantidad_segun_tipo` — `CHECK ((((tipo = 'ajuste'::text) AND (cantidad <> (0)::numeric)) OR ((tipo <> 'ajuste'::text) AND (cantidad > (0)::numeric))))`
+- `movimientos_insumo_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
+- `movimientos_insumo_lote_obligatorio` — `CHECK (((tipo = 'ajuste'::text) OR (insumo_lote_id IS NOT NULL)))`
+- `movimientos_insumo_produccion_segun_tipo` — `CHECK ((((tipo = ANY (ARRAY['consumo'::text, 'devolucion'::text])) AND (produccion_id IS NOT NULL)) OR ((tipo = ANY (ARRAY['compra'::text, 'merma'::text, 'ajuste'::text])) AND (produccion_id IS NULL))))`
+- `movimientos_insumo_tipo_check` — `CHECK ((tipo = ANY (ARRAY['compra'::text, 'consumo'::text, 'devolucion'::text, 'merma'::text, 'ajuste'::text])))`
+
+**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(insumo_lote_id) REFERENCES retail.insumo_lotes(id)` · `(produccion_id) REFERENCES retail.producciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `movimientos_insumo_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
 
 
 ### `v_insumo_saldos`
@@ -1870,50 +1834,86 @@
 | `valor` | numeric | sí | — | — |
 
 
-### `variante_etiquetas`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+## 11 · Garza — Finanzas operativas
 
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `variante_id` | uuid | **no** | — | — |
-| `etiqueta_id` | uuid | **no** | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
+### `gastos`
 
-**De qué depende:** `(etiqueta_id) REFERENCES retail.etiquetas(id)` · `(variante_id) REFERENCES retail.variantes(id) ON DELETE CASCADE`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `variante_etiquetas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
-| `variante_etiquetas_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-### `venta_anulacion_items`
-
-*6 columnas · ~0 filas · permisos por fila **activos***
+*15 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `venta_id` | uuid | **no** | — | — |
-| `venta_item_id` | uuid | **no** | — | — |
-| `condicion` | text | **no** | — | — |
-| `movimiento_id` | uuid | sí | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `id` | uuid | **no** | `gen_random_uuid()` | cada salida de plata que solo el Líder de equipo registra; nada impide anotarla dos veces |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `categoria` | text | **no** | — | en qué se gastó: la pantalla ofrece ocho (alquiler, servicios, planilla…), la base acepta cualquier texto |
+| `proveedor_id` | uuid | sí | — | — |
+| `documento_tipo` | text | **no** | `'sin_documento'::text` | — |
+| `documento_serie` | text | sí | — | — |
+| `documento_numero` | text | sí | — | — |
+| `subtotal` | numeric | **no** | `0` | el monto sin IGV, calculado al revés desde el total; ningún reporte lo suma |
+| `igv` | numeric | **no** | `0` | el IGV del comprobante, guardado esperando el crédito fiscal que todavía nadie usa |
+| `total` | numeric | **no** | — | lo que realmente salió del bolsillo; es el único de los tres que suman los reportes |
+| `metodo_pago` | text | **no** | — | con qué se pagó; solo 'efectivo' exacto baja el cuadre, y en producción viene siempre vacía |
+| `especificacion` | text | sí | — | la frase que escribe quien registra ('Alquiler julio', 'luz'), lo único que permite reconocer el gasto después |
+| `usuario_id` | uuid | sí | — | qué colaborador lo registró; lo llena la RPC desde la sesión, nunca la pantalla |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se anotó y a qué mes se carga: uno de junio anotado en julio cae en julio |
+| `token_cliente` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `venta_anulacion_items_condicion_check` — `CHECK ((condicion = ANY (ARRAY['vendible'::text, 'danada_reparacion'::text, 'danada_donar'::text, 'devolver_proveedor'::text])))`
-- `venta_anulacion_items_una_vez_por_linea` — `UNIQUE (venta_item_id)`
+- `gastos_documento_tipo_check` — `CHECK ((documento_tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'sin_documento'::text])))`
+- `gastos_igv_check` — `CHECK ((igv >= (0)::numeric))`
+- `gastos_igv_requiere_factura` — `CHECK (((documento_tipo = 'factura'::text) OR (igv = (0)::numeric)))`
+- `gastos_metodo_pago_check` — `CHECK ((metodo_pago = ANY (ARRAY['efectivo'::text, 'transferencia'::text, 'yape'::text, 'plin'::text, 'deposito'::text, 'tarjeta'::text, 'otro'::text])))`
+- `gastos_subtotal_check` — `CHECK ((subtotal >= (0)::numeric))`
+- `gastos_total_check` — `CHECK ((total > (0)::numeric))`
+- `gastos_total_cuadra` — `CHECK ((total = (subtotal + igv)))`
 
-**De qué depende:** `(venta_id) REFERENCES retail.ventas(id)` · `(venta_item_id) REFERENCES retail.venta_items(id)`
+**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `venta_anulacion_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.ventas v   WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))` |
-| `venta_anulacion_items_write` | ALL | `(EXISTS ( SELECT 1    FROM retail.ventas v   WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))` |
+| `gastos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+
+
+
+## 12 · Urraca — Contabilidad
+
+### `activos_fijos`
+
+*16 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | el bien concreto: esa máquina, ese mostrador, ese equipo de cómputo |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `nombre` | text | **no** | — | cómo se le dice al bien en la boutique o el taller: 'Remalladora Siruba' |
+| `serie` | text | sí | — | número de serie del fabricante; sin él un robo no se le prueba al seguro |
+| `descripcion` | text | sí | — | detalle libre del bien; se puede llenar pero hoy ninguna pantalla lo muestra |
+| `cuenta_codigo` | text | sí | — | a qué cuenta del plan va: 333 maquinaria, 336 cómputo, 335 muebles; hoy apunta a cuentas que no existen |
+| `costo` | numeric | **no** | — | lo que costó el bien el día que se compró, en soles |
+| `valor_residual` | numeric | **no** | `0` | lo que valdría al terminar su vida útil, 10% máquinas y muebles, 5% cómputo; nadie lo lee |
+| `vida_util_meses` | integer | **no** | — | cuántos meses dura el bien: 120 máquinas y muebles, 48 cómputo; ningún cálculo lo usa |
+| `tasa_anual` | numeric | **no** | — | tasa SUNAT de depreciación anual, 0.1000 es 10%; existe y hoy nadie la lee |
+| `fecha_adquisicion` | date | **no** | — | desde cuándo se deprecia el bien; sale como 'Desde' en la pantalla de Activos |
+| `depreciacion_apertura` | numeric | **no** | `0` | desgaste ya acumulado al cargar la ficha; número congelado a mano que no crece nunca |
+| `estado` | text | **no** | `'activo'::text` | activo, baja o vendido; la pantalla solo lista 'activo' y producción no tiene ese candado |
+| `nota` | text | sí | — | comentario libre sobre el bien; ninguna pantalla lo muestra todavía |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo entró la ficha al sistema, no cuándo se compró el bien |
+| `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se editó la ficha por última vez; lo pisa solo el trigger |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `activos_fijos_estado_check` — `CHECK ((estado = ANY (ARRAY['activo'::text, 'baja'::text, 'vendido'::text])))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `activos_fijos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `activos_fijos_write_lider` | ALL | `retail.fn_es_lider()` |
 
