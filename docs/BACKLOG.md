@@ -28,6 +28,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Recibir por envío: varios proveedores, una guía, cuenta cualquiera (2026-09-18, ADR-0113)
+
+Rama `claude/receiving-module-design-3f2904`, sobre `main` (804d030, con la rama de Compras ya fusionada, #149).
+**Solo local — NO está en producción.** Construido y verificado: tablas `envios` / `envio_extras` /
+`envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la pantalla nueva
+`/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
+(`pnpm pruebas:recibir-envio`), 24 unitarias, tipos y lint en verde, y un envío real de punta a punta desde la
+pantalla como líder (2 proveedores + un regalo + un traslado del Taller). Decisiones de Felipe: un envío puede
+traer comprobantes de varios proveedores; una sola guía por envío; lo fuera de comprobante declara su origen
+(proveedor, y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta); cualquier
+persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué llegó?» y desaparecen al marcar.
+
+- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo en esta
+      sesión (el inicio de sesión pide contraseña). Qué mirar: ningún «S/» en la lista ni en los indicadores,
+      «Entra al almacén de» fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y
+      que `/compras` la devuelva al Inicio. Hay dos comprobantes de prueba `TST-UI000003`/`UI000004` para
+      Tienda Trujillo. En la base local quedaron además `TST-UI000001`/`UI000002` (ya recibidos, envío
+      `T009-UI01`) y el traslado 15 (cerrado): datos de prueba, no se borran.
+- [ ] **Pegar en producción las 2 migraciones** (`20260919120000_envios_recepcion_multiproveedor`,
+      `20260919121000_recibir_envio`) **después** de las 15 de Compras (ADR-0111), con ok de Felipe. Cada una
+      trae su `set search_path = retail, public, extensions;`.
+- [ ] **Borrar `compras/recibir/page.tsx` y `RecepcionCompraFormV2.tsx`** (sin uso: la ruta vieja redirige a
+      `/recibir`) cuando la sesión «Mejora de pantallas de proveedores y comprobantes» confirme que no los toca.
+
+Siguiente, sin urgencia: agrupar «Recibidas recientemente» por envío (hoy una fila por comprobante, con la
+misma guía); borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote` sueltos
+tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
+repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
+
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,

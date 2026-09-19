@@ -4535,6 +4535,20 @@ export type Database = {
         }
         Returns: string
       }
+      recibir_envio: {
+        Args: {
+          p_cierres?: Json
+          p_extras?: Json
+          p_items?: Json
+          p_nota?: string
+          p_notas_credito?: Json
+          p_numero_guia?: string
+          p_token?: string
+          p_traslados?: Json
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
       recibir_insumo: {
         Args: {
           p_cantidad: number

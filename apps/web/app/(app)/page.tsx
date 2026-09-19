@@ -54,11 +54,8 @@ export default async function InicioPage() {
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
           {[
             { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
-            // ADR-0111: una sola puerta para recibir. El líder recibe contra el comprobante del proveedor
-            // (Compras); el colaborador no puede entrar a Compras y conserva su camino: el ingreso sin comprobante.
-            persona.rol === "lider"
-              ? { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Contra el comprobante del proveedor" }
-              : { href: "/inventario/recibir", etiqueta: "Ingreso sin comprobante", detalle: "Ingresar un lote a esta ubicación" },
+            // ADR-0111 + ADR-0113: una sola puerta para recibir, la misma para todos: cuenta cualquier colaborador de la sede.
+            { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },
             { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación" },
             { href: "/productos", etiqueta: "Productos", detalle: "Catálogo completo" },
             { href: "/inventario/movimientos", etiqueta: "Movimientos", detalle: "Por qué cambió el stock" },

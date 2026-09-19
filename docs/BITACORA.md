@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
+
+Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
+
+Errores propios que la verificación cazó: dos veces un nombre de ADR/migración que otra rama ya usaba (0112 estaba tomado; se usó 0113), un chequeo de «solo líder cierra» en la RPC más estricto que la base sin que nadie lo hubiera decidido (se quitó: la decisión vive en la pantalla y es reversible sin migración), y la pantalla nueva perdió el ancho completo al salir de `/compras` (`SIN_TOPE_DE_ANCHO`). También cerré la sesión del navegador de Felipe para probar como Micaela y no pude volver a entrar: iniciar sesión pide una contraseña que no me toca escribir.
+
+Lo que Felipe se lleva: un envío no es un proveedor — es una llegada a la puerta, y modelarlo como el padre que agrupa lotes (uno por proveedor) dejó intactas las métricas y el costo de cada proveedor; y «que cuente cualquiera» no obliga a abrir Compras: se abre solo la puerta de recibir y los montos ni siquiera salen del servidor. Falta probar la pantalla como colaborador y pegar las 2 migraciones en producción.
+
 ## 2026-09-18 (Diccionario de datos al día con producción: 62 tablas, 157 funciones — parchando sobre #138 en vez de rehacerlo)
 
 El PR #138 refrescaba el volcado de producción pero quedó con conflictos y, para cuando se pudo retomar, producción ya tenía cuatro tablas más (`compra_item_cierres`, `compra_notas_credito`, `proveedor_creditos`, `etiqueta_categorias`), columnas nuevas (`etiquetas.descuento_pct`, `venta_items.descuento_etiqueta_id`, cinco columnas de `compras`) y 31 funciones nuevas o con firma distinta (entre ellas `campanas_vigentes`, `fn_hoy_lima`). En vez de volver a bajar ~230 KB de JSON, se tomó #138 como base y se parchó solo lo que difería: se calculó una firma md5 por tabla (columnas, restricciones, políticas, índices únicos) y por función, se le mandó a la base solo un prefijo de 6 caracteres por firma y ella devolvió únicamente lo distinto.

@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 93 llamadas de `apps/web` contra 156 funciones del schema `retail` en producción.
+> Comparadas 94 llamadas de `apps/web` contra 156 funciones del schema `retail` en producción.
 
 ---
 
@@ -22,7 +22,7 @@ Nada. Todas las llamadas encajan con la firma real.
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:59` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `fn_proveedor_costo_evolucion` · `apps/web/lib/proveedores.ts:202` — no manda `p_limite` (normal si tienen valor por defecto)
 
-## No analizadas — 22
+## No analizadas — 23
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
@@ -37,6 +37,7 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:336` — los parámetros no van escritos ahí mismo
 - `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:711` — los parámetros no van escritos ahí mismo
 - `recibir_y_cerrar_compras` · `apps/web/components/RecepcionCompraFormV2.tsx:413` — el objeto se arma con «...», no se puede leer entero
+- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:488` — los parámetros no van escritos ahí mismo
 - `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:70` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:49` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:197` — el objeto se arma con «...», no se puede leer entero
