@@ -66,6 +66,13 @@ pantalla (`MAX_ROJO_POR_PANTALLA`): la onda del puntito la lleva «Vence esta se
 «Por urgencia | Por proveedor» deslice las filas (`useFlip`) sin esperar al servidor; `router.replace` sincroniza
 la URL en segundo plano, así el enlace se sigue pudiendo compartir.
 
+**D8 — La tabla decide su forma por el ancho de SU contenedor, no por el de la ventana.** Al verla en el panel
+del navegador (~530 px de tabla con el menú lateral abierto) el nombre del proveedor quedaba en «Textil…»: seis
+columnas fijas no caben en 1024 px de ventana. La lista es ahora un `@container` con tres formas: < 40 rem
+tarjeta (como en celular), ≥ 40 rem tabla de 5 columnas con «Pagado» bajo el saldo, ≥ 56 rem las seis columnas de
+las maquetas. Solo cambia esta lista (el `Encabezado` compartido decide por ventana y no se tocó; aquí el encabezado
+es propio). Desborda igual que antes la fila del buscador en celular: eso sigue pendiente y no es de este ADR.
+
 ## Lo que NO cambia
 
 Cifras, columnas, tramos, textos y reglas de negocio. El pago individual de una fila (`RegistrarPagoModal`, que

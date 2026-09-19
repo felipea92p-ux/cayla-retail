@@ -7,7 +7,7 @@ import { Banknote, ChevronRight } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Tabla, Encabezado } from "@/components/ui/Tabla";
+import { Tabla } from "@/components/ui/Tabla";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { PagoJuntosModal, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoJuntosModal";
@@ -43,8 +43,13 @@ import { useFlip } from "@/lib/useFlip";
 //    la que queda con saldo se enciende en verde y su cifra cuenta hasta el valor nuevo. Recién entonces se pide
 //    el dato fresco al servidor (`router.refresh()`): antes de eso la lista sigue mostrando lo de antes, sin saltos.
 
-// [casilla] Proveedor · comprobante · Vence · Pagado · Saldo · Pagar
-const PLANTILLA = "sm:grid-cols-[1.875rem_1fr_11rem_9.5rem_8.25rem_6.5rem]";
+// La tabla decide su forma por el ancho de SU PROPIO contenedor (`@container`), no por el de la ventana: con el menú
+// lateral abierto o en un panel angosto, «1024 px de ventana» son ~530 px de tabla, y con las seis columnas fijas el
+// nombre del proveedor quedaba en «Textil…». Tres formas:
+//   · < 40rem  → tarjeta (como en celular): proveedor y comprobante a la izquierda, saldo y «Pagar» a la derecha.
+//   · ≥ 40rem  → tabla de 5 columnas: [casilla] Proveedor · comprobante · Vence · Saldo · Pagar. «Pagado» baja bajo el saldo.
+//   · ≥ 56rem  → tabla de 6 columnas: la de las maquetas, con «Pagado» y su barra en columna propia.
+const PLANTILLA = "@[40rem]:grid-cols-[1.875rem_1fr_9.5rem_8.25rem_6.5rem] @[56rem]:grid-cols-[1.875rem_1fr_11rem_9.5rem_8.25rem_6.5rem]";
 
 const ESTILO_BANDA = {
   vencidas: "bg-rojo/[0.05] text-rojo",
@@ -279,11 +284,21 @@ export function PorPagarLista({
         </div>
       )}
 
-      <Tabla className={`anim-entra ${hayEco ? "[&_[data-fila]:not([data-eco])]:opacity-50" : ""}`} style={{ ["--i" as string]: indice }}>
-        <Encabezado
-          plantilla={PLANTILLA}
-          columnas={[{ titulo: "" }, { titulo: "Proveedor · Comprobante" }, { titulo: "Vence" }, { titulo: "Pagado", alinear: "der" }, { titulo: "Saldo", alinear: "der" }, { titulo: "" }]}
-        />
+      <Tabla className={`@container anim-entra ${hayEco ? "[&_[data-fila]:not([data-eco])]:opacity-50" : ""}`} style={{ ["--i" as string]: indice }}>
+        <div className={`hidden gap-x-4 px-5 py-2 @[40rem]:grid ${PLANTILLA}`} role="row">
+          {[
+            { t: "", c: "" },
+            { t: "Proveedor · Comprobante", c: "" },
+            { t: "Vence", c: "" },
+            { t: "Pagado", c: "hidden text-right @[56rem]:block" },
+            { t: "Saldo", c: "text-right" },
+            { t: "", c: "" },
+          ].map((h, i) => (
+            <span key={i} role="columnheader" className={`label-cayla text-[11px] text-tinta/55 ${h.c}`}>
+              {h.t}
+            </span>
+          ))}
+        </div>
         {bloques.length === 0 && (
           <div className="anim-revelar px-5 py-10 text-center">
             <p className="font-display text-[19px] italic text-tinta/65">Ninguno de los comprobantes de esta página coincide.</p>
@@ -560,7 +575,7 @@ function FilaPorPagar({
           filas[filas.indexOf(e.currentTarget) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
         }
       }}
-      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 outline-none before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 sm:grid sm:items-center sm:gap-x-4 sm:px-5 ${PLANTILLA} ${
+      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-[background-color,opacity] duration-200 outline-none before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.04] hover:before:scale-y-100 focus-visible:bg-tinta/[0.04] focus-visible:before:scale-y-100 @[40rem]:grid @[40rem]:items-center @[40rem]:gap-x-4 @[40rem]:px-5 ${PLANTILLA} ${
         marcada ? "bg-rojo/[0.045] before:scale-y-100" : ""
       } ${eco || foco ? "bg-tinta/[0.04] before:scale-y-100" : ""} ${atenuada ? "opacity-40" : ""} ${destello ? "anim-destello-ok" : ""} ${
         sellada ? "pointer-events-none bg-verde/10 before:scale-y-100 before:bg-verde" : ""
@@ -575,10 +590,10 @@ function FilaPorPagar({
           <span className="label-cayla text-[11px]">Pagada</span>
         </span>
       )}
-      <span className={`relative z-10 pt-0.5 sm:pt-0 ${sellada ? "opacity-55" : ""}`}>
+      <span className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
         <Casilla marcada={marcada} onAlternar={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
       </span>
-      <div className={`min-w-0 flex-1 sm:flex-none ${sellada ? "opacity-55" : ""}`}>
+      <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         <span className="block truncate text-sm text-tinta">
           <Resaltar texto={c.proveedorNombre} q={busqueda} />{" "}
           <Link href={`/compras/factura/${c.id}`} className="relative z-10 ml-1 text-xs tabular-nums text-tinta/65 underline-offset-4 transition-colors hover:text-rojo hover:underline">
@@ -586,7 +601,7 @@ function FilaPorPagar({
           </Link>
         </span>
         <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
-        <span className={`mt-1 block text-xs sm:hidden ${colorVence}`}>{vence}</span>
+        <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
             por encima (`z-10`) para que el tooltip con la explicación funcione sin quitarle el clic: el detalle
@@ -597,7 +612,7 @@ function FilaPorPagar({
           </Link>
         )}
       </div>
-      <div className={`hidden sm:block ${sellada ? "opacity-55" : ""}`}>
+      <div className={`hidden @[40rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${colorVence}`}>{vence}</span>
         {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/55">{diaMes(c.fechaVencimiento)}</span>}
         {/* Plazo consumido (emisión → vencimiento): «vence en 14 días» no dice si era un plazo de 15 o de 60. */}
@@ -607,7 +622,7 @@ function FilaPorPagar({
           </span>
         )}
       </div>
-      <div className={`hidden text-right tabular-nums sm:block ${sellada ? "opacity-55" : ""}`}>
+      <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
         <span className="block text-xs text-tinta/55">de {soles(c.total)}</span>
         {c.pagado > 0 && (
@@ -618,11 +633,13 @@ function FilaPorPagar({
       </div>
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>
         <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(saldoMostrado)}</span>
-        <span className="relative z-10 mt-1.5 inline-block sm:hidden">
+        {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
+        {c.pagado > 0 && <span className="block text-xs tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
+        <span className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
           <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
         </span>
       </div>
-      <div className={`relative z-10 hidden items-center justify-end gap-2 text-right sm:flex ${sellada ? "opacity-55" : ""}`}>
+      <div className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
         <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
         {/* La flecha aparece al pasar el mouse: dice «esta fila se abre», sin ocupar sitio en reposo. */}
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
