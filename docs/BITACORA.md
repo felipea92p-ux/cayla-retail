@@ -15,6 +15,14 @@ Lo que Felipe se lleva: una etiqueta que cambia precios necesita que el sistema 
 
 **Actualización (2026-09-19, noche): migración pegada y verificada.** Se comprobó en solo lectura que `etiquetar_variantes` existe con la firma correcta, es security definer, la ejecuta `authenticated` y no `anon`, y el código coincide con el del archivo; `variante_etiquetas` sigue en 0 filas y `registrar_venta` no cambió. De paso salió a la luz un desvío ajeno: producción ya tenía 7 funciones nuevas o cambiadas y 3 desaparecidas respecto al volcado (referencias de productos, `crear_producto_con_variantes`…), pegadas por otra sesión sin refrescar el diccionario. Aquí solo se agregó la firma propia; el resto queda en BACKLOG.
 
+## 2026-09-18 (Colores: el modal se lee, y un color nuevo ya no nace beige por descuido)
+
+El modal de editar y el de agregar color tenían una caja con otra más chica adentro (el `<input type="color">` nativo, con su relleno), y un Crudo o un Blanco casi no se distinguían del fondo crema. Ahora es un solo rectángulo relleno con el hex al lado, una sola etiqueta «Color», menos aire entre campos, y «Desactivar color» pide un segundo clic ("¿Seguro? Confirmar", vuelve solo a los 4 s). Un color nuevo arranca SIN elegir (caja punteada) y no se puede guardar hasta escogerlo; la API de POST también lo exige.
+
+Lo que Felipe se lleva: el beige `#c9b79c` era el valor por defecto del formulario, y un valor por defecto que parece una elección es un dato que nadie decidió. OJO con lo que se dijo en la sesión: se creyó que 5 colores de producción lo llevaban por descuido, pero al mirar `activo` resultó que 4 ya estaban retirados (`ARE`, `EST`, `MUL`, `ANI`) y el quinto, Arena, es de verdad ese color. O sea que el cambio es prevención, no la cura de un problema ya ocurrido. Moraleja: una consulta sin filtrar por `activo` cuenta también lo que ya se apagó. Se verificó en navegador con la ruta temporal de `/login` (Docker caído).
+
+Después, en la misma sesión: el código de 3 letras de un color nuevo se sugiere desde el nombre («Verde botella» → `VEB`), con la regla que ya seguían los 35 códigos reales (una palabra = 3 letras; dos = 2 de la primera + 1 de la segunda). Si el código ya existe —también entre los desactivados— avisa «Ya lo usa «Negro»» y no deja guardar. Lo que Felipe se lleva: el código es la clave de cada SKU y no se puede cambiar después, así que el choque se ataja antes de guardar, no con un error de la base al final.
+
 ## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
 Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
 tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
