@@ -1,6 +1,5 @@
 import type { VentaDelDia } from "@/lib/comprobantes-reglas";
 import { ESTADO_ESTILO, ESTADO_ETIQUETA, ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
-import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -14,7 +13,9 @@ function textoItems(v: VentaDelDia) {
 
 // "Todo lo que se vendió hoy" (pedido de Felipe, 2026-09-12), en un solo
 // vistazo desde Facturación: qué salió, quién lo vendió, cómo se pagó y si
-// ya tiene boleta/factura o todavía no. Antes esta pregunta no tenía una
+// ya tiene boleta/factura o todavía no. Las tarjetas de arriba (vendido, ventas, por enviar,
+// ticket promedio) las dibuja `ResumenTarjetas`; esta lista es lo que la rebanada B reemplaza
+// por «Actividad de hoy» con el hilo del comprobante. Antes esta pregunta no tenía una
 // sola pantalla — había que cruzar Caja (cuadre de efectivo) con
 // Comprobantes (solo lo ya facturado, filtrado por MES) a mano.
 //
@@ -24,8 +25,6 @@ function textoItems(v: VentaDelDia) {
 // llega — ninguna decisión de permisos vive acá.
 export function VentasDelDiaPanel({ ventas }: { ventas: VentaDelDia[] }) {
   const hoy = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" }).format(new Date());
-  const total = ventas.reduce((acc, v) => acc + Number(v.total), 0);
-  const sinComprobante = ventas.filter((v) => !v.comprobante_texto).length;
 
   return (
     <div className="space-y-4">
@@ -34,17 +33,6 @@ export function VentasDelDiaPanel({ ventas }: { ventas: VentaDelDia[] }) {
           <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>
           <h2 className="font-display mt-0.5 text-xl capitalize text-tinta">{hoy}</h2>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <TarjetaIndicador etiqueta="Vendido hoy" valor={money(total)} />
-        <TarjetaIndicador etiqueta="Ventas" valor={String(ventas.length)} />
-        <TarjetaIndicador
-          etiqueta="Sin comprobante"
-          valor={String(sinComprobante)}
-          critico={sinComprobante > 0}
-          alerta={sinComprobante > 0 ? "Todavía se les puede emitir boleta o factura desde Facturación." : undefined}
-        />
       </div>
 
       {ventas.length === 0 ? (

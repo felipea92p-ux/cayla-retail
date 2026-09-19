@@ -44,6 +44,7 @@ Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-0
 - [ ] **R4 — Códigos y cierre:** pestaña, responsive/accesibilidad/movimiento reducido, ARQUITECTURA (rutas nuevas y la línea vencida de Nubefact), BITÁCORA.
 
 Fuera de esta entrega, anotado: emitir desde la fila de una venta sin comprobante (pospuesto el 16-sep); columna «Productos» en proformas; contador de pendientes en el menú lateral; «en vivo» por polling; búsqueda de comprobantes sin límite de mes; consultar el estado de un comprobante `enviado` (no existe camino; integración con Lucode, confirmar antes); `fn_ventas_del_dia` no filtra ni devuelve `ventas.estado` (confirmado en producción el 2026-09-19, ver R0): una venta anulada saldría en la lista del día con su total y sin etiqueta. Hace falta una migración —con el OK de Felipe, que sigue pendiente— y **bloquea el cierre de R2**.
+
 ## 🎯 Menú lateral plegable (2026-09-19, ADR-0130)
 
 Aplicado y verificado en el navegador como líder (escritorio). Falta:

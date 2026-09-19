@@ -68,12 +68,15 @@ export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[
 /** Cuántos comprobantes esperan un envío a SUNAT ahora mismo, para el contador de la pestaña.
  *  SIN filtro de mes: son una cola, no un historial. `null` si la consulta falla: es un dato
  *  secundario (`tolerar` — sin contador, nunca uno inventado); la lista de verdad, que sí
- *  usa `exigir`, vive en la vista Comprobantes. */
-export async function getResumenPorEnviar(): Promise<ResumenPorEnviar | null> {
+ *  usa `exigir`, vive en la vista Comprobantes.
+ *
+ *  `cache`: el layout la pide para el contador de la pestaña y el Resumen para su tarjeta
+ *  «Por enviar», en la misma petición — se lee una sola vez y las dos cifras no pueden diferir. */
+export const getResumenPorEnviar = cache(async (): Promise<ResumenPorEnviar | null> => {
   const supabase = await createClient();
   const res = await supabase.from("comprobantes").select("estado, created_at").in("estado", ["pendiente", "rechazado"]);
   const { datos, fallo } = tolerar(res, "los comprobantes por enviar");
   // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
   if (fallo) console.error("Facturación: no se pudo leer la cola «por enviar» (contador de la pestaña Comprobantes):", res.error?.message);
   return datos ? resumenPorEnviar(datos as { estado: EstadoComprobante; created_at: string }[]) : null;
-}
+});
