@@ -480,8 +480,17 @@ body {
                        sin rebote (rebote = juguete, no instrumento).
      3. "asentar"    — una cifra que cambió se re-asienta, para que el
                        ojo note que cambió sin tener que releerla.
-   Regla: el movimiento RESPONDE a una acción de la persona. Nada se
-   anima solo al entrar a la pantalla.
+   Regla (revisada el 2026-09-19 por decisión de Felipe, ADR-0122; antes
+   decía «nada se anima solo al entrar a la pantalla»): el movimiento
+   RESPONDE a una acción de la persona O ACOMPAÑA LA LLEGADA a una
+   pantalla con varias piezas, donde el ojo necesita un orden de lectura.
+   Al llegar, lo que aparece entra ESCALONADO (`anim-entra`: cada pieza
+   sube 8 px y se asienta, ≤ 450 ms, con ≤ 40 ms de desfase entre una y
+   otra) y las cifras y trazos se «arman» UNA vez. Límites que no cambian:
+   nunca en bucle, nunca decorativo, nunca sobre algo que la persona ya
+   está usando (buscar o filtrar no re-anima toda la tabla), sin rebote, y
+   con movimiento reducido todo colapsa a un instante. No es obligatoria en
+   cada pantalla: se usa donde ayuda a leer (Proveedores fue la primera).
    ================================================================== */
 @theme {
   --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1); /* entradas: arranca suave y frena largo */
@@ -715,11 +724,14 @@ body {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
-/* ---- Proveedores (2026-09-19, ADR-0122): gestos que RESPONDEN a una acción ----
-        Ninguno se dispara solo al entrar a la pantalla (regla de arriba): el cajón abre con un clic, el
-        trazo corre al pasar el mouse, las barras crecen cuando el cajón se abre, el destello marca la fila
-        que la persona acaba de crear, reactivar o desactivar. Los cambios de orden y de filtro se animan
-        en JS (`useFlip`) y el pulgar de `SegmentoDeslizante` con `transition` — sin keyframes.
+/* ---- Proveedores (2026-09-19, ADR-0122): la entrada escalonada y los gestos que responden ----
+        · entra: la entrada escalonada de la regla de arriba. `backwards` (no `both`): al terminar no deja
+          un `transform` retenido que pisaría el deslizamiento de las filas (`useFlip`) ni el hover.
+          El desfase sale de `--i` (índice de la pieza) × 38 ms; las piezas de una lista se topan en 10.
+        · el cajón abre con un clic, el trazo corre al pasar el mouse, las barras crecen al abrirse el cajón
+          y al llegar a la pantalla, el destello marca la fila que la persona acaba de crear, reactivar o
+          desactivar. Los cambios de orden y de filtro se animan en JS (`useFlip`) y el pulgar de
+          `SegmentoDeslizante` con `transition` — sin keyframes.
         Sin rebote y sin color nuevo, como el resto de la capa.
         - cajón: entra desde el borde derecho (380 ms) y sale más corto (240 ms), como el modal.
         - destello: la fila arranca teñida de rojo suave y se apaga sola en 2.6 s; `backwards` (no
@@ -743,6 +755,13 @@ body {
   from { stroke-dashoffset: 1; }
   to { stroke-dashoffset: 0; }
 }
+/* Igual que `cayla-trazo` pero con OTRO nombre a propósito: la línea se dibuja al llegar (`anim-trazo`) y se
+   vuelve a dibujar al pasar el mouse (`trazo-al-pasar`). Con el mismo nombre el navegador las tomaría por la
+   misma animación y el hover no la reiniciaría. */
+@keyframes cayla-trazo-entra {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
 @keyframes cayla-crece-x {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
@@ -752,13 +771,21 @@ body {
   to { transform: scaleY(1); }
 }
 @layer components {
+  .anim-entra {
+    animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms);
+  }
   .anim-cajon { animation: cayla-cajon-entra 380ms var(--ease-cayla) both; }
   .anim-cajon-salida { animation: cayla-cajon-sale 240ms var(--ease-salida) both; }
   .anim-destello-fila { animation: cayla-destello-fila 2600ms var(--ease-cayla) backwards; }
   .trazo-linea { stroke-dasharray: 1; stroke-dashoffset: 0; }
   .group:hover .trazo-al-pasar { animation: cayla-trazo 760ms var(--ease-cayla) both; }
-  .anim-trazo { animation: cayla-trazo 900ms var(--ease-cayla) backwards; }
-  .anim-crece-x { animation: cayla-crece-x 620ms var(--ease-cayla) backwards; transform-origin: left; }
+  .anim-trazo { animation: cayla-trazo-entra 900ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 38ms + 180ms); }
+  .anim-crece-x {
+    animation: cayla-crece-x 620ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms + 220ms);
+    transform-origin: left;
+  }
   .anim-crece-y {
     animation: cayla-crece-y 560ms var(--ease-cayla) backwards;
     animation-delay: calc(140ms + var(--i, 0) * 34ms);
@@ -789,6 +816,7 @@ body {
     .anim-vivo-destello,
     .anim-vivo-delta,
     .anim-vivo-onda,
+    .anim-entra,
     .anim-cajon,
     .anim-cajon-salida,
     .anim-destello-fila,

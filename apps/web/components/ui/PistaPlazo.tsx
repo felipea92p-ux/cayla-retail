@@ -8,7 +8,7 @@ export function PistaPlazo({ real, pactado }: { real: number; pactado: number })
   const pasa = real > pactado;
   return (
     <span aria-hidden className="relative mb-4 mt-3 block h-1.5 rounded-full bg-sand">
-      <span className={`absolute inset-y-0 left-0 rounded-full ${pasa ? "bg-ambar" : "bg-verde"}`} style={{ width: `${Math.min(100, (real / tope) * 100)}%` }} />
+      <span className={`anim-crece-x absolute inset-y-0 left-0 rounded-full ${pasa ? "bg-ambar" : "bg-verde"}`} style={{ width: `${Math.min(100, (real / tope) * 100)}%`, ["--i" as string]: 9 }} />
       <span className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded bg-tinta" style={{ left: `${(pactado / tope) * 100}%` }} />
       <span className="absolute top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-wide text-tinta/65" style={{ left: `${(pactado / tope) * 100}%` }}>
         pactado {pactado} d

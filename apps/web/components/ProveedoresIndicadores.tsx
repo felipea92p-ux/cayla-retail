@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { soles } from "@/lib/compras-reglas";
 import type { ResumenProveedores } from "@/lib/proveedores";
 import type { TramoDeuda } from "@/lib/proveedores-reglas";
@@ -9,13 +10,16 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // Las cifras de arriba de la lista (ADR-0111; movidas del servidor a un componente cliente en ADR-0122).
 // Nada del contenido cambió: son las mismas tarjetas y los mismos textos que `page.tsx` armaba. Lo nuevo
 // son dos cosas que necesitan estado del navegador:
-//   · las cifras CUENTAN hasta su valor nuevo cuando cambian (registrar o desactivar un proveedor mueve
-//     «activos» y «deuda»); al abrir la pantalla ya están puestas, no viajan (`useContar`);
+//   · las cifras se «arman» al llegar (cuentan desde 0, una vez) y CUENTAN hasta su valor nuevo cuando
+//     cambian (registrar o desactivar un proveedor mueve «activos» y «deuda») — `useContar`;
 //   · la barra de «Concentración»: cada tramo es un proveedor. Apuntarlo enciende su fila en la tabla y
 //     apaga las demás (`onFoco`); tocarlo abre su vista rápida (`onAbrir`). «34 %» no decía QUIÉN.
 //
 // El tramo «Resto» no es un proveedor: se dibuja pero no responde a nada.
 const COLOR_TRAMO = ["bg-tinta", "bg-tinta/60", "bg-tinta/30", "bg-sand"];
+
+// Entrada escalonada: cada tarjeta llega 38 ms después de la anterior (`--i`, ver globals.css).
+const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
 export function ProveedoresIndicadores({
   resumen,
@@ -39,20 +43,21 @@ export function ProveedoresIndicadores({
 
   return (
     <div className={`grid grid-cols-2 gap-3 ${conFavor ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
-      <TarjetaCifra compacta punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} />}>
+      <TarjetaCifra compacta {...entra(1)} punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
         {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
       </TarjetaCifra>
       <TarjetaCifra
         compacta
+        {...entra(2)}
         punto={deuda > 0 ? "ambar" : "verde"}
         detalleTono={vencidas > 0 ? "text-rojo" : undefined}
         etiqueta="Deuda con proveedores"
-        valor={<CifraQueCuenta valor={deuda} formato="soles" />}
+        valor={<CifraQueCuenta valor={deuda} formato="soles" alMontar />}
       >
         {deuda > 0 ? `${resumen.conSaldo} con saldo${vencidas > 0 ? ` · ${vencidas} con comprobantes vencidos` : ""}` : "Nada por pagar"}
       </TarjetaCifra>
       {resumen.topProveedorNombre && resumen.topPct != null ? (
-        <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" />}>
+        <TarjetaCifra compacta {...entra(3)} punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" alMontar />}>
           {(resumen.conSaldo ?? 0) > 3 && resumen.top3Pct != null
             ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
             : `${resumen.topProveedorNombre} concentra la deuda`}
@@ -69,32 +74,33 @@ export function ProveedoresIndicadores({
                     onFocus={() => onFoco(t.id)}
                     onBlur={() => onFoco(null)}
                     onClick={() => onAbrir(t.id!)}
-                    style={{ flex: t.monto }}
-                    className={`h-full min-w-1 rounded-[3px] transition-[opacity,transform] duration-200 ease-cayla hover:scale-y-[1.7] focus-visible:scale-y-[1.7] ${COLOR_TRAMO[i]} ${foco && foco !== t.id ? "opacity-35" : ""}`}
+                    style={{ flex: t.monto, ["--i" as string]: i + 3 }}
+                    className={`anim-crece-x h-full min-w-1 rounded-[3px] transition-[opacity,transform] duration-200 ease-cayla hover:scale-y-[1.7] focus-visible:scale-y-[1.7] ${COLOR_TRAMO[i]} ${foco && foco !== t.id ? "opacity-35" : ""}`}
                   />
                 ) : (
-                  <span key="resto" aria-hidden style={{ flex: t.monto }} className={`h-full min-w-1 rounded-[3px] transition-opacity duration-200 ${COLOR_TRAMO[i]} ${foco ? "opacity-35" : ""}`} />
+                  <span key="resto" aria-hidden style={{ flex: t.monto, ["--i" as string]: i + 3 }} className={`anim-crece-x h-full min-w-1 rounded-[3px] transition-opacity duration-200 ${COLOR_TRAMO[i]} ${foco ? "opacity-35" : ""}`} />
                 ),
               )}
             </span>
           )}
         </TarjetaCifra>
       ) : (
-        <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—">
+        <TarjetaCifra compacta vacia {...entra(3)} etiqueta="Concentración" valor="—">
           Aparece cuando haya deuda
         </TarjetaCifra>
       )}
       <TarjetaCifra
         compacta
+        {...entra(4)}
         punto={sin90 > 0 ? "ambar" : "verde"}
         detalleTono={sin90 > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
         etiqueta="Sin compras en 90 días"
-        valor={<CifraQueCuenta valor={sin90} />}
+        valor={<CifraQueCuenta valor={sin90} alMontar />}
       >
         {sin90 > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
       </TarjetaCifra>
       {conFavor && (
-        <TarjetaCifra compacta punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" />}>
+        <TarjetaCifra compacta {...entra(5)} punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" alMontar />}>
           {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
         </TarjetaCifra>
       )}

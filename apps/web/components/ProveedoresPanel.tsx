@@ -56,8 +56,9 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // sin perder el orden ni el filtro; ordenar y filtrar deslizan las filas a su lugar (FLIP); el filtro
 // de rubro tiene un pulgar que viaja; la búsqueda marca dónde coincidió; la barra de concentración
 // enciende la fila del proveedor al que apuntas; y lo recién creado, reactivado o desactivado se marca
-// con un destello. Desactivar se puede deshacer (7 s). Todo movimiento responde a una acción de la
-// persona — nada se anima solo al abrir la pantalla.
+// con un destello. Desactivar se puede deshacer (7 s). Al llegar, las piezas entran escalonadas (cifras,
+// buscador, tabla, filas: `anim-entra` con `--i`) y las cifras y trazos se arman una vez — regla de
+// movimiento revisada el 2026-09-19 (globals.css, ADR-0122). Lo demás responde a una acción.
 //
 // `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, abrir el detalle
 // (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición
@@ -173,7 +174,7 @@ export function ProveedoresPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="anim-entra flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
@@ -193,7 +194,7 @@ export function ProveedoresPanel({
       {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
           <div className="group/busca relative flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-left after:scale-x-0 after:bg-rojo after:transition-transform after:duration-300 after:ease-cayla focus-within:after:scale-x-100">
             <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
             <label htmlFor="proveedores-buscar" className="sr-only">
@@ -260,12 +261,13 @@ export function ProveedoresPanel({
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
-        <Tabla className="@container overflow-y-hidden">
+        <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
           {esLider ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
-          {activos.map((p) => (
+          {activos.map((p, indice) => (
             <Fila
               key={p.id}
               p={p}
+              indice={indice}
               busqueda={busqueda}
               serie={series?.[p.id] ?? null}
               maxSaldo={maxSaldo}
@@ -281,13 +283,14 @@ export function ProveedoresPanel({
       )}
 
       {desactivados.length > 0 && (
-        <section className="space-y-2">
+        <section className="anim-entra space-y-2" style={{ ["--i" as string]: 9 }}>
           <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no aparecen al registrar un comprobante</p>
           <Tabla>
-            {desactivados.map((p) => (
+            {desactivados.map((p, indice) => (
               <Fila
                 key={p.id}
                 p={p}
+                indice={indice}
                 busqueda={busqueda}
                 serie={series?.[p.id] ?? null}
                 maxSaldo={maxSaldo}
@@ -356,6 +359,8 @@ export function ProveedoresPanel({
 
 type PropsFila = {
   p: Proveedor;
+  /** Posición en su lista: desfasa la entrada escalonada de la fila (se topa en 10). */
+  indice: number;
   busqueda: string;
   serie: number[] | null;
   maxSaldo: number;
@@ -421,7 +426,7 @@ function FilaBase({ p, busqueda }: PropsFila) {
 // lleva a Por pagar ya filtrado y los demás enlaces quedan por encima (`relative`) para no disparar la
 // vista rápida. Al pasar el mouse: un filo rojo crece a la izquierda, el monograma se llena y, si hay
 // serie, la mini-tendencia se redibuja.
-function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque, refFila, onAbrir, onReactivar }: PropsFila) {
+function FilaLider({ p, indice, busqueda, serie, maxSaldo, cambiando, reciente, enfoque, refFila, onAbrir, onReactivar }: PropsFila) {
   const entregas = chipEntregas(p);
   const saldo = p.saldo ?? 0;
   const vencido = (p.saldo_vencido ?? 0) > 0;
@@ -431,16 +436,20 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
     <div
       ref={refFila}
       data-proveedor-id={p.id}
-      className={`group relative grid ${COLUMNAS_LIDER} items-center gap-x-4 px-5 py-3 transition-[background-color,opacity] duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${
+      style={{ ["--i" as string]: 8 + Math.min(indice, 10) }}
+      className={`anim-entra group relative grid ${COLUMNAS_LIDER} items-center gap-x-4 px-5 py-3 transition-[background-color,opacity] duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${
         enfoque === "foco" ? "bg-tinta/[0.04] before:scale-y-100" : "before:scale-y-0"
-      } ${enfoque === "tenue" ? "opacity-40" : p.activo ? "" : "opacity-60"} ${reciente ? "anim-destello-fila" : ""}`}
+      } ${enfoque === "tenue" ? "opacity-40" : p.activo ? "" : "opacity-60"}`}
     >
+      {/* El destello vive en su propia capa: `animation` es una sola propiedad, y si se pusiera en la fila
+          pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
+      {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
       <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
         <NombreCelda p={p} busqueda={busqueda} />
       </button>
       <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
       <span className="hidden items-center justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums @3xl:flex">
-        {serie && <Sparkline serie={serie} />}
+        {serie && <Sparkline serie={serie} indice={indice} />}
         <span className={p.facturado_12m ? "text-tinta" : "text-tinta/45"}>{soles(p.facturado_12m ?? 0)}</span>
       </span>
       <span className="text-right text-sm tabular-nums">
@@ -454,7 +463,7 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
             </Link>
             {/* La deuda a escala: el largo es la parte del mayor saldo de la lista y el rojo, lo ya vencido. */}
             <span aria-hidden title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-              <span className="flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%` }}>
+              <span className="anim-crece-x flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%`, ["--i" as string]: 8 + Math.min(indice, 10) }}>
                 <span className="h-full bg-rojo" style={{ width: `${(Math.min(p.saldo_vencido ?? 0, saldo) / saldo) * 100}%` }} />
                 <span className="h-full flex-1 bg-tinta/45" />
               </span>

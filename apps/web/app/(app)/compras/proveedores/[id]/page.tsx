@@ -10,6 +10,7 @@ import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
@@ -63,7 +64,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="anim-entra">
         <Link href="/compras/proveedores" className="text-xs text-tinta/65 hover:text-rojo hover:underline">
           ← Volver a Proveedores
         </Link>
@@ -96,7 +97,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <PasoSugerido paso={paso} proveedorId={id} />
+      <PasoSugerido paso={paso} proveedorId={id} indice={1} />
 
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
@@ -104,57 +105,57 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay comprobantes registrados de este proveedor.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <TarjetaCifra compacta punto="neutro" etiqueta="Total facturado" valor={soles(m.facturado_12m)}>
+            <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>
               {plural(m.facturas_vigentes, "comprobante vigente", "comprobantes vigentes")}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
+              compacta className="anim-entra" style={{ ["--i" as string]: 3 }}
               punto={m.saldo > 0 ? "ambar" : "verde"}
               detalleTono={m.facturas_vencidas > 0 ? "text-rojo" : undefined}
               etiqueta="Saldo pendiente"
-              valor={soles(m.saldo)}
+              valor={<CifraQueCuenta valor={m.saldo} formato="soles" alMontar />}
               href={m.saldo > 0 ? `/compras/por-pagar?prov=${id}` : undefined}
             >
               {m.facturas_vencidas > 0 ? `Vencido: ${soles(m.monto_vencido)} (${plural(m.facturas_vencidas, "comprobante", "comprobantes")})` : "Nada vencido"}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
+              compacta className="anim-entra" style={{ ["--i" as string]: 4 }}
               punto={m.facturas_atrasadas > 0 ? "ambar" : "verde"}
               tono={m.facturas_atrasadas > 0 ? "text-ambar-profundo" : undefined}
               detalleTono={m.facturas_atrasadas > 0 ? "text-ambar-profundo" : undefined}
               etiqueta="Entregas atrasadas"
-              valor={m.facturas_atrasadas.toLocaleString("es-PE")}
+              valor={<CifraQueCuenta valor={m.facturas_atrasadas} alMontar />}
               href={m.facturas_atrasadas > 0 ? `/compras/recibir?prov=${id}` : undefined}
             >
               {m.facturas_atrasadas > 0 ? `de ${plural(m.facturas_vigentes, "comprobante", "comprobantes")} · ver cuáles →` : "Nada atrasado"}
             </TarjetaCifra>
-            <TarjetaCifra compacta punto="neutro" etiqueta="Entregado completo" valor={m.entregado_completo_pct != null ? `${Math.round(m.entregado_completo_pct)} %` : "—"}>
+            <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 5 }} punto="neutro" etiqueta="Entregado completo" valor={m.entregado_completo_pct != null ? <CifraQueCuenta valor={m.entregado_completo_pct} formato="porcentaje" alMontar /> : "—"}>
               {m.facturas_recibidas_completas} de {plural(m.facturas_vigentes, "comprobante", "comprobantes")}
               {m.facturas_recibidas_completas === 1 ? " llegó completo" : " llegaron completos"}
             </TarjetaCifra>
             {m.dias_entrega_promedio != null ? (
-              <TarjetaCifra compacta punto="neutro" etiqueta="Tiempo de entrega" valor={`${Math.round(m.dias_entrega_promedio)} ${Math.round(m.dias_entrega_promedio) === 1 ? "día" : "días"}`}>
+              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 6 }} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={m.dias_entrega_promedio} formato="dias" alMontar />}>
                 emisión → llegada · <b className="font-semibold">basado en {plural(m.dias_entrega_muestra, "comprobante", "comprobantes")}</b>
               </TarjetaCifra>
             ) : (
-              <TarjetaCifra compacta vacia etiqueta="Tiempo de entrega" valor="—">
+              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 7 }} vacia etiqueta="Tiempo de entrega" valor="—">
                 Aparece con la primera recepción
               </TarjetaCifra>
             )}
             {m.dias_pago_real_promedio != null ? (
               <TarjetaCifra
-                compacta
+                compacta className="anim-entra" style={{ ["--i" as string]: 8 }}
                 punto={pagoDemoraMas ? "ambar" : "verde"}
                 detalleTono={pagoDemoraMas ? "text-ambar-profundo" : undefined}
                 etiqueta="Plazo de pago real"
-                valor={`${Math.round(m.dias_pago_real_promedio)} días`}
+                valor={<CifraQueCuenta valor={m.dias_pago_real_promedio} formato="dias" alMontar />}
               >
                 {pactado != null ? `Pactado: ${pactado} días · ` : ""}
                 <b className="font-semibold">basado en {plural(m.dias_pago_muestra, "comprobante pagado", "comprobantes pagados")}</b>
                 {pactado != null && <PistaPlazo real={m.dias_pago_real_promedio} pactado={pactado} />}
               </TarjetaCifra>
             ) : (
-              <TarjetaCifra compacta vacia etiqueta="Plazo de pago real" valor="—">
+              <TarjetaCifra compacta className="anim-entra" style={{ ["--i" as string]: 9 }} vacia etiqueta="Plazo de pago real" valor="—">
                 {pactado != null ? `Pactado: ${pactado} días. ` : ""}Se calcula con 2 o más comprobantes pagados
               </TarjetaCifra>
             )}
@@ -167,7 +168,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       {conCompras && (
         <div className="grid gap-3 lg:grid-cols-2">
           <ProveedorCostoEvolucion evolucion={costo} />
-          <div className="card-cayla overflow-hidden">
+          <div className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 12 }}>
             <p className="label-cayla px-5 pb-2 pt-4 text-[11px] text-tinta/65">Últimos comprobantes</p>
             <div className="divide-y divide-tinta/10">
               {ultimos.filas.map((c) => {
@@ -200,7 +201,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
       <div className="grid gap-3 lg:grid-cols-2">
-        <div className={`card-cayla p-5 ${devoluciones.unidades === 0 ? "border-dashed bg-transparent" : ""}`}>
+        <div style={{ ["--i" as string]: 13 }} className={`anim-entra card-cayla p-5 ${devoluciones.unidades === 0 ? "border-dashed bg-transparent" : ""}`}>
           <p className="label-cayla text-[11px] text-tinta/65">Devoluciones y dañados a este proveedor</p>
           <p className={`font-display mt-1.5 text-[26px] leading-tight tabular-nums ${devoluciones.unidades === 0 ? "text-tinta/45" : "text-tinta"}`}>{plural(devoluciones.unidades, "unidad", "unidades")}</p>
           <p className="mt-1 text-xs text-tinta/65">
@@ -209,7 +210,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               : `Devueltas desde cuarentena${devoluciones.ultima ? ` · la última el ${fechaCorta(devoluciones.ultima)}` : ""}.`}
           </p>
         </div>
-        <div className={`card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed bg-transparent" : ""}`}>
+        <div style={{ ["--i" as string]: 14 }} className={`anim-entra card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed bg-transparent" : ""}`}>
           <p className="label-cayla text-[11px] text-tinta/65">Insumos del Taller</p>
           {insumos.lotes === 0 ? (
             <>

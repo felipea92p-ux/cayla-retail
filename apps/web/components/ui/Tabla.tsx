@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -36,8 +36,12 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`}>{children}</div>;
+export function Tabla({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+  return (
+    <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
 
 /** La fila de títulos. `plantilla` debe ser la misma que reciben las filas. */

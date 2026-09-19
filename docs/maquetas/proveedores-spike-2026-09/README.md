@@ -1,9 +1,8 @@
 # Spike visual · Proveedores (2026-09-19)
 
-> **Estado (2026-09-19): aplicado al ERP — ver `docs/adr/0122-proveedores-vista-rapida-y-gestos-de-movimiento.md`.**
-> Se aplicó todo lo de abajo EXCEPTO la animación de entrada (escalonado de KPIs y filas, conteo desde 0,
-> trazo del gráfico al abrir): `globals.css` prohíbe que algo se anime solo al abrir la pantalla. Este archivo
-> HTML queda como referencia para compararla si Felipe decide conceder esa excepción.
+> **Estado (2026-09-19): aplicado al ERP, ENTRADA INCLUIDA — ver `docs/adr/0122-proveedores-vista-rapida-y-gestos-de-movimiento.md`.**
+> La regla «nada se anima solo al entrar» de `globals.css` se cambió por decisión de Felipe: la llegada a una
+> pantalla con varias piezas también se anima. Este HTML queda como referencia visual del diseño aprobado.
 
 `proveedores-spike.html` — autocontenido, ábrelo en el navegador. Datos inventados. **No es una
 implementación ni reemplaza las maquetas aprobadas 08 y 09** (`../compras-2026-09/`): parte de ellas
@@ -43,14 +42,12 @@ Reutiliza lo que ya está en `globals.css` (mismos nombres): `cayla-entrada`, `c
 | **Despliegue por `grid-template-rows: 0fr → 1fr`** | «Desactivados» se abre sin medir alturas | CSS puro |
 | **Aviso con temporizador visible** | La línea inferior *es* el timer; el mouse encima lo pausa | ya casi lo hace `Avisos.tsx` |
 
-## Ojo: contradice una regla escrita
+## La regla que cambió
 
-`globals.css` dice: *«el movimiento RESPONDE a una acción de la persona. Nada se anima solo al
-entrar a la pantalla.»* (con una excepción ya concedida: la dona de Caja).
-Este spike **sí anima la entrada** (escalonado de KPIs y filas, conteo de cifras) para que se pueda
-evaluar. Decisión que es de Felipe: (a) mantener la regla y quedarse solo con los gestos que responden
-a un clic (FLIP, pulgar, cajón, destello, trazo al hover, deshacer) — recomendado; o (b) conceder
-otra excepción para la entrada de esta pantalla. Si es (b), va con ADR.
+`globals.css` decía: *«nada se anima solo al entrar a la pantalla»*. Este spike la contradecía a propósito
+(escalonado de KPIs y filas, conteo de cifras, gráfico que se dibuja). Felipe eligió cambiar la regla, no
+hacer una excepción: ahora la llegada a una pantalla con varias piezas también se anima, con límites (una
+vez, sin bucle, sin rebote, movimiento reducido = instante). Ver el encabezado de «Capa de movimiento».
 
 ## Lo que el spike inventa y producción no tiene
 

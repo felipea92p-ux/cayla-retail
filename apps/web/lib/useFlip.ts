@@ -15,6 +15,16 @@ import { useCallback, useLayoutEffect, useRef } from "react";
  * `useLayoutEffect` (y no `useEffect`) para medir antes de que el navegador pinte: si no, se vería un
  * fotograma con las filas ya en su lugar nuevo antes de que empiecen a deslizarse.
  */
+// Posición de la fila dentro de su contenedor, SIN transformaciones: `offsetTop` ignora `transform`, así que
+// la entrada escalonada (que sube 8 px) o un deslizamiento en curso no contaminan la medida. Se resta la
+// posición del contenedor cuando ambos cuelgan del mismo `offsetParent`, para que lo que cambie ARRIBA de la
+// tabla (una cifra que ocupa otra línea) no parezca un movimiento de las filas.
+function posicion(el: HTMLElement): number {
+  const padre = el.parentElement;
+  if (!padre || el.offsetParent === padre) return el.offsetTop;
+  return el.offsetTop - padre.offsetTop;
+}
+
 export function useFlip(clave: string, ms = 460) {
   const elementos = useRef(new Map<string, HTMLElement>());
   const tops = useRef(new Map<string, number>());
@@ -24,14 +34,10 @@ export function useFlip(clave: string, ms = 460) {
   // fuente que carga, un chip que aparece o un cambio de altura arriba de la tabla mueven las filas sin
   // que cambie el orden; si solo se midiera al reordenar, la siguiente animación arrancaría desde una
   // posición equivocada). Pero solo se ANIMA cuando cambió el orden o el filtro (`clave`).
-  // La posición se mide relativa al contenedor de la fila (no con `offsetTop`, que arrastra todo lo que
-  // haya encima): así, que las cifras de arriba cambien de alto no se confunde con un movimiento de filas.
+  // La posición se mide relativa al contenedor de la fila y sin transformaciones (ver `posicion`).
   useLayoutEffect(() => {
     const ahora = new Map<string, number>();
-    elementos.current.forEach((el, id) => {
-      const padre = el.parentElement?.getBoundingClientRect().top ?? 0;
-      ahora.set(id, el.getBoundingClientRect().top - padre);
-    });
+    elementos.current.forEach((el, id) => ahora.set(id, posicion(el)));
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (claveAnterior.current !== clave && !reducido) {
       ahora.forEach((top, id) => {

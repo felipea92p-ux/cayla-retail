@@ -1,4 +1,4 @@
-# ADR-0122 — Proveedores: vista rápida, mini-tendencias y una ampliación acotada de la gramática de movimiento
+# ADR-0122 — Proveedores: vista rápida, mini-tendencias y revisión de la regla de movimiento (la entrada se anima)
 
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado. **Producción:** la migración `20260919150000_proveedores_serie_mensual.sql` (una función
@@ -40,17 +40,26 @@ no existe todavía en la base (el código se despliega antes de pegar la migraci
 tendencias** — nunca cae. La ventana son 12 meses de calendario (mes actual + 11), por eso la suma no coincide
 al sol con «Facturado 12 m» (365 días corridos): son dos cortes del mismo dato, cada uno con su rótulo.
 
-**D4 — Gramática de movimiento: solo lo que RESPONDE a una acción.** La regla de `globals.css` («nada se anima
-solo al entrar a la pantalla») se mantiene. El spike sí animaba la entrada (escalonado de KPIs y filas, conteo
-desde cero, trazo del gráfico al abrir); **se descartó esa parte al aplicarlo**. Se conserva y se agrega:
+**D4 — La regla de movimiento cambia: la LLEGADA a una pantalla también se anima.** `globals.css` decía
+«el movimiento responde a una acción de la persona; nada se anima solo al entrar a la pantalla». Al aplicar
+el spike, la primera versión respetó esa regla y quedó quieta al abrir; Felipe la vio, esperaba el spike
+tal cual y **decidió cambiar la regla** (2026-09-19). Nueva redacción (en `globals.css`, encabezado de
+«Capa de movimiento»): el movimiento responde a una acción O acompaña la llegada a una pantalla con varias
+piezas, donde el ojo necesita un orden de lectura. Al llegar, lo que aparece entra escalonado (`anim-entra`:
+sube 8 px y se asienta, ≤ 450 ms, ≤ 40 ms de desfase entre piezas) y las cifras y trazos se arman **una
+vez**. Los límites no cambian: nunca en bucle, nunca decorativo, nunca sobre algo que la persona ya está
+usando (buscar o filtrar no re-anima la tabla), sin rebote, y con movimiento reducido todo colapsa a un
+instante. **No es obligatoria en cada pantalla**: se usa donde ayuda a leer; Proveedores es la primera.
 
 | Gesto | Se dispara con | Dónde vive |
 |---|---|---|
+| **Entrada escalonada**: cabecera, cifras, buscador, tabla, filas | llegar a la pantalla (una vez) | `.anim-entra` + `--i` (ficha incluida) |
+| **Cifras que se arman**: cuentan desde 0 | llegar (una vez) y cada vez que el valor **cambia** | `lib/useContar.ts`, `ui/CifraQueCuenta.tsx` (`alMontar`) |
+| **Trazos y barras que se arman**: mini-tendencia, barra de saldo, tramos de concentración, gráfico de costo, pista de plazo | llegar (una vez) | `.anim-trazo`, `.anim-crece-x` |
 | Cajón (entra desde el borde, sale más corto) | clic en una fila | `.anim-cajon` / `.anim-cajon-salida` |
 | FLIP: las filas se deslizan a su lugar | ordenar, filtrar, buscar | `lib/useFlip.ts` (Web Animations, solo `transform`) |
 | Pulgar deslizante del filtro | elegir un rubro | `ui/SegmentoDeslizante.tsx` |
-| Cifra que cuenta hasta su valor nuevo | que el valor **cambie** (registrar, desactivar) | `lib/useContar.ts` — arranca EN el valor, no en 0 |
-| Barras que crecen | abrir la vista rápida | `.anim-crece-y` |
+| Barras mensuales que crecen | abrir la vista rápida | `.anim-crece-y` |
 | Trazo de la mini-tendencia | pasar el mouse por la fila | `.trazo-al-pasar` |
 | Destello de fila (2,6 s) | crear, reactivar o desactivar | `.anim-destello-fila` |
 | Filo rojo de la fila, flecha que se desliza, flecha de orden que gira | mouse | utilidades Tailwind |
@@ -76,8 +85,11 @@ choca. El candado de verdad sigue siendo el índice `proveedores_ruc_unico`; est
   RUC duplicado. `pnpm test`: 1061 en verde.
 - La función SQL, contra el Postgres local: líder ve sus filas con la suma correcta (295 + 354 + 8 496 =
   9 145 en septiembre para un proveedor), colaborador ve 0.
-- **No cubierto por pruebas automáticas:** el movimiento (FLIP, cajón, destello) — se verificó a mano en el
-  navegador.
+- **No cubierto por pruebas automáticas:** el movimiento (entrada, FLIP, cajón, destello) — se verificó a mano
+  en el navegador con sesión de líder, y esa verificación encontró tres defectos que se corrigieron: la tabla
+  decidía sus columnas por el ancho de la ventana (con el menú lateral el nombre quedaba en «C…»; ahora usa
+  container queries sobre la propia tabla), `useFlip` medía con `offsetTop` y las filas se deslizaban
+  distancias distintas, y `useContar` dejaba la cifra clavada en 0 en desarrollo (React repite los efectos).
 
 ## Consecuencias
 

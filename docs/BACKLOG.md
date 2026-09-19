@@ -30,19 +30,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0122)
 
-Aplicado en código, verificado con pruebas de reglas y contra el Postgres local; **falta lo de producción y la
-verificación visual con sesión de líder** (ver abajo).
+Aplicado en código y verificado en el navegador con sesión de líder (escritorio); **falta lo de producción
+y mirarlo en celular real** (ver abajo).
 
 - [ ] **Pegar en producción `20260919150000_proveedores_serie_mensual.sql`** (una función de solo lectura, con
   ok explícito de Felipe y con el prefijo `retail.`/`set search_path` que ya trae el archivo). Hasta entonces
   la lista se ve sin mini-tendencias ni barras mensuales — a propósito, no es un error. Después: refrescar el
   volcado (`pnpm datos:generar:produccion`) para que `funciones-produccion.txt` la incluya.
-- [ ] **Verificación visual con sesión de líder** de: FLIP al ordenar/filtrar, cajón (↑ ↓ y Esc), pulgar del
-  filtro, destello al registrar/desactivar, «Deshacer» y el modo celular (390 px). Se verificó el spike, y en
-  el código real tsc/eslint/1061 tests, pero el navegador integrado pide login y no se escriben credenciales.
-- [ ] **Decisión de Felipe — ¿excepción de «nada se anima solo» para esta pantalla?** Hoy NO se anima la
-  entrada (escalonado, conteo desde 0, trazo del gráfico al abrir la ficha). El spike sí lo hacía; está en
-  `docs/maquetas/proveedores-spike-2026-09/` para compararlo. Si sí, va con ADR.
+- [ ] **Mirarlo en celular real** (390 px): el cajón a pantalla completa, las filas de 2 columnas y el
+  filtro de rubro con desplazamiento horizontal se verificaron solo por CSS, no en un dispositivo. Y con MÁS
+  datos: la base local tiene 2 proveedores activos, así que el deslizamiento de filas se midió pero no se
+  vio con una lista larga.
+- [ ] **Regla de movimiento cambiada (Felipe, 2026-09-19): la llegada a una pantalla también se anima.**
+  Aplicada solo en Proveedores. Si otra pantalla la quiere, usa `anim-entra` con `--i` (ver el encabezado de
+  «Capa de movimiento» en `globals.css`); no es obligatoria. Falta decidir cuáles siguen (Comprobantes, Por
+  pagar, Recibir) — cada una con su verificación en navegador.
 - [ ] **Deuda menor:** la barra de «Concentración» dejó de ser un enlace a Por pagar (sus tramos son botones).
   Si se extraña, se agrega un «Ver por pagar →» al pie de la tarjeta.
 

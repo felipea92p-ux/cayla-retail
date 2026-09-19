@@ -11,9 +11,9 @@ import type { EvolucionCosto } from "@/lib/proveedores";
 // «es caro» que «subió 8.7 % en tres compras». Sale de `compra_items` (lo que de verdad se pagó en
 // cada comprobante), no de `costo_historial`, que mezcla a todos los proveedores de la misma prenda.
 //
-// ADR-0122: al pasar el mouse por el gráfico una guía salta a la compra más cercana, su punto crece y las
-// demás cifras se apagan — se lee UNA compra sin buscarla en la fila de abajo. Responde al mouse; el
-// trazo no se anima al abrir la ficha.
+// ADR-0122: al llegar, la línea se dibuja y los puntos aparecen uno tras otro (una vez); al pasar el mouse
+// por el gráfico una guía salta a la compra más cercana, su punto crece y las demás cifras se apagan — se
+// lee UNA compra sin buscarla en la fila de abajo.
 //
 // Con una sola compra no hay evolución que dibujar, y no se inventa una línea: el estado vacío lo dice.
 // El SVG se arma a mano (dos ejes implícitos, ningún gráfico de librería): son 2–6 puntos y el dato es
@@ -40,7 +40,7 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
   }
 
   return (
-    <div className="card-cayla p-5">
+    <div className="card-cayla anim-entra p-5" style={{ ["--i" as string]: 11 }}>
       <p className="label-cayla text-[11px] text-tinta/65">Evolución del costo{evolucion ? ` · ${evolucion.referencia}` : ""}</p>
       {!evolucion || puntos.length < 2 || variacion == null ? (
         <div className="mt-3">
@@ -63,11 +63,11 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
 
           <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} onMouseMove={alMover} onMouseLeave={() => setCerca(null)} className="mt-2 h-[120px] w-full" role="img" aria-label={`Costo de ${evolucion.referencia}: ${costos.map((c) => soles(c)).join(", ")}`}>
             <line x1={MARGEN} y1={ALTO - 20} x2={ANCHO - MARGEN} y2={ALTO - 20} stroke="currentColor" className="text-tinta/10" />
-            <polyline points={trazo(costos)} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"} />
+            <polyline points={trazo(costos)} pathLength={1} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ ["--i" as string]: 11 }} className={`trazo-linea anim-trazo ${variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"}`} />
             {cerca != null && <line x1={punto(costos[cerca], cerca, costos)[0]} x2={punto(costos[cerca], cerca, costos)[0]} y1={6} y2={ALTO - 20} stroke="currentColor" strokeWidth={1} className="text-rojo/60" />}
             {costos.map((c, i) => {
               const [x, y] = punto(c, i, costos);
-              return <circle key={i} cx={x} cy={y} r={cerca === i ? 7 : 5} fill="currentColor" className={`transition-[r] duration-150 ${variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"}`} />;
+              return <circle key={i} cx={x} cy={y} r={cerca === i ? 7 : 5} fill="currentColor" style={{ animationDelay: `${650 + i * 110}ms` }} className={`anim-velo transition-[r] duration-150 ${variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"}`} />;
             })}
           </svg>
 
