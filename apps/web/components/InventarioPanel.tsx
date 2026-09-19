@@ -326,7 +326,7 @@ export function InventarioPanel({
                   </span>
                 )}
                 <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">Disponible</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Disponible</span>
                   {f.total}
                 </span>
                 {separa && (
@@ -368,11 +368,11 @@ export function InventarioPanel({
                   </span>
                 )}
                 <span className={celda("centro", `text-sm tabular-nums ${f.enTransito > 0 ? "text-verde-profundo" : "text-tinta/35"}`)}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En camino</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En camino</span>
                   {f.enTransito > 0 ? `+${f.enTransito}` : "—"}
                 </span>
                 <span className={celda("centro", "text-xs")} title={red?.detalle}>
-                  <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En la red</span>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En la red</span>
                   {red ? (
                     <>
                       <span className="block text-tinta">

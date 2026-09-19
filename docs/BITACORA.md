@@ -3,6 +3,38 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Candado: el CI ahora rechaza dos migraciones con la misma versión)
+
+Ya pasó tres veces en dos días (`20260917100000`, `20260917140000` y `20260918170000`) y siempre se descubrió cuando alguien no podía levantar su base local. Nada lo veía: `migraciones:verificar` compara lo que cada archivo promete contra la base, no los nombres entre sí, y producción no lo delata porque el SQL se pega a mano. Nuevo `scripts/migraciones/versiones.mjs` (`pnpm migraciones:versiones`) + paso «Versiones de migración» en el CI, que corre también en `pull_request`: solo lee nombres de archivo, sin base de datos ni `node_modules`. Probado contra `main` (verde), contra el duplicado original del PR #150 y contra `origin/claude/panel-comercial`, que aún lo trae (ambos rojos).
+
+Lo que Felipe se lleva: el choque entre dos ramas no se ve en ninguna de las dos por separado; se ve en la segunda cuando `main` ya tiene la primera. Por eso el candado importa en el PR, no en la rama. Límite: no ve ramas que aún no son PR, y no sabe cuál de las dos ya está en producción — eso sigue siendo decisión humana (renombrar solo la que no se pegó).
+
+## 2026-09-18 (El acento rojo de las tarjetas no se veía: una clase fuera de capa le ganaba a Tailwind)
+
+Se cerró: `.card-cayla` y sus hermanas (`label-cayla`, `font-display`, `alza-cayla`, `scroll-cayla`,
+`anim-*`) pasaron a `@layer components` (ADR-0105), y un test hace fallar el build si vuelve a
+aparecer una clase suelta. Medido con 752 `className` reales: mover la capa cambió exactamente los
+31 elementos predichos; tras decidir cada utilidad muerta (se quedan las que expresan diseño, se
+borran 21 que contradecían el sistema), cambian 10, todos intencionales.
+
+Lo que Felipe se lleva: una utilidad de Tailwind que "no hace nada" no es inocua — era una
+pantalla que nadie vio como se diseñó. Salieron a la luz tres cosas que no eran el bug pedido: el
+filtro seleccionado en Resumen/Existencias no se distinguía (solo lo decía `aria-pressed`), las
+tarjetas de `/compras` y `campoSelect` no tenían indicador de foco de teclado, y `MAX_ROJO_POR_PANTALLA`
+ya estaba roto en Resumen (5 rojos) sin que nada avisara. Felipe eligió la opción A: los enlaces de acción de las tarjetas pasan a tinta subrayado y el rojo queda para el borde, con lo que Resumen baja de 5 a 2 rojos.
+Límite honesto: el Docker local estaba caído, así que se verificó con el componente real y el corpus,
+no con las pantallas con datos.
+
+## 2026-09-18 (Diccionario de datos al día con producción: 62 tablas, 157 funciones — parchando sobre #138 en vez de rehacerlo)
+
+El PR #138 refrescaba el volcado de producción pero quedó con conflictos y, para cuando se pudo retomar, producción ya tenía cuatro tablas más (`compra_item_cierres`, `compra_notas_credito`, `proveedor_creditos`, `etiqueta_categorias`), columnas nuevas (`etiquetas.descuento_pct`, `venta_items.descuento_etiqueta_id`, cinco columnas de `compras`) y 31 funciones nuevas o con firma distinta (entre ellas `campanas_vigentes`, `fn_hoy_lima`). En vez de volver a bajar ~230 KB de JSON, se tomó #138 como base y se parchó solo lo que difería: se calculó una firma md5 por tabla (columnas, restricciones, políticas, índices únicos) y por función, se le mandó a la base solo un prefijo de 6 caracteres por firma y ella devolvió únicamente lo distinto.
+
+Verificación final contra producción: 250 de 250 firmas coinciden, 0 funciones de diferencia en ambos sentidos (157 y 157). `datos:generar:produccion` describe 65 tablas y vistas; `datos:aviario --verificar` en verde (14 pájaros, ninguna tabla sin dueño); `datos:comparar`: ninguna de las 93 llamadas de las pantallas apunta a una función con parámetros que producción no acepte. Además faltaban tres llaves cruzadas hacia Dynamic (`usuario_id → personas` de las tablas nuevas) que ninguna de las revisiones habría notado: `retail_fks_cruzadas.json` sale de una consulta aparte.
+
+Un error propio que la revisión cazó: la primera regla para decidir qué firmas viejas sobraban era «mismo nombre de función» y habría borrado una sobrecarga de `registrar_compra` que sigue viva; la comprobación de conteo (156 ≠ 157) lo delató y se corrigió preguntándole a la base qué firmas locales ya no existían (eran solo dos).
+
+Lo que Felipe se lleva: comparar por firmas y descargar solo la diferencia convierte «refrescar el volcado» de una transcripción enorme y frágil en una tarea de minutos, y el conteo final contra producción es lo que garantiza que un parche a mano no dejó nada torcido. Pendiente: cuando se pegue más SQL en producción, repetir el mismo método (las consultas de firma están en el historial de esta sesión; conviene convertirlas en un script).
+
 ## 2026-09-18 (Compras: «Esperando nota» sale en las listas de Comprobantes y Por pagar — ADR-0111)
 
 Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito por lo cerrado; el detalle ya lo decía, pero en Por pagar el líder veía el saldo completo y podía pagar de más. Ahora las dos listas muestran junto al saldo un chip ámbar «Esperando nota S/ X» (y «Ya puedes registrarla» cuando el comprobante ya está al 100 %). Lo calcula una función de lectura nueva, `compras_nota_pendiente(uuid[])` (migración `20260918220000`), que NO toca `listar_compras` ni `compras_resumen`: cambiar el retorno de una función viva es lo que ya rompió producción (ADR-0009), una función nueva no puede.
@@ -79,6 +111,16 @@ desplegar** — comprobado que ya tiene todo lo que la pantalla lee, y que las t
 llevaba atrasadas (`emitir_comprobante` idempotente, contacto bancario de proveedores, atraso de recepción de compras)
 ya están en producción. Datos de prueba: 31 traslados nuevos en la base local con `[prueba UI]` en la nota (sin borrar ni
 modificar los 4 que había).
+
+## 2026-09-18 (El volcado de producción se refresca: `familias` entra y el aviario vuelve a ver todo)
+
+Se refrescaron los siete archivos de `docs/datos/generado/` (`retail_*.json` y `funciones-produccion.txt`) contra producción (`cayla-dynamic`, schema `retail`), solo con consultas de lectura. Pasó de 57 tablas + 3 vistas a 58 + 3: entra `retail.familias` (PR #129) y 11 tablas o vistas ganaron columnas (`proveedores`, `compras`, `productos`, `etiquetas`, `comprobantes`, `ubicaciones`…); 9 funciones cambiaron de firma. Resultado: `datos:aviario --verificar` en verde con 61 tablas y ninguna «no en el volcado»; `datos:comparar` sin pantallas rotas (78 llamadas contra 128 funciones).
+
+Cómo se verificó que el volcado quedó fiel: cada archivo se comparó con producción por firma (md5 por tabla, calculado igual en Postgres y en local) y solo se descargó lo que difería; después se recalculó y las 61/58/58/57 firmas coinciden, y el conjunto de las 128 funciones da el mismo md5 que producción.
+
+Hallazgo: todo lo nuevo tiene su migración en el repo salvo `patrones.imagen_muestra_url` y `tejidos.imagen_muestra_url`, que ya están en producción y cuyo SQL solo existe en ramas sin fusionar (PR #131 y `claude/muestra-foto-tejidos-patrones`). Además, al menos siete migraciones cuyo efecto está vivo en producción no figuran en `supabase_migrations.schema_migrations` (se pegaron en el SQL Editor). Ambos quedan en BACKLOG.
+
+Lo que Felipe se lleva: el volcado es una foto, y esta se quedó vieja en un día porque ese mismo día se pegaron varias migraciones; la alarma del aviario es tan fresca como esta foto, así que conviene refrescarla al cerrar cualquier tanda de migraciones pegadas en producción.
 
 ## 2026-09-18 (PR #129 sale del atasco: 7 conflictos, un error de tipos que ya traía y dos choques de numeración)
 
@@ -7696,3 +7738,10 @@ y solo después configurar una campaña.
 Hallazgo: en este mismo momento la base (UTC) marca 19-sep mientras Lima marca 18-sep — el
 defecto de `current_date` es real, no teórico. Y `registrar_venta` usaba `current_date` también
 para la vigencia de `codigos_descuento`: queda corregido en el mismo SQL.
+
+## 2026-09-19 (Compras: `registrar_compra` con dos firmas en producción — corrección)
+
+Al refrescar el diccionario de datos apareció una función repetida en producción: `registrar_compra` tenía DOS firmas (14 y 15 parámetros). Causa: producción llevaba la versión con `p_token` (idempotencia por `compras.token_cliente`, de `pegar-en-produccion-compras-atraso-recepcion.sql`), que el repo nunca tuvo; mi migración `217000` reescribió la de 14 parámetros con el medio «saldo a favor» y, al pegarla, `create or replace` con otra lista de parámetros creó una SOBRECARGA (la trampa de ADR-0009). Como la pantalla no manda `p_token`, la llamada quedó ambigua: confirmado en producción con `explain select retail.registrar_compra(...)` → «is not unique» (sin ejecutar nada). Registrar comprobante fallaba.
+Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
+
+Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (la primera versión falló con «relation already exists» porque `compras_token_cliente_key` es allá un índice único y no una restricción; no dejó nada aplicado). Verificado después: `registrar_compra` con una sola firma de 15 parámetros que acepta `saldo_a_favor`, 0 funciones sobrecargadas en `retail`, y el volcado de funciones coincide con producción (156 firmas, mismo checksum).

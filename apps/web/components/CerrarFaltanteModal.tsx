@@ -51,7 +51,7 @@ export function CerrarFaltanteModal({ compra, linea, producto, onClose }: { comp
     <Modal
       titulo={
         <>
-          <span className="label-cayla mb-0.5 block text-[11px] font-normal text-tinta/65">Cerrar línea con faltante</span>
+          <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Cerrar línea con faltante</span>
           <span className="block text-[28px] leading-tight">{producto}</span>
         </>
       }

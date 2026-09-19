@@ -111,9 +111,8 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         <TarjetaCifra
           compacta
           acento={resumen.vencidas > 0}
-          punto={resumen.vencidas > 0 ? "rojo" : "neutro"}
+          punto="neutro"
           tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-          detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
           etiqueta="Vencido"
           valor={soles(resumen.vencido)}
           href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
