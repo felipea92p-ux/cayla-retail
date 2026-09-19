@@ -84,7 +84,8 @@ export default async function CategoriasPage() {
           Categorías
           <Ayuda titulo="Categorías">
             Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
-            <Link href="/productos/familias" className="underline">Productos · Familias</Link>; dentro de cada una, las
+            <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
+            <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
             categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
             código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
             tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría

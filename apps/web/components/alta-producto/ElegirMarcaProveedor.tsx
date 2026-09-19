@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
+import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import {
   buscarMarcaProveedor,
   marcaAutomatica,
@@ -51,16 +50,6 @@ type Props = {
   puedeCrear: boolean;
 };
 
-type Borrador = {
-  nombreMarca: string;
-  /** Marca ya existente a la que solo se le suma proveedor: el nombre no se toca. */
-  marcaFija: boolean;
-  modoProveedor: "existente" | "nuevo";
-  proveedorId: string;
-  provNombre: string;
-  provRuc: string;
-};
-
 export function ElegirMarcaProveedor({
   marcas: marcasIni,
   proveedores: proveedoresIni,
@@ -80,9 +69,8 @@ export function ElegirMarcaProveedor({
   const [consulta, setConsulta] = useState("");
   const [marcaTentativa, setMarcaTentativa] = useState<string | null>(null);
   const [provTentativo, setProvTentativo] = useState<string | null>(null);
-  const [borrador, setBorrador] = useState<Borrador | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, o solo otro proveedor para una marca).
+  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean } | null>(null);
 
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
@@ -123,61 +111,18 @@ export function ElegirMarcaProveedor({
     }
   }
 
-  function abrirNueva(partida: Partial<Borrador> = {}) {
-    setError(null);
-    setBorrador({ nombreMarca: "", marcaFija: false, modoProveedor: proveedores.length > 0 ? "existente" : "nuevo", proveedorId: "", provNombre: "", provRuc: "", ...partida });
-  }
-
-  async function guardarNueva() {
-    if (!borrador || guardando) return;
-    const nombreMarca = borrador.nombreMarca.trim();
-    if (!nombreMarca) return setError("Escribe el nombre de la marca.");
-    if (borrador.modoProveedor === "existente" && !borrador.proveedorId) return setError("Elige el proveedor que la trae.");
-    if (borrador.modoProveedor === "nuevo" && !borrador.provNombre.trim()) return setError("Escribe el nombre del proveedor.");
-
-    setGuardando(true);
-    setError(null);
-    const supabase = createClient();
-
-    // Paso 1 (solo si el proveedor es nuevo): registrarlo con lo mínimo. Lo demás (contacto, banco, plazo) se completa en Compras.
-    let provId = borrador.proveedorId;
-    if (borrador.modoProveedor === "nuevo") {
-      const { data, error: errProv } = await supabase.rpc("registrar_proveedor", {
-        p_nombre: borrador.provNombre.trim(),
-        p_ruc: borrador.provRuc.trim() || undefined,
-      });
-      if (errProv || !data) {
-        setGuardando(false);
-        return setError(traducirError(errProv, "registrar el proveedor"));
-      }
-      provId = data;
-    }
-
-    // Paso 2: la marca con su proveedor (si la marca ya existe, solo se le suma el proveedor).
-    const { data: nuevaMarcaId, error: errMarca } = await supabase.rpc("crear_marca", { p_nombre: nombreMarca, p_proveedor_id: provId });
-    setGuardando(false);
-    if (errMarca || !nuevaMarcaId) {
-      // Si el proveedor recién se registró y la marca falló, el proveedor YA existe: se dice, y reintentar es seguro.
-      return setError(
-        borrador.modoProveedor === "nuevo"
-          ? `El proveedor se registró, pero la marca no se pudo guardar: ${traducirError(errMarca, "agregar la marca")} Reintenta: el proveedor ya está creado.`
-          : traducirError(errMarca, "agregar la marca")
-      );
-    }
-
-    const nombreMarcaFinal = marcas.find((m) => m.id === nuevaMarcaId)?.nombre ?? nombreMarca;
-    const provNombre = borrador.modoProveedor === "nuevo" ? borrador.provNombre.trim() : (provPor(provId)?.nombre ?? "");
-    if (borrador.modoProveedor === "nuevo") setProveedores((prev) => [...prev, { id: provId, nombre: provNombre }]);
-    setMarcas((prev) => (prev.some((m) => m.id === nuevaMarcaId) ? prev : [...prev, { id: nuevaMarcaId, nombre: nombreMarca }]));
-    setVinculos((prev) => (prev.some((v) => v.marcaId === nuevaMarcaId && v.proveedorId === provId) ? prev : [...prev, { marcaId: nuevaMarcaId, proveedorId: provId }]));
-    avisar.exito(`${nombreMarca} · ${provNombre}`, { detalle: "Marca y proveedor guardados." });
-    setBorrador(null);
+  function alGuardarNueva(r: MarcaGuardada) {
+    if (r.proveedorNuevo) setProveedores((prev) => [...prev, { id: r.proveedorId, nombre: r.proveedorNombre }]);
+    setMarcas((prev) => (prev.some((m) => m.id === r.marcaId) ? prev : [...prev, { id: r.marcaId, nombre: r.marcaNombre }]));
+    setVinculos((prev) => (prev.some((v) => v.marcaId === r.marcaId && v.proveedorId === r.proveedorId) ? prev : [...prev, { marcaId: r.marcaId, proveedorId: r.proveedorId }]));
+    avisar.exito(`${r.marcaNombre} · ${r.proveedorNombre}`, { detalle: "Marca y proveedor guardados." });
+    setCreando(null);
     limpiarTentativas();
-    onElegir(nuevaMarcaId, provId, { marca: nombreMarcaFinal, proveedor: provNombre });
+    onElegir(r.marcaId, r.proveedorId, { marca: r.marcaNombre, proveedor: r.proveedorNombre });
   }
 
   // ---------- ya elegidos ----------
-  if (marcaId && proveedorId && !borrador) {
+  if (marcaId && proveedorId && !creando) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tinta/20 bg-tinta/[0.03] px-3 py-2.5">
         <p className="text-sm text-tinta">
@@ -193,97 +138,16 @@ export function ElegirMarcaProveedor({
   }
 
   // ---------- crear marca / proveedor sin salir ----------
-  if (borrador) {
+  if (creando) {
     return (
-      <div className="space-y-3 rounded-md border border-tinta/20 p-4">
-        <p className="label-cayla text-[11px] text-tinta/70">{borrador.marcaFija ? `Otro proveedor para ${borrador.nombreMarca}` : "Nueva marca"}</p>
-        {!borrador.marcaFija && (
-          <div>
-            <label htmlFor="nueva-marca" className="text-xs text-tinta/60">
-              Nombre de la marca
-            </label>
-            <input
-              id="nueva-marca"
-              autoFocus
-              value={borrador.nombreMarca}
-              onChange={(e) => setBorrador({ ...borrador, nombreMarca: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void guardarNueva())}
-              className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none focus:border-tinta"
-            />
-          </div>
-        )}
-
-        <div>
-          <p className="text-xs text-tinta/60">¿Quién la trae?</p>
-          <div className="mt-1.5 flex gap-1.5">
-            <ChipOpcion elegido={borrador.modoProveedor === "existente"} onClick={() => setBorrador({ ...borrador, modoProveedor: "existente" })} disabled={proveedores.length === 0}>
-              Un proveedor que ya tengo
-            </ChipOpcion>
-            <ChipOpcion elegido={borrador.modoProveedor === "nuevo"} onClick={() => setBorrador({ ...borrador, modoProveedor: "nuevo" })}>
-              Un proveedor nuevo
-            </ChipOpcion>
-          </div>
-        </div>
-
-        {borrador.modoProveedor === "existente" ? (
-          <div className="flex flex-wrap gap-1.5">
-            {proveedores.map((p) => (
-              <ChipOpcion key={p.id} elegido={borrador.proveedorId === p.id} onClick={() => setBorrador({ ...borrador, proveedorId: p.id })}>
-                {p.nombre}
-              </ChipOpcion>
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nuevo-proveedor" className="text-xs text-tinta/60">
-                Nombre del proveedor
-              </label>
-              <input
-                id="nuevo-proveedor"
-                value={borrador.provNombre}
-                onChange={(e) => setBorrador({ ...borrador, provNombre: e.target.value })}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void guardarNueva())}
-                className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none focus:border-tinta"
-              />
-            </div>
-            <div>
-              <label htmlFor="nuevo-ruc" className="text-xs text-tinta/60">
-                RUC (opcional)
-              </label>
-              <input
-                id="nuevo-ruc"
-                inputMode="numeric"
-                maxLength={11}
-                value={borrador.provRuc}
-                onChange={(e) => setBorrador({ ...borrador, provRuc: e.target.value.replace(/\D/g, "") })}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void guardarNueva())}
-                className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm tabular-nums text-tinta outline-none focus:border-tinta"
-              />
-            </div>
-            <p className="text-xs text-tinta/55 sm:col-span-2">Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.</p>
-          </div>
-        )}
-
-        {error && (
-          <p role="alert" className="text-xs text-rojo-profundo">
-            {error}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void guardarNueva()}
-            disabled={guardando}
-            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
-          >
-            {guardando ? "Guardando…" : "Guardar y usar"}
-          </button>
-          <button type="button" onClick={() => setBorrador(null)} disabled={guardando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
-            Cancelar
-          </button>
-        </div>
-      </div>
+      <NuevaMarcaForm
+        proveedores={proveedores}
+        nombreInicial={creando.nombre}
+        marcaFija={creando.marcaFija}
+        nombreExistente={(n) => marcas.find((m) => sinTildes(m.nombre) === sinTildes(n))?.nombre}
+        onGuardado={alGuardarNueva}
+        onCancelar={() => setCreando(null)}
+      />
     );
   }
 
@@ -311,7 +175,7 @@ export function ElegirMarcaProveedor({
           {puedeCrear && m && (
             <button
               type="button"
-              onClick={() => abrirNueva({ nombreMarca: m.nombre, marcaFija: true })}
+              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true })}
               className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
             >
               + Otro proveedor para {m.nombre}
@@ -406,9 +270,14 @@ export function ElegirMarcaProveedor({
       </div>
 
       {puedeCrear ? (
-        <button type="button" onClick={() => abrirNueva({ nombreMarca: consulta.trim() })} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-          + Nueva marca{consulta.trim() ? ` «${consulta.trim()}»` : ""}
-        </button>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <button type="button" onClick={() => setCreando({ nombre: consulta.trim(), marcaFija: false })} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+            + Nueva marca{consulta.trim() ? ` «${consulta.trim()}»` : ""}
+          </button>
+          <a href="/productos/marcas" target="_blank" rel="noreferrer" className="label-cayla text-[11px] text-tinta/50 underline underline-offset-4 hover:text-rojo">
+            Administrar marcas
+          </a>
+        </div>
       ) : (
         <p className="text-xs text-tinta/55">¿Falta una marca? Pídele a un Líder que la agregue.</p>
       )}
