@@ -29,9 +29,18 @@
  * transacciones concurrentes): esa garantía sale del `for update` sobre `compras` + el chequeo del token DESPUÉS
  * del candado, y está razonada en el ADR-0135, no ejecutada aquí.
  *
- * `--en-seco`: antes de cada escenario carga DENTRO de su transacción la migración, así se prueba SIN haberla
- * aplicado a la base compartida. Sin el flag asume que ya está aplicada (y si no lo está, los casos fallan: eso
- * es lo que demuestra que las pruebas detectan los huecos).
+ * DOS MIGRACIONES. La 20260919180000 endurece `registrar_pagos_compra` y `registrar_pago_compras` (y crea el
+ * helper de fecha); la 20260919181000 PARCHA `registrar_compra` sobre su definición viva (A1, M2, M3), para no pisar la
+ * de reparto por tienda (ADR-0132). Las pruebas de `registrar_compra` deben pasar con las dos, y hay casos propios del
+ * parche: aplicarlo dos veces no cambia el md5, aborta limpio si falta un ancla (una por una, las seis) o si la función
+ * quedó a medias, y —si la migración de reparto está en el worktree hermano— sus anclas existen en la definición
+ * que esa rama deja y el parche se aplica sobre ella.
+ *
+ * `--en-seco`: antes de cada escenario carga DENTRO de su transacción la definición SIN parchar de `registrar_compra`
+ * (la de la migración 20260918219100, la que hay en producción hoy) y luego las dos migraciones EN ORDEN, así se prueba
+ * SIN haberlas aplicado a la base compartida y el parche corre de verdad sobre una función cruda. Sin el flag asume
+ * que ya están aplicadas (y si no lo están, los casos fallan: eso es lo que demuestra que las pruebas detectan los
+ * huecos).
  *
  * USO
  *   pnpm pruebas:pagos-compras-endurecimiento            → migración ya aplicada en el local
@@ -39,7 +48,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,8 +59,31 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a Tienda Trujillo
 
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260919180000_pagos_compras_endurecimiento.sql"), "utf8");
-const PRELUDIO = EN_SECO ? MIGRACION : "";
+const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
+const MIGRACION = leerMigracion("20260919180000_pagos_compras_endurecimiento.sql"); // parte 1: pagos + helper de fecha
+const PARCHE = leerMigracion("20260919181000_registrar_compra_endurecimiento_por_parche.sql"); // parte 2: parche de registrar_compra
+
+/**
+ * `registrar_compra` SIN parchar: el texto de la migración 20260918219100 (la definición que hay en producción), con
+ * `fn_hoy_lima()` en la fecha del pago como en la definición viva (la de la migración lleva `current_date`).
+ */
+const REGISTRAR_COMPRA_CRUDA = (() => {
+  const texto = leerMigracion("20260918219100_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor.sql");
+  const m = texto.match(/create or replace function retail\.registrar_compra\([\s\S]*?\$function\$;/);
+  if (!m) throw new Error("No encontré registrar_compra en 20260918219100");
+  const ancla = "v_pago_fecha := coalesce((v_pagos -> 0 ->> 'fecha')::date, current_date);";
+  if (!m[0].includes(ancla)) throw new Error("La cruda ya no tiene la línea de fecha esperada");
+  return `set search_path = retail, public, extensions;\n${m[0].replace(ancla, ancla.replace("current_date", "fn_hoy_lima()"))}\n`;
+})();
+
+/** Las anclas del parche, leídas del propio archivo (una sola fuente de verdad). */
+const ANCLAS = [...PARCHE.matchAll(/\$a\$([\s\S]*?)\$a\$/g)].map((m) => m[1]);
+/** El `DO` del parche como una sola sentencia (para ejecutarlo con `execute` dentro de un bloque con manejo de errores). */
+const DO_PARCHE = PARCHE.match(/do \$parche\$[\s\S]*?\$parche\$;/)[0].replace(/;$/, "");
+
+const PRELUDIO = EN_SECO ? `${REGISTRAR_COMPRA_CRUDA}${MIGRACION}\n${PARCHE}\n` : "";
+
+const FIRMA_RC = "'retail.registrar_compra(uuid,text,text,text,uuid,jsonb,text,date,date,numeric,jsonb,text,numeric,uuid,date)'::regprocedure";
 
 function psql(sql) {
   return execFileSync(
@@ -549,34 +581,169 @@ exito(
 );
 
 // ===========================================================================
-// La migración: se puede pegar dos veces
+// Las migraciones: se pueden pegar dos veces, y el parche es seguro
 // ===========================================================================
 
+const AMBAS = `${MIGRACION}\n${PARCHE}\n`;
+const MD5_RC = `md5(pg_get_functiondef(${FIRMA_RC}))`;
+const CUATRO = `('registrar_compra', 'registrar_pagos_compra', 'registrar_pago_compras', 'fn_validar_fecha_pago_compra')`;
+
 exito(
-  "migración · pegarla dos veces deja UNA firma de cada función, sin perder nada, y las funciones siguen andando",
+  "migraciones · pegar las dos (parte 1 y parche) dos veces deja UNA firma de cada función, sin perder nada, y siguen andando",
   `begin;
-${MIGRACION}
-${MIGRACION}
+${REGISTRAR_COMPRA_CRUDA}${AMBAS}${AMBAS}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${BASE}${compra("c1")}select gen_random_uuid() as tok \\gset
 select ${pagar("c1", 100, { token: ":'tok'" })} as ids1 \\gset
 select ${pagar("c1", 100, { token: ":'tok'" })} = :'ids1'::uuid[],
   (select count(*) from retail.compra_pagos where compra_id = :'c1'),
-  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('registrar_compra', 'registrar_pagos_compra', 'registrar_pago_compras', 'fn_validar_fecha_pago_compra')),
-  (select count(*) from (select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('registrar_compra', 'registrar_pagos_compra', 'registrar_pago_compras', 'fn_validar_fecha_pago_compra') group by 1 having count(*) > 1) x);`,
+  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ${CUATRO}),
+  (select count(*) from (select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname in ${CUATRO} group by 1 having count(*) > 1) x);`,
   ["t", "1", "4", "0"]
 );
 exito(
-  "migración · una compra y un pago anteriores a la migración no se tocan (no borra ni modifica datos)",
+  "migraciones · una compra y un pago anteriores no se tocan (no borra ni modifica datos)",
   `begin;
 ${BASE}set local request.jwt.claim.sub = '${FELIPE}';
 ${compra("c1")}select retail.registrar_pago_compra(:'c1', 100, 'transferencia') as _a \\gset
 select saldo::text as saldo0, (select count(*) from retail.compra_pagos where compra_id = :'c1') as n0 from retail.compras where id = :'c1' \\gset
-${MIGRACION}
+${AMBAS}
 set local request.jwt.claim.sub = '${FELIPE}';
 select saldo::text = :'saldo0', (select count(*) from retail.compra_pagos where compra_id = :'c1') = :'n0'::bigint from retail.compras where id = :'c1';`,
   ["t", "t"]
 );
+exito(
+  "parche · sobre la función CRUDA cambia el md5; aplicarlo una SEGUNDA vez NO lo cambia (re-ejecutable), y queda UNA firma",
+  `begin;
+${REGISTRAR_COMPRA_CRUDA}${MIGRACION}
+select ${MD5_RC} as m0 \\gset
+${PARCHE}
+select ${MD5_RC} as m1 \\gset
+${PARCHE}
+select :'m0' <> :'m1', :'m1' = ${MD5_RC}, (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_compra');`,
+  ["t", "t", "1"]
+);
+exito(
+  "parche · conserva security definer, search_path, comentario y grants (authenticated sí, anon/public no)",
+  `begin;
+${REGISTRAR_COMPRA_CRUDA}${MIGRACION}
+select obj_description(${FIRMA_RC}, 'pg_proc') as c0 \\gset
+${PARCHE}
+select prosecdef, proconfig = array['search_path=retail, public, extensions'],
+  obj_description(oid, 'pg_proc') = :'c0',
+  has_function_privilege('authenticated', oid, 'execute'), has_function_privilege('anon', oid, 'execute'),
+  (select count(*) from aclexplode(proacl) a where a.grantee = 0)
+  from pg_proc where oid = ${FIRMA_RC};`,
+  ["t", "t", "t", "t", "f", "0"]
+);
+exito(
+  "parche · si falta UNA de las seis anclas aborta con «Ancla no encontrada» y NO deja la función cambiada (las seis, una por una)",
+  `begin;
+${REGISTRAR_COMPRA_CRUDA}${MIGRACION}
+do $t$
+declare
+  v_anclas text[] := array[${ANCLAS.map((a) => `$q$${a}$q$`).join(", ")}];
+  v_oid oid := ${FIRMA_RC};
+  v_cruda text := pg_get_functiondef(v_oid);
+  v_roto text; v_md5_roto text; v_msg text; v_i integer; v_ok integer := 0;
+begin
+  for v_i in 1 .. array_length(v_anclas, 1) loop
+    -- La misma función pero con el ancla i «rota»: un comentario de bloque en su primer espacio (sigue siendo SQL válido).
+    v_roto := replace(v_cruda, v_anclas[v_i], replace(v_anclas[v_i], ' ', ' /* roto */ '));
+    if v_roto = v_cruda then raise exception 'la prueba no pudo romper el ancla %', v_i; end if;
+    execute v_roto;
+    v_md5_roto := md5(pg_get_functiondef(v_oid));
+    v_msg := null;
+    begin
+      execute $m$${DO_PARCHE}$m$;
+    exception when others then
+      v_msg := sqlerrm;
+    end;
+    if v_msg like 'Ancla no encontrada%' and md5(pg_get_functiondef(v_oid)) = v_md5_roto then
+      v_ok := v_ok + 1;
+    end if;
+  end loop;
+  execute v_cruda;
+  perform set_config('t.ok', v_ok::text, true);
+end
+$t$;
+select current_setting('t.ok'), (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_compra');`,
+  [String(ANCLAS.length), "1"]
+);
+exito(
+  "parche · si la función quedó a medias (algún marcador sin los demás) aborta con «parcialmente parchada» sin tocarla",
+  `begin;
+${REGISTRAR_COMPRA_CRUDA}${MIGRACION}
+do $t$
+declare
+  v_oid oid := ${FIRMA_RC};
+  v_media text := replace(pg_get_functiondef(${FIRMA_RC}), 'v_tolerancia numeric(12, 2);', E'v_tolerancia numeric(12, 2);\\n  v_unidades numeric := 0;');
+  v_md5 text; v_msg text;
+begin
+  execute v_media;
+  v_md5 := md5(pg_get_functiondef(v_oid));
+  begin
+    execute $m$${DO_PARCHE}$m$;
+  exception when others then
+    v_msg := sqlerrm;
+  end;
+  perform set_config('t.ok', (v_msg like 'registrar_compra está parcialmente parchada%' and md5(pg_get_functiondef(v_oid)) = v_md5)::text, true);
+end
+$t$;
+select current_setting('t.ok');`,
+  ["true"]
+);
+exito(
+  "parche · si hubiera DOS firmas de registrar_compra aborta (ADR-0009) y no toca ninguna",
+  `begin;
+${REGISTRAR_COMPRA_CRUDA}${MIGRACION}
+create function retail.registrar_compra(p_solo_prueba integer) returns integer language sql as $$ select 1 $$;
+do $t$
+declare v_msg text;
+begin
+  begin
+    execute $m$${DO_PARCHE}$m$;
+  exception when others then
+    v_msg := sqlerrm;
+  end;
+  perform set_config('t.ok', (v_msg like 'registrar_compra tiene 2 firmas vivas%')::text, true);
+end
+$t$;
+select current_setting('t.ok'), (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_compra' and pg_get_functiondef(oid) like '%v_unidades%');`,
+  ["true", "0"]
+);
+
+// --- Contra la definición que deja la migración de reparto por tienda (ADR-0132), si está en el worktree hermano.
+// No se puede EJECUTAR (necesita `compra_item_destinos` y sin `ubicacion_destino_id`, que esta base no tiene): se prueba
+// que las seis anclas existen ahí, que el parche se aplica, que conserva su reparto y que es re-ejecutable.
+const MIGRACION_REPARTO = process.env.CAYLA_REPARTO_MIGRACION
+  ?? join(RAIZ, "..", "modulos-por-tienda-ca0f59", "supabase", "migrations", "20260919172000_reparto_compra_por_tienda.sql");
+let REGISTRAR_COMPRA_REPARTO = null;
+if (existsSync(MIGRACION_REPARTO)) {
+  const m = readFileSync(MIGRACION_REPARTO, "utf8").match(/create or replace function (?:retail\.)?registrar_compra\([\s\S]*?\$function\$;/);
+  if (m) REGISTRAR_COMPRA_REPARTO = m[0];
+}
+if (REGISTRAR_COMPRA_REPARTO) {
+  const veces = ANCLAS.map((a) => REGISTRAR_COMPRA_REPARTO.split(a).length - 1);
+  exito(
+    `parche · sobre la registrar_compra de la migración de reparto (${veces.join("/")} apariciones de las seis anclas): se aplica, conserva el reparto y es re-ejecutable`,
+    `begin;
+set search_path = retail, public, extensions;
+${MIGRACION}
+${REGISTRAR_COMPRA_REPARTO}
+select ${MD5_RC} as m0 \\gset
+${PARCHE}
+select ${MD5_RC} as m1 \\gset
+${PARCHE}
+select :'m0' <> :'m1', :'m1' = ${MD5_RC},
+  pg_get_functiondef(${FIRMA_RC}) like '%compra_item_destinos%',
+  pg_get_functiondef(${FIRMA_RC}) like '%v_unidades%' and pg_get_functiondef(${FIRMA_RC}) like '%fn_validar_fecha_pago_compra%' and pg_get_functiondef(${FIRMA_RC}) like '%Los montos del pago admiten%',
+  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_compra');`,
+    ["t", "t", "t", "t", "1"]
+  );
+} else {
+  console.log(`(omitido: no encuentro la migración de reparto en ${MIGRACION_REPARTO}; define CAYLA_REPARTO_MIGRACION para probar el parche contra ella)\n`);
+}
 
 // ---------------------------------------------------------------------------
 
@@ -588,7 +755,7 @@ function main() {
     process.exit(1);
   }
 
-  if (EN_SECO) console.log("Modo --en-seco: la migración se carga dentro de cada escenario (no se aplica a la base).\n");
+  if (EN_SECO) console.log("Modo --en-seco: registrar_compra cruda + las dos migraciones se cargan dentro de cada escenario (no se aplican a la base).\n");
 
   let fallos = 0;
   for (const caso of CASOS) {

@@ -3,9 +3,16 @@
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado en el Postgres **local**; **PENDIENTE de aplicar en producción (requiere confirmación de Felipe)**.
   Toca tres funciones de dinero y cambia la firma de una: regla de CLAUDE.md, se detiene y se confirma antes.
-- **Migración:** `supabase/migrations/20260919180000_pagos_compras_endurecimiento.sql` (su cabecera repite el porqué).
-- **Pruebas:** `pnpm pruebas:pagos-compras-endurecimiento` (60 casos, cada uno con ROLLBACK; `--en-seco` carga la migración
-  dentro de cada escenario). Están en CI.
+- **Migraciones (DOS, en este orden):**
+  1. `supabase/migrations/20260919180000_pagos_compras_endurecimiento.sql` — `registrar_pagos_compra` (A2, M2, M3),
+     `registrar_pago_compras` (M1, M2), el helper `fn_validar_fecha_pago_compra` y los grants.
+  2. `supabase/migrations/20260919181000_registrar_compra_endurecimiento_por_parche.sql` — `registrar_compra` (A1, M2, M3)
+     **parchada sobre su definición viva**, no recreada. Ver «Por qué dos migraciones».
+  Las cabeceras de ambas repiten el porqué.
+- **Pruebas:** `pnpm pruebas:pagos-compras-endurecimiento` (66 casos, cada uno con ROLLBACK; `--en-seco` carga, dentro de cada
+  escenario, la `registrar_compra` sin parchar de producción y las dos migraciones en orden). Están en CI.
+- **Convive con** ADR-0132 (reparto de una compra entre tiendas, otra rama, migraciones `20260919172000`/`173000`, que también
+  reescribe `registrar_compra`): el orden de fusión es indiferente gracias al parche con guarda.
 - **Toca** ADR-0111 (pago por lote, saldo a favor), ADR-0126 (dinero solo del líder: el chequeo `fn_puede_registrar_compras()`
   queda intacto) y ADR-0009 (una sola firma por función: se respeta con `drop function` explícito).
 
@@ -57,6 +64,41 @@ En el lote se valida contra **cada** comprobante; en `registrar_compra`, contra 
 máximo 2 decimales»), sobre el valor crudo: la causa raíz era que la variable era `numeric(12,2)` y el cast redondeaba antes de
 cualquier chequeo.
 
+## Por qué dos migraciones (y por qué `registrar_compra` se parcha en vez de recrearse)
+
+La primera versión de esta migración recreaba `registrar_compra` entera con `create or replace`, copiada de la definición de
+producción. Pero la rama de **reparto por tienda** (ADR-0132) también reescribe `registrar_compra`: guarda `destinos` por
+línea en `compra_item_destinos`, deja de escribir `compras.ubicacion_destino_id` y elimina esa columna. Como ninguna de las dos
+está aún en producción ni se sabe cuál se fusiona primero, un `create or replace` completo desde aquí, si corriera DESPUÉS,
+**pisaría la de reparto** y `registrar_compra` fallaría con «column ubicacion_destino_id does not exist» (y si corriera antes, la
+de reparto borraría mi arreglo sin avisar). Arreglar eso avisando «esta migración va antes/después» es frágil: depende de que
+alguien lo recuerde.
+
+Decisión (principio 2, cero estados inconsistentes: el diseño no debe permitir el orden equivocado):
+
+1. La `20260919180000` queda **sin ninguna recreación de `registrar_compra`**: solo lo que es de las otras funciones y el
+   helper. Se puede aplicar antes o después de la de reparto.
+2. La `20260919181000` **lee la definición viva** (`pg_get_functiondef` de la única firma que haya en `pg_proc`), le cambia
+   solo lo suyo con `replace()` de **seis fragmentos ancla** cortos y estables, y la vuelve a crear con `execute`. Los anclas
+   viven en la zona de la tolerancia del IGV, en la declaración de `v_monto`/`v_tolerancia` y en el bucle de validación de
+   pagos — texto que la migración de reparto no toca (se comprobó que cada ancla aparece **exactamente una vez** tanto en la
+   definición de producción como en la que deja la de reparto).
+3. Guardas, para que falle fuerte y nunca a medias: cada ancla debe estar exactamente una vez (si no, `raise exception`
+   nombrando cuál: «reescribe el parche sobre la definición viva»); si la función ya trae el endurecimiento sale con un
+   `notice` sin tocar nada (re-ejecutable, md5 idéntico); si trae solo parte de los marcadores aborta; si hay 0 o más de una
+   firma aborta (ADR-0009); si falta el helper de la parte 1 aborta pidiendo aplicarla primero. Todo en una transacción.
+
+**Regla de orden que sí queda:** la `181000` debe correr **después** de la `180000` (necesita el helper) y **después** de la de
+reparto si esa se aplica. Si la de reparto se aplicara DESPUÉS de la `181000`, recrearía `registrar_compra` desde su propio
+texto y se perdería el parche sin ruido: basta **volver a pegar la `181000`** (es re-ejecutable) — comprobar con
+`select pg_get_functiondef(...) like '%v_unidades%'`. Los timestamps ya lo garantizan al aplicar por `migration up`
+(reparto 172000/173000 < 180000 < 181000).
+
+**Descartado para esto:** (a) recrear la función dentro de la `180000` avisando el orden (frágil, ver arriba);
+(b) esperar a que la de reparto llegue a main y rehacer mi versión encima (bloquea el arreglo de dinero por una rama ajena y
+sigue sin resolver el caso inverso); (c) `regexp_replace` con patrones flexibles (más tolerante a cambios, pero también a
+cambios que rompen la lógica sin avisar: un `replace()` literal fallando es la señal que se quiere).
+
 ## Descartado
 
 - **A1: validar cada línea contra su propio redondeo y luego confiar en el papel.** Exige que la pantalla mande el precio
@@ -69,8 +111,17 @@ cualquier chequeo.
 
 ## Verificación
 
-- 60/60 casos nuevos. Antes de aplicar la migración, las mismas pruebas (sin `--en-seco`) reproducen los huecos: 21/60 en
-  verde, con los cuatro A1, M1 y M2/M3 fallando por la causa que la auditoría describió.
+- 66/66 casos, en las dos modalidades (contra el local con las dos migraciones aplicadas, y `--en-seco`, que carga la
+  `registrar_compra` cruda + las dos migraciones dentro de cada escenario). Sin el parche en el escenario `--en-seco`, fallan
+  exactamente los 8 casos de `registrar_compra` (los cuatro A1, tres de M2 y uno de M3): las pruebas detectan el hueco.
+  (Medición anterior a dividir la migración: sin aplicar nada, 21/60 en verde con A1, M1 y M2/M3 fallando por la causa de la
+  auditoría.)
+- Casos propios del parche: aplicarlo dos veces no cambia el md5 de la función; aborta limpio con «Ancla no encontrada» si
+  falta CUALQUIERA de las seis anclas (una por una, y la función queda idéntica), con «parcialmente parchada» si quedó a medias
+  y con «2 firmas vivas» si hubiera sobrecarga; conserva `security definer`, `search_path`, comentario y grants. Además, si
+  el worktree hermano de reparto está presente, se aplica el parche sobre **su** `registrar_compra` (no ejecutable en esta base:
+  necesita `compra_item_destinos` y la columna ya retirada): las seis anclas aparecen 1 vez cada una, el parche se aplica,
+  conserva `compra_item_destinos` y es re-ejecutable.
 - Un caso por hueco (éxito tras el arreglo) **y** los negativos que deben seguir fallando: total +S/ 5 y −S/ 5, +S/ 0.50 en una
   unidad, sin IGV exacto, exceder el saldo, factura anulada, saldo a favor mayor al disponible, token de otro comprobante.
 - Integrante (Micaela) sigue sin poder pagar por ninguna ruta; el líder, como rol `authenticated`, sí; `anon` sin EXECUTE;
@@ -83,6 +134,10 @@ cualquier chequeo.
 
 ## Riesgos
 
+- **Orden con el reparto por tienda.** Ver «Por qué dos migraciones»: el parche protege contra el orden inverso de la 180000 pero
+  NO contra que la migración de reparto se aplique después de la 181000 (la pisaría); en ese caso, re-pegar la 181000. Además
+  el parche solo prueba anclas textuales: si la de reparto o cualquier otra cambia esas líneas, aborta con un mensaje claro
+  en vez de dejar la función a medias.
 - **Son funciones de dinero.** Entre el `drop` y el `create` de `registrar_pagos_compra` no puede haber un instante sin
   función: la migración corre en **una transacción** (`psql -1` / SQL Editor). `registrar_pago_compra` (un medio) la llama por
   nombre con 3 argumentos: sigue resolviendo, ahora contra la de 4 con el token por defecto.
@@ -93,7 +148,8 @@ cualquier chequeo.
   cuántas centésimas de diferencia se explican por redondeo.
 - **M2 rechaza datos que hoy entran.** Un pago con fecha futura o anterior a la emisión que un flujo actual mande empezará a
   fallar; por eso el mensaje dice cuál es el problema. No toca pagos ya guardados (no hay migración de datos).
-- Re-ejecutable: `create or replace` / `drop function if exists` / `comment on`. No hay `DELETE` ni `UPDATE` de datos.
+- Re-ejecutable: `create or replace` / `drop function if exists` / `comment on`; la 181000 sale con un `notice` si ya está
+  aplicada. No hay `DELETE` ni `UPDATE` de datos.
 
 ## Qué cambia en el cliente (no lo hizo esta migración)
 
