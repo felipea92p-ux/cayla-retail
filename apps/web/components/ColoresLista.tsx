@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -36,18 +37,6 @@ type Color = {
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
 };
-
-const FAMILIAS_COLOR = [
-  { valor: "neutro", texto: "Neutro" },
-  { valor: "azul", texto: "Azul" },
-  { valor: "rojo", texto: "Rojo" },
-  { valor: "amarillo", texto: "Amarillo" },
-  { valor: "verde", texto: "Verde" },
-  { valor: "morado", texto: "Morado" },
-  { valor: "tierra", texto: "Tierra" },
-  { valor: "metalico", texto: "Metálico" },
-  { valor: "estampado", texto: "Estampado" },
-] as const;
 
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));

@@ -3,6 +3,22 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
+
+Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
+
+Lo que Felipe se lleva: pegar en producción por partes, con una comprobación de solo lectura entre cada una, encontró en una tarde lo que el CI y las pruebas locales no podían ver porque no comparten conexión ni datos reales con el editor. Y el diccionario se refrescó sin retipear nada: las consultas oficiales de `COMO-REFRESCAR.md` guardan su resultado en un archivo y un script lo escribe con el formato exacto (el diff es solo lo que cambió).
+
+Pendiente: desplegar el código (mergear el PR #164) — hasta entonces Nuevo producto y el alta al vuelo del censo fallan en la pantalla actual — y probar con una sesión de Líder real.
+
+## 2026-09-19 (Antes de pegar el SQL 6: 38 de los 39 productos activos no tienen tejido ni patrón, y la regla de Editar los habría bloqueado)
+
+Al pegar los SQL en producción, antes del 6 medí en solo lectura qué significaba su regla de edición con los datos reales: **38 de 39 productos activos son de Indumentaria y ninguno tiene tejido ni patrón**, porque hasta el SQL 3 ninguna categoría los tenía habilitados. La regla pedida («las mismas reglas que Nuevo producto») habría hecho que cambiar solo un precio exigiera elegir tejido y patrón, desde el momento de pegar, también en la pantalla actual. Felipe eligió la regla «no empeora»: al editar solo se exigen si el producto ya los tenía; Nuevo producto los exige siempre.
+
+Lo que Felipe se lleva: una regla de calidad de datos que suena obvia («Indumentaria siempre lleva tejido») hay que medirla contra los datos que ya existen antes de ponerla en la base; si no, se le cobra a quien edita un precio el olvido de quien cargó la prenda hace meses. Probado con 8 escenarios y con control negativo (contra la versión anterior falla con el mensaje que habría visto Felipe).
+
+Pendiente: completar tejido y patrón de esos 38 (se hace al editar cada uno, o de una vez si pasa la lista); los reportes por tejido deben tolerar nulos.
+
 ## 2026-09-19 (Etiquetar prendas más fácil — puerta 1: desde la etiqueta, con vista previa antes de tocar precios)
 
 Hoy 0 de 127 variantes activas tenían etiqueta: la única forma era «Editar producto», una variante a la vez, y esa función reemplaza el conjunto completo de etiquetas (dos Líderes a la vez se pisarían). Se construyó `etiquetar_variantes`, un RPC incremental (agrega o quita UNA etiqueta a muchas variantes sin tocar las demás, todo o nada, idempotente) y el botón «Prendas» en cada tarjeta de Etiquetas: lista de productos con casilla (una marca todas sus tallas), excepciones por talla, filtro por categoría y «Marcar visibles». Si la etiqueta lleva descuento, antes de guardar dice el efecto real: «Black Friday baja el precio 30 % a 3 prendas · empieza el 9 nov: hasta entonces no cambia ningún precio · 2 prendas quedarían bajo su costo».
@@ -22,6 +38,43 @@ El modal de editar y el de agregar color tenían una caja con otra más chica ad
 Lo que Felipe se lleva: el beige `#c9b79c` era el valor por defecto del formulario, y un valor por defecto que parece una elección es un dato que nadie decidió. OJO con lo que se dijo en la sesión: se creyó que 5 colores de producción lo llevaban por descuido, pero al mirar `activo` resultó que 4 ya estaban retirados (`ARE`, `EST`, `MUL`, `ANI`) y el quinto, Arena, es de verdad ese color. O sea que el cambio es prevención, no la cura de un problema ya ocurrido. Moraleja: una consulta sin filtrar por `activo` cuenta también lo que ya se apagó. Se verificó en navegador con la ruta temporal de `/login` (Docker caído).
 
 Después, en la misma sesión: el código de 3 letras de un color nuevo se sugiere desde el nombre («Verde botella» → `VEB`), con la regla que ya seguían los 35 códigos reales (una palabra = 3 letras; dos = 2 de la primera + 1 de la segunda). Si el código ya existe —también entre los desactivados— avisa «Ya lo usa «Negro»» y no deja guardar. Lo que Felipe se lleva: el código es la clave de cada SKU y no se puede cambiar después, así que el choque se ataja antes de guardar, no con un error de la base al final.
+
+## 2026-09-18 (Primer SQL pegado en producción que falla: el mapa usaba tablas temporales, y el editor no guarda la conexión)
+
+Los SQL 1 y 2 entraron limpios. El 3 (el mapa de categorías) falló con `relation "_mapa_tallas" does not exist` y no dejó nada a medias. El archivo creaba tablas temporales y las usaba en sentencias siguientes; una tabla temporal solo vive en la conexión que la creó, y el SQL Editor de Supabase no promete la misma conexión entre sentencias. Ahora todo el mapa es un solo bloque `do`: una sentencia, una conexión, una transacción, y si algo aborta se deshace todo.
+
+Lo que Felipe se lleva: mi prueba y el CI no lo vieron porque `psql -f` corre el archivo entero en UNA conexión, así que «pasa en el CI» no significaba «pasa en el editor». Lo reproduje ejecutando cada sentencia en su propia conexión (falló igual que en producción), corregí, y repetí las otras 7 migraciones en ese modo estricto: cero errores. El archivo ya decía que esto podía pasar; nombrar un riesgo no es probarlo.
+
+Pendiente: un candado que rechace `create temp table` (y `set_config`, `set local`) fuera de un bloque `do` en `supabase/migrations/`, para que la próxima migración no repita esto.
+
+## 2026-09-18 (Revisión adversarial del PR de Crear producto: 23 hallazgos, y dos afirmaciones mías eran falsas)
+
+Antes de pedir revisión, agentes escépticos intentaron refutar el PR y sobrevivieron 23 hallazgos; se corrigieron. Los que cambian lo que Felipe debe saber: una prenda **rechazada** en el censo se podía reactivar y dejaba dos activas con el mismo nombre (ahora `rechazado` es terminal, con un CHECK en la base); reactivar un producto saltaba la validación de marca y proveedor; el censo, al colgar una variante de una prenda existente, podía dejarla con precio 0 y decía «pendiente de revisión» cuando no lo estaba; y un `UPDATE` que la RLS dejaba en cero filas se mostraba como «guardado». Todo probado en un Postgres desechable (7 pruebas nuevas, más las anteriores) y la regresión de `fn_productos` repetida contra la copia exacta de producción.
+
+Lo que Felipe se lleva: escribí en el PR que **«la caja busca por marca»** y que **«`datos:comparar` detecta el aviso de parecidos»**, y las dos eran falsas cuando lo dije (la caja armaba las variantes sin el campo; el comparador no puede leer parámetros armados con `...`). Una afirmación de «esto cubre X» que nadie probó es un estado imposible en el papel: ahora la caja sí pasa la marca, el comparador vuelve a ver `buscar_productos_parecidos` (4 alarmas, no 3) y el ADR dice qué funciones el comparador NO ve. Y una consulta compartida por siete pantallas no debe depender de SQL que aún no está en producción: la marca del catálogo ahora se trae aparte y tolerante.
+
+Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; decidir si aprobar una prenda del censo debe poder saltarse «Indumentaria exige tejido y patrón»; y, aparte de este PR, una decisión de otra sesión (`20260918120000`) deja a cualquier colaborador leer el banco y la cuenta de los proveedores: fue deliberada, pero una cuenta bancaria es dato de pago y vale la pena reconsiderarla.
+
+## 2026-09-18 (Marca y proveedor: un producto ahora dice de quién es y quién lo trae — y una marca puede llegar por dos proveedores)
+
+`productos` no tenía marca ni proveedor, así que no se podía filtrar por marca, buscar «adidas» en la caja, ni saber a quién pedirle lo que se acaba. Se agregó `marcas` + `marca_proveedores` y el producto guarda las dos cosas, atadas por una llave compuesta: la base no deja guardar un proveedor que no trae esa marca. Felipe dijo que una marca «rara vez pero sí» llega por dos proveedores (accesorios, chompas importadas), y eso decidió el modelo: la alternativa simple (un proveedor por marca, duplicando) habría convertido «cambiar de proveedor» en «cambiar de marca» y dejaba escribir «Adidass» sin que la base se enterara.
+
+Tres cosas que no estaban en el pedido: (1) `catalogo_actualizar_producto` no validaba nada de lo construido antes (ni nombre al renombrar ni tejido/patrón), y ponía en `null` el tejido si no se lo mandaban — la edición ahora hereda las reglas; (2) hay que **desplegar el SQL antes que el código**, y entre `231000` y `231100` el alta vieja falla: los cuatro SQL de marca se pegan seguidos; (3) la sesión de Compras había reclamado toda la banda `2009…`–`2199…` de migraciones, así que las mías viven en `2309…`.
+
+Lo más delicado fue reescribir `fn_productos` y sus dos hermanas: se hizo sobre la copia exacta de producción y se probó que, sin los filtros nuevos, devuelven lo mismo que hoy en 10 escenarios. Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; Inventario → Existencias aún no filtra por proveedor.
+
+## 2026-09-18 (Crear producto: el formulario no estaba roto, estaba desconectado — y la base dejaba duplicar nombres)
+
+"Sin tejidos habilitados" en toda categoría no era un bug de pantalla: en producción los 17 tejidos y 7 patrones existen pero ninguna de las 40 categorías los tenía asignados, y 15 categorías no tenían tallas. Se armó el mapa (categoría → tallas con su curva habitual, tejidos, patrones) y se probó contra un Postgres desechable. Aprendizaje: un vocabulario cargado no sirve hasta que se conecta a las categorías; el diagnóstico salió de preguntarle a la base, no de mirar el formulario.
+
+Lo que pesó más que lo pedido: `productos.referencia` no tenía ningún candado y hay tres caminos que crean productos (Nuevo producto, catálogo y censo). El censo creaba un producto por escaneo, así que escanear "Blusa Aurora" en S y en M dejaba dos productos. La regla "un nombre, un producto" vive ahora en un trigger y un índice de la tabla, no en el formulario. Y `actualizar_categoria_ejes` borraba y reinsertaba las tallas en cada guardado: habría borrado la curva habitual en silencio.
+
+Estándar y Único no son duplicados: se reparten por familia (una blusa dice Estándar, una gorra dice Único). Se construyó el formulario nuevo (árbol familia → categoría → nombre → talla/tejido/patrón → colores → precio → etiquetas, con un resumen que dice qué falta). Probándolo salió un defecto que ninguna prueba unitaria habría visto: el paso 3 se abría mientras se comprobaba el nombre y se cerraba de golpe si resultaba duplicado, con la persona ya eligiendo tallas — ahora sigue cerrado hasta que la comprobación contesta. Y el comparador oficial (`datos:comparar`) confirmó lo que había que temer: el formulario llama a funciones que producción todavía no tiene, así que **el SQL va antes que el despliegue**, nunca al revés.
+
+Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear otro parecido, ir a productos). «Otro parecido» conserva categoría, tallas, tejido, patrón, precio, costo y etiquetas, pero renueva el token de idempotencia: reutilizarlo habría hecho que la base devolviera el producto anterior en vez de crear el nuevo.
+
+Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
+
 
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 

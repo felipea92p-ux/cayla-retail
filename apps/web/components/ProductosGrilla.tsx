@@ -208,6 +208,10 @@ function TarjetaProducto({
           <p className="label-cayla mt-0.5 text-[10px] text-tinta/55">
             {producto.codigo ?? "sin código"} · {producto.categoria ?? "sin categoría"}
           </p>
+          {/* De quién es y quién lo trae (ADR-0109). */}
+          <p className="mt-0.5 truncate text-[11px] text-tinta/60" title={`${producto.marca} · ${producto.proveedor}`}>
+            {producto.marca} <span className="text-tinta/35">·</span> {producto.proveedor}
+          </p>
         </div>
         <div className="h-px bg-sand" />
         <div className="flex items-baseline justify-between">
