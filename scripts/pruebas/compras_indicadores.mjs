@@ -36,12 +36,10 @@
  * su propia documentación y hoy no lo hace. No cuenta como fallo del script (sale con ⚠ y se
  * resume al final): documenta el bug sin arreglarlo en silencio ni tocar migraciones. Cuando
  * alguien corrija la función, la prueba pasa sola y avisa que se puede volver una prueba normal.
- * Abiertos hoy (el detalle de cada uno está en su prueba y en docs/BACKLOG.md):
- *   H1 «% entregado completo» de la ficha ignora los faltantes cerrados (usa estado_recepcion).
- *   H2 «última devolución» usa created_at (entrada a cuarentena), no resuelto_en.
- *   H3 por_pagar_tramos no acepta el filtro de tipo de documento que sí tiene listar_compras.
+ * Abierto hoy (el detalle está en su prueba y en docs/BACKLOG.md):
  *   H4 (decisión de Felipe) los indicadores de dinero le muestran a un integrante lo de SU sede.
- *   H5 los pagos sin fecha explícita usan current_date (UTC) y no fn_hoy_lima().
+ * Ya corregidos por la migración 20260918221000 (sus pruebas son normales, con un comentario «Hn (corregido…)»):
+ *   H1 «% entregado completo» de la ficha, H2 «última devolución», H3 filtros de por_pagar_tramos, H5 fecha de Lima en los pagos.
  *
  * CÓMO SE VALIDÓ QUE LAS PRUEBAS MUERDEN. Antes de entregarlas se mutó cada función dentro de
  * una transacción (quitar el candado de sede, mover un borde un día, cambiar Lima por UTC,
@@ -1026,19 +1024,35 @@ rollback;
   ["1", "1416.00", "2", "2832.00"]
 );
 
-hallazgo(
-  "H3",
-  "por_pagar_tramos acepta el filtro de tipo de documento igual que listar_compras (su comentario promete «los MISMOS filtros»)",
-  "listar_compras (migración 20260918150000) filtra por p_tipo (factura/boleta/nota_venta) y por fechas de emisión; por_pagar_tramos (…211000) no acepta ninguno. " +
-    "Con ?tipo=boleta en la URL de Por pagar la lista se filtra pero los subtotales de los tres grupos siguen sumando TODA la deuda: no cuadran con las filas. " +
-    "Baja gravedad: la pantalla actual solo expone proveedor, vencidas y condición (visibles={[proveedor, vencidas, condicion]}), pero `filtrosDesdeParams` sí lee `tipo` de la URL.",
+// H3 (corregido en 20260918221000): por_pagar_tramos no aceptaba el tipo de documento ni el rango de emisión que sí tiene listar_compras, y los subtotales no cuadraban con las filas filtradas.
+exito(
+  "por_pagar_tramos acepta el tipo de documento y el rango de emisión igual que listar_compras, y quedó UNA sola firma (sin sobrecarga)",
   comoPersona(
     FELIPE,
-    `${BASE}select pg_get_function_arguments('retail.por_pagar_tramos(uuid, text, boolean, text)'::regprocedure) ilike '%p_tipo%';
+    `${BASE}select pg_get_function_arguments('retail.por_pagar_tramos(uuid, text, boolean, text, text, date, date)'::regprocedure) ilike '%p_tipo%',
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'por_pagar_tramos');
 rollback;
 `
   ),
-  ["t"]
+  ["t", "1"]
+);
+
+exito(
+  "por_pagar_tramos filtrado por tipo y por emisión: los subtotales cuadran con las filas de listar_compras (boleta 1, factura 1, sin filtro 2, desde -10 días 1, hasta -10 días 1)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${nuevoProv("prov3")}${compra("c1", { prov: "prov3", tipo: "factura", emision: dia(-20), vence: dia(-1) })}${compra("c2", { prov: "prov3", tipo: "boleta", igv: 0, emision: dia(-5), vence: dia(20) })}
+select (select coalesce(sum(t.saldo), 0) from retail.por_pagar_tramos(p_proveedor_id => :'prov3', p_tipo => 'boleta') t)
+       = (select coalesce(sum(r.saldo), 0) from retail.listar_compras(p_limite => 200, p_proveedor_id => :'prov3', p_tipo => 'boleta', p_con_saldo => true) r),
+  (select sum(t.comprobantes) from retail.por_pagar_tramos(p_proveedor_id => :'prov3', p_tipo => 'boleta') t),
+  (select sum(t.comprobantes) from retail.por_pagar_tramos(p_proveedor_id => :'prov3', p_tipo => 'factura') t),
+  (select sum(t.comprobantes) from retail.por_pagar_tramos(p_proveedor_id => :'prov3') t),
+  (select sum(t.comprobantes) from retail.por_pagar_tramos(p_proveedor_id => :'prov3', p_desde => ${dia(-10)}) t),
+  (select sum(t.comprobantes) from retail.por_pagar_tramos(p_proveedor_id => :'prov3', p_hasta => ${dia(-10)}) t);
+rollback;
+`
+  ),
+  ["t", "1", "1", "2", "1", "1"]
 );
 
 // ---------------------------------------------------------------- «sistema sin deuda»
@@ -1759,12 +1773,9 @@ rollback;
   ["0.00", "0.00", "0", "1416.00"]
 );
 
-hallazgo(
-  "H1",
+// H1 (corregido en 20260918221000): la ficha decía «100 % entregado completo» al proveedor que dejó una línea sin llegar (cerrada por faltante) porque contaba `estado_recepcion = 'recibida'`; ahora usa `recibido_cantidad >= facturado_cantidad`, igual que resumen_recepciones().
+exito(
   "«% entregado completo» de la ficha no cuenta como completo al proveedor que dejó una línea sin llegar (cerrada por faltante)",
-  "resumen_recepciones (20260918212000) define «entrega COMPLETA = recibió TODO lo facturado» y dice expresamente que se usa recibido_cantidad y NO estado_recepcion, porque una línea cerrada por faltante deja el comprobante en `recibida` " +
-    "pero «el proveedor no cumplió». fn_proveedor_metricas_compras (…214000) calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, o sea justo lo que la otra descarta: un proveedor que entregó 20 de 24 y cuyo faltante se cerró aparece con 100 % en la ficha " +
-    "y con 50 % en Recibir mercadería. (fn_proveedores.facturas_recibidas_completas usa el mismo criterio, pero ese nombre y su semántica «recibida» son anteriores a D2.) Arreglo: `recibido_cantidad >= facturado_cantidad` en lugar de `estado_recepcion = 'recibida'`.",
   comoPersona(
     FELIPE,
     `${BASE}${nuevoProv("prov3")}${compra("c1", { prov: "prov3" })}${recibe("c1_item", 24)}${resuelto("c2", { prov: "prov3" })}
@@ -1849,12 +1860,9 @@ rollback;
   ["5", "0", "t"]
 );
 
-hallazgo(
-  "H2",
+// H2 (corregido en 20260918221000): «última devolución» era el día en que la prenda ENTRÓ a cuarentena (created_at); es el día en que se devolvió (resuelto_en).
+exito(
   "«última devolución» de un proveedor es la fecha en que la prenda ENTRÓ a cuarentena, no la fecha en que se le devolvió",
-  "fn_proveedor_devoluciones (20260918214000) calcula `ultima` con `max(prendas_danadas.created_at)` — el día en que la prenda entró a cuarentena. " +
-    "El día en que se resolvió como «devuelta_proveedor» está en `resuelto_en` (lo escribe resolver_prenda_danada con now()). Una prenda que estuvo 28 días en cuarentena y se devolvió ayer aparece como devuelta hace 30 días. " +
-    "Arreglo: `max((pd.resuelto_en at time zone 'America/Lima')::date)`.",
   comoPersona(
     FELIPE,
     `${BASE}${nuevoProv("prov3")}${prendaDevuelta("prov3", 3, { creada: limaTs(dia(-30), "12:00"), resuelta: limaTs(dia(-2), "12:00") })}
@@ -2130,13 +2138,9 @@ rollback;
   ["7", "1", "0"]
 );
 
-hallazgo(
-  "H5",
+// H5 (corregido en 20260918221000): los pagos sin fecha explícita tomaban `current_date` (UTC) y no la fecha de Lima; entre las 7 pm y medianoche quedaban fechados «mañana». Esta prueba simula el desfase del reloj.
+exito(
   "los pagos registrados SIN fecha explícita toman `current_date` (UTC) y no la fecha de Lima: entre las 7 pm y medianoche quedan fechados «mañana»",
-  "registrar_pago_compra (p_fecha default CURRENT_DATE), registrar_pagos_compra (`coalesce(p_fecha, current_date)`) y el pago inicial de registrar_compra (`coalesce(…, current_date)`) usan el reloj de UTC. " +
-    "Solo registrar_pago_compras (por lote) usa fn_hoy_lima(). La app hoy manda su propia fecha, así que el efecto real está acotado a quien llame sin fecha, pero alimenta directamente " +
-    "`dias_pago_real_promedio` (fn_proveedor_metricas_compras: max(fecha de pago) − emisión): un pago de las 9 pm cuenta un día más. " +
-    "La prueba que ya existe («la fecha por defecto del pago es la de Lima») solo pasa por la función de lote y, además, no discrimina de día: si UTC y Lima coinciden pasa aunque use current_date. Esta simula el desfase.",
   comoPersona(
     FELIPE,
     `${RELOJ_UTC_ADELANTADO}${BASE}${compra("c1")}${compra("c2")}

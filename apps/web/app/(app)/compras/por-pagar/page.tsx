@@ -47,7 +47,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
     getResumenComprasExtra(),
     getDeudaPorVencimiento(),
     getSalidasCaja30d(),
-    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda }),
+    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta }),
     getProveedoresActivos(),
     getProveedores(),
     pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
