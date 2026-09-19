@@ -28,14 +28,15 @@ Nada. Todas las llamadas encajan con la firma real.
 - `fn_proveedor_costo_evolucion` · `apps/web/lib/proveedores.ts:242` — no manda `p_limite` (normal si tienen valor por defecto)
 - `fn_resumen_variantes` · `apps/web/lib/resumen-inventario.ts:41` — no manda `p_ventana_dias` (normal si tienen valor por defecto)
 
-## No analizadas — 24
+## No analizadas — 25
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 
 - `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:185` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:304` — el objeto se arma con «...», no se puede leer entero
-- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:153` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:168` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:176` — el objeto se arma con «...», no se puede leer entero
 - `catalogo_actualizar_producto` · `apps/web/components/ProductoForm.tsx:323` — el objeto se arma con «...», no se puede leer entero
 - `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:261` — el objeto se arma con «...», no se puede leer entero
 - `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:265` — los parámetros no van escritos ahí mismo
