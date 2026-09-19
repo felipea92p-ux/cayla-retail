@@ -3435,18 +3435,21 @@ export type Database = {
           id: string
           metodo: string
           monto: number
+          recibido: number | null
           venta_id: string
         }
         Insert: {
           id?: string
           metodo: string
           monto: number
+          recibido?: number | null
           venta_id: string
         }
         Update: {
           id?: string
           metodo?: string
           monto?: number
+          recibido?: number | null
           venta_id?: string
         }
         Relationships: [
