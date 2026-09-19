@@ -72,20 +72,24 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
 
   // Datos para pagar (banco, cuenta, Yape, plazo) que el modal de pago juntos muestra sin obligar
   // a ir a la ficha del proveedor. Solo lo de los proveedores que aparecen en esta página.
+  const datosPago = (p: (typeof proveedores)[number]): DatosPagoProveedor => ({
+    proveedorId: p.id,
+    banco: p.banco,
+    cuentaBancaria: p.cuenta_bancaria,
+    cci: p.cci,
+    celularBilletera: p.celular_billetera,
+    billeteras: p.billeteras,
+    titular: p.titular_cuenta,
+    plazoCreditoDias: p.plazo_credito_dias,
+    formaPagoPreferida: p.forma_pago_preferida,
+    saldoFavor: p.saldo_favor ?? 0,
+  });
   const datosProveedores: Record<string, DatosPagoProveedor> = {};
   for (const c of compras) {
     const p = proveedores.find((x) => x.id === c.proveedorId);
-    if (p && !datosProveedores[p.id]) {
-      datosProveedores[p.id] = {
-        banco: p.banco,
-        cuentaBancaria: p.cuenta_bancaria,
-        telefono: p.telefono,
-        plazoCreditoDias: p.plazo_credito_dias,
-        formaPagoPreferida: p.forma_pago_preferida,
-        saldoFavor: p.saldo_favor ?? 0,
-      };
-    }
+    if (p && !datosProveedores[p.id]) datosProveedores[p.id] = datosPago(p);
   }
+  const proveedorAPagar = abrirPago ? proveedores.find((x) => x.id === abrirPago.proveedorId) : undefined;
 
   // Enlace que conserva los demás parámetros y cambia solo `prov` (o lo quita si ya era ese: un segundo clic apaga el filtro).
   const hrefProveedor = (id: string) => {
@@ -221,7 +225,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
 
         <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 
-        {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedores.find((p) => p.id === abrirPago.proveedorId)?.saldo_favor ?? 0} />}
+        {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedorAPagar?.saldo_favor ?? 0} datos={proveedorAPagar ? datosPago(proveedorAPagar) : undefined} />}
       </div>
     </PorPagarProvider>
   );

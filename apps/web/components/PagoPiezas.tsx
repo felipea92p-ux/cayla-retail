@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Copy, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -9,15 +10,25 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 
-// Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0129): «Pagar juntos»
+// Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
 // «Pagar» de cada fila, el cajón y el detalle). Son dos caminos con dos RPC distintas, pero una sola cara: el diseño del
 // spike se define acá una vez, para que no vuelvan a verse «totalmente diferentes».
 
 export type DatosPagoProveedor = {
+  /** Para llevar a su ficha cuando falta un dato de pago. */
+  proveedorId: string;
   banco: string | null;
+  /** Número de cuenta del banco (texto libre). */
   cuentaBancaria: string | null;
-  telefono: string | null;
+  /** Código de Cuenta Interbancario: 20 dígitos (ADR-0129 de Proveedores). */
+  cci: string | null;
+  /** El celular al que se yapea/plinea, 9 dígitos: NO es el WhatsApp del contacto. */
+  celularBilletera: string | null;
+  /** Qué app tiene ese celular: `yape`, `plin` o ambas. */
+  billeteras: string[] | null;
+  /** El nombre que muestra el banco/Yape al pagar: quien paga lo compara antes de confirmar. */
+  titular: string | null;
   plazoCreditoDias: number | null;
   formaPagoPreferida: string | null;
   /** Lo que el proveedor le debe a CAYLA (saldo a favor), disponible para descontar de este pago. */
@@ -45,32 +56,125 @@ export function Tilde() {
   );
 }
 
-/** «Paga por», cuenta y Yape/Plin del proveedor, con cada dato copiable. No dibuja nada si el proveedor no tiene datos. */
-export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
-  const hayDatos = !!(datos && (datos.formaPagoPreferida || datos.banco || datos.cuentaBancaria || datos.telefono));
-  if (!datos || !hayDatos) return null;
-  // El acuse de que se copió es el propio botón (✓ Copiado, `DatoCopiable`); solo un fallo merece un aviso.
-  async function copiar(valor: string, que: string): Promise<boolean> {
-    try {
-      await navigator.clipboard.writeText(valor);
-      return true;
-    } catch {
-      avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
-      return false;
-    }
+// El acuse de que se copió es el propio botón (✓ Copiado, `DatoCopiable`); solo un fallo merece un aviso.
+async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(valor);
+    return true;
+  } catch {
+    avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
+    return false;
   }
+}
+
+/**
+ * La franja de arriba: cómo suele pagársele a este proveedor y a cuántos días. Los DATOS para pagar (cuenta, CCI, celular…) ya no
+ * están aquí, todos juntos: aparecen debajo del medio que se elige (`DatosDelMedio`), que es cuando hacen falta. No dibuja nada si
+ * no hay nada que decir.
+ */
+export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
+  if (!datos || (!datos.formaPagoPreferida && datos.plazoCreditoDias == null)) return null;
   return (
-    <div className="grid gap-4 rounded-xl border border-sand bg-sand/40 p-4 sm:grid-cols-[1fr_1.5fr_1.2fr]">
+    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
       <div>
         <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
-        <p className="mt-1 text-sm text-tinta">
+        <p className="mt-0.5 text-sm text-tinta">
           {datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : "Sin definir"}
           {datos.banco ? ` · ${datos.banco}` : ""}
         </p>
-        {datos.plazoCreditoDias != null && <p className="text-xs text-tinta/55">Crédito a {datos.plazoCreditoDias} días</p>}
       </div>
-      {datos.cuentaBancaria && <DatoCopiable etiqueta="Cuenta o CCI" valor={datos.cuentaBancaria} onCopiar={() => copiar(datos.cuentaBancaria!, "Cuenta")} />}
-      {datos.telefono && <DatoCopiable etiqueta="Yape / Plin" valor={datos.telefono} onCopiar={() => copiar(datos.telefono!, "Teléfono")} />}
+      {datos.plazoCreditoDias != null && (
+        <div>
+          <p className="label-cayla text-[10px] text-tinta/55">Crédito</p>
+          <p className="mt-0.5 text-sm text-tinta">A {datos.plazoCreditoDias} días</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const cciConGuiones = (c: string) => (c.length === 20 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6, 18)} ${c.slice(18)}` : c);
+const celularConEspacios = (c: string) => (c.length === 9 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6)}` : c);
+
+/** Un dato de pago que NO se copia (banco, titular). */
+function DatoSimple({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
+      <p className="mt-1 truncate text-sm text-tinta">{valor}</p>
+      {nota && <p className="mt-0.5 text-[11px] leading-snug text-tinta/55">{nota}</p>}
+    </div>
+  );
+}
+
+/**
+ * Los datos para pagar POR EL MEDIO ELEGIDO (pedido de Felipe, 2026-09-19): al elegir Transferencia se ve el banco, la cuenta, el CCI y
+ * el titular; al elegir Yape o Plin, el celular de ESA billetera (no el WhatsApp del contacto); Efectivo lo dice; Otro no muestra nada.
+ * Cada dato se copia con «✓ Copiado». Si falta el dato que ese medio necesita, se dice y se ofrece completarlo en la ficha del
+ * proveedor (en otra pestaña, para no perder el pago a medio hacer): mejor eso que pagar a un destino que nadie verificó.
+ * El titular es el control anti-error: el nombre que muestra el banco o Yape debe coincidir antes de confirmar.
+ * `key={medio}` en quien lo dibuja para que al cambiar de medio el panel se vuelva a asentar.
+ */
+export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string; datos?: DatosPagoProveedor; saldoFavor?: number }) {
+  if (medio === "otro") return null;
+  // Sin datos del proveedor no se sabe si falta algo: mejor callar que afirmar «no tiene registrado» sin haber mirado.
+  if (!datos && medio !== "efectivo" && medio !== METODO_SALDO_A_FAVOR) return null;
+  const ficha = datos ? `/compras/proveedores/${datos.proveedorId}` : null;
+  const falta = (que: string) => (
+    <p className="text-sm text-tinta/75">
+      Todavía no se cargó {que} de este proveedor.{" "}
+      {ficha && (
+        <Link href={ficha} target="_blank" className="label-cayla text-[11px] text-rojo hover:underline">
+          Agregarlo en su ficha →
+        </Link>
+      )}
+    </p>
+  );
+  let titulo = `Datos para ${ETIQUETA_METODO_PAGO[medio] ?? medio}`;
+  let cuerpo: ReactNode = null;
+
+  if (medio === "transferencia" || medio === "deposito") {
+    const cuenta = datos?.cuentaBancaria;
+    const cci = datos?.cci;
+    // Depósito en ventanilla: pide el número de cuenta del banco; la transferencia interbancaria, el CCI. Se muestra lo que haya.
+    cuerpo = cuenta || cci ? (
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        {datos?.banco && <DatoSimple etiqueta="Banco" valor={datos.banco} />}
+        {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota="Compáralo con el nombre que muestra el banco antes de confirmar." />}
+        {cuenta && <DatoCopiable etiqueta="Cuenta" valor={cuenta} onCopiar={() => copiarAlPortapapeles(cuenta, "Cuenta")} />}
+        {cci && <DatoCopiable etiqueta="CCI" valor={cciConGuiones(cci)} onCopiar={() => copiarAlPortapapeles(cci, "CCI")} />}
+      </div>
+    ) : (
+      falta(medio === "transferencia" ? "la cuenta ni el CCI" : "el número de cuenta")
+    );
+  } else if (medio === "yape" || medio === "plin") {
+    const celular = datos?.celularBilletera;
+    const tiene = !!celular && !!datos?.billeteras?.includes(medio);
+    const otra = medio === "yape" ? "plin" : "yape";
+    cuerpo = tiene ? (
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} valor={celularConEspacios(celular!)} onCopiar={() => copiarAlPortapapeles(celular!, "Celular")} />
+        {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota={`Compáralo con el nombre que muestra ${ETIQUETA_METODO_PAGO[medio]} antes de confirmar.`} />}
+      </div>
+    ) : celular && datos?.billeteras?.includes(otra) ? (
+      <p className="text-sm text-tinta/75">
+        Este proveedor cobra por <b className="font-semibold">{ETIQUETA_METODO_PAGO[otra]}</b>, no por {ETIQUETA_METODO_PAGO[medio]}: elige {ETIQUETA_METODO_PAGO[otra]} para ver el celular.
+      </p>
+    ) : (
+      falta(`el celular de ${ETIQUETA_METODO_PAGO[medio]}`)
+    );
+  } else if (medio === "efectivo") {
+    titulo = "Efectivo";
+    cuerpo = <p className="text-sm text-tinta/75">Se entrega en mano: no hay cuenta ni número que copiar.</p>;
+  } else if (medio === METODO_SALDO_A_FAVOR) {
+    titulo = "Saldo a favor";
+    cuerpo = <p className="text-sm text-tinta/75">{saldoFavor > 0 ? <>Se descuenta de lo que el proveedor te debe: tienes <b className="font-semibold">{soles(saldoFavor)}</b> disponibles. No sale plata del banco ni de caja.</> : "Este proveedor no tiene saldo a tu favor."}</p>;
+  }
+  if (!cuerpo) return null;
+  return (
+    <div className="anim-revelar rounded-xl border border-sand bg-sand/40 px-4 py-3">
+      <p className="label-cayla mb-2 text-[10px] text-tinta/55">{titulo}</p>
+      {cuerpo}
     </div>
   );
 }
@@ -210,6 +314,7 @@ export function MediosDePago({
   saldoFavor = 0,
   fecha,
   onFecha,
+  datos,
   id = "pago",
 }: {
   lineas: LineaPago[];
@@ -219,6 +324,8 @@ export function MediosDePago({
   saldoFavor?: number;
   fecha: string;
   onFecha: (f: string) => void;
+  /** Dónde se le paga a este proveedor: bajo cada medio se muestran los datos de ESE medio (`DatosDelMedio`). */
+  datos?: DatosPagoProveedor;
   /** Prefijo de los ids (`<id>-monto-0`…), para enfocar desde un aviso. */
   id?: string;
 }) {
@@ -249,6 +356,9 @@ export function MediosDePago({
           </div>
           <CampoTexto etiqueta="Referencia" value={lineas[0].referencia} onChange={(e) => cambiar(0, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
           {fechaCampo}
+          <div className="sm:col-span-3">
+            <DatosDelMedio key={lineas[0].metodo} medio={lineas[0].metodo} datos={datos} saldoFavor={saldoFavor} />
+          </div>
         </div>
       ) : (
         <>
@@ -276,6 +386,9 @@ export function MediosDePago({
                   <PastillasMedio valor={l.metodo} onValor={(m) => cambiar(i, { metodo: m })} conFavor={saldoFavor > 0} etiqueta={`Medio de pago ${i + 1}`} />
                 </div>
                 <CampoTexto etiqueta="Referencia" value={l.referencia} onChange={(e) => cambiar(i, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
+                <div className="sm:col-span-4 sm:row-start-2">
+                  <DatosDelMedio key={l.metodo} medio={l.metodo} datos={datos} saldoFavor={saldoFavor} />
+                </div>
                 <button
                   type="button"
                   onClick={() => onLineas(lineas.filter((_, n) => n !== i))}

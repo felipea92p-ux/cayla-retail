@@ -1,6 +1,6 @@
 # Spike visual · Por pagar (2026-09-19)
 
-> **Estado (2026-09-19): aplicado al ERP — ver `docs/adr/0129-por-pagar-responde.md`.**
+> **Estado (2026-09-19): aplicado al ERP — ver `docs/adr/0131-por-pagar-responde.md`.**
 > Este HTML queda como referencia visual del diseño aprobado. Difiere del ERP en tres cosas a propósito: la vista rápida no
 > lista los pagos (D4), el filtro por tramo/semana actúa sobre la página cargada (D2) y la onda del puntito la lleva «Vence
 > esta semana», no «Vencido» (tope de rojo por pantalla).

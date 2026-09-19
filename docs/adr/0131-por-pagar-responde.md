@@ -1,4 +1,4 @@
-# ADR-0129 — Por pagar responde: piezas que se hablan, vista rápida, cascada del pago y reacción al pagar
+# ADR-0131 — Por pagar responde: piezas que se hablan, vista rápida, cascada del pago y reacción al pagar
 
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado. **Producción:** no requiere nada — sin migración, sin RPC nuevo, sin cambio de esquema.
@@ -93,6 +93,19 @@ agrega líneas con su monto, sus píldoras y su referencia, con una barra del re
 4,720 = 3,000 transferencia (con referencia) + 1,720 efectivo: la base guardó las dos líneas. **Pendiente:** «Pagar
 juntos» (varios comprobantes) sigue con UN medio: `registrar_pago_compras` recibe un solo `p_metodo`, y repartirlo en
 varias llamadas no sería todo-o-nada. Permitir varios medios ahí exige una función nueva en producción.
+
+**D11 — Al elegir el medio de pago se muestran los datos de ESE medio.** Antes el modal enseñaba arriba, todos juntos, la
+cuenta y el «Yape / Plin» del proveedor; Felipe pidió que aparezcan al elegir el medio. `DatosDelMedio` (`PagoPiezas.tsx`)
+los muestra debajo de las píldoras, con «✓ Copiado»: Transferencia → banco, titular, cuenta y CCI; Depósito → banco, titular
+y cuenta; Yape/Plin → el celular de ESA billetera (no el WhatsApp del contacto) y el titular; Efectivo y Saldo a favor lo
+dicen; Otro no muestra nada. En un pago dividido cada medio muestra los suyos. Si falta el dato que el medio necesita se
+dice y se enlaza a la ficha (en otra pestaña, para no perder el pago a medio hacer); si ni siquiera se conocen los datos
+del proveedor, calla en vez de afirmar que faltan. El **titular** es el control anti-error: quien paga lo compara con el
+nombre que muestra el banco o Yape antes de confirmar. La franja de arriba queda solo con «Paga por» y el crédito.
+**Datos:** usa `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` de `proveedores`, que trae `fn_proveedores()`;
+los agregó la sesión de Proveedores (su ADR-0129, migración `20260919170000`, ya en producción) y se copiaron SUS tipos
+(`lib/proveedores.ts`, `packages/database`) idénticos para que la fusión sea limpia. **Numeración:** este ADR era el 0129;
+pasó a 0131 porque el 0129 y el 0130 (regla de movimiento de modales) son de esa rama.
 
 ## Lo que NO cambia
 

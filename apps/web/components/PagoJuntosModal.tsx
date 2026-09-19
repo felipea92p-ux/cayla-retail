@@ -7,7 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Confirmacion, DatosDelProveedor, PILDORA, PastillasMedio, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
+import { Confirmacion, DatosDelMedio, DatosDelProveedor, PILDORA, PastillasMedio, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
@@ -344,6 +344,9 @@ export function PagoJuntosModal({
             </div>
             <CampoTexto etiqueta="Referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Op. 00871234" autoComplete="off" />
             <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
+            <div className="sm:col-span-3">
+              <DatosDelMedio key={metodo} medio={metodo} datos={datos} saldoFavor={saldoFavor} />
+            </div>
           </div>
 
           <div className="border-t border-tinta/10 pt-4">

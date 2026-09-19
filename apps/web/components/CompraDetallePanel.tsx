@@ -66,7 +66,7 @@ export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraRes
 // La página ya verificó que la factura existe, está vigente y tiene saldo.
 // Al cerrar se quita solo `pagar` de la URL (con `replace`, para que "atrás"
 // no vuelva a abrirlo) y se conservan los filtros que hubiera.
-export function PagoDesdeUrl({ compra, saldoFavor = 0 }: { compra: CompraResumen; saldoFavor?: number }) {
+export function PagoDesdeUrl({ compra, saldoFavor = 0, datos }: { compra: CompraResumen; saldoFavor?: number; datos?: DatosPagoProveedor }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -75,7 +75,7 @@ export function PagoDesdeUrl({ compra, saldoFavor = 0 }: { compra: CompraResumen
     p.delete("pagar");
     router.replace(p.size ? `${pathname}?${p}` : pathname);
   }
-  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} onClose={cerrar} />;
+  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onClose={cerrar} />;
 }
 
 // Desde "Por pagar" se paga sin entrar al detalle: el botón de la fila abre
@@ -118,7 +118,7 @@ export function BotonPagar({
   );
 }
 
-// Pago de UN comprobante (ADR-0035), con la misma cara y los mismos movimientos que «Pagar juntos» (spike 2026-09-19, ADR-0129).
+// Pago de UN comprobante (ADR-0035), con la misma cara y los mismos movimientos que «Pagar juntos» (spike 2026-09-19, ADR-0131).
 // Diferencia con el spike, a propósito: el spike solo permite UN medio de pago; aquí un pago puede repartirse en VARIOS medios
 // (`MediosDePago`: «＋ Dividir en otro medio»; RPC `registrar_pagos_compra`, todo o nada), como siempre lo ha permitido el ERP.
 // Con un solo medio se ve exactamente como el spike; «Se paga» y «Total» son campos (editan el monto de ese medio) y con varios
@@ -327,7 +327,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
