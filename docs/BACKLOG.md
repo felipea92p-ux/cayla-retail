@@ -47,10 +47,22 @@ persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué llegó?�
       Tienda Trujillo. En la base local quedaron además `TST-UI000001`/`UI000002` (ya recibidos, envío
       `T009-UI01`) y el traslado 15 (cerrado): datos de prueba, no se borran.
 - [ ] **Pegar en producción las 2 migraciones** (`20260919120000_envios_recepcion_multiproveedor`,
-      `20260919121000_recibir_envio`) **después** de las 15 de Compras (ADR-0111), con ok de Felipe. Cada una
-      trae su `set search_path = retail, public, extensions;`.
-- [ ] **Borrar `compras/recibir/page.tsx` y `RecepcionCompraFormV2.tsx`** (sin uso: la ruta vieja redirige a
-      `/recibir`) cuando la sesión «Mejora de pantallas de proveedores y comprobantes» confirme que no los toca.
+      `20260919121000_recibir_envio`), con ok de Felipe. Cada una trae su `set search_path = retail, public,
+      extensions;`. **Verificado contra producción el 2026-09-19 (solo lectura):** las 15 de Compras ya están
+      aplicadas y cada función que llama `recibir_envio` existe con una sola firma (`recibir_compras`,
+      `cerrar_linea_compra` de 4 parámetros, `registrar_nota_credito_compra`, `registrar_recepcion_traslado`,
+      `confirmar_traslado`, `fn_recalcular_costo_variante`, `fn_aplicar_movimiento`, `fn_sububicacion_por_defecto`);
+      `envios`, `envio_extras`, `envio_traslados` y `recibir_envio` no existen todavía. Para probar con un
+      comprobante real hace falta antes `20260918219000` (de Compras): hasta que se pegue, `registrar_compra`
+      tiene dos firmas en producción.
+- [ ] **«Recibidas recientemente» ahora vive en `/recibir?vista=recibidas`.** La sesión de Compras tiene sin
+      publicar `feat/recibidas-pastillas` (filtros como 2 pastillas; `FiltrosRecibidas.tsx` +
+      `lib/recibidas-filtros-reglas.ts`): su cambio de página se aplica en `/recibir/page.tsx` (la ruta vieja se
+      borró), sus componentes se reusan tal cual.
+- [ ] **Hueco de ADR-0075 (lo encontró Compras, PR #165):** `resumen_compras`, `resumen_compras_extra`,
+      `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos` devuelven a un integrante los montos de
+      su sede (solo candado de sede). Recibir no las usa para colaboradores (`kpisDeLaLista`); decidir con
+      Felipe si eso está bien o se cierra.
 
 Siguiente, sin urgencia: agrupar «Recibidas recientemente» por envío (hoy una fila por comprobante, con la
 misma guía); borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote` sueltos

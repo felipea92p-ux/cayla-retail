@@ -6,7 +6,7 @@ import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenC
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { getTrasladosHaciaAca } from "@/lib/envio";
-import { comprobanteSinMontos, lineaSinCosto } from "@/lib/envio-reglas";
+import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
 import { KpisRecibir } from "@/components/KpisRecibir";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
@@ -145,14 +145,28 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const cursor = leerCursor(params.cursor);
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, resumen, extra, proveedores] = await Promise.all([
+  const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
     listarPorRecibir(filtros, cursor),
     getUbicaciones(),
     getCatalogo(),
-    getResumenCompras(),
-    getResumenComprasExtra(),
     getProveedoresActivos(),
   ]);
+  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: `resumen_compras` y
+  // `resumen_compras_extra` devuelven a un integrante los montos de su sede (solo tienen el candado de sede,
+  // ADR-0075), así que para él ni se piden — se calculan de su propia lista, solo cantidades y fechas.
+  const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
+  const kpis =
+    resumen && extra
+      ? {
+          porRecibir: resumen.porRecibir,
+          unidadesPendientes: extra.unidadesPendientes,
+          atrasadas: resumen.porRecibirAtrasadas,
+          diasMasAtrasada: extra.diasMasAtrasada,
+          proveedorMasAtrasado: extra.proveedorMasAtrasado,
+          documentoMasAtrasada: extra.documentoMasAtrasada,
+          valorPorRecibir: extra.valorPorRecibir as number | null,
+        }
+      : { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: null as number | null };
   // Quien cuenta pero no es líder no ve dinero: los montos ni siquiera salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
   const ubicacionesPermitidas = esLider ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -205,22 +219,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           ubicacionInicialId={persona.ubicacionId}
           compraInicialId={compra ?? null}
           esLider={esLider}
-          igvMes={esLider ? extra.igvMes : null}
-          porRecibirAtrasadas={esLider ? resumen.porRecibirAtrasadas : null}
+          igvMes={extra ? extra.igvMes : null}
+          porRecibirAtrasadas={resumen ? resumen.porRecibirAtrasadas : null}
           comprasConNotaFaltante={comprasConNotaFaltante}
           saldoFavorPorProveedor={saldoFavorPorProveedor}
           trasladosPorUbicacion={trasladosPorUbicacion}
-          resumen={
-            <KpisRecibir
-              porRecibir={resumen.porRecibir}
-              unidadesPendientes={extra.unidadesPendientes}
-              atrasadas={resumen.porRecibirAtrasadas}
-              diasMasAtrasada={extra.diasMasAtrasada}
-              proveedorMasAtrasado={extra.proveedorMasAtrasado}
-              documentoMasAtrasada={extra.documentoMasAtrasada}
-              valorPorRecibir={esLider ? extra.valorPorRecibir : null}
-            />
-          }
+          resumen={<KpisRecibir {...kpis} />}
         />
       )}
 

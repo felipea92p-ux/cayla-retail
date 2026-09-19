@@ -3,8 +3,9 @@
 - **Fecha:** 2026-09-18
 - **Estado:** Aceptado. **Solo local**: las migraciones `20260919120000` y `20260919121000` NO están en
   producción; se pegan con el prefijo `retail.` y ok explícito de Felipe (CLAUDE.md, «Cómo aplicar SQL a
-  producción»). Antes, la rama de Compras (ADR-0111) tiene que estar en producción: `recibir_envio` la
-  llama.
+  producción»). **Verificado contra producción el 2026-09-19 (solo lectura):** las migraciones de Compras
+  (200000–218000) YA están aplicadas y cada función que llama `recibir_envio` existe con UNA sola firma;
+  `envios`, `envio_extras`, `envio_traslados` y `recibir_envio` todavía no.
 - **Decide:** Felipe (envío con varios proveedores, guía única, origen de lo fuera de comprobante,
   «cualquier persona cuenta en la puerta», indicadores bajo «¿Qué llegó?»). Arquitectura: este documento.
 - **Diseño:** `docs/maquetas/recibir-envio-2026-09/` (adaptada del diseño que Felipe eligió, con la
@@ -56,7 +57,11 @@ el intento fallido no lo consume). Idempotente por `p_token`.
 como `cerrar_linea_compra`, la nota de crédito solo líder (`fn_puede_registrar_compras`, es dinero). Un
 colaborador solo recibe comprobantes destinados a SU sede (la misma regla con que ya los ve).
 - **Sin dinero para quien no es líder:** la página se arma en el servidor y a un colaborador los montos y
-  costos le llegan en cero (`comprobanteSinMontos` / `lineaSinCosto`), ni siquiera salen al navegador.
+  costos le llegan en cero (`comprobanteSinMontos` / `lineaSinCosto`), ni siquiera salen al navegador. Sus
+  indicadores se calculan de su propia lista (`kpisDeLaLista`), sin pedir `resumen_compras` ni
+  `resumen_compras_extra`: las pruebas SQL de Compras (PR #165) encontraron que esas lecturas —igual que
+  `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos`— devuelven a un integrante los montos de su
+  sede, porque solo tienen el candado de sede (ADR-0075). Ese hueco no lo resuelve este ADR: solo lo evita.
 - **Quién decide qué pasa con lo que faltó** es una decisión *de la pantalla*, no de la base: un colaborador
   cuenta y lo que falta queda pendiente («Sigue pendiente»); el líder decide si se espera o se cierra, como
   en Traslados (cuenta cualquiera, un líder cierra las diferencias). Relajarlo no requiere migración.
@@ -86,14 +91,19 @@ Fuera de comprobante (D1 y D2 de ADR-0111 se conservan: «sin contar» ≠ «fal
 
 ## Consecuencias / pendiente
 
-- **Producción:** aplicar `20260919120000` y `20260919121000` (con `retail.` y ok de Felipe) **después** de
-  la rama de Compras (ADR-0111). Probar antes con un envío real de prueba: toca stock y, con cierres, el saldo.
+- **Producción:** aplicar `20260919120000` y `20260919121000` (con `retail.` y ok de Felipe); el prerrequisito
+  —las 15 de Compras— ya está cumplido. Probar después con un envío real de prueba: toca stock y, con cierres, el
+  saldo. Ojo: mientras `20260918219000` (de Compras) no esté pegada, «Registrar comprobante» falla en producción
+  (`registrar_compra` quedó con dos firmas); `recibir_envio` no la llama, pero sin ella no hay comprobante de
+  prueba que recibir.
 - **Verificado:** 29 pruebas contra el Postgres local (`pnpm pruebas:recibir-envio`, en transacciones con
   rollback: un lote por proveedor, idempotencia, atomicidad, quién cuenta, regalo sin costo, envío interno con y
   sin diferencia, RLS), 24 pruebas de las reglas de la pantalla (`envio-reglas.test.ts`) y un envío de punta
   a punta desde la pantalla como líder (2 proveedores, un regalo y un traslado del Taller).
-- **`RecepcionCompraFormV2.tsx` y `compras/recibir/page.tsx` quedan sin uso** (la ruta redirige). Se borran
-  cuando la sesión de Compras confirme que no los está tocando.
+- **`RecepcionCompraFormV2.tsx` y `compras/recibir/page.tsx` se borraron** con el visto bueno de la sesión de
+  Compras (la ruta vieja redirige). La pestaña «Recibidas» queda en `/recibir?vista=recibidas`; la rama
+  `feat/recibidas-pastillas` de esa sesión (filtros como pastillas) reusa sus componentes y aplica su cambio de
+  página en `/recibir/page.tsx`.
 - **El historial** («Recibidas recientemente») todavía lista una fila por comprobante (los de un mismo envío
   comparten guía); agruparlo por envío es lo siguiente.
 - **Sin hacer:** borrador local del conteo, miniaturas de prenda, foto de la guía, «Imprimir». Y ni

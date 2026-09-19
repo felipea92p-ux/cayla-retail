@@ -1,6 +1,6 @@
 import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import type { CompraResumen, LineaCompra } from "./compras-reglas";
-import { estadoLinea, faltanteDeLinea } from "./recepciones-reglas";
+import { diasDeAtraso, estadoLinea, faltanteDeLinea } from "./recepciones-reglas";
 
 // Reglas puras del ENVÍO (ADR-0113): una llegada a la puerta que puede traer comprobantes de VARIOS
 // proveedores, prendas fuera de comprobante con su origen y traslados de otra sede. Sin I/O: se
@@ -43,6 +43,47 @@ export function comprobanteSinMontos(c: CompraResumen): CompraResumen {
 
 export function lineaSinCosto(l: LineaCompra): LineaCompra {
   return { ...l, costoUnitario: 0, subtotal: 0 };
+}
+
+/**
+ * Los indicadores de Recibir para quien cuenta sin ser líder, calculados de SU PROPIA lista de comprobantes.
+ * `resumen_compras` y `resumen_compras_extra` devuelven a un integrante los montos de su sede (solo tienen el candado
+ * de sede, ADR-0075: lo encontraron las pruebas SQL de la sesión de Compras), así que para un colaborador ni se
+ * piden: aquí solo hay cantidades y fechas, nada de dinero. La lista ya viene acotada a su sede por RLS. Si tuviera
+ * más de una página (50 comprobantes pendientes en una sola sede) los números cuentan solo esa página.
+ */
+export type KpisDeLaLista = {
+  porRecibir: number;
+  unidadesPendientes: number;
+  atrasadas: number;
+  diasMasAtrasada: number | null;
+  proveedorMasAtrasado: string | null;
+  documentoMasAtrasada: string | null;
+};
+
+export function kpisDeLaLista(compras: CompraResumen[], ahora: Date = new Date()): KpisDeLaLista {
+  let unidadesPendientes = 0;
+  let atrasadas = 0;
+  let peor: CompraResumen | null = null;
+  let peorDias = 0;
+  for (const c of compras) {
+    unidadesPendientes += Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad);
+    if (!c.recepcionAtrasada) continue;
+    atrasadas += 1;
+    const dias = diasDeAtraso(c, ahora);
+    if (dias > peorDias) {
+      peorDias = dias;
+      peor = c;
+    }
+  }
+  return {
+    porRecibir: compras.length,
+    unidadesPendientes,
+    atrasadas,
+    diasMasAtrasada: peor ? peorDias : null,
+    proveedorMasAtrasado: peor?.proveedorNombre ?? null,
+    documentoMasAtrasada: peor?.documento ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------

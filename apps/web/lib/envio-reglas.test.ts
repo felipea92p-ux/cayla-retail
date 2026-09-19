@@ -6,6 +6,7 @@ import {
   comprobanteSinMontos,
   extraCompleto,
   inicialesProveedor,
+  kpisDeLaLista,
   lineaSinCosto,
   llegoLinea,
   proveedoresDelEnvio,
@@ -237,5 +238,38 @@ describe("comprobanteSinMontos / lineaSinCosto: quien cuenta no ve dinero", () =
   it("la línea pierde su costo pero no su cantidad pendiente", () => {
     const l = { ...LINEAS[0], costoUnitario: 50, subtotal: 1200 } as LineaCompra;
     expect(lineaSinCosto(l)).toMatchObject({ id: "l1", pendiente: 24, costoUnitario: 0, subtotal: 0 });
+  });
+});
+
+describe("kpisDeLaLista: los indicadores de quien no ve dinero salen de su propia lista", () => {
+  const AHORA = new Date("2026-09-19T00:30:00Z"); // 18/09 en Lima
+  const c = (extra: Partial<CompraResumen>): CompraResumen =>
+    ({ facturadoCantidad: 100, recibidoCantidad: 0, cerradoCantidad: 0, recepcionAtrasada: false, fechaEmision: "2026-09-10", fechaEstimadaLlegada: null, proveedorNombre: "P", documento: "D", ...extra }) as CompraResumen;
+
+  it("cuenta comprobantes y unidades pendientes (lo cerrado por faltante ya no cuenta)", () => {
+    const k = kpisDeLaLista([c({ recibidoCantidad: 20 }), c({ facturadoCantidad: 60, cerradoCantidad: 10 }), c({ facturadoCantidad: 10, recibidoCantidad: 10 })], AHORA);
+    expect(k.porRecibir).toBe(3);
+    expect(k.unidadesPendientes).toBe(80 + 50 + 0);
+  });
+  it("la más atrasada es la de más días entre las atrasadas, con su proveedor y documento", () => {
+    const k = kpisDeLaLista(
+      [
+        c({ recepcionAtrasada: true, fechaEstimadaLlegada: "2026-09-09", proveedorNombre: "Rímac", documento: "F001-000482" }),
+        c({ recepcionAtrasada: true, fechaEstimadaLlegada: "2026-08-11", proveedorNombre: "Textiles Andina SAC", documento: "F001-000198" }),
+        c({ fechaEstimadaLlegada: "2026-09-25" }),
+      ],
+      AHORA,
+    );
+    expect(k.atrasadas).toBe(2);
+    expect(k.diasMasAtrasada).toBe(38);
+    expect(k.proveedorMasAtrasado).toBe("Textiles Andina SAC");
+    expect(k.documentoMasAtrasada).toBe("F001-000198");
+  });
+  it("sin atrasadas: cero y sin «la más atrasada»; sin lista, todo en cero", () => {
+    expect(kpisDeLaLista([c({ fechaEstimadaLlegada: "2026-09-25" })], AHORA)).toMatchObject({ atrasadas: 0, diasMasAtrasada: null, proveedorMasAtrasado: null, documentoMasAtrasada: null });
+    expect(kpisDeLaLista([], AHORA)).toEqual({ porRecibir: 0, unidadesPendientes: 0, atrasadas: 0, diasMasAtrasada: null, proveedorMasAtrasado: null, documentoMasAtrasada: null });
+  });
+  it("no trae ninguna cifra de dinero", () => {
+    expect(Object.keys(kpisDeLaLista([c({})], AHORA)).sort()).toEqual(["atrasadas", "diasMasAtrasada", "documentoMasAtrasada", "porRecibir", "proveedorMasAtrasado", "unidadesPendientes"]);
   });
 });
