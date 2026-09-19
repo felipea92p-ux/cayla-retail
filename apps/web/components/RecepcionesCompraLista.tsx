@@ -1,11 +1,13 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import Link from "next/link";
-import { Modal } from "@/components/ui/Modal";
+import { Fragment, useMemo, useState, type CSSProperties } from "react";
+import { Check, ChevronRight } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Tabla, fila, celda } from "@/components/ui/Tabla";
+import { RecepcionVistaRapida } from "@/components/RecepcionVistaRapida";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
+import { useFlip } from "@/lib/useFlip";
 import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
 import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/envio-reglas";
@@ -26,8 +28,13 @@ import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/en
 // antes de los envíos y las de un solo proveedor siguen como filas normales.
 
 // Fecha · Proveedor·comprobante·guía · Llegó/facturado · Resultado · Demora · Recibió · flecha
-const PLANTILLA = "sm:grid-cols-[6rem_1fr_9.5rem_5.75rem_7.5rem_6.25rem_1rem]";
-const PLANTILLA_DETALLE = "sm:grid-cols-[1fr_5rem]";
+// Las columnas las decide el ANCHO DE LA TABLA (`@container`), no el de la ventana: con el menú lateral abierto una ventana
+// de 1024 px deja ~670 px a la tabla, y las 7 columnas dejaban al proveedor en «Textiles Andin…» (ADR-0128). Angosta: sin
+// «Recibió» ni la flecha (lo menos decisivo); ancha: completa.
+const PLANTILLA = "sm:grid-cols-[5rem_1fr_8.5rem_6rem_5.5rem] @5xl:grid-cols-[6rem_1fr_9.5rem_5.75rem_7.5rem_6.25rem_1rem]";
+const SOLO_ANCHA = "hidden max-sm:block @5xl:block";
+
+type Resultado = "todas" | "completas" | "faltante";
 
 export function RecepcionesCompraLista({
   recepciones,
@@ -37,6 +44,7 @@ export function RecepcionesCompraLista({
   enlaceAlComprobante = true,
   envios,
   limite,
+  destacarNueva = false,
 }: {
   recepciones: RecepcionDeCompra[];
   /** Prenda por prenda de cada guía, por `loteId` (puede faltar para las más antiguas). */
@@ -50,21 +58,47 @@ export function RecepcionesCompraLista({
   envios?: Record<string, EnvioDeLote>;
   /** El tope de filas con que se pidió la lista: si se llenó, el último envío puede estar cortado. */
   limite?: number;
+  /** Se llegó desde «Ver recibidas» tras recibir: la recepción más reciente se tiñe un momento (`anim-destello-fila`). */
+  destacarNueva?: boolean;
 }) {
   const [abierta, setAbierta] = useState<RecepcionDeCompra | null>(null);
+  const [resultado, setResultado] = useState<Resultado>("todas");
+  // Los envíos plegados por quien mira (por defecto todos abiertos).
+  const [plegados, setPlegados] = useState<Record<string, boolean>>({});
+
+  // El resultado filtra en el navegador: la lista ya trae ≤ 30 filas, no vale otro viaje al servidor.
+  const filtradas = useMemo(
+    () => recepciones.filter((r) => resultado === "todas" || (resultado === "completas") === r.faltante <= 0),
+    [recepciones, resultado],
+  );
+  const grupos = agruparPorEnvio(filtradas, envios ?? {}, { llegoAlLimite: (limite != null && recepciones.length >= limite) || resultado !== "todas" });
+  const claveFilas = filtradas.map((r) => `${r.loteId}-${r.compraId}`).join("|");
+  // Al filtrar, las filas que quedan se deslizan a su lugar en vez de saltar (ADR-0128).
+  const refFila = useFlip(claveFilas);
 
   if (recepciones.length === 0) return <p className="card-cayla p-5 text-sm text-tinta/65">{vacio}</p>;
 
-  const grupos = agruparPorEnvio(recepciones, envios ?? {}, { llegoAlLimite: limite != null && recepciones.length >= limite });
+  const idFila = (r: RecepcionDeCompra) => `${r.loteId}-${r.compraId}`;
+  const nuevaId = destacarNueva && filtradas[0] ? idFila(filtradas[0]) : null;
+  const posicion = abierta ? { indice: Math.max(0, filtradas.findIndex((r) => idFila(r) === idFila(abierta))), total: filtradas.length } : null;
+  // ↑ ↓ del cajón: la recepción siguiente o anterior de la lista visible, dando la vuelta.
+  const navegar = (delta: 1 | -1) => {
+    if (!abierta || filtradas.length === 0) return;
+    const i = filtradas.findIndex((r) => idFila(r) === idFila(abierta));
+    setAbierta(filtradas[(i + delta + filtradas.length) % filtradas.length]);
+  };
 
-  function filaRecepcion(r: RecepcionDeCompra, dentroDeEnvio: boolean) {
+  function filaRecepcion(r: RecepcionDeCompra, dentroDeEnvio: boolean, i: number) {
     const completa = r.faltante <= 0;
+    const pct = r.unidadesFacturadas > 0 ? Math.min(100, (r.unidadesLlegaron / r.unidadesFacturadas) * 100) : 0;
+    const id = idFila(r);
     return (
       <button
-        key={`${r.loteId}-${r.compraId}`}
+        key={id}
+        ref={refFila(id)}
         type="button"
         onClick={() => setAbierta(r)}
-        className={`${fila(PLANTILLA)} group w-full text-left transition-colors hover:bg-tinta/[0.03] ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""}`}
+        className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
       >
         <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(hoyLima(new Date(r.fechaRecepcion)))}</span>
         <span className={celda("izq")}>
@@ -77,13 +111,20 @@ export function RecepcionesCompraLista({
         </span>
         <span className={celda("der", "text-sm text-tinta")}>
           {r.unidadesLlegaron} / {r.unidadesFacturadas}
+          {/* cuánto de lo facturado llegó, sin leer el número */}
+          <span aria-hidden className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
+            <span className={`anim-crece-x block h-full rounded-full ${completa ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pct}%`, "--i": i } as CSSProperties} />
+          </span>
         </span>
         <span className={celda("izq", "overflow-visible")}>
-          <Chip tono={completa ? "verde" : "ambar"}>{completa ? "Completa" : `Faltan ${r.faltante}`}</Chip>
+          <Chip tono={completa ? "verde" : "ambar"}>
+            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+            {completa ? "Completa" : `Faltan ${r.faltante}`}
+          </Chip>
         </span>
         <span className={celda("der", "text-sm text-tinta")}>{r.diasDemora === 1 ? "1 día" : `${r.diasDemora} días`}</span>
-        <span className={celda("izq", "text-sm text-tinta/65")}>{nombres[r.loteId] ?? "—"}</span>
-        <span aria-hidden className="hidden text-right text-base leading-none text-tinta/30 transition-colors group-hover:text-rojo sm:block">
+        <span className={celda("izq", `text-sm text-tinta/65 ${SOLO_ANCHA}`)}>{nombres[r.loteId] ?? "—"}</span>
+        <span aria-hidden className="hidden -translate-x-1.5 justify-self-end text-base leading-none text-tinta/30 opacity-0 transition-[opacity,transform,color] duration-300 ease-cayla group-hover:translate-x-0 group-hover:text-rojo group-hover:opacity-100 @5xl:block">
           ›
         </span>
       </button>
@@ -92,12 +133,22 @@ export function RecepcionesCompraLista({
 
   function cabeceraEnvio(g: Extract<GrupoRecepcion, { tipo: "envio" }>) {
     const completo = g.faltante <= 0;
+    const abierto = !plegados[g.envioId];
     return (
-      <div key={`envio-${g.envioId}`} className={`${fila(PLANTILLA)} bg-tinta/[0.035]`}>
+      <button
+        key={`envio-${g.envioId}`}
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setPlegados((p) => ({ ...p, [g.envioId]: abierto }))}
+        className={`${fila(PLANTILLA)} w-full bg-tinta/[0.035] text-left transition-colors hover:bg-tinta/[0.06]`}
+      >
         <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(hoyLima(new Date(g.fechaRecepcion)))}</span>
         <span className={celda("izq")}>
-          <span className="text-sm font-medium text-tinta">Envío de {g.proveedores} proveedores</span>
-          <span className="block truncate text-xs text-tinta/55">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-tinta">
+            <ChevronRight aria-hidden className={`h-3.5 w-3.5 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
+            Envío de {g.proveedores} proveedores
+          </span>
+          <span className="block truncate pl-5 text-xs text-tinta/55">
             Guía {g.numeroGuia ?? "—"} · {g.ubicacionNombre}
             {g.parcial ? " · esta lista muestra solo una parte" : ""}
           </span>
@@ -105,79 +156,76 @@ export function RecepcionesCompraLista({
         <span className={celda("der", "text-sm text-tinta")}>{g.parcial ? "" : `${g.unidadesLlegaron} / ${g.unidadesFacturadas}`}</span>
         <span className={celda("izq", "overflow-visible")}>{g.parcial ? null : <Chip tono={completo ? "verde" : "ambar"}>{completo ? "Completo" : `Faltan ${g.faltante}`}</Chip>}</span>
         <span aria-hidden className={celda("der")} />
-        <span className={celda("izq", "text-sm text-tinta/65")}>{nombres[g.filas[0].loteId] ?? "—"}</span>
-        <span aria-hidden className="hidden sm:block" />
-      </div>
+        <span className={celda("izq", `text-sm text-tinta/65 ${SOLO_ANCHA}`)}>{nombres[g.filas[0].loteId] ?? "—"}</span>
+        <span aria-hidden className="hidden @5xl:block" />
+      </button>
     );
   }
 
+  let n = 0;
   return (
     <>
-      <Tabla>
-        <Encabezado
-          plantilla={PLANTILLA}
-          columnas={[
-            { titulo: "Fecha" },
-            { titulo: "Proveedor · comprobante · guía" },
-            { titulo: "Llegó / facturado", alinear: "der" },
-            { titulo: "Resultado" },
-            { titulo: "Demora", alinear: "der" },
-            { titulo: "Recibió" },
-            { titulo: "" },
+      <div className="flex justify-end">
+        <SegmentoDeslizante
+          etiqueta="Filtrar por resultado"
+          valor={resultado}
+          onCambio={(v) => setResultado(v as Resultado)}
+          opciones={[
+            { clave: "todas", etiqueta: "Todas" },
+            { clave: "completas", etiqueta: "Completas" },
+            { clave: "faltante", etiqueta: "Con faltante" },
           ]}
         />
+      </div>
+      <Tabla className="@container">
+        <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
+          {[
+            ["Fecha", "", ""],
+            ["Proveedor · comprobante · guía", "", ""],
+            ["Llegó / facturado", "text-right", ""],
+            ["Resultado", "", ""],
+            ["Demora", "text-right", ""],
+            ["Recibió", "", "hidden @5xl:block"],
+            ["", "", "hidden @5xl:block"],
+          ].map(([t, alinea, ancha], i) => (
+            <span key={i} role="columnheader" className={`label-cayla text-[11px] text-tinta/55 ${alinea} ${ancha}`}>
+              {t}
+            </span>
+          ))}
+        </div>
+        {filtradas.length === 0 && (
+          <div className="px-5 py-8 text-center">
+            <p className="font-display text-[17px] italic text-tinta/65">Ninguna recepción {resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista.</p>
+            <button type="button" onClick={() => setResultado("todas")} className="mt-2 text-[13px] text-rojo hover:underline">
+              Ver todas
+            </button>
+          </div>
+        )}
         {grupos.map((g) =>
           g.tipo === "suelta" ? (
-            filaRecepcion(g.fila, false)
+            filaRecepcion(g.fila, false, n++)
           ) : (
             <Fragment key={`envio-${g.envioId}`}>
               {cabeceraEnvio(g)}
-              {g.filas.map((r) => filaRecepcion(r, true))}
+              {/* el envío se pliega por altura (grid 0fr → 1fr), sin medir; plegado no se enfoca */}
+              <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla ${plegados[g.envioId] ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={!!plegados[g.envioId]}>
+                <div className="min-h-0 divide-y divide-tinta/10 overflow-hidden">{g.filas.map((r) => filaRecepcion(r, true, n++))}</div>
+              </div>
             </Fragment>
           )
         )}
       </Tabla>
 
-      {abierta && (
-        <Modal
-          titulo={abierta.proveedorNombre}
-          subtitulo={`${diaMes(hoyLima(new Date(abierta.fechaRecepcion)))} · ${abierta.numeroGuia ? `Guía ${abierta.numeroGuia}` : "Sin guía"} · ${abierta.ubicacionNombre}${
-            nombres[abierta.loteId] ? ` · Recibido por ${nombres[abierta.loteId]}` : ""
-          }`}
-          ancho="max-w-lg"
-          onClose={() => setAbierta(null)}
-        >
-          <div className="mt-4 space-y-4">
-            {(detalles[abierta.loteId] ?? []).length > 0 ? (
-              <Tabla>
-                <Encabezado plantilla={PLANTILLA_DETALLE} columnas={[{ titulo: "Prenda" }, { titulo: "Cantidad", alinear: "der" }]} />
-                {(detalles[abierta.loteId] ?? []).map((l, i) => (
-                  <div key={i} className={fila(PLANTILLA_DETALLE)}>
-                    <span className={celda("izq", "text-sm text-tinta")}>
-                      {l.referencia}
-                      {l.sku ? ` · ${l.sku}` : ""}
-                      <span className="block truncate text-xs text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/") || "—"}</span>
-                    </span>
-                    <span className={celda("der", "text-sm tabular-nums text-tinta")}>{l.cantidad}</span>
-                  </div>
-                ))}
-              </Tabla>
-            ) : (
-              <p className="text-sm text-tinta/65">El detalle prenda por prenda de esta guía ya no está en la lista reciente. Ábrelo desde el comprobante.</p>
-            )}
-            <div className="flex items-center justify-between border-t border-tinta/10 pt-3">
-              <p className="text-xs text-tinta/55">
-                {abierta.unidadesLlegaron} de {abierta.unidadesFacturadas} unidades del comprobante {abierta.documento}
-              </p>
-              {/* Cierra este modal antes de navegar: la ruta de comprobante abre SU propio modal interceptado, y sin esto quedaban los dos apilados. */}
-              {enlaceAlComprobante && (
-                <Link href={`/compras/factura/${abierta.compraId}`} onClick={() => setAbierta(null)} className="label-cayla text-[11px] text-rojo hover:underline">
-                  Ver comprobante completo →
-                </Link>
-              )}
-            </div>
-          </div>
-        </Modal>
+      {abierta && posicion && (
+        <RecepcionVistaRapida
+          recepcion={abierta}
+          detalle={detalles[abierta.loteId] ?? []}
+          recibio={nombres[abierta.loteId] ?? null}
+          posicion={posicion}
+          enlaceAlComprobante={enlaceAlComprobante}
+          onCerrar={() => setAbierta(null)}
+          onNavegar={navegar}
+        />
       )}
     </>
   );
