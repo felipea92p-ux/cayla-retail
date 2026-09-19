@@ -400,6 +400,87 @@ recepción «a medias» accidental cuenta como «requiere acción»); las fotos 
 criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
 diferencia.
 
+## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0109)
+
+Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y la revisión adversarial del PR #164
+(ADR-0109, tercera parte) escritos y probados en un Postgres desechable. **Los 8 SQL están pegados en producción desde
+el 2026-09-19 y verificados; falta desplegar el código** (mergear el PR #164): hasta entonces, Nuevo producto y el alta al
+vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
+
+- [x] **Los 8 SQL pegados en producción, en orden, y verificados (2026-09-19).** `230000` → `230100` → `230200` (falló la
+      primera vez por tablas temporales entre sentencias; corregido a un solo bloque, ADR-0109 cuarta parte) → `230300` →
+      `231000` → `231100` (con la regla «no empeora» de Editar, quinta parte) → `231200` → `231300`. Comprobado en solo
+      lectura tras cada uno; al final: 0 productos con pareja marca-proveedor inválida, 0 nombres duplicados, RLS y
+      políticas de las tablas nuevas, `anon` sin `EXECUTE` en ninguna de las 17 funciones tocadas, Productos filtra y busca
+      por marca y proveedor (44 visibles = contador), «Top Lili» avisa contra «Top Lily». Volcado refrescado
+      (`pnpm datos:generar:produccion`: 67 tablas) y **`pnpm datos:comparar` sin alarmas**. El comparador sigue sin ver
+      `fn_productos`, `fn_productos_resumen` ni `catalogo_actualizar_producto` (parámetros armados con `...`): esas tres
+      las cubre la regresión y lo comprobado en producción.
+- [ ] **Desplegar el código (mergear el PR #164) — es lo que falta y es urgente:** desde el SQL 5, crear productos con la
+      pantalla actual falla. Después, abrir Productos (filtro por marca) y Editar un producto con una sesión de Líder real.
+- [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
+      marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
+      El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
+      `db reset`, que no se pudo correr en local (Docker caído).
+- [ ] **Base local sin patrones:** una base nueva no trae vocabulario de patrones (las semillas locales no lo cargan), así
+      que en local Nuevo producto de Indumentaria —que exige patrón— pide un «Liso» que no existe. El mapa de categorías
+      se salta ese eje con un aviso (`230200`). Sembrar los 7 patrones en `seed.sql` (o en una migración, como se hizo con
+      los tejidos) y mapearlos; existe una rama `claude/patrones-seed-retira-colores` que quizá ya lo cubre.
+- [ ] **Inventario → Existencias no filtra por proveedor todavía.** «A quién pedirle» vive en Productos (donde está la
+      señal «Pedir a proveedor»). Filtrar Existencias por proveedor pide cambiar `fn_stock_por_sede` y su pantalla.
+- [ ] **Compras no valida que el proveedor de una compra traiga la marca de lo que se compra.** Hoy `compras.proveedor_id`
+      y `productos.proveedor_id` son datos independientes (el proveedor REAL de cada entrega vive en compras/lotes; el del
+      producto es «a quién se le pide»). Decidir si un desvío debe avisar.
+- [ ] **Marcas sin fila propia en el menú** (Felipe: «con 3 está bien»): se llega desde Categorías y desde el selector.
+      Si molesta, es una fila en `AppShell.tsx` (`RUTAS_POR_GRUPO` ya la contempla).
+- [ ] **Verificar con `db reset` local** cuando Docker vuelva (hoy se probó contra un Postgres 17 suelto con el
+      esquema mínimo, sin RLS ni el resto de la historia de migraciones).
+- [x] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx` + `components/alta-producto/*`): árbol familia →
+      categoría con búsqueda, aviso de parecidos en vivo, curva habitual marcada, tejido/patrón obligatorios en
+      Indumentaria, configurar categoría y «+ Nueva talla/tejido/patrón» sin salir, colores con «más usados»,
+      margen, código previsto, etiquetas todo-o-nada y resumen que dice qué falta. Probado en el navegador con
+      datos y red simuladas; typecheck, lint y 540 pruebas en verde. **Falta verificarlo con sesión de Líder real
+      contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
+- [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
+      tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
+- [x] **Paso 4 — pantalla de éxito** (`ProductoCreado.tsx`): Agregar fotos (lleva a `/productos/{id}/editar#fotos`,
+      con los colores que faltan) · Crear otro parecido (conserva categoría, tallas, tejido, patrón, precio, costo y
+      etiquetas; limpia nombre, descripción y colores; token nuevo) · Ir a productos. Probado en navegador con red
+      simulada, escritorio y celular. Las fotos NO se suben desde ahí (el archivo sube al elegirlo y quedaría huérfano);
+      la galería de la edición ya asigna cada foto a su color.
+- [x] **Etiquetas de campaña y el formulario nuevo**: las que ya rigen sobre la categoría se muestran «ya aplica por
+      campaña» y no se eligen a mano (ni se envían).
+- [ ] **Revisión adversarial del PR #164 — pendientes que quedaron a propósito** (detalle en ADR-0109, tercera parte):
+      (a) **Completar tejido y patrón de los 38 productos activos de Indumentaria que no los tienen** (ADR-0109, quinta
+      parte): Editar ya no lo exige si el producto no los tenía (regla «no empeora»), así que se completan cuando alguien
+      edite cada prenda, o de una vez si Felipe pasa la lista; mientras tanto, cualquier reporte por tejido debe tolerar
+      nulos; (b) el reintento por `unique_violation`
+      del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
+      (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
+      que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
+- [ ] **Las pruebas SQL de este PR no están en el repo.** Las ~45 pruebas (nombre único, censo, marcas, edición, permisos,
+      regresión de `fn_productos` contra la copia de producción) se escribieron y corrieron en un Postgres desechable con un
+      esquema mínimo, y viven solo en la carpeta temporal de la sesión. Pasarlas a `scripts/pruebas/` contra el `seed.sql`
+      real (como `etiquetar_variantes.sql`) para que el piloto de CI las corra siempre; hoy solo corre el encadenado y la venta.
+- [ ] **Endurecimiento opcional (avisos de Supabase, 2026-09-19):** 20 funciones de `retail` figuran con «search_path mutable»;
+      5 son de este cambio (`fn_clave_referencia`, `fn_titulo_referencia`, `fn_dentro_de_una_edicion`,
+      `fn_marcas_desactivar_candado`, `fn_productos_referencia_trigger`) y las otras 15 ya estaban. Todas usan nombres
+      calificados con `retail.`, así que no es un hueco; fijar `set search_path` en las 20 con una sola migración. Y 121
+      funciones `security definer` ejecutables por `authenticated` (el diseño: cada RPC revisa `fn_es_lider` adentro).
+- [ ] **Candado de «sentencias independientes» para las migraciones.** El mapa (`230200`) falló al pegarlo en producción
+      por depender de tablas temporales entre sentencias (ADR-0109, cuarta parte). Un script de `scripts/migraciones/`
+      que rechace `create temp table`, `set_config`, `set local` y `set session` fuera de un bloque `do`/función, y que
+      corra junto a `migraciones:versiones`. Además, el piloto de CI podría correr cada migración sentencia por sentencia
+      (una conexión cada una): `psql -f` no imita al SQL Editor.
+- [ ] **Decisión a reconsiderar (ya existía; la tomó `20260918120000` a propósito: «ficha, no agregado — quedan
+      abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
+      bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
+      a una tabla aparte. Este PR no lo toca.
+- [x] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla; manda `p_talla_habitual_ids`.
+- [x] **`catalogo_crear_producto`** retirado del uso (`231200`: sin permiso de ejecución; la función queda, no se borra).
+- [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son
+      códigos puestos como nombre; «Cargo especial (sin código)» es un producto técnico.
+
 ## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0104)
 
 Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). Al cruzarlo con
@@ -851,6 +932,23 @@ verde.
 - [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
       lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
       refrescarlo.
+- [x] **Colores: modal legible y color nuevo sin beige por defecto (2026-09-18).** Muestra única con
+      hex, confirmación al desactivar, el color nace sin elegir y la API lo exige.
+- [ ] **Colores: decidir si la familia «Estampado» sale de `FAMILIAS_COLOR`** (pantalla y API).
+      `EST`, `MUL` y `ANI` ya están desactivados en producción (verificado 2026-09-18, solo lectura:
+      `activo=false`, 0 variantes, 0 fotos), así que NO hace falta migración de datos. Lo que queda es
+      que el selector de familia todavía deja archivar un color nuevo ahí, aunque el estampado vive
+      en Patrones (ADR-0106).
+- [x] **Colores: el código de 3 letras se sugiere desde el nombre (2026-09-18).** `lib/color-codigo.ts`
+      (regla sacada de los 35 códigos reales: 1 palabra = 3 letras, 2 palabras = 2+1), con 7 pruebas.
+      Deja de seguir al nombre si la persona lo escribe; avisa en vivo «Ya lo usa «X»» (cuenta también
+      los desactivados) y bloquea el guardado. Verificado en navegador.
+- [ ] **Colores: el campo «Orden» ya no significa nada claro** desde que la grilla agrupa por familia
+      (todo color nuevo entra con 200). Decidir: quitarlo (orden por nombre) o subir/bajar.
+- [ ] **Colores: cuántas prendas usa cada color** (12 de 31 activos no tienen ninguna) y quién
+      propuso un pendiente (`propuesto_por` existe, la pantalla no lo lee). Junto con `TarjetaAtributo`.
+- [ ] **Colores: sin pruebas** de la API (`/api/productos/colores`) ni de la pantalla; solo
+      `color-entrada.test.ts`.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.

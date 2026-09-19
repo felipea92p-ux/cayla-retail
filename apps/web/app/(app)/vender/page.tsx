@@ -74,6 +74,7 @@ async function Caja() {
       talla: v.talla,
       color: v.color,
       categoria: v.categoria,
+      marca: v.marca,
       precio: v.precio,
       campana: campanaPorVariante.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,

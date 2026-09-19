@@ -495,6 +495,42 @@
   "with_check": null
  },
  {
+  "cmd": "SELECT",
+  "policyname": "marca_proveedores_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marca_proveedores",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "marca_proveedores_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marca_proveedores",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "marcas_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marcas",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "marcas_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marcas",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
   "cmd": "INSERT",
   "policyname": "movimientos_insert",
   "qual": null,

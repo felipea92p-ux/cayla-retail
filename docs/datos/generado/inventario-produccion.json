@@ -679,7 +679,7 @@
       "tabla": "categoria_patrones",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 133,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -755,7 +755,7 @@
       "tabla": "categoria_tallas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 173,
+      "filas_estimadas": 216,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -783,6 +783,15 @@
           "tipo": "timestamp with time zone",
           "acepta_vacio": false,
           "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "habitual",
+          "orden": 4,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "false",
           "generada": false,
           "comentario": null
         }
@@ -831,7 +840,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 139,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -3322,7 +3331,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 10,
+      "filas_estimadas": 11,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -5024,6 +5033,15 @@
           "por_defecto": "now()",
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "exige_tejido_patron",
+          "orden": 6,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "false",
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -5870,10 +5888,170 @@
     },
     {
       "esquema": "retail",
+      "tabla": "marca_proveedores",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 1,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "marca_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "proveedor_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 3,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "marca_proveedores_marca_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)"
+        },
+        {
+          "nombre": "marca_proveedores_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (marca_id, proveedor_id)"
+        },
+        {
+          "nombre": "marca_proveedores_proveedor_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "marca_proveedores_pkey",
+          "definicion": "CREATE UNIQUE INDEX marca_proveedores_pkey ON retail.marca_proveedores USING btree (marca_id, proveedor_id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "marca_proveedores_select",
+          "operacion": "SELECT",
+          "condicion": "(auth.role() = 'authenticated'::text)",
+          "condicion_escritura": null
+        },
+        {
+          "nombre": "marca_proveedores_write_lider",
+          "operacion": "ALL",
+          "condicion": "retail.fn_es_lider()",
+          "condicion_escritura": "retail.fn_es_lider()"
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "marcas",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 1,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nombre",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "activo",
+          "orden": 3,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "true",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 4,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "marcas_nombre_check",
+          "clase": "regla",
+          "definicion": "CHECK ((btrim(nombre) <> ''::text))"
+        },
+        {
+          "nombre": "marcas_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "marcas_nombre_unico",
+          "definicion": "CREATE UNIQUE INDEX marcas_nombre_unico ON retail.marcas USING btree (retail.fn_clave_texto(nombre))"
+        },
+        {
+          "nombre": "marcas_pkey",
+          "definicion": "CREATE UNIQUE INDEX marcas_pkey ON retail.marcas USING btree (id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "marcas_select",
+          "operacion": "SELECT",
+          "condicion": "(auth.role() = 'authenticated'::text)",
+          "condicion_escritura": null
+        },
+        {
+          "nombre": "marcas_write_lider",
+          "operacion": "ALL",
+          "condicion": "retail.fn_es_lider()",
+          "condicion_escritura": "retail.fn_es_lider()"
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 460,
+      "filas_estimadas": 464,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -7402,6 +7580,24 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "marca_id",
+          "orden": 18,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "proveedor_id",
+          "orden": 19,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -7426,6 +7622,16 @@
           "definicion": "CHECK ((estado = ANY (ARRAY['activo'::text, 'descontinuado'::text])))"
         },
         {
+          "nombre": "productos_marca_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)"
+        },
+        {
+          "nombre": "productos_marca_proveedor_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)"
+        },
+        {
           "nombre": "productos_patron_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (patron_id) REFERENCES retail.patrones(id)"
@@ -7439,6 +7645,16 @@
           "nombre": "productos_propuesto_por_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (propuesto_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "productos_proveedor_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
+        },
+        {
+          "nombre": "productos_rechazado_descontinuado_check",
+          "clase": "regla",
+          "definicion": "CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))"
         },
         {
           "nombre": "productos_stock_minimo_no_negativo",
@@ -7464,6 +7680,10 @@
         {
           "nombre": "productos_pkey",
           "definicion": "CREATE UNIQUE INDEX productos_pkey ON retail.productos USING btree (id)"
+        },
+        {
+          "nombre": "productos_referencia_clave_unica",
+          "definicion": "CREATE UNIQUE INDEX productos_referencia_clave_unica ON retail.productos USING btree (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)"
         },
         {
           "nombre": "productos_token_cliente_key",
@@ -7856,7 +8076,7 @@
       "tabla": "proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1,
+      "filas_estimadas": 2,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -9796,7 +10016,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 19,
+      "filas_estimadas": 23,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -10003,7 +10223,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8,
+      "filas_estimadas": 11,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -10087,7 +10307,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8,
+      "filas_estimadas": 9,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
