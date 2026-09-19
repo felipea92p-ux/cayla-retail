@@ -21,7 +21,7 @@ export type DatosPagoProveedor = {
   banco: string | null;
   /** Número de cuenta del banco (texto libre). */
   cuentaBancaria: string | null;
-  /** Código de Cuenta Interbancario: 20 dígitos (ADR-0129 de Proveedores). */
+  /** Código de Cuenta Interbancario: 20 dígitos (ADR-0134 de Proveedores). */
   cci: string | null;
   /** El celular al que se yapea/plinea, 9 dígitos: NO es el WhatsApp del contacto. */
   celularBilletera: string | null;

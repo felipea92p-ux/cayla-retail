@@ -330,9 +330,9 @@
   "retail.proveedores.marca": "la línea que maneja ese proveedor: jeans, blusas de vestir, ropa de niño",
   "retail.proveedores.score": "nota de calidad heredada de SINATRA; se muestra en la lista y ninguna pantalla la escribe",
   "retail.proveedores.contacto": "el nombre de la persona con quien se habla para pactar el fardo",
-  "retail.proveedores.telefono": "el WhatsApp por el que se cierra la compra, que es como compra CAYLA",
+  "retail.proveedores.telefono": "el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0134 ya NO es el destino del Yape",
   "retail.proveedores.banco": "en qué banco cobra ese proveedor; visible para cualquiera con cuenta, decisión consciente D-27",
-  "retail.proveedores.cuenta_bancaria": "el número de cuenta al que se le transfiere; dato de un tercero y visible para todos",
+  "retail.proveedores.cuenta_bancaria": "el número de cuenta del banco (depósito o mismo banco); el interbancario vive en `cci`. Dato de un tercero y visible para todos",
   "retail.proveedores.direccion": "dónde queda su local o almacén cuando hay que ir a recoger",
   "retail.proveedores.nota": "texto libre sobre el proveedor; existe y hoy ninguna pantalla la escribe ni la lee",
   "retail.proveedores.activo": "si le seguimos comprando; desactivar archiva la ficha y nunca borra la fila",
@@ -423,5 +423,9 @@
   "retail.ventas_historicas_mensuales.sede_id": "de qué tienda es ese total mensual traído del Excel",
   "retail.ventas_historicas_mensuales.anio": "el año calendario del total; arma las columnas del comparativo, solo se acepta entre 2020 y 2100",
   "retail.ventas_historicas_mensuales.mes": "el mes calendario, 1 a 12; arma las filas del comparativo año contra año",
-  "retail.ventas_historicas_mensuales.monto": "cuánto vendió esa tienda ese mes según el Excel; se SUMA a lo que calcula el sistema"
+  "retail.ventas_historicas_mensuales.monto": "cuánto vendió esa tienda ese mes según el Excel; se SUMA a lo que calcula el sistema",
+  "retail.proveedores.cci": "el Código de Cuenta Interbancario (20 dígitos) para transferirle desde otro banco; se guarda solo con números",
+  "retail.proveedores.celular_billetera": "el celular al que se yapea o se plinea (9 dígitos, sin +51); distinto del WhatsApp de contacto, porque mandar plata al celular equivocado no se revierte",
+  "retail.proveedores.billeteras": "en qué app tiene ese celular: Yape, Plin o ambas; va de la mano con el celular (uno sin el otro no puede existir)",
+  "retail.proveedores.titular_cuenta": "el nombre que muestra el banco o Yape antes de confirmar; quien paga lo compara con este para no equivocarse de destino"
 }

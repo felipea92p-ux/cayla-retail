@@ -280,7 +280,8 @@ repartidas en **44 tablas**. Las reglas caen en tres patrones y dos excepciones.
 cinco `taxonomia_*`, `configuracion_empresa`, `sede_datos_fiscales`. Son catálogos
 compartidos: para vender hay que ver todo lo que existe, no solo lo de tu tienda.
 **Acá vive la transparencia de la sección 9:** `variantes` (con `costo`), `productos`
-(con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria`) están
+(con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria` y, desde
+2026-09-19, `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` — ADR-0134) están
 los tres en este grupo.
 
 **Patrón C — "libro contable, solo Admin".** `retail.es_lider()` para leer y
@@ -434,7 +435,8 @@ día que se escribió. Nunca hubo un candado de costos en la base:
   `costo` es `numeric(12,2) not null default 0`. Cualquiera con sesión la lee por API,
   desde siempre.
 - `productos_select`, igual, con `costo_mano_obra` adentro.
-- `proveedores_select`, igual, con `ruc`, `banco` y `cuenta_bancaria` adentro.
+- `proveedores_select`, igual, con `ruc`, `banco` y `cuenta_bancaria` adentro (y desde 2026-09-19 también
+  `cci`, `celular_billetera`, `billeteras` y `titular_cuenta`: ver la nota de abajo).
 - Lo único que filtraba era la pantalla:
   `apps/web/app/api/export/inventario/route.ts:56,63` saca la columna "Costo" del CSV
   cuando no eres Líder, y
@@ -451,6 +453,14 @@ y lo repitieron como hecho.
 `proveedores.cuenta_bancaria` es el número de cuenta de un **tercero**, no de CAYLA.
 Es dato personal de otro, y su tratamiento está en
 [`06-DATOS-PERSONALES.md`](06-DATOS-PERSONALES.md).
+
+**Actualización 2026-09-19 (ADR-0134, `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`):** `proveedores` suma
+`cci`, `celular_billetera`, `billeteras` y `titular_cuenta`, **con la misma lectura que `banco` y `cuenta_bancaria`**
+(`proveedores_select` a cualquier sesión). La escritura de esas cuatro pasa por `guardar_cuentas_proveedor`, solo líder
+(`security definer`, sin EXECUTE para `anon`). Felipe decidió dejar la restricción por rol de datos de pago para el final del
+proyecto; queda escrita la regla de que las **cinco columnas de pago** (`banco`, `cuenta_bancaria`, `cci`,
+`celular_billetera`, `titular_cuenta`) **se cierran juntas o ninguna**. Riesgo de integridad abierto: no hay bitácora de
+cambios de cuenta (quién cambió un CCI y cuándo); recomendada `proveedor_cuentas_historial`, append-only.
 
 **Un matiz que la transparencia no cubre:** `gastos` tiene una sola regla,
 `gastos_all_lider`, que cubre también el SELECT. Un Líder de equipo no puede ver los
