@@ -439,17 +439,27 @@ function normalizar(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+// Palabras que acompañan a un número sin ser parte de lo que se busca: «traslado 24»,
+// «traslado n° 24», «nro. 24». Son las mismas que entiende la búsqueda de Movimientos
+// (`fn_movimientos_busqueda`), para que lo que se escribe allí para llegar a un traslado
+// valga también acá.
+const PALABRAS_DE_RELLENO = new Set(["traslado", "traslados", "#", "n°", "nº", "nro", "nro.", "num", "num.", "numero"]);
+
 /** «Buscar traslado, sede o prenda…»: cada palabra escrita tiene que aparecer en alguna parte del
  *  traslado (sede, nombre de prenda, código, nota). Sin distinguir mayúsculas ni tildes.
- *  Un número corto («2», «#2», «traslado 2») es el NÚMERO del traslado y solo ese — si no, «2»
- *  traería también el 12 y todo código que lleve un 2. Desde 3 cifras («001») se busca también
- *  dentro de los códigos de prenda. */
+ *  Un número corto («2», «#2», «traslado 2», «traslado#2», «n° 2») es el NÚMERO del traslado y solo
+ *  ese — si no, «2» traería también el 12 y todo código que lleve un 2. Desde 3 cifras («001») se
+ *  busca también dentro de los códigos de prenda. */
 export function coincideBusqueda(t: TrasladoBuscable, consulta: string): boolean {
-  const palabras = normalizar(consulta).split(/\s+/).filter(Boolean);
+  const palabras = normalizar(consulta)
+    // «traslado24», «traslado#24», «n°24», «nro.24» → la palabra y el número por separado.
+    .replace(/\b(traslados?|n[°º]|nro\.?|num\.?|numero)(?=[#°º]?\d)/g, "$1 ")
+    .split(/\s+/)
+    .filter(Boolean);
   if (palabras.length === 0) return true;
   const pajar = normalizar([t.ubicacionOrigenNombre, t.ubicacionDestinoNombre, t.nota ?? "", ...t.referencias, ...t.skus].join(" \n "));
   return palabras.every((p) => {
-    if (p === "traslado" || p === "traslados" || p === "#") return true;
+    if (PALABRAS_DE_RELLENO.has(p)) return true;
     const num = /^#?(\d+)$/.exec(p);
     if (num) return Number(num[1]) === t.numero || (num[1].length >= 3 && pajar.includes(num[1]));
     return pajar.includes(p.replace(/^#/, ""));

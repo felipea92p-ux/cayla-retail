@@ -4150,6 +4150,7 @@ export type Database = {
           conteo_cantidad_contada: number
           conteo_cantidad_sistema: number
           conteo_id: string
+          conteo_numero: number
           created_at: string
           delta: number
           devolucion_estado: string
@@ -4178,6 +4179,7 @@ export type Database = {
           transferencia_estado: string
           transferencia_id: string
           transferencia_nota: string
+          transferencia_numero: number
           ubicacion_destino_id: string
           ubicacion_destino_nombre: string
           ubicacion_id: string

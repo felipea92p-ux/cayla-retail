@@ -9,7 +9,7 @@ import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import {
   ETIQUETA_CATEGORIA,
   etiquetaDia,
-  etiquetaProceso,
+  etiquetaMovimiento,
   textoDelta,
   tonoCategoria,
   type Movimiento,
@@ -246,7 +246,7 @@ function SeccionMovimientos({
                     </span>
                     <span className="min-w-0 text-xs">
                       <span className="block truncate text-sm text-tinta">
-                        {etiquetaProceso(m.motivo)}
+                        {etiquetaMovimiento(m)}
                         {m.esSistema && <span className="label-cayla ml-1.5 text-[10px] text-tinta/50">Sistema</span>}
                       </span>
                     </span>

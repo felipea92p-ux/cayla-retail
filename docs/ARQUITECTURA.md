@@ -132,13 +132,20 @@ flowchart TB
   de paso al mover esto a la config (ver nota en `next.config.ts`).
 - `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
   el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
-  los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
-  `listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
-  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres) →
-  `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx` (agrupada
-  por día; columna «Origen → Destino» con `partesOrigenDestino`) +
-  `MovimientoDetalle.tsx` (modal por proceso, sin segunda consulta). Las reglas de
-  pantalla (categoría, signo, referencia por proceso) viven en
+  los filtros; simplificada el 2026-09-19, ADR-0127) → `lib/movimientos-v2.ts`
+  (`listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
+  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres; la búsqueda
+  por prenda **y por proceso** —«Traslado 24», «B001-000184»— la resuelve
+  `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas) →
+  `FiltrosMovimientos.tsx` (buscador, Tipo, Sububicación y Período a la vista, el
+  proceso específico en «Más filtros»; todo en la URL) + `MovimientosLista.tsx`
+  (agrupada por día: Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
+  Referencia; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
+  enlaza a `/inventario/traslados/[id]` y `/inventario/conteo/[id]`, y Traslados
+  cuenta el proceso completo) + `MovimientoDetalle.tsx` (modal por proceso, sin
+  segunda consulta; ahí sigue la persona). Sin filtro por persona ni columna
+  «Responsable»: la autoría sigue en `movimientos.usuario_id`. Las reglas de pantalla
+  (categoría, signo, nombre del proceso, referencia por proceso, período) viven en
   `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
@@ -450,7 +457,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
 | `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
-| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
+| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
 
 ### 4.3 RLS sin `tenant_id`
 

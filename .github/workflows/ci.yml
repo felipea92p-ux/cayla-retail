@@ -160,6 +160,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
+      # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
+      # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-movimientos-referencias
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-referencias
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes

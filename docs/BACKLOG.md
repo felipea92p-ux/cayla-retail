@@ -120,6 +120,57 @@ tiene de verdad — detalle y descartes en ADR-0125.
       `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
       nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
 
+## 🎯 Movimientos: qué cambió en el stock y qué proceso lo originó (2026-09-19, ADR-0127)
+
+**Cerrado esta sesión (PR #179); migración APLICADA en producción el 2026-09-19** —
+`20260919155000_movimientos_referencias_y_busqueda.sql`
+(`fn_movimientos_busqueda`, `fn_movimientos_de_comprobante`, `fn_movimientos` con 2 columnas
+más, `fn_movimientos_resumen` con la misma búsqueda) + pantalla simplificada
+(`FiltrosMovimientos.tsx`, `MovimientosLista.tsx`, `MovimientoDetalle.tsx`,
+`lib/movimientos-reglas.ts`) + `coincideBusqueda` de Traslados. Ninguna tabla cambia;
+ninguna escritura cambia.
+
+**Hecho en producción (2026-09-19):**
+
+- [x] **`20260919155000_movimientos_referencias_y_busqueda.sql` aplicada ANTES de fusionar el front**,
+      con la autorización de Felipe: ensayo completo en una transacción revertida contra datos reales
+      (464 movimientos, 4 sedes; lo que no debía cambiar dio idéntico, Traslados 1–4 y seis boletas
+      reales dieron lo esperado, los permisos por sede se respetan), después `apply_migration` con el
+      texto exacto del archivo. Verificado: una sola firma por función, `anon` sin EXECUTE, permisos
+      idénticos a la versión anterior, `md5(prosrc)` de las cuatro funciones igual al del archivo.
+      Detalle en «Consecuencias» de ADR-0127.
+
+**Pendiente:**
+
+- [ ] **Refrescar el volcado de producción de `docs/datos/generado/`** (`generado/COMO-REFRESCAR.md` y
+      luego `pnpm datos:generar:produccion`): describe todavía `fn_movimientos` sin las dos columnas
+      nuevas y sin las dos funciones nuevas. Mientras no se refresque, `datos:comparar` no puede
+      confirmar esta firma (arma los parámetros con `...`, queda «no analizada»).
+- [ ] **Una vez desplegado el front, mirarlo con una sesión real de líder en producción**: «Traslado 1»
+      en el buscador de Tienda AQP o TRU y clic en la referencia. No se pudo hacer desde la sesión que
+      lo construyó (sin credenciales); la base ya está verificada, falta ver la pantalla.
+- [ ] **Decisión de negocio: ¿numeración corrida para ventas, devoluciones, cambios y recepciones?**
+      Hoy solo traslados y conteos tienen número; «Venta 184», «Recepción 31» o «Devolución 7» no
+      existen. La columna «Referencia» muestra lo que hay: comprobante (`Boleta B001-000184`),
+      factura de compra o guía. Numerar es una migración de cuatro tablas con backfill y preguntas
+      de negocio (¿el número de venta es el de la boleta?, ¿uno por sede o global?, ¿y una venta sin
+      comprobante?). Si en la operación se empieza a decir «la venta 184» en voz alta, conviene;
+      si no, el comprobante alcanza.
+
+**Deuda conocida (no bloquea):**
+
+- [ ] **Traslados busca solo entre los en curso y los 30 cerrados más recientes.** Escribir el
+      número de un traslado cerrado hace meses no lo encuentra en Traslados (desde Movimientos
+      sí se llega: el enlace abre el detalle por id). Hoy no se nota. Si molesta, la búsqueda
+      por número pasa al servidor.
+- [ ] **A ~800 px con el menú lateral abierto la tabla de Movimientos hace scroll horizontal
+      dentro de la tarjeta** (el mínimo de sus cinco columnas es ~500 px y la tarjeta mide ~430).
+      Es el contrato de `ui/Tabla.tsx`, compartido con Compras; se ve bien desde ~1000 px y en
+      celular (apilada). Si molesta, el breakpoint de la grilla sube de `sm` a `lg` para esta tabla.
+- [ ] **El nombre de proceso cambió también en el Historial de producto** («Reposición» →
+      «Ajuste · reposición», «Transferencia · llegada/salida»): mismo nombre en todas partes, pero
+      es un cambio visible fuera de esta pantalla.
+
 ## 🎯 Devoluciones con el mismo modelo que Cambios (2026-09-18, ADR-0122)
 
 Felipe aprobó el flujo de Cambios y pidió repetirlo en Devoluciones. Sin migración ni backend:
@@ -3190,11 +3241,14 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
       mercadería» entre sedes fallaría entera con «violates foreign key constraint».
       Hoy hay 0 transferencias en producción; nadie lo pisó todavía. Sin datos que
       tocar, sin cambios de pantalla.
-- [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
+- [x] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
-      la búsqueda de prendas.
+      la búsqueda de prendas. **Hecho el 2026-09-19 (solo local, ADR-0127):**
+      `fn_movimientos_busqueda` resuelve traslado, conteo, boleta/factura de venta, factura de
+      compra y guía, y devuelve movimientos concretos (no `lote_id[]`/`venta_id[]`), para que la
+      lista y las tarjetas cuenten lo mismo.
 
 ## 🎯 Historial de Producto en V2 — movimientos por producto + precio/categoría (2026-09-15)
 

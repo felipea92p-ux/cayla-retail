@@ -1,16 +1,16 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
-import { getColaboradores } from "@/lib/colaboradores";
 import {
+  DIAS_POR_DEFECTO,
   cursorDesdeParams,
   filtrosDesdeParams,
   getResumenMovimientos,
   listarMovimientos,
   serializarCursorMovimientos,
   ETIQUETA_CATEGORIA,
-  fechaCorta,
   hoyEnLima,
+  textoPeriodo,
   type ParamsMovimientos,
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
@@ -31,6 +31,11 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // Sigue siendo un historial: no hay botón de crear, editar ni borrar. Un
 // movimiento se corrige con el proceso de negocio (una devolución, un
 // conteo), nunca tocando la fila — el trigger de inmutabilidad lo impide.
+//
+// 2026-09-19: muestra el EFECTO sobre el stock de la sede (qué prenda, cuánto, de
+// dónde a dónde) y el proceso que lo originó, con una referencia («Traslado 24») que
+// lleva a la pantalla que explica el proceso completo. Sin filtro ni columna de persona:
+// la autoría sigue guardada en la base y se ve en el detalle de cada movimiento.
 export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
@@ -44,26 +49,18 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  const { rangoPorDefecto, ...filtros } = filtrosDesdeParams(params);
+  // Las sububicaciones van primero: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
+  const sububicaciones = await getSububicaciones(ubicacionActivaId);
+  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones });
   const cursor = cursorDesdeParams(params);
 
-  const [{ filas, siguiente }, resumen, sububicaciones, colaboradores] = await Promise.all([
+  const [{ filas, siguiente }, resumen] = await Promise.all([
     listarMovimientos(ubicacionActivaId, filtros, { cursor }),
     getResumenMovimientos(ubicacionActivaId, filtros),
-    getSububicaciones(ubicacionActivaId),
-    esLider ? getColaboradores() : Promise.resolve([]),
   ]);
 
-  const hayFiltros = !!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.usuarioId || filtros.sububicacionId || !rangoPorDefecto);
-  const textoPeriodo = rangoPorDefecto
-    ? "Últimos 30 días"
-    : filtros.desde && filtros.hasta
-      ? `${fechaCorta(filtros.desde)} – ${fechaCorta(filtros.hasta)}`
-      : filtros.desde
-        ? `Desde ${fechaCorta(filtros.desde)}`
-        : filtros.hasta
-          ? `Hasta ${fechaCorta(filtros.hasta)}`
-          : "Todo el historial";
+  const hayFiltros = !!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId || periodo !== String(DIAS_POR_DEFECTO));
+  const periodoEnPalabras = textoPeriodo(periodo, filtros.desde, filtros.hasta);
 
   return (
     <div className="space-y-6">
@@ -72,27 +69,22 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           <p className="label-cayla text-[11px] text-tinta/65">Inventario · Movimientos</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
           <p className="mt-1 text-sm text-tinta/65">
-            Cada cambio del stock con su proceso, quién lo hizo y de dónde a dónde. No se edita ni se borra nunca.
+            Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca.
           </p>
         </div>
         {esLider && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
       </div>
 
-      <Resumen resumen={resumen} periodo={textoPeriodo} />
+      <Resumen resumen={resumen} periodo={periodoEnPalabras} />
 
-      <FiltrosMovimientos
-        sububicaciones={sububicaciones}
-        colaboradores={esLider ? colaboradores.map((c) => ({ id: c.persona_id, nombre: c.nombre })) : null}
-        rangoPorDefecto={rangoPorDefecto}
-        desdePorDefecto={filtros.desde ?? ""}
-      />
+      <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} />
 
       {filas.length === 0 && !cursor ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
           {hayFiltros ? "Ningún movimiento coincide con esos filtros." : "Todavía no hay movimientos en esta ubicación."}
         </p>
       ) : (
-        <MovimientosLista movimientos={filas} hoyLima={hoyEnLima()} />
+        <MovimientosLista movimientos={filas} hoyLima={hoyEnLima()} enlaceCompras={esLider} />
       )}
 
       <PaginacionCursor
