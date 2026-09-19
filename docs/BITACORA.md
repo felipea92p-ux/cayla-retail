@@ -11,7 +11,9 @@ Lo que pesó más que lo pedido: `productos.referencia` no tenía ningún candad
 
 Estándar y Único no son duplicados: se reparten por familia (una blusa dice Estándar, una gorra dice Único). Se construyó el formulario nuevo (árbol familia → categoría → nombre → talla/tejido/patrón → colores → precio → etiquetas, con un resumen que dice qué falta). Probándolo salió un defecto que ninguna prueba unitaria habría visto: el paso 3 se abría mientras se comprobaba el nombre y se cerraba de golpe si resultaba duplicado, con la persona ya eligiendo tallas — ahora sigue cerrado hasta que la comprobación contesta. Y el comparador oficial (`datos:comparar`) confirmó lo que había que temer: el formulario llama a funciones que producción todavía no tiene, así que **el SQL va antes que el despliegue**, nunca al revés.
 
-Pendiente: la pantalla de éxito (BACKLOG); que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
+Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear otro parecido, ir a productos). «Otro parecido» conserva categoría, tallas, tejido, patrón, precio, costo y etiquetas, pero renueva el token de idempotencia: reutilizarlo habría hecho que la base devolviera el producto anterior en vez de crear el nuevo.
+
+Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 

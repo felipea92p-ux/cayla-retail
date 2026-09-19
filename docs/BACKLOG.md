@@ -57,7 +57,7 @@ recepción «a medias» accidental cuenta como «requiere acción»); las fotos 
 criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
 diferencia.
 
-## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0106)
+## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0108)
 
 Diagnóstico y decisiones en el ADR. Estado: pasos 1-2 escritos y probados en un Postgres desechable; **nada
 aplicado en producción**.
@@ -79,7 +79,15 @@ aplicado en producción**.
       contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
 - [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
       tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
-- [ ] **Paso 4 — pantalla de éxito**: Agregar fotos por color · Crear otro parecido · Ir a productos.
+- [x] **Paso 4 — pantalla de éxito** (`ProductoCreado.tsx`): Agregar fotos (lleva a `/productos/{id}/editar#fotos`,
+      con los colores que faltan) · Crear otro parecido (conserva categoría, tallas, tejido, patrón, precio, costo y
+      etiquetas; limpia nombre, descripción y colores; token nuevo) · Ir a productos. Probado en navegador con red
+      simulada, escritorio y celular. Las fotos NO se suben desde ahí (el archivo sube al elegirlo y quedaría huérfano);
+      la galería de la edición ya asigna cada foto a su color.
+- [ ] **Etiquetas de campaña y el formulario nuevo**: desde #142 una etiqueta con categorías ya rige sola sobre todas
+      las prendas de esas categorías. El bloque 6 de Nuevo producto sigue ofreciendo todas las etiquetas vigentes:
+      para una prenda de una categoría que la campaña ya cubre, elegirla a mano es redundante. Decidir si el bloque
+      las marca como «ya aplica por campaña» o las oculta.
 - [ ] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla y mandar
       `p_talla_habitual_ids` a `/api/productos/categorias/ejes`. Hasta entonces la curva se conserva, pero no se edita.
 - [ ] **`catalogo_crear_producto`** no avisa de parecidos ni exige tejido/patrón (solo el trigger y el índice lo

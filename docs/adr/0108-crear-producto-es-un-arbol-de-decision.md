@@ -1,12 +1,12 @@
-# ADR-0106 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
+# ADR-0108 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
 
 **Fecha:** 2026-09-18
-**Estado:** Pasos 1-3 construidos (mapa de datos, esquema, formulario nuevo). Las
+**Estado:** Pasos 1-4 construidos (mapa de datos, esquema, formulario nuevo, pantalla de éxito). Las
 migraciones se probaron contra un Postgres 17 desechable con el esquema mínimo y el
 formulario en el navegador con datos y red simulados. **NO probados** con `db reset`
 (Docker caído ese día) ni contra la base real, y **NO aplicados en producción**: Felipe
 pega los 4 SQL. **El formulario no se puede desplegar antes que el SQL** (ver
-"Orden de despliegue"). Paso 4 (pantalla de éxito) pendiente.
+"Orden de despliegue").
 **Afecta:** `productos` (trigger + índice único nuevos), `categoria_tallas.habitual`,
 `familias.exige_tejido_patron`, `crear_producto_con_variantes`,
 `actualizar_categoria_ejes`, `censo_crear_variante`, función nueva
@@ -122,6 +122,18 @@ deben terminar sin esas dos alarmas.
   una alerta, no contabilidad.
 - **El código previsto puede cambiar** si otra persona crea un producto de la misma
   categoría a la vez (el correlativo lo asigna la base al guardar).
+
+## Pantalla de éxito (paso 4)
+
+Al guardar no se vuelve a la lista: aparece una pantalla con tres salidas. **Las fotos son
+la principal** (sin foto, la grilla de Productos muestra solo el tono del color) y enlazan
+a `/productos/{id}/editar#fotos`; no se suben desde ahí porque el archivo sube al elegirlo
+y quedaría huérfano si se cerrara la pantalla. **«Crear otro parecido»** conserva
+categoría, tallas, tejido, patrón, precio, costo y etiquetas (una colección son ~10
+prendas casi iguales) y limpia nombre, descripción y colores; el token de idempotencia se
+renueva, porque un producto nuevo es una operación nueva y no un reintento (con el mismo
+token la base devolvería el producto anterior). Probado: el segundo guardado sale con
+token distinto y con los datos copiados.
 
 ## Se rompe si
 
