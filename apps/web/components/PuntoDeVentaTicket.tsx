@@ -132,7 +132,7 @@ const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
 /** La etiquetita dorada que dice «este es el paso que toca» (o «Opcional»). */
 function PastillaPaso({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-[color-mix(in_srgb,var(--color-metodo-efectivo)_28%,var(--color-papel))] px-2 py-px text-[10px] font-medium text-[color:var(--color-metodo-efectivo-tinta)]">
+    <span className="rounded-full bg-rojo/10 px-2 py-px text-[10px] font-medium text-rojo-profundo">
       {children}
     </span>
   );
@@ -759,7 +759,7 @@ export function PuntoDeVentaTicket({
                 </legend>
                 {/* Mientras no haya ningún medio la luz recorre los cinco (`ola-activa`, en globals.css):
                     enseña dónde tocar. En cuanto se elige uno se detiene. */}
-                <div className={`grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1 ${pagos.length === 0 ? "ola-activa" : ""} ${paso === "medio" ? "paso-actual" : ""}`}>
+                <div className={`grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1 ${pagos.length === 0 ? "ola-activa" : ""}`}>
                   {METODOS_PAGO.map((m, iAtajo) => {
                     // Interruptor: tocar uno elegido lo quita (su monto pasa al siguiente,
                     // `quitarPagoTraspasando`). Antes quedaba deshabilitado y tocarlo de nuevo
@@ -827,14 +827,14 @@ export function PuntoDeVentaTicket({
                             mostrarlo grande — nunca viaja a la venta. Las teclas SUMAN billetes
                             (S/100 + S/50 = 150); «Exacto» pone lo justo; el campo corrige. */}
                         {p.metodo === "efectivo" && (
-                          <div className={`space-y-2 rounded-md bg-sand/40 p-2 ${paso === "recibido" ? "paso-actual" : ""}`}>
+                          <div className="space-y-2 rounded-md bg-sand/40 p-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
                                 Recibido
                                 {paso === "recibido" && <PastillaPaso>Siguiente paso</PastillaPaso>}
                               </span>
                               <span className="flex items-center gap-1">
-                                <label className="flex h-8 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                                <label className={`flex h-8 items-center gap-1 rounded-md border bg-papel px-2 transition-colors focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${paso === "recibido" ? "border-rojo/70" : "border-sand"}`}>
                                   <span className="text-xs text-tinta/60">S/</span>
                                   <input
                                     aria-label="Efectivo recibido"
@@ -903,8 +903,9 @@ export function PuntoDeVentaTicket({
 
               {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
                   solo tienen sentido para la boleta o la factura que se va a emitir. */}
-              {/* `-mx-2 px-2`: el anillo del paso resaltado queda 8 px afuera del contenido, sin moverlo. */}
-              <div className={`-mx-2 border-t border-sand px-2 pt-4 pb-2 ${paso === "comprobante" ? "paso-actual rounded-xl" : ""}`}>
+              {/* Al tocar este paso solo se tiñen de terracota las líneas de los campos de texto
+                  (DNI y nombre): `--hilo` es la variable que lee el hilo de cada campo (`Hilo`). */}
+              <div className={`border-t border-sand pt-4 ${paso === "comprobante" ? "[--hilo:color-mix(in_srgb,var(--color-rojo)_65%,transparent)]" : ""}`}>
                 <fieldset className="space-y-2">
                   <legend className="text-[11px] text-tinta/50">
                     <span className="flex items-center gap-1">

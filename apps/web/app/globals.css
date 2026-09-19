@@ -834,10 +834,17 @@ body {
   }
 }
 /* ==================================================================
-   Cobro guiado (2026-09-19, Felipe): qué toca ahora, y una ola de luz que enseña dónde
-   tocar. `--l` (0..1) es cuánto «encendido» está un medio; la ola solo anima ese número y
-   el resto (fondo, escala, halo) se calcula de él — un solo estilo para los cinco medios.
+   Cobro guiado (2026-09-19, Felipe): qué toca ahora, y una luz que enseña dónde tocar.
+   La luz es UN punto que se desplaza por la fila de medios: `--pos` (0..4) es dónde está y
+   cada medio calcula cuánto se enciende (`--l`, 0..1) según qué tan cerca le queda. Así no
+   hay saltos: al pasar de uno a otro el primero se apaga mientras el siguiente se enciende,
+   cada uno con su color, y el resto (fondo, halo, escala) sale de ese solo número.
    ================================================================== */
+@property --pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
 @property --l {
   syntax: "<number>";
   inherits: false;
@@ -852,56 +859,47 @@ body {
   .metodo-transferencia { --c: var(--color-metodo-transferencia); --cd: var(--color-metodo-transferencia); }
   [class*="metodo-"] { --ct: color-mix(in srgb, var(--c) 22%, var(--color-papel)); }
 
-  /* La ola: ciclo de 6.95 s. Efectivo se queda ~2.4 s; después corre a la derecha (tarjeta, yape,
-     plin, transferencia) y vuelve por plin, yape y tarjeta hasta efectivo. Solo mientras no haya
-     ningún medio elegido (`ola-activa`), y se congela con el cursor encima. */
-  .ola-activa .ola-metodo {
-    background-color: color-mix(in srgb, var(--ct) calc(var(--l) * 100%), transparent);
-    color: color-mix(in srgb, var(--cd) calc(var(--l) * 100%), rgb(26 26 24 / 0.6));
-    transform: scale(calc(1 + var(--l) * 0.07));
-    box-shadow:
-      0 0 0 calc(var(--l) * 2px) color-mix(in srgb, var(--c) calc(var(--l) * 100%), transparent),
-      0 0 0 calc(var(--l) * 6px) color-mix(in srgb, var(--ct) calc(var(--l) * 100%), transparent);
-  }
-  .ola-activa .ola-metodo-0 { animation: ola-0 6.95s linear infinite; }
-  .ola-activa .ola-metodo-1 { animation: ola-1 6.95s linear infinite; }
-  .ola-activa .ola-metodo-2 { animation: ola-2 6.95s linear infinite; }
-  .ola-activa .ola-metodo-3 { animation: ola-3 6.95s linear infinite; }
-  .ola-activa .ola-metodo-4 { animation: ola-4 6.95s linear infinite; }
-  .ola-activa:hover .ola-metodo { animation-play-state: paused; }
+  .ola-metodo-0 { --i: 0; }
+  .ola-metodo-1 { --i: 1; }
+  .ola-metodo-2 { --i: 2; }
+  .ola-metodo-3 { --i: 3; }
+  .ola-metodo-4 { --i: 4; }
 
-  /* El paso que toca: borde dorado y un respiro de luz alrededor. */
-  .paso-actual {
-    outline: 1.5px solid color-mix(in srgb, var(--color-metodo-efectivo) 75%, transparent);
-    outline-offset: -1px;
-    animation: paso-aviso 1.8s ease-in-out infinite;
+  /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s, unos 0.4 s
+     por medio) y vuelve igual de suave. Solo mientras no haya ningún medio elegido, y se congela
+     con el cursor encima. `1.15` es cuánto se extiende la luz: a un medio de distancia queda una
+     estela leve, que es lo que la hace ver como un degradado y no como un salto. */
+  .ola-activa { animation: ola-pos 4.6s infinite; }
+  .ola-activa:hover { animation-play-state: paused; }
+  .ola-activa .ola-metodo {
+    --l: max(0, 1 - max(var(--pos) - var(--i), var(--i) - var(--pos)) / 1.15);
+    background-color: color-mix(in srgb, var(--ct) calc(var(--l) * 85%), transparent);
+    color: color-mix(in srgb, var(--cd) calc(var(--l) * 85%), rgb(26 26 24 / 0.6));
+    transform: scale(calc(1 + var(--l) * 0.025));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--c) calc(var(--l) * 55%), transparent),
+      0 4px calc(var(--l) * 14px) -4px color-mix(in srgb, var(--c) calc(var(--l) * 45%), transparent);
   }
-  /* «Confirmar cobro» cuando ya se puede: el mismo respiro, en tinta. */
+  /* «Confirmar cobro» cuando ya se puede: un respiro suave, en tinta. */
   .cobrar-listo { animation: cobrar-listo 1.8s ease-in-out infinite; }
 
-  /* Movimiento reducido: sin ola ni respiros (adorno que se repite, no información). Va DENTRO de la
-     capa (ADR-0105) y DESPUÉS de las reglas de animación de arriba: a igual especificidad gana la
-     que se declara última. */
+  /* Movimiento reducido: sin luz ni respiro (adorno que se repite, no información). Va DENTRO de
+     la capa (ADR-0105) y DESPUÉS de las reglas de arriba. `--pos` lejos de los cinco medios los deja
+     a todos apagados. */
   @media (prefers-reduced-motion: reduce) {
-    .ola-activa .ola-metodo-0,
-    .ola-activa .ola-metodo-1,
-    .ola-activa .ola-metodo-2,
-    .ola-activa .ola-metodo-3,
-    .ola-activa .ola-metodo-4,
-    .paso-actual,
+    .ola-activa {
+      animation: none;
+      --pos: 20;
+    }
     .cobrar-listo {
       animation: none;
     }
   }
 }
-@keyframes ola-0 { 0%, 33.6% { --l: 1; } 37%, 96% { --l: 0; } 100% { --l: 1; } }
-@keyframes ola-1 { 0%, 33% { --l: 0; } 36%, 43% { --l: 1; } 46%, 90% { --l: 0; } 92.5%, 95.5% { --l: 1; } 99%, 100% { --l: 0; } }
-@keyframes ola-2 { 0%, 42% { --l: 0; } 45%, 52% { --l: 1; } 55%, 80% { --l: 0; } 82.5%, 89.5% { --l: 1; } 92.5%, 100% { --l: 0; } }
-@keyframes ola-3 { 0%, 51% { --l: 0; } 54%, 61.5% { --l: 1; } 64.5%, 70.5% { --l: 0; } 73%, 80% { --l: 1; } 83%, 100% { --l: 0; } }
-@keyframes ola-4 { 0%, 61% { --l: 0; } 64%, 70.5% { --l: 1; } 73.5%, 100% { --l: 0; } }
-@keyframes paso-aviso {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-metodo-efectivo) 24%, transparent); }
+@keyframes ola-pos {
+  0%, 26% { --pos: 0; animation-timing-function: ease-in-out; }
+  60%, 64% { --pos: 4; animation-timing-function: ease-in-out; }
+  100% { --pos: 0; }
 }
 @keyframes cobrar-listo {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }

@@ -6,16 +6,19 @@
 ## 2026-09-19 (Cobro guiado en Vender: qué toca ahora, ola de luz y billetes)
 
 **Qué se cerró.** Un colaborador que probó Vender no sabía dónde tocar. Ahora el cobro dice qué toca:
-barra de tres tramos (medio → recibido → comprobante) con una línea de texto, el paso actual con borde
-dorado y su pastilla «Siguiente paso»/«Opcional», y «Confirmar cobro» que respira cuando ya se puede.
-Mientras no hay medio, una ola de luz recorre los cinco (efectivo ~2.4 s, luego a la derecha y de vuelta,
-solo CSS) y se detiene al elegir. Los montos rápidos son billetes con su denominación. Efectivo pasa a
+barra de tres tramos (medio → recibido → comprobante; lo hecho en negro y lo que toca en terracota, el
+rojo del sistema) con una línea de texto y una pastilla «Siguiente paso»/«Opcional». El resalte es
+discreto: nada de contornos alrededor de bloques; se tiñe el borde del campo «Recibido» y las líneas de
+los campos de texto del comprobante (variable `--hilo` de `Hilo`). «Confirmar cobro» respira cuando ya
+se puede. Mientras no hay medio, una luz se desliza por los cinco (efectivo ~1.2 s, luego a la derecha y
+de vuelta, sin saltos: un `--pos` continuo y cada medio se enciende según su cercanía, solo CSS) y se
+detiene al elegir. Los montos rápidos son billetes verde olivo con su denominación. Efectivo pasa a
 dorado y transferencia a azul, globalmente (dona de Caja incluida). Además: el campo de monto se puede
 vaciar (`CampoMonto`) y con dos medios el otro toma el restante (`pagosTrasEditarMonto`).
 
 **Qué se aprendió.** Un dorado no llega a AA como texto: se usa de relleno y borde, y el texto sobre él
-lleva una tinta oscura (`--color-metodo-efectivo-tinta`). Animar un número registrado con `@property --l`
-(0..1) y calcular fondo, escala y halo desde él evita escribir cinco versiones del mismo efecto. El test
+lleva una tinta oscura (`--color-metodo-efectivo-tinta`). Animar UN número registrado (`@property --pos`) y que
+cada medio calcule su `--l` (0..1) de la distancia evita cinco versiones del efecto y da el degradado sin saltos. El test
 `globals-capas` obliga a que hasta la regla de movimiento reducido viva dentro de `@layer`.
 
 ## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
