@@ -327,7 +327,13 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
+- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
+  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
+  dibuja la cabecera, las pestañas y —una sola vez— los modales «Emitir comprobante» y
+  «Nueva proforma». Vistas: Resumen → `VentasDelDiaPanel.tsx`; `proformas/` →
+  `ProformasPanel.tsx`; `descuentos/` → `CodigosDescuentoPanel.tsx` (antes
+  `/vender/descuentos`, que redirige); `comprobantes/` → `lib/comprobantes.ts` →
+  `ComprobantesPanel.tsx` →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
   `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
   botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
