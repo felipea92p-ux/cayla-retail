@@ -172,6 +172,19 @@ export type DetalleDescuento = { razon: string; razonOtro: string; argumento: st
 /** Lo que queda en una línea al quitarle el descuento: ni monto, ni motivo, ni argumento. */
 export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "", argumento: "" };
 
+// ---- Descuento de campaña (paso 3 de ADR-0107, 2026-09-18) -------------------------
+// Una prenda con una campaña vigente (Black Friday 20 %) se cobra con ese descuento sola.
+// La regla completa —cuál campaña, qué fecha, qué se rechaza— vive en la base
+// (`fn_campanas_por_variante` y `registrar_venta`, 20260918170000); acá se aplica lo que
+// la base ya decidió (`campanas_vigentes()`) y se mantiene la regla «UN solo descuento por
+// prenda: el mayor». La base verifica todo de nuevo al cobrar.
+
+/** El motivo con que viaja el descuento de una campaña: uno más en `venta_items`. */
+export const RAZON_CAMPANA = "campana";
+
+/** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
+export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
+
 type LineaDescontable = {
   claveLinea: string;
   precioUnitario: number;
@@ -179,21 +192,78 @@ type LineaDescontable = {
   razonDescuento: string;
   razonDescuentoOtro: string;
   argumentoDescuento: string;
+  campana?: CampanaLinea | null;
 };
+
+/** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
+export function esDescuentoDeCampana(l: { descuentoUnitario: number; razonDescuento: string }): boolean {
+  return l.descuentoUnitario > 0 && l.razonDescuento === RAZON_CAMPANA;
+}
+
+/** ¿Hay algún descuento puesto A MANO? Solo ese pide código a una colaboradora. */
+export function hayDescuentoManual(carrito: readonly { descuentoUnitario: number; razonDescuento: string }[]): boolean {
+  return carrito.some((l) => l.descuentoUnitario > 0 && l.razonDescuento !== RAZON_CAMPANA);
+}
+
+/** Deja la línea con el descuento de su campaña (o tal cual, si no tiene). */
+export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
+  if (!l.campana) return l;
+  return {
+    ...l,
+    descuentoUnitario: descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct),
+    razonDescuento: RAZON_CAMPANA,
+    razonDescuentoOtro: "",
+    argumentoDescuento: "",
+  };
+}
+
+/** Qué descuento por unidad queda en la línea si se le pide `montoNuevo`: el pedido, salvo
+ *  que su campaña dé igual o más — entonces prevalece la campaña (un solo descuento, el
+ *  mayor). El 0,01 es el redondeo: la base tampoco deja pasar un manual que no supere a la
+ *  campaña por más de un centavo. */
+export function descuentoResultante(l: LineaDescontable, montoNuevo: number): { monto: number; prevaleceCampana: boolean } {
+  if (l.campana) {
+    const deCampana = descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct);
+    if (redondear2(montoNuevo - deCampana) <= 0.01) return { monto: deCampana, prevaleceCampana: true };
+  }
+  return { monto: montoNuevo, prevaleceCampana: false };
+}
+
+/** Re-evalúa las campañas de un carrito contra las que rigen ahora: un ticket dejado en
+ *  espera puede haber nacido antes (o después) de que una campaña empezara o terminara.
+ *  El descuento manual MAYOR que la campaña se respeta; el de campaña se ajusta o se va. */
+export function conCampanas<L extends LineaDescontable & { varianteId: string }>(carrito: L[], porVariante: ReadonlyMap<string, CampanaLinea>): L[] {
+  return carrito.map((l) => {
+    const campana = porVariante.get(l.varianteId) ?? null;
+    if (!campana) {
+      const limpia = { ...l, campana: null };
+      return esDescuentoDeCampana(l)
+        ? { ...limpia, descuentoUnitario: 0, razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" }
+        : limpia;
+    }
+    const conCampana = { ...l, campana };
+    const manualMayor =
+      l.descuentoUnitario > 0 &&
+      !esDescuentoDeCampana(l) &&
+      redondear2(l.descuentoUnitario - descuentoUnitarioPorPorcentaje(l.precioUnitario, campana.pct)) > 0.01;
+    return manualMayor ? conCampana : conDescuentoDeCampana(conCampana);
+  });
+}
 
 function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
   const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
-  return carrito.map((l) =>
-    alcanza(l)
-      ? {
-          ...l,
-          descuentoUnitario: montoPara(l),
-          razonDescuento: detalle.razon,
-          razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
-          argumentoDescuento: detalle.argumento,
-        }
-      : l,
-  );
+  return carrito.map((l) => {
+    if (!alcanza(l)) return l;
+    const { monto, prevaleceCampana } = descuentoResultante(l, montoPara(l));
+    if (prevaleceCampana) return conDescuentoDeCampana(l);
+    return {
+      ...l,
+      descuentoUnitario: monto,
+      razonDescuento: detalle.razon,
+      razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
+      argumentoDescuento: detalle.argumento,
+    };
+  });
 }
 
 /** Devuelve un carrito nuevo con el % aplicado a las líneas de `claves` — o a todas si

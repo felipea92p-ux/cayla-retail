@@ -1,0 +1,224 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Por pagar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+--taupe:#a47865;--taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+--t75:rgba(26,26,24,.75);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t45:rgba(26,26,24,.45);
+--t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#e6dfd0;-webkit-font-smoothing:antialiased;font-size:14px}
+.disp{font-family:'EB Garamond',Georgia,serif}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+.ic{flex:none;vertical-align:middle}
+.rel{position:relative}
+.muted{color:var(--t65)}.m55{color:var(--t55)}.m45{color:var(--t45)}
+.xs{font-size:12px}.sm{font-size:13px}
+.r{text-align:right}.c{text-align:center}
+.rojo{color:var(--rojo)}.ambar{color:var(--ambar-p)}.verde{color:var(--verde-p)}
+
+/* lienzo de la imagen (fuera de la app) */
+.lienzo{width:1520px;padding:28px 40px 40px;background:#e6dfd0}
+.rot{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.rot .n{width:34px;height:34px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:19px}
+.rot h1{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.rot .sub{color:var(--t65);font-size:14px}
+.rot .tag{margin-left:auto;border:1px dashed var(--t25);padding:5px 12px;border-radius:999px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+
+/* la app */
+.app{position:relative;width:1440px;background:var(--crema);border-radius:14px;overflow:hidden;display:flex;
+box-shadow:0 18px 44px -14px rgba(26,26,24,.16);border:1px solid rgba(26,26,24,.12)}
+.side{width:272px;flex:none;border-right:1px solid var(--t10);display:flex;flex-direction:column;background:var(--crema);min-height:100%}
+.logo{display:flex;align-items:center;gap:12px;padding:28px 28px 22px}
+.logo img{height:32px}.logo span{font-size:14px;letter-spacing:.26em;font-weight:600}
+.nuevo{margin:0 12px 26px}
+.nav{padding:0 12px;flex:1}
+.it{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;color:var(--t75);font-size:14px;position:relative;margin-bottom:2px}
+.it .chev{margin-left:auto;color:var(--t45)}
+.it.ch{padding-left:40px}
+.it.on{background:rgba(232,224,208,.65);color:var(--tinta);font-weight:500}
+.it.on:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:var(--tinta)}
+.sig{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe-p);padding:22px 28px 18px}
+.yo{border-top:1px solid var(--t10);padding:18px 28px;display:flex;gap:12px;align-items:center}
+.yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px}
+.main{flex:1;min-width:0;position:relative}
+.top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;padding:0 32px;background:rgba(245,240,232,.85)}
+.cont{padding:30px 40px 56px}
+.eyebrow{color:var(--t65)}
+h1.t{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:4px;line-height:1.15}
+p.bajada{color:var(--t65);margin-top:5px;font-size:14px;max-width:760px}
+
+/* piezas */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:12px 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.fan{border:1px solid var(--t25)}
+.btn.dis{border:1px solid rgba(26,26,24,.2);color:var(--t75)}
+.btn.s{padding:7px 11px}
+.btn.off{background:rgba(26,26,24,.3);color:var(--crema)}
+.chip{display:inline-block;white-space:nowrap;border-radius:999px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.neutro{border-color:var(--t15);background:var(--t04);color:var(--t75)}
+.chip.ambar{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.verde{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.chip.rojo{border-color:rgba(184,65,45,.3);background:rgba(184,65,45,.10);color:var(--rojo-p)}
+.chip.apagado{border-color:var(--t10);color:var(--t45)}
+.grid{display:grid;gap:12px}
+.kpi{padding:16px;position:relative}
+.kpi .row{display:flex;align-items:center;gap:7px}
+.kpi .dot{width:6px;height:6px;border-radius:50%;background:var(--t25);flex:none}
+.kpi .dot.ambar{background:var(--ambar)}.kpi .dot.verde{background:var(--verde)}.kpi .dot.rojo{background:var(--rojo)}
+.kpi .lbl{color:var(--t65)}
+.kpi .n{font-family:'EB Garamond',serif;font-size:29px;line-height:1.15;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .n small{font-size:15px;color:var(--t55);font-family:'DM Sans',sans-serif;margin-left:4px}
+.kpi .d{font-size:12px;margin-top:3px;color:var(--t65)}
+.kpi.rojo .n,.kpi.rojo .d{color:var(--rojo)}
+.kpi.ambar .n,.kpi.ambar .d{color:var(--ambar-p)}
+.kpi.verde .n{color:var(--verde-p)}
+.kpi .d.rojo{color:var(--rojo)}.kpi .d.ambar{color:var(--ambar-p)}.kpi .d.verde{color:var(--verde-p)}
+.kpi.acento{border-left:2px solid var(--rojo)}
+.kpi.vacio{border-style:dashed;background:transparent}
+.kpi.vacio .n{color:var(--t45)}
+/* tabla */
+.tbl{overflow:hidden}
+.th,.tr{display:grid;column-gap:16px;padding:12px 20px;align-items:center}
+.th{padding:9px 20px;border-bottom:1px solid var(--t10)}
+.th span{white-space:nowrap;color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.tr{border-top:1px solid var(--t10)}
+.th+.tr,.tr:first-child{border-top:0}
+.tr .a{font-size:14px}.tr .b{font-size:12px;color:var(--t55);margin-top:1px}
+.tr .n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tr.dim{opacity:.4}
+.tr.sel{background:rgba(184,65,45,.045)}
+.band{display:flex;justify-content:space-between;align-items:baseline;padding:8px 20px;border-top:1px solid var(--t10)}
+.band.rojo{background:rgba(184,65,45,.06);color:var(--rojo)}
+.band.ambar{background:rgba(140,99,31,.08);color:var(--ambar-p)}
+.band.neutro{background:var(--t04);color:var(--t65)}
+.band b{font-weight:400;font-size:14px;font-variant-numeric:tabular-nums}
+/* pestañas / segmentado / campos */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--t10)}
+.tabs .tb{padding:4px 14px 11px;color:var(--t65);margin-bottom:-1px;border-bottom:2px solid transparent}
+.tabs .tb.on{color:var(--tinta);border-bottom-color:var(--rojo)}
+.tabs .tb i{font-style:normal;font-weight:500;color:var(--t45);margin-left:6px;letter-spacing:0}
+.seg{display:inline-flex;border:1px solid var(--t15);border-radius:8px;overflow:hidden}
+.seg span{padding:8px 13px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.seg span.on{background:var(--tinta);color:var(--crema)}
+.campo .l{color:var(--t65);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.campo .v{border-bottom:1px solid var(--t25);padding:7px 2px 6px;margin-top:4px;font-size:14px;min-height:31px;display:flex;align-items:center;gap:8px}
+.campo .v.mono{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.campo .h{font-size:11.5px;color:var(--t55);margin-top:5px;line-height:1.35}
+.busca{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--t25);padding:7px 2px;color:var(--t45);flex:1;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--t15);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.chk{width:17px;height:17px;border:1.5px solid var(--t45);border-radius:4px;display:inline-grid;place-items:center;flex:none;background:var(--papel)}
+.chk.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.prog{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px}
+/* marcadores y leyenda */
+.m{position:absolute;top:-14px;left:-14px;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);
+display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;box-shadow:0 0 0 3px var(--crema);z-index:5;letter-spacing:0}
+.m.der{left:auto;right:-14px}.m.ab{top:auto;bottom:-14px}.m.izq{left:-36px;top:2px}.m.val{left:auto;right:-14px;top:26px}.m.arr{left:auto;right:4px;top:-24px}.m.st{position:static;display:inline-grid;margin:0 8px 0 0;box-shadow:none;width:20px;height:20px;font-size:11px;vertical-align:middle}.m.fin{left:auto;right:-36px;top:8px}
+.ley{margin-top:22px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 28px 14px}
+.ley h3{color:var(--t65);margin-bottom:10px}
+.ley .g{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
+.ley .li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--t10)}
+.ley .li .m2{width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;margin-top:1px}
+.ley .li b{font-weight:600;font-size:14px}
+.ley .li p{color:var(--t65);font-size:13px;line-height:1.45;margin-top:2px}
+.dec{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:var(--sand);font-size:10px;letter-spacing:.13em;font-weight:700;color:var(--t75);vertical-align:1px}
+/* modal */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(2.5px);display:flex;align-items:center;justify-content:center;z-index:20;padding:40px}
+.modal{background:var(--papel);border-radius:16px;box-shadow:0 30px 64px -22px rgba(26,26,24,.20);border:1px solid var(--sand);position:relative}
+.modal .hd{padding:22px 26px 16px}
+.modal .bd{padding:0 26px 22px}
+.modal .ft{padding:16px 26px;border-top:1px solid var(--t10);display:flex;gap:10px;align-items:center}
+.sticky{position:absolute;left:272px;right:0;bottom:0;border-top:1px solid var(--sand);background:rgba(245,240,232,.94);backdrop-filter:blur(8px);z-index:10;padding:12px 40px;display:flex;align-items:center;gap:24px;justify-content:space-between}
+/* celular */
+.phones{display:flex;gap:44px;justify-content:center;padding:6px 0 4px}
+.phone{width:398px;border:9px solid var(--tinta);border-radius:46px;background:var(--crema);position:relative;overflow:hidden}
+.phone .pt{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--t10)}
+.phone .pt img{height:24px}
+.phone .pc{padding:16px 16px 150px}
+.phone .nav5{position:absolute;left:0;right:0;bottom:0;border-top:1px solid var(--t10);background:rgba(245,240,232,.95);display:grid;grid-template-columns:repeat(5,1fr);padding:9px 0 20px;text-align:center;font-size:10px;color:var(--t65)}
+.phone .nav5 div.on{color:var(--tinta);font-weight:700}
+.phone .bar{position:absolute;left:0;right:0;bottom:66px;border-top:1px solid var(--sand);background:rgba(245,240,232,.96);padding:10px 16px;z-index:5}
+.step{display:flex;align-items:center;border:1px solid var(--t25);border-radius:10px;overflow:hidden}
+.step b{width:40px;height:40px;display:grid;place-items:center;font-size:20px;font-weight:400;color:var(--t65)}
+.step span{width:46px;text-align:center;font-family:'EB Garamond',serif;font-size:22px;border-left:1px solid var(--t15);border-right:1px solid var(--t15);height:40px;line-height:40px}
+</style></head><body>
+<div class="lienzo" style="width:1520px"><div class="rot"><div class="n">2</div><div><h1>Por pagar</h1><div class="sub">Ruta /compras/por-pagar — caja, antigüedad y pago por lote</div></div>
+<span class="tag">Maqueta propuesta · datos de ejemplo</span></div>
+<div class="app"><aside class="side">
+<div class="logo"><img src="cayla-isotipo.png"><span class="lbl">CAYLA</span></div>
+<div class="nuevo"><span class="btn pri w"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nuevo</span></div>
+<nav class="nav">
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Inicio</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Colaboradores</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Catálogo</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Compras</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg><span>Proveedores</span></div><div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg><span>Comprobantes</span></div>
+<div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Recibir mercadería</span></div><div class="it on ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg><span>Por pagar</span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Ventas</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Inventario</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+</nav>
+<div class="sig">Donde el estilo transforma.</div>
+<div class="yo"><div class="av">FA</div><div><div class="sm">Felipe Alvarez</div><div class="lbl" style="font-size:10px;color:var(--t65);margin-top:2px">Líder · Taller · Lima</div></div></div>
+</aside><div class="main">
+<div class="top"><span class="lbl" style="color:var(--t65)">Taller · Lima</span><span style="margin-left:6px;color:var(--t45)"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="cont" style="padding-bottom:110px"><div><div class="lbl eyebrow">Compras</div><h1 class="t">Por pagar</h1>
+<p class="bajada">Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos.</p></div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:22px">
+<div class="card kpi neutro "><i class="m ">1</i><div class="row"><span class="dot "></span><span class="lbl">Deuda total</span></div><div class="n">S/ 19,207.60</div><div class="d ">7 comprobantes</div></div>
+<div class="card kpi rojo acento"><div class="row"><span class="dot rojo"></span><span class="lbl">Vencido</span></div><div class="n">S/ 6,670.00</div><div class="d ">2 comprobantes vencidos · pagar ya →</div></div>
+<div class="card kpi ambar "><div class="row"><span class="dot ambar"></span><span class="lbl">Vence esta semana</span></div><div class="n">S/ 5,074.00</div><div class="d ">2 comprobantes · hasta el 25/09 →</div></div>
+<div class="card kpi neutro "><div class="row"><span class="dot "></span><span class="lbl">Concentración</span></div><div class="n">62 %</div><div class="d ">Tejidos Rímac SAC concentra la deuda</div></div>
+</div><div class="grid" style="grid-template-columns:1fr 1fr;margin-top:12px"><div class="card rel" style="padding:18px 20px"><i class="m ">2</i>
+<div class="lbl muted">Deuda por vencimiento</div>
+<div class="prog" style="height:14px;margin-top:14px;display:flex;border-radius:8px"><i style="width:34.7%;background:var(--rojo)"></i><i style="width:26.4%;background:var(--ambar)"></i><i style="width:32.7%;background:rgba(26,26,24,.5)"></i><i style="width:6.1%;background:rgba(26,26,24,.2)"></i></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px"><div><div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:var(--rojo)"></span><span class="xs muted">Vencida</span></div><div class="disp tab" style="font-size:19px;margin-top:2px">S/ 6,670.00</div><div class="xs m55">35 %</div></div><div><div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:var(--ambar)"></span><span class="xs muted">0–7 días</span></div><div class="disp tab" style="font-size:19px;margin-top:2px">S/ 5,074.00</div><div class="xs m55">26 %</div></div><div><div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:rgba(26,26,24,.5)"></span><span class="xs muted">8–30 días</span></div><div class="disp tab" style="font-size:19px;margin-top:2px">S/ 6,283.60</div><div class="xs m55">33 %</div></div><div><div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:rgba(26,26,24,.2)"></span><span class="xs muted">Más de 30</span></div><div class="disp tab" style="font-size:19px;margin-top:2px">S/ 1,180.00</div><div class="xs m55">6 %</div></div></div>
+<div style="margin-top:14px;border:1px dashed var(--t25);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between" class="xs"><span class="muted">Días promedio de pago · % pagado a tiempo</span><span class="m55">Aparecen con el primer comprobante pagado</span></div></div><div class="card rel" style="padding:18px 20px"><i class="m ">3</i>
+<div class="lbl muted">Salidas de caja · próximos 30 días</div>
+<div style="display:flex;gap:10px;align-items:flex-end;height:150px;margin-top:12px;border-bottom:1px solid var(--t10)"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">6,670.00</span><div style="width:100%;max-width:58px;height:96px;background:var(--rojo);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">Vencido</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">3,186.00</span><div style="width:100%;max-width:58px;height:45px;background:var(--ambar);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">18–24 sep</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">1,888.00</span><div style="width:100%;max-width:58px;height:27px;background:rgba(26,26,24,.55);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">25 sep–1 oct</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">3,923.60</span><div style="width:100%;max-width:58px;height:56px;background:rgba(26,26,24,.55);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">2–8 oct</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">2,360.00</span><div style="width:100%;max-width:58px;height:33px;background:rgba(26,26,24,.55);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">9–15 oct</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px"><span class="xs tab" style="color:var(--t75)">1,180.00</span><div style="width:100%;max-width:58px;height:16px;background:rgba(26,26,24,.25);border-radius:6px 6px 2px 2px"></div><span class="xs muted" style="white-space:nowrap">Después</span></div></div>
+<div class="xs m55" style="margin-top:8px">Monto que vence en cada semana (S/). La semana actual en ámbar.</div></div></div><div style="display:flex;gap:14px;align-items:center;margin-top:22px">
+<div class="busca"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Proveedor o número de documento</span></div>
+<span class="rel"><i class="m der">4</i><span class="seg"><span class="on">Por urgencia</span><span>Por proveedor</span></span></span>
+<span class="pill"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>Filtros</span></div><div class="card tbl" style="margin-top:14px"><div class="th" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><span><i class="m st">5</i></span><span>Proveedor · Comprobante</span><span>Vence</span><span class="r">Pagado</span><span class="r">Saldo</span><span></span></div>
+<div class="band rojo rel"><span class="lbl" style="font-size:11px">Vencidas <span style="opacity:.7">· 2 comprobantes</span></span><span style="display:flex;align-items:center"><i class="m st">6</i><b>S/ 6,670.00</b></span></div>
+<div class="tr sel" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk on"><svg class="ic " width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+<div><div class="a">Tejidos Rímac SAC <span class="tab xs muted" style="margin-left:4px">F001-000412</span></div><div class="b">Emitida 05/08</div></div>
+<div><div class="a rojo">Venció hace 14 días</div><div class="b tab">04/09</div></div>
+<div class="n"><div class="a m55">Sin pagos</div><div class="b">de S/ 4,720.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 4,720.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="tr  dim" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk "></span></div>
+<div><div class="a">Confecciones Sur Andino <span class="tab xs muted" style="margin-left:4px">B001-001208</span></div><div class="b">Emitida 28/08</div></div>
+<div><div class="a rojo">Venció hace 6 días</div><div class="b tab">12/09</div></div>
+<div class="n"><div class="a ">S/ 1,000.00</div><div class="b">de S/ 2,950.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 1,950.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="band ambar"><span class="lbl" style="font-size:11px">Vencen esta semana <span style="opacity:.7">· 2 comprobantes</span></span><b>S/ 5,074.00</b></div>
+<div class="tr sel" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk on"><svg class="ic " width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+<div><div class="a">Tejidos Rímac SAC <span class="tab xs muted" style="margin-left:4px">F001-000455</span></div><div class="b">Emitida 20/08</div></div>
+<div><div class="a ambar">Vence mañana</div><div class="b tab">19/09</div></div>
+<div class="n"><div class="a m55">Sin pagos</div><div class="b">de S/ 3,186.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 3,186.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="tr  dim" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk "></span></div>
+<div><div class="a">Confecciones Sur Andino <span class="tab xs muted" style="margin-left:4px">F002-000093</span></div><div class="b">Emitida 10/09</div></div>
+<div><div class="a ambar">Vence en 7 días</div><div class="b tab">25/09</div></div>
+<div class="n"><div class="a m55">Sin pagos</div><div class="b">de S/ 1,888.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 1,888.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="band neutro"><span class="lbl" style="font-size:11px">Más adelante <span style="opacity:.7">· 3 comprobantes</span></span><b>S/ 7,463.60</b></div>
+<div class="tr " style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk "></span></div>
+<div><div class="a">Tejidos Rímac SAC <span class="tab xs muted" style="margin-left:4px">F001-000482</span></div><div class="b">Emitida 02/09</div></div>
+<div><div class="a ">Vence en 14 días</div><div class="b tab">02/10</div></div>
+<div class="n"><div class="a ">S/ 2,000.00</div><div class="b">de S/ 5,923.60</div></div>
+<div class="n disp" style="font-size:18px">S/ 3,923.60</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="tr  dim" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk "></span></div>
+<div><div class="a">Hilados del Norte <span class="tab xs muted" style="margin-left:4px">F003-000771</span></div><div class="b">Emitida 25/08</div></div>
+<div><div class="a ">Vence en 21 días</div><div class="b tab">09/10</div></div>
+<div class="n"><div class="a m55">Sin pagos</div><div class="b">de S/ 2,360.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 2,360.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div>
+<div class="tr  dim" style="grid-template-columns:30px 1fr 176px 150px 132px 92px"><div class="rel"><span class="chk "></span></div>
+<div><div class="a">Hilados del Norte <span class="tab xs muted" style="margin-left:4px">F003-000802</span></div><div class="b">Emitida 12/09</div></div>
+<div><div class="a ">Vence en 39 días</div><div class="b tab">27/10</div></div>
+<div class="n"><div class="a m55">Sin pagos</div><div class="b">de S/ 1,180.00</div></div>
+<div class="n disp" style="font-size:18px">S/ 1,180.00</div><div class="r"><span class="btn dis s">Pagar</span></div></div></div></div></div><div class="sticky"><div style="display:flex;align-items:baseline;gap:18px">
+<span class="chk on" style="width:20px;height:20px"><svg class="ic " width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+<span class="sm">2 comprobantes · <b style="font-weight:600">Tejidos Rímac SAC</b></span>
+<span class="disp tab" style="font-size:26px">S/ 7,906.00</span><span class="xs muted">Vencido S/ 4,720.00 + vence mañana S/ 3,186.00</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="lbl muted" style="font-size:11px">Limpiar</span><span class="rel"><i class="m ">7</i><span class="btn pri "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Pagar juntos</span></span></div></div></div>
+<div class="ley"><h3 class="lbl">Qué cambia en esta pantalla</h3><div class="g"><div><div class="li"><div class="m2">1</div><div><b>Cuatro cifras, todas con acción</b><p>Deuda total, Vencido, Vence esta semana y Concentración (cuánto de la deuda está en un solo proveedor: dónde negociar plazos). «Vencido» y «Vence esta semana» filtran la lista en lugar de saltar a un ancla que, con más de 50 filas, puede no estar en la página.</p></div></div><div class="li"><div class="m2">2</div><div><b>Deuda por vencimiento</b><p>Los cuatro tramos con su monto y % reales, calculados en la base sobre toda la deuda, no sobre la página. Los días promedio de pago aparecen con el primer comprobante pagado; hoy no hay pagos y la pantalla lo dice.</p></div></div><div class="li"><div class="m2">3</div><div><b>Salidas de caja · 30 días</b><p>Cuánto vence cada semana: sirve para saber si la caja alcanza antes de la fecha, no después.</p></div></div><div class="li"><div class="m2">4</div><div><b>Por urgencia o por proveedor</b><p>Por proveedor sirve para armar la transferencia del día: todo lo que se le debe a uno, junto.</p></div></div></div><div><div class="li"><div class="m2">5</div><div><b>Casillas del mismo proveedor</b><span class="dec">D3</span><p>Al marcar un comprobante, los de otros proveedores se atenúan (el mismo patrón de Recibir mercadería). El botón «Pagar» por fila sigue igual.</p></div></div><div class="li"><div class="m2">6</div><div><b>Subtotal real por tramo</b><p>Desaparece el «en esta página»: cada tramo muestra el total verdadero aunque haya más de 50 filas.</p></div></div><div class="li"><div class="m2">7</div><div><b>Barra fija «Pagar juntos»</b><span class="dec">D3</span><p>Suma lo seleccionado y abre un solo pago aplicado a cada comprobante (siguiente pantalla).</p></div></div></div></div></div>
+</div></body></html>

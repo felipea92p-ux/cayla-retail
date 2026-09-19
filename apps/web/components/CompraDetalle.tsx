@@ -7,7 +7,8 @@ import {
   getAdjuntosCompra,
   ETIQUETA_ESTADO_PAGO,
   ETIQUETA_ESTADO_RECEPCION,
-  ETIQUETA_METODO,
+  ETIQUETA_METODO_PAGO,
+  ETIQUETA_TIPO_DOCUMENTO,
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
@@ -19,6 +20,9 @@ import {
   type AdjuntoCompra,
 } from "@/lib/compras";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCreditoCompra } from "@/lib/compras-faltantes";
+import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
+import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
 import { AdjuntosDeFactura } from "@/components/AdjuntosCompra";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
@@ -47,6 +51,9 @@ export type DetalleCompra = {
   pagos: PagoCompra[];
   recepciones: RecepcionCompra[];
   adjuntos: AdjuntoCompra[];
+  /** Notas de crédito del proveedor y líneas cerradas por faltante (D2, ADR-0111). */
+  notasCredito: NotaCreditoCompra[];
+  cierres: CierreLinea[];
   /** Nombre de la ubicación destino, o "—" si ya no existe. */
   destino: string;
 };
@@ -55,12 +62,14 @@ export type DetalleCompra = {
 export async function cargarDetalleCompra(compraId: string): Promise<DetalleCompra | null> {
   const compra = await getCompra(compraId);
   if (!compra) return null;
-  const [lineas, pagos, recepciones, adjuntos, ubicaciones] = await Promise.all([
+  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres] = await Promise.all([
     getLineasCompra([compra.id]),
     getPagosCompra(compra.id),
     getRecepcionesCompra(compra.id),
     getAdjuntosCompra(compra.id),
     getUbicaciones(),
+    getNotasCreditoCompra(compra.id),
+    getCierresCompra(compra.id),
   ]);
   return {
     compra,
@@ -68,12 +77,14 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     pagos,
     recepciones,
     adjuntos,
+    notasCredito,
+    cierres,
     destino: ubicaciones.find((u) => u.id === compra.ubicacionDestinoId)?.nombre ?? "—",
   };
 }
 
 export function tipoCompra(compra: CompraResumen): string {
-  return compra.tipo === "factura" ? "Factura" : compra.tipo === "boleta" ? "Boleta" : "Nota de venta";
+  return ETIQUETA_TIPO_DOCUMENTO[compra.tipo];
 }
 
 /** Ficha bajo el título — emisión, condición, destino y RUC — igual en página y modal.
@@ -102,7 +113,7 @@ export function FichaCompra({ compra, destino }: Pick<DetalleCompra, "compra" | 
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, destino },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, destino },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -139,10 +150,11 @@ export function CompraDetalle({
           etiqueta="Pago"
           valor={anulada ? "—" : compra.saldo > 0 ? `Faltan ${soles(compra.saldo)}` : "Pagada"}
           alerta={compra.vencida}
-          progreso={compra.total > 0 ? compra.pagado / compra.total : 0}
+          progreso={compra.total > 0 ? (compra.pagado + compra.notasCredito) / compra.total : 0}
           tono={compra.vencida ? "rojo" : compra.estadoPago === "parcial" ? "ambar" : compra.estadoPago === "pagada" ? "verde" : "neutro"}
           datos={[
             { etiqueta: "Pagado", valor: `${soles(compra.pagado)} de ${soles(compra.total)}` },
+            ...(compra.notasCredito > 0 ? [{ etiqueta: "Notas de crédito", valor: `− ${soles(compra.notasCredito)}` }] : []),
             compra.condicion === "contado"
               ? { etiqueta: "Condición", valor: "Al contado" }
               : compra.vencida
@@ -159,12 +171,13 @@ export function CompraDetalle({
               ? "—"
               : compra.estadoRecepcion === "recibida"
                 ? "Todo recibido"
-                : `Faltan ${(compra.facturadoCantidad - compra.recibidoCantidad).toLocaleString("es-PE")} unidades`
+                : `Faltan ${(compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad).toLocaleString("es-PE")} unidades`
           }
-          progreso={compra.facturadoCantidad > 0 ? compra.recibidoCantidad / compra.facturadoCantidad : 0}
+          progreso={compra.facturadoCantidad > 0 ? (compra.recibidoCantidad + compra.cerradoCantidad) / compra.facturadoCantidad : 0}
           tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
           datos={[
             { etiqueta: "Recibidas", valor: `${compra.recibidoCantidad.toLocaleString("es-PE")} de ${compra.facturadoCantidad.toLocaleString("es-PE")} unidades` },
+            ...(compra.cerradoCantidad > 0 ? [{ etiqueta: "Cerradas por faltante", valor: `${compra.cerradoCantidad.toLocaleString("es-PE")} unidades` }] : []),
             { etiqueta: "Destino", valor: destino },
           ]}
         />
@@ -172,7 +185,7 @@ export function CompraDetalle({
 
       {/* ---------- líneas ---------- */}
       <section className="space-y-2">
-        <p className="label-cayla text-[11px] text-tinta/65">Líneas de la factura</p>
+        <p className="label-cayla text-[11px] text-tinta/65">Líneas del comprobante</p>
         <Tabla>
           <Encabezado
             plantilla={PLANTILLA_LINEAS}
@@ -188,6 +201,10 @@ export function CompraDetalle({
               <span className={celda("izq", "text-sm text-tinta")}>
                 {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
                 {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
+                {!anulada && l.pendiente > 0 && (
+                  <BotonCerrarFaltante compra={compra} linea={l} producto={`${l.referencia}${l.varianteId && (l.talla || l.color) ? ` · ${[l.talla, l.color].filter(Boolean).join(" / ")}` : ""}`} />
+                )}
               </span>
               <span className={celda("der", "text-xs tabular-nums text-tinta/65")}>
                 {l.cantidad} × {soles(l.costoUnitario)}
@@ -198,8 +215,8 @@ export function CompraDetalle({
                 </span>
                 {/* Misma barra que las tarjetas de arriba, en miniatura: acá se
                     lee qué línea puntual falta, no solo el total de la factura. */}
-                <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={Math.round((l.cantidad > 0 ? l.recibido / l.cantidad : 0) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`Recibido: ${l.recibido} de ${l.cantidad}`}>
-                  <span className={`block h-full rounded-full ${BARRA[l.pendiente === 0 ? "verde" : l.recibido > 0 ? "ambar" : "neutro"]}`} style={{ width: `${Math.round((l.cantidad > 0 ? l.recibido / l.cantidad : 0) * 100)}%` }} />
+                <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={Math.round((l.cantidad > 0 ? (l.recibido + l.cerrado) / l.cantidad : 0) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`Recibido: ${l.recibido} de ${l.cantidad}`}>
+                  <span className={`block h-full rounded-full ${BARRA[l.pendiente === 0 ? "verde" : l.recibido > 0 ? "ambar" : "neutro"]}`} style={{ width: `${Math.round((l.cantidad > 0 ? (l.recibido + l.cerrado) / l.cantidad : 0) * 100)}%` }} />
                 </span>
               </span>
               <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(l.subtotal)}</span>
@@ -228,7 +245,7 @@ export function CompraDetalle({
                       pantalla la columna del medio es angosta y en una sola
                       línea se cortaban ("BCP-77…"). */}
                   <span className={celda("izq", "text-sm text-tinta")}>
-                    {ETIQUETA_METODO[p.metodo] ?? p.metodo}
+                    {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
                     {p.referencia && <span className="block truncate text-xs tabular-nums text-tinta/65">{p.referencia}</span>}
                   </span>
                   <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(p.monto)}</span>
@@ -256,7 +273,7 @@ export function CompraDetalle({
             )}
           </div>
           {recepciones.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de esta factura.</p>
+            <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de este comprobante.</p>
           ) : (
             <Tabla>
               <Encabezado plantilla={PLANTILLA_RECEPCIONES} columnas={[{ titulo: "Fecha" }, { titulo: "Guía · Destino" }, { titulo: "Unidades", alinear: "der" }]} />
@@ -274,6 +291,8 @@ export function CompraDetalle({
           )}
         </section>
       </div>
+
+      <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
       {/* Quién puede adjuntar lo decide `fn_puede_registrar_compras()` en la
           RPC (hoy: cualquier persona activa, 0012). Acá solo se esconde en

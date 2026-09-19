@@ -1,4 +1,4 @@
-# CI — los tres verificadores que Vercel no corre.
+# CI — los verificadores que Vercel no corre.
 #
 # POR QUÉ EXISTE. Hasta el 2026-09-09 el único gate real de este repo era `pnpm build`, y
 # se corría cuando alguien se acordaba. `pnpm typecheck` existía pero devolvía verde sin
@@ -10,8 +10,9 @@
 # minutos y no agrega señal. Lo que Vercel NO corre —y por eso está acá— es lint y pruebas.
 #
 # LO QUE ESTE CI NO PUEDE DECIR. No toca base de datos: `migraciones:verificar` necesita el
-# Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint y las
-# 79 pruebas pasan", nunca "las migraciones están aplicadas" ni "la pantalla se ve bien".
+# Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint, las
+# pruebas pasan y ninguna tabla del volcado de producción quedó sin pájaro", nunca "las
+# migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 #
 # PILOTO DESDE 2026-09-17 (Felipe pidió revisitar ADR-0026/ADR-0066 al crecer a 4 scripts
@@ -84,6 +85,14 @@ jobs:
       - name: Pruebas
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+      # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
+      # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
+      # de producción commiteado, así que su alarma es tan fresca como ese volcado. No
+      # necesita node_modules, por eso corre aunque la instalación falle.
+      - name: Aviario
+        if: ${{ always() }}
+        run: node scripts/datos/aviario.mjs --verificar
 
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres (piloto, no bloquea)

@@ -9,6 +9,7 @@ import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
+import type { CampanaLinea } from "@/lib/vender-reglas";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -43,13 +44,22 @@ async function Caja() {
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     supabase.rpc("fn_stock_por_sede"),
     getUbicaciones(),
     getStockPorUbicacion(persona.ubicacionId),
+    // La campaña de mayor % que rige HOY (Lima) por prenda — la elige la base y la vuelve
+    // a verificar `registrar_venta`. Es un dato secundario: si no carga, se vende sin
+    // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
+    // producción (PGRST202) no hay campañas que aplicar: sin aviso.
+    supabase.rpc("campanas_vigentes"),
   ]);
+  const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
+  const campanaPorVariante = new Map<string, CampanaLinea>(
+    (resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]),
+  );
   const filasStock = exigir(resStock, "el stock de las sedes");
   const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
   const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.piso ?? f.total]));
@@ -65,6 +75,7 @@ async function Caja() {
       color: v.color,
       categoria: v.categoria,
       precio: v.precio,
+      campana: campanaPorVariante.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
@@ -80,6 +91,7 @@ async function Caja() {
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}
       variantes={variantesParaVenta}
+      campanasNoCargaron={campanasNoCargaron}
       ventasHoyNode={
         <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
           <VentasDeHoy ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />

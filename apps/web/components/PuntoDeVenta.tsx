@@ -14,14 +14,20 @@ import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type Tip
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  conCampanas,
   conCodigoDelCatalogo,
+  descuentoResultante,
+  descuentoUnitarioPorPorcentaje,
   esperaAlCargar,
   metodoDeAtajo,
   motivoBloqueoCobro,
   quitarPagoTraspasando,
+  RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  conDescuentoDeCampana,
+  type CampanaLinea,
   type DetalleDescuento,
   type MomentoTicket,
   type PagoAplicado,
@@ -60,6 +66,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   codigo: string | null;
   categoria: string | null;
   precio: number;
+  /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
+   *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
+  campana?: CampanaLinea | null;
   /** Foto de esta variante por su color (20260917190000) — null si ese color no
    *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
   fotoUrl: string | null;
@@ -94,6 +103,9 @@ export type ItemCarrito = {
   /** El argumento escrito que pide la banda 20-35 % de un Líder (R-45); "" fuera de
    *  esa banda o en el camino de una Colaboradora (su tope es el código, no esto). */
   argumentoDescuento: string;
+  /** La campaña que rige hoy para esta prenda, o null/ausente. Un ticket en espera
+   *  guardado antes de las campañas no lo trae — `retomar()` lo completa. */
+  campana?: CampanaLinea | null;
 };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
@@ -159,10 +171,13 @@ type Props = {
   /** Incluye la variante centinela de "Monto manual", que este componente filtra antes
    *  de mostrar nada. */
   variantes: VarianteBusqueda[];
+  /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
+   *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
+  campanasNoCargaron?: boolean;
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -281,6 +296,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   useEffect(() => {
     if (!bloqueado && !hayModal) buscador.current?.focus();
   }, [bloqueado, hayModal]);
+
+  // Las campañas de hoy no cargaron: se avisa AL ABRIR, no al rechazar un cobro con la
+  // clienta delante (Werner: la dependencia ya está caída, dilo antes).
+  useEffect(() => {
+    if (campanasNoCargaron) {
+      avisar.aviso("No se pudieron cargar las campañas de hoy. Recarga Vender antes de cobrar: una prenda en campaña se rechazaría.");
+    }
+  }, [campanasNoCargaron]);
 
   // Bloque E: la pistola escribe donde esté el foco. Si quedó en un botón (un chip,
   // «Quitar», «Cobrar»), el código se perdería y el Enter final activaría ese botón.
@@ -448,9 +471,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       setCarrito((actual) => {
         const ya = actual.find((it) => it.claveLinea === v.varianteId);
         if (!ya) {
+          // Una prenda con campaña vigente entra con su descuento ya aplicado.
           return [
             ...actual,
-            {
+            conDescuentoDeCampana({
               claveLinea: v.varianteId,
               varianteId: v.varianteId,
               referencia: v.referencia,
@@ -463,7 +487,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               razonDescuento: "",
               razonDescuentoOtro: "",
               argumentoDescuento: "",
-            },
+              campana: v.campana ?? null,
+            }),
           ];
         }
         if (ya.cantidad >= v.stockAqui) return actual;
@@ -502,6 +527,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         razonDescuento: "",
         razonDescuentoOtro: "",
         argumentoDescuento: "",
+        campana: null,
       },
     ]);
     setMontoManual("");
@@ -541,6 +567,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   function aplicarDescuentoAlTicket() {
     const claves = descuento.elegidas ?? [];
     const detalle: DetalleDescuento = { razon: descuento.razon, razonOtro: descuento.razonOtro, argumento: descuento.argumento };
+    // Un solo descuento por prenda, el mayor: si en alguna línea la campaña da igual o
+    // más que lo pedido, se queda la campaña — y se dice, para que no parezca que el
+    // descuento «no entró».
+    const pedido = descuento.modo === "monto" ? Number(descuento.monto) : null;
+    const cedieron = carrito.filter((it) => {
+      if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
+      const monto = pedido ?? descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
+    });
+    if (cedieron.length > 0) {
+      avisar.aviso(
+        `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
+      );
+    }
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
@@ -587,7 +627,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
-    const lineas = conCodigoDelCatalogo(ticket.carrito, variantesVisibles);
+    const lineas = conCampanas(
+      conCodigoDelCatalogo(ticket.carrito, variantesVisibles),
+      new Map(variantesVisibles.flatMap((v) => (v.campana ? [[v.varianteId, v.campana] as const] : []))),
+    );
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
@@ -720,6 +763,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         motivo_descuento: it.razonDescuento || undefined,
         motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
         argumento_descuento: it.argumentoDescuento || undefined,
+        // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
+        descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
       })),
       // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
       // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.

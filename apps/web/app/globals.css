@@ -244,7 +244,7 @@ body {
 
 
 /* ==================================================================
-   Comprobante de venta en la térmica de 80 mm (ADR-0103).
+   Comprobante de venta en la térmica de 80 mm (ADR-0112).
    `#comprobante-print` lo monta el modal «Venta registrada» pegado a <body>; en pantalla no se
    ve. Al imprimir (botón o Ctrl+P con el modal abierto) desaparece TODO lo demás con
    `display:none` — no `visibility:hidden`: lo oculto seguiría ocupando alto y la térmica
@@ -566,8 +566,8 @@ body {
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
         gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
 @keyframes cayla-brillo {
-  from { transform: translate3d(-120%, 0, 0) skewX(-12deg); }
-  to { transform: translate3d(320%, 0, 0) skewX(-12deg); }
+  from { opacity: 1; transform: translate3d(-120%, 0, 0) skewX(-12deg); }
+  to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
 }
 
 .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }

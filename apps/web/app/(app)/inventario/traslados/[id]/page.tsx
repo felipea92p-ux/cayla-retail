@@ -29,6 +29,7 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
       <TrasladoDetallePanel
         traslado={traslado}
         esDestino={persona.ubicacionId === traslado.ubicacionDestinoId}
+        ahoraIso={new Date().toISOString()}
         esLider={persona.rol === "lider"}
         catalogo={catalogo
           .filter((v) => v.activo)

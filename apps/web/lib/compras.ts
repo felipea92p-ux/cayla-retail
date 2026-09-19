@@ -13,6 +13,7 @@ import {
   type RecepcionReciente,
   type LineaRecepcion,
   type ProveedorResumen,
+  type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
@@ -49,6 +50,12 @@ type FilaResumen = {
   recibido_cantidad: number | null;
   estado_recepcion: string | null;
   vencida: boolean | null;
+  // Opcionales solo hasta que se regeneren los tipos de `packages/database` (la vista ya
+  // trae estas columnas; `select("*")` las devuelve).
+  fecha_estimada_llegada?: string | null;
+  recepcion_atrasada?: boolean | null;
+  notas_credito?: number | null;
+  cerrado_cantidad?: number | null;
   nota: string | null;
   created_at: string | null;
 };
@@ -62,7 +69,7 @@ function aResumen(f: FilaResumen): CompraResumen {
     proveedorId: f.proveedor_id ?? "",
     proveedorNombre: f.proveedor_nombre ?? "",
     proveedorRuc: f.proveedor_ruc,
-    tipo: f.tipo ?? "factura",
+    tipo: (f.tipo as TipoDocumentoCompra) ?? "factura",
     documento: f.documento ?? "",
     fechaEmision: f.fecha_emision ?? "",
     condicion: (f.condicion as Condicion) ?? "contado",
@@ -79,6 +86,10 @@ function aResumen(f: FilaResumen): CompraResumen {
     recibidoCantidad: Number(f.recibido_cantidad ?? 0),
     estadoRecepcion: (f.estado_recepcion as EstadoRecepcion) ?? "sin_recibir",
     vencida: f.vencida ?? false,
+    fechaEstimadaLlegada: f.fecha_estimada_llegada ?? null,
+    recepcionAtrasada: f.recepcion_atrasada ?? false,
+    notasCredito: Number(f.notas_credito ?? 0),
+    cerradoCantidad: Number(f.cerrado_cantidad ?? 0),
     nota: f.nota,
     creadoEn: f.created_at ?? "",
   };
@@ -99,6 +110,7 @@ export type FiltrosCompras = {
   estadoPago?: EstadoPago;
   estadoRecepcion?: EstadoRecepcion;
   condicion?: Condicion;
+  tipo?: TipoDocumentoCompra;
   soloVigentes?: boolean;
   conSaldo?: boolean;
   soloVencidas?: boolean;
@@ -119,10 +131,11 @@ export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
 /** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string };
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
+const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta"];
 const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */
@@ -133,7 +146,11 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     estadoPago: ESTADOS_PAGO.find((e) => e === p.pago),
     estadoRecepcion: ESTADOS_RECEPCION.find((e) => e === p.recep),
     condicion: p.cond === "contado" || p.cond === "credito" ? p.cond : undefined,
+    tipo: TIPOS_DOCUMENTO.find((t) => t === p.tipo),
     soloVencidas: p.vencidas === "1" || undefined,
+    // Vistas de Comprobantes (ADR-0111): «Por pagar» = con saldo, «Por recibir» = mercadería pendiente.
+    conSaldo: p.saldo === "1" || undefined,
+    porRecibir: p.porrecibir === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,
     hasta: esFecha(p.hasta) ? p.hasta : undefined,
   };
@@ -158,6 +175,7 @@ export async function listarCompras(
       ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
       ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
       ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
       ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
       ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
       ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
@@ -200,6 +218,8 @@ export type ResumenCompras = {
   /** Con vencimiento de hoy a 7 días (migración compras_resumen_por_vencer). */
   porVencer: number;
   porVencerMonto: number;
+  /** Por recibir cuya fecha esperada ya pasó (migración compras_atraso_recepcion). */
+  porRecibirAtrasadas: number;
 };
 
 export async function getResumenCompras(): Promise<ResumenCompras> {
@@ -219,6 +239,9 @@ export async function getResumenCompras(): Promise<ResumenCompras> {
     // en vez de tumbar la página.
     porVencer: Number(r.por_vencer ?? 0),
     porVencerMonto: Number(r.por_vencer_monto ?? 0),
+    // Los tipos generados todavía no traen esta columna (la función ya la devuelve): se lee
+    // por nombre. `?? 0` como las demás: si falta, la tarjeta dice 0, no tumba la página.
+    porRecibirAtrasadas: Number((r as Record<string, unknown>).por_recibir_atrasadas ?? 0),
   };
 }
 
@@ -240,7 +263,7 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
   const filas = exigir(
     await supabase
       .from("compra_items_resumen")
-      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, pendiente")
+      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
       .in("compra_id", compraIds),
     "las líneas de la factura"
   );
@@ -276,6 +299,7 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
       costoUnitario: Number(f.costo_unitario ?? 0),
       subtotal: Number(f.subtotal ?? 0),
       recibido: Number(f.recibido ?? 0),
+      cerrado: Number(f.cerrado ?? 0),
       pendiente: Number(f.pendiente ?? 0),
     };
   });
