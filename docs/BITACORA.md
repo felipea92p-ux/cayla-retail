@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Primer SQL pegado en producción que falla: el mapa usaba tablas temporales, y el editor no guarda la conexión)
+
+Los SQL 1 y 2 entraron limpios. El 3 (el mapa de categorías) falló con `relation "_mapa_tallas" does not exist` y no dejó nada a medias. El archivo creaba tablas temporales y las usaba en sentencias siguientes; una tabla temporal solo vive en la conexión que la creó, y el SQL Editor de Supabase no promete la misma conexión entre sentencias. Ahora todo el mapa es un solo bloque `do`: una sentencia, una conexión, una transacción, y si algo aborta se deshace todo.
+
+Lo que Felipe se lleva: mi prueba y el CI no lo vieron porque `psql -f` corre el archivo entero en UNA conexión, así que «pasa en el CI» no significaba «pasa en el editor». Lo reproduje ejecutando cada sentencia en su propia conexión (falló igual que en producción), corregí, y repetí las otras 7 migraciones en ese modo estricto: cero errores. El archivo ya decía que esto podía pasar; nombrar un riesgo no es probarlo.
+
+Pendiente: un candado que rechace `create temp table` (y `set_config`, `set local`) fuera de un bloque `do` en `supabase/migrations/`, para que la próxima migración no repita esto.
+
 ## 2026-09-18 (Revisión adversarial del PR de Crear producto: 23 hallazgos, y dos afirmaciones mías eran falsas)
 
 Antes de pedir revisión, agentes escépticos intentaron refutar el PR y sobrevivieron 23 hallazgos; se corrigieron. Los que cambian lo que Felipe debe saber: una prenda **rechazada** en el censo se podía reactivar y dejaba dos activas con el mismo nombre (ahora `rechazado` es terminal, con un CHECK en la base); reactivar un producto saltaba la validación de marca y proveedor; el censo, al colgar una variante de una prenda existente, podía dejarla con precio 0 y decía «pendiente de revisión» cuando no lo estaba; y un `UPDATE` que la RLS dejaba en cero filas se mostraba como «guardado». Todo probado en un Postgres desechable (7 pruebas nuevas, más las anteriores) y la regresión de `fn_productos` repetida contra la copia exacta de producción.

@@ -375,3 +375,31 @@ proveedores. **No es un descuido: `20260918120000` lo decidió a propósito** (�
 abiertos»). Este PR no lo introduce ni lo empeora (solo suma `nombre` a la lista del selector). Lo dejo
 señalado porque una cuenta bancaria es dato de pago, no de ficha, y conviene que Felipe reconsidere esa
 decisión: ver BACKLOG.
+
+# Cuarta parte — Lo que falló al pegar en producción (2026-09-18)
+
+El SQL 1 y el SQL 2 se pegaron sin problema. El **SQL 3 (el mapa de categorías, `230200`) falló** con
+`42P01 relation "_mapa_tallas" does not exist`. No dejó nada a medias (verificado en producción: 173 vínculos
+de talla, 0 de tejido, 0 de patrón, sin tablas sueltas).
+
+**Causa.** El mapa creaba tres tablas con `create temp table` y las usaba en sentencias siguientes. Una tabla
+temporal solo existe en la **conexión** que la creó, y el SQL Editor de Supabase no garantiza la misma conexión
+entre sentencias. **Mi prueba y el piloto del CI no lo podían ver:** `psql -f` corre todo el archivo en una sola
+conexión. El propio archivo decía que «cada sentencia puede ir en su propia transacción» y aun así lo di por
+seguro: era exactamente el riesgo, nombrado y no probado.
+
+```
+DECIDÍ: todo el mapa en UN solo bloque `do $mapa$ … $mapa$`: una sentencia, una conexión, una transacción.
+DESCARTÉ: (a) una tabla auxiliar persistente en `retail`: deja basura si aborta a medias y exige un dueño en el
+  aviario; (b) repetir el mapa dentro de cada `insert` con un CTE: tres copias que se desincronizan.
+SE ROMPE SI: el editor cortara la sentencia en un `;` interior. No lo hace: los SQL 1 y 2 traen funciones con
+  `$$ … ; … $$` y entraron enteras.
+```
+
+**Ganancia.** Si algo aborta, se deshace TODO el mapa (antes, los `insert` ya hechos quedaban). Probado con el
+archivo nuevo en una base desechable, en los dos modos (una conexión, y una conexión por sentencia): 204 / 139 /
+133 vínculos y 117 tallas habituales; idempotente; un nombre que no calza aborta sin dejar nada; base nueva
+(vocabulario vacío) se salta con aviso; una categoría exigente que el mapa no nombra aborta y deshace.
+
+**Y el resto.** Las otras 7 migraciones se volvieron a correr sentencia por sentencia, cada una en su propia
+conexión (95 + 9 sentencias, 0 errores) con las mismas suites SQL de antes: nada más depende de estado de sesión.

@@ -409,6 +409,11 @@ Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y l
       del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
       (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
       que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
+- [ ] **Candado de «sentencias independientes» para las migraciones.** El mapa (`230200`) falló al pegarlo en producción
+      por depender de tablas temporales entre sentencias (ADR-0109, cuarta parte). Un script de `scripts/migraciones/`
+      que rechace `create temp table`, `set_config`, `set local` y `set session` fuera de un bloque `do`/función, y que
+      corra junto a `migraciones:versiones`. Además, el piloto de CI podría correr cada migración sentencia por sentencia
+      (una conexión cada una): `psql -f` no imita al SQL Editor.
 - [ ] **Decisión a reconsiderar (ya existía; la tomó `20260918120000` a propósito: «ficha, no agregado — quedan
       abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
       bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
