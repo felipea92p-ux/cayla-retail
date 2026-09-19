@@ -776,7 +776,7 @@ export function PuntoDeVentaTicket({
                         title={puesto ? `Quitar ${m} (F${iAtajo + 1})` : `${m} (F${iAtajo + 1})`}
                         aria-keyshortcuts={`F${iAtajo + 1}`}
                         style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                        className={`${OPCION} metodo-${m} ola-metodo ola-metodo-${iAtajo} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                        className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
                           puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA
                         }`}
                       >

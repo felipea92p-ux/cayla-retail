@@ -835,19 +835,15 @@ body {
 }
 /* ==================================================================
    Cobro guiado (2026-09-19, Felipe): qué toca ahora, y una luz que enseña dónde tocar.
-   La luz es UN punto que se desplaza por la fila de medios: `--pos` (0..4) es dónde está y
-   cada medio calcula cuánto se enciende (`--l`, 0..1) según qué tan cerca le queda. Así no
-   hay saltos: al pasar de uno a otro el primero se apaga mientras el siguiente se enciende,
-   cada uno con su color, y el resto (fondo, halo, escala) sale de ese solo número.
+   La fila de medios es UNA franja: por debajo corre un degradado con el color de cada medio
+   en su lugar (efectivo, tarjeta, yape, plin, transferencia) y por encima una ventana suave de
+   luz (`mask`) que se desliza de izquierda a derecha y vuelve. La luz nunca se apaga ni tiene
+   bordes: lo único que cambia es su color, según el medio que va cruzando. `--pos` (0..4) es
+   dónde está la luz; el resto sale de ese solo número.
    ================================================================== */
 @property --pos {
   syntax: "<number>";
   inherits: true;
-  initial-value: 0;
-}
-@property --l {
-  syntax: "<number>";
-  inherits: false;
   initial-value: 0;
 }
 @layer components {
@@ -859,33 +855,41 @@ body {
   .metodo-transferencia { --c: var(--color-metodo-transferencia); --cd: var(--color-metodo-transferencia); }
   [class*="metodo-"] { --ct: color-mix(in srgb, var(--c) 22%, var(--color-papel)); }
 
-  .ola-metodo-0 { --i: 0; }
-  .ola-metodo-1 { --i: 1; }
-  .ola-metodo-2 { --i: 2; }
-  .ola-metodo-3 { --i: 3; }
-  .ola-metodo-4 { --i: 4; }
-
-  /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s, unos 0.4 s
-     por medio) y vuelve igual de suave. Solo mientras no haya ningún medio elegido, y se congela
-     con el cursor encima. `1.15` es cuánto se extiende la luz: a un medio de distancia queda una
-     estela leve, que es lo que la hace ver como un degradado y no como un salto. */
-  .ola-activa { animation: ola-pos 4.6s infinite; }
+  /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s) y vuelve
+     igual de suave. Solo mientras no haya ningún medio elegido; se congela con el cursor encima. */
+  .ola-activa {
+    position: relative;
+    /* Dónde está la luz, en % del ancho: los cinco medios son cinco columnas iguales (centros en
+       10, 30, 50, 70 y 90 %). */
+    --x: calc(10% + var(--pos) * 20%);
+    animation: ola-pos 4.6s infinite;
+  }
   .ola-activa:hover { animation-play-state: paused; }
-  .ola-activa .ola-metodo {
-    --l: max(0, 1 - max(var(--pos) - var(--i), var(--i) - var(--pos)) / 1.15);
-    background-color: color-mix(in srgb, var(--ct) calc(var(--l) * 85%), transparent);
-    color: color-mix(in srgb, var(--cd) calc(var(--l) * 85%), rgb(26 26 24 / 0.6));
-    transform: scale(calc(1 + var(--l) * 0.025));
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--c) calc(var(--l) * 55%), transparent),
-      0 4px calc(var(--l) * 14px) -4px color-mix(in srgb, var(--c) calc(var(--l) * 45%), transparent);
+  .ola-activa::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    /* El color de cada medio en su columna; `oklab` evita que el paso de un color a otro se ensucie. */
+    background: linear-gradient(
+      in oklab 90deg,
+      color-mix(in srgb, var(--color-metodo-efectivo) 34%, var(--color-papel)) 10%,
+      color-mix(in srgb, var(--color-metodo-tarjeta) 28%, var(--color-papel)) 30%,
+      color-mix(in srgb, var(--color-metodo-yape) 28%, var(--color-papel)) 50%,
+      color-mix(in srgb, var(--color-metodo-plin) 28%, var(--color-papel)) 70%,
+      color-mix(in srgb, var(--color-metodo-transferencia) 28%, var(--color-papel)) 90%
+    );
+    /* La ventana de luz: opaca en el centro y desvanecida a los lados (un medio de ancho y medio). */
+    -webkit-mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
+    mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
   }
   /* «Confirmar cobro» cuando ya se puede: un respiro suave, en tinta. */
   .cobrar-listo { animation: cobrar-listo 1.8s ease-in-out infinite; }
 
   /* Movimiento reducido: sin luz ni respiro (adorno que se repite, no información). Va DENTRO de
-     la capa (ADR-0105) y DESPUÉS de las reglas de arriba. `--pos` lejos de los cinco medios los deja
-     a todos apagados. */
+     la capa (ADR-0105) y DESPUÉS de las reglas de arriba. `--pos` lejos de la fila deja la luz
+     fuera, apagada. */
   @media (prefers-reduced-motion: reduce) {
     .ola-activa {
       animation: none;
