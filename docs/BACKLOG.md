@@ -47,7 +47,7 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
       F3** (quitarlos antes deja el costo falso). Verificado en navegador como líder; 1344 pruebas. **Pendiente:** colaborador del Taller;
       costos de `producciones` visibles al colaborador por la API (entra en D-G / F4e).
 - [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
-- [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0132):** 4a proveedores de Producción (`proveedores_produccion`,
+- [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0138, el reparto entre tiendas):** 4a proveedores de Producción (`proveedores_produccion`,
       repunta `insumos`/`insumo_lotes`) · 4b comprobantes · 4c por pagar (requiere D-I) · 4d recibir insumos → lote · 4e candado del dinero.
       Cada uno con su prueba SQL; Compras no se modifica. Timestamps ≥ `20260919210000`; pega Felipe.
 - [ ] **F5 · Nueva orden con decisión** (curva desde `fn_resumen_variantes`, cobertura de tela, costo, margen, entrega).

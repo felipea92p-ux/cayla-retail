@@ -15,7 +15,7 @@
 > 2. **La deuda con proveedores vive en dos lugares.** Nadie ve «lo que debe CAYLA» sumado sin una vista consolidada (**D-I**, abierta).
 > 3. **El IGV crédito fiscal sale de dos libros.** El registro de compras del contador tiene que unir los dos (**D-I**).
 > 4. Se duplica lógica financiera ya resuelta en Compras (contado ⇒ pago en la misma transacción, vencimiento, faltantes, pagos).
-> A favor: Producción avanza **sin depender de ADR-0132** (no toca `compras`, `compra_items` ni sus funciones) y sin riesgo de romper Compras.
+> A favor: Producción avanza **sin depender de ADR-0138** (no toca `compras`, `compra_items` ni sus funciones) y sin riesgo de romper Compras.
 > Como `insumos`/`insumo_lotes` tienen **0 filas** en producción, repuntar sus llaves al nuevo directorio hoy es barato; con datos sería otra historia.
 
 ## 1. Objetivo
@@ -36,8 +36,8 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | `cerrar_produccion` recibe `p_buenas` **por variante** y acepta costos `null` (conserva los de la orden) | mismo archivo, líneas 267-345 | El cierre por talla×color es obligatorio; el costo puede venir del consumo |
 | Insumos: tablas y `recibir_insumo` en producción; `registrar_consumo_insumo` **pegada el 2026-09-17**; **0 filas y 0 pantallas** | ADR-0090; `grep` en `apps/web` sin llamadas | F3 solo es pantalla |
 | Compras es un grupo del lateral, solo líder; sus URLs (`/compras/*`, `/recibir`) tienen enlaces por todos lados | `AppShell.tsx:544-548, 640-660` | F1 cambia **el agrupamiento del menú, no las URLs** |
-| `registrar_compra` y el reparto por tienda (ADR-0132, en curso en otra rama) son de **Compras** | `CompraFormV2.tsx`, ADR-0132 | **No condicionan a Producción** (D-H): tiene su propio abastecimiento y no toca `compras` |
-| Otras ramas tocan Compras (ADR-0131 Por pagar, ADR-0132 reparto entre tiendas) | `git log origin/main..rama` | Ninguna fase de Producción modifica Compras; solo se coordina el orden de los ADR y de las migraciones |
+| `registrar_compra` y el reparto por tienda (ADR-0138, en curso en otra rama) son de **Compras** | `CompraFormV2.tsx`, ADR-0138 | **No condicionan a Producción** (D-H): tiene su propio abastecimiento y no toca `compras` |
+| Otras ramas tocan Compras (ADR-0131 Por pagar, ADR-0138 reparto entre tiendas) | `git log origin/main..rama` | Ninguna fase de Producción modifica Compras; solo se coordina el orden de los ADR y de las migraciones |
 | `compra_items.producto_id` es **NOT NULL**: una factura de tela no cabe | `DICCIONARIO-RETAIL.md:1686` | F4 (único cambio de esquema grande) |
 | `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17) es de menú, no de base |
 | El motor de reposición ya existe: `fn_resumen_variantes` (ventas, disponible, en camino, días observables, `en_red`) | `20260919141804_resumen_inventario_v2.sql` | «¿Qué producir?» **lo reutiliza**, no recalcula ventas por su cuenta |
@@ -51,7 +51,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | # | Decisión | Recomiendo | Por qué | Gate |
 |---|---|---|---|---|
 | **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida.** El líder la ve **desde cualquier ubicación**; quien trabaja en el Taller ve sus pantallas; **Compras sigue siendo un grupo aparte** | La base ya lo permite; **revierte la regla del 2026-09-17** | dada por Felipe (F1) |
-| **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0132 | — | — |
+| **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0138 | — | — |
 | **D-C** | Cómo entra la tela a una factura | ⛔ **Reemplazada por D-H.** Ya no se toca `compra_items` | — | — |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
 | **D-E** | Cotización de maquila externa (D-31) | Tabla `maquila_referencias` (append-only: modelo, precio por prenda, fecha, proveedor opcional). Solo líder | Es la mitad de D-31 sin dónde vivir (hueco 3) | esquema: ok |
@@ -155,7 +155,7 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   aviso ofrece «Deshacer» (devolución); pedir más que el lote → mensaje en español con el saldo exacto.
 
 ### F4 · Abastecimiento propio de Producción (L, **alto riesgo**) — esquema · requiere **D-H, D-G** (y **D-I** antes de F4c)
-Ya **no depende de ADR-0132** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:
+Ya **no depende de ADR-0138** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:
 - **F4a · Proveedores de Producción.** Tabla `proveedores_produccion` (nombre, RUC, contacto, teléfono, banco, cuenta, CCI, billeteras, `rubro`
   tela | avíos | maquila | otro, `plazo_credito_dias`, forma de pago, `activo`). `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se
   **repuntan** a esta tabla (hoy apuntan a `retail.proveedores`; están en **0 filas** en producción: verificar de nuevo antes de pegar).
@@ -208,7 +208,7 @@ F0 ─ F1 ─ F2 ─ F3 ─┬─ F4a ─ F4b ─ F4c ─ F4d ─ F4e ─┬─ 
                               F7 (esquema, gate D-E/D-F) ─ F8
 ```
 F1–F3 dan valor visible sin tocar la base. F4 es el mayor riesgo (esquema nuevo con lógica financiera): cada sub-fase va sola. F4 **ya no espera**
-a ADR-0132: los dos módulos avanzan en paralelo sin tocar las mismas funciones. F5 y F6 pueden avanzar en paralelo una vez que existe F3.
+a ADR-0138: los dos módulos avanzan en paralelo sin tocar las mismas funciones. F5 y F6 pueden avanzar en paralelo una vez que existe F3.
 
 ## 8. Riesgos y cómo se acotan
 
