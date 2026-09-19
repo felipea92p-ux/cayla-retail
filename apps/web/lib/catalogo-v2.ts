@@ -28,6 +28,8 @@ export type VarianteCatalogo = {
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
+  marca?: string | null;
   codigosBarras: string[];
 };
 
@@ -41,7 +43,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
       .select(
         `id, sku, codigo, color_codigo, precio, costo, activo,
          talla:tallas ( valor ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre ), marca:marcas ( nombre ), producto_fotos ( url, color_codigo ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
       )
@@ -66,6 +68,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     productoId: v.producto?.id ?? "",
     referencia: v.producto?.referencia ?? "(sin referencia)",
     categoria: v.producto?.categoria?.nombre ?? null,
+    marca: v.producto?.marca?.nombre ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
 }
