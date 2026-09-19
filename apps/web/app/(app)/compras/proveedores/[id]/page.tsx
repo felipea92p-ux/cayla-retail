@@ -4,11 +4,14 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
-import { diaMes } from "@/lib/fechas-lima";
-import { rubrosConConteo } from "@/lib/proveedores-reglas";
+import { ChevronRight } from "lucide-react";
+import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
+import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
+import { PasoSugerido } from "@/components/ui/PasoSugerido";
+import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
@@ -47,6 +50,16 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const pactado = proveedor.plazo_credito_dias;
   const conCompras = m.facturas_vigentes > 0;
   const pagoDemoraMas = m.dias_pago_real_promedio != null && pactado != null && m.dias_pago_real_promedio > pactado;
+  // «¿Y ahora qué?»: la sugerencia más urgente, la misma que dice la vista rápida de la lista (ADR-0122).
+  const paso = siguientePaso({
+    activo: proveedor.activo,
+    conCompras,
+    montoVencido: m.monto_vencido,
+    facturasVencidas: m.facturas_vencidas,
+    facturasAtrasadas: m.facturas_atrasadas,
+    saldoFavor: creditos.saldo,
+    diasSinComprar: m.ultima_compra ? diasEntreFechas(m.ultima_compra, hoyLima()) : null,
+  });
 
   return (
     <div className="space-y-6">
@@ -55,7 +68,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           ← Volver a Proveedores
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-start gap-4">
+            <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
+              {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+            </span>
+            <div className="min-w-0">
             <h1 className="font-display text-2xl text-tinta">{proveedor.nombre}</h1>
             <p className="mt-1 text-sm text-tinta/65">
               {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
@@ -73,10 +90,13 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               )}
               {proveedor.telefono && <Chip>{proveedor.telefono}</Chip>}
             </div>
+            </div>
           </div>
           <ProveedorAcciones proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
         </div>
       </div>
+
+      <PasoSugerido paso={paso} proveedorId={id} />
 
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
@@ -131,6 +151,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               >
                 {pactado != null ? `Pactado: ${pactado} días · ` : ""}
                 <b className="font-semibold">basado en {plural(m.dias_pago_muestra, "comprobante pagado", "comprobantes pagados")}</b>
+                {pactado != null && <PistaPlazo real={m.dias_pago_real_promedio} pactado={pactado} />}
               </TarjetaCifra>
             ) : (
               <TarjetaCifra compacta vacia etiqueta="Plazo de pago real" valor="—">
@@ -155,7 +176,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                 // Lo más urgente de la fila: una entrega atrasada pesa más que un pago pendiente.
                 const estado = r.tono === "ambar" && r.texto.startsWith("Atrasada") ? r : p;
                 return (
-                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-x-4 px-5 py-3 transition-colors hover:bg-tinta/[0.03]">
+                  <Link key={c.id} href={`/compras/factura/${c.id}`} className="group grid grid-cols-[6.5rem_1fr_auto_1rem] items-center gap-x-4 px-5 py-3 transition-colors hover:bg-tinta/[0.03]">
                     <span>
                       <span className="block text-sm tabular-nums text-tinta">{c.documento}</span>
                       <span className="block text-xs text-tinta/55">{diaMes(c.fechaEmision)}</span>
@@ -165,6 +186,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
                       <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{estado.sub}</span>
                     </span>
                     <span className="text-right text-sm tabular-nums text-tinta">{soles(c.total)}</span>
+                    <ChevronRight aria-hidden className="h-4 w-4 text-tinta/40 transition-[transform,color] duration-300 ease-cayla group-hover:translate-x-1 group-hover:text-rojo" />
                   </Link>
                 );
               })}

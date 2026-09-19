@@ -4351,6 +4351,14 @@ export type Database = {
           top3_pct: number
         }[]
       }
+      fn_proveedores_serie_12m: {
+        Args: never
+        Returns: {
+          mes: string
+          monto: number
+          proveedor_id: string
+        }[]
+      }
       fn_puede_operar_ubicacion: {
         Args: { p_ubicacion_id: string }
         Returns: boolean

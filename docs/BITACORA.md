@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0122)
+Se aplicó al ERP el spike visual de Proveedores (`docs/maquetas/proveedores-spike-2026-09/`): tocar una fila abre una vista rápida (↑ ↓ entre proveedores) en vez de saltar a la ficha; ordenar y filtrar deslizan las filas (FLIP); el filtro de rubro tiene un pulgar que viaja; la barra de concentración enciende la fila del proveedor al que apuntas; desactivar se puede deshacer 7 s; el RUC repetido se avisa al escribir.
+Decisión que costó: el spike animaba también la ENTRADA de la pantalla y `globals.css` lo prohíbe («nada se anima solo»). Se respetó la regla: solo se aplicó el movimiento que responde a una acción (las cifras cuentan cuando CAMBIAN, no al abrir). Si Felipe quiere una excepción para esta pantalla, va con ADR.
+Un dato nuevo (facturado por mes) → función aparte `fn_proveedores_serie_12m` (migración `20260919150000`, solo lectura), no una columna más en `fn_proveedores`. La lista degrada sin ella: si producción todavía no la tiene, se ve igual, sin tendencias. Falta pegarla en producción.
+
 ## 2026-09-19 (Cuatro hallazgos de los indicadores de Compras quedan corregidos: la ficha, las devoluciones, los subtotales de Por pagar y la fecha de los pagos)
 
 Los indicadores se habían probado con 140 casos y dejaron cinco `[HALLAZGO]`: pruebas que afirman lo que la función DEBERÍA hacer y que salían con ⚠. Se corrigen cuatro en `20260918221000`: «% entregado completo» de la ficha ya cuenta como completo solo lo que llegó entero (una línea cerrada por faltante deja el comprobante en `recibida`, pero el proveedor no cumplió); «última devolución» es el día en que se devolvió (`resuelto_en`), no el de entrada a cuarentena; `por_pagar_tramos` acepta el tipo de documento y las fechas de emisión, así que los subtotales cuadran con las filas filtradas; y los pagos sin fecha usan la de Lima, no la de UTC. La quinta (H4, qué ve un integrante de los montos) se difiere por decisión de Felipe.

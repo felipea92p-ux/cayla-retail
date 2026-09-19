@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
+import { hoyLima } from "@/lib/fechas-lima";
+import { serie12Meses } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -66,6 +68,31 @@ export async function getProveedores(): Promise<Proveedor[]> {
     entregas_por_recibir: num(p.entregas_por_recibir),
     saldo_favor: num(p.saldo_favor),
   }));
+}
+
+// Lo facturado por proveedor y mes, últimos 12 meses (fn_proveedores_serie_12m, ADR-0122): la forma
+// detrás de «Facturado 12 m». Devuelve, por id de proveedor, doce montos del mes más antiguo al actual;
+// un proveedor sin compras en la ventana no aparece (quien la pinta lo trata como doce ceros).
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la función todavía no existe en la base
+// (la migración 20260919150000 se pega en producción aparte del despliegue) o falla, devuelve `null` y
+// la lista se pinta igual, sin tendencias — principio 9: una lectura secundaria nunca tumba la pantalla.
+// A quien no es líder la base no le devuelve filas.
+export async function getProveedoresSerie(): Promise<Record<string, number[]> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_proveedores_serie_12m");
+  if (error) {
+    console.error("[proveedores] no se pudo leer la serie mensual; la lista se muestra sin tendencias:", error.message);
+    return null;
+  }
+  const porProveedor = new Map<string, { mes: string; monto: number }[]>();
+  for (const f of data ?? []) {
+    const filas = porProveedor.get(f.proveedor_id) ?? [];
+    filas.push({ mes: f.mes, monto: Number(f.monto) });
+    porProveedor.set(f.proveedor_id, filas);
+  }
+  const hoy = hoyLima();
+  return Object.fromEntries([...porProveedor].map(([id, filas]) => [id, serie12Meses(filas, hoy)]));
 }
 
 // Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,

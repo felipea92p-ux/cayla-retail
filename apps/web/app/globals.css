@@ -715,6 +715,57 @@ body {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
+/* ---- Proveedores (2026-09-19, ADR-0122): gestos que RESPONDEN a una acción ----
+        Ninguno se dispara solo al entrar a la pantalla (regla de arriba): el cajón abre con un clic, el
+        trazo corre al pasar el mouse, las barras crecen cuando el cajón se abre, el destello marca la fila
+        que la persona acaba de crear, reactivar o desactivar. Los cambios de orden y de filtro se animan
+        en JS (`useFlip`) y el pulgar de `SegmentoDeslizante` con `transition` — sin keyframes.
+        Sin rebote y sin color nuevo, como el resto de la capa.
+        - cajón: entra desde el borde derecho (380 ms) y sale más corto (240 ms), como el modal.
+        - destello: la fila arranca teñida de rojo suave y se apaga sola en 2.6 s; `backwards` (no
+          `both`) para que al terminar no retenga un `background` que taparía el hover.
+        - trazo: `pathLength="1"` en el SVG, así el dasharray es 1 sin medir nada. En reposo la línea
+          está completa; al pasar el mouse por la fila (`.group`) se redibuja de cero.
+        - crece: barras que se llenan (`scaleX`, o `scaleY` las verticales) desde su base. ---- */
+@keyframes cayla-cajon-entra {
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-cajon-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(28px, 0, 0); }
+}
+@keyframes cayla-destello-fila {
+  from { background-color: color-mix(in srgb, var(--color-rojo) 13%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cayla-trazo {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cayla-crece-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes cayla-crece-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@layer components {
+  .anim-cajon { animation: cayla-cajon-entra 380ms var(--ease-cayla) both; }
+  .anim-cajon-salida { animation: cayla-cajon-sale 240ms var(--ease-salida) both; }
+  .anim-destello-fila { animation: cayla-destello-fila 2600ms var(--ease-cayla) backwards; }
+  .trazo-linea { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .group:hover .trazo-al-pasar { animation: cayla-trazo 760ms var(--ease-cayla) both; }
+  .anim-trazo { animation: cayla-trazo 900ms var(--ease-cayla) backwards; }
+  .anim-crece-x { animation: cayla-crece-x 620ms var(--ease-cayla) backwards; transform-origin: left; }
+  .anim-crece-y {
+    animation: cayla-crece-y 560ms var(--ease-cayla) backwards;
+    animation-delay: calc(140ms + var(--i, 0) * 34ms);
+    transform-origin: bottom;
+  }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
@@ -738,6 +789,13 @@ body {
     .anim-vivo-destello,
     .anim-vivo-delta,
     .anim-vivo-onda,
+    .anim-cajon,
+    .anim-cajon-salida,
+    .anim-destello-fila,
+    .anim-trazo,
+    .anim-crece-x,
+    .anim-crece-y,
+    .group:hover .trazo-al-pasar,
     .anim-vivo-fila {
       animation-duration: 1ms;
       animation-delay: 0ms;

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes, diasEntreFechas } from "@/lib/fechas-lima";
 import { subeEnCadaCompra, variacionCosto } from "@/lib/proveedores-reglas";
@@ -7,6 +10,10 @@ import type { EvolucionCosto } from "@/lib/proveedores";
 // le compra, compra a compra. Es el argumento para pactar el precio del próximo pedido: no es lo mismo
 // «es caro» que «subió 8.7 % en tres compras». Sale de `compra_items` (lo que de verdad se pagó en
 // cada comprobante), no de `costo_historial`, que mezcla a todos los proveedores de la misma prenda.
+//
+// ADR-0122: al pasar el mouse por el gráfico una guía salta a la compra más cercana, su punto crece y las
+// demás cifras se apagan — se lee UNA compra sin buscarla en la fila de abajo. Responde al mouse; el
+// trazo no se anima al abrir la ficha.
 //
 // Con una sola compra no hay evolución que dibujar, y no se inventa una línea: el estado vacío lo dice.
 // El SVG se arma a mano (dos ejes implícitos, ningún gráfico de librería): son 2–6 puntos y el dato es
@@ -20,6 +27,17 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
   const puntos = evolucion?.puntos ?? [];
   const costos = puntos.map((p) => p.costo);
   const variacion = variacionCosto(costos);
+  const [cerca, setCerca] = useState<number | null>(null);
+
+  function alMover(e: React.MouseEvent<SVGSVGElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * ANCHO;
+    let mejor = 0;
+    costos.forEach((c, i) => {
+      if (Math.abs(punto(c, i, costos)[0] - x) < Math.abs(punto(costos[mejor], mejor, costos)[0] - x)) mejor = i;
+    });
+    setCerca(mejor);
+  }
 
   return (
     <div className="card-cayla p-5">
@@ -43,18 +61,19 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
             <span className="text-xs text-tinta/65">{`en ${puntos.length} compras · ${duracion(puntos[0].fecha, puntos[puntos.length - 1].fecha)}`}</span>
           </div>
 
-          <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} className="mt-2 h-[120px] w-full" role="img" aria-label={`Costo de ${evolucion.referencia}: ${costos.map((c) => soles(c)).join(", ")}`}>
+          <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} onMouseMove={alMover} onMouseLeave={() => setCerca(null)} className="mt-2 h-[120px] w-full" role="img" aria-label={`Costo de ${evolucion.referencia}: ${costos.map((c) => soles(c)).join(", ")}`}>
             <line x1={MARGEN} y1={ALTO - 20} x2={ANCHO - MARGEN} y2={ALTO - 20} stroke="currentColor" className="text-tinta/10" />
             <polyline points={trazo(costos)} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"} />
+            {cerca != null && <line x1={punto(costos[cerca], cerca, costos)[0]} x2={punto(costos[cerca], cerca, costos)[0]} y1={6} y2={ALTO - 20} stroke="currentColor" strokeWidth={1} className="text-rojo/60" />}
             {costos.map((c, i) => {
               const [x, y] = punto(c, i, costos);
-              return <circle key={i} cx={x} cy={y} r={5} fill="currentColor" className={variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"} />;
+              return <circle key={i} cx={x} cy={y} r={cerca === i ? 7 : 5} fill="currentColor" className={`transition-[r] duration-150 ${variacion < 0 ? "text-verde-profundo" : "text-ambar-profundo"}`} />;
             })}
           </svg>
 
           <div className="flex justify-between text-xs">
             {puntos.map((p, i) => (
-              <span key={p.documento} className={i === 0 ? "text-left" : i === puntos.length - 1 ? "text-right" : "text-center"}>
+              <span key={p.documento} className={`transition-opacity duration-200 ${cerca != null && cerca !== i ? "opacity-40" : ""} ${i === 0 ? "text-left" : i === puntos.length - 1 ? "text-right" : "text-center"}`}>
                 <b className="block font-semibold tabular-nums text-tinta">{soles(p.costo)}</b>
                 <span className="text-tinta/55">{diaMes(p.fecha)}</span>
               </span>

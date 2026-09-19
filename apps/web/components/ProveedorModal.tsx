@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { proveedorConRuc } from "@/lib/proveedores-reglas";
 
 // Alta y edición de un proveedor (extraído de ProveedoresPanel el 2026-09-18 para que la lista y la
 // ficha abran el MISMO formulario: la ficha ganó el botón «Editar» y el formulario no se duplica).
@@ -20,7 +21,12 @@ import { avisar } from "@/components/ui/Avisos";
 // (principio 9): un proveedor no se queda sin registrar por una API ajena.
 //
 // El rubro sigue siendo texto libre (ADR-0094) pero sugiere los ya usados (`rubros`): así «Tela»,
-// «tela» y «Telas» no terminan siendo tres filtros distintos en la lista.
+// «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0122: las sugerencias
+// ahora son botones a la vista (un toque) además de la lista desplegable del campo.
+//
+// ADR-0122: el RUC duplicado se dice AL ESCRIBIR, con el nombre del proveedor con el que choca
+// (`existentes`). El candado de verdad sigue siendo el índice único de la base; esto solo evita que el
+// error llegue recién al guardar, después de haber llenado todo el formulario.
 
 // Mismo vocabulario y orden que el selector de medio de pago en LineasPago.tsx (compra_pagos.metodo):
 // un solo catálogo de formas de pago en toda la app.
@@ -82,6 +88,7 @@ export function borradorDe(p: {
 export function ProveedorModal({
   inicial,
   rubros = [],
+  existentes = [],
   onClose,
   onGuardado,
   onDesactivar,
@@ -89,8 +96,11 @@ export function ProveedorModal({
   inicial: Borrador;
   /** Rubros ya usados, para sugerir al escribir. */
   rubros?: string[];
+  /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
+  existentes?: { id: string; nombre: string; ruc: string | null }[];
   onClose: () => void;
-  onGuardado: () => void;
+  /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. */
+  onGuardado: (id: string | null) => void;
   /** Solo al editar: desactivar vive acá y no en la fila (ver ProveedoresPanel). */
   onDesactivar?: () => Promise<void>;
 }) {
@@ -107,11 +117,13 @@ export function ProveedorModal({
 
   const editando = inicial.id !== null;
   const rucValido = ruc.length === 0 || validarDocumento("ruc", ruc).valido;
+  const repetido = proveedorConRuc(ruc, existentes, inicial.id);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nombre.trim()) return void avisar.error("El proveedor necesita un nombre.", { enfocar: "documento-nombre" });
     if (!rucValido) return void avisar.error("El RUC tiene que ser de 11 dígitos. Si no tiene, déjalo en blanco.", { enfocar: "documento-numero" });
+    if (repetido) return void avisar.error(`Ese RUC ya es de ${repetido.nombre}.`, { enfocar: "documento-numero" });
     setLoading(true);
     const supabase = createClient();
     const args = {
@@ -125,7 +137,7 @@ export function ProveedorModal({
       p_banco: banco.trim() || undefined,
       p_cuenta_bancaria: cuentaBancaria.trim() || undefined,
     };
-    const { error } = editando
+    const { data: idNuevo, error } = editando
       ? await supabase.rpc("actualizar_proveedor", {
           p_proveedor_id: inicial.id!,
           ...args,
@@ -137,7 +149,7 @@ export function ProveedorModal({
       return;
     }
     avisar.exito(editando ? `${nombre.trim()} actualizado` : `Proveedor ${nombre.trim()} registrado`);
-    onGuardado();
+    onGuardado(editando ? inicial.id : ((idNuevo as string | null) ?? null));
   }
 
   return (
@@ -145,6 +157,11 @@ export function ProveedorModal({
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <ConsultaDocumento tipo="ruc" obligatorio={false} disparo="boton" numero={ruc} onNumero={setRuc} nombre={nombre} onNombre={setNombre} />
+          {repetido && (
+            <p role="alert" className="anim-revelar -mt-2 border-l-2 border-l-rojo pl-3 text-xs text-rojo-profundo">
+              Ya está registrado: <b className="font-semibold">{repetido.nombre}</b>. Un RUC no puede repetirse.
+            </p>
+          )}
 
           {/* De acá para abajo, en pares — el modal es ancho para esto (max-w-xl): en escritorio dos campos
               por fila, en celular se apila igual que antes. */}
@@ -212,6 +229,24 @@ export function ProveedorModal({
                   <option key={r} value={r} />
                 ))}
               </datalist>
+              {rubros.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Rubros ya usados">
+                  {rubros.map((r) => {
+                    const elegido = rubro.trim().toLowerCase() === r.toLowerCase();
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        aria-pressed={elegido}
+                        onClick={() => setRubro(r)}
+                        className={`rounded-full border px-3 py-0.5 text-xs transition-colors duration-200 ${elegido ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-rojo hover:text-rojo"}`}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <CampoTexto
               etiqueta={
@@ -249,7 +284,7 @@ export function ProveedorModal({
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!nombre.trim() || !rucValido}>
+            <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!nombre.trim() || !rucValido || !!repetido}>
               {loading ? "Guardando…" : editando ? "Guardar" : "Registrar"}
             </Boton>
           </div>

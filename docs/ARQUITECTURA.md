@@ -276,6 +276,12 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `activo=false`. Candados: `proveedores_ruc_unico` y
   `proveedores_nombre_clave_unica` (sobre `fn_clave_texto`, el mismo
   normalizador de `colores`/`categorias`).
+  ADR-0122: la lista abre una vista rápida (`ProveedorVistaRapida.tsx`), dibuja sus cifras en
+  `ProveedoresIndicadores.tsx` y lee la serie mensual de `lib/proveedores.ts:getProveedoresSerie` (RPC
+  `fn_proveedores_serie_12m`, `20260919150000_proveedores_serie_mensual.sql`; opcional: sin ella la lista
+  se pinta sin tendencias). Reglas puras (siguiente paso, reparto de deuda, serie de 12 meses, resaltado)
+  en `lib/proveedores-reglas.ts`; movimiento en `lib/useFlip.ts`, `lib/useContar.ts` y las clases
+  `anim-cajon*`/`anim-destello-fila`/`anim-crece-*`/`trazo-*` de `globals.css`.
 - `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
   `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
