@@ -715,6 +715,86 @@ body {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
+/* ==================================================================
+   La «isla» de vidrio de Facturación (ADR-0124).
+
+   Vidrio = superficie translúcida con desenfoque. No agrega ningún color: solo blanco
+   translúcido y tinta sobre el crema de siempre. Vive bajo `.tema-vidrio` (la raíz del
+   layout de /vender/facturacion) y NO en `:root`: llevarlo a otras pantallas sería mover
+   variables del sistema, y esa es otra decisión.
+
+   Rendimiento: el desenfoque cuesta en las tablets de las tiendas. Se limita a las
+   tarjetas de arriba (R2), al contenedor de pestañas y a los botones «vidrio». Si se
+   nota, se baja `--vidrio-blur` acá, sin tocar ningún componente.
+
+   Movimiento: la transición de la píldora es de `transform`/`width`, y la regla global de
+   movimiento reducido (`transition-duration: 1ms !important`, al final del archivo) ya la
+   apaga sola.
+   ================================================================== */
+@layer components {
+  .tema-vidrio {
+    --vidrio-blur: 18px;
+  }
+
+  .vidrio-cayla {
+    background: rgb(255 255 255 / var(--vidrio-alfa, 0.58));
+    border: 1px solid rgb(26 26 24 / var(--vidrio-borde, 0.12));
+    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
+    backdrop-filter: blur(var(--vidrio-blur, 18px));
+  }
+
+  /* Pestañas: un contenedor de vidrio con una píldora negra que se desliza bajo la
+     etiqueta activa. La píldora la coloca `FacturacionPestanas` midiendo el DOM y
+     escribiendo `--pildora-x` y `--pildora-w` sobre este mismo elemento (sin estado de
+     React, como `Ayuda.tsx`: el primer cuadro ya sale bien puesto). */
+  .pestanas-vidrio {
+    --vidrio-alfa: 0.45;
+    --vidrio-borde: 0.09;
+    --vidrio-blur: 22px;
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pestanas-vidrio__pildora {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: var(--pildora-w, 0px);
+    transform: translateX(var(--pildora-x, 0px));
+    border-radius: 10px;
+    background: var(--color-tinta);
+    box-shadow: 0 8px 18px -10px rgb(26 26 24 / 0.75);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Hasta que la píldora está medida (el primer cuadro, antes de hidratar), la pestaña
+     activa se pinta a sí misma: así nunca hay un cuadro con la etiqueta en crema sobre
+     el vidrio, ilegible. */
+  .pestanas-vidrio:not([data-medido]) [aria-current="page"] {
+    background: var(--color-tinta);
+  }
+
+  .pestanas-vidrio[data-medido] .pestanas-vidrio__pildora {
+    opacity: 1;
+  }
+
+  /* La transición se habilita recién después de la primera pintura: la píldora nace en su
+     lugar y solo se desliza cuando cambia la pestaña. */
+  .pestanas-vidrio[data-listo] .pestanas-vidrio__pildora {
+    transition:
+      transform 450ms var(--ease-cayla),
+      width 450ms var(--ease-cayla);
+  }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
