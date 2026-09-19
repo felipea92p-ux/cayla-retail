@@ -57,6 +57,31 @@ recepción «a medias» accidental cuenta como «requiere acción»); las fotos 
 criterios distintos de «foto de una variante»; Existencias ya no cuenta como «atrasado» a un traslado con
 diferencia.
 
+## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0106)
+
+Diagnóstico y decisiones en el ADR. Estado: pasos 1-2 escritos y probados en un Postgres desechable; **nada
+aplicado en producción**.
+
+- [ ] **Felipe pega en producción, EN ORDEN, los 3 SQL** (ya traen el prefijo `retail.`, se pegan tal cual):
+      `20260918200000_producto_nombre_una_sola_forma.sql` → `20260918200100_producto_arbol_curva_y_exigencias.sql`
+      → `20260918200200_categoria_atributos_mapa.sql`. Son compatibles hacia atrás con la pantalla actual, así que
+      pueden ir antes que el formulario nuevo. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [ ] **Verificar con `db reset` local** cuando Docker vuelva (hoy se probó contra un Postgres 17 suelto con el
+      esquema mínimo, sin RLS ni el resto de la historia de migraciones).
+- [ ] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx`): página que se revela (familia en tarjetas + búsqueda →
+      categoría → atributos → colores agrupados con «más usados» → matriz → precio/costo con margen → etiquetas →
+      vista previa del código), aviso de parecidos en vivo con `buscar_productos_parecidos`, salida
+      `p_confirmo_distinto`, curva habitual marcada, «+ Nueva talla/color/tejido/patrón» y panel «configurar
+      categoría» (cada uno se guarda aparte, nunca dentro de la transacción del alta). Etiquetas al crear exigen
+      extender la RPC (todo-o-nada), hoy no las recibe.
+- [ ] **Paso 4 — pantalla de éxito**: Agregar fotos por color · Crear otro parecido · Ir a productos.
+- [ ] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla y mandar
+      `p_talla_habitual_ids` a `/api/productos/categorias/ejes`. Hasta entonces la curva se conserva, pero no se edita.
+- [ ] **`catalogo_crear_producto`** no avisa de parecidos ni exige tejido/patrón (solo el trigger y el índice lo
+      cubren): decidir si sigue existiendo como camino de alta o se retira.
+- [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son
+      códigos puestos como nombre; «Cargo especial (sin código)» es un producto técnico.
+
 ## 🎯 Aviario: una sola lista tabla→pájaro, revisada en CI (2026-09-18, ADR-0104)
 
 Felipe pidió "traer el aviario" (los 14 pájaros de `07-GOBIERNO.md` §1). Al cruzarlo con

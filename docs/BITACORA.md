@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Crear producto: el formulario no estaba roto, estaba desconectado — y la base dejaba duplicar nombres)
+
+"Sin tejidos habilitados" en toda categoría no era un bug de pantalla: en producción los 17 tejidos y 7 patrones existen pero ninguna de las 40 categorías los tenía asignados, y 15 categorías no tenían tallas. Se armó el mapa (categoría → tallas con su curva habitual, tejidos, patrones) y se probó contra un Postgres desechable. Aprendizaje: un vocabulario cargado no sirve hasta que se conecta a las categorías; el diagnóstico salió de preguntarle a la base, no de mirar el formulario.
+
+Lo que pesó más que lo pedido: `productos.referencia` no tenía ningún candado y hay tres caminos que crean productos (Nuevo producto, catálogo y censo). El censo creaba un producto por escaneo, así que escanear "Blusa Aurora" en S y en M dejaba dos productos. La regla "un nombre, un producto" vive ahora en un trigger y un índice de la tabla, no en el formulario. Y `actualizar_categoria_ejes` borraba y reinsertaba las tallas en cada guardado: habría borrado la curva habitual en silencio.
+
+Estándar y Único no son duplicados: se reparten por familia (una blusa dice Estándar, una gorra dice Único). Pendiente: el formulario nuevo y la pantalla de éxito (BACKLOG); y que Felipe pegue los 3 SQL en producción, en orden.
+
 ## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
 
 La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.
