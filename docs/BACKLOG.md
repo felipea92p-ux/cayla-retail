@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Menú lateral plegable (2026-09-19, ADR-0130)
+
+Aplicado y verificado en el navegador como líder (escritorio). Falta:
+
+- [ ] **Mirar con el menú plegado** las barras fijas que ahora siguen el token (`BarraFija` en Recibir y
+  «Pagar juntos», el pie del Punto de Venta con carrito) y una pantalla con contenedores por ancho de panel
+  (Recibir, Proveedores): deberían ganar aire, no romperse.
+- [ ] **Verlo como colaborador** (Micaela): menos filas, «Recibir mercadería» dentro de Inventario.
+- [ ] **Decidir «Asomar al pasar el mouse»** (spike): no se construyó. Si se quiere, ver «Lo que NO se portó» del ADR.
+
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
 
 Aplicado en código y verificado en el navegador con sesión de líder (escritorio); **falta lo de producción

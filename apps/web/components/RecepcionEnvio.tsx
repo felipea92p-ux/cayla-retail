@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -95,6 +96,8 @@ type Variante = {
   codigosBarras: string[];
   /** El color como color (`retail.colores.hex`): la miniatura de la fila. `null` = sin hex. */
   colorHex?: string | null;
+  /** La foto de la prenda en ESE color (`producto_fotos`); `null` = sin foto. */
+  fotoUrl?: string | null;
 };
 type Ubicacion = { id: string; nombre: string };
 type Proveedor = { id: string; nombre: string };
@@ -110,7 +113,7 @@ const NUMERO =
 // El diseño de la tabla lo decide el ANCHO DEL PANEL (`@container` en la columna derecha), no el de la ventana: con el menú
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
 // Panel angosto: cada línea es una tarjeta con su − / +; ancho: la tabla de siempre.
-const PLANTILLA_LINEA = "@4xl:grid-cols-[1fr_8.5rem_4.5rem_7rem_3rem_10rem]";
+const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]:grid-cols-[1fr_8.5rem_4rem_7rem_3rem_10rem]";
 
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
@@ -197,6 +200,11 @@ export function RecepcionEnvio({
   const [recienMarcada, setRecienMarcada] = useState<{ id: string; n: number } | null>(null);
   // Menú «Agregar comprobante» y las sugerencias del escáner (visibles solo con el campo enfocado).
   const [menuAgregar, setMenuAgregar] = useState(false);
+  // En celular la lista de pendientes se pliega al marcar (queda «Cambiar») para dejarle la pantalla al conteo; en escritorio no aplica.
+  const [listaPlegada, setListaPlegada] = useState(false);
+  // Lo que se está yendo (chip de comprobante, fila fuera de comprobante): sale con una animación de 200 ms y recién ahí se quita.
+  const [saliendoChip, setSaliendoChip] = useState<string | null>(null);
+  const [saliendoExtra, setSaliendoExtra] = useState<number | null>(null);
   const [verSugerencias, setVerSugerencias] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
@@ -282,6 +290,13 @@ export function RecepcionEnvio({
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
   }, [hayEnvio, ok]);
+  // Si la ventana pasa a escritorio, la lista nunca queda plegada (allí siempre se ve).
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const alCambiar = () => mq.matches && setListaPlegada(false);
+    mq.addEventListener("change", alCambiar);
+    return () => mq.removeEventListener("change", alCambiar);
+  }, []);
   // El menú de comprobantes se cierra al tocar fuera.
   useEffect(() => {
     if (!menuAgregar) return;
@@ -316,6 +331,7 @@ export function RecepcionEnvio({
     setSeleccionadas((s) => [...s, c.id]);
     setAbiertos((a) => ({ ...a, [c.id]: true }));
     setRecienMarcada((r) => ({ id: c.id, n: (r?.n ?? 0) + 1 }));
+    if (window.innerWidth < 1024) setListaPlegada(true);
     irAlPanel();
   }
 
@@ -326,6 +342,7 @@ export function RecepcionEnvio({
     setSeleccionadas((s) => [...s, ...nuevas.map((c) => c.id)]);
     setAbiertos((a) => ({ ...a, ...Object.fromEntries(nuevas.map((c) => [c.id, true])) }));
     setRecienMarcada((r) => ({ id: nuevas[0].id, n: (r?.n ?? 0) + 1 }));
+    if (window.innerWidth < 1024) setListaPlegada(true);
     irAlPanel();
   }
 
@@ -367,6 +384,17 @@ export function RecepcionEnvio({
       setPestana("prendas");
     }
     setQuitarPendiente(null);
+  }
+
+  // Quitar un comprobante del envío: el chip se va con una salida corta. Si tiene cantidades, primero se pregunta (sin animación).
+  function quitarConSalida(c: CompraResumen) {
+    if (tieneCantidades(c.id)) return alternar(c);
+    setSaliendoChip(c.id);
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => {
+      setSaliendoChip(null);
+      alternar(c);
+    }, reducido ? 0 : 200);
   }
 
   function agregarDesdeSelect(compraId: string) {
@@ -473,7 +501,14 @@ export function RecepcionEnvio({
 
   // ---- fuera de comprobante (ADR-0076) y con origen (ADR-0113) ------------------------------------
   const agregarExtra = () => setExtras((a) => [...a, { productoId: "", varianteId: "", cantidad: 1, costoUnitario: "", proveedorId: proveedorPorDefecto, esRegalo: false }]);
-  const quitarExtra = (i: number) => setExtras((a) => a.filter((_, n) => n !== i));
+  const quitarExtra = (i: number) => {
+    setSaliendoExtra(i);
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => {
+      setSaliendoExtra(null);
+      setExtras((a) => a.filter((_, n) => n !== i));
+    }, reducido ? 0 : 200);
+  };
   const actualizarExtra = (i: number, cambio: Partial<ExtraEnvio>) => setExtras((a) => a.map((e, n) => (n === i ? { ...e, ...cambio } : e)));
   // Cambiar de producto olvida la variante elegida — la talla/color de la prenda anterior casi nunca aplica a la nueva.
   const elegirProductoExtra = (i: number, productoId: string) => actualizarExtra(i, { productoId, varianteId: "" });
@@ -692,21 +727,26 @@ export function RecepcionEnvio({
         <div key={l.id} id={`recibir-linea-${l.id}`} onFocus={alEnfocar(l.id)} onBlur={alDesenfocar(l.id)} className={`group relative px-5 py-3 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla focus-within:before:scale-y-100 sm:py-2.5 ${completa ? "bg-verde/[0.045]" : estado === "faltan" ? "bg-ambar/[0.05]" : ""}`}>
           {/* la pistola acaba de leer esta fila: se tiñe de verde y se apaga sola */}
           {destello?.id === l.id && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
-          {/* escritorio: fila de tabla */}
-          <div className={`hidden gap-x-4 @4xl:grid ${PLANTILLA_LINEA} @4xl:items-center`}>
-            <span className="flex min-w-0 items-center gap-3">
-              <Miniatura hex={variantePorId.get(l.varianteId)?.colorHex ?? null} />
-              <span className="min-w-0 truncate text-sm text-tinta">
-                {l.referencia}
-                <span className="block truncate text-xs text-tinta/55">{[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}</span>
+          {/* UNA sola pieza, dos formas según el ancho del panel (igual que el spike): en tarjeta —nombre arriba, paso − / + y estado
+              abajo— y en tabla —prenda · [SKU] · pendiente · llegó · dif. · estado—. El − / + se ve siempre en tarjeta; en tabla aparece
+              al pasar el mouse o enfocar. Enter salta a la siguiente prenda. */}
+          <div className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2.5 @[46rem]:gap-x-3 ${PLANTILLA_LINEA}`}>
+            <span className="col-span-2 flex min-w-0 items-center gap-3 @[46rem]:col-span-1">
+              <Miniatura hex={variantePorId.get(l.varianteId)?.colorHex ?? null} fotoUrl={variantePorId.get(l.varianteId)?.fotoUrl ?? null} />
+              <span className="min-w-0 text-sm text-tinta">
+                <span className="block truncate font-medium @[46rem]:font-normal">{l.referencia}</span>
+                <span className="block truncate text-xs text-tinta/55">
+                  {[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}
+                  <span className="@[46rem]:hidden"> · pendiente {l.pendiente}</span>
+                </span>
               </span>
             </span>
-            <span className="truncate text-[12.5px] tabular-nums text-tinta/65">{l.sku ?? "—"}</span>
-            <span className="text-center text-sm tabular-nums text-tinta/65">{l.pendiente}</span>
-            <span className="text-center">
-              {/* − / + aparecen al pasar el mouse o enfocar (en celular están siempre, abajo); Enter salta a la siguiente prenda */}
+            <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
+            <span className="hidden text-center text-sm tabular-nums text-tinta/65 @[46rem]:block">{l.pendiente}</span>
+            <span className="text-left @[46rem]:text-center">
               <span
-                className={`inline-flex items-center overflow-hidden rounded-[10px] border transition-colors focus-within:border-rojo ${
+                key={destello?.id === l.id ? destello.n : 0}
+                className={`${destello?.id === l.id ? "anim-pop" : ""} inline-flex items-center overflow-hidden rounded-[10px] border transition-colors focus-within:border-rojo ${
                   excede ? "border-rojo bg-rojo/[0.08]" : completa ? "border-verde bg-verde/[0.09]" : estado === "faltan" ? "border-ambar bg-ambar/10" : "border-tinta/25"
                 }`}
               >
@@ -715,7 +755,7 @@ export function RecepcionEnvio({
                   tabIndex={-1}
                   aria-label="Una unidad menos"
                   onClick={() => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1))}
-                  className="grid h-9 w-0 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width] duration-200 hover:text-rojo group-focus-within:w-6 group-hover:w-6"
+                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
                 >
                   −
                 </button>
@@ -737,39 +777,25 @@ export function RecepcionEnvio({
                     if (siguiente) siguiente.focus();
                     else escaneoRef.current?.focus();
                   }}
-                  className={`h-9 w-14 bg-transparent text-center text-[15px] tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${excede ? "text-rojo" : completa ? "text-verde-profundo" : estado === "faltan" ? "text-ambar-profundo" : "text-tinta/45"}`}
+                  className={`h-[42px] w-14 bg-transparent text-center text-[15px] tabular-nums outline-none [appearance:textfield] @[46rem]:h-9 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${excede ? "text-rojo" : completa ? "text-verde-profundo" : estado === "faltan" ? "text-ambar-profundo" : "text-tinta/45"}`}
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   aria-label="Una unidad más"
                   onClick={() => fijar(l.id, l.varianteId!, (llego ?? 0) + 1)}
-                  className="grid h-9 w-0 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width] duration-200 hover:text-rojo group-focus-within:w-6 group-hover:w-6"
+                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
                 >
                   +
                 </button>
               </span>
             </span>
-            <span className={`text-center text-sm tabular-nums ${dif === null || dif === 0 ? "text-tinta/45" : dif < 0 ? "font-semibold text-ambar-profundo" : "font-semibold text-rojo"}`}>
+            <span className={`hidden text-center text-sm tabular-nums @[46rem]:block ${dif === null || dif === 0 ? "text-tinta/45" : dif < 0 ? "font-semibold text-ambar-profundo" : "font-semibold text-rojo"}`}>
               {dif === null ? "—" : dif === 0 ? "0" : dif < 0 ? `−${-dif}` : `+${dif}`}
             </span>
-            <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} esLider={esLider} />
-          </div>
-          {/* celular: tarjeta con − y + de a dedo */}
-          <div className="@4xl:hidden">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-tinta">{l.referencia}</p>
-                <p className="text-xs text-tinta/65">
-                  {[l.talla, l.color].filter(Boolean).join(" / ") || l.sku} · pendiente {l.pendiente}
-                </p>
-              </div>
-              <Chip tono={CHIP_ESTADO[estado]}>{ETIQUETA_ESTADO[estado](l.pendiente - recibiendoLinea)}</Chip>
-            </div>
-            <div className="mt-2.5 flex items-center justify-between gap-3">
-              <PasoCantidad valor={reparto[l.id]?.[l.varianteId] ?? null} onCambio={(n) => fijar(l.id, l.varianteId!, n)} etiqueta={`Llegó de ${nombre}`} tono={estado} />
-              {decision && <ResumenDecision decision={decision} onEditar={() => setEditando(l.id)} />}
-            </div>
+            <span className="justify-self-end text-right @[46rem]:justify-self-start @[46rem]:text-left">
+              <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} esLider={esLider} />
+            </span>
           </div>
           {esLider && estado === "faltan" && (
             <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
@@ -843,8 +869,18 @@ export function RecepcionEnvio({
       <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
-          <div className="px-4 pb-3 pt-4">
-            <h2 className="font-display text-xl text-tinta">Pendientes de llegar</h2>
+          <div className="flex items-center justify-between gap-3 px-4 pt-4">
+            <h2 className="font-display text-[21px] text-tinta">Pendientes de llegar</h2>
+            {hayEnvio && (
+              <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
+                {listaPlegada ? "Cambiar" : "Ocultar"}
+              </button>
+            )}
+          </div>
+          {/* el cuerpo de la lista: en celular, con un envío armado, se pliega por altura (grid 0fr → 1fr) */}
+          <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla lg:grid-rows-[1fr] ${hayEnvio && listaPlegada ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={hayEnvio && listaPlegada}>
+          <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pb-3">
             <div className="relative mt-3">
               <input
                 id="recibir-buscar"
@@ -907,7 +943,7 @@ export function RecepcionEnvio({
                 role="checkbox"
                 aria-checked={marcada}
                 onClick={() => alternar(c)}
-                className={`relative flex w-full items-center gap-3 border-l-2 border-t border-t-tinta/10 px-4 py-3 text-left transition-colors ${marcada ? "border-l-rojo bg-rojo/[0.05]" : "border-l-transparent hover:bg-tinta/[0.03]"}`}
+                className={`relative flex w-full items-center gap-3 border-t border-t-tinta/10 px-4 py-3 text-left transition-colors before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:bg-rojo before:transition-transform before:duration-[280ms] before:ease-cayla ${marcada ? "bg-rojo/[0.05] before:scale-y-100" : "hover:bg-tinta/[0.04]"}`}
               >
                 {recienMarcada?.id === c.id && <span key={recienMarcada.n} aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
                 <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
@@ -942,6 +978,8 @@ export function RecepcionEnvio({
           <p className="border-t border-tinta/10 px-4 py-3 text-xs text-tinta/55">
             Un envío puede traer comprobantes de varios proveedores: marca los que vienen en él. Si quitas uno con cantidades ya anotadas, te pregunta antes de descartarlas.
           </p>
+          </div>
+          </div>
         </aside>
 
         {/* ================= derecha: el envío ================= */}
@@ -969,18 +1007,18 @@ export function RecepcionEnvio({
           ) : (
             <>
               {/* el envío: quién, con qué guía, a dónde entra y cuánto llevas */}
-              <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @4xl:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
+              <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @[44rem]:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
                 <div className="flex items-center gap-4 p-5">
                   <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand bg-sand/50 text-tinta/65">
-                    <ScanBarcode className="h-5 w-5" />
+                    <Truck className="h-[22px] w-[22px]" strokeWidth={1.6} />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-display text-xl leading-tight text-tinta">{tituloEnvio}</p>
-                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-tinta/65">
+                    <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
+                    <p className="mt-2 flex flex-wrap items-center text-xs text-tinta/65">
                       {proveedoresEnvio.map((p) => (
-                        <Ini key={p.id} nombre={p.nombre} chico />
+                        <Ini key={p.id} nombre={p.nombre} chico apilada />
                       ))}
-                      <span className="ml-1">
+                      <span className="ml-2">
                         {nSeleccionadasTexto} · {totales.esperadas.toLocaleString("es-PE")} u. por llegar
                       </span>
                     </p>
@@ -1010,7 +1048,7 @@ export function RecepcionEnvio({
                     <CampoTexto etiqueta="Entra al almacén de" value={ubicacionNombre} readOnly />
                   )}
                 </div>
-                <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @4xl:col-span-1 @4xl:border-l @4xl:border-t-0">
+                <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
                   <Anillo pct={pctContado} />
                   <div>
                     <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
@@ -1069,12 +1107,12 @@ export function RecepcionEnvio({
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {bloques.map(({ compra: c }) => (
-                    <span key={c.id} className="anim-asentar inline-flex items-center gap-2.5 rounded-[10px] border border-sand bg-crema px-3 py-1.5 text-[13px]">
+                    <span key={c.id} className={`${saliendoChip === c.id ? "anim-sale" : "anim-asentar"} inline-flex items-center gap-2.5 rounded-[10px] border border-sand bg-crema px-3 py-1.5 text-[13px]`}>
                       <Ini nombre={c.proveedorNombre} chico />
                       <span className="text-tinta/65">{c.proveedorNombre}</span>
                       <b className="font-semibold tabular-nums text-tinta">{c.documento}</b>
                       {seleccionadas.length > 1 && (
-                        <button type="button" onClick={() => alternar(c)} aria-label={`Quitar ${c.documento} del envío`} className="text-tinta/45 hover:text-rojo">
+                        <button type="button" onClick={() => quitarConSalida(c)} aria-label={`Quitar ${c.documento} del envío`} className="text-tinta/45 hover:text-rojo">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -1181,9 +1219,9 @@ export function RecepcionEnvio({
                       {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-xs text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
                     </div>
 
-                    <div className={`hidden gap-x-4 border-b border-tinta/10 px-5 py-2 @4xl:grid ${PLANTILLA_LINEA}`}>
+                    <div className={`hidden gap-x-3 border-b border-tinta/10 px-5 py-2 @[46rem]:grid ${PLANTILLA_LINEA}`}>
                       {["Prenda", "SKU", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
-                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
+                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 1 ? "hidden @[60rem]:block" : ""} ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
                           {t}
                         </span>
                       ))}
@@ -1214,7 +1252,7 @@ export function RecepcionEnvio({
                                 </span>
                               </span>
                             </button>
-                            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                            <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 pl-[3.25rem] @xl:w-auto @xl:pl-0">
                               <span className="w-40">
                                 <span className="flex justify-between text-xs tabular-nums text-tinta/65">
                                   <span>
@@ -1294,7 +1332,7 @@ export function RecepcionEnvio({
                       {extras.map((ex, i) => {
                         const variantesDelProducto = ex.productoId ? (variantesPorProducto.get(ex.productoId) ?? []) : [];
                         return (
-                          <div key={i} className="anim-entra flex flex-wrap items-end gap-2 border-b border-tinta/10 pb-3 last:border-0">
+                          <div key={i} className={`${saliendoExtra === i ? "anim-sale" : "anim-entra"} flex flex-wrap items-end gap-2 border-b border-tinta/10 pb-3 last:border-0`}>
                             <ComboBuscable
                               etiquetaAccesible="Producto fuera de comprobante"
                               id={`recibir-extra-${i}-producto`}
@@ -1487,7 +1525,7 @@ export function RecepcionEnvio({
         {/* ================= barra fija: los totales del envío + confirmar ================= */}
         {hayEnvio && (
           <BarraFija
-            className="anim-entrada"
+            className="anim-barra"
             medidor={
               // contado (verde) · faltante (ámbar) · lo que falta contar (arena): cuánto falta, de un vistazo
               <div aria-hidden className="flex h-[3px] bg-sand">
@@ -1495,31 +1533,8 @@ export function RecepcionEnvio({
                 <span className="bg-ambar transition-[flex-basis] duration-500 ease-cayla" style={{ flexBasis: `${Math.min(100 - Math.min(100, (totales.contadas / Math.max(1, totales.esperadas)) * 100), (totales.faltantes / Math.max(1, totales.esperadas)) * 100)}%` }} />
               </div>
             }
-            resumen={
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-end gap-x-6 gap-y-1">
-                  <span className="hidden text-xs text-tinta/65 lg:block">
-                    <span className="font-display text-base text-tinta">Totales del envío</span>
-                    <span className="block">
-                      entran al almacén de <b className="font-semibold text-tinta">{ubicacionNombre}</b>
-                    </span>
-                  </span>
-                  {[
-                    { n: totales.esperadas, etiqueta: "Esperadas", tono: "text-tinta" },
-                    { n: totales.contadas, etiqueta: "Contadas", tono: "text-verde-profundo" },
-                    { n: totales.sinContar, etiqueta: "Sin contar", tono: "text-tinta/45" },
-                    { n: totales.faltantes, etiqueta: "Faltantes", tono: totales.faltantes > 0 ? "text-ambar-profundo" : "text-tinta/45" },
-                    { n: totales.fueraDeComprobante, etiqueta: "Fuera de comprobante", tono: totales.fueraDeComprobante > 0 ? "text-tinta" : "text-tinta/45" },
-                    ...(trasladosMarcados.length > 0 ? [{ n: totales.deOtraSede, etiqueta: "De otra sede", tono: "text-tinta" }] : []),
-                  ].map((m) => (
-                    <span key={m.etiqueta} className="block">
-                      <span className={`font-display text-2xl leading-none tabular-nums transition-colors duration-300 ${m.tono}`}>
-                        <CifraQueCuenta valor={m.n} />
-                      </span>
-                      <span className="label-cayla mt-0.5 block text-[9.5px] text-tinta/55">{m.etiqueta}</span>
-                    </span>
-                  ))}
-                </div>
+            aviso={(
+              <>
                 {/* un solo aviso a la vez, el más urgente; entra suave cuando cambia */}
                 {totales.excedidas > 0 ? (
                   <span key="exc" className="anim-revelar flex items-center gap-2 text-xs text-rojo">
@@ -1560,10 +1575,37 @@ export function RecepcionEnvio({
                     Se {cierres.length === 1 ? "cierra 1 faltante" : `cierran ${cierres.length} faltantes`} al confirmar ({cierres.reduce((a, c) => a + c.faltan, 0)} u.). Lo demás sigue pendiente.
                   </span>
                 ) : null}
+              </>
+            )}
+            resumen={
+              <div className="space-y-1">
+                <div className="grid auto-cols-fr grid-flow-col items-end gap-x-1 sm:flex sm:flex-wrap sm:gap-x-6 sm:gap-y-1">
+                  <span className="hidden text-xs text-tinta/65 min-[1460px]:block">
+                    <span className="font-display text-base text-tinta">Totales del envío</span>
+                    <span className="block">
+                      entran al almacén de <b className="font-semibold text-tinta">{ubicacionNombre}</b>
+                    </span>
+                  </span>
+                  {[
+                    { n: totales.esperadas, etiqueta: "Esperadas", tono: "text-tinta" },
+                    { n: totales.contadas, etiqueta: "Contadas", tono: "text-verde-profundo" },
+                    { n: totales.sinContar, etiqueta: "Sin contar", tono: "text-tinta/45" },
+                    { n: totales.faltantes, etiqueta: "Faltantes", tono: totales.faltantes > 0 ? "text-ambar-profundo" : "text-tinta/45" },
+                    { n: totales.fueraDeComprobante, etiqueta: "Fuera de comprobante", tono: totales.fueraDeComprobante > 0 ? "text-tinta" : "text-tinta/45" },
+                    ...(trasladosMarcados.length > 0 ? [{ n: totales.deOtraSede, etiqueta: "De otra sede", tono: "text-tinta" }] : []),
+                  ].map((m) => (
+                    <span key={m.etiqueta} className="block">
+                      <span className={`font-display text-xl leading-none tabular-nums transition-colors duration-300 sm:text-2xl ${m.tono}`}>
+                        <CifraQueCuenta valor={m.n} />
+                      </span>
+                      <span className="label-cayla mt-0.5 block text-[8.5px] leading-tight text-tinta/55 sm:text-[9.5px]">{m.etiqueta}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
             }
             acciones={
-              <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeConfirmar}>
+              <Boton type="submit" peso="primario" className="w-full sm:w-auto" cargando={loading} disabled={!puedeConfirmar}>
                 {etiquetaConfirmar({ unidades: unidadesRecibiendo, cierres: cierres.length, ubicacion: ubicacionNombre })}
               </Boton>
             }
@@ -1619,8 +1661,10 @@ export function RecepcionEnvio({
   );
 }
 
-// La prenda como su color real (`retail.colores.hex`): se distingue una blusa negra de una beige sin leer. Sin hex, arena.
-function Miniatura({ hex }: { hex: string | null }) {
+// La prenda: su foto si la hay; si no, su color real (`retail.colores.hex`) con la prenda genérica, para distinguir una blusa negra de una beige sin leer. Sin hex, arena.
+function Miniatura({ hex, fotoUrl = null }: { hex: string | null; fotoUrl?: string | null }) {
+  // Con foto, la foto (quien cuenta compara la prenda con lo que tiene en la mano); sin ella, el color real con la prenda genérica.
+  if (fotoUrl) return <Image src={fotoUrl} alt="" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 rounded-[10px] border border-tinta/10 object-cover transition-transform duration-[260ms] ease-cayla group-hover:scale-105" />;
   const n = hex && /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : null;
   const claro = n === null ? true : (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.55;
   return (
@@ -1636,9 +1680,10 @@ function Miniatura({ hex }: { hex: string | null }) {
 
 // El proveedor como dos letras («Textiles Andina SAC» → TA): con varios proveedores en un envío, se reconocen
 // de un vistazo sin leer el nombre entero.
-function Ini({ nombre, chico = false }: { nombre: string; chico?: boolean }) {
+function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico?: boolean; apilada?: boolean }) {
+  // `apilada`: los círculos se montan un poco unos sobre otros, con un borde del color de la tarjeta (varios proveedores en un envío).
   return (
-    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-sand font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"}`}>
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-sand font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
       {inicialesProveedor(nombre)}
     </span>
   );
@@ -1646,13 +1691,13 @@ function Ini({ nombre, chico = false }: { nombre: string; chico?: boolean }) {
 
 // Cuánto llevas contado del envío, de un vistazo. Ámbar mientras falta, verde al 100 %.
 function Anillo({ pct }: { pct: number }) {
-  const r = 26;
+  const r = 28;
   const c = 2 * Math.PI * r;
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" className="shrink-0" role="img" aria-label={`${pct} % contado`}>
-      <circle cx="32" cy="32" r={r} fill="none" strokeWidth="6" className="stroke-sand" />
-      <circle cx="32" cy="32" r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`transition-[stroke-dashoffset,stroke] duration-[900ms] ease-cayla ${pct >= 100 ? "stroke-verde" : "stroke-ambar"}`} strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, pct / 100))} transform="rotate(-90 32 32)" />
-      <text x="32" y="38" textAnchor="middle" className="fill-tinta font-display" fontSize="17">
+    <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label={`${pct} % contado`}>
+      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" className="stroke-sand" />
+      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`transition-[stroke-dashoffset,stroke] duration-[900ms] ease-cayla ${pct >= 100 ? "stroke-verde" : "stroke-ambar"}`} strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, pct / 100))} transform="rotate(-90 35 35)" />
+      <text x="35" y="41" textAnchor="middle" className="fill-tinta font-display" fontSize="19">
         {pct}%
       </text>
     </svg>
@@ -1671,42 +1716,6 @@ function EstadoDeLinea({ estado, faltan, decision, onEditar, esLider }: { estado
       {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}
       {!esLider && estado === "faltan" && <span className="text-[11px] leading-tight text-tinta/65">Sigue pendiente</span>}
     </span>
-  );
-}
-
-// − y + de 40 px con el número grande: recibir es de pie y con una mano, y el teclado numérico del celular es
-// lo más lento. También se puede tipear. `valor` null = sin contar: el campo se ve vacío, no en 0. «−» desde
-// vacío anota 0 (nada llegó); vaciar el campo a mano vuelve a «sin contar».
-function PasoCantidad({ valor, onCambio, etiqueta, tono }: { valor: number | null; onCambio: (n: number | null) => void; etiqueta: string; tono: EstadoLinea }) {
-  const color = tono === "completa" ? "text-verde-profundo" : tono === "faltan" ? "text-ambar-profundo" : tono === "excede" ? "text-rojo" : "text-tinta/45";
-  return (
-    <div role="group" aria-label={etiqueta} className="flex items-center overflow-hidden rounded-[10px] border border-tinta/25">
-      <button type="button" onClick={() => onCambio(Math.max(0, (valor ?? 0) - 1))} aria-label="Una unidad menos" className="grid h-10 w-10 place-items-center text-xl text-tinta/65 active:bg-tinta/5">
-        −
-      </button>
-      <input
-        inputMode="numeric"
-        value={valor ?? ""}
-        placeholder="—"
-        onChange={(e) => {
-          const digitos = e.target.value.replace(/\D/g, "");
-          onCambio(digitos === "" ? null : Number(digitos));
-        }}
-        onFocus={(e) => e.target.select()}
-        data-conteo
-        onKeyDown={(e) => {
-          if (e.key !== "Enter") return;
-          e.preventDefault();
-          const todos = [...document.querySelectorAll<HTMLInputElement>("input[data-conteo]")].filter((i) => i.offsetParent);
-          todos[todos.indexOf(e.currentTarget) + 1]?.focus();
-        }}
-        aria-label={etiqueta}
-        className={`font-display h-10 w-[46px] border-x border-tinta/15 bg-transparent text-center text-[22px] tabular-nums outline-none ${color}`}
-      />
-      <button type="button" onClick={() => onCambio((valor ?? 0) + 1)} aria-label="Una unidad más" className="grid h-10 w-10 place-items-center text-xl text-tinta/65 active:bg-tinta/5">
-        +
-      </button>
-    </div>
   );
 }
 
