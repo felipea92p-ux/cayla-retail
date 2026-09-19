@@ -38,7 +38,7 @@ export const AVIARIO = [
       "codigos_barras", "codigos_correlativos",
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",
-      "patrones", "categoria_patrones", "etiquetas", "variante_etiquetas",
+      "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
