@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { AlertTriangle, ArrowLeft, Check } from "lucide-react";
-import { ListaValidaciones } from "@/components/CambioResumen";
-import type { Validacion } from "@/lib/cambios-reglas";
+import { AlertTriangle, ArrowLeft, Check, Clock } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
+import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
+import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -14,7 +15,7 @@ import type { Validacion } from "@/lib/cambios-reglas";
  *  un paso marca varias a la vez y varios rojos juntos pasan el tope de
  *  `MAX_ROJO_POR_PANTALLA` (design-tokens.ts). */
 export const OPCION =
-  "h-10 rounded-lg border px-4 text-sm font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40";
+  "min-h-11 rounded-[14px] border px-[17px] py-2 text-[14.5px] font-medium transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
 export const OPCION_INACTIVA = `${OPCION} border-tinta/15 bg-papel text-tinta/80 hover:border-tinta/40 hover:text-tinta`;
 export const OPCION_ACTIVA = `${OPCION} border-tinta bg-tinta text-crema`;
 
@@ -89,42 +90,61 @@ export function EncabezadoFlujo({
   );
 }
 
+/** Los pasos son un hilo (Atelier, 2026-09-19): una línea punteada de nudo a nudo, y encima
+ *  el tramo ya cosido, en tinta, que se dibuja al entrar y avanza al cambiar de paso; una
+ *  chispa de luz lo recorre de vez en cuando. Los nudos hechos son botones: se puede volver. */
 function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: number; onIr: (n: number) => void }) {
+  const total = pasos.length;
+  // Cada nudo está al centro de su columna: el hilo va del primero al último.
+  const inicio = 50 / total;
+  const largo = 100 - 100 / total;
+  const avance = ((actual - 1) / (total - 1)) * largo;
   return (
-    <ol className="flex items-center gap-2 sm:gap-3" aria-label="Pasos">
+    <ol className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
+      <span
+        aria-hidden
+        className="absolute top-[17px] h-0.5 rounded-full"
+        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, rgba(164,120,101,0.5) 0 6px, transparent 6px 11px)" }}
+      />
+      <span
+        aria-hidden
+        className="hilo-dibuja absolute top-[17px] h-0.5 rounded-full bg-tinta transition-[width] duration-700 ease-[var(--ease-cayla)]"
+        style={{ left: `${inicio}%`, width: `${avance}%` }}
+      />
+      <span aria-hidden className="pointer-events-none absolute top-3 h-3 transition-[width] duration-700" style={{ left: `${inicio}%`, width: `${avance}%` }}>
+        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,#fff,rgba(255,255,255,0)_70%)]" />
+      </span>
       {pasos.map((nombre, i) => {
         const n = i + 1;
         const hecho = n < actual;
         const esActual = n === actual;
         return (
-          <li key={nombre} className={`flex items-center gap-2 sm:gap-3 ${n < pasos.length ? "min-w-0 flex-1" : ""}`}>
+          <li key={nombre} className="relative flex justify-center">
             <button
               type="button"
               disabled={!hecho}
               onClick={() => onIr(n)}
               aria-current={esActual ? "step" : undefined}
               title={hecho ? `Volver a «${nombre}»` : undefined}
-              className="group flex shrink-0 items-center gap-2 rounded-md disabled:cursor-default"
+              className="group flex flex-col items-center gap-2.5 rounded-md disabled:cursor-default"
             >
               <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-200 ${
+                style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
+                className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
                   hecho
-                    ? "bg-tinta text-crema group-hover:bg-tinta/80"
+                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80"
                     : esActual
-                      ? "bg-papel text-tinta ring-2 ring-tinta"
-                      : "bg-papel text-tinta/65 ring-1 ring-tinta/20"
+                      ? "bg-papel text-tinta shadow-[0_0_0_8px_rgba(26,26,24,0.06)] ring-2 ring-tinta"
+                      : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
                 }`}
               >
-                {hecho ? <Check className="h-3.5 w-3.5" aria-hidden /> : n}
+                {hecho ? <Check className="h-4 w-4" aria-hidden /> : n}
               </span>
-              <span
-                className={`hidden text-sm md:inline ${esActual ? "font-semibold text-tinta" : hecho ? "text-tinta/80 group-hover:underline" : "text-tinta/65"}`}
-              >
+              <span className={`text-sm ${esActual ? "font-semibold text-tinta" : `hidden sm:inline ${hecho ? "text-tinta/80 group-hover:underline" : "text-tinta/65"}`}`}>
                 {nombre}
               </span>
               <span className="sr-only">{hecho ? `${nombre}, hecho` : esActual ? `${nombre}, paso actual` : `${nombre}, pendiente`}</span>
             </button>
-            {n < pasos.length && <span aria-hidden className={`h-px min-w-3 flex-1 transition-colors duration-200 ${hecho ? "bg-tinta/50" : "bg-tinta/15"}`} />}
           </li>
         );
       })}
@@ -132,12 +152,74 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   );
 }
 
-/** "Lo que el sistema revisa": las validaciones en vivo, pegadas al costado en escritorio. */
-export function PanelValidaciones({ validaciones }: { validaciones: readonly Validacion[] }) {
+/** El anillo de «cuántas revisiones van»: se llena solo al ir cumpliéndose. */
+function AnilloProgreso({ pct }: { pct: number }) {
   return (
-    <aside className="self-start rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] lg:sticky lg:top-24">
-      <h3 className="mb-4 text-sm font-semibold text-tinta">Lo que el sistema revisa</h3>
-      <ListaValidaciones validaciones={validaciones} />
+    <svg viewBox="0 0 36 36" className="anillo-progreso h-full w-full" aria-hidden>
+      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeOpacity=".16" strokeWidth="3" />
+      <circle
+        className="rg"
+        cx="18"
+        cy="18"
+        r="15.9155"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        transform="rotate(-90 18 18)"
+        style={{ strokeDasharray: `${pct} 100` }}
+      />
+    </svg>
+  );
+}
+
+/** "Lo que el sistema revisa": las validaciones en vivo, pegadas al costado en escritorio.
+ *  Arriba, un anillo con cuántas van cumplidas (un aviso —como el plazo vencido en una
+ *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
+ *  rojo. Con `impacto`, debajo una segunda tarjeta con lo que va a pasar en el inventario
+ *  y en la caja: se ve mientras se elige, no solo al final. */
+export function PanelValidaciones({ validaciones, impacto }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null }) {
+  const total = validaciones.length;
+  const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
+  const completo = cumplidas === total;
+  const plazo = validaciones.find((v) => v.clave === "plazo");
+  return (
+    <aside className="grid gap-4 self-start lg:sticky lg:top-24">
+      <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+        <div className="mb-5 flex items-center gap-4">
+          <div className={`relative h-[68px] w-[68px] shrink-0 transition-colors duration-500 ${completo ? "text-verde" : "text-ambar"}`}>
+            <AnilloProgreso pct={total ? (cumplidas / total) * 100 : 0} />
+            <span aria-hidden className="font-display absolute inset-0 grid place-items-center text-xl tabular-nums text-tinta">
+              {cumplidas}/{total}
+            </span>
+            <span className="sr-only">
+              {cumplidas} de {total} revisiones cumplidas
+            </span>
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <h3 className="font-display text-[22px] leading-tight text-tinta">Lo que revisa el sistema</h3>
+            {plazo &&
+              (plazo.tono === "rojo" ? (
+                <Chip tono="rojo" versalitas={false}>
+                  <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                  Fuera del plazo
+                </Chip>
+              ) : (
+                <Chip tono="verde" versalitas={false}>
+                  <Clock className="h-3.5 w-3.5" aria-hidden />
+                  Dentro del plazo
+                </Chip>
+              ))}
+          </div>
+        </div>
+        <ListaValidaciones validaciones={validaciones} />
+      </div>
+      {impacto && (
+        <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+          <h3 className="font-display mb-4 text-xl text-tinta">Impacto</h3>
+          <ImpactoVista impacto={impacto} compacto />
+        </div>
+      )}
     </aside>
   );
 }
@@ -173,7 +255,7 @@ export function BotonPrincipal({ onClick, children, disabled = false }: { onClic
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-tinta px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60"
+      className="boton-brillo alza-cayla inline-flex h-12 items-center gap-2 rounded-full bg-tinta px-7 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/90 disabled:opacity-60"
     >
       {children}
     </button>
@@ -186,7 +268,7 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      className="inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
     >
       {children}
     </button>
@@ -200,7 +282,7 @@ export function BotonRojo({ onClick, children, disabled = false }: { onClick: ()
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-rojo px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70"
+      className="boton-brillo alza-cayla inline-flex h-12 items-center gap-2 rounded-full bg-rojo px-7 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70"
     >
       {children}
     </button>

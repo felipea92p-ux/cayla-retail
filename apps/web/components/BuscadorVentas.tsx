@@ -22,6 +22,9 @@ export function useAtajoBusqueda(campoRef: RefObject<HTMLInputElement | null>, a
   }, [campoRef, activo]);
 }
 
+const CHIP_ACCION =
+  "inline-flex h-10 items-center gap-2 rounded-full bg-papel px-4 text-sm font-medium text-tinta ring-1 ring-tinta/[0.14] transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:ring-tinta/30";
+
 /**
  * El área de acción de Cambios y de Devoluciones (2026-09-18): responde "¿qué quiero
  * hacer?" antes que nada. La búsqueda es la protagonista; al lado, las dos formas de llegar
@@ -76,13 +79,15 @@ export function BuscadorVentas({
   }
 
   return (
-    <form role="search" onSubmit={enviar} className="space-y-3">
-      <div className="flex gap-2">
-        <label
-          className={`flex h-14 min-w-0 flex-1 items-center gap-3 rounded-xl bg-papel px-3.5 ring-1 transition-shadow duration-200 focus-within:ring-2 focus-within:ring-tinta/70 sm:px-4 ${
-            escaneando ? "ring-2 ring-tinta/70" : "ring-tinta/10"
-          }`}
-        >
+    <form role="search" onSubmit={enviar} className="space-y-4">
+      {/* Una sola píldora: la búsqueda y su botón. Al enfocarla se despega un poco y toma el
+          hilo (taupe) como borde. */}
+      <div
+        className={`flex h-16 items-center gap-3 rounded-full bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_rgba(80,50,20,0.5)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_rgba(80,50,20,0.6)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
+          escaneando ? "ring-2 ring-taupe" : "ring-tinta/[0.09]"
+        }`}
+      >
+        <label className="flex h-full min-w-0 flex-1 cursor-text items-center gap-3">
           {escaneando ? <ScanLine className="h-5 w-5 shrink-0 text-tinta" aria-hidden /> : <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />}
           <input
             ref={campoRef}
@@ -96,55 +101,47 @@ export function BuscadorVentas({
             aria-label="Buscar la venta: boleta, DNI o RUC, nombre de la clienta, nombre o código de la prenda"
             className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/55"
           />
-          {buscando ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-tinta/60" aria-label="Buscando" />
-          ) : (
-            texto && (
-              <button
-                type="button"
-                onClick={() => {
-                  setTexto("");
-                  onLimpiar();
-                  campoRef.current?.focus();
-                }}
-                aria-label="Limpiar la búsqueda"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-tinta/60 transition-colors duration-200 hover:bg-sand/60 hover:text-tinta"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            )
-          )}
-          <kbd
-            aria-hidden
-            title="Atajo: / enfoca la búsqueda"
-            className="hidden h-6 min-w-6 items-center justify-center rounded border border-tinta/15 px-1.5 font-mono text-[11px] text-tinta/60 sm:flex"
-          >
-            /
-          </kbd>
         </label>
+        {buscando ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-tinta/60" aria-label="Buscando" />
+        ) : (
+          texto && (
+            <button
+              type="button"
+              onClick={() => {
+                setTexto("");
+                onLimpiar();
+                campoRef.current?.focus();
+              }}
+              aria-label="Limpiar la búsqueda"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-tinta/60 transition-colors duration-200 hover:bg-sand/60 hover:text-tinta"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          )
+        )}
+        <kbd
+          aria-hidden
+          title="Atajo: / enfoca la búsqueda"
+          className="hidden h-6 min-w-6 items-center justify-center rounded-md bg-tinta/[0.06] px-2 font-mono text-[11px] text-tinta/60 sm:flex"
+        >
+          /
+        </kbd>
         <button
           type="submit"
           disabled={buscando}
-          className="h-14 shrink-0 rounded-xl bg-tinta px-4 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60 sm:px-7"
+          className="boton-brillo h-12 shrink-0 rounded-full bg-tinta px-5 text-sm font-semibold text-crema transition-[background-color,transform] duration-300 hover:bg-tinta/90 disabled:opacity-60 sm:px-7"
         >
           Buscar
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={prepararEscaneo}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-tinta/80 ring-1 ring-tinta/10 transition-colors duration-200 hover:bg-papel hover:text-tinta"
-        >
+      <div className="flex flex-wrap items-center gap-2.5">
+        <button type="button" onClick={prepararEscaneo} className={CHIP_ACCION}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
-        <button
-          type="button"
-          onClick={onSinComprobante}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-tinta/80 ring-1 ring-tinta/10 transition-colors duration-200 hover:bg-papel hover:text-tinta"
-        >
+        <button type="button" onClick={onSinComprobante} className={CHIP_ACCION}>
           <ReceiptText className="h-4 w-4" aria-hidden />
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />

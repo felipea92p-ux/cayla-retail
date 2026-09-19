@@ -104,6 +104,9 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     colorEfectivo,
     hayAqui: (t: string | null, c: string | null) =>
       variantes.some((v) => (t === null || v.talla === t) && (c === null || v.color === c) && v.stockAqui > 0),
+    /** Cuántas hay en el piso de esta sede de esa talla y color (para decirlo bajo cada talla). */
+    stockAqui: (t: string | null, c: string | null) =>
+      variantes.filter((v) => (t === null || v.talla === t) && (c === null || v.color === c)).reduce((suma, v) => suma + Math.max(0, v.stockAqui), 0),
     eligioTodo,
     varianteNueva,
     sinStockAqui: varianteNueva !== null && varianteNueva.stockAqui <= 0,
@@ -206,16 +209,18 @@ export function CambioReemplazo({
             <div className="mt-2 flex flex-wrap gap-2">
               {r.tallas.map((t) => {
                 const hay = r.hayAqui(t, r.colorEfectivo);
+                const subtitulo = r.esLaMisma && t === linea.talla ? "compró esta" : hay ? `${r.stockAqui(t, r.colorEfectivo)} en piso` : "no queda aquí";
                 return (
                   <button
                     key={t}
                     type="button"
                     aria-pressed={t === r.tallaEfectiva}
-                    aria-label={hay ? `Talla ${t}` : `Talla ${t}, no queda aquí`}
-                    className={`min-w-12 ${t === r.tallaEfectiva ? OPCION_ACTIVA : hay ? OPCION_INACTIVA : OPCION_SIN_STOCK}`}
+                    aria-label={hay ? `Talla ${t}, ${subtitulo}` : `Talla ${t}, no queda aquí`}
+                    className={`min-w-16 ${t === r.tallaEfectiva ? OPCION_ACTIVA : hay ? OPCION_INACTIVA : OPCION_SIN_STOCK}`}
                     onClick={() => onCambio({ talla: t })}
                   >
                     {t}
+                    <span className="block text-[11.5px] font-normal opacity-70">{subtitulo}</span>
                   </button>
                 );
               })}
@@ -240,7 +245,7 @@ export function CambioReemplazo({
                     aria-label={hay ? `Color ${nombre}` : `Color ${nombre}, no queda aquí`}
                     aria-pressed={elegido}
                     onClick={() => onCambio({ color: nombre })}
-                    className={`h-9 w-9 rounded-full border-2 transition-shadow duration-200 ${
+                    className={`h-10 w-10 rounded-full border-2 transition-[box-shadow,transform] duration-300 ${
                       elegido ? "border-tinta shadow-[0_0_0_2px_var(--color-papel),0_0_0_4px_var(--color-tinta)]" : "border-tinta/15 hover:border-tinta/40"
                     } ${hay ? "" : "opacity-40"}`}
                     style={{ background: hex ?? "var(--color-sand)" }}
@@ -276,7 +281,7 @@ export function CambioReemplazo({
                 aria-pressed={activa}
                 disabled={r.condicionFija !== null && o.valor !== r.condicionFija}
                 onClick={() => onCambio({ condicionElegida: o.valor })}
-                className={`rounded-lg border px-4 py-3 text-left transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`rounded-2xl border px-[18px] py-4 text-left transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
                   activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/40"
                 }`}
               >

@@ -4,6 +4,7 @@ import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getDevolucionesPendientes, getEstadisticasDevoluciones } from "@/lib/devoluciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { DevolucionesPanel } from "@/components/DevolucionesPanel";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Devoluciones (rediseño 2026-09-18, mismo modelo que Cambios, ADR-0104/0105). Una devolución
@@ -26,13 +27,9 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-7">
-      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
-        <div>
-          <h1 className="font-display text-3xl text-tinta">Devoluciones</h1>
-          <p className="mt-1.5 text-[15px] text-tinta/70">Registra las devoluciones de la clienta y aprueba las que esperan.</p>
-        </div>
-        {/* Las tres cifras, como en Cambios: un recuadro con el nombre de la sede y cada cifra
-            centrada sobre su etiqueta. Son de las devoluciones APROBADAS de ESTA sede. */}
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Devoluciones" subtitulo="Registra las devoluciones de la clienta y aprueba las que esperan.">
+        {/* Las tres cifras, como en Cambios: cada una centrada sobre su etiqueta. Son de las
+            devoluciones APROBADAS de ESTA sede. */}
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
@@ -41,7 +38,7 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
             { valor: estadisticas.valorMes, formato: "soles", etiqueta: "Valor devuelto", icono: Banknote },
           ]}
         />
-      </header>
+      </EncabezadoPagina>
 
       <DevolucionesPanel
         lineas={lineas}

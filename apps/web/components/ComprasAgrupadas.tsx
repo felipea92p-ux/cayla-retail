@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Clock, ReceiptText } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -96,26 +96,40 @@ export function ComprasAgrupadas({
   accionCompra?: (compra: LineaVentaReciente) => ReactNode;
 }) {
   return (
-    <div className="space-y-8">
-      {agruparPorDia(lineas, ahora).map((dia) => (
-        <section key={dia.etiqueta} aria-label={dia.etiqueta} className="space-y-3">
-          <h3 className="text-sm font-semibold text-tinta/70">{dia.etiqueta}</h3>
-          {/* Las compras en columnas de 34rem como mínimo: en una pantalla ancha se reparten a lo
-              ancho (una fila de prenda a 1500px dejaba un vacío enorme entre el nombre y el botón);
-              en una angosta o en el celular, una sola columna. `auto-fill` y no `auto-fit`: una
-              compra sola no se estira a todo el ancho. */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,34rem),1fr))] items-start gap-3">
-            {agruparPorCompra(dia.lineas).map((compra) => (
-              <article key={compra.ventaId} className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
-                <header className="px-5 pb-1 pt-4">
-                  <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
-                </header>
-                <ul className="px-2 pb-2">{compra.lineas.map((l) => renderFila(l))}</ul>
-              </article>
-            ))}
-          </div>
-        </section>
-      ))}
+    // El hilo (Atelier, 2026-09-19): una línea taupe que baja por la izquierda y se dibuja al
+    // entrar; cada día es un nudo sobre ella y sus compras cuelgan a la derecha.
+    <div className="relative pl-8 sm:pl-11">
+      <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15" />
+      <div className="space-y-8">
+        {agruparPorDia(lineas, ahora).map((dia, d) => (
+          <section key={dia.etiqueta} aria-label={dia.etiqueta} className="space-y-3.5">
+            <h3 className="relative text-[11.5px] font-semibold uppercase tracking-[0.16em] text-taupe-profundo">
+              <span aria-hidden className="absolute -left-7 -top-px flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crema ring-[1.5px] ring-taupe sm:-left-10">
+                <span className="h-1.5 w-1.5 rounded-full bg-taupe" />
+              </span>
+              {dia.etiqueta}
+            </h3>
+            {/* Las compras en columnas de 34rem como mínimo: en una pantalla ancha se reparten a lo
+                ancho (una fila de prenda a 1500px dejaba un vacío enorme entre el nombre y el botón);
+                en una angosta o en el celular, una sola columna. `auto-fill` y no `auto-fit`: una
+                compra sola no se estira a todo el ancho. */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,34rem),1fr))] items-start gap-3.5">
+              {agruparPorCompra(dia.lineas).map((compra, c) => (
+                <article
+                  key={compra.ventaId}
+                  style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
+                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_rgba(80,50,20,0.55)]"
+                >
+                  <header className="px-6 pb-1 pt-4">
+                    <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
+                  </header>
+                  <ul className="px-1.5 pb-2">{compra.lineas.map((l) => renderFila(l))}</ul>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
@@ -136,14 +150,17 @@ export function FilaPrendaVenta({
 }) {
   return (
     <li
-      className={`flex flex-col gap-3 rounded-lg px-3 py-3.5 transition-colors duration-200 hover:bg-crema/70 sm:flex-row sm:items-center sm:gap-4 ${
+      className={`group flex flex-col gap-3 rounded-2xl px-4 py-3.5 transition-colors duration-200 sm:flex-row sm:items-center sm:gap-4 [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10 ${
         linea.coincideConBusqueda ? "bg-crema/80" : ""
       }`}
     >
       <div className="flex min-w-0 flex-1 items-start gap-4">
-        <MiniaturaPrenda fotoUrl={linea.fotoUrl} colorHex={linea.colorHex} tamano="lg" />
+        {/* La foto se ladea un poco al pasar el mouse por la fila: se siente tocable. */}
+        <span className="shrink-0 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:-rotate-6 group-hover:scale-105">
+          <MiniaturaPrenda fotoUrl={linea.fotoUrl} colorHex={linea.colorHex} tamano="lg" />
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold leading-snug text-tinta">
+          <p className="font-display text-[23px] leading-tight text-tinta">
             {linea.referencia}
             {linea.coincideConBusqueda && <span className="sr-only"> (la prenda buscada)</span>}
           </p>
@@ -166,7 +183,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 text-sm font-semibold text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema focus-visible:bg-tinta focus-visible:text-crema";
+  "boton-brillo inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full bg-tinta px-5 text-sm font-semibold text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_rgba(26,26,24,0.7)]";
 
 /** Los filtros de la actividad: pastillas con cuántas compras hay en cada una. */
 export function FiltrosActividad<T extends string>({
@@ -179,14 +196,14 @@ export function FiltrosActividad<T extends string>({
   onCambio: (v: T) => void;
 }) {
   return (
-    <div role="group" aria-label="Filtrar la actividad" className="flex flex-wrap gap-1 rounded-lg bg-sand/40 p-1">
+    <div role="group" aria-label="Filtrar la actividad" className="flex flex-wrap gap-1 rounded-full bg-tinta/5 p-1">
       {opciones.map((f) => (
         <button
           key={f.valor}
           type="button"
           aria-pressed={valor === f.valor}
           onClick={() => onCambio(f.valor)}
-          className={`h-8 rounded-md px-3 text-sm transition-colors duration-200 ${
+          className={`h-9 rounded-full px-4 text-sm transition-colors duration-200 ${
             valor === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_rgba(26,26,24,0.08)]" : "text-tinta/75 hover:text-tinta"
           }`}
         >

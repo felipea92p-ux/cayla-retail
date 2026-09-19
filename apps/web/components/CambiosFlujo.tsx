@@ -260,7 +260,7 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que la clienta quiere cambiar</legend>
@@ -314,7 +314,7 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <CambioReemplazo
                 linea={linea}
                 seleccion={seleccion}
@@ -329,7 +329,9 @@ export function CambiosFlujo({
                 }}
               />
             </div>
-            <PanelValidaciones validaciones={validaciones} />
+            {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
+                inventario y en la caja: se ve mientras se elige, no solo en la confirmación. */}
+            <PanelValidaciones validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
             <BotonSecundario onClick={retroceder}>
@@ -347,7 +349,7 @@ export function CambiosFlujo({
       {paso === 4 && linea && seleccion && r && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
@@ -392,7 +394,7 @@ export function CambiosFlujo({
       )}
 
       {paso === "exito" && resultado && (
-        <div className="anim-revelar mx-auto max-w-2xl rounded-xl bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
+        <div className="anim-revelar mx-auto max-w-2xl rounded-[22px] bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
           <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}

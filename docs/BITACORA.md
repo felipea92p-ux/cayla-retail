@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Atelier: el diseño visual de Cambios y Devoluciones — ADR-0106)
+
+**Qué se cerró.** Felipe pidió ver el rediseño «más estético, con más animaciones» antes de
+decidir: se armaron tres maquetas interactivas (A Atelier, B Tablero, C Vitrina) y eligió la A. Se
+llevó a la app real: el hilo taupe como línea de tiempo, pasos y unión entre prendas; cabecera con
+la sede y la hora de Lima viva; cifras que suben; checks que se trazan; y el impacto en inventario
+y caja visible desde el paso 3. Afecta a Cambios y Devoluciones a la vez (piezas compartidas).
+
+**Qué se aprendió.** Mostrar tres direcciones con los mismos datos hizo la decisión en minutos y
+sin tocar el código. Y aterrizar una maqueta es ajustar su escala a la app (el título de 66 px
+desentonaba), no copiarla. Pendiente: probar con clic real y datos reales.
+
 ## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0105)
 
 **Qué se cerró.** Las tres cifras de arriba a la derecha de Cambios y Devoluciones eran texto suelto

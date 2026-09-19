@@ -206,7 +206,7 @@ export function CambiosPanel({
         <section aria-labelledby="actividad-reciente" className="space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="scroll-mt-28 text-[15px] font-semibold text-tinta outline-none">
+              <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
                 Actividad reciente
               </h2>
               <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días en {sede}: las que todavía se pueden cambiar.</p>

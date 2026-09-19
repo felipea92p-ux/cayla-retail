@@ -265,7 +265,7 @@ export function DevolucionesFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prendas que la clienta quiere devolver</legend>
@@ -323,7 +323,7 @@ export function DevolucionesFlujo({
 
           {/* R-37: primero se intenta un cambio; la devolución es para cuando no hay talla ni
               nada de su agrado. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-xl bg-papel/60 px-5 py-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[22px] bg-papel/60 px-5 py-4 text-sm">
             <p className="max-w-xl text-tinta/80">
               <span className="font-semibold text-tinta">¿Le sirve otra talla o color?</span> Primero prueba un cambio; si no hay lo que busca, sigue con la devolución.
             </p>
@@ -352,7 +352,7 @@ export function DevolucionesFlujo({
       {paso === 3 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-9 rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="space-y-9 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <fieldset ref={refMotivo}>
                 <legend className="text-[15px] font-semibold text-tinta">¿Por qué la devuelve?</legend>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -397,7 +397,8 @@ export function DevolucionesFlujo({
                 ))}
               </div>
             </div>
-            <PanelValidaciones validaciones={validaciones} />
+            {/* El impacto aparece en cuanto hay al menos una prenda con su estado elegido. */}
+            <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
             <BotonSecundario onClick={retroceder}>
@@ -415,7 +416,7 @@ export function DevolucionesFlujo({
       {paso === 4 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
@@ -486,7 +487,7 @@ export function DevolucionesFlujo({
       )}
 
       {paso === "exito" && resultado && (
-        <div className="anim-revelar mx-auto max-w-2xl rounded-xl bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
+        <div className="anim-revelar mx-auto max-w-2xl rounded-[22px] bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
           <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}

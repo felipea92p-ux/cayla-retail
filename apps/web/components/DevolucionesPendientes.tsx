@@ -43,8 +43,8 @@ export function DevolucionesPendientes({
   return (
     <section aria-labelledby="por-aprobar" className="space-y-4">
       <div>
-        <h2 id="por-aprobar" ref={refTitulo} tabIndex={-1} className="scroll-mt-28 text-[15px] font-semibold text-tinta outline-none">
-          Por aprobar <span className="font-normal text-tinta/70">({pendientes.length})</span>
+        <h2 id="por-aprobar" ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
+          Por aprobar <span className="text-tinta/70">({pendientes.length})</span>
         </h2>
         <p className="mt-0.5 text-sm text-tinta/70">
           {esLider ? "Revisa cada una: al aprobarla se mueve el stock." : "Esperan que un líder las apruebe: hasta entonces el stock no cambia."}

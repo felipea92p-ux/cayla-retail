@@ -10,6 +10,7 @@ import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-esta
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
@@ -43,14 +44,10 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-7">
-      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
-        <div>
-          <h1 className="font-display text-3xl text-tinta">Cambios</h1>
-          <p className="mt-1.5 text-[15px] text-tinta/70">Gestiona cambios de prendas de manera rápida y segura.</p>
-        </div>
-        {/* Tres cifras chicas, no un tablero: acompañan al título sin competir con él. Van
-            juntas en un recuadro con el nombre de la sede —son de ESTA sede—, cada cifra
-            centrada sobre su etiqueta. */}
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Cambios" subtitulo="Gestiona cambios de prendas de manera rápida y segura.">
+        {/* Tres cifras chicas, no un tablero: acompañan al título sin competir con él. Son de
+            ESTA sede —lo dice la línea de arriba del título—, cada cifra centrada sobre su
+            etiqueta. */}
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
@@ -59,7 +56,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
             { valor: estadisticas.valorMes, formato: "soles", etiqueta: "Valor cambiado", icono: Banknote },
           ]}
         />
-      </header>
+      </EncabezadoPagina>
 
       <CambiosPanel
         lineas={lineas}
