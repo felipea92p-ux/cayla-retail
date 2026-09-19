@@ -7,6 +7,7 @@
 «Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
 cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada
 con 24 casos locales y un pago real en el navegador. **Migración pendiente en producción:** `20260919190000_pago_por_lote_varios_medios.sql`.
+
 ## 2026-09-19 (El menú lateral se pliega a una columna de íconos — ADR-0130)
 Se aplicó el spike `docs/maquetas/menu-lateral-spike-2026-09/`: botón en la cabecera o tecla `[`, 17rem → 4.75rem con los íconos quietos, cajón flotante por grupo, etiqueta al pasar el mouse, insignia sobre el ícono y hijas que se despliegan por `grid-template-rows`. El ancho lo cambia UN token (`--spacing-lateral` bajo `[data-lateral]`) que ya leían aside, cabecera, main y barras fijas.
 La preferencia vive en una cookie que lee el layout del servidor (con localStorage la página pintaría 17rem y saltaría a 4.75rem al cargar). Verificado en el navegador como líder: plegar/expandir, cookie, recarga sin salto, cajón, teclado (Enter, flechas, End, Escape devuelve el foco) y celular sin lateral.
