@@ -28,9 +28,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0113)
+## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0121)
 
-Rama `claude/billing-design-analysis-ee464b`. Spec: `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md` (look, estructura y secuencia aprobados; pendiente la revisión escrita de Felipe). **Sin código todavía.**
+Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-09-19: `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md`. Plan: `docs/superpowers/plans/2026-09-19-facturacion-cuatro-vistas-r0-r1.md` (R0 y R1 al detalle; R2 a R4 se planean al cerrar R1, con Atelier a la vista). **Sin código todavía.** Atelier (ADR-0106) sigue sin estar en `main` (verificado el 2026-09-19): R2 espera.
 
 - [ ] **R0 — Preparación:** verificar contra producción (solo lectura) que `retail.ventas.estado` existe y la definición viva de `fn_ventas_del_dia` (¿excluye anuladas?); confirmar el estado de Atelier (ADR-0106) y de `panel-comercial` (ADR-0110).
 - [ ] **R1 — Estructura** (sin depender de Atelier): layout + cuatro rutas + pestañas + cabecera + los dos modales extraídos + redirect de `/vender/descuentos` + `BotonCompacto`.

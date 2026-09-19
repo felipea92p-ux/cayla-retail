@@ -1,8 +1,8 @@
 # Facturación en cuatro vistas — diseño
 
-**Fecha:** 2026-09-18 · **Estado:** listo para la revisión de Felipe. El look (maqueta v8), la estructura (cinco secciones) y la secuencia con Atelier (opción 1) ya están aprobados.
-**Rama:** `claude/billing-design-analysis-ee464b` · **ADR:** [0113](../../adr/0113-facturacion-en-cuatro-vistas-con-una-isla-de-vidrio.md)
-**Siguiente paso:** el plan de implementación. No se toca código antes de aprobar este spec.
+**Fecha:** 2026-09-18 · **Estado:** aprobado por Felipe el 2026-09-19 («Va»). El look (maqueta v8), la estructura (cinco secciones) y la secuencia con Atelier (opción 1) ya estaban aprobados.
+**Rama:** `claude/billing-design-analysis-ee464b` · **ADR:** [0121](../../adr/0121-facturacion-en-cuatro-vistas-con-una-isla-de-vidrio.md) (nació como 0113; ver el §11)
+**Siguiente paso:** ejecutar el plan, `docs/superpowers/plans/2026-09-19-facturacion-cuatro-vistas-r0-r1.md` (R0 y R1 al detalle; R2 a R4 como fases).
 
 ## 1. Qué se construye y por qué
 
@@ -208,7 +208,7 @@ Cada una termina con tipos, lint y pruebas en verde, y verificada en el navegado
 - Verificar contra producción, solo lectura: (a) que `retail.ventas.estado` existe; (b) la definición viva de `fn_ventas_del_dia` (¿excluye anuladas?, ¿una sola sobrecarga?); (c) qué series hay en `series_comprobantes`.
 - Confirmar el estado de Atelier y de `panel-comercial` en `main`.
 - Reglas de decisión: si falta `ventas.estado`, el comparativo queda oculto por `tolerar` y se anota en BACKLOG. Si la RPC incluye anuladas, **R2 no se cierra** hasta que se excluyan o se etiqueten (migración con OK de Felipe).
-- Hecho con este spec: la fila en `SESIONES-ACTIVAS` y el ADR-0113.
+- Hecho con este spec: la fila en `SESIONES-ACTIVAS` y el ADR-0121.
 
 **R1 — Estructura (sin Atelier).**
 - Entra: layout, shell, pestañas, cabecera (sin la línea de fecha ni el buscador: llegan con las vistas que los usan), `BotonCompacto`, los dos modales extraídos, las cuatro rutas, el redirect, `error.tsx`, `exigirLider`, el bloque de la isla en `globals.css`, y el borrado de `VenderNav.tsx`. Los paneles actuales se muestran tal cual.
@@ -234,7 +234,7 @@ Cada una termina con tipos, lint y pruebas en verde, y verificada en el navegado
 - **`panel-comercial`** (`origin/claude/panel-comercial`, ADR-0110, sin mergear ni aplicar): decidió que la suma de lo vendido vive en SQL. Aquí se usa su misma definición de «venta». Cuando `fn_comercial_*` esté en producción, «Vendido hoy» y su referencia pasan a salir de ahí (una sola fuente). Antes de esa fecha hay tres cifras de «lo vendido» en el repo (pagos, ítems y la RPC de Caja): esta pantalla usa la de ítems en ambos lados del comparativo.
 - **Ventas visual** (`ventas-visual-redesign-240e2b`): toca `lib/caja.ts`, `panel-serie.ts` y `globals.css`. Aquí solo se importa `panel-serie.ts`, sin modificarlo, y el bloque CSS va aparte. Se sincroniza `main` antes de tocar `globals.css`.
 - **Paleta de método de pago** (`--color-metodo-*`, cambio pendiente de mergear en otra rama): se usan solo los tokens, nunca hex.
-- **ADR:** 0113 reservado (0109 a 0112 ya están tomados en otras ramas). Se re-verifica al sincronizar.
+- **ADR:** 0121. Nació como 0113, pero el 2026-09-19 otras dos ramas (`panel-calidad` e `inventory-view-ux-analysis`) ya lo reclamaban, `main` tiene el 0114 y el 0116, hay ramas con 0117 a 0120 y el 0115 lo dejó libre la sesión de Caja para quien tenga que moverse. Se toma el 0121, que ese día no usaba ninguna rama. Se re-verifica antes de cualquier push.
 
 ## 12. Riesgos y qué se rompe si…
 
@@ -254,7 +254,7 @@ Cada una termina con tipos, lint y pruebas en verde, y verificada en el navegado
 
 ## 14. Documentación al cierre
 
-- ADR-0113 ajustado con lo aprendido.
+- ADR-0121 ajustado con lo aprendido.
 - `docs/ARQUITECTURA.md`: las rutas y componentes nuevos, y de paso la línea que aún dice que Nubefact está «planeado» (es Lucode).
 - `docs/datos/modulos/08-facturacion-sunat.md`: el hueco de las proformas `vencida` y el de `nota_debito`, ya vencidos.
 - BACKLOG (una sección por rebanada, con los pendientes de §3), BITÁCORA (tres líneas por cierre) y `SESIONES-ACTIVAS`.
