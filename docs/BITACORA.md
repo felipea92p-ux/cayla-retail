@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Recibir mercadería → Recibidas: los filtros pasan a las dos pastillas en línea de la maqueta 06)
+
+La pestaña «Recibidas recientemente» escondía sus dos filtros detrás del botón «Filtros» y su panel; la maqueta aprobada los pone a la vista: el buscador («Documento, proveedor o guía») y, en la misma línea, «Proveedor: Todos ⌄» y «Fechas». Nuevo `FiltrosRecibidas` (solo esa pestaña; Comprobantes y Por pagar siguen con `FiltrosCompras`) y las reglas en `lib/recibidas-filtros-reglas.ts` con 34 pruebas: períodos de un toque (este mes, mes pasado, últimos 30/90 días, contados desde el «hoy» de Lima y con la misma ventana que la cifra «Unidades recibidas»), el rótulo de cada pastilla y la limpieza de lo que llega por la URL. Los filtros siguen en `?q=&prov=&desde=&hasta=` y el servidor sigue siendo quien filtra.
+
+Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la guía (`lotes.fecha_recepcion`), no el de emisión del comprobante como decía el chip de `FiltrosCompras`; y el buscador ya cubría la guía en SQL pero el texto de ayuda no lo decía. Además una fecha imposible en la URL (`?desde=2026-02-31`) hacía fallar la función SQL en vez de devolver una lista vacía: ahora se ignora.
+
+Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
+
 ## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
 
 Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
@@ -211,6 +219,7 @@ Lo que Felipe se lleva: una prueba que espera «la deuda vencida es 0» se rompe
 Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito por lo cerrado; el detalle ya lo decía, pero en Por pagar el líder veía el saldo completo y podía pagar de más. Ahora las dos listas muestran junto al saldo un chip ámbar «Esperando nota S/ X» (y «Ya puedes registrarla» cuando el comprobante ya está al 100 %). Lo calcula una función de lectura nueva, `compras_nota_pendiente(uuid[])` (migración `20260918220000`), que NO toca `listar_compras` ni `compras_resumen`: cambiar el retorno de una función viva es lo que ya rompió producción (ADR-0009), una función nueva no puede.
 La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
 Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
+
 
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
