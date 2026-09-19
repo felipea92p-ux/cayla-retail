@@ -28,6 +28,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Rentabilidad (2026-09-18, ADR-0118)
+
+- [x] **`/comercial/rentabilidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
+      (`20260918194000_panel_rentabilidad.sql`), reglas puras con 28 pruebas, pantalla vista en escritorio y celular, prueba
+      aislada de 29 verificaciones con 7 mutaciones que la hacen fallar.
+- [ ] **Cargar los costos del catálogo.** Sin costo cargado el margen sale "—" (por diseño: un costo 0 daría 100% de margen).
+      La pantalla dice cuántas unidades vendidas quedaron sin costo. Es lo que más limita su utilidad hoy.
+- [ ] **Abrir `/comercial/rentabilidad` como líder contra el stack local con Docker arriba**, y como colaboradora (debe
+      redirigir). **Aplicar en producción, en orden: `20260918191500` (función de origen), `20260918192000` (calidad) y `20260918194000` (rentabilidad).**
+- [ ] **Inconsistencia conocida:** `fn_productos.stock_total` suma la cuarentena; rentabilidad no. Decidir cuál es "el stock" y
+      unificar. También: velocidad sobre días observables (un producto nuevo parece lento) y valorizar el inventario parado.
+
+---
+
 ## 🎯 Calidad de las ventas (2026-09-18, ADR-0113)
 
 - [x] **`/comercial/calidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
