@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Resumen de Inventario v2: de «qué pasó» a «qué conviene hacer» — ADR-0121; migración ya en producción, frontend con el merge del PR #161)
+
+`/inventario/resumen` se rehízo entero contra la referencia visual: período 7/30/90/este mes/personalizado con
+comparación, búsqueda que entiende «blusa blanca L», cinco señales (agotadas con demanda, cobertura crítica,
+curvas rotas, posible sobrestock, capital), tabla «Prioridades» con una acción sugerida por prenda y tres bloques
+(velocidad, cobertura, curvas). Todo sale del ledger real; el navegador recibe una página de 15 filas, no la sede
+entera. La misma función `fn_resumen_variantes` cambió de firma (la vieja se eliminó); ninguna tabla ni RPC de
+escritura se tocó. **La migración `20260919141804` (antes `20260919010000`, que usa `etiquetar_variantes`) se aplicó a producción el 2026-09-19** con la autorización de Felipe, después de un ensayo completo en una transacción revertida contra datos reales: en las 4 sedes dio exactamente las mismas cifras que la función anterior (filas, stock, ventas, devoluciones), y después de aplicarla el cuerpo quedó idéntico byte a byte al del repo.
+
+Lo que Felipe se lleva: (1) la velocidad correcta divide por los días en que la prenda **estuvo en el piso**, no
+por los días desde que llegó — una prenda que vendió 10 en los 5 días que tuvo stock vende 2 al día, no 0.33; se
+verificó contra un oráculo independiente (107/107 pares, diferencia máxima 0.004 días). (2) El período mueve las
+ventas, nunca el stock: 8 combinaciones de período devolvieron el mismo stock y ventas distintas. (3) **La tarjeta
+de «Capital» sale sola del aire cuando el costo no es confiable**, y hoy podría no serlo: `catalogo_actualizar_producto`
+pisa `variantes.costo` desde el formulario y en producción `costo_historial` tiene 0 filas — ver BACKLOG.
+
+Bug heredado que destapó la prueba de integración: la rama «venta sin `venta_item_id` cuenta» de ADR-0101 nunca se
+ejecutaba (el `WHERE` la excluía), así que una importación histórica que solo cargara el ledger daba velocidad cero.
+Corregido dentro de la migración nueva. Verificado: 637 pruebas, 38 verificaciones SQL con `ROLLBACK`, lint, typecheck
+y build en verde; visto en el navegador a 1440 / 1280 / ~1024 / móvil.
+
 ## 2026-09-18 (Recibir mercadería → Recibidas: los filtros pasan a las dos pastillas en línea de la maqueta 06)
 
 La pestaña «Recibidas recientemente» escondía sus dos filtros detrás del botón «Filtros» y su panel; la maqueta aprobada los pone a la vista: el buscador («Documento, proveedor o guía») y, en la misma línea, «Proveedor: Todos ⌄» y «Fechas». Nuevo `FiltrosRecibidas` (solo esa pestaña; Comprobantes y Por pagar siguen con `FiltrosCompras`) y las reglas en `lib/recibidas-filtros-reglas.ts` con 34 pruebas: períodos de un toque (este mes, mes pasado, últimos 30/90 días, contados desde el «hoy» de Lima y con la misma ventana que la cifra «Unidades recibidas»), el rótulo de cada pastilla y la limpieza de lo que llega por la URL. Los filtros siguen en `?q=&prov=&desde=&hasta=` y el servidor sigue siendo quien filtra.
@@ -26,6 +47,7 @@ Se agregó el skill `/pantalla` (`.claude/skills/pantalla/`): con una captura y 
 Lo que Felipe se lleva: el análisis de esa prueba quedó vencido en pocas horas — `main` rehízo el formulario (precio obligatorio, nombres parecidos, pantalla de éxito) — así que no se subió a `docs/`. Por eso todo análisis guarda el SHA analizado y un re-análisis primero comprueba si esos archivos cambiaron: un análisis sin versión es un doc viejo tomado por vigente.
 
 Pendiente: correr `/pantalla` completo sobre una pantalla de núcleo (Caja). Y una tarea raíz que salió de la prueba y sigue en `main`: `Number(x) || 0` convierte un monto vacío en 0 en 10 formularios, entre ellos `CerrarCajaModalV2.tsx:77` (`p_monto_real`) — sin verificar si hay una guarda previa ni si `cerrar_caja` rechaza 0.
+
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
@@ -98,7 +120,6 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
-
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
@@ -121,6 +142,7 @@ pago, tocar de nuevo un método lo quita y traspasa su monto, y subtotal/IGV en 
 tokens de `globals.css` no llegó al navegador hasta borrar `apps/web/.next` (los chips salían grises, no con
 el color viejo), y esos tokens los comparte la dona de Caja — el cambio de color de un método es de las dos
 pantallas.
+
 ## 2026-09-18 (Al fusionar `main` apareció una segunda `registrar_compra` en producción: el token y el saldo a favor vivían en funciones distintas)
 
 GitHub marcó conflictos en BACKLOG y BITÁCORA (texto), pero la fusión de `main` traía algo más serio que no era un conflicto: la migración `20260918217000` (Compras, ADR-0111) redefine `registrar_compra` con 14 parámetros y sin `p_token`, y la mía (`180000`) la había dejado en 15 con token. Producción ya tiene las migraciones de esa otra sesión, así que hoy existen **las dos**: la de 14 con el saldo a favor y la de 15 con el token. Una llamada sin `p_token` (la del front desplegado) coincide con ambas y es ambigua. Se escribió `20260918219000_registrar_compra_una_sola_firma_con_token.sql`: una sola función con el cuerpo de la otra sesión más mi candado, y el `drop` de la de 14. Su cuerpo difiere del de ADR-0111 solo en lo del token (comprobado con un `diff`), y se probó en una transacción revertida sobre la sobrecarga que deja `217000`. Cuando fui a aplicarla con la autorización de Felipe, la lectura previa a escribir mostró que **ya estaba aplicada** en producción (alguien la pegó sin registrarla: una sola firma y el mismo md5 de cuerpo, la consulta de verificación da `1 | true | true | true`), así que no se escribió nada desde aquí.
@@ -174,6 +196,7 @@ Lo que Felipe se lleva: comparar por NOMBRE de migración daba unas 25 «huérfa
 Se pidió cerrar que Devoluciones aceptara una venta ya anulada (la prenda entraba dos veces al stock). Antes de aplicar nada se comparó contra producción en solo lectura y ahí ya estaba cerrado: `20260916214500_anular_venta_sin_huecos` (triggers sobre `devolucion_items` y `cambios`, `anular_venta` endurecida, restricción única por línea, y un `cerrar_caja` que no cuenta el efectivo de ventas anuladas) corre allá desde el 2026-09-16 y nunca se subió al repo — ni `main`, ni ningún worktree, ni el historial de git. El repo y el local iban atrás, y el hueco «confirmado» solo lo era ahí. Se descartó la migración con guards dentro de las RPC (redundante con el trigger) y se reconstruyó la que faltaba desde `pg_proc`, con cada cuerpo verificado por huella md5 contra producción. `aprobar_devolucion_caja.mjs` pasó de 2 a 5 escenarios, vistos en rojo antes y en verde después; el del arqueo daba 179.90 en vez de 100.
 
 Lo que Felipe se lleva: «confirmado contra el Postgres local» no es «confirmado en producción» — el local es una foto que queda atrás en cuanto alguien aplica algo sin subir el archivo. Comparar el cuerpo real en producción (`pg_proc.prosrc`, no el nombre de la migración) evitó pegar allá una migración redundante. Y una migración aplicada sin commitear es deuda: el repo deja de ser la fuente de verdad (principio 4) y las pruebas locales dejan de representar lo que corre. Queda por auditar si hay más casos (ver BACKLOG).
+
 ## 2026-09-18 (Candado: el CI ahora rechaza dos migraciones con la misma versión)
 
 Ya pasó tres veces en dos días (`20260917100000`, `20260917140000` y `20260918170000`) y siempre se descubrió cuando alguien no podía levantar su base local. Nada lo veía: `migraciones:verificar` compara lo que cada archivo promete contra la base, no los nombres entre sí, y producción no lo delata porque el SQL se pega a mano. Nuevo `scripts/migraciones/versiones.mjs` (`pnpm migraciones:versiones`) + paso «Versiones de migración» en el CI, que corre también en `pull_request`: solo lee nombres de archivo, sin base de datos ni `node_modules`. Probado contra `main` (verde), contra el duplicado original del PR #150 y contra `origin/claude/panel-comercial`, que aún lo trae (ambos rojos).

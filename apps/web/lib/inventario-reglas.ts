@@ -90,23 +90,92 @@ export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
 };
 
 // ============================================================================
-// Umbrales de cobertura (2026-09-17, ADR-0101) — los usa `resumen-reglas.ts`
-// sobre la velocidad de venta por variante y sede. Viven acá, junto a los de
-// piso/almacén, para que "cuánto es poco" tenga una sola casa. Son el primer
-// número razonable, NO ajustado todavía con ventas reales (a diferencia de
-// los de arriba, que Felipe corrigió 3 veces probando la pantalla) — se
-// espera que se toquen con los 6 meses de datos simulados.
+// Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
+// `resumen-reglas.ts`. Viven acá, junto a los de piso/almacén, para que "cuánto
+// es poco" tenga una sola casa: ningún componente ni ninguna función de reglas
+// lleva un número suelto. Son el primer número razonable, NO ajustado todavía
+// con meses de venta real (a diferencia de los de arriba, que Felipe corrigió
+// varias veces probando la pantalla): los marcados «por confirmar» son
+// decisiones de negocio que esta implementación tomó por defecto y que Felipe
+// puede cambiar tocando UNA constante.
 // ============================================================================
 
-/** Cobertura en días o menos = "se acaba en los próximos días": la variante
- *  entra a «Necesita reposición ahora», no solo a «Riesgo de quiebre». */
+// --- Bandas de cobertura (días de stock al ritmo del período) ---------------
+
+/** Cobertura en días o menos = «crítica»: se acaba en los próximos días. */
 export const UMBRAL_COBERTURA_CRITICA_DIAS = 3;
 
-/** Cobertura en días o menos, con demanda real detrás = riesgo de quiebre. */
+/** Cobertura en días o menos = «atención». Es también el PUNTO DE REPOSICIÓN:
+ *  a partir de acá el motor de recomendaciones propone traer más. */
 export const UMBRAL_COBERTURA_RIESGO_DIAS = 7;
 
-/** Cobertura en semanas o más = posible sobrestock (12 semanas ≈ 3 meses de
- *  venta parados en el perchero). Se expresa en semanas porque así lo lee
- *  quien decide liquidar; el cálculo lo convierte a días. */
-export const UMBRAL_SOBRESTOCK_SEMANAS = 12;
-export const UMBRAL_COBERTURA_SOBRESTOCK_DIAS = UMBRAL_SOBRESTOCK_SEMANAS * 7;
+/** Más de esto es «30+ días» en el gráfico de cobertura (banda «alta»). */
+export const UMBRAL_COBERTURA_SALUDABLE_DIAS = 30;
+
+/** Más de esto, con baja rotación detrás, es «posible sobrestock» y es el corte
+ *  del «capital con cobertura alta». Reemplaza las 12 semanas del ADR-0101: la
+ *  referencia de Felipe habla de «> 60 días». */
+export const UMBRAL_COBERTURA_ALTA_DIAS = 60;
+
+// --- Cuánta evidencia hace falta antes de afirmar algo ----------------------
+
+/** Con menos días EN VENTA que esto no se calcula velocidad: «poco historial».
+ *  Con 3 días ya hay ritmo (una prenda que vendió 10 en 5 días vende 2/día). */
+export const MIN_DIAS_CON_STOCK_VELOCIDAD = 3;
+
+/** Con menos días en venta que esto no se afirma «no se vende» ni «sobrestock»:
+ *  quince días sin venta es una señal; cinco, una racha. */
+export const MIN_DIAS_CON_STOCK_AFIRMAR = 14;
+
+/** Por debajo de esta cantidad no vale la pena hablar de sobrestock. */
+export const MIN_UNIDADES_SOBRESTOCK = 3;
+
+/** Sell-through (% del inventario disponible que se vendió) por debajo de esto,
+ *  con evidencia, es baja rotación; por encima del segundo, alta rotación. */
+export const SELL_THROUGH_BAJO_PCT = 20;
+export const SELL_THROUGH_ALTO_PCT = 60;
+
+// --- Motor de reposición (por confirmar por Felipe) --------------------------
+
+/** Cuántos días de venta se busca cubrir al reponer. Era 14 en el ADR-0101. */
+export const DIAS_OBJETIVO_COBERTURA = 14;
+
+/** Reserva de seguridad, en días de venta: lo que se vende mientras llega un
+ *  traslado (ETA típica de 1–3 días). NO es `productos.stock_minimo` (Catálogo,
+ *  por producto y red: avisa cuándo pedir al proveedor) ni los umbrales de
+ *  piso/almacén de Existencias (política fija por tienda): es derivada de la
+ *  velocidad de cada variante, y por eso no se configura por variante. */
+export const DIAS_RESERVA_SEGURIDAD = 3;
+
+/** El piso debe alcanzar para esta cantidad de días de venta al bajar mercadería. */
+export const DIAS_OBJETIVO_PISO = 7;
+
+/** Si el piso cubre menos que esto (con stock atrás) se sugiere bajar al piso. */
+export const DIAS_PISO_ALERTA = 3;
+
+/** Días de venta propia que una sede conserva al ceder mercadería: lo que ella
+ *  misma consideraría «sano» (sobre su punto de reposición) más su reserva.
+ *  Así su propio Resumen no le pide la prenda de vuelta al día siguiente. */
+export const DIAS_COBERTURA_MINIMA_ORIGEN = UMBRAL_COBERTURA_RIESGO_DIAS + DIAS_RESERVA_SEGURIDAD;
+
+// --- Lectura de la demanda ---------------------------------------------------
+
+/** «Alta demanda»: entre las variantes con velocidad medible de la sede, las del
+ *  percentil más alto… */
+export const ALTA_DEMANDA_PERCENTIL = 0.8;
+/** …siempre que además vendan al menos esto por día (en una sede lenta el
+ *  percentil solo no significa «alta»). */
+export const ALTA_DEMANDA_MIN_UDS_DIA = 0.5;
+
+/** Cambio de velocidad contra el período de comparación que se considera
+ *  tendencia (en % — por debajo es «estable»). */
+export const TENDENCIA_UMBRAL_PCT = 25;
+
+// --- Exactitud del inventario -------------------------------------------------
+
+/** Un conteo cerrado más antiguo que esto ya no valida el inventario de hoy. */
+export const DIAS_CONTEO_VIGENTE = 30;
+
+/** Por debajo de este % de líneas correctas el conteo no da confianza aunque
+ *  sea reciente (misma escala de colores que `tonoExactitud`: < 95 = a mejorar). */
+export const EXACTITUD_ACEPTABLE_PCT = 95;
