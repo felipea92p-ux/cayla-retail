@@ -1,6 +1,6 @@
 # ADR-0113 — Resumen de Inventario v2: período elegible, velocidad por días con stock, motor de reposición y capital verificado
 
-**Fecha:** 2026-09-18 (migración fechada `20260919010000` para no chocar con las de hoy).
+**Fecha:** 2026-09-18 (migración `20260919141804`; nació como `20260919010000` y se renombró el 2026-09-19 porque esa versión la usa `etiquetar_variantes`, que ya corrió en producción — la del Resumen no).
 **Estado:** Aplicado en LOCAL únicamente. **No aplicado a producción**: la migración la pega Felipe cuando decida.
 **Enmienda a:** ADR-0101 (decisiones 2, 4, 5, 6 y 9). La pantalla de ADR-0101 ya está en producción; esto la evoluciona, no la reemplaza por otra.
 **Afecta:** `retail.fn_resumen_variantes` (misma función, firma nueva, la vieja se elimina),

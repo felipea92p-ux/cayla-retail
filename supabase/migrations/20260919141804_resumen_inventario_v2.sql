@@ -1,8 +1,14 @@
 -- ============================================================================
--- 20260919010000 — Resumen de Inventario v2: período elegible, comparación,
+-- 20260919141804 — Resumen de Inventario v2: período elegible, comparación,
 -- días CON STOCK como denominador de la velocidad, costo verificable.
 -- ADR-0113. Evoluciona `fn_resumen_variantes` (ADR-0101, ya en producción con
 -- la firma `(uuid, integer)`); no crea otra función.
+--
+-- RENOMBRADA el 2026-09-19 desde `20260919010000`: esa versión la usa
+-- `20260919010000_etiquetar_variantes.sql`, que YA corrió en producción (existe
+-- `retail.etiquetar_variantes`); esta NO había corrido allá (la firma vigente de
+-- `fn_resumen_variantes` seguía siendo `(uuid, integer)`). Regla del candado de
+-- versiones: se renombra la que aún no corrió. El contenido no cambió.
 --
 -- NO SE APLICA A PRODUCCIÓN desde esta sesión: Felipe la pega (con prefijo
 -- `retail.` ya escrito, este archivo ya lo lleva) cuando decida.

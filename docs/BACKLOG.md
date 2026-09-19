@@ -764,7 +764,7 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       cobertura, sell-through, reserva de seguridad, motor de reposición (almacén → en camino → otra
       tienda → Taller → red sin stock → sobrestock), curvas rotas, búsqueda por tokens, filtros en
       la URL, detalle por variante, capital con verificación de costo. Definiciones exactas en el ADR.
-- [ ] **Pegar `20260919010000_resumen_inventario_v2.sql` en producción** (con `set search_path to
+- [ ] **Pegar `20260919141804_resumen_inventario_v2.sql` en producción** (renombrada desde `20260919010000`, que usa `etiquetar_variantes`) (con `set search_path to
       retail, public;` o prefijo `retail.`; el archivo del repo va SIN prefijo). Decisión y ok puntual
       de Felipe. **Orden: primero la migración, después el despliegue** — con la migración puesta la
       pantalla vieja sigue funcionando (los `default` resuelven su llamada vieja), pero la pantalla

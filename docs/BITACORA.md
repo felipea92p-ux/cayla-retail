@@ -10,7 +10,7 @@ comparación, búsqueda que entiende «blusa blanca L», cinco señales (agotada
 curvas rotas, posible sobrestock, capital), tabla «Prioridades» con una acción sugerida por prenda y tres bloques
 (velocidad, cobertura, curvas). Todo sale del ledger real; el navegador recibe una página de 15 filas, no la sede
 entera. La misma función `fn_resumen_variantes` cambió de firma (la vieja se eliminó); ninguna tabla ni RPC de
-escritura se tocó. **Nada se aplicó a producción**: la migración `20260919010000` la pega Felipe cuando decida.
+escritura se tocó. **Nada se aplicó a producción**: la migración `20260919141804` (antes `20260919010000`, que usa `etiquetar_variantes`) la pega Felipe cuando decida.
 
 Lo que Felipe se lleva: (1) la velocidad correcta divide por los días en que la prenda **estuvo en el piso**, no
 por los días desde que llegó — una prenda que vendió 10 en los 5 días que tuvo stock vende 2 al día, no 0.33; se
