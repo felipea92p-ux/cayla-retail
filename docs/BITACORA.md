@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Recibir: el diseño se iguala al spike, pantalla por pantalla — ADR-0129, ampliación)
+Felipe revisó lo publicado y «no estaba igual». Se comparó spike y app 1:1: la fila de conteo pasó a ser una sola pieza (tarjeta o tabla según el ancho del panel, mismo paso − / +, miniatura en ambas), la tarjeta del envío ganó camión, avatares apilados y anillo de 70 px, la barra pone el aviso arriba y sube desde el borde, y «Recibidas» estrenó sus dos segmentados (periodo y resultado). Lo que se había dejado sin portar (salidas animadas, lista plegable en celular) ahora está.
+Lección: un «lo verifiqué» a ancho de escritorio no vale para celular ni para ancho intermedio; solo al abrir la app a ancho de celular real aparecieron el botón que no llenaba la barra y la cabecera que apretaba el nombre. Y comparar contra el spike a UN ancho equivalente (no a ojo) fue lo que mostró qué difería.
+
 ## 2026-09-19 (Recibir mercadería responde: resumen previo, faltantes en un toque y escáner sin callejón — ADR-0129)
 Se aplicó a `/recibir` el spike visual (`docs/maquetas/recibir-spike-2026-09/`): «Marcar las atrasadas», decisión de faltante con píldoras, escáner que ofrece agregar el comprobante que no marcaste (y «Deshacer»), resumen «Confirma lo que entra» antes de escribir movimientos, «Envío recibido» con los movimientos colgando de un hilo, y en «Recibidas» un cajón con ↑ ↓. Sin migración: `recibir_envio` no cambió.
 Verificado en el navegador como líder contra la base local (un envío real de 76 u., de la cuenta al cajón). El borrador guardado en el equipo se construyó y Felipe pidió quitarlo ese mismo día: no queda guardado en el navegador. Lección 1: una clase de la maqueta (`.mv`, el modal) chocó con otra del medidor y tapó todo de verde; solo se vio en el navegador. Lección 2: con el menú lateral, una ventana de 1440 px deja ~700 px al panel; el diseño se decide por el ancho del PANEL (container queries), no de la ventana, igual que en Proveedores.

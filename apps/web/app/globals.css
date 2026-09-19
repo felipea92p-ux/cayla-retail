@@ -876,6 +876,14 @@ body {
   50.01%, 54% { transform: translate3d(90px, 0, 0) scaleX(-1); }
   96%, 100% { transform: translate3d(-90px, 0, 0) scaleX(-1); }
 }
+@keyframes cayla-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.97); }
+}
+@keyframes cayla-barra {
+  from { transform: translate3d(0, 110%, 0); }
+  to { transform: none; }
+}
 @keyframes cayla-cinta {
   from { transform: translate3d(-100%, 0, 0); opacity: 1; }
   to { transform: translate3d(400%, 0, 0); opacity: 0; }
@@ -892,6 +900,10 @@ body {
   /* punto «vivo»: late suave junto a lo que pide atención (Atrasadas). Adorno: se detiene con movimiento reducido. */
   .punto-vivo { position: relative; }
   .punto-vivo::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit; animation: cayla-pulso 2.2s var(--ease-cayla) infinite; }
+  /* la barra fija de totales sube desde el borde al aparecer el envío (420 ms) */
+  /* lo que se quita (un chip, una fila) se va en 200 ms antes de desmontarse; con movimiento reducido, al instante */
+  .anim-sale { animation: cayla-sale 200ms var(--ease-salida) both; }
+  .anim-barra { animation: cayla-barra 420ms var(--ease-cayla) backwards; }
   .anim-cinta { animation: cayla-cinta 620ms var(--ease-cayla) both; }
   .anim-destello-lectura { animation: cayla-destello-lectura 1500ms var(--ease-cayla) backwards; }
   .recibir-camino {
@@ -945,6 +957,8 @@ body {
     .anim-vivo-fila,
     .anim-destello-lectura,
     .anim-cinta,
+    .anim-barra,
+    .anim-sale,
     .anim-sello path,
     .anim-onda,
     .recibir-hilo,
