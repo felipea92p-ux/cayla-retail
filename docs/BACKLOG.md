@@ -28,6 +28,26 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
+
+Aplicado en código y verificado en el navegador con sesión de líder (escritorio); **falta lo de producción
+y mirarlo en celular real** (ver abajo).
+
+- [ ] **Pegar en producción `20260919150000_proveedores_serie_mensual.sql`** (una función de solo lectura, con
+  ok explícito de Felipe y con el prefijo `retail.`/`set search_path` que ya trae el archivo). Hasta entonces
+  la lista se ve sin mini-tendencias ni barras mensuales — a propósito, no es un error. Después: refrescar el
+  volcado (`pnpm datos:generar:produccion`) para que `funciones-produccion.txt` la incluya.
+- [ ] **Mirarlo en celular real** (390 px): el cajón a pantalla completa, las filas de 2 columnas y el
+  filtro de rubro con desplazamiento horizontal se verificaron solo por CSS, no en un dispositivo. Y con MÁS
+  datos: la base local tiene 2 proveedores activos, así que el deslizamiento de filas se midió pero no se
+  vio con una lista larga.
+- [ ] **Regla de movimiento cambiada (Felipe, 2026-09-19): la llegada a una pantalla también se anima.**
+  Aplicada solo en Proveedores. Si otra pantalla la quiere, usa `anim-entra` con `--i` (ver el encabezado de
+  «Capa de movimiento» en `globals.css`); no es obligatoria. Falta decidir cuáles siguen (Comprobantes, Por
+  pagar, Recibir) — cada una con su verificación en navegador.
+- [ ] **Deuda menor:** la barra de «Concentración» dejó de ser un enlace a Por pagar (sus tramos son botones).
+  Si se extraña, se agrega un «Ver por pagar →» al pie de la tarjeta.
+
 ## 🎯 El dinero de Compras es solo del líder + «Recibidas» por envío (2026-09-19, ADR-0126)
 
 Rama `claude/recibir-cerrar-huecos`, sobre `main` (343e5b0). **Las dos migraciones NO están en producción: las pega

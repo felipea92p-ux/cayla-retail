@@ -27,14 +27,20 @@ import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type Reac
     Exportado el 2026-09-09: el buscador global del AppShell usa el mismo
     dispositivo, y tenerlo definido dos veces era garantía de que un día
     se movieran por separado. */
-export function Hilo({ activo, trabajando = false }: { activo: boolean; trabajando?: boolean }) {
+export function Hilo({ activo, trabajando = false, valido = false }: { activo: boolean; trabajando?: boolean; /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */ valido?: boolean }) {
   return (
     <>
       <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-tinta/25" />
       <span
         aria-hidden
         className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-center rounded-full bg-rojo transition-transform duration-300 ease-cayla ${
-          activo ? "scale-x-100" : "scale-x-0"
+          activo && !valido ? "scale-x-100" : "scale-x-0"
+        }`}
+      />
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-left rounded-full bg-verde transition-transform duration-300 ease-cayla ${
+          valido ? "scale-x-100" : "scale-x-0"
         }`}
       />
       {trabajando && (
@@ -57,7 +63,7 @@ type CampoProps = {
   ayuda?: ReactNode;
   /** Texto bajo el campo. `tono` decide el color; el alto está reservado siempre. */
   pie?: ReactNode;
-  tono?: "neutro" | "error" | "aviso";
+  tono?: "neutro" | "error" | "aviso" | "ok";
   htmlFor?: string;
   /** Id de la etiqueta, para controles compuestos (desplegable, segmentado)
       que no son un <input> y por lo tanto no se asocian con htmlFor. */
@@ -69,6 +75,7 @@ const TONO_PIE = {
   neutro: "text-tinta/65",
   error: "text-rojo",
   aviso: "text-ambar",
+  ok: "text-verde-profundo",
 } as const;
 
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, children }: CampoProps) {
@@ -101,6 +108,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   /** Algo está en vuelo por culpa de este campo (una consulta al padrón, por
       ejemplo): el hilo barre para que se vea que el sistema no se colgó. */
   trabajando?: boolean;
+  /** El valor ya está bien: el hilo de abajo se queda en verde. */
+  valido?: boolean;
 };
 
 /* Altura única de todo control de una línea (input, fecha, combo): 36px, que
@@ -119,7 +128,7 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
@@ -142,7 +151,7 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, class
             mono ? "font-mono tabular-nums tracking-wider" : ""
           } ${props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""} ${className}`}
         />
-        <Hilo activo={enfocado} trabajando={trabajando} />
+        <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />
       </div>
     </Campo>
   );
