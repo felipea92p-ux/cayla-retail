@@ -146,14 +146,16 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const hayFiltros = Object.values(filtros).some(Boolean);
 
   const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
-    listarPorRecibir(filtros, cursor),
+    // ADR-0126: quien no es líder lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
+    // tablas de dinero quedan cerradas para él en la base). El líder lee `listar_compras`, como siempre.
+    listarPorRecibir(filtros, cursor, { sinMontos: !esLider }),
     getUbicaciones(),
     getCatalogo(),
     getProveedoresActivos(),
   ]);
-  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: `resumen_compras` y
-  // `resumen_compras_extra` devuelven a un integrante los montos de su sede (solo tienen el candado de sede,
-  // ADR-0075), así que para él ni se piden — se calculan de su propia lista, solo cantidades y fechas.
+  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: esas funciones ya le
+  // responden «Solo un líder puede ver …» (ADR-0126), así que para él ni se piden — se calculan de su propia lista,
+  // solo cantidades y fechas.
   const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
   const kpis =
     resumen && extra
@@ -167,13 +169,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           valorPorRecibir: extra.valorPorRecibir as number | null,
         }
       : { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: null as number | null };
-  // Quien cuenta pero no es líder no ve dinero: los montos ni siquiera salen del servidor.
+  // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
+  // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
   const ubicacionesPermitidas = esLider ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, saldoFavorPorProveedor, trasladosPorUbicacion] = await Promise.all([
-    getLineasCompra(compras.map((c) => c.id)),
+    getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     esLider ? getSaldosFavor(compras.map((c) => c.proveedorId)) : Promise.resolve({} as Record<string, number>),
     getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),

@@ -325,17 +325,16 @@ rollback;
 );
 
 exito(
-  "sede: Micaela (Trujillo) cuenta solo la mercadería por recibir de SU sede; Felipe, la de todas",
+  "sede: el líder cuenta la mercadería por recibir de TODAS las sedes (a Micaela ya no se le entregan estas cifras: ADR-0126, ver `dinero_compras_solo_lider.mjs`)",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${foto("b_m", "select * from retail.resumen_compras_extra()")}${cambiaA(FELIPE)}${foto("b_f", "select * from retail.resumen_compras_extra()")}
+    `${BASE}${foto("b_f", "select * from retail.resumen_compras_extra()")}
 ${compra("c1")}${compra("t1", { destino: "trujillo", lineas: [10] })}
-${cambiaA(MICAELA)}select (e.unidades_pendientes - b.unidades_pendientes) as m_u, (e.valor_por_recibir - b.valor_por_recibir)::numeric(12,2) as m_v from retail.resumen_compras_extra() e, b_m b \\gset
-${cambiaA(FELIPE)}select :'m_u', :'m_v', (e.unidades_pendientes - b.unidades_pendientes), (e.valor_por_recibir - b.valor_por_recibir)::numeric(12,2) from retail.resumen_compras_extra() e, b_f b;
+select (e.unidades_pendientes - b.unidades_pendientes), (e.valor_por_recibir - b.valor_por_recibir)::numeric(12,2) from retail.resumen_compras_extra() e, b_f b;
 rollback;
 `
   ),
-  ["10", "590.00", "34", "2006.00"]
+  ["34", "2006.00"]
 );
 
 // ---------------------------------------------------------------- la entrega más atrasada
@@ -675,17 +674,16 @@ rollback;
 );
 
 exito(
-  "sede: en Por vencimiento Micaela (Trujillo) cuenta solo los comprobantes vencidos de SU sede; Felipe, todos",
+  "sede: en Por vencimiento el líder cuenta los comprobantes vencidos de TODAS las sedes (a Micaela ya no se le entrega esta cifra: ADR-0126)",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${foto("b_m", "select * from retail.deuda_por_vencimiento()")}${cambiaA(FELIPE)}${FOTO_DEUDA}
+    `${BASE}${FOTO_DEUDA}
 ${compra("c1", { vence: dia(-2) })}${compra("t1", { destino: "trujillo", vence: dia(-2) })}
-${cambiaA(MICAELA)}select (d.comprobantes - b.comprobantes) as m_n, (d.monto - b.monto)::numeric(12,2) as m_m from retail.deuda_por_vencimiento() d join b_m b on b.tramo = d.tramo where d.tramo = 'vencida' \\gset
-${cambiaA(FELIPE)}select :'m_n', :'m_m', (d.comprobantes - b.comprobantes), (d.monto - b.monto)::numeric(12,2) from retail.deuda_por_vencimiento() d join b_dv b on b.tramo = d.tramo where d.tramo = 'vencida';
+select (d.comprobantes - b.comprobantes), (d.monto - b.monto)::numeric(12,2) from retail.deuda_por_vencimiento() d join b_dv b on b.tramo = d.tramo where d.tramo = 'vencida';
 rollback;
 `
   ),
-  ["1", "1416.00", "2", "2832.00"]
+  ["2", "2832.00"]
 );
 
 // Los tres tramos de lectura y la cabecera cuentan la MISMA deuda: si alguno se separa, la pantalla se contradice.
@@ -720,16 +718,7 @@ exito(
   Array(13).fill("t")
 );
 
-exito(
-  "invariante (Micaela): las mismas identidades se cumplen dentro de su sede — cada indicador ve el mismo universo acotado",
-  comoPersona(
-    FELIPE,
-    `${BASE}${MEZCLA((i) => ["taller", "trujillo", "lima"][i % 3])}${cambiaA(MICAELA)}${INVARIANTES}
-rollback;
-`
-  ),
-  Array(13).fill("t")
-);
+// (Se quitó «invariante (Micaela)»: las identidades entre indicadores de dinero ya no se le muestran a un integrante — ADR-0126.)
 
 exito(
   "borde defensivo: una compra AL CONTADO impaga y sin vencimiento (la base lo permite, el RPC no) se cuenta como «vence hoy» en las tres lecturas — no se descarta en silencio",
@@ -838,17 +827,16 @@ rollback;
 );
 
 exito(
-  "sede: en Salidas de caja Micaela (Trujillo) ve solo la salida de SU sede (S/ 1,416.00); Felipe, las dos (S/ 2,832.00)",
+  "sede: en Salidas de caja el líder ve las salidas de TODAS las sedes (S/ 2,832.00); a Micaela ya no se le entregan (ADR-0126)",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${foto("b_m", "select * from retail.salidas_caja_30d()")}${cambiaA(FELIPE)}${FOTO_SALIDAS}
+    `${BASE}${FOTO_SALIDAS}
 ${compra("c1", { vence: dia(1) })}${compra("t1", { destino: "trujillo", vence: dia(1) })}
-${cambiaA(MICAELA)}select (s.comprobantes - b.comprobantes) as m_n, (s.monto - b.monto)::numeric(12,2) as m_m from retail.salidas_caja_30d() s join b_m b on b.orden = s.orden where s.orden = 1 \\gset
-${cambiaA(FELIPE)}select :'m_n', :'m_m', (s.comprobantes - b.comprobantes), (s.monto - b.monto)::numeric(12,2) from retail.salidas_caja_30d() s join b_sc b on b.orden = s.orden where s.orden = 1;
+select (s.comprobantes - b.comprobantes), (s.monto - b.monto)::numeric(12,2) from retail.salidas_caja_30d() s join b_sc b on b.orden = s.orden where s.orden = 1;
 rollback;
 `
   ),
-  ["1", "1416.00", "2", "2832.00"]
+  ["2", "2832.00"]
 );
 
 // ===========================================================================
@@ -1013,17 +1001,16 @@ exito(
 );
 
 exito(
-  "sede: en Por pagar Micaela (Trujillo) ve solo los vencidos de SU sede; Felipe, todos",
+  "sede: en Por pagar el líder ve los vencidos de TODAS las sedes; a Micaela ya no se le entregan (ADR-0126)",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${fotoPP("b_m")}${cambiaA(FELIPE)}${fotoPP("b_pp")}
+    `${BASE}${fotoPP("b_pp")}
 ${compra("c1", { vence: dia(-1) })}${compra("t1", { destino: "trujillo", vence: dia(-1) })}
-${cambiaA(MICAELA)}select (p.comprobantes - b.comprobantes) as m_n, (p.saldo - b.saldo)::numeric(12,2) as m_m from retail.por_pagar_tramos() p join b_m b on b.tramo = p.tramo where p.tramo = 'vencidas' \\gset
-${cambiaA(FELIPE)}select :'m_n', :'m_m', (p.comprobantes - b.comprobantes), (p.saldo - b.saldo)::numeric(12,2) from retail.por_pagar_tramos() p join b_pp b on b.tramo = p.tramo where p.tramo = 'vencidas';
+select (p.comprobantes - b.comprobantes), (p.saldo - b.saldo)::numeric(12,2) from retail.por_pagar_tramos() p join b_pp b on b.tramo = p.tramo where p.tramo = 'vencidas';
 rollback;
 `
   ),
-  ["1", "1416.00", "2", "2832.00"]
+  ["2", "2832.00"]
 );
 
 hallazgo(
@@ -1931,56 +1918,46 @@ rollback;
 );
 
 exito(
-  "permisos: comprobantes de Taller y Tienda Lima (NO de su sede) no mueven ni un sol ni una unidad en ningún indicador que ve Micaela",
+  "permisos: comprobantes de Taller y Tienda Lima (NO de su sede) no mueven ni una unidad en las lecturas de recepción que ve Micaela (las de dinero ya no se le entregan: ADR-0126)",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${FOTO_EXTRA}${FOTO_DEUDA}${FOTO_SALIDAS}${fotoPP("b_pp")}${FOTO_RC}${FOTO_RR}${cambiaA(FELIPE)}
+    `${BASE}${cambiaA(MICAELA)}${FOTO_RR}${cambiaA(FELIPE)}
 ${compra("c1", { vence: dia(-1) })}${compra("c2", { destino: "lima", vence: dia(3) })}${recibe("c1_item", 10)}
-${cambiaA(MICAELA)}select
-  (e.unidades_pendientes - x.unidades_pendientes), (e.valor_por_recibir - x.valor_por_recibir)::numeric(12,2), (e.compras_mes - x.compras_mes)::numeric(12,2), (e.igv_mes - x.igv_mes)::numeric(12,2),
-  (select coalesce(sum(d.monto - b.monto), 0)::numeric(12,2) from retail.deuda_por_vencimiento() d join b_dv b using (tramo)),
-  (select coalesce(sum(s.monto - b.monto), 0)::numeric(12,2) from retail.salidas_caja_30d() s join b_sc b using (orden)),
-  (select coalesce(sum(p.saldo - b.saldo), 0)::numeric(12,2) from retail.por_pagar_tramos() p join b_pp b using (tramo)),
-  (r.deuda - b.deuda)::numeric(12,2), (rr.recepciones - br.recepciones), (rr.unidades_recibidas - br.unidades_recibidas)
-from retail.resumen_compras_extra() e, b_x x, retail.resumen_compras() r, b_rc b, retail.resumen_recepciones() rr, b_rr br;
+${cambiaA(MICAELA)}select (rr.recepciones - br.recepciones), (rr.unidades_recibidas - br.unidades_recibidas)
+from retail.resumen_recepciones() rr, b_rr br;
 rollback;
 `
   ),
-  ["0", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0", "0"]
+  ["0", "0"]
 );
 
 hallazgo(
   "H4",
-  "DECISIÓN DE FELIPE: los indicadores de dinero de Compras devuelven a un integrante los montos de los comprobantes de SU sede (hoy solo `fn_proveedores*` y las fichas son solo-líder)",
-  "La regla de la casa es «lo financiero es solo de líder». Pero resumen_compras, resumen_compras_extra, deuda_por_vencimiento, salidas_caja_30d y por_pagar_tramos solo tienen el candado de sede " +
-    "(fn_puede_operar_ubicacion, ADR-0075): Micaela, integrante fija a Tienda Trujillo, recibe deuda, IGV, compras del mes y salidas de caja de los comprobantes destinados a Trujillo. " +
-    "No es una fuga hacia otras sedes (probado arriba: 0 de Taller y Lima) y no da más de lo que ya lee con RLS sobre `compras`/`compra_pagos`; por eso NO es un bug de código sino una tensión entre ADR-0075 (lectura acotada por sede) y la regla solo-líder. " +
-    "Si Felipe quiere cerrarlo, cada función necesita `and fn_es_lider()` (o devolver NULL como hace fn_proveedores) y esta prueba pasa sola; si decide MANTENER la lectura por sede, esta prueba se convierte en una normal que afirme los montos de su sede (o se borra).",
+  "RESUELTO (ADR-0126, decidido por Felipe el 2026-09-19): los indicadores de dinero de Compras no le entregan a un integrante ni un monto — fallan con «Solo un líder puede ver …»",
+  "Era la tensión entre ADR-0075 (lectura acotada por sede) y la regla «lo financiero es solo de líder»: resumen_compras, resumen_compras_extra, deuda_por_vencimiento, salidas_caja_30d y por_pagar_tramos " +
+    "solo tenían el candado de sede y le daban a Micaela los montos de Trujillo. Felipe decidió cerrarlo: las cinco llaman `fn_exige_dinero_de_compras` como primera instrucción (migración 20260919160000). " +
+    "Cerrar solo las funciones no bastaba —Micaela leía los mismos montos directo de `compras` y `compra_pagos`—, así que la parte B (20260919161000) cierra también las tablas, las dos vistas y el bucket de escaneos. " +
+    "Las pruebas de la regla completa viven en `dinero_compras_solo_lider.mjs`.",
   comoPersona(
     FELIPE,
-    `${BASE}${cambiaA(MICAELA)}${FOTO_EXTRA}${FOTO_DEUDA}${FOTO_SALIDAS}${fotoPP("b_pp")}${FOTO_RC}${cambiaA(FELIPE)}
-${compra("t1", { destino: "trujillo", vence: dia(-1) })}
-${cambiaA(MICAELA)}select k, v from (
-  select 'resumen_compras_extra.valor_por_recibir' as k, (e.valor_por_recibir - x.valor_por_recibir)::numeric(12,2)::text as v from retail.resumen_compras_extra() e, b_x x
-  union all select 'resumen_compras_extra.compras_mes', (e.compras_mes - x.compras_mes)::numeric(12,2)::text from retail.resumen_compras_extra() e, b_x x
-  union all select 'resumen_compras_extra.igv_mes', (e.igv_mes - x.igv_mes)::numeric(12,2)::text from retail.resumen_compras_extra() e, b_x x
-  union all select 'deuda_por_vencimiento.vencida', (select (d.monto - b.monto)::numeric(12,2)::text from retail.deuda_por_vencimiento() d join b_dv b using (tramo) where tramo = 'vencida')
-  union all select 'salidas_caja_30d.Vencido', (select (s.monto - b.monto)::numeric(12,2)::text from retail.salidas_caja_30d() s join b_sc b using (orden) where orden = 0)
-  union all select 'por_pagar_tramos.vencidas', (select (p.saldo - b.saldo)::numeric(12,2)::text from retail.por_pagar_tramos() p join b_pp b using (tramo) where tramo = 'vencidas')
-  union all select 'resumen_compras.deuda', (r.deuda - b.deuda)::numeric(12,2)::text from retail.resumen_compras() r, b_rc b
-) t;
+    `${BASE}${cambiaA(MICAELA)}do $$
+declare n integer := 0; f text;
+begin
+  foreach f in array array['resumen_compras()', 'resumen_compras_extra()', 'deuda_por_vencimiento()', 'salidas_caja_30d()', 'por_pagar_tramos()'] loop
+    begin
+      execute 'select * from retail.' || f;
+    exception when insufficient_privilege then
+      n := n + 1;
+    end;
+  end loop;
+  if n <> 5 then raise exception 'solo % de 5 la rechazaron', n; end if;
+end;
+$$;
+select 'ok';
 rollback;
 `
   ),
-  [
-    ["resumen_compras_extra.valor_por_recibir", "0.00"],
-    ["resumen_compras_extra.compras_mes", "0.00"],
-    ["resumen_compras_extra.igv_mes", "0.00"],
-    ["deuda_por_vencimiento.vencida", "0.00"],
-    ["salidas_caja_30d.Vencido", "0.00"],
-    ["por_pagar_tramos.vencidas", "0.00"],
-    ["resumen_compras.deuda", "0.00"],
-  ]
+  ["ok"]
 );
 
 exito(
@@ -1999,12 +1976,11 @@ rollback;
 );
 
 exito(
-  "sin sesión (auth.uid() nulo): ninguna de las 12 lecturas devuelve filas — ni una cifra a quien no está autenticado",
+  "sin sesión (auth.uid() nulo): ninguna de las 7 lecturas de recepciones y proveedores devuelve filas — ni una cifra a quien no está autenticado (las 5 de dinero fallan: ADR-0126)",
   comoPersona(
     FELIPE,
     `${BASE}set local request.jwt.claim.sub = '';
-select (select count(*) from retail.resumen_compras()) + (select count(*) from retail.resumen_compras_extra()) + (select count(*) from retail.deuda_por_vencimiento())
-  + (select count(*) from retail.salidas_caja_30d()) + (select count(*) from retail.por_pagar_tramos()) + (select count(*) from retail.resumen_recepciones())
+select (select count(*) from retail.resumen_recepciones())
   + (select count(*) from retail.listar_recepciones_compras()) + (select count(*) from retail.resumen_sin_comprobante()) + (select count(*) from retail.recepciones_sin_comprobante())
   + (select count(*) from retail.fn_proveedores()) + (select count(*) from retail.fn_proveedores_resumen()) + (select count(*) from retail.fn_proveedor_creditos(:'prov1'));
 rollback;
