@@ -3556,6 +3556,49 @@ export type Database = {
           ubicacion_asignada: string
         }[]
       }
+      fn_comercial_colaboradoras: {
+        Args: { p_dia?: string }
+        Returns: {
+          bruto_mes: number
+          descuento_mes: number
+          persona_id: string | null
+          tickets_hoy: number
+          tickets_mes: number
+          ubicacion_id: string
+          unidades_mes: number
+          ventas_hoy: number
+          ventas_mes: number
+        }[]
+      }
+      fn_comercial_horas: {
+        Args: { p_dia?: string }
+        Returns: {
+          hora: number
+          tickets: number
+          ubicacion_id: string
+          ventas: number
+        }[]
+      }
+      fn_comercial_sedes: {
+        Args: { p_dia?: string }
+        Returns: {
+          devuelto_hoy: number
+          devuelto_mes: number
+          devuelto_semana: number
+          meta_venta_diaria: number | null
+          nombre: string
+          tickets_hoy: number
+          tickets_mes: number
+          tickets_semana: number
+          ubicacion_id: string
+          unidades_hoy: number
+          unidades_mes: number
+          unidades_semana: number
+          ventas_hoy: number
+          ventas_mes: number
+          ventas_semana: number
+        }[]
+      }
       fn_conteos_resumen: {
         Args: { p_limite?: number; p_ubicacion_id: string }
         Returns: {
