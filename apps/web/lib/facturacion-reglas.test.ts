@@ -175,7 +175,7 @@ describe("conteosDePestanas", () => {
   });
 
   it("Comprobantes en rojo si SUNAT rechazó alguno", () => {
-    expect(conteosDePestanas(cola(3, 1), null).comprobantes).toMatchObject({ valor: 3, tono: "rojo" });
+    expect(conteosDePestanas(cola(3, 1), null).comprobantes).toEqual({ valor: 3, tono: "rojo", texto: "por enviar a SUNAT, con rechazados" });
   });
 
   it("Proformas en neutro, contando solo las vigentes que aún valen", () => {
