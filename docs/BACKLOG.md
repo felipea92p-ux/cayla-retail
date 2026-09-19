@@ -301,7 +301,7 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
       15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
-      16. `20260918219000_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — **CORRECCIÓN URGENTE**:
+      16. `20260918219100_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — (renombrada desde `20260918219000` el 2026-09-19: chocaba de versión con `..._con_token`, de otra sesión; las dos son idempotentes, ya corrieron en producción y dejan la misma firma de 15 parámetros; esta va última porque además revoca a `anon`. La producción no lee nombres de archivo.) **CORRECCIÓN URGENTE**:
           al pegar la 217000 en producción, `registrar_compra` quedó con DOS firmas (14 y 15 parámetros) y
           Registrar comprobante falla con «function is not unique». Esta suelta la de 14 y deja UNA de 15
           (la de producción, con `p_token`) más el medio «Saldo a favor». Verificado en producción el
