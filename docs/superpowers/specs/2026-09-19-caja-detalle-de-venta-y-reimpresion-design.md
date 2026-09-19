@@ -1,6 +1,6 @@
 # Caja: «Ver todo», detalle de venta y reimpresión (ticket y boleta A4)
 
-**Fecha:** 2026-09-19 · **Estado:** para revisión de Felipe · **Rama:** `claude/caja-cabecera-atelier`
+**Fecha:** 2026-09-19 · **Estado:** aprobado por Felipe; construido (ver «Desvíos respecto de este spec» al final) · **Rama:** `claude/caja-cabecera-atelier`
 
 ## Qué se quiere
 
@@ -91,3 +91,20 @@ La estructura de arriba es el piso legal; el aspecto se mejora así. Todo lo de 
 - **Orden con producción:** el detalle lee `venta_pagos.recibido`. Si el código llega a producción (Vercel despliega cada push a `main`) antes de la migración, esa lectura falla. **La migración se aplica primero.**
 - **Redondeo del A4:** los totales por línea se muestran sin IGV y su suma puede diferir 1 centavo de «Op. gravada» (la base la calcula del total). Se decide en el plan: mostrar `subtotal` de la base y ajustar la última línea, o mostrar el total con IGV por línea.
 - **Sin captura de la impresión real:** el aspecto de la térmica y del A4 impreso hay que mirarlo en la impresora de Felipe; en pantalla solo se ve la vista previa.
+
+## Desvíos respecto de este spec (2026-09-19, al cerrar)
+
+- **«Importe de venta» volvió** al bloque de importes (Felipe lo pidió al ver la maqueta): es el total con
+  IGV, sobre la «Op. gravada». La dirección de diseño decía que se retiraba por repetir el TOTAL.
+- **No hay `pegar-en-produccion-….sql` aparte**: la migración `20260919160000_venta_pagos_recibido.sql` ya lleva
+  `retail.` y su `search_path`, y se pega tal cual.
+- **La dirección de la clienta sigue sin guardarse.** El A4 la muestra solo en factura y en blanco; guardarla
+  es un cambio aparte (columna en `comprobantes` y llevarla a Lucode).
+- **El centavo de ajuste** quedó como decía el spec (opción A): se le da a la última línea de `lineasA4`.
+- **Se agregó un texto lateral** de bajo contraste, «Generado por Cayla POS - Contacto: info@cayla.pe»: va en un
+  canal de 6 mm DENTRO del área imprimible (Chrome no imprime en el margen de la hoja) y `fixed` al imprimir
+  para repetirse en cada hoja.
+- **El correlativo del A4 va a 8 dígitos** (`B002-00009380`, como la representación impresa de SUNAT); el ticket y
+  el resto de la app siguen con 6.
+- **Mientras se construía** salieron, por pedido de Felipe y en otra rama (`claude/vender-cobro-guiado`), el cobro
+  guiado de Vender, el campo de monto que se vacía y el reparto del restante entre dos medios.

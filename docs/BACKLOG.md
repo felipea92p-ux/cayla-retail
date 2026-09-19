@@ -28,6 +28,29 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
+
+Felipe pidió que en «Movimientos recientes» hubiera un «Ver todo» y que una venta abriera su detalle
+con reimpresión de la boleta, en ticket y en A4 con el diseño de CAYLA. Spec y plan en
+`docs/superpowers/`; decisiones en ADR-0137.
+
+- [x] **Vuelto guardado** — `venta_pagos.recibido` (candado: solo efectivo, nunca menor que `monto`)
+      y `registrar_venta` que lo lee, misma firma. Vender lo manda (`pagosParaRpc`) y la cola offline lo
+      conserva. Verificado en local con ventas reales. **Ventas anteriores: sin vuelto, no se inventa.**
+- [x] **«Ver todo» + detalle de venta + ticket con vuelto** — modales apilados, «Reintentar» si falla la
+      lectura, y solo se reimprime lo que tiene validez (`puedeImprimir`).
+- [x] **Boleta / factura A4** — desde nuestra fila `comprobantes`, con la estructura de la de Alegra y el
+      diseño de CAYLA. Verificada con el PDF real del motor de Chrome (1 hoja A4; 3 hojas con 45 líneas).
+- [ ] **⚠️ Pegar `20260919160000_venta_pagos_recibido.sql` en producción ANTES de fusionar.** Felipe la
+      pega en el SQL Editor de cayla-dynamic (ya lleva `retail.`). Confirmar en `pg_proc` UNA sola
+      `registrar_venta`. Después refrescar el volcado de `docs/datos/generado/` y correr
+      `pnpm datos:generar:produccion` (nunca `pnpm datos:generar` a secas).
+- [ ] **Probar la impresión de verdad**: la térmica y una impresora A4, con el diálogo real. Solo se
+      verificó el PDF del motor de Chrome, no el papel.
+- [ ] **Guardar la dirección de la clienta para la factura** — hoy el A4 imprime la línea «Dirección»
+      en blanco. El padrón de RUC sí la trae; falta una columna en `comprobantes` y llevarla a Lucode.
+- [ ] **Punto de venta (`/vender`): misma cabecera y entrada que Caja** — hoy solo dice «Cargando caja…».
+
 ## 🎯 Cambios: flujo guiado, motivo y estado de la prenda que vuelve (2026-09-18, ADR-0125)
 
 Felipe no quedó convencido con la pantalla del PR #128 y pidió primero una auditoría y

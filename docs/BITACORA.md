@@ -10,12 +10,16 @@ movimientos en un modal con scroll propio (la tarjeta sigue mostrando 8). Cada v
 detalle: prendas con talla, color y código, pagos con lo recibido y el vuelto, IGV, comprobante y su estado.
 «Imprimir ticket» reutiliza `ReciboTermico`, ahora CON vuelto porque la venta lo guarda
 (`venta_pagos.recibido`); una venta anterior a esa columna sale sin línea de vuelto. Los modales se apilan
-(Esc cierra el de arriba) y el detalle tiene «No pudimos cargar esta venta» con «Reintentar».
+(Esc cierra el de arriba) y el detalle tiene «No pudimos cargar esta venta» con «Reintentar». Además,
+«Imprimir boleta A4» (o factura): armada desde nuestra fila `comprobantes` con el diseño de CAYLA, verificada
+con el PDF real de Chrome (1 hoja A4; 3 con 45 líneas). ADR-0137.
 
 **Qué se aprendió.** Con sesión iniciada, una vista temporal bajo `/login/...` te manda a Inicio: para
 verificar hay que ponerla bajo una ruta de la app (p. ej. `/caja/vista-previa`). El caché `.next` se corrompe
 al cambiar de rama con el servidor corriendo («Cannot find module … turbopack_runtime»): parar, borrar `.next`
-y relevantar. Pendiente: la boleta A4 (Tarea 7–8) y aplicar la migración del vuelto en producción.
+y relevantar. Chrome NO imprime nada en el margen de la hoja: un texto lateral que se veía en pantalla desaparecía en el
+PDF (ahora va en un canal dentro del área imprimible). Pendiente: aplicar la migración del vuelto en producción
+ANTES de fusionar, y probar con la impresora de Felipe.
 
 ## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
 
