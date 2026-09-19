@@ -230,8 +230,15 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
 
+**Producción (módulo padre, ADR-0133 — F1 aplicada 2026-09-19)**
+- El lateral agrupa bajo «Producción» las 4 pantallas de Compras (`/compras/proveedores`,
+  `/compras`, `/recibir`, `/compras/por-pagar`, **URLs sin cambio**) y `/produccion/ordenes`;
+  el grupo «Compras» ya no existe. Qué ve cada perfil: `lib/produccion-menu.ts`
+  (`hijosMenuProduccion`, puro, con tests). `/produccion` redirige a `/produccion/ordenes`
+  hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
+
 **Producción (Taller)**
-- `/produccion` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
+- `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
   (puro: etapas, semáforo de margen, costo unitario) → `OrdenesProduccionV2.tsx`
   (en proceso / terminadas / anuladas; RPC `set_etapa_produccion`,
@@ -265,11 +272,22 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `motivoBloqueoCobro` (por qué el botón está apagado, derivado una vez),
   `aplicarDescuento`/`descuentoUnitarioPorPorcentaje`/`porcentajeDeLinea`,
   `restanteDePagos`/`vueltoDe` (pago mixto: `p_pagos` viaja como lista de
-  `{ metodo, monto }`, una fila por medio en `venta_pagos`; el `recibido` del efectivo es
-  solo de pantalla). El reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`,
+  `{ metodo, monto, recibido? }`, una fila por medio en `venta_pagos`; `pagosParaRpc` decide
+  qué viaja y el `recibido` del efectivo se guarda en `venta_pagos.recibido`, ADR-0137;
+  `pagosTrasEditarMonto` reparte el restante con dos medios y `pasoDelCobro` marca el paso
+  que toca), `CampoMonto`, `PasosCobro` y `BilleteRapido`. El reflujo de las líneas es `Flip` de GSAP (`lib/motion-gsap.ts`,
   ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
+- **Caja: «Ver todo», detalle de venta y reimpresión** (ADR-0137). `CajaAbiertaPanel` calcula
+  todos los movimientos (`FilaMovimientoCaja`: las ventas son botón) y la tarjeta muestra 8;
+  `MovimientosCajaModal` los lista todos con scroll propio. `DetalleVentaModal` lee la venta al
+  abrir con `lib/venta-detalle.ts:leerVentaDetalle` (cliente del navegador, la RLS decide quién ve
+  qué) y arma el `VentaDetalle` con `lib/venta-detalle-reglas.ts:armarDetalleVenta` (puro; el
+  vuelto sale de `venta_pagos.recibido`, NULL en ventas anteriores a 2026-09-19). Imprime con
+  `ReciboTermico` (`#comprobante-print`) o `BoletaA4` (`#boleta-a4-print`, `lib/boleta-a4-reglas.ts`,
+  `@page a4` en `globals.css`): una sola raíz de impresión pegada a `<body>` a la vez, y solo si
+  `puedeImprimir(estado)` lo permite. Los modales van FUERA del `@container` del panel.
 - **Cambios y Devoluciones comparten lector y piezas** (ADR-0125/0122): `lib/ventas-v2.ts:
   getVentasRecientes` (actividad = ventas de la sede de los últimos 15 días; búsqueda por
   boleta, DNI/RUC o nombre de la clienta —de `comprobantes`—, nombre o etiqueta de la prenda,
@@ -465,7 +483,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 |---|---|
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
-| `registrar_venta` | Venta + N movimientos de salida |
+| `registrar_venta` | Venta + N movimientos de salida; guarda `venta_pagos.recibido` (efectivo entregado) desde 2026-09-19 (ADR-0137, una sola firma de 11 parámetros) |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |

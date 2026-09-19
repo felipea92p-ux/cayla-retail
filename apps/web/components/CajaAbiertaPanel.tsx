@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Unlock,
   Banknote,
@@ -10,12 +10,15 @@ import {
   CircleMinus,
   CircleCheck,
   TriangleAlert,
-  ShoppingBag,
   History,
 } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
+import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimientoCaja";
+import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
+import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { Sparkline, TendenciaCierres } from "@/components/ui/Graficos";
 import { DonaMetodos, type SegmentoDona } from "@/components/ui/DonaMetodos";
@@ -26,7 +29,7 @@ import { useAumento, useIdsNuevos } from "@/lib/useNovedades";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
-import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -61,6 +64,9 @@ export type VentaDelDia = {
 const idVenta = (v: VentaDelDia) => v.ventaId;
 const idMovimiento = (m: MovimientoCaja) => m.id;
 
+/** Cuántos movimientos muestra la tarjeta del tablero; el resto se ve en «Ver todo». */
+const LIMITE_TARJETA = 8;
+
 export function CajaAbiertaPanel({
   ubicacionNombre,
   personaNombre,
@@ -84,7 +90,9 @@ export function CajaAbiertaPanel({
   metaVentaDiaria: number | null;
   cierresRecientes: CierreCaja[];
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | null>(null);
+  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | null>(null);
+  // La venta cuyo detalle está abierto. Aparte de `modal`: se apila sobre «Ver todo».
+  const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
   // Cola de ventas offline de ESTA sede (ADR-0092): ver nota original en este
   // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
@@ -125,17 +133,7 @@ export function CajaAbiertaPanel({
   if (yapePlin > 0) segmentosDona.push({ etiqueta: "Yape / Plin", valor: yapePlin, color: "var(--color-metodo-yape)" });
   const totalDona = segmentosDona.reduce((a, s) => a + s.valor, 0);
 
-  type EventoTimeline = {
-    id: string;
-    minutos: number;
-    horaTexto: string;
-    icono: "venta" | "ingreso" | "egreso";
-    titulo: string;
-    meta: string;
-    monto: number;
-    color: string;
-  };
-  const eventos: EventoTimeline[] = [
+  const todosLosEventos: EventoCaja[] = [
     ...ventasHoy.map((v) => ({
       id: v.ventaId,
       minutos: minutosDeHora(v.hora),
@@ -159,9 +157,9 @@ export function CajaAbiertaPanel({
         color: m.tipo === "egreso" ? "var(--color-rojo)" : "var(--color-verde)",
       };
     }),
-  ]
-    .sort((a, b) => b.minutos - a.minutos)
-    .slice(0, 8);
+  ].sort((a, b) => b.minutos - a.minutos);
+  // La tarjeta muestra las más recientes; «Ver todo» abre el resto sin alargar el tablero.
+  const eventos = todosLosEventos.slice(0, LIMITE_TARJETA);
 
   // Hasta 14: el gráfico solo muestra los 7 más viejos cuando su tarjeta es lo bastante ancha (TendenciaCierres).
   const cierresUbicacion = cierresRecientes
@@ -171,7 +169,7 @@ export function CajaAbiertaPanel({
   const maxCierre = Math.max(...cierresUbicacion.map((c) => c.montoCierreSistema), 0.0001);
 
   return (
-    <div className="anim-entrada pb-8">
+    <div className="pb-8">
       {/* La disposición decide por el ancho del PROPIO tablero (`@container`), no por el de la ventana: la barra
           lateral y los márgenes se comen ~350 px, así que la misma pantalla da 700 px de tablero o 1500. Los
           modales van FUERA de este contenedor: `container-type` aplica contención de layout y ataría su `fixed`
@@ -180,34 +178,40 @@ export function CajaAbiertaPanel({
           riel alto a la derecha). */}
       <div className="@container space-y-4">
         {/* ---------- Encabezado ---------- */}
-        {/* Tres zonas cuando hay ancho (identidad · hora del turno · acciones); dos con ancho medio (la hora baja
-            bajo la identidad, junto a las acciones) y apilado en angosto. Las acciones (ingreso/egreso y cerrar)
-            viven arriba y a un lado, no en una barra fija abajo. Sin avatar: las iniciales no aportaban nada. */}
-        <div className="card-cayla grid items-center gap-x-8 gap-y-1.5 p-6 @[720px]:grid-cols-[1fr_auto] @[1400px]:grid-cols-[1fr_auto_1fr]">
-          <div className="min-w-0">
-            <p className="label-cayla text-[11px] text-tinta/55">Caja · {ubicacionNombre}</p>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="font-display text-2xl text-tinta">Caja abierta</h1>
+        {/* La misma cabecera de Cambios y Devoluciones (`EncabezadoPagina`, Atelier): dónde y cuándo arriba con el
+            hilo, el título grande, y a la derecha la pieza viva de la pantalla — aquí el reloj del turno. Las acciones
+            (ingreso/egreso y cerrar) van bajo la frase; el estado de la cola offline, sobre el reloj. La hora corre en el reloj, así
+            que la línea de arriba dice solo el día. Sin avatar: las iniciales no aportaban nada. */}
+        <div className="pb-3">
+          <EncabezadoPagina
+            sede={ubicacionNombre}
+            titulo="Caja"
+            subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
+            sinHora
+            pie={
+              <>
+                <Boton peso="discreto" onClick={() => setModal("movimiento")}>
+                  + Ingreso / egreso
+                </Boton>
+                <Boton peso="primario" onClick={() => setModal("cerrar")}>
+                  Cerrar caja
+                </Boton>
+              </>
+            }
+          >
+            {/* El estado de la cola offline vive sobre el reloj: las dos piezas «en vivo» juntas, y en la
+                izquierda quedan solo las acciones. Entre las dos miden lo mismo que la columna de la izquierda
+                (~170 px), así que la cabecera no crece. */}
+            <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
               <EstadoSync pendientes={cola.length} />
+              <RelojDeCaja abiertaEn={caja.abiertaEn} />
             </div>
-            <p className="mt-0.5 text-[13px] text-tinta/65">
-              {personaNombre} · {personaRol === "lider" ? "Líder de equipo" : "Integrante"}
-            </p>
-          </div>
-          <RelojDeCaja abiertaEn={caja.abiertaEn} className="@[720px]:col-start-1 @[1400px]:col-start-2 @[1400px]:row-start-1" />
-          <div className="mt-2.5 flex w-full gap-2.5 @[720px]:col-start-2 @[720px]:row-start-1 @[720px]:row-span-2 @[720px]:mt-0 @[720px]:w-auto @[720px]:justify-self-end @[1400px]:col-start-3 @[1400px]:row-span-1">
-            <Boton peso="discreto" className="flex-1 @[720px]:flex-none" onClick={() => setModal("movimiento")}>
-              + Ingreso / egreso
-            </Boton>
-            <Boton peso="primario" className="flex-1 @[720px]:flex-none" onClick={() => setModal("cerrar")}>
-              Cerrar caja
-            </Boton>
-          </div>
+          </EncabezadoPagina>
         </div>
 
         {/* ---------- Meta del día (solo si la ubicación tiene una configurada) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
-          <div className="card-cayla p-5">
+          <div className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
             <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-1.5">
               <span className="label-cayla text-[11px] text-tinta/55">Meta del día</span>
               <span className="text-sm font-semibold text-tinta">
@@ -225,8 +229,9 @@ export function CajaAbiertaPanel({
 
         {/* ---------- KPIs ---------- */}
         <div className="grid grid-cols-2 gap-3 @[560px]:grid-cols-3 @[800px]:grid-cols-5">
-          <TarjetaKpi etiqueta="Apertura" valor={caja.montoApertura} icono={<Unlock size={15} aria-hidden />} colorBorde="var(--color-taupe)" />
+          <TarjetaKpi indice={3} etiqueta="Apertura" valor={caja.montoApertura} icono={<Unlock size={15} aria-hidden />} colorBorde="var(--color-taupe)" />
           <TarjetaKpi
+            indice={4}
             etiqueta="Ventas efectivo"
             valor={resumen.ventasEfectivo}
             icono={<Banknote size={15} aria-hidden />}
@@ -234,14 +239,15 @@ export function CajaAbiertaPanel({
             sparkline={series.porHora.map((p) => p.efectivo)}
           />
           <TarjetaKpi
+            indice={5}
             etiqueta="Ventas otro método"
             valor={resumen.ventasOtros}
             icono={<CreditCard size={15} aria-hidden />}
             colorBorde="var(--color-taupe)"
             sparkline={series.porHora.map((p) => p.otros)}
           />
-          <TarjetaKpi etiqueta="Ingresos" valor={resumen.ingresos} icono={<CirclePlus size={15} aria-hidden />} colorBorde="var(--color-verde)" />
-          <TarjetaKpi etiqueta="Egresos" valor={resumen.egresos} icono={<CircleMinus size={15} aria-hidden />} colorBorde="var(--color-rojo)" />
+          <TarjetaKpi indice={6} etiqueta="Ingresos" valor={resumen.ingresos} icono={<CirclePlus size={15} aria-hidden />} colorBorde="var(--color-verde)" />
+          <TarjetaKpi indice={7} etiqueta="Egresos" valor={resumen.egresos} icono={<CircleMinus size={15} aria-hidden />} colorBorde="var(--color-rojo)" />
         </div>
 
         {/* ---------- Cuerpo ---------- */}
@@ -252,7 +258,7 @@ export function CajaAbiertaPanel({
             "Movimientos" como riel alto a la derecha —su alto natural coincide con las dos filas de la
             izquierda— y el historial ocupando dos columnas. En angosto, una columna: lo vivo antes que lo viejo. */}
         <div className="grid gap-3 @[900px]:grid-cols-2 @[1400px]:grid-cols-3">
-          <div className="card-cayla flex flex-col p-5">
+          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 5 } as CSSProperties}>
             <p className="text-sm font-bold text-tinta">Métodos de pago</p>
             <p className="mb-3.5 text-xs text-tinta/50">Distribución de ventas de esta caja</p>
             {segmentosDona.length === 0 ? (
@@ -262,13 +268,13 @@ export function CajaAbiertaPanel({
             )}
           </div>
 
-          <div className="card-cayla flex flex-col p-5">
+          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 6 } as CSSProperties}>
             <p className="text-sm font-bold text-tinta">Ritmo del día</p>
             <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
             <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
           </div>
 
-          <div className="card-cayla order-last flex flex-col p-5 @[900px]:order-none @[900px]:col-span-2">
+          <div className="card-cayla anim-sube order-last flex flex-col p-5 @[900px]:order-none @[900px]:col-span-2" style={{ "--i": 8 } as CSSProperties}>
             <p className="text-sm font-bold text-tinta">Historial de cierres</p>
             <p className="mb-3.5 text-xs text-tinta/50">Últimos días · {ubicacionNombre}</p>
             <TendenciaCierres
@@ -287,37 +293,28 @@ export function CajaAbiertaPanel({
               <History size={12} aria-hidden /> Ver historial completo
             </Link>
           </div>
-          <div className="card-cayla @container flex flex-col p-5 @[900px]:col-span-2 @[1400px]:col-span-1 @[1400px]:col-start-3 @[1400px]:row-start-1 @[1400px]:row-span-2">
-            <p className="text-sm font-bold text-tinta">Movimientos recientes</p>
-            <p className="mb-1.5 text-xs text-tinta/50">Últimos registros de esta caja</p>
+          <div className="card-cayla anim-sube @container flex flex-col p-5 @[900px]:col-span-2 @[1400px]:col-span-1 @[1400px]:col-start-3 @[1400px]:row-start-1 @[1400px]:row-span-2" style={{ "--i": 7 } as CSSProperties}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-tinta">Movimientos recientes</p>
+                <p className="mb-1.5 text-xs text-tinta/50">Últimos registros de esta caja</p>
+              </div>
+              {todosLosEventos.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setModal("todos")}
+                  className="label-cayla shrink-0 rounded-md px-2 py-1 text-[11px] text-taupe-profundo transition-colors hover:bg-sand/40 hover:text-tinta"
+                >
+                  Ver todo{todosLosEventos.length > LIMITE_TARJETA ? ` (${todosLosEventos.length})` : ""}
+                </button>
+              )}
+            </div>
             {eventos.length === 0 ? (
               <p className="py-6 text-center text-xs text-tinta/50">Todavía no hay movimientos.</p>
             ) : (
               <div className="divide-y divide-sand @[640px]:columns-2 @[640px]:gap-x-10">
                 {eventos.map((e) => (
-                  // `isolate` + el velo en `-z-10`: el resaltado de una fila nueva queda DETRÁS de su texto.
-                  <div key={e.id} className="anim-revelar relative isolate flex items-center gap-3 py-2.5 @[640px]:break-inside-avoid">
-                    {idsNuevos.has(e.id) && (
-                      <span aria-hidden className="anim-vivo-fila pointer-events-none absolute -inset-x-2 inset-y-0.5 -z-10 rounded-lg bg-verde/15" />
-                    )}
-                    <div
-                      aria-hidden
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `color-mix(in srgb, ${e.color} 14%, transparent)`, color: e.color }}
-                    >
-                      {e.icono === "venta" ? <ShoppingBag size={14} /> : e.icono === "ingreso" ? <CirclePlus size={14} /> : <CircleMinus size={14} />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold text-tinta">{e.titulo}</p>
-                      <p className="text-[11.5px] text-tinta/50">
-                        {e.horaTexto} · {e.meta}
-                      </p>
-                    </div>
-                    <p key={e.monto} className={`anim-asentar shrink-0 text-sm font-bold tabular-nums ${e.monto < 0 ? "text-rojo" : "text-verde-profundo"}`}>
-                      {e.monto < 0 ? "−" : "+"}
-                      {money(Math.abs(e.monto))}
-                    </p>
-                  </div>
+                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
                 ))}
               </div>
             )}
@@ -328,11 +325,30 @@ export function CajaAbiertaPanel({
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} onClose={() => setModal(null)} />}
+      {modal === "todos" && (
+        <MovimientosCajaModal
+          eventos={todosLosEventos}
+          idsNuevos={idsNuevos}
+          ubicacionNombre={ubicacionNombre}
+          onAbrirVenta={setVentaAbiertaId}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {ventaAbiertaId && (
+        <DetalleVentaModal
+          ventaId={ventaAbiertaId}
+          vendedor={ventasHoy.find((v) => v.ventaId === ventaAbiertaId)?.vendedor ?? null}
+          ubicacionNombre={ubicacionNombre}
+          onClose={() => setVentaAbiertaId(null)}
+        />
+      )}
     </div>
   );
 }
 
-const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+// Hora de Lima, la de las tiendas: la misma que dice `FechaHoraLima` en las demás cabeceras.
+const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+const FORMATO_HORA_CORTA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
 
 /** Cada dígito es su propia caja de ancho fijo y se remonta (`key`) solo cuando cambia: rueda
  *  a su lugar únicamente el que cambió, y el reloj no baila de lado a lado. */
@@ -345,26 +361,6 @@ function Digitos({ texto }: { texto: string }) {
         </span>
       ))}
     </>
-  );
-}
-
-/** Aguja de segundos: da la vuelta cada 60 s y arranca ya en el segundo real. Se fija en un
- *  efecto porque `Date.now()` no puede leerse al renderizar (un minuto UTC coincide con el
- *  local: todos los husos horarios son múltiplos de un minuto). */
-function Aguja() {
-  const ref = useRef<SVGGElement>(null);
-  useEffect(() => {
-    ref.current?.style.setProperty("animation-delay", `${-(Date.now() % 60_000) / 1000}s`);
-  }, []);
-  return (
-    <svg viewBox="0 0 20 20" className="h-[19px] w-[19px] shrink-0 text-tinta/70 @[1400px]:h-[26px] @[1400px]:w-[26px]" aria-hidden>
-      <circle cx="10" cy="10" r="8.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M10 2.6v1.6M17.4 10h-1.6M10 17.4v-1.6M2.6 10h1.6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      <g ref={ref} className="anim-caja-aguja">
-        <line x1="10" y1="10" x2="10" y2="4.4" stroke="var(--color-tinta)" strokeWidth="1.3" strokeLinecap="round" />
-      </g>
-      <circle cx="10" cy="10" r="1.3" fill="var(--color-tinta)" />
-    </svg>
   );
 }
 
@@ -382,50 +378,61 @@ function useAhora(cadaMs: number): Date | null {
   return ahora;
 }
 
-/** Reloj del turno: la hora que corre, desde cuándo está abierta la caja y cuánto lleva. Con ancho de
- *  tablero se vuelve la pieza central del encabezado (dos líneas, hora grande); si no, una sola línea bajo
- *  la identidad. `className` trae su lugar en la cuadrícula del encabezado. */
-function RelojDeCaja({ abiertaEn, className = "" }: { abiertaEn: string; className?: string }) {
+/** Reloj del turno (Atelier): la hora que corre y, debajo, el turno como un hilo que se va cosiendo desde la
+ *  apertura — cada marca es una hora — con cuánto lleva abierta la caja. Es la pieza viva de la cabecera, a la
+ *  derecha del título. La tarjeta es siempre la misma (no se remonta al llegar la hora): así su entrada no se
+ *  repite. Los dígitos ruedan uno a uno (`Digitos`); el hilo y el punto avanzan con una transición de 1 s lineal,
+ *  igual al intervalo del reloj, para que se deslicen en vez de saltar. */
+function RelojDeCaja({ abiertaEn }: { abiertaEn: string }) {
   const ahora = useAhora(1000);
+  const tarjeta =
+    "anim-sube w-full rounded-[20px] bg-papel/70 px-6 py-[18px] shadow-[0_22px_44px_-30px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] backdrop-blur-sm sm:w-auto sm:min-w-[300px]";
 
-  // Reserva el alto de la línea para que el encabezado no salte al montar.
-  if (!ahora) {
-    return (
-      <p aria-hidden className={`mt-1.5 h-[22px] text-[13px] text-tinta/35 @[1400px]:mt-0 @[1400px]:h-[66px] @[1400px]:text-center ${className}`}>
-        —
-      </p>
-    );
-  }
+  // Nace vacío (servidor y primer render del cliente) y reserva el alto para que el encabezado no salte.
+  if (!ahora) return <div aria-hidden className={`${tarjeta} h-[132px]`} style={{ "--i": 1 } as CSSProperties} />;
 
   const p = Object.fromEntries(FORMATO_HORA.formatToParts(ahora).map((x) => [x.type, x.value]));
   const h = p.hour ?? "";
   const m = p.minute ?? "";
   const s = p.second ?? "";
   const periodo = p.dayPeriod ?? "";
-  const desde = new Date(abiertaEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+  const desde = FORMATO_HORA_CORTA.format(new Date(abiertaEn));
   const lleva = duracionAbierta(abiertaEn, ahora.getTime());
+  const { horas, fraccion } = escalaTurno((ahora.getTime() - new Date(abiertaEn).getTime()) / 60_000);
+  const avance = `${(fraccion * 100).toFixed(2)}%`;
   return (
-    <p
-      className={`mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-tinta/65 @[1400px]:mt-0 @[1400px]:flex-col @[1400px]:gap-y-2.5 @[1400px]:text-[14px] ${className}`}
-    >
-      <span className="inline-flex items-center gap-2 font-display text-[21px] leading-none text-tinta @[1400px]:gap-3 @[1400px]:text-[32px]">
-        <Aguja />
-        <span aria-hidden>
-          <Digitos texto={h} />:<Digitos texto={m} />:<Digitos texto={s} />
+    <div className={tarjeta} style={{ "--i": 1 } as CSSProperties}>
+      <div className="font-display flex items-baseline gap-2 lining-nums tabular-nums text-tinta">
+        <span aria-hidden className="text-[52px] leading-none">
+          <Digitos texto={h} />:<Digitos texto={m} />
         </span>
-        <span aria-hidden className="label-cayla ml-0.5 text-[10px] text-tinta/55 @[1400px]:text-[12px]">
+        <span aria-hidden className="text-[22px] leading-none text-taupe-profundo">
+          :<Digitos texto={s} />
+        </span>
+        <span aria-hidden className="label-cayla ml-0.5 text-[11px] text-tinta/55">
           {periodo}
         </span>
         <span className="sr-only">{`${h}:${m}:${s} ${periodo}`}</span>
-      </span>
-      <span aria-hidden className="hidden h-3.5 w-px bg-tinta/15 sm:block @[1400px]:hidden" />
-      <span>
-        Abierta desde las {desde} · lleva{" "}
-        <b key={lleva} className="anim-asentar inline-block font-semibold text-tinta/80">
-          {lleva}
-        </b>
-      </span>
-    </p>
+      </div>
+      <div aria-hidden className="relative mb-2 mt-4 h-px bg-sand">
+        {Array.from({ length: horas + 1 }, (_, i) => (
+          <i key={i} className="absolute -top-[3px] h-[7px] w-px bg-tinta/25" style={{ left: `${(i / horas) * 100}%` }} />
+        ))}
+        <div className="hilo-dibuja absolute -top-px left-0 h-[3px] rounded-full bg-taupe transition-[width] duration-1000 ease-linear" style={{ width: avance }} />
+        <span className="absolute -top-1 h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-tinta transition-[left] duration-1000 ease-linear" style={{ left: avance }} />
+      </div>
+      <p className="flex justify-between gap-6 text-xs text-tinta/65">
+        <span>
+          Abrió <b className="font-medium text-tinta/85">{desde}</b>
+        </span>
+        <span>
+          Lleva{" "}
+          <b key={lleva} className="anim-asentar inline-block font-medium text-tinta/85">
+            {lleva}
+          </b>
+        </span>
+      </p>
+    </div>
   );
 }
 
@@ -601,12 +608,15 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
 }
 
 function TarjetaKpi({
+  indice,
   etiqueta,
   valor,
   icono,
   colorBorde,
   sparkline,
 }: {
+  /** Su turno en la entrada escalonada (`anim-sube`): cada tarjeta sube 70 ms después de la anterior. */
+  indice: number;
   etiqueta: string;
   valor: number;
   icono: ReactNode;
@@ -618,7 +628,7 @@ function TarjetaKpi({
   // disipa y una insignia "+S/337.00" que sube y se va. `pulso` es la `key` que reinicia las dos capas.
   const { pulso, delta } = useAumento(valor);
   return (
-    <div className="card-cayla alza-cayla relative overflow-hidden p-4" style={{ borderLeft: `3px solid ${colorBorde}` }}>
+    <div className="card-cayla alza-cayla anim-sube relative overflow-hidden p-4" style={{ borderLeft: `3px solid ${colorBorde}`, "--i": indice } as CSSProperties}>
       {pulso > 0 && (
         <>
           <span

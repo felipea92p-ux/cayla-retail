@@ -33,6 +33,56 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Decisiones de Felipe D1–D5 (README del spike). Recomendaciones: registrar la nota solo en el módulo; «reclamada» en segunda fase; «Aplicada» deducida por FIFO; urgencia a 14 días; adjunto ligado a la nota.
 - [ ] Implementar: ruta `/compras/notas-credito` (solo líder, ADR-0126); función de lectura del tablero (migración); sacar `NotaCreditoCierre` de `RecepcionEnvio` dejando un enlace; aviso: `recibir_envio` puede seguir aceptando `p_notas_credito`.
 
+## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
+
+Felipe pidió que en «Movimientos recientes» hubiera un «Ver todo» y que una venta abriera su detalle
+con reimpresión de la boleta, en ticket y en A4 con el diseño de CAYLA. Spec y plan en
+`docs/superpowers/`; decisiones en ADR-0137.
+
+- [x] **Vuelto guardado** — `venta_pagos.recibido` (candado: solo efectivo, nunca menor que `monto`)
+      y `registrar_venta` que lo lee, misma firma. Vender lo manda (`pagosParaRpc`) y la cola offline lo
+      conserva. Verificado en local con ventas reales. **Ventas anteriores: sin vuelto, no se inventa.**
+- [x] **«Ver todo» + detalle de venta + ticket con vuelto** — modales apilados, «Reintentar» si falla la
+      lectura, y solo se reimprime lo que tiene validez (`puedeImprimir`).
+- [x] **Boleta / factura A4** — desde nuestra fila `comprobantes`, con la estructura de la de Alegra y el
+      diseño de CAYLA. Verificada con el PDF real del motor de Chrome (1 hoja A4; 3 hojas con 45 líneas).
+- [ ] **⚠️ Pegar `20260919210000_venta_pagos_recibido.sql` en producción ANTES de fusionar.** Felipe la
+      pega en el SQL Editor de cayla-dynamic (ya lleva `retail.`). Confirmar en `pg_proc` UNA sola
+      `registrar_venta`. Después refrescar el volcado de `docs/datos/generado/` y correr
+      `pnpm datos:generar:produccion` (nunca `pnpm datos:generar` a secas).
+- [ ] **Probar la impresión de verdad**: la térmica y una impresora A4, con el diálogo real. Solo se
+      verificó el PDF del motor de Chrome, no el papel.
+- [ ] **Guardar la dirección de la clienta para la factura** — hoy el A4 imprime la línea «Dirección»
+      en blanco. El padrón de RUC sí la trae; falta una columna en `comprobantes` y llevarla a Lucode.
+- [ ] **Punto de venta (`/vender`): misma cabecera y entrada que Caja** — hoy solo dice «Cargando caja…».
+
+## 🎯 Producción como módulo padre: decidir, abastecer, fabricar, medir (2026-09-19, ADR-0133 — propuesto)
+
+Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de referencia en `docs/maquetas/produccion-modulo-2026-09/`.
+**Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
+
+- [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0133 reservado (el 0130 —renumerado tras chocar con el menú plegable en `main`—, 0131 y 0132 los tienen otras ramas), spike y plan commiteados.
+- [x] **D-A (menú)** — ok de Felipe al pedir F1 (2026-09-19): el líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17.
+- [ ] **Decisiones de Felipe que siguen abiertas (bloquean F4 y F7):**
+      D-C `compra_items.insumo_id` · D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.
+- [x] **F1 · Navegación (2026-09-19)** — `AppShell.tsx` (grupo «Producción» = Proveedores, Comprobantes, Recibir mercadería, Por pagar, Órdenes;
+      «Compras» ya no existe), `lib/produccion-menu.ts` (+ test), `/produccion/ordenes` (contenido movido) y `/produccion` → redirige.
+      Sin esquema. Verificado en navegador como líder desde Tienda Lima; tipos, lint y 1178 pruebas en verde.
+      **Pendiente de probar con sesión real:** colaborador del Taller y de tienda. **Diferido a F6:** insignias del menú.
+- [ ] **F2 · Órdenes:** tablero, panel, matriz talla×color, cierre por variante; el formulario deja de pedir tela y avíos. Sin esquema.
+- [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
+- [ ] **F4 · Compras ↔ Insumos (esquema, alto riesgo; ESPERA a ADR-0132 —reparto entre tiendas— en `main` y se coordina con `modulos-por-tienda-ca0f59`; parte de la definición vigente tras ADR-0135; timestamps ≥ `20260919210000`):** 4a renglón de insumo · 4b recibir abre el lote · 4c candado del dinero de insumos.
+      Partir de `pg_get_functiondef` de producción; una sola firma; prueba SQL en CI; pega Felipe.
+- [ ] **F5 · Nueva orden con decisión** (curva desde `fn_resumen_variantes`, cobertura de tela, costo, margen, entrega).
+- [ ] **F6 · Resumen «¿qué necesita mi decisión hoy?»** (reglas puras con tests).
+- [ ] **F7 · Eficiencia del Taller** (D-31: `maquila_referencias` + `gastos_taller`; estados vacíos hasta tener datos).
+- [ ] **F8 · Cierre:** «llevarlas a las tiendas» (Traslados), referencia en Movimientos, refresco de `docs/datos/`, ARQUITECTURA.
+
+## 🎯 Por pagar responde + Pagar juntos con varios medios (2026-09-19, ADR-0131 y ADR-0132)
+- [x] Hecho y en producción: la pantalla (PR #183), `registrar_pago_compras_medios` con sus dos migraciones (`20260919190000` y `…200000`, **verificadas en la base**: una sola firma, fecha validada, token antes del saldo a favor) y el modal con varios medios (PR #187). Probado con 27 casos locales y con pagos reales en el navegador: 2 comprobantes × 2 medios (escritorio) y 3 × 3 (celular 375 px, sin desborde). Diccionario de producción refrescado (PR #192).
+- [ ] Sin probar en pantalla: dividir el pago con el saldo a favor encendido (la base sí lo cubre en pruebas), y «Solo lo vencido» después de dividir (los medios dejan de sumar y el botón se bloquea, sin mensaje que lo explique más allá de «faltan S/ X»).
+- [ ] `datos:comparar` no vigila `registrar_pago_compras` ni `registrar_pago_compras_medios` (objeto armado con `...`, «no analizadas»): armar los parámetros explícitos en `PagoJuntosModal.tsx` para que vuelvan a estar bajo la red.
+
 ## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
 - [x] Migraciones `20260919180000` y `20260919181000` **pegadas en producción por Felipe (2026-09-19)**. **Verificado en la base el 2026-09-19** (una sola firma de cada función, md5 igual al local, `anon` sin EXECUTE) y `funciones-produccion.txt` refrescado (178 funciones): `datos:comparar` ya no marca ninguna pantalla rota (`fn_proveedores_serie_12m` también estaba aplicada en producción y el volcado no la tenía). Tablas y columnas no cambiaron: el diccionario no necesita más.
 - [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
