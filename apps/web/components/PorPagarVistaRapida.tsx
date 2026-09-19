@@ -6,7 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
+import type { DatosPagoProveedor, ResultadoPago } from "@/components/PagoPiezas";
 import { soles, type CompraResumen } from "@/lib/compras-reglas";
 import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
@@ -37,6 +37,7 @@ export function PorPagarVistaRapida({
   ahora,
   onCerrar,
   onNavegar,
+  onPagado,
 }: {
   compra: CompraResumen;
   /** Los demás comprobantes con saldo del mismo proveedor (los que la lista tiene a la vista). */
@@ -47,6 +48,8 @@ export function PorPagarVistaRapida({
   ahora: Date;
   onCerrar: () => void;
   onNavegar: (delta: 1 | -1) => void;
+  /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
+  onPagado: (r: ResultadoPago) => void;
 }) {
   const [cerrando, setCerrando] = useState(false);
   const pedirCierre = useCallback(() => setCerrando(true), []);
@@ -128,7 +131,7 @@ export function PorPagarVistaRapida({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} />
+              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
               <Link
                 href={`/compras/factura/${c.id}`}
                 className="label-cayla rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"

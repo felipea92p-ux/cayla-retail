@@ -227,6 +227,7 @@ export function PorPagarLista({
   const alPagar = useCallback(
     ({ pagadas }: ResultadoPago) => {
       setPagando(false);
+      setVistaId(null); // si el pago salió del cajón, el cajón se va con él
       setSeleccion([]);
       const pedirDato = () => empezar(() => router.refresh());
       if (pagadas.length === 0) return pedirDato();
@@ -235,7 +236,11 @@ export function PorPagarLista({
         if (!montado.current) return;
         const filasDom = pagadas.map((id) => elementos.current.get(id)).filter((e): e is HTMLElement => !!e);
         if (!reducido()) {
-          await Promise.all(
+          // `finished` no se resuelve si la pestaña está oculta (sin fotogramas no hay animación que termine): sin un tope, quien
+          // paga y cambia de pestaña dejaba la fila a medio plegar y el dato fresco sin pedir. El tope es el pliegue + un respiro.
+          await Promise.race([
+            new Promise<void>((listo) => setTimeout(listo, MS_PLIEGUE + 350)),
+            Promise.all(
             filasDom.map((el) => {
               const cs = getComputedStyle(el);
               el.style.overflow = "hidden";
@@ -247,7 +252,8 @@ export function PorPagarLista({
                 { duration: MS_PLIEGUE, easing: EASE_CAYLA, fill: "forwards" },
               ).finished;
             }),
-          );
+            ),
+          ]);
         }
         if (montado.current) pedirDato();
       }, reducido() ? 0 : MS_SELLO);
@@ -357,6 +363,8 @@ export function PorPagarLista({
                   onAbrir={() => setVistaId(c.id)}
                   ahora={ahora}
                   saldoFavor={datosProveedores[c.proveedorId]?.saldoFavor ?? 0}
+                  datos={datosProveedores[c.proveedorId]}
+                  onPagado={alPagar}
                   notaPendiente={notas[c.id]}
                   busqueda={q}
                   entrada={llegando ? { indice: Math.min(i, 14) + indice + 1 } : null}
@@ -433,6 +441,7 @@ export function PorPagarLista({
           ahora={ahora}
           onCerrar={() => setVistaId(null)}
           onNavegar={navegarVista}
+          onPagado={alPagar}
         />
       )}
     </div>
@@ -505,6 +514,8 @@ function FilaPorPagar({
   onAbrir,
   ahora,
   saldoFavor,
+  datos,
+  onPagado,
   notaPendiente,
   busqueda,
   entrada,
@@ -524,6 +535,10 @@ function FilaPorPagar({
   onAbrir: () => void;
   ahora: Date;
   saldoFavor: number;
+  /** Dónde se le paga a este proveedor (banco, cuenta, Yape): el modal de pago lo muestra, copiable. */
+  datos?: DatosPagoProveedor;
+  /** El modal de pago de la fila avisa aquí al cerrarse con un pago registrado; la lista hace reaccionar la pantalla. */
+  onPagado: (r: ResultadoPago) => void;
   notaPendiente?: NotaPendiente;
   busqueda: string;
   /** Entrada escalonada de la pantalla; `null` cuando la fila aparece después (un filtro que la muestra). */
@@ -636,11 +651,11 @@ function FilaPorPagar({
         {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
         {c.pagado > 0 && <span className="block text-xs tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
         <span className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
-          <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
+          <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         </span>
       </div>
       <div className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
-        <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
+        <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         {/* La flecha aparece al pasar el mouse: dice «esta fila se abre», sin ocupar sitio en reposo. */}
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
       </div>

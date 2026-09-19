@@ -73,6 +73,14 @@ tarjeta (como en celular), ≥ 40 rem tabla de 5 columnas con «Pagado» bajo el
 las maquetas. Solo cambia esta lista (el `Encabezado` compartido decide por ventana y no se tocó; aquí el encabezado
 es propio). Desborda igual que antes la fila del buscador en celular: eso sigue pendiente y no es de este ADR.
 
+**D9 — El «Pagar» de una fila tiene la misma cara que «Pagar juntos».** La primera entrega dejó el pago individual
+(`RegistrarPagoModal`) con el diseño de siempre y Felipe lo vio «totalmente diferente». Ahora ambos comparten
+`PagoPiezas.tsx` (datos del proveedor con «✓ Copiado», tilde, confirmación, tipos) y el individual usa la misma
+cabecera, la cascada, el resumen y la confirmación. Lo que conserva del anterior: pagar en VARIOS medios (`LineasPago`,
+RPC `registrar_pagos_compra`, todo o nada) y el saldo a favor como un medio más. `BotonPagar` recibe `datos` y `onPagado`
+(la fila y el cajón los pasan; el detalle no, y sigue pidiendo el refresh por su cuenta). Tope de tiempo al plegar las
+filas pagadas: si la pestaña está oculta `finished` no se resuelve y la fila quedaba a medio plegar sin pedir el dato fresco.
+
 ## Lo que NO cambia
 
 Cifras, columnas, tramos, textos y reglas de negocio. El pago individual de una fila (`RegistrarPagoModal`, que
