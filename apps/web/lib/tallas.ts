@@ -20,6 +20,18 @@ function rango(talla: string): [number, number | string] {
   return [2, t];
 }
 
+// Qué tipo de talla es — lo usa Atributos → Tallas para agrupar la pantalla.
+// Sale del mismo `rango` que ordena la curva, así que "qué grupo es" y "en qué
+// orden va" no pueden contradecirse: 0 letras, 1 numeración, 3 única/estándar,
+// 2 lo que no reconocemos (va al final, no se pierde).
+export type TipoTalla = "letras" | "numeracion" | "unica" | "otras";
+
+const TIPO_POR_GRUPO: Record<number, TipoTalla> = { 0: "letras", 1: "numeracion", 3: "unica", 2: "otras" };
+
+export function tipoDeTalla(talla: string): TipoTalla {
+  return TIPO_POR_GRUPO[rango(talla)[0]];
+}
+
 export function compararTallas(a: string, b: string): number {
   const [ga, va] = rango(a);
   const [gb, vb] = rango(b);
