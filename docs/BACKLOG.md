@@ -249,6 +249,11 @@ guía por envío; lo fuera de comprobante declara su origen (proveedor, y si es 
 traslado, no como prenda suelta); cualquier persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué
 llegó?» y desaparecen al marcar.
 
+- [x] **Spike visual de Recibir aplicado (ADR-0129, 2026-09-19):** resumen previo a recibir, decisión de faltante en
+      un toque, escáner sin callejón + «Deshacer», «Marcar las atrasadas», gestos de movimiento y
+      cajón de vista rápida en «Recibidas». Verificado en el navegador como líder contra la base local (un envío real de
+      76 u.). **Falta:** verlo como colaborador (mismo punto de abajo) y las animaciones de salida (ver «Lo que no se portó»
+      del ADR). Sin migración: solo pantalla.
 - [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo (el inicio de sesión
       pide contraseña y no se escribe). Qué mirar: ningún «S/» en la lista ni en los indicadores, «Entra al almacén de»
       fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y que `/compras` la devuelva al

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { SelectNativo } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type MotivoCierre } from "@/lib/compras-reglas";
 import type { DecisionFaltante } from "@/lib/recepciones-reglas";
 
 // Qué pasó con lo que faltó, EN LA MISMA FILA (ADR-0111, corrección 2026-09-18). Cuando una línea llega
 // con menos de lo pendiente, debajo de ella se abre este editor: se elige si se espera lo que falta o
-// por qué no va a llegar, se da «Guardar», y la decisión queda a la vista en la columna Estado de la tabla.
+// por qué no va a llegar (una píldora, un toque; spike de Recibir, 2026-09-19), y la decisión queda a la
+// vista en la columna Estado de la tabla.
 //
-// «Guardar» guarda la decisión EN LA GUÍA, no en la base: los cierres son irreversibles (libro
+// Elegir guarda la decisión EN LA GUÍA, no en la base: los cierres son irreversibles (libro
 // append-only) y una decisión tomada antes de confirmar la recepción puede cambiar si se corrige el
 // conteo. Todo se registra junto, en una sola transacción, con el botón de confirmar de la barra fija.
 //
@@ -39,7 +39,25 @@ export function OpcionesDecision() {
   );
 }
 
-/** El editor: «Faltan 4 · ¿qué pasó?» [motivo ▾] [Guardar] [Cancelar]. */
+/** Una respuesta posible: una píldora que se elige con un toque. */
+function Pildora({ elegida, onClick, children }: { elegida: boolean; onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={elegida}
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${elegida ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta/75 hover:border-rojo hover:text-rojo"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * El editor: «Faltan 4 · ¿qué pasó?» y las respuestas como píldoras. UN toque decide (antes eran un select y un
+ * «Guardar»: tres gestos por fila, y con ocho filas cortas era lo que más cansaba). La regla no cambia: mientras
+ * una fila corta no tenga decisión, la barra fija no deja recibir.
+ */
 export function EditorDecision({
   nombre,
   faltan,
@@ -54,30 +72,21 @@ export function EditorDecision({
   /** Solo cuando ya hay una decisión guardada que se está corrigiendo. */
   onCancelar?: () => void;
 }) {
-  const [borrador, setBorrador] = useState<string>(inicial ?? VALOR_VACIO);
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-3">
-      <span className="text-sm text-tinta">
+    <div role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
+      <span className="mr-1 text-sm text-tinta">
         Faltan {faltan}: <b className="font-semibold">¿qué pasó?</b>
       </span>
-      <div className="w-64 max-w-full">
-        <SelectNativo aria-label={`Qué pasó con lo que falta de ${nombre}`} value={borrador} onChange={(e) => setBorrador(e.target.value)}>
-          <option value={VALOR_VACIO} disabled>
-            Elige…
-          </option>
-          <OpcionesDecision />
-        </SelectNativo>
-      </div>
-      <button
-        type="button"
-        disabled={borrador === VALOR_VACIO}
-        onClick={() => onGuardar(borrador as Decision)}
-        className="label-cayla rounded-md bg-tinta px-3.5 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
-      >
-        Guardar
-      </button>
+      <Pildora elegida={inicial === "espero"} onClick={() => onGuardar("espero")}>
+        Los espero
+      </Pildora>
+      {(Object.keys(ETIQUETA_MOTIVO_CIERRE) as MotivoCierre[]).map((m) => (
+        <Pildora key={m} elegida={inicial === m} onClick={() => onGuardar(m)}>
+          {ETIQUETA_MOTIVO_CIERRE[m]}
+        </Pildora>
+      ))}
       {onCancelar && (
-        <button type="button" onClick={onCancelar} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+        <button type="button" onClick={onCancelar} className="label-cayla ml-1 text-[11px] text-tinta/65 hover:text-rojo">
           Cancelar
         </button>
       )}

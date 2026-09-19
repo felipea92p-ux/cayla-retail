@@ -71,6 +71,7 @@ export function TarjetaCifra({
   onClick,
   accion,
   punto,
+  vivo = false,
   detalleTono,
   icono,
   compacta = false,
@@ -97,6 +98,8 @@ export function TarjetaCifra({
   accion?: Accion;
   /** Puntito de color junto a la etiqueta. Sin esta prop no se dibuja. */
   punto?: PuntoCifra;
+  /** El puntito late (`punto-vivo`): lo que pide atención ahora. Solo con `punto`. */
+  vivo?: boolean;
   /** Clase de color de la línea de contexto (`text-rojo`, `text-ambar-profundo`, `text-verde-profundo`). */
   detalleTono?: string;
   /** Solo con `fila`: el ícono (ya con su disco y colores) a la izquierda. */
@@ -134,7 +137,7 @@ export function TarjetaCifra({
       {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
       <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
         {punto && (
-          <span aria-hidden className={`relative h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]}`}>
+          <span aria-hidden className={`relative h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
             {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}
           </span>
         )}

@@ -872,6 +872,63 @@ body {
   .anim-tilde { animation: cayla-trazo-entra 320ms var(--ease-cayla) backwards; }
 }
 
+/* ---- Recibir mercadería (2026-09-19, spike de Recibir): lo que responde al contar ----
+        · lectura: cuando la pistola lee una etiqueta la fila se tiñe de verde suave y se apaga sola (1.5 s).
+          Es el mismo gesto que `anim-destello-fila`, en verde porque es una CONFIRMACIÓN («entró»), no un
+          aviso («esto acaba de pasar»). `backwards`: al terminar no retiene el fondo.
+        · camino: el estado vacío de «¿Qué llegó?» — un camión va y viene sobre un camino punteado que corre.
+          Es adorno, no información: con movimiento reducido se detiene del todo.
+        · sello / onda / hilo-libro: el «Envío recibido». El check se traza, dos ondas salen del sello y los
+          movimientos que quedaron escritos cuelgan de un hilo que crece hacia abajo (el hilo del Atelier). ---- */
+@keyframes cayla-destello-lectura {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cayla-camino {
+  to { background-position: -24px 0; }
+}
+@keyframes cayla-camion {
+  /* va a la derecha, da la vuelta (scaleX -1) y regresa mirando a la izquierda: nunca va de reversa */
+  0%, 4% { transform: translate3d(-90px, 0, 0) scaleX(1); }
+  46%, 50% { transform: translate3d(90px, 0, 0) scaleX(1); }
+  50.01%, 54% { transform: translate3d(90px, 0, 0) scaleX(-1); }
+  96%, 100% { transform: translate3d(-90px, 0, 0) scaleX(-1); }
+}
+@keyframes cayla-cinta {
+  from { transform: translate3d(-100%, 0, 0); opacity: 1; }
+  to { transform: translate3d(400%, 0, 0); opacity: 0; }
+}
+@keyframes cayla-onda {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes cayla-pulso {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@layer components {
+  /* punto «vivo»: late suave junto a lo que pide atención (Atrasadas). Adorno: se detiene con movimiento reducido. */
+  .punto-vivo { position: relative; }
+  .punto-vivo::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit; animation: cayla-pulso 2.2s var(--ease-cayla) infinite; }
+  .anim-cinta { animation: cayla-cinta 620ms var(--ease-cayla) both; }
+  .anim-destello-lectura { animation: cayla-destello-lectura 1500ms var(--ease-cayla) backwards; }
+  .recibir-camino {
+    /* rayas de un SVG, no un gradiente: el único gradiente del sistema es el barrido del botón */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='2'%3E%3Crect width='12' height='2' fill='%231a1a18' fill-opacity='.25'/%3E%3C/svg%3E");
+    background-size: 24px 2px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    animation: cayla-camino 1.4s linear infinite;
+  }
+  .recibir-camion { animation: cayla-camion 10s ease-in-out infinite; }
+  .anim-sello path { stroke-dasharray: 1; animation: cayla-trazo-entra 700ms var(--ease-cayla) backwards; }
+  .anim-sello path:last-child { animation-duration: 460ms; animation-delay: 560ms; }
+  .anim-onda { opacity: 0; animation: cayla-onda 1400ms var(--ease-cayla) 700ms backwards; }
+  .anim-onda-2 { animation-delay: 1000ms; }
+  .recibir-hilo { transform-origin: top; animation: cayla-crece-y 900ms var(--ease-cayla) 500ms backwards; }
+  .anim-movimiento { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(700ms + var(--i, 0) * 70ms); }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
@@ -903,7 +960,13 @@ body {
     .anim-crece-x,
     .anim-crece-y,
     .group:hover .trazo-al-pasar,
-    .anim-vivo-fila {
+    .anim-vivo-fila,
+    .anim-destello-lectura,
+    .anim-cinta,
+    .anim-sello path,
+    .anim-onda,
+    .recibir-hilo,
+    .anim-movimiento {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
@@ -923,7 +986,10 @@ body {
        detiene del todo; el resto se acorta a un instante. */
     .hilo-corre,
     .gira-lento,
-    .aguja-hilo { animation: none; }
+    .aguja-hilo,
+    .recibir-camino,
+    .recibir-camion,
+    .punto-vivo::after { animation: none; }
     .anim-sube,
     .hilo-dibuja,
     .hilo-vertical,
