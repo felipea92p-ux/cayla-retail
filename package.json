@@ -16,6 +16,7 @@
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:deriva-produccion": "node scripts/pruebas/deriva_produccion.mjs",
     "pruebas:registrar-venta": "node scripts/pruebas/registrar_venta.mjs",
+    "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
     "caja:verificar": "node scripts/caja/verificar.mjs",
     "datos:generar": "node scripts/datos/generar.mjs",

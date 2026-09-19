@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
+
+Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
+
+Errores propios que la verificación cazó: dos veces un nombre de ADR/migración que otra rama ya usaba (0112 estaba tomado; se usó 0113), un chequeo de «solo líder cierra» en la RPC más estricto que la base sin que nadie lo hubiera decidido (se quitó: la decisión vive en la pantalla y es reversible sin migración), y la pantalla nueva perdió el ancho completo al salir de `/compras` (`SIN_TOPE_DE_ANCHO`). También cerré la sesión del navegador de Felipe para probar como Micaela y no pude volver a entrar: iniciar sesión pide una contraseña que no me toca escribir.
+
+Lo que Felipe se lleva: un envío no es un proveedor — es una llegada a la puerta, y modelarlo como el padre que agrupa lotes (uno por proveedor) dejó intactas las métricas y el costo de cada proveedor; y «que cuente cualquiera» no obliga a abrir Compras: se abre solo la puerta de recibir y los montos ni siquiera salen del servidor. Las 2 migraciones ya están en producción (las pegó Felipe el 2026-09-19); falta probar la pantalla como colaborador.
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».

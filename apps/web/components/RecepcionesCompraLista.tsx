@@ -28,6 +28,7 @@ export function RecepcionesCompraLista({
   detalles,
   nombres,
   vacio,
+  enlaceAlComprobante = true,
 }: {
   recepciones: RecepcionDeCompra[];
   /** Prenda por prenda de cada guía, por `loteId` (puede faltar para las más antiguas). */
@@ -35,6 +36,8 @@ export function RecepcionesCompraLista({
   /** Quién recibió, por `loteId` (ya resuelto a nombre). */
   nombres: Record<string, string>;
   vacio: string;
+  /** El detalle del comprobante es de Compras (solo líder): quien cuenta sin ser líder no lo ve, y un enlace que lo devuelve al Inicio no sirve. */
+  enlaceAlComprobante?: boolean;
 }) {
   const [abierta, setAbierta] = useState<RecepcionDeCompra | null>(null);
 
@@ -121,9 +124,11 @@ export function RecepcionesCompraLista({
                 {abierta.unidadesLlegaron} de {abierta.unidadesFacturadas} unidades del comprobante {abierta.documento}
               </p>
               {/* Cierra este modal antes de navegar: la ruta de comprobante abre SU propio modal interceptado, y sin esto quedaban los dos apilados. */}
-              <Link href={`/compras/factura/${abierta.compraId}`} onClick={() => setAbierta(null)} className="label-cayla text-[11px] text-rojo hover:underline">
-                Ver comprobante completo →
-              </Link>
+              {enlaceAlComprobante && (
+                <Link href={`/compras/factura/${abierta.compraId}`} onClick={() => setAbierta(null)} className="label-cayla text-[11px] text-rojo hover:underline">
+                  Ver comprobante completo →
+                </Link>
+              )}
             </div>
           </div>
         </Modal>
