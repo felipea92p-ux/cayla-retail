@@ -667,26 +667,38 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
 
 ---
 
-## 🎯 Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo (2026-09-19, ADR-0132) — EN CURSO
+## 🎯 Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo (2026-09-19, ADR-0132) — HECHO EN LOCAL, PENDIENTE DE PRODUCCIÓN
 
 Felipe confirmó que una misma factura de proveedor puede traer mercadería para varias tiendas y que cada una hace su
-recepción. Hoy la factura tiene un solo destino (`compras.ubicacion_destino_id`) y `recibir_compras` cuenta lo recibido
-sumando todas las ubicaciones: una tienda puede «comerse» la parte de otra. Diseño y UX en ADR-0132.
-**Reparto de trabajo acordado con la sesión «Recibir UI/UX» (2026-09-19):** yo hago la base (migración, RPC, pruebas) y
-`lib/reparto-reglas.ts` (archivo nuevo); ella conserva la UI de `/recibir` y la conecta al contrato. Las sesiones de
-Comprobantes y Por pagar tienen en vuelo las pantallas donde va el chip y el filtro «Destino»: se coordina por
-`docs/SESIONES-ACTIVAS.md`.
+recepción. Antes la factura tenía un solo destino y `recibir_compras` contaba lo recibido sumando todas las ubicaciones:
+una tienda podía «comerse» la parte de otra. Ahora la base guarda el reparto por línea y tienda y cada tienda recibe lo
+suyo. Diseño, decisiones y UX en ADR-0132. **Rama `claude/modulos-por-tienda-ca0f59`; verificado en local (SQL, pruebas web y
+navegador); las dos migraciones NO están en producción.**
 
-- [ ] **Base:** `compra_item_destinos` + `compra_reasignaciones` + `fn_puede_ver_compra`; tope por tienda en
-      `recibir_compras`; `cerrar_linea_compra` con `ubicacion_id`; `lineas_compra_operativo` y `listar_compras_operativo`
-      por tienda; re-llave de las funciones que hoy usan el destino de la factura y de la vista `compras_resumen`; se
-      elimina `compras.ubicacion_destino_id`. Pruebas: `pnpm pruebas:compras-reparto`.
-- [ ] **Web:** `lib/compras.ts` (mapea `pendiente := pendiente_aqui`, así `RecepcionEnvio` topa por tienda sin editarlo),
-      `lib/reparto-reglas.ts`; Registrar (interruptor «Todo a una tienda / Repartir»), Detalle («Reparto por tienda» +
-      Reasignar), chip y filtro «Destino» en Comprobantes y Por pagar.
-- [ ] **Al implementar:** pájaro para las 2 tablas nuevas en `scripts/datos/aviario.mjs` (ADR-0104; lo aprueba Felipe).
-- [x] Privacidad: resuelta por ADR-0126 (un integrante ya no lee dinero de Compras; lee por `listar_compras_operativo` y
-      `lineas_compra_operativo`).
+- [x] **Base** (`20260919172000` + `20260919173000`): `compra_item_destinos`, `compra_reasignaciones`,
+      `compra_item_reparto_resumen`, `fn_puede_ver_compra`, `reasignar_reparto_compra`; tope por tienda en `recibir_compras`;
+      `cerrar_linea_compra` con `ubicacion_id`; lecturas operativas por tienda; re-llave de las 10 funciones que usaban el
+      destino de la factura; `compras.ubicacion_destino_id` eliminada. `pnpm pruebas:compras-reparto` (47/47) y las suites
+      vecinas en verde.
+- [x] **Web:** Registrar (Una tienda | Repartir entre tiendas, con lo que falta en vivo), `/recibir` por tienda, detalle
+      («Reparto por tienda», Reasignar, Cerrar con faltante por tienda), «Repartida: …» en la lista. Probado en el navegador
+      a escritorio y a 375 px.
+- [x] **Aviario:** pájaro (Pelícano) para las 2 tablas nuevas y la vista (`scripts/datos/aviario.mjs`; lo aprueba Felipe).
+- [x] Privacidad: resuelta por ADR-0126 (un integrante lee por `listar_compras_operativo` / `lineas_compra_operativo`, sin dinero).
+- [ ] **Producción — con ok de Felipe, en este orden** (detalle en ADR-0132 «Cómo se pega en producción»): `172000`, luego
+      `173000` (sin prefijo `retail.`, llevan `set search_path`), y **después** desplegar la web (la web nueva llama a las RPC con
+      `p_ubicacion_id`). Las 180000/181000 de Comprobantes ya están aplicadas: da igual el orden respecto a ellas. **No re-pegar la
+      172000 después de la 173000.** Después: `pnpm datos:generar:produccion` (refresca el diccionario), `pnpm datos:comparar`, y
+      sumar los dos candados nuevos (suma del reparto = cantidad de la línea; tope por tienda) a `docs/datos/01-INVARIANTES.md`, que
+      solo lista lo verificado en producción (por eso no entran antes).
+- [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que
+      un filtro en el navegador mentiría; de verdad pide un parámetro nuevo en `listar_compras` (`drop function` + `create`) y
+      coordinar con la sesión de Por pagar, que tiene esa pantalla en vuelo. Hoy cada comprobante repartido dice a qué tiendas va.
+- [ ] **Datos de prueba en el Postgres local compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y
+      `TST-RUI0001` (repartido 12+12, con una reasignación y un cierre). Son de la serie `TST`; no molestan a nadie pero ensucian
+      los totales locales de «Por pagar»/«Por recibir».
+- [ ] **Anotado, no de este cambio:** el `--en-seco` de `pagos_compras_endurecimiento` ya no sirve con el reparto aplicado (la
+      función cruda no escribe reparto y `recibir_compras` lo exige); usar el modo normal.
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 
