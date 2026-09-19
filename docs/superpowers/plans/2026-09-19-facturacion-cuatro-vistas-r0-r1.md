@@ -8,7 +8,7 @@
 
 **Stack:** Next.js 16 (App Router) · React 19 · Supabase (RLS + RPC) · Tailwind v4 · vitest 4 (sin jsdom ni testing-library: solo funciones puras) · `lucide-react`.
 
-**Spec:** `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md` (aprobado por Felipe el 2026-09-19). **ADR:** `docs/adr/0121-facturacion-en-cuatro-vistas-con-una-isla-de-vidrio.md` (nació como 0113). Quien ejecute este plan lee las dos cosas: el spec dice *qué* y *por qué*; este plan dice *en qué orden y con qué código*.
+**Spec:** `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md` (aprobado por Felipe el 2026-09-19). **ADR:** `docs/adr/0124-facturacion-en-cuatro-vistas-con-una-isla-de-vidrio.md` (nació como 0113; pasó por el 0121 y hoy es el 0124). Quien ejecute este plan lee las dos cosas: el spec dice *qué* y *por qué*; este plan dice *en qué orden y con qué código*.
 
 ## Alcance de este plan
 
@@ -41,9 +41,9 @@ Verificado con `git` contra `origin/main` (`3a5b791c`) — re-verificar en R0 po
 | Qué | Estado |
 |---|---|
 | Rama de trabajo | `claude/billing-design-analysis-ee464b`, con `main` ya fusionada (0 commits detrás). Solo chocaron `BACKLOG.md` y `BITACORA.md`. |
-| Atelier (ADR-0106) | **No está en `main`.** No existen `components/ui/CifraAnimada.tsx`, `components/FechaHoraLima.tsx` ni `components/ui/EncabezadoPagina.tsx`, y `globals.css` no tiene `anim-sube`, `hilo-dibuja` ni `check-trazo`. La rama no está en GitHub. |
+| Atelier (ADR-0106) | **No está en `main`.** No existen `components/ui/CifraAnimada.tsx`, `components/ui/FechaHoraLima.tsx` ni `components/ui/EncabezadoPagina.tsx`, y `globals.css` no tiene `anim-sube`, `hilo-dibuja` ni `check-trazo`. La rama no está en GitHub. |
 | `panel-comercial` (ADR-0110) | **No está en `main`** (`fn_comercial_*` no aparece en sus migraciones). Vive en `origin/claude/panel-comercial`. |
-| ADR | El 0113 lo reclaman otras dos ramas; `main` tiene el 0114 y el 0116; hay ramas con 0117 a 0120; el 0115 lo dejó libre la sesión de Caja. **Se toma el 0121** (libre en todas las refs ese día). |
+| ADR | Nació como 0113 (otras dos ramas lo reclamaban) y pasó al 0121 (libre esa mañana), pero `main` estrenó su propio 0121 (Resumen v2, PR #161) y la rama local de Atelier ocupa del 0121 al 0123: **hoy es el 0124**, libre en todas las refs el 2026-09-19 (el 0124 a 0126 estaban libres). Desde el PR #163, el CI de `main` rechaza dos ADR con el mismo número. |
 | ADR-0105 | Vigente en `main`: clases de componente en `@layer components` + `lib/globals-capas.test.ts`. |
 | Base de desarrollo | `apps/web/.env.local` del checkout principal apunta a Supabase **local** en `127.0.0.1:54421` (el stack de `cayla-retail`, el correcto para Facturación) con `LUCODE_ENTORNO=sandbox`. La verificación de R1 corre contra la base local, no contra producción. |
 | `Modal` | `components/ui/Modal.tsx`: `<Modal titulo onClose ancho>{children | (cerrar) => …}</Modal>`; se monta solo cuando está abierto y anima la salida antes de llamar `onClose`. |
@@ -75,7 +75,7 @@ Un commit por tarea. Primera línea = asunto; lo de abajo = cuerpo (una o dos fr
 
 | Tarea | Mensaje |
 |---|---|
-| 0.1 | `docs(facturacion): R0 — main sincronizada y coordinación verificada` · «Se fusiona main, se confirma que el ADR 0121 sigue libre y se deja constancia de si Atelier y panel-comercial ya entraron a main.» |
+| 0.1 | `docs(facturacion): R0 — main sincronizada y coordinación verificada` · «Se fusiona main, se confirma que el ADR 0124 sigue libre y se deja constancia de si Atelier y panel-comercial ya entraron a main.» |
 | 0.2 | `docs(facturacion): R0 — producción verificada (solo lectura)` · «Existencia de ventas.estado, definición viva de fn_ventas_del_dia, series por tienda y línea base de conteos, con las reglas de decisión del spec aplicadas.» |
 | 1 | `feat(facturacion): reglas puras del mes, las pestañas y los contadores; vencida derivada en proformas` · «La cola «por enviar» no tiene filtro de mes y las proformas vencidas dejan de contar como vigentes. Nadie escribe `vencida` en la base: se deriva, como `porVencer`.» |
 | 2 | `feat(facturacion): lecturas tolerantes para los contadores de las pestañas y exigirLider` · «Los contadores son datos secundarios: si su consulta falla se ocultan en vez de tumbar el marco. `exigirLider` repite la primera de las tres capas en cada página.» |
@@ -139,7 +139,7 @@ Las tareas 1, 3, 4 y 5 son independientes entre sí y se pueden repartir a subag
 
 **Files:**
 - Modify: `docs/BACKLOG.md` (sección «🎯 Facturación en cuatro vistas»: línea R0)
-- Modify (solo si el número de ADR chocó): `docs/adr/0121-…md`, el spec, `docs/BACKLOG.md`, `docs/BITACORA.md`, `docs/SESIONES-ACTIVAS.md`
+- Modify (solo si el número de ADR chocó): `docs/adr/0124-…md`, el spec, `docs/BACKLOG.md`, `docs/BITACORA.md`, `docs/SESIONES-ACTIVAS.md`
 
 **Interfaces:**
 - Consumes: nada.
@@ -162,23 +162,23 @@ git diff --name-only --diff-filter=U        # archivos en conflicto
 
 Los conflictos esperables son `docs/BACKLOG.md` y `docs/BITACORA.md` (texto añadido por ambos lados en el mismo punto): se conservan las dos partes. Para verlo antes sin tocar el árbol: `git merge-tree --write-tree --name-only --messages HEAD origin/main`. Termina con `git commit -F <archivo>` (mensaje: «merge: fusiona main en el rediseño de Facturación»).
 
-- [ ] **Step 2: Confirmar que el ADR 0121 sigue libre**
+- [ ] **Step 2: Confirmar que el ADR 0124 sigue libre**
 
 ```bash
 export MSYS_NO_PATHCONV=1
 for b in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin | grep -v 'origin/HEAD'); do
-  git ls-tree -r --name-only "$b" docs/adr/ 2>/dev/null | grep -E 'adr/0121-' | grep -v 'facturacion-en-cuatro-vistas' | sed "s#^#$b: #"
+  git ls-tree -r --name-only "$b" docs/adr/ 2>/dev/null | grep -E 'adr/0124-' | grep -v 'facturacion-en-cuatro-vistas' | sed "s#^#$b: #"
 done
-git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //' | while read d; do ls "$d/docs/adr/" 2>/dev/null | grep -E '^0121-' | grep -v facturacion-en-cuatro-vistas | sed "s#^#$(basename "$d"): #"; done
+git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //' | while read d; do ls "$d/docs/adr/" 2>/dev/null | grep -E '^0124-' | grep -v facturacion-en-cuatro-vistas | sed "s#^#$(basename "$d"): #"; done
 ```
 
-Esperado: ninguna línea. Si aparece otro ADR con 0121, toma el siguiente número libre (mira también los 0122 en adelante con el mismo comando) y renombra: `git mv docs/adr/0121-… docs/adr/<nuevo>-…`, y cambia `0121` por el nuevo número en el título del ADR, en el spec (cabecera, §10 R0, §11, §14), en `BACKLOG.md`, `BITACORA.md` (dos entradas) y `SESIONES-ACTIVAS.md`.
+Esperado: ninguna línea. Si aparece otro ADR con 0124, toma el siguiente número libre (mira también los 0125 en adelante con el mismo comando) y renombra: `git mv docs/adr/0124-… docs/adr/<nuevo>-…`, y cambia `0124` por el nuevo número en el título del ADR, en el spec (cabecera, §10 R0, §11, §14), en `BACKLOG.md`, `BITACORA.md` (dos entradas) y `SESIONES-ACTIVAS.md`.
 
 - [ ] **Step 3: Confirmar el estado de Atelier y de `panel-comercial`**
 
 ```bash
 export MSYS_NO_PATHCONV=1
-for f in apps/web/components/ui/CifraAnimada.tsx apps/web/components/FechaHoraLima.tsx apps/web/components/ui/EncabezadoPagina.tsx; do
+for f in apps/web/components/ui/CifraAnimada.tsx apps/web/components/ui/FechaHoraLima.tsx apps/web/components/ui/EncabezadoPagina.tsx; do
   git cat-file -e "origin/main:$f" 2>/dev/null && echo "SI  $f" || echo "NO  $f"
 done
 git show origin/main:apps/web/app/globals.css | grep -cE "anim-sube|hilo-dibuja|check-trazo"   # 0 = no está
@@ -200,7 +200,7 @@ pnpm install
 pnpm --filter web test        # línea base: debe pasar entera antes de tocar nada
 ```
 
-En `docs/BACKLOG.md`, sección «🎯 Facturación en cuatro vistas», cambia la línea R0 a `- [x]` **solo cuando también esté hecha la Task 0.2**; por ahora añade debajo, en una línea, la fecha y lo verificado en los pasos 1 a 3 (por ejemplo: «2026-09-19: `main` fusionada; ADR 0121 libre; Atelier no está en `main`; `panel-comercial` no está en `main`»).
+En `docs/BACKLOG.md`, sección «🎯 Facturación en cuatro vistas», cambia la línea R0 a `- [x]` **solo cuando también esté hecha la Task 0.2**; por ahora añade debajo, en una línea, la fecha y lo verificado en los pasos 1 a 3 (por ejemplo: «2026-09-19: `main` fusionada; ADR 0124 libre; Atelier no está en `main`; `panel-comercial` no está en `main`»).
 
 - [ ] **Step 6: Commit (solo si cambió algo)**
 
@@ -655,7 +655,7 @@ Expected: FAIL — «Failed to resolve import "./facturacion-reglas"».
 `apps/web/lib/facturacion-reglas.ts`:
 
 ```ts
-// Reglas puras de Facturación (ADR-0121): ni Supabase ni `next/headers`, para poder
+// Reglas puras de Facturación (ADR-0124): ni Supabase ni `next/headers`, para poder
 // probarlas sin levantar nada — mismo criterio que `proformas-reglas.ts`. El reloj
 // entra por parámetro; nada lee `Date.now()` escondido adentro.
 import type { EstadoComprobante } from "./comprobantes-reglas";
@@ -977,7 +977,7 @@ Expected: PASS (2 pruebas). Es la línea base antes de tocar el CSS.
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /* ====================================================================
-   BotonCompacto · el botón de la isla de vidrio de Facturación (ADR-0121)
+   BotonCompacto · el botón de la isla de vidrio de Facturación (ADR-0124)
 
    Por qué existe aparte de `Boton` (ui/campos.tsx): `Boton` lo usa toda la app y
    habla en versalitas con seguimiento de 11 px; la isla habla en minúscula de 13 px
@@ -1038,7 +1038,7 @@ En `apps/web/app/globals.css`, inserta este bloque **inmediatamente antes** del 
 
 ```css
 /* ==================================================================
-   La «isla» de vidrio de Facturación (ADR-0121).
+   La «isla» de vidrio de Facturación (ADR-0124).
 
    Vidrio = superficie translúcida con desenfoque. No agrega ningún color: solo blanco
    translúcido y tinta sobre el crema de siempre. Vive bajo `.tema-vidrio` (la raíz del
@@ -1175,7 +1175,7 @@ import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
 
-// Extraído de `ComprobantesPanel` (ADR-0121) SIN cambiar su lógica: el token de
+// Extraído de `ComprobantesPanel` (ADR-0124) SIN cambiar su lógica: el token de
 // idempotencia, la cuenta del IGV y la RPC son los de siempre. Lo dibuja
 // `FacturacionShell` una sola vez, para que lo abran la cabecera y los botones de cada
 // vista.
@@ -1440,7 +1440,7 @@ import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
 
-// Extraído de `ProformasPanel` (ADR-0121) SIN cambiar su lógica. Lo dibuja
+// Extraído de `ProformasPanel` (ADR-0124) SIN cambiar su lógica. Lo dibuja
 // `FacturacionShell` una sola vez, para que lo abran la cabecera y el botón de la vista
 // Proformas. Igual que `EmitirComprobanteModal`, se dibuja siempre y solo se muestra u
 // oculta: lo último elegido (la tienda) vive acá.
@@ -1634,7 +1634,7 @@ Nada de esto se usa todavía: la aplicación no cambia hasta la Task 7. Aquí se
 
 import { createContext, useContext } from "react";
 
-// Quién puede abrir los modales de Facturación (ADR-0121): la cabecera y los botones de
+// Quién puede abrir los modales de Facturación (ADR-0124): la cabecera y los botones de
 // cada vista. Los modales los dibuja `FacturacionShell` una sola vez, así que las vistas no
 // los tienen: le piden al shell que los abra. Vive en su propio archivo para que el shell
 // (que importa la cabecera) y la cabecera (que necesita el hook) no formen un ciclo.
@@ -1839,7 +1839,7 @@ import { FacturacionPestanas } from "@/components/FacturacionPestanas";
 
 type Tienda = { id: string; nombre: string };
 
-// El marco de /vender/facturacion (ADR-0121): cabecera, pestañas y los dos modales que se
+// El marco de /vender/facturacion (ADR-0124): cabecera, pestañas y los dos modales que se
 // abren desde cualquier vista. Es el padre con estado (molde de ADR-0043): guarda cuál
 // modal está abierto y les da a las vistas, por contexto, la forma de abrirlos. Los
 // modales se dibujan UNA vez acá — y siempre montados (ver `EmitirComprobanteModal`),
@@ -2141,7 +2141,7 @@ import { getCodigosDescuento } from "@/lib/codigos-descuento";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { CodigosDescuentoPanel } from "@/components/CodigosDescuentoPanel";
 
-// Tanda 3 del diagnóstico de Venta y Caja (2026-09-15); desde ADR-0121 vive como la cuarta
+// Tanda 3 del diagnóstico de Venta y Caja (2026-09-15); desde ADR-0124 vive como la cuarta
 // vista de Facturación (antes era `/vender/descuentos`, que ahora redirige). Líder-only: un
 // código de descuento cambia cuánto se cobra en toda la tienda — mismo criterio que el
 // resto de Facturación (`exigirLider` como primera de las tres capas: pantalla, RLS de la
@@ -2177,7 +2177,7 @@ Comprueba antes que nadie importa `VenderNav` (`git grep -n VenderNav -- apps` d
 En `apps/web/next.config.ts`, agrega esta entrada al arreglo que devuelve `redirects()`, después de la de `/productos/etiquetas`:
 
 ```ts
-      // Facturación en cuatro vistas (ADR-0121, 2026-09): los códigos de descuento pasaron a
+      // Facturación en cuatro vistas (ADR-0124, 2026-09): los códigos de descuento pasaron a
       // ser la cuarta pestaña de Facturación. `permanent: false` por la misma razón que los
       // otros alias: un redirect permanente queda cacheado en cada navegador y no hay forma
       // de limpiarlo del lado del cliente.
@@ -2231,7 +2231,7 @@ git commit -F <archivo-con-el-mensaje>
 
 **Files:**
 - Modify: `docs/ARQUITECTURA.md`, `docs/BACKLOG.md`, `docs/BITACORA.md`, `docs/SESIONES-ACTIVAS.md`
-- Modify (solo si aprendiste algo que cambia la decisión): `docs/adr/0121-…md`
+- Modify (solo si aprendiste algo que cambia la decisión): `docs/adr/0124-…md`
 
 **Interfaces:**
 - Consumes: R1 completa (tareas 1 a 7) y la línea base de la Task 0.2 (d).
@@ -2284,7 +2284,7 @@ Esperado (spec §7): etiquetas de **14px**, peso **400** (la activa **600**), `t
 
 - [ ] **Step 4: Ver el resultado y ajustar**
 
-Toma capturas del panel visible a 1620 px y a 1024 px de ancho (`resize_window`; vuelve a `desktop` al terminar) y a 375 px (las pestañas deben desplazarse en horizontal dentro de su contenedor, sin desbordar la página). Compara con el look aprobado (spec §7 y ADR-0121). Con «movimiento reducido» activado en el sistema, la píldora salta sin deslizarse. Verifica también la primera pintura: recarga con `Ctrl+Shift+R` y comprueba que la pestaña activa nunca aparece con la etiqueta en crema sobre el vidrio (ilegible).
+Toma capturas del panel visible a 1620 px y a 1024 px de ancho (`resize_window`; vuelve a `desktop` al terminar) y a 375 px (las pestañas deben desplazarse en horizontal dentro de su contenedor, sin desbordar la página). Compara con el look aprobado (spec §7 y ADR-0124). Con «movimiento reducido» activado en el sistema, la píldora salta sin deslizarse. Verifica también la primera pintura: recarga con `Ctrl+Shift+R` y comprueba que la pestaña activa nunca aparece con la etiqueta en crema sobre el vidrio (ilegible).
 
 - [ ] **Step 5: Construir (opcional pero recomendado)**
 
@@ -2295,7 +2295,7 @@ Detecta lo que `next dev` no muestra: un `<Suspense>` faltante para `useSearchPa
 
 1. **`docs/ARQUITECTURA.md`:** en el bloque de rutas, sustituye las dos primeras líneas del punto de `/vender/facturacion` (las que empiezan «- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →» y «  RPCs `emitir_comprobante` …») por:
    ```
-   - `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0121): `layout.tsx` lee
+   - `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
      series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
      dibuja la cabecera, las pestañas y —una sola vez— los modales «Emitir comprobante» y
      «Nueva proforma». Vistas: Resumen → `VentasDelDiaPanel.tsx`; `proformas/` →
@@ -2338,7 +2338,7 @@ Se bajan a tareas **al cerrar R1**, en un plan aparte (`docs/superpowers/plans/�
 |---|---|---|---|
 | **R2 — Resumen** | `TarjetaKpiVidrio`, `ActividadDeHoy`, `HiloComprobante`, `lib/useTransmitir.ts`, comparativos (`lib/ventas-comparativo.ts`), franja de proformas (`ResumenProformas`), línea viva y leyenda, y el buscador de la cabecera (`useFacturacionBusqueda` + `coincide`). Reglas puras (§6): `enlazarVentasConComprobantes`, `etapasDelHilo`, `tonoVendidoHoy`/`tonoPorEnviar`, `comparativoHastaEstaHora`, `antiguedad`, `ventanaHastaEstaHora`, `coincide`. Movimiento (§8). | Las cifras de las tarjetas coinciden con las filas; el comparativo usa la misma medida en ambos lados; *Transmitir* en una fila (sandbox) hace avanzar el hilo, cambia el chip y baja el contador con el color de la tarjeta; un rechazo la pone en rojo con su motivo; un aceptado de prueba se ve distinto de uno real; sin ventas hoy hay un estado vacío con texto; con movimiento reducido se ve el resultado sin el viaje. | **Atelier en `main`** (`CifraAnimada`, `FechaHoraLima`, `anim-sube`, `check-trazo`, `hilo-dibuja`); resultados de R0 (`ventas.estado`, `fn_ventas_del_dia` sin anuladas); las tarjetas de `TarjetaKpiVidrio` estrenan `@property --kc` dentro de la isla (`@layer components` y candado de ADR-0105). |
 | **R3 — Comprobantes y Proformas** | Tarjetas nuevas con las definiciones del §9 (`resumenMontos`: «Monto facturado» = aceptados en producción, sin baja en trámite), chips y botones compactos (`fila`, `fila-alerta`), la franja de series faltantes (`seriesFaltantes`), la regla `vencida` ya escrita en R1 aplicada al panel (orden: vigente por vencer, vigente, vencida, convertida, anulada; 4.ª tarjeta «Vencidas») y la búsqueda local. | «Monto facturado» solo suma aceptados de producción; se ve qué series faltan; una proforma vencida no cuenta como vigente y se ve como tal; la tabla y las tarjetas móviles muestran lo mismo. | R1. Comparte `globals.css` con la sesión de «Ventas visual»: sincronizar `main` antes de tocarlo. |
-| **R4 — Códigos y cierre** | La pestaña Códigos con su búsqueda, la pasada de responsive, accesibilidad y movimiento reducido, y la documentación del §14 (ARQUITECTURA con la línea de Nubefact→Lucode, `docs/datos/modulos/08-facturacion-sunat.md`, ADR-0121 ajustado, BACKLOG, BITÁCORA). | Ver §10 y §13 del spec. | R2 y R3. |
+| **R4 — Códigos y cierre** | La pestaña Códigos con su búsqueda, la pasada de responsive, accesibilidad y movimiento reducido, y la documentación del §14 (ARQUITECTURA con la línea de Nubefact→Lucode, `docs/datos/modulos/08-facturacion-sunat.md`, ADR-0124 ajustado, BACKLOG, BITÁCORA). | Ver §10 y §13 del spec. | R2 y R3. |
 
 **Quedan fuera** (spec §3): emitir desde la fila de una venta sin comprobante; columna «Productos» en proformas; contador en el menú lateral y «en vivo» por polling; búsqueda de comprobantes sin límite de mes; consultar el estado de un comprobante `enviado` (integración con Lucode: confirmar con Felipe antes); cambios de esquema/RPC/RLS (única excepción condicionada: una migración de `fn_ventas_del_dia` si R0 la exige, con el OK de Felipe); llevar el vidrio a otros módulos, modo oscuro y el `EncabezadoPagina` de Atelier.
 
