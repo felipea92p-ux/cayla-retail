@@ -175,10 +175,12 @@ export type Database = {
         Row: {
           caja_id: string | null
           cantidad: number
+          condicion: string
           created_at: string
           diferencia: number
           id: string
           metodo_pago_diferencia: string | null
+          motivo: string | null
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
@@ -188,10 +190,12 @@ export type Database = {
         Insert: {
           caja_id?: string | null
           cantidad: number
+          condicion?: string
           created_at?: string
           diferencia?: number
           id?: string
           metodo_pago_diferencia?: string | null
+          motivo?: string | null
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
@@ -201,10 +205,12 @@ export type Database = {
         Update: {
           caja_id?: string | null
           cantidad?: number
+          condicion?: string
           created_at?: string
           diferencia?: number
           id?: string
           metodo_pago_diferencia?: string | null
+          motivo?: string | null
           token_cliente?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
@@ -2157,9 +2163,10 @@ export type Database = {
       }
       prendas_danadas: {
         Row: {
+          cambio_id: string | null
           cantidad: number
           created_at: string
-          devolucion_item_id: string
+          devolucion_item_id: string | null
           estado: string
           id: string
           movimiento_entrada_id: string
@@ -2172,9 +2179,10 @@ export type Database = {
           variante_id: string
         }
         Insert: {
+          cambio_id?: string | null
           cantidad: number
           created_at?: string
-          devolucion_item_id: string
+          devolucion_item_id?: string | null
           estado?: string
           id?: string
           movimiento_entrada_id: string
@@ -2187,9 +2195,10 @@ export type Database = {
           variante_id: string
         }
         Update: {
+          cambio_id?: string | null
           cantidad?: number
           created_at?: string
-          devolucion_item_id?: string
+          devolucion_item_id?: string | null
           estado?: string
           id?: string
           movimiento_entrada_id?: string
@@ -2202,6 +2211,13 @@ export type Database = {
           variante_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prendas_danadas_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: true
+            referencedRelation: "cambios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prendas_danadas_devolucion_item_id_fkey"
             columns: ["devolucion_item_id"]
@@ -4834,7 +4850,9 @@ export type Database = {
       registrar_cambio: {
         Args: {
           p_cantidad?: number
+          p_condicion?: string
           p_metodo_pago_diferencia?: string
+          p_motivo?: string
           p_token?: string
           p_ubicacion_id: string
           p_variante_nueva_id: string

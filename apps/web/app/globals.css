@@ -17,7 +17,9 @@
   --color-rojo-profundo: #8b2a1f;
   --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
   --color-taupe: #a47865;
-  --color-papel: #fbf8f2;       /* Crema un punto más clara, para tarjetas sobre crema */
+  --color-papel: #fbf6ec;       /* Blanco cálido para tarjetas sobre crema. 2026-09-18: el #fbf8f2 anterior
+                                   se leía como blanco puro (Felipe); este sube el amarillo, sigue más claro
+                                   que el crema — el contraste de texto medido en ADR-0012 no baja. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
   /* Semánticos (semáforo): separados del acento, jamás decoración */
@@ -613,6 +615,65 @@ body {
   100% { opacity: 0; }
 }
 
+/* ---- Atelier (2026-09-19): el hilo que cose Cambios y Devoluciones ----
+   Papel y hilo: lo que entra sube un poco y se asienta; el hilo (taupe, el color de
+   la "línea" del sistema) se dibuja al aparecer. `backwards` y no `both`: una vez
+   terminada la animación el elemento vuelve a su estilo normal, así el hover y las
+   transiciones pueden mover su `transform` sin que la animación los pise.
+   Uso: `anim-sube` con `style={{ "--i": n }}` para escalonar. */
+@keyframes cayla-sube {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+}
+@keyframes cayla-dibuja-x {
+  from { transform: scaleX(0); }
+}
+@keyframes cayla-crece-y {
+  from { transform: scaleY(0); }
+}
+@keyframes cayla-trazo {
+  from { stroke-dashoffset: 24; }
+}
+@keyframes cayla-anillo {
+  from { stroke-dasharray: 0 100; }
+}
+@keyframes cayla-pop {
+  40% { transform: scale(1.07); }
+}
+@keyframes cayla-hilo-corre {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes cayla-giro {
+  to { transform: rotate(360deg); }
+}
+@keyframes cayla-aguja {
+  0% { left: 0; opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@layer components {
+  .anim-sube { animation: cayla-sube 850ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 70ms + 80ms); }
+  .hilo-dibuja { transform-origin: left; animation: cayla-dibuja-x 1.1s var(--ease-cayla) 250ms backwards; }
+  .hilo-vertical { transform-origin: top; animation: cayla-crece-y 1.8s var(--ease-cayla) 350ms backwards; }
+  .hilo-corre { stroke-dasharray: 6 6; animation: cayla-hilo-corre 1.6s linear infinite; }
+  .gira-lento { animation: cayla-giro 9s linear infinite; }
+  .aguja-hilo { opacity: 0; animation: cayla-aguja 3.2s ease-in-out 1.8s infinite; }
+  .anim-pop { animation: cayla-pop 500ms var(--ease-cayla); }
+  /* El tilde de un check que se traza (solo el último trazo del ícono: el círculo queda). */
+  .check-trazo path:last-child { stroke-dasharray: 24; animation: cayla-trazo 550ms var(--ease-cayla) backwards; animation-delay: var(--d, 700ms); }
+  .anillo-progreso .rg { transition: stroke-dasharray 900ms var(--ease-cayla); animation: cayla-anillo 1.3s var(--ease-cayla) 300ms backwards; }
+  /* Un destello de luz cruza el botón al pasar el mouse, y su flecha se adelanta. Es el
+     mismo barrido de `cayla-brillo` de arriba, ahora también para los botones oscuros. */
+  .boton-brillo { position: relative; overflow: hidden; }
+  .boton-brillo::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+  }
+  .boton-brillo:hover:not(:disabled)::after { animation: cayla-brillo 800ms var(--ease-cayla); }
+  .boton-brillo svg:last-child { transition: transform 300ms var(--ease-cayla); }
+  .boton-brillo:hover:not(:disabled) svg:last-child { transform: translateX(4px); }
+}
+
 @layer components {
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
@@ -754,6 +815,21 @@ body {
     .hilo-trabajando::after { animation: none; }
     /* El respiro rojo es solo opacidad y se queda; el barrido de luz sí se mueve: fuera. */
     .anim-tope-barrido { display: none; }
+    /* Atelier (2026-09-19): lo que se repite para siempre (adorno, no información) se
+       detiene del todo; el resto se acorta a un instante. */
+    .hilo-corre,
+    .gira-lento,
+    .aguja-hilo { animation: none; }
+    .anim-sube,
+    .hilo-dibuja,
+    .hilo-vertical,
+    .anim-pop,
+    .check-trazo path:last-child,
+    .anillo-progreso .rg {
+      animation-duration: 1ms;
+      animation-delay: 0ms;
+    }
+    .boton-brillo:hover:not(:disabled)::after { animation: none; }
   }
 }
 /* Fuera de capa a propósito: el `!important` de movimiento reducido tiene que ganarle
