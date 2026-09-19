@@ -35,3 +35,12 @@ export function diaMes(iso: string | null): string {
   const [, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}`;
 }
+
+/** «19/09» y «16:34» de un instante (con o sin offset), en hora de Lima. Lima va cinco horas detrás
+ *  de UTC todo el año (sin horario de verano): se corre el instante y se lee en UTC, sin `Intl`, así
+ *  que servidor y navegador dicen lo mismo. */
+export function diaYHoraLima(iso: string): { dia: string; hora: string } {
+  const lima = new Date(Date.parse(iso) - 5 * 3600 * 1000);
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return { dia: `${dos(lima.getUTCDate())}/${dos(lima.getUTCMonth() + 1)}`, hora: `${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}` };
+}

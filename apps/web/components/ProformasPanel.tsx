@@ -7,7 +7,7 @@ import type { Proforma } from "@/lib/proformas";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaYHoraLima } from "@/lib/fecha-lima";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 import { chipDeLaProforma, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
