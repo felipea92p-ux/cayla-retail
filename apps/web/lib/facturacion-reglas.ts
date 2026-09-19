@@ -44,6 +44,15 @@ export function esMismoMes(a: Mes, b: Mes): boolean {
   return a.anio === b.anio && a.mes === b.mes;
 }
 
+/** Cómo se dice un mes dentro de una frase: «este mes» si es el actual; si no, «en agosto» (con
+ *  el año cuando no es el de hoy: «en agosto de 2025»). Las tarjetas de Comprobantes lo usan para
+ *  no decir «este mes» mirando un mes que ya pasó. */
+export function periodoDelMes(mes: Mes, actual: Mes): string {
+  if (esMismoMes(mes, actual)) return "este mes";
+  const nombre = NOMBRES_MES[mes.mes - 1].toLowerCase();
+  return mes.anio === actual.anio ? `en ${nombre}` : `en ${nombre} de ${mes.anio}`;
+}
+
 /* ---------------------------- Las pestañas ---------------------------- */
 
 export type ClavePestana = "resumen" | "proformas" | "comprobantes" | "descuentos";

@@ -17,11 +17,11 @@ import { useTransmitir } from "@/lib/useTransmitir";
 // las filas vienen resueltas de servidor (`enlazarVentasConComprobantes`) y las decisiones de
 // cada una —hilo, chip, detalle, acción— salen de `lib/facturacion-actividad.ts`.
 //
-// Tres formas según el ancho (el patrón de los paneles de Facturación): desde 1280 px (`xl:`) la
-// tabla con la columna «Pago»; entre 640 y 1279 px la misma tabla sin esa columna (el método pasa a
-// la línea de abajo); por debajo de 640 px, tarjetas apiladas. Se usa `xl:` y no un
-// `min-[1280px]:` arbitrario: Tailwind 4 ordena las variantes arbitrarias ANTES que `sm:`, y a
-// 1280 px el `sm:grid-cols` (más tarde en la hoja) le ganaría al de cinco columnas.
+// Tres formas según el ancho DE LA TARJETA (container queries), no el de la ventana: con el menú
+// lateral desplegado (17 rem) una ventana de 768 px deja ~480 px de contenido, y una regla por
+// ventana (`sm:`) armaba ahí la tabla de cuatro columnas apretada hasta cortar el estado. Desde 900 px
+// de tarjeta la tabla con la columna «Pago»; entre 640 y 899 px la misma tabla sin esa columna (el
+// método pasa a la línea de abajo); por debajo de 640 px, filas apiladas.
 
 // Cada método de pago con su color de dato (paleta de Caja, `--color-metodo-*`): nunca un hex suelto.
 const COLOR_METODO: Record<string, string> = {
@@ -49,13 +49,13 @@ function lineasDeProductos(v: VentaDelDia): string[] {
 }
 
 // Las columnas de la tabla, en las dos versiones (con y sin «Pago»).
-const COLUMNAS = "sm:grid sm:grid-cols-[62px_minmax(0,1fr)_84px_minmax(0,1.3fr)] xl:grid-cols-[72px_minmax(0,1.15fr)_104px_96px_minmax(0,1.95fr)]";
+const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[62px_minmax(0,1fr)_84px_minmax(0,1.3fr)] @min-[900px]:grid-cols-[72px_minmax(0,1.15fr)_104px_96px_minmax(0,1.95fr)]";
 
 export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; ahora: Date }) {
   const { transmitiendoId, transmitir } = useTransmitir();
 
   return (
-    <div className="card-cayla anim-sube overflow-hidden" style={{ "--i": 4 } as CSSProperties}>
+    <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 4 } as CSSProperties}>
       <div className="flex items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>
@@ -77,7 +77,7 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
           <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/55 ${COLUMNAS}`}>
             <span>Hora</span>
             <span>Productos</span>
-            <span className="hidden xl:inline">Pago</span>
+            <span className="hidden @min-[900px]:inline">Pago</span>
             <span className="text-right">Total</span>
             <span>Comprobante</span>
           </div>
@@ -93,11 +93,11 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
             return (
               <div
                 key={`${venta.venta_id}-${venta.comprobante_texto ?? "sin"}`}
-                className={`flex flex-col gap-2 border-t border-tinta/10 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] sm:items-center sm:gap-x-4 sm:gap-y-0 ${COLUMNAS}`}
+                className={`flex flex-col gap-2 border-t border-tinta/10 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] @min-[640px]:items-center @min-[640px]:gap-x-4 @min-[640px]:gap-y-0 ${COLUMNAS}`}
               >
-                <div className="flex items-baseline gap-2 sm:block">
+                <div className="flex items-baseline gap-2 @min-[640px]:block">
                   <p className="font-display text-lg leading-tight tabular-nums text-tinta">{venta.hora}</p>
-                  <p className="label-cayla text-[10px] text-tinta/55 sm:mt-0.5">{venta.ubicacion_nombre}</p>
+                  <p className="label-cayla text-[10px] text-tinta/55 @min-[640px]:mt-0.5">{venta.ubicacion_nombre}</p>
                 </div>
 
                 <div className="min-w-0">
@@ -108,11 +108,11 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
                   ))}
                   <p className="mt-0.5 text-[13px] text-tinta/65">
                     {venta.cliente_nombre} · {venta.vendedor}
-                    <span className="xl:hidden">{pago.length > 0 ? ` · ${pago.map((m) => m.nombre).join(" + ")}` : ""}</span>
+                    <span className="@min-[900px]:hidden">{pago.length > 0 ? ` · ${pago.map((m) => m.nombre).join(" + ")}` : ""}</span>
                   </p>
                 </div>
 
-                <div className="hidden xl:block">
+                <div className="hidden @min-[900px]:block">
                   {pago.map((m) => (
                     <span key={m.nombre} className="mr-3 inline-flex items-center gap-2 text-[13px] text-tinta">
                       <i aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-[4px]" style={{ background: m.color }} />
@@ -121,7 +121,7 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
                   ))}
                 </div>
 
-                <p className="font-display text-lg leading-tight tabular-nums text-tinta sm:text-right">{soles(Number(venta.total))}</p>
+                <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">{soles(Number(venta.total))}</p>
 
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                   <div>

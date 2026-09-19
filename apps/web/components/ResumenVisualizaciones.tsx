@@ -41,15 +41,15 @@ export function EjeDeVentas({ horas }: { horas: number[] }) {
 
 /** La barra de «Por enviar»: cuántos de los comprobantes de hoy ya salieron hacia SUNAT. Sin
  *  comprobantes hoy no hay barra que llenar: se dice con palabras. */
-export function BarraDeEnvio({ enviados, total }: { enviados: number; total: number }) {
-  if (total === 0) return <p className="kpi-progreso__texto mt-3">Sin comprobantes hoy todavía.</p>;
+export function BarraDeEnvio({ enviados, total, cuando = "hoy" }: { enviados: number; total: number; /** El período que mide: «hoy» en el Resumen, «este mes» en Comprobantes. */ cuando?: string }) {
+  if (total === 0) return <p className="kpi-progreso__texto mt-3">Sin comprobantes {cuando}{cuando === "hoy" ? " todavía" : ""}.</p>;
   return (
     <>
-      <div className="kpi-progreso" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={enviados} aria-label="Comprobantes de hoy enviados a SUNAT">
+      <div className="kpi-progreso" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={enviados} aria-label={`Comprobantes enviados a SUNAT (${cuando})`}>
         <b style={{ width: `${(enviados / total) * 100}%` }} />
       </div>
       <p className="kpi-progreso__texto">
-        hoy: {enviados} de {total} enviados
+        {cuando}: {enviados} de {total} enviados
       </p>
     </>
   );

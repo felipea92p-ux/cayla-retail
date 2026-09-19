@@ -137,8 +137,32 @@ describe("montosDelMes (spec §9: «Monto facturado» solo suma aceptados de pro
     expect(m.facturado).toBe(0.3);
   });
 
+  it("una nota de crédito aceptada RESTA de lo facturado (su total viene en positivo) y se cuenta aparte", () => {
+    const m = montosDelMes([
+      c({ total: 500, tipo: "boleta", estado: "aceptado", entorno_transmision: "produccion" }),
+      c({ total: 120, tipo: "nota_credito", estado: "aceptado", entorno_transmision: "produccion" }),
+    ]);
+    expect(m.facturado).toBe(380);
+    expect(m.notasDeCredito).toBe(120);
+  });
+
+  it("una nota de crédito de prueba o pendiente no toca lo facturado", () => {
+    const m = montosDelMes([
+      c({ total: 500, tipo: "boleta", estado: "aceptado", entorno_transmision: "produccion" }),
+      c({ total: 120, tipo: "nota_credito", estado: "aceptado", entorno_transmision: "sandbox" }),
+      c({ total: 80, tipo: "nota_credito", estado: "pendiente", entorno_transmision: null }),
+    ]);
+    expect(m.facturado).toBe(500);
+    expect(m.notasDeCredito).toBe(0);
+  });
+
+  it("«emitidos» no cuenta lo que se liberó antes de transmitirse", () => {
+    const m = montosDelMes([c({ estado: "aceptado" }), c({ estado: "pendiente", entorno_transmision: null }), c({ estado: "no_emitido", entorno_transmision: null }), c({ estado: "anulado" })]);
+    expect(m.emitidos).toBe(3);
+  });
+
   it("sin comprobantes todo es cero", () => {
-    expect(montosDelMes([])).toEqual({ facturado: 0, deprueba: 0, sinEnviar: 0, cuantosDePrueba: 0 });
+    expect(montosDelMes([])).toEqual({ emitidos: 0, facturado: 0, notasDeCredito: 0, deprueba: 0, sinEnviar: 0, cuantosDePrueba: 0 });
   });
 });
 

@@ -47,24 +47,45 @@ export function textoDeSeriesFaltantes(grupos: GrupoSeriesFaltantes[]): string {
 
 const aCentimos = (n: number) => Math.round(n * 100) / 100;
 
+export type MontosDelMes = {
+  /** Lo emitido de verdad: sin los que se liberaron antes de transmitirse (`no_emitido`). */
+  emitidos: number;
+  /** Neto: lo aceptado por SUNAT en producción, restadas las notas de crédito. */
+  facturado: number;
+  /** Lo que las notas de crédito aceptadas le quitaron a `facturado`. */
+  notasDeCredito: number;
+  deprueba: number;
+  sinEnviar: number;
+  cuantosDePrueba: number;
+};
+
 /** Cuánto vale de verdad lo emitido en el mes. «Monto facturado» solo suma lo aceptado por SUNAT
  *  en producción y sin baja en trámite: un comprobante de prueba tiene número y PDF pero no vale
  *  como comprobante de pago, y uno por enviar todavía no es de nadie. Esos dos se cuentan aparte
- *  para decirlos en la tarjeta. `cuantosDePrueba` cuenta los transmitidos al sandbox, en el estado
- *  que estén. */
-export function montosDelMes(comprobantes: Comprobante[]): { facturado: number; deprueba: number; sinEnviar: number; cuantosDePrueba: number } {
+ *  para decirlos en la tarjeta. Una nota de crédito guarda su total en positivo (es el monto que
+ *  devuelve) pero le RESTA a lo facturado: SUNAT la toma como IGV que ya no se debe.
+ *  `cuantosDePrueba` cuenta los transmitidos al sandbox, en el estado que estén. */
+export function montosDelMes(comprobantes: Comprobante[]): MontosDelMes {
   let facturado = 0;
+  let notasDeCredito = 0;
   let deprueba = 0;
   let sinEnviar = 0;
   let cuantosDePrueba = 0;
+  let emitidos = 0;
   for (const c of comprobantes) {
     const total = Number(c.total);
+    if (c.estado !== "no_emitido") emitidos += 1;
     if (c.entorno_transmision === "sandbox") cuantosDePrueba += 1;
-    if (c.estado === "aceptado" && c.entorno_transmision === "produccion" && c.anulacion_solicitada_at === null) facturado += total;
+    if (c.estado === "aceptado" && c.entorno_transmision === "produccion" && c.anulacion_solicitada_at === null) {
+      if (c.tipo === "nota_credito") {
+        facturado -= total;
+        notasDeCredito += total;
+      } else facturado += total;
+    }
     if (c.estado === "aceptado" && c.entorno_transmision === "sandbox") deprueba += total;
     if (c.estado === "pendiente" || c.estado === "rechazado") sinEnviar += total;
   }
-  return { facturado: aCentimos(facturado), deprueba: aCentimos(deprueba), sinEnviar: aCentimos(sinEnviar), cuantosDePrueba };
+  return { emitidos, facturado: aCentimos(facturado), notasDeCredito: aCentimos(notasDeCredito), deprueba: aCentimos(deprueba), sinEnviar: aCentimos(sinEnviar), cuantosDePrueba };
 }
 
 /** La línea que va bajo el estado de una fila: por qué se rechazó, por qué se liberó o por qué se

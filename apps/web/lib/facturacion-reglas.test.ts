@@ -8,6 +8,7 @@ import {
   mesDeParametro,
   mesSiguiente,
   paramDeMes,
+  periodoDelMes,
   PESTANAS,
   pestanaDeRuta,
   resumenPorEnviar,
@@ -53,6 +54,12 @@ describe("mes de la URL", () => {
   it("compara meses", () => {
     expect(esMismoMes({ anio: 2026, mes: 9 }, SEPTIEMBRE_2026)).toBe(true);
     expect(esMismoMes({ anio: 2025, mes: 9 }, SEPTIEMBRE_2026)).toBe(false);
+  });
+
+  it("dice el mes dentro de una frase: «este mes» el actual, «en agosto» uno pasado, con año si es de otro año", () => {
+    expect(periodoDelMes({ anio: 2026, mes: 9 }, SEPTIEMBRE_2026)).toBe("este mes");
+    expect(periodoDelMes({ anio: 2026, mes: 8 }, SEPTIEMBRE_2026)).toBe("en agosto");
+    expect(periodoDelMes({ anio: 2025, mes: 12 }, SEPTIEMBRE_2026)).toBe("en diciembre de 2025");
   });
 });
 
