@@ -1448,6 +1448,120 @@ export type Database = {
           },
         ]
       }
+      envio_extras: {
+        Row: {
+          envio_id: string
+          es_regalo: boolean
+          movimiento_id: string
+          nota: string | null
+          proveedor_id: string
+        }
+        Insert: {
+          envio_id: string
+          es_regalo?: boolean
+          movimiento_id: string
+          nota?: string | null
+          proveedor_id: string
+        }
+        Update: {
+          envio_id?: string
+          es_regalo?: boolean
+          movimiento_id?: string
+          nota?: string | null
+          proveedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_extras_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_extras_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_extras_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envio_traslados: {
+        Row: {
+          envio_id: string
+          transferencia_id: string
+        }
+        Insert: {
+          envio_id: string
+          transferencia_id: string
+        }
+        Update: {
+          envio_id?: string
+          transferencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_traslados_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_traslados_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envios: {
+        Row: {
+          fecha_recepcion: string
+          id: string
+          nota: string | null
+          numero_guia: string | null
+          recibido_por: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envios_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiqueta_categorias: {
         Row: {
           categoria_id: string
@@ -1721,6 +1835,7 @@ export type Database = {
       }
       lotes: {
         Row: {
+          envio_id: string | null
           fecha_recepcion: string
           id: string
           nota: string | null
@@ -1730,6 +1845,7 @@ export type Database = {
           ubicacion_id: string
         }
         Insert: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1739,6 +1855,7 @@ export type Database = {
           ubicacion_id: string
         }
         Update: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1748,6 +1865,13 @@ export type Database = {
           ubicacion_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lotes_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lotes_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -2085,6 +2209,7 @@ export type Database = {
           created_at: string
           estado: string
           id: string
+          imagen_muestra_url: string | null
           nombre: string
           notas: string | null
           propuesto_por: string | null
@@ -2096,6 +2221,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
@@ -2107,6 +2233,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
@@ -2452,20 +2579,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "productos_patron_id_fkey"
-            columns: ["patron_id"]
-            isOneToOne: false
-            referencedRelation: "patrones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "productos_tejido_id_fkey"
-            columns: ["tejido_id"]
-            isOneToOne: false
-            referencedRelation: "tejidos"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "productos_marca_fk"
             columns: ["marca_id"]
             isOneToOne: false
@@ -2473,10 +2586,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "productos_marca_proveedor_fk"
+            columns: ["marca_id", "proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "marca_proveedores"
+            referencedColumns: ["marca_id", "proveedor_id"]
+          },
+          {
+            foreignKeyName: "productos_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "productos_proveedor_fk"
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
             referencedColumns: ["id"]
           },
         ]
@@ -2827,6 +2961,7 @@ export type Database = {
           created_at: string
           estado: string
           id: string
+          imagen_muestra_url: string | null
           nombre: string
           notas: string | null
           propuesto_por: string | null
@@ -2838,6 +2973,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
@@ -2849,6 +2985,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
@@ -3220,7 +3357,7 @@ export type Database = {
           {
             foreignKeyName: "venta_anulacion_items_venta_item_id_fkey"
             columns: ["venta_item_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "venta_items"
             referencedColumns: ["id"]
           },
@@ -3921,10 +4058,7 @@ export type Database = {
         }
         Returns: string
       }
-      etiquetar_variantes: {
-        Args: { p_cambios: Json }
-        Returns: Json
-      }
+      etiquetar_variantes: { Args: { p_cambios: Json }; Returns: Json }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -3950,6 +4084,7 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_clave_referencia: { Args: { p: string }; Returns: string }
       fn_clave_texto: { Args: { p: string }; Returns: string }
       fn_colaboradores: {
         Args: never
@@ -4014,6 +4149,10 @@ export type Database = {
           stock_previo: number
           usuario_nombre: string
         }[]
+      }
+      fn_dentro_de_una_edicion: {
+        Args: { a: string; b: string }
+        Returns: boolean
       }
       fn_dynamic_disponibles: {
         Args: never
@@ -4466,6 +4605,7 @@ export type Database = {
       }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
+      fn_titulo_referencia: { Args: { p: string }; Returns: string }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
       fn_traslado_lineas: {
         Args: { p_transferencia_id: string }
@@ -4481,6 +4621,10 @@ export type Database = {
         }[]
       }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_validar_marca_proveedor: {
+        Args: { p_marca_id: string; p_proveedor_id: string }
+        Returns: undefined
+      }
       fn_variante_permitida_en_sede: {
         Args: { p_ubicacion_id: string; p_variante_id: string }
         Returns: boolean
@@ -4791,30 +4935,18 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimiento:
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_nota?: string
-              p_tipo: string
-              p_ubicacion_id: string
-              p_variante_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_nota?: string
-              p_sububicacion_id?: string
-              p_tipo: string
-              p_ubicacion_id: string
-              p_variante_id: string
-            }
-            Returns: string
-          }
+      registrar_movimiento: {
+        Args: {
+          p_cantidad: number
+          p_motivo?: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_tipo: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
       registrar_movimiento_caja: {
         Args: {
           p_caja_id: string
