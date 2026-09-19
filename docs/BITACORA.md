@@ -55,6 +55,9 @@ propio reloj sin bifurcarla. Al verificar sin sesión, una ruta temporal bajo `/
 mentira mostró el panel completo. Pendiente: Punto de venta (`/vender`), que hoy solo dice «Cargando
 caja…», y probar con una caja real abierta.
 
+## 2026-09-19 (Pagar juntos con varios medios: verificado en celular)
+Con 3 comprobantes y 3 medios en un celular de 375 px la cascada quedó correcta y sin desborde, pero salieron dos detalles de diseño que a escritorio no se veían: el segmentado «Si pagas menos» se cortaba y la ✕ de cada medio quedaba al pie de su tarjeta. Corregidos (`PagoJuntosModal.tsx`, `PagoPiezas.tsx`). Quedan sin probar en pantalla el saldo a favor encendido junto con varios medios y «Solo lo vencido» tras dividir (ver BACKLOG).
+
 ## 2026-09-19 (Diccionario de producción al día tras Pagar juntos con varios medios)
 Se refrescó la foto de producción por diferencias (hash por tabla, solo se bajó lo que cambió): entran `registrar_pago_compras_medios`, `fn_validar_fecha_pago_compra`, `fn_proveedores_serie_12m` y la firma de 4 parámetros de `registrar_pagos_compra` (178 funciones); `cambios` gana `motivo`/`condicion` y `prendas_danadas` gana `cambio_id` (con su UNIQUE y 4 candados), 693 columnas. `datos:comparar` pasa de 1 «roto en producción» (`fn_proveedores_serie_12m`, aún no aplicada) a 0.
 Las llamadas a `registrar_pago_compras*` quedan «no analizadas» porque el objeto se arma con `...`; no es un fallo, pero el comparador no las vigila.

@@ -26,7 +26,7 @@ el lote resuelve: un solo pago, un solo `pago_grupo_id`, conciliable contra el b
    nombre la vieja queda intacta y no hay ambigüedad.
 2. **Reparto en cascada.** Los medios se gastan EN ORDEN entre los comprobantes (ya ordenados por la pantalla, lo más
    vencido primero): el primer medio agota su monto sobre el primer comprobante y sigue en el segundo, etc. Se escribe una
-   fila de `compra_pagos` por comprobante y por medio, todas con el mismo `pago_grupo_id`. Cada comprobante conserva su
+   fila de `compra_pagos` por comprobante y por medio, todas con el mismo `pago_grupo_id`. Después, con 3 comprobantes y 3 medios (2,000 transferencia + 1,000 Yape + 1,248 efectivo) en celular de 375 px: cascada correcta (1,416 / 584+832 / 168+1,248 repartidos por comprobante), sin desborde horizontal. Esa pasada corrigió dos detalles de celular: el segmentado «Si pagas menos» se cortaba (ahora lleva etiquetas cortas bajo `sm`) y la ✕ de cada medio quedaba al pie de la tarjeta (ahora arriba a la derecha). Cada comprobante conserva su
    propio historial.
 3. **Σ medios = Σ aplicaciones − saldo a favor**, al centavo. El saldo a favor sigue entrando por `p_credito`, nunca como
    medio; si cubre todo, `p_medios` va vacío. Entre 1 y 8 medios; medio válido, monto > 0 con 2 decimales.
