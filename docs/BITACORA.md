@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Compras: pruebas SQL de los indicadores — 140 casos y 5 hallazgos)
+
+Los indicadores de Compras (deuda por vencimiento, salidas de caja, subtotales de Por pagar, recepciones, ingreso sin comprobante, ficha del proveedor, saldo a favor) solo se habían mirado con los datos de muestra. Ahora `pnpm pruebas:compras-indicadores` los prueba contra el Postgres local: cada caso corre en su transacción con ROLLBACK, mide una línea base antes de armar su escenario y verifica la diferencia. Incluye los bordes de día de Lima (reemplazando `fn_hoy_lima()` dentro de la transacción para simular «UTC ya es mañana») y lo que ve Micaela en cada función.
+
+Salieron 5 hallazgos que NO se arreglaron (cada uno queda como prueba `[HALLAZGO Hn]` y con detalle en el BACKLOG): el «% entregado completo» de la ficha ignora los faltantes cerrados, «última devolución» usa la fecha equivocada, `por_pagar_tramos` no acepta el filtro de tipo, los pagos sin fecha usan el reloj de UTC, y una decisión tuya: los indicadores de dinero le muestran a un integrante lo de su propia sede.
+
+Lo que Felipe se lleva: una prueba que espera «la deuda vencida es 0» se rompe apenas alguien registra una factura; la que mide antes y después sobrevive al seed, a otras sesiones y a la hora del día. Y para probar una regla de reloj hay que poder cambiar el reloj: sin eso, el borde de las 7 pm solo se ve de noche.
+
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
