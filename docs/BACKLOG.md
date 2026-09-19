@@ -315,10 +315,31 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
 - [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
       vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
-      `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
-      (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
+      `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
+      (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
+      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
+      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
       `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas).
+- [ ] **Hallazgos de `compras_indicadores.mjs` (sin arreglar; cada uno es una prueba `[HALLAZGO Hn]` que
+      pasa sola cuando se corrige, y todos piden una migración nueva):** **H1** `fn_proveedor_metricas_compras`
+      calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, así que un proveedor que
+      entregó 20 de 24 y cuyo faltante se cerró sale con 100 % (la ficha) y con 50 % en Recibir
+      mercadería (`resumen_recepciones` usa `recibido_cantidad >= facturado_cantidad`, que es lo que
+      dice su propia definición). **H2** `fn_proveedor_devoluciones.ultima` toma `created_at` (el día
+      que la prenda entró a cuarentena) en vez de `resuelto_en` (el día que se devolvió). **H3**
+      `por_pagar_tramos` no acepta `p_tipo` ni fechas de emisión aunque promete «los mismos filtros que
+      `listar_compras`» (baja gravedad: la pantalla no expone esos filtros, pero `?tipo=` en la URL
+      desalinea subtotal y filas). **H4 (decisión de Felipe)** los indicadores de dinero que solo tienen
+      candado de sede (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
+      `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un integrante los montos de los comprobantes
+      de SU sede (ADR-0075), mientras `fn_proveedores*` y las fichas sí son solo-líder; no hay fuga hacia
+      otras sedes (probado), pero choca con «lo financiero es solo de líder». **H5** `registrar_pago_compra`,
+      `registrar_pagos_compra` y el pago inicial de `registrar_compra` fechan con `current_date` (UTC)
+      cuando no reciben fecha: entre las 7 pm y medianoche de Lima el pago queda de «mañana» y
+      `dias_pago_real_promedio` cuenta un día de más (la app manda su fecha, así que hoy solo afecta a
+      quien llame sin ella).
 
 ---
 
